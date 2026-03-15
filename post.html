@@ -209,12 +209,19 @@
       const p = { id: snap.id, ...snap.data() };
       if (!p.published) { renderError('This post is not available.'); return; }
 
-      // FIX: Sanitize all Firestore fields with DOMPurify before rendering
-      // Prevents XSS if any field contains malicious HTML or script tags.
+      // FIX: Sanitize all Firestore fields with DOMPurify before rendering.
+      // ADD_ATTR allows target/rel on <a> tags so reference links open in new tab.
+      const purifyConfig = {
+        ADD_ATTR: ['target', 'rel'],
+        ALLOWED_TAGS: ['h2','h3','h4','p','strong','em','ul','ol','li','blockquote',
+                       'a','br','table','thead','tbody','tr','th','td','figure',
+                       'figcaption','img','div','span'],
+        ALLOWED_ATTR: ['href','src','alt','style','class','target','rel','width','height'],
+      };
       const clean = {
         title:      DOMPurify.sanitize(p.title      || ''),
         excerpt:    DOMPurify.sanitize(p.excerpt    || ''),
-        content:    DOMPurify.sanitize(p.content    || ''),
+        content:    DOMPurify.sanitize(p.content    || '', purifyConfig),
         authorName: DOMPurify.sanitize(p.authorName || ''),
         category:   DOMPurify.sanitize(p.category   || 'General'),
       };
