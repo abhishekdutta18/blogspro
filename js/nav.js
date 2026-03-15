@@ -1,12 +1,13 @@
 // ═══════════════════════════════════════════════
 // nav.js — Navigation, view switching
 // ═══════════════════════════════════════════════
-import { state }         from './state.js';
-import { loadAll }       from './posts.js';
-import { loadUsers }     from './users.js';
-import { loadSubscribers } from './subscribers.js';
-import { populateAnalyzeSelect } from './seo-page.js';
-import { clearEditor }   from './editor.js';
+import { state }                   from './state.js';
+import { loadAll, renderPostsTable } from './posts.js';
+import { loadUsers }               from './users.js';
+import { loadSubscribers }         from './subscribers.js';
+import { populateAnalyzeSelect }   from './seo-page.js';
+import { clearEditor }             from './editor.js';
+import { closeAIDrawer }           from './ai-drawer.js';
 
 export function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
