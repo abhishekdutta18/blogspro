@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Dashboard — BlogsPro</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="apple-touch-icon" href="favicon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=DM+Sans:wght@300;400;500;600&family=Noto+Sans:wght@400;500&display=swap" rel="stylesheet" />
   <!-- DOMPurify — XSS protection -->
@@ -442,6 +444,7 @@
     <div class="nav-item" data-view="subscribers"><span>✉</span> Subscribers</div>
 
     <span class="nav-label" style="margin-top:1.5rem">Site</span>
+    <div class="nav-item" data-view="about"><span>👤</span> About Page</div>
     <div class="nav-item" onclick="window.open('index.html','_blank')"><span>↗</span> View Blog</div>
   </nav>
   <div class="sidebar-footer">
@@ -1157,6 +1160,120 @@
   </div>
 
 
+
+
+<!-- ══════════════ ABOUT PAGE ══════════════ -->
+  <div class="view" id="view-about">
+    <div class="page-header">
+      <div><h2>About Page</h2><p>Edit your public profile and blog mission</p></div>
+      <button class="btn-publish" id="btnSaveAbout" onclick="saveAbout()" style="padding:0.7rem 1.5rem;border-radius:3px">
+        ✓ Save About Page
+      </button>
+    </div>
+
+    <div class="editor-grid">
+      <!-- Left column -->
+      <div>
+
+        <!-- Profile -->
+        <div class="editor-panel" style="margin-bottom:1.5rem">
+          <h3>Profile</h3>
+          <div class="form-row">
+            <label class="form-label">Display Name</label>
+            <input type="text" class="form-input" id="aboutName" placeholder="e.g. Abhishek Dutta" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Tagline / Role</label>
+            <input type="text" class="form-input" id="aboutTagline" placeholder="e.g. Fintech Writer & Analyst" />
+          </div>
+          <div class="form-row">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.45rem">
+              <label class="form-label" style="margin:0">Bio</label>
+              <button id="btnGenBio" onclick="generateAboutBio()" style="background:transparent;border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:0.2rem 0.6rem;border-radius:3px;font-family:var(--sans);font-size:0.68rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:0.4rem;transition:all 0.15s" onmouseover="this.style.background='rgba(201,168,76,0.08)'" onmouseout="this.style.background='transparent'">
+                ✦ AI Write
+                <span id="bioSpinner" style="display:none;width:10px;height:10px;border:2px solid rgba(201,168,76,0.3);border-top-color:var(--gold);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+              </button>
+            </div>
+            <textarea class="form-textarea" id="aboutBio" rows="5" placeholder="Write a short bio about yourself or your blog…" style="resize:vertical"></textarea>
+          </div>
+          <div class="form-row">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.45rem">
+              <label class="form-label" style="margin:0">Mission Statement</label>
+              <button id="btnGenMission" onclick="generateAboutMission()" style="background:transparent;border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:0.2rem 0.6rem;border-radius:3px;font-family:var(--sans);font-size:0.68rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:0.4rem;transition:all 0.15s" onmouseover="this.style.background='rgba(201,168,76,0.08)'" onmouseout="this.style.background='transparent'">
+                ✦ AI Write
+                <span id="missionSpinner" style="display:none;width:10px;height:10px;border:2px solid rgba(201,168,76,0.3);border-top-color:var(--gold);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+              </button>
+            </div>
+            <textarea class="form-textarea" id="aboutMission" rows="3" placeholder="Why does this blog exist? What value does it deliver?" style="resize:vertical"></textarea>
+          </div>
+        </div>
+
+        <!-- Social Links -->
+        <div class="editor-panel">
+          <h3>Contact & Social Links</h3>
+          <div class="form-row">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-input" id="aboutEmail" placeholder="you@example.com" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Twitter / X</label>
+            <input type="text" class="form-input" id="aboutTwitter" placeholder="https://twitter.com/yourhandle" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">LinkedIn</label>
+            <input type="text" class="form-input" id="aboutLinkedIn" placeholder="https://linkedin.com/in/yourprofile" />
+          </div>
+          <div class="form-row" style="margin-bottom:0">
+            <label class="form-label">Website</label>
+            <input type="text" class="form-input" id="aboutWebsite" placeholder="https://yourwebsite.com" />
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right column -->
+      <div>
+
+        <!-- Avatar -->
+        <div class="editor-panel" style="margin-bottom:1rem">
+          <h3>Profile Photo</h3>
+          <div class="form-row">
+            <label class="form-label">Image URL</label>
+            <input type="text" class="form-input" id="aboutAvatarUrl" placeholder="https://…" style="font-size:0.85rem" oninput="updateAvatarPreview(this.value)" />
+          </div>
+          <div id="avatarPreview" style="display:none;margin-top:0.75rem;text-align:center">
+            <img id="avatarPreviewImg" src="" alt="Avatar preview" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:2px solid var(--border);display:inline-block" />
+          </div>
+          <div style="margin-top:0.75rem;font-size:0.75rem;color:var(--muted);line-height:1.5">
+            💡 Upload your photo to <strong style="color:var(--cream)">Cloudinary</strong> or any image host, then paste the URL above.
+          </div>
+        </div>
+
+        <!-- Save status -->
+        <div class="editor-panel">
+          <button class="btn-publish" id="btnSaveAbout2" onclick="saveAbout()" style="width:100%;padding:0.9rem;border-radius:3px;font-size:0.9rem">
+            ✓ Save About Page
+          </button>
+          <p id="aboutSaveStatus" style="font-size:0.78rem;color:var(--muted);text-align:center;margin-top:0.6rem;min-height:1.2rem"></p>
+        </div>
+
+        <!-- Preview card -->
+        <div class="editor-panel" style="margin-top:1rem;border-color:rgba(201,168,76,0.2)">
+          <h3 style="margin-bottom:0.9rem">Preview</h3>
+          <div style="text-align:center;padding:1rem 0">
+            <div style="width:64px;height:64px;border-radius:50%;background:var(--navy3);border:2px solid var(--border);margin:0 auto 0.8rem;overflow:hidden;display:flex;align-items:center;justify-content:center">
+              <span id="previewInitial" style="font-family:var(--serif);font-size:1.5rem;font-weight:700;color:var(--gold)">A</span>
+            </div>
+            <div id="previewName" style="font-family:var(--serif);font-size:1.1rem;font-weight:700;color:var(--cream)">Your Name</div>
+            <div id="previewTagline" style="font-size:0.8rem;color:var(--muted);margin-top:0.2rem">Your Tagline</div>
+            <div id="previewBio" style="font-size:0.8rem;color:var(--muted);margin-top:0.8rem;line-height:1.6;text-align:left"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
 <!-- ══════════════ AI WRITER DRAWER ══════════════ -->
 <div id="aiDrawerOverlay" onclick="closeAIDrawer()"></div>
 <div id="aiDrawer">
@@ -1387,6 +1504,44 @@
      ENTRY POINT — all JS lives in /js/ modules
      Edit individual modules, not this file.
 ═══════════════════════════════════════════ -->
+<!-- About page live preview -->
+<script>
+(function() {
+  function syncPreview() {
+    const name    = document.getElementById('aboutName')?.value    || 'Your Name';
+    const tagline = document.getElementById('aboutTagline')?.value || 'Your Tagline';
+    const bio     = document.getElementById('aboutBio')?.value     || '';
+    const avatar  = document.getElementById('aboutAvatarUrl')?.value || '';
+
+    const pName    = document.getElementById('previewName');
+    const pTagline = document.getElementById('previewTagline');
+    const pBio     = document.getElementById('previewBio');
+    const pInitial = document.getElementById('previewInitial');
+    const pImg     = document.getElementById('avatarPreviewImg');
+
+    if (pName)    pName.textContent    = name;
+    if (pTagline) pTagline.textContent = tagline;
+    if (pBio)     pBio.textContent     = bio;
+    if (pInitial) pInitial.textContent = name.charAt(0).toUpperCase() || 'A';
+
+    if (avatar && pImg) {
+      pImg.src = avatar;
+      pImg.style.display = 'block';
+      document.getElementById('previewInitial').style.display = 'none';
+    } else if (pInitial) {
+      pInitial.style.display = 'block';
+      if (pImg) pImg.style.display = 'none';
+    }
+  }
+
+  document.addEventListener('input', e => {
+    if (['aboutName','aboutTagline','aboutBio','aboutAvatarUrl'].includes(e.target.id)) {
+      syncPreview();
+    }
+  });
+})();
+</script>
+
 <script type="module" src="js/main.js"></script>
 </body>
 </html>
