@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+ 
     :root {
       --navy:   #080d1a;
       --navy2:  #0f1628;
@@ -24,9 +24,9 @@
       --sans:   'DM Sans', sans-serif;
       --sidebar: 240px;
     }
-
+ 
     html, body { height: 100%; }
-
+ 
     body {
       background: var(--navy);
       color: var(--cream);
@@ -34,9 +34,9 @@
       -webkit-font-smoothing: antialiased;
       display: flex;
     }
-
+ 
     a { color: inherit; text-decoration: none; }
-
+ 
     /* ── SIDEBAR ───────────────────────────────────── */
     aside {
       width: var(--sidebar);
@@ -47,12 +47,12 @@
       position: fixed; top: 0; left: 0;
       z-index: 50;
     }
-
+ 
     .sidebar-brand {
       padding: 1.8rem 1.5rem 1.5rem;
       border-bottom: 1px solid var(--border);
     }
-
+ 
     .sidebar-brand h1 {
       font-family: var(--serif);
       font-size: 1.5rem; font-weight: 700;
@@ -60,17 +60,17 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-
+ 
     .sidebar-brand p {
       font-size: 0.7rem; color: var(--muted);
       letter-spacing: 0.08em; text-transform: uppercase;
       margin-top: 0.2rem;
     }
-
+ 
     nav.side-nav {
       flex: 1; padding: 1.5rem 0;
     }
-
+ 
     .nav-label {
       font-size: 0.62rem; font-weight: 600;
       letter-spacing: 0.15em; text-transform: uppercase;
@@ -78,7 +78,7 @@
       padding: 0 1.5rem;
       margin-bottom: 0.5rem;
     }
-
+ 
     .nav-item {
       display: flex; align-items: center; gap: 0.75rem;
       padding: 0.7rem 1.5rem;
@@ -87,40 +87,40 @@
       transition: all 0.15s;
       border-left: 2px solid transparent;
     }
-
+ 
     .nav-item:hover { color: var(--cream); background: rgba(255,255,255,0.03); }
-
+ 
     .nav-item.active {
       color: var(--gold);
       border-left-color: var(--gold);
       background: rgba(201,168,76,0.05);
     }
-
+ 
     .nav-icon { width: 16px; opacity: 0.7; }
-
+ 
     .sidebar-footer {
       padding: 1.5rem;
       border-top: 1px solid var(--border);
     }
-
+ 
     .user-chip {
       display: flex; align-items: center; gap: 0.7rem;
       margin-bottom: 1rem;
     }
-
+ 
     .user-avatar {
       width: 32px; height: 32px; border-radius: 50%;
       background: linear-gradient(135deg, var(--gold), var(--navy3));
       display: flex; align-items: center; justify-content: center;
       font-size: 0.8rem; font-weight: 700; color: var(--navy);
     }
-
+ 
     .user-email {
       font-size: 0.75rem; color: var(--muted);
       white-space: nowrap; overflow: hidden;
       text-overflow: ellipsis;
     }
-
+ 
     .btn-logout {
       width: 100%;
       background: transparent;
@@ -133,12 +133,12 @@
       cursor: pointer;
       transition: all 0.2s;
     }
-
+ 
     .btn-logout:hover {
       border-color: var(--red);
       color: #fca5a5;
     }
-
+ 
     /* ── MAIN ──────────────────────────────────────── */
     main {
       margin-left: var(--sidebar);
@@ -146,32 +146,32 @@
       min-height: 100vh;
       padding: 2.5rem;
     }
-
+ 
     /* ── VIEWS ─────────────────────────────────────── */
     .view { display: none; }
     .view.active { display: block; animation: fadeIn 0.25s ease; }
-
+ 
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(6px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-
+ 
     /* ── PAGE HEADER ───────────────────────────────── */
     .page-header {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 2.5rem;
     }
-
+ 
     .page-header h2 {
       font-family: var(--serif);
       font-size: 2rem; font-weight: 700;
     }
-
+ 
     .page-header p {
       font-size: 0.85rem; color: var(--muted);
       margin-top: 0.2rem;
     }
-
+ 
     /* ── STAT CARDS ────────────────────────────────── */
     .stats-row {
       display: grid;
@@ -179,53 +179,53 @@
       gap: 1px;
       margin-bottom: 3rem;
     }
-
+ 
     .stat-card {
       background: var(--navy2);
       border: 1px solid var(--border);
       padding: 1.8rem 1.5rem;
     }
-
+ 
     .stat-card-label {
       font-size: 0.7rem; font-weight: 600;
       letter-spacing: 0.12em; text-transform: uppercase;
       color: var(--muted);
       margin-bottom: 0.8rem;
     }
-
+ 
     .stat-card-value {
       font-family: var(--serif);
       font-size: 2.8rem; font-weight: 700;
       line-height: 1;
     }
-
+ 
     .stat-card-sub {
       font-size: 0.75rem; color: var(--green);
       margin-top: 0.4rem;
     }
-
+ 
     /* ── TABLE ─────────────────────────────────────── */
     .table-wrap {
       background: var(--navy2);
       border: 1px solid var(--border);
       overflow: hidden;
     }
-
+ 
     .table-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 1.2rem 1.5rem;
       border-bottom: 1px solid var(--border);
     }
-
+ 
     .table-title {
       font-size: 0.95rem; font-weight: 600;
     }
-
+ 
     table {
       width: 100%;
       border-collapse: collapse;
     }
-
+ 
     th {
       text-align: left;
       font-size: 0.68rem; font-weight: 600;
@@ -234,17 +234,17 @@
       padding: 0.9rem 1.5rem;
       border-bottom: 1px solid var(--border);
     }
-
+ 
     td {
       padding: 1rem 1.5rem;
       font-size: 0.88rem;
       border-bottom: 1px solid rgba(201,168,76,0.08);
     }
-
+ 
     tr:last-child td { border-bottom: none; }
-
+ 
     tr:hover td { background: rgba(255,255,255,0.02); }
-
+ 
     .status-badge {
       display: inline-block;
       padding: 0.25rem 0.6rem;
@@ -252,17 +252,17 @@
       font-size: 0.68rem; font-weight: 600;
       letter-spacing: 0.08em; text-transform: uppercase;
     }
-
+ 
     .status-published {
       background: rgba(34,197,94,0.15);
       color: var(--green);
     }
-
+ 
     .status-draft {
       background: rgba(136,150,179,0.15);
       color: var(--muted);
     }
-
+ 
     .action-btn {
       background: transparent;
       border: 1px solid var(--border);
@@ -275,11 +275,11 @@
       transition: all 0.15s;
       margin-right: 0.4rem;
     }
-
+ 
     .action-btn:hover { border-color: var(--gold); color: var(--gold); }
-
+ 
     .action-btn.delete:hover { border-color: var(--red); color: #fca5a5; }
-
+ 
     /* ── EDITOR ────────────────────────────────────── */
     .editor-grid {
       display: grid;
@@ -287,22 +287,22 @@
       gap: 1.5rem;
       align-items: start;
     }
-
+ 
     .editor-panel {
       background: var(--navy2);
       border: 1px solid var(--border);
       padding: 1.5rem;
     }
-
+ 
     .editor-panel h3 {
       font-size: 0.78rem; font-weight: 600;
       letter-spacing: 0.1em; text-transform: uppercase;
       color: var(--muted);
       margin-bottom: 1.2rem;
     }
-
+ 
     .form-row { margin-bottom: 1.2rem; }
-
+ 
     .form-label {
       display: block;
       font-size: 0.72rem; font-weight: 600;
@@ -310,7 +310,7 @@
       color: var(--muted);
       margin-bottom: 0.45rem;
     }
-
+ 
     .form-input, .form-select, .form-textarea {
       width: 100%;
       background: var(--navy);
@@ -323,18 +323,18 @@
       outline: none;
       transition: border-color 0.2s;
     }
-
+ 
     .form-input:focus, .form-select:focus, .form-textarea:focus {
       border-color: var(--gold);
     }
-
+ 
     .form-select option { background: var(--navy2); }
-
+ 
     .title-input {
       font-family: var(--serif);
       font-size: 1.5rem; font-weight: 600;
     }
-
+ 
     /* Rich text toolbar */
     .toolbar {
       display: flex; flex-wrap: wrap; gap: 4px;
@@ -344,7 +344,7 @@
       border-bottom: none;
       border-radius: 3px 3px 0 0;
     }
-
+ 
     .toolbar button {
       background: transparent;
       border: 1px solid transparent;
@@ -356,18 +356,18 @@
       cursor: pointer;
       transition: all 0.15s;
     }
-
+ 
     .toolbar button:hover {
       background: rgba(201,168,76,0.1);
       border-color: var(--border);
       color: var(--gold);
     }
-
+ 
     .toolbar-sep {
       width: 1px; background: var(--border);
       margin: 4px 2px;
     }
-
+ 
     #editor {
       min-height: 420px;
       background: var(--navy);
@@ -379,9 +379,9 @@
       line-height: 1.75;
       color: var(--cream);
     }
-
+ 
     #editor:focus { border-color: var(--gold); }
-
+ 
     #editor h2 { font-family: var(--serif); font-size: 1.5rem; margin: 1rem 0 0.5rem; }
     #editor h3 { font-family: var(--serif); font-size: 1.2rem; margin: 0.8rem 0 0.4rem; }
     #editor blockquote {
@@ -390,12 +390,12 @@
       font-style: italic; color: var(--muted);
     }
     #editor a { color: var(--gold); text-decoration: underline; }
-
+ 
     .publish-row {
       display: grid; grid-template-columns: 1fr 1fr;
       gap: 0.75rem; margin-top: 1rem;
     }
-
+ 
     .btn-save-draft {
       background: transparent;
       border: 1px solid var(--border);
@@ -407,9 +407,9 @@
       cursor: pointer;
       transition: all 0.2s;
     }
-
+ 
     .btn-save-draft:hover { border-color: var(--gold); color: var(--gold); }
-
+ 
     .btn-publish {
       background: var(--gold);
       color: var(--navy);
@@ -421,14 +421,14 @@
       cursor: pointer;
       transition: all 0.2s;
     }
-
+ 
     .btn-publish:hover { background: var(--gold2); }
-
+ 
     .char-count {
       font-size: 0.7rem; color: var(--muted);
       text-align: right; margin-top: 0.3rem;
     }
-
+ 
     /* Toast */
     .toast {
       position: fixed;
@@ -443,11 +443,11 @@
       transform: translateY(100px); opacity: 0;
       transition: all 0.3s;
     }
-
+ 
     .toast.show { transform: translateY(0); opacity: 1; }
     .toast.success { border-color: var(--green); }
     .toast.error   { border-color: var(--red); }
-
+ 
     /* Empty table */
     .table-empty {
       text-align: center;
@@ -455,7 +455,7 @@
       color: var(--muted);
       font-size: 0.9rem;
     }
-
+ 
     @media (max-width: 900px) {
       aside { transform: translateX(-100%); }
       main  { margin-left: 0; padding: 1.5rem; }
@@ -464,14 +464,14 @@
   </style>
 </head>
 <body>
-
+ 
 <!-- SIDEBAR -->
 <aside>
   <div class="sidebar-brand">
     <h1>BlogsPro</h1>
     <p>Admin Panel</p>
   </div>
-
+ 
   <nav class="side-nav">
     <p class="nav-label">Content</p>
     <div class="nav-item active" onclick="showView('dashboard')">
@@ -492,7 +492,7 @@
       <span class="nav-icon">↗</span> View Blog
     </div>
   </nav>
-
+ 
   <div class="sidebar-footer">
     <div class="user-chip">
       <div class="user-avatar" id="userInitial">—</div>
@@ -501,10 +501,10 @@
     <button class="btn-logout" onclick="doLogout()">Sign Out</button>
   </div>
 </aside>
-
+ 
 <!-- MAIN -->
 <main>
-
+ 
   <!-- DASHBOARD -->
   <div class="view active" id="view-dashboard">
     <div class="page-header">
@@ -515,7 +515,7 @@
       <button class="btn-publish" style="padding:0.7rem 1.5rem;border-radius:3px"
         onclick="showView('editor'); clearEditor()">+ New Post</button>
     </div>
-
+ 
     <div class="stats-row">
       <div class="stat-card">
         <div class="stat-card-label">Total Posts</div>
@@ -536,7 +536,7 @@
         <div class="stat-card-sub">Newsletter</div>
       </div>
     </div>
-
+ 
     <div class="table-wrap">
       <div class="table-header">
         <span class="table-title">Recent Posts</span>
@@ -557,7 +557,7 @@
       </table>
     </div>
   </div>
-
+ 
   <!-- ALL POSTS -->
   <div class="view" id="view-posts">
     <div class="page-header">
@@ -568,7 +568,7 @@
       <button class="btn-publish" style="padding:0.7rem 1.5rem;border-radius:3px"
         onclick="showView('editor'); clearEditor()">+ New Post</button>
     </div>
-
+ 
     <div class="table-wrap">
       <table>
         <thead>
@@ -586,7 +586,7 @@
       </table>
     </div>
   </div>
-
+ 
   <!-- EDITOR -->
   <div class="view" id="view-editor">
     <div class="page-header">
@@ -595,7 +595,7 @@
         <p>Write and publish your article</p>
       </div>
     </div>
-
+ 
     <div class="editor-grid">
       <!-- Left: main content -->
       <div>
@@ -603,13 +603,13 @@
           <input type="text" class="form-input title-input" id="postTitle"
             placeholder="Post title…" />
         </div>
-
+ 
         <div class="form-row">
           <textarea class="form-textarea" id="postExcerpt" rows="2"
             placeholder="Short excerpt / summary (shown on homepage)…"
             style="resize:vertical"></textarea>
         </div>
-
+ 
         <div class="toolbar">
           <button onclick="fmt('bold')" title="Bold"><b>B</b></button>
           <button onclick="fmt('italic')" title="Italic"><i>I</i></button>
@@ -624,30 +624,30 @@
           <button onclick="fmtBlock('blockquote')" title="Blockquote">"</button>
           <button onclick="insertLink()" title="Insert link">🔗</button>
         </div>
-
+ 
         <div id="editor" contenteditable="true"
           data-placeholder="Start writing your article here…"></div>
-
+ 
         <div class="char-count"><span id="wordCount">0</span> words</div>
       </div>
-
+ 
       <!-- Right: settings -->
       <div>
         <div class="editor-panel">
           <h3>Publish</h3>
-
+ 
           <div class="publish-row">
             <button class="btn-save-draft" onclick="savePost(false)">Save Draft</button>
             <button class="btn-publish" onclick="savePost(true)">Publish</button>
           </div>
-
+ 
           <p id="saveStatus"
             style="font-size:0.75rem;color:var(--muted);margin-top:0.8rem;text-align:center"></p>
         </div>
-
+ 
         <div class="editor-panel" style="margin-top:1rem">
           <h3>Details</h3>
-
+ 
           <div class="form-row">
             <label class="form-label">Category</label>
             <select class="form-select" id="postCategory">
@@ -656,7 +656,7 @@
               <option value="Strategy">Strategy</option>
             </select>
           </div>
-
+ 
           <div class="form-row">
             <label class="form-label">Slug (URL)</label>
             <input type="text" class="form-input" id="postSlug"
@@ -666,7 +666,7 @@
       </div>
     </div>
   </div>
-
+ 
   <!-- USERS -->
   <div class="view" id="view-users">
     <div class="page-header">
@@ -675,7 +675,7 @@
         <p>Manage all registered accounts</p>
       </div>
     </div>
-
+ 
     <div class="table-wrap">
       <table>
         <thead>
@@ -693,12 +693,12 @@
       </table>
     </div>
   </div>
-
+ 
 </main>
-
+ 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
-
+ 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
@@ -710,7 +710,7 @@
     getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
     query, orderBy, limit, where
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
+ 
   const firebaseConfig = {
     apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
     authDomain: "blogspro-ai.firebaseapp.com",
@@ -719,17 +719,17 @@
     messagingSenderId: "940428277283",
     appId: "1:940428277283:web:d3bb414f0992718ca76396"
   };
-
+ 
   const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db   = getFirestore(app);
-
+ 
   const ADMIN_UID = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
-
+ 
   let currentUser   = null;
   let editingPostId = null;
   let allPosts      = [];
-
+ 
   // Auth guard — only the real admin gets in
   onAuthStateChanged(auth, async user => {
     if (!user) { window.location.href = 'login.html'; return; }
@@ -745,7 +745,7 @@
       `Welcome back, ${user.email.split('@')[0]}.`;
     loadAll();
   });
-
+ 
   // ── Navigation ─────────────────────────────────
   window.showView = (name) => {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -758,34 +758,34 @@
     if (name === 'posts') renderPostsTable(allPosts, 'allPostsBody');
     if (name === 'users') loadUsers();
   };
-
+ 
   // ── Load data ──────────────────────────────────
   async function loadAll() {
     try {
       const q    = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
       allPosts   = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
+ 
       const published = allPosts.filter(p => p.published).length;
       const drafts    = allPosts.filter(p => !p.published).length;
-
+ 
       document.getElementById('statTotal').textContent     = allPosts.length;
       document.getElementById('statPublished').textContent = published;
       document.getElementById('statDrafts').textContent    = drafts;
-
+ 
       // Subscribers count
       try {
         const subSnap = await getDocs(collection(db, 'subscribers'));
         document.getElementById('statSubs').textContent = subSnap.size;
       } catch(_) { document.getElementById('statSubs').textContent = '—'; }
-
+ 
       renderPostsTable(allPosts.slice(0, 8), 'recentPostsBody');
     } catch(err) {
       console.error(err);
       showToast('Failed to load posts.', 'error');
     }
   }
-
+ 
   async function loadUsers() {
     const tbody = document.getElementById('usersTableBody');
     try {
@@ -823,14 +823,14 @@
       tbody.innerHTML = `<tr><td colspan="5"><div class="table-empty">Failed to load users.</div></td></tr>`;
     }
   }
-
+ 
   window.changeUserRole = async (uid, role) => {
     try {
       await updateDoc(doc(db, 'users', uid), { role });
       showToast(`Role updated to ${role}.`, 'success');
     } catch(e) { showToast('Failed to update role.', 'error'); }
   };
-
+ 
   function renderPostsTable(posts, tbodyId) {
     const tbody = document.getElementById(tbodyId);
     if (!posts.length) {
@@ -861,7 +861,7 @@
       </tr>`;
     }).join('');
   }
-
+ 
   // ── Editor ─────────────────────────────────────
   window.clearEditor = () => {
     editingPostId = null;
@@ -873,7 +873,7 @@
     document.getElementById('saveStatus').textContent = '';
     document.getElementById('editorHeading').textContent = 'New Post';
   };
-
+ 
   window.editPost = async (id) => {
     showView('editor');
     editingPostId = id;
@@ -892,7 +892,7 @@
       showToast('Failed to load post.', 'error');
     }
   };
-
+ 
   window.savePost = async (publish) => {
     const title   = document.getElementById('postTitle').value.trim();
     const excerpt = document.getElementById('postExcerpt').value.trim();
@@ -900,22 +900,24 @@
     const cat     = document.getElementById('postCategory').value;
     let   slug    = document.getElementById('postSlug').value.trim()
                     || slugify(title);
-
+ 
     if (!title) { showToast('Please add a title.', 'error'); return; }
-
+ 
     document.getElementById('saveStatus').textContent = 'Saving…';
-
+ 
+    const { serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+ 
     const data = {
       title, excerpt, content, category: cat, slug,
       published: publish,
-      updatedAt: new Date(),
+      updatedAt: serverTimestamp(),
     };
-
+ 
     try {
       if (editingPostId) {
         await updateDoc(doc(db, 'posts', editingPostId), data);
       } else {
-        data.createdAt = new Date();
+        data.createdAt = serverTimestamp();
         const ref = await addDoc(collection(db, 'posts'), data);
         editingPostId = ref.id;
       }
@@ -924,12 +926,17 @@
       showToast(publish ? 'Post published!' : 'Draft saved.', 'success');
       await loadAll();
     } catch(err) {
-      console.error(err);
+      console.error('savePost error:', err);
       document.getElementById('saveStatus').textContent = '';
-      showToast('Save failed: ' + err.message, 'error');
+      // Show specific error to help debug
+      if (err.code === 'permission-denied') {
+        showToast('Permission denied — check your Firestore rules and make sure your UID matches.', 'error');
+      } else {
+        showToast('Save failed: ' + (err.code || err.message), 'error');
+      }
     }
   };
-
+ 
   window.togglePublish = async (id, current) => {
     try {
       await updateDoc(doc(db, 'posts', id), { published: !current });
@@ -937,7 +944,7 @@
       await loadAll();
     } catch(err) { showToast('Update failed.', 'error'); }
   };
-
+ 
   window.deletePost = async (id) => {
     if (!confirm('Delete this post? This cannot be undone.')) return;
     try {
@@ -946,18 +953,18 @@
       await loadAll();
     } catch(err) { showToast('Delete failed.', 'error'); }
   };
-
+ 
   // ── Rich text ──────────────────────────────────
   window.fmt = (cmd) => {
     document.getElementById('editor').focus();
     document.execCommand(cmd, false, null);
   };
-
+ 
   window.fmtBlock = (tag) => {
     document.getElementById('editor').focus();
     document.execCommand('formatBlock', false, tag);
   };
-
+ 
   window.insertLink = () => {
     const url = prompt('Enter URL:');
     if (url) {
@@ -965,23 +972,23 @@
       document.execCommand('createLink', false, url);
     }
   };
-
+ 
   // Word count
   function updateWordCount() {
     const text  = document.getElementById('editor').innerText || '';
     const words = text.trim().split(/\s+/).filter(Boolean).length;
     document.getElementById('wordCount').textContent = words;
   }
-
+ 
   document.getElementById('editor').addEventListener('input', updateWordCount);
-
+ 
   // Auto-slug from title
   document.getElementById('postTitle').addEventListener('input', e => {
     if (!editingPostId) {
       document.getElementById('postSlug').value = slugify(e.target.value);
     }
   });
-
+ 
   function slugify(str) {
     return str.toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '')
@@ -989,13 +996,13 @@
       .replace(/-+/g, '-')
       .trim();
   }
-
+ 
   // ── Logout ─────────────────────────────────────
   window.doLogout = async () => {
     await signOut(auth);
     window.location.href = 'login.html';
   };
-
+ 
   // ── Toast ──────────────────────────────────────
   let toastTimer;
   function showToast(msg, type = 'success') {
@@ -1005,7 +1012,7 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
   }
-
+ 
   window.showToast = showToast;
 </script>
 </body>
