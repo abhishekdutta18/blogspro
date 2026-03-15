@@ -331,12 +331,12 @@
 
         <!-- AI Writer -->
         <div class="editor-panel" id="aiPanel" style="margin-top:1rem;border-color:rgba(201,168,76,0.35)">
-          <h3 style="color:var(--gold)">✦ AI Writer</h3>
-          <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem">Describe your topic. AI generates an outline first, then the full article.</p>
+          <h3 style="color:var(--gold)">✦ AI Writer — Multi-Model</h3>
+          <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem">Each task uses a dedicated AI model. All outputs combined into one complete post.</p>
 
           <div class="form-row">
             <label class="form-label">Topic / Prompt</label>
-            <textarea class="form-textarea" id="aiPrompt" rows="3" placeholder="e.g. Write about RBI's new UPI regulations for fintech companies in 2025…" style="resize:vertical;font-size:0.85rem"></textarea>
+            <textarea class="form-textarea" id="aiPrompt" rows="3" placeholder="e.g. Deep dive into RBI's new UPI regulations for fintech companies in 2025…" style="resize:vertical;font-size:0.85rem"></textarea>
           </div>
 
           <div class="form-row">
@@ -349,47 +349,43 @@
             </select>
           </div>
 
-          <div style="font-size:0.72rem;color:var(--green);margin-bottom:0.75rem;padding:0.6rem 0.8rem;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:3px">
-            ✦ Auto-selects best available model: DeepSeek → OpenRouter → Groq → Claude
+          <!-- Single model selector for all tasks -->
+          <div style="background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.8rem;margin-bottom:0.8rem">
+            <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem">AI Model — used for all tasks</div>
+            <select class="form-select" id="modelArticle" style="font-size:0.85rem">
+              <option value="groq">Groq Llama 3 — Fast & Free</option>
+              <option value="deepseek">DeepSeek V3 — 685B Free</option>
+              <option value="openrouter">OpenRouter Mistral — Free</option>
+              <option value="claude">Claude Sonnet — Best Quality</option>
+              <option value="auto">Auto (best available)</option>
+            </select>
+            <p style="font-size:0.68rem;color:var(--muted);margin-top:0.4rem">Same model handles article, metadata, and image prompts. Auto-fallback enabled if it fails.</p>
           </div>
-          <!-- Hidden model input — always auto -->
-          <input type="hidden" id="aiModel" value="auto" />
 
-          <button onclick="generateAIPost()" id="btnAI" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem">
-            <span id="aiBtnText">✦ Generate Article</span>
-            <span id="aiSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite;display:none"></span>
+          <!-- Free image AI tools info -->
+          <div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:3px;padding:0.7rem;margin-bottom:0.8rem;font-size:0.72rem">
+            <div style="color:#93c5fd;font-weight:700;margin-bottom:0.3rem">🖼 Free AI Image Generators</div>
+            <div style="color:var(--muted);line-height:1.6">
+              <a href="https://ideogram.ai" target="_blank" style="color:#93c5fd">Ideogram</a> — best for text in images &nbsp;|&nbsp;
+              <a href="https://www.bing.com/images/create" target="_blank" style="color:#93c5fd">Bing Image Creator</a> — free DALL-E &nbsp;|&nbsp;
+              <a href="https://leonardo.ai" target="_blank" style="color:#93c5fd">Leonardo AI</a> — high quality &nbsp;|&nbsp;
+              <a href="https://huggingface.co/spaces/stabilityai/stable-diffusion" target="_blank" style="color:#93c5fd">Stable Diffusion</a> — open source
+            </div>
+            <div style="color:var(--muted);margin-top:0.3rem">AI will generate image prompts you can paste into any of these tools.</div>
+          </div>
+
+          <button onclick="generateAIPost()" id="btnAI" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.9rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+            <span id="aiBtnText">✦ Generate Full Article</span>
+            <span id="aiSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
           </button>
           <p id="aiStatus" style="font-size:0.72rem;color:var(--muted);margin-top:0.6rem;text-align:center;min-height:1rem"></p>
 
-          <!-- AI Result Info Box — shown after generation -->
+          <!-- Result Box -->
           <div id="aiResultBox" style="display:none;margin-top:0.8rem;background:var(--navy);border:1px solid var(--border);border-radius:3px;overflow:hidden">
-            <div style="padding:0.6rem 0.8rem;background:rgba(201,168,76,0.08);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-              <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold)">✦ AI Generation Result</span>
-              <span id="aiModelBadge" style="font-size:0.65rem;font-weight:700;background:var(--navy2);border:1px solid var(--border);color:var(--muted);padding:0.2rem 0.5rem;border-radius:2px"></span>
+            <div style="padding:0.6rem 0.8rem;background:rgba(201,168,76,0.08);border-bottom:1px solid var(--border)">
+              <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold)">✦ Generation Complete</span>
             </div>
-            <div style="padding:0.75rem 0.8rem;display:flex;flex-direction:column;gap:0.4rem">
-              <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem">
-                <span id="aiCheckTitle" style="color:var(--muted)">○</span>
-                <span style="color:var(--muted)">Title auto-filled</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem">
-                <span id="aiCheckSummary" style="color:var(--muted)">○</span>
-                <span style="color:var(--muted)">Summary auto-filled</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem">
-                <span id="aiCheckTags" style="color:var(--muted)">○</span>
-                <span style="color:var(--muted)">SEO tags auto-filled</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem">
-                <span id="aiCheckMeta" style="color:var(--muted)">○</span>
-                <span style="color:var(--muted)">Meta description auto-filled</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem">
-                <span id="aiCheckCitations" style="color:var(--muted)">○</span>
-                <span style="color:var(--muted)">Citations included</span>
-              </div>
-            </div>
-            <!-- Fallback log — shows why models were skipped -->
+            <div style="padding:0.75rem 0.8rem;display:flex;flex-direction:column;gap:0.5rem" id="aiResultList"></div>
             <div id="aiFallbackLog" style="display:none;padding:0.6rem 0.8rem;border-top:1px solid var(--border)">
               <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem">Model Attempts</div>
               <div id="aiFallbackList" style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.72rem"></div>
@@ -775,7 +771,7 @@ window.onModelChange = () => {
   if (status) status.style.display = model !== 'claude' ? 'block' : 'none';
 };
 
-async function callAI(prompt, silent = false) {
+async function callAI(prompt, silent = false, forceModel = 'auto') {
   const tone     = document.getElementById('aiTone').value;
   const category = document.getElementById('postCategory').value;
 
@@ -784,7 +780,7 @@ async function callAI(prompt, silent = false) {
     res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, tone, category, model: 'auto' })
+      body: JSON.stringify({ prompt, tone, category, forceModel })
     });
   } catch(e) {
     return { error: 'Network error: ' + e.message };
@@ -798,20 +794,19 @@ async function callAI(prompt, silent = false) {
       error: typeof data.error === 'object'
         ? (data.error.message || JSON.stringify(data.error))
         : String(data.error),
-      attempts: data.attempts_detail || []
+      attemptsDetail: data.attempts_detail || []
     };
   }
 
   const text = data.text || '';
   if (!text) return { error: 'No content returned from AI.' };
 
-  // Show fallback toast only during article generation (not outline)
-  const modelLabels = { claude:'Claude', groq:'Groq', deepseek:'DeepSeek V3', openrouter:'OpenRouter Qwen3' };
+  const modelLabels = { claude:'Claude', groq:'Groq', deepseek:'DeepSeek V3', openrouter:'OpenRouter' };
   if (data.fallback_used && !silent) {
     const primary = data.attempts_detail?.[0]?.model;
     const from    = primary ? (modelLabels[primary] || primary) : 'Primary model';
     const to      = modelLabels[data.model_used] || data.model_used;
-    showToast(`${from} unavailable — switched to ${to} automatically.`, 'success');
+    showToast(`${from} unavailable — switched to ${to}.`, 'success');
   }
 
   return {
@@ -866,168 +861,122 @@ Return ONLY plain text bullet points, no HTML, no extra explanation.`;
 };
 
 window.confirmOutline = async () => {
-  const topic    = document.getElementById('aiPrompt').value.trim();
-  const category = document.getElementById('postCategory').value;
-  const tone     = document.getElementById('aiTone').value;
+  const topic        = document.getElementById('aiPrompt').value.trim();
+  const category     = document.getElementById('postCategory').value;
+  const tone         = document.getElementById('aiTone').value;
+  const modelArticle = document.getElementById('modelArticle').value;
+  const modelMeta    = modelArticle; // same model for all tasks
+  const modelImage   = modelArticle; // same model for all tasks
+  const ML = { claude:'Claude', groq:'Groq', deepseek:'DeepSeek V3', openrouter:'OpenRouter', auto:'Auto' };
 
-  document.getElementById('aiModalTitle').textContent     = '✦ Writing article…';
-  document.getElementById('aiModalSub').textContent       = 'Step 1/2 — generating content…';
-  document.getElementById('aiModalContent').innerHTML     = '<span style="animation:pulse 1s infinite;display:inline-block">Writing…</span>';
+  const results = [], allAttempts = [];
+  const addR = (icon, label, model, ok, extra='') => results.push({icon,label,model,ok,extra});
+
+  document.getElementById('aiResultBox').style.display  = 'none';
   document.getElementById('aiModalActions').style.display = 'none';
-  document.getElementById('aiResultBox').style.display    = 'none';
 
-  // ── CALL 1: Article HTML only ──────────────────
-  const articlePrompt = `You are an expert fintech writer for BlogsPro (blogspro.in).
-Write a comprehensive, detailed article about: "${topic}"
+  // ═══ CALL 1: Long-form Article ═══
+  document.getElementById('aiModalTitle').textContent = `✦ Writing article… [${ML[modelArticle]||modelArticle}]`;
+  document.getElementById('aiModalSub').textContent   = 'Generating long-form content — no output limit…';
+  document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Writing full article…</span>';
+  document.getElementById('aiModal').classList.add('open');
+
+  const artResult = await callAI(`You are an expert fintech writer for BlogsPro (blogspro.in).
+Write a comprehensive, long-form article about: "${topic}"
 Category: ${category}. Tone: ${tone}.
-Follow this outline:
-${pendingOutline}
+Follow this outline:\n${pendingOutline}\n
+Write as much as needed — NO word limit. Cover every point in depth with examples, data, and analysis.
+Return ONLY clean HTML using: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>
+Start directly with article content. No JSON, no metadata.`, false, modelArticle);
 
-Return ONLY clean HTML using these tags: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>
-Start directly with the article. No JSON, no metadata, no extra text after the article.`;
-
-  const artResult = await callAI(articlePrompt);
+  allAttempts.push(...(artResult.attemptsDetail||[]));
 
   if (artResult.error) {
     closeAIModal();
-    document.getElementById('aiStatus').textContent = '✕ ' + artResult.error;
-    showToast('AI Error: ' + artResult.error, 'error');
+    document.getElementById('aiStatus').textContent = '\u2715 Article failed: ' + artResult.error;
+    showToast('Article generation failed.', 'error');
     return;
   }
 
-  // Clean and insert article
-  const articleHTML = (artResult.text || '')
-    .replace(/---METADATA---[\s\S]*/g, '')
-    .replace(/\n*---+\s*$/gm, '')
-    .replace(/\n*\{"title"[\s\S]*/g, '')
-    .replace(/\n*JSON[\s\S]*/g, '')
-    .trim();
-
+  const articleHTML = (artResult.text||'').replace(/---METADATA---[\s\S]*/g,'').replace(/\n*---+\s*$/gm,'').replace(/\n*\{"title"[\s\S]*/g,'').trim();
   document.getElementById('editor').innerHTML = articleHTML;
   updateWordCount();
+  addR('\u2713', 'Article written', ML[artResult.modelUsed]||artResult.modelUsed, true);
+  showAIEditToolbar();
 
-  // ── CALL 2: Metadata JSON only ─────────────────
-  document.getElementById('aiModalTitle').textContent = '✦ Generating metadata…';
-  document.getElementById('aiModalSub').textContent   = 'Step 2/2 — title, tags, citations…';
+  // ═══ CALL 2: Metadata ═══
+  document.getElementById('aiModalTitle').textContent = `✦ Generating metadata… [${ML[modelMeta]||modelMeta}]`;
+  document.getElementById('aiModalSub').textContent   = 'Title, summary, SEO tags, citations…';
   document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Generating metadata…</span>';
 
-  const metaPrompt = `For a fintech article about "${topic}", return ONLY this exact JSON — no extra text, no markdown:
-{"title":"compelling headline under 70 chars","summary":"2 sentence homepage summary under 160 chars","metaDescription":"SEO meta under 155 chars","tags":["tag1","tag2","tag3","tag4","tag5"],"citations":["RBI Circular 2024: description","SEBI Report: description","Industry Study: description"]}`;
+  const metaResult = await callAI(`For a fintech article about "${topic}", return ONLY this JSON — no extra text:
+{"title":"headline max 70 chars","summary":"2-sentence summary max 160 chars","metaDescription":"SEO meta max 155 chars","tags":["tag1","tag2","tag3","tag4","tag5","tag6","tag7"],"citations":["Source 1: Publisher - full description","Source 2: Publisher - description","Source 3: Publisher - description","Source 4: Publisher - description","Source 5: Publisher - description"]}`, true, modelMeta);
 
-  const metaResult = await callAI(metaPrompt, true);
+  allAttempts.push(...(metaResult.attemptsDetail||[]));
+  const checks = {};
+  let parsed = null;
+  const mt = metaResult.error ? '' : (metaResult.text||'');
+  if (mt) {
+    try {
+      const s=mt.indexOf('{'), e=mt.lastIndexOf('}');
+      if (s!==-1&&e!==-1) parsed=JSON.parse(mt.substring(s,e+1));
+    } catch(_) {
+      try {
+        const t=mt.match(/"title"\s*:\s*"([^"]+)"/)?.[1];
+        const sm=mt.match(/"summary"\s*:\s*"([^"]+)"/)?.[1];
+        const md=mt.match(/"metaDescription"\s*:\s*"([^"]+)"/)?.[1];
+        const tags=[...mt.matchAll(/"([^"]{2,30})"/g)].slice(0,7).map(m=>m[1]);
+        if(t||sm) parsed={title:t,summary:sm,metaDescription:md,tags,citations:[]};
+      } catch(_2){}
+    }
+  }
+  if (parsed) {
+    if(parsed.title?.trim())           {document.getElementById('postTitle').value=parsed.title.trim();document.getElementById('postSlug').value=slugify(parsed.title.trim());checks.title=true;}
+    if(parsed.summary?.trim())         {document.getElementById('postExcerpt').value=parsed.summary.trim();checks.summary=true;}
+    if(parsed.metaDescription?.trim()) {document.getElementById('postMeta').value=parsed.metaDescription.trim();checks.meta=true;}
+    if(parsed.tags?.length)            {document.getElementById('postTags').value=parsed.tags.join(', ');checks.tags=true;}
+    if(parsed.citations?.length)       {document.getElementById('editor').innerHTML+=`<h2>References</h2><ul>${parsed.citations.map(c=>`<li><em>${c}</em></li>`).join('')}</ul>`;updateWordCount();checks.citations=true;}
+  }
+  if(!checks.title&&!document.getElementById('postTitle').value.trim()){document.getElementById('postTitle').value=topic.length<80?topic:topic.substring(0,75)+'\u2026';document.getElementById('postSlug').value=slugify(topic);checks.title=true;}
+  const metaFields=[checks.title&&'title',checks.summary&&'summary',checks.tags&&'tags',checks.meta&&'meta',checks.citations&&'citations'].filter(Boolean);
+  addR(metaFields.length?'\u2713':'\u2014','Metadata: '+(metaFields.join(', ')||'none'),ML[metaResult.modelUsed]||ML[modelMeta]||'',metaFields.length>0,metaResult.error?' ('+metaResult.error+')':'');
+
+  // ═══ CALL 3: Image Prompts ═══
+  document.getElementById('aiModalTitle').textContent = `✦ Generating image prompts… [${ML[modelImage]||modelImage}]`;
+  document.getElementById('aiModalSub').textContent   = 'Creating prompts for free AI image generators…';
+  document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Generating image prompts…</span>';
+
+  const imgResult = await callAI(`For a fintech article about "${topic}", generate 3 detailed AI image prompts.
+Each should describe a professional illustration for the article. Style: modern fintech, clean infographic, professional.
+Return plain text numbered 1-3, one prompt per line. Be specific and detailed.`, true, modelImage);
+
+  allAttempts.push(...(imgResult.attemptsDetail||[]));
   closeAIModal();
 
-  // ── Parse metadata ─────────────────────────────
-  const checks = {};
-  let parsed   = null;
-  const metaText = metaResult.error ? '' : (metaResult.text || '');
-
-  if (metaText) {
-    try {
-      // Extract JSON — find first { and last }
-      const start = metaText.indexOf('{');
-      const end   = metaText.lastIndexOf('}');
-      if (start !== -1 && end !== -1) {
-        parsed = JSON.parse(metaText.substring(start, end + 1));
-      }
-    } catch(e) {
-      // Regex fallback for individual fields
-      try {
-        const t  = metaText.match(/"title"\s*:\s*"([^"]+)"/)?.[1];
-        const s  = metaText.match(/"summary"\s*:\s*"([^"]+)"/)?.[1];
-        const m  = metaText.match(/"metaDescription"\s*:\s*"([^"]+)"/)?.[1];
-        const tg = [...metaText.matchAll(/"tags"\s*:\s*\[([^\]]+)\]/g)];
-        const tags = tg[0]?.[1]?.match(/"([^"]+)"/g)?.map(s=>s.replace(/"/g,''));
-        const cit = [...metaText.matchAll(/"citations"\s*:\s*\[([^\]]+)\]/g)];
-        const citations = cit[0]?.[1]?.match(/"([^"]+)"/g)?.map(s=>s.replace(/"/g,''));
-        if (t || s) parsed = { title:t, summary:s, metaDescription:m, tags, citations };
-      } catch(e2) { console.warn('Metadata parse failed completely'); }
-    }
-  }
-
-  if (parsed) {
-    if (parsed.title?.trim()) {
-      document.getElementById('postTitle').value = parsed.title.trim();
-      document.getElementById('postSlug').value  = slugify(parsed.title.trim());
-      checks.title = true;
-    }
-    if (parsed.summary?.trim()) {
-      document.getElementById('postExcerpt').value = parsed.summary.trim();
-      checks.summary = true;
-    }
-    if (parsed.metaDescription?.trim()) {
-      document.getElementById('postMeta').value = parsed.metaDescription.trim();
-      checks.meta = true;
-    }
-    if (parsed.tags?.length) {
-      document.getElementById('postTags').value = parsed.tags.join(', ');
-      checks.tags = true;
-    }
-    if (parsed.citations?.length) {
-      const citHtml = `<h2>References</h2><ul>${parsed.citations.map(c=>`<li><em>${c}</em></li>`).join('')}</ul>`;
-      document.getElementById('editor').innerHTML += citHtml;
+  if (!imgResult.error && imgResult.text) {
+    const prompts = imgResult.text.split('\n').filter(l=>l.trim().match(/^[1-9\-•]/)).slice(0,3);
+    if (prompts.length) {
+      document.getElementById('editor').innerHTML += `<h2>Suggested Images</h2>${prompts.map((p,i)=>`<div style="background:#1a2340;border:1px solid rgba(201,168,76,0.3);border-radius:4px;padding:1.5rem;margin:1rem 0"><p style="color:#c9a84c;font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.5rem">\uD83D\uDDBC IMAGE PROMPT ${i+1}</p><p style="color:#8896b3;font-size:0.85rem;line-height:1.6">${p.replace(/^[1-9\.\-\u2022\s]+/,'')}</p><p style="color:#c9a84c;font-size:0.7rem;margin-top:0.75rem">Generate free at: <a href="https://ideogram.ai" target="_blank" style="color:#93c5fd">Ideogram</a> &nbsp;·&nbsp; <a href="https://www.bing.com/images/create" target="_blank" style="color:#93c5fd">Bing Image Creator</a> &nbsp;·&nbsp; <a href="https://leonardo.ai" target="_blank" style="color:#93c5fd">Leonardo AI</a></p></div>`).join('')}`;
       updateWordCount();
-      checks.citations = true;
+      addR('\u2713', 'Image prompts (3)', ML[imgResult.modelUsed]||imgResult.modelUsed, true);
     }
-  }
-
-  // Fallback title
-  if (!checks.title && !document.getElementById('postTitle').value.trim()) {
-    document.getElementById('postTitle').value = topic.length < 80 ? topic : topic.substring(0,75)+'…';
-    document.getElementById('postSlug').value  = slugify(topic);
-    checks.title = true;
-  }
-
-  // ── Show result info box ──────────────────────
-  const modelLabels = { claude:'Claude', groq:'Groq', deepseek:'DeepSeek V3', openrouter:'OpenRouter Qwen3', gemini:'Gemini', auto:'Auto' };
-  const usedModel   = artResult.modelUsed || 'auto';
-  const badge       = document.getElementById('aiModelBadge');
-  badge.textContent = '⚡ ' + (modelLabels[usedModel] || usedModel);
-  badge.style.color = usedModel === 'claude' ? 'var(--gold)' : 'var(--green)';
-
-  const setCheck = (id, ok) => {
-    const el    = document.getElementById(id);
-    const label = el.closest('div').querySelector('span:last-child');
-    el.textContent    = ok ? '✓' : '—';
-    el.style.color    = ok ? 'var(--green)' : 'var(--muted)';
-    label.style.color = ok ? 'var(--cream)'  : 'var(--muted)';
-  };
-
-  setCheck('aiCheckTitle',     !!checks.title);
-  setCheck('aiCheckSummary',   !!checks.summary);
-  setCheck('aiCheckTags',      !!checks.tags);
-  setCheck('aiCheckMeta',      !!checks.meta);
-  setCheck('aiCheckCitations', !!checks.citations);
-
-  // Show fallback log — why models were skipped
-  const attempts = artResult.attemptsDetail || [];
-  const logEl    = document.getElementById('aiFallbackLog');
-  const listEl   = document.getElementById('aiFallbackList');
-
-  if (attempts.length > 0) {
-    logEl.style.display = 'block';
-    listEl.innerHTML = attempts.map(a => {
-      const icon    = a.success ? '✓' : '✕';
-      const color   = a.success ? 'var(--green)' : '#fca5a5';
-      const reason  = a.success ? 'Used — generated successfully' : (a.reason || 'Failed');
-      return `<div style="display:flex;gap:0.5rem;align-items:flex-start">
-        <span style="color:${color};flex-shrink:0;font-weight:700">${icon}</span>
-        <span><strong style="color:${a.success?'var(--cream)':'var(--muted)'}">${modelLabels[a.model]||a.model}</strong>
-        <span style="color:var(--muted)"> — ${reason}</span></span>
-      </div>`;
-    }).join('');
-  } else if (artResult.fallbackUsed) {
-    logEl.style.display = 'block';
-    listEl.innerHTML = `<div style="color:var(--muted)">Fallback triggered — primary model failed, switched to ${modelLabels[usedModel]||usedModel}.</div>`;
   } else {
-    logEl.style.display = 'none';
+    addR('\u2014', 'Image prompts', 'Skipped', false, imgResult.error?'('+imgResult.error+')':'');
+  }
+
+  // Show result box
+  document.getElementById('aiResultList').innerHTML = results.map(r=>`<div style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem"><span style="color:${r.ok?'var(--green)':'var(--muted)'};flex-shrink:0;font-weight:700">${r.icon}</span><div><span style="color:${r.ok?'var(--cream)':'var(--muted)'}">${r.label}</span>${r.model?`<span style="display:inline-block;margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.1rem 0.4rem;border-radius:2px">\u26A1${r.model}</span>`:''}${r.extra?`<span style="color:#fca5a5;font-size:0.7rem;display:block;margin-top:0.1rem">${r.extra}</span>`:''}</div></div>`).join('');
+
+  const hadFallbacks = allAttempts.some(a=>!a.success);
+  if (hadFallbacks) {
+    document.getElementById('aiFallbackLog').style.display='block';
+    document.getElementById('aiFallbackList').innerHTML=allAttempts.map(a=>`<div style="display:flex;gap:0.5rem"><span style="color:${a.success?'var(--green)':'#fca5a5'};font-weight:700">${a.success?'\u2713':'\u2715'}</span><span><strong style="color:${a.success?'var(--cream)':'var(--muted)'}">${ML[a.model]||a.model}</strong> <span style="color:var(--muted)">\u2014 ${a.success?'Used':(a.reason||'Failed')}</span></span></div>`).join('');
   }
 
   document.getElementById('aiResultBox').style.display = 'block';
-  showAIEditToolbar();
-  const filled = Object.values(checks).filter(Boolean).length;
-  document.getElementById('aiStatus').textContent = `✓ Done — ${filled}/5 fields auto-filled.`;
-  showToast(`Article ready! ${filled}/5 fields filled.`, 'success');
+  const total = results.filter(r=>r.ok).length;
+  document.getElementById('aiStatus').textContent = `\u2713 Complete \u2014 ${total}/${results.length} tasks done.`;
+  showToast(`Done! ${total}/${results.length} tasks completed.`, 'success');
 };
 
 window.cancelOutline = () => {
@@ -1074,32 +1023,34 @@ function setEditBtnsDisabled(on) {
 }
 
 async function runAIEdit(instruction) {
-  const currentContent = document.getElementById('editor').innerHTML;
-  const currentText    = document.getElementById('editor').innerText;
-  const topic          = document.getElementById('aiPrompt').value.trim() || 'the article';
-  const category       = document.getElementById('postCategory').value;
-  const tone           = document.getElementById('aiTone').value;
+  const currentText = document.getElementById('editor').innerText;
+  const topic       = document.getElementById('aiPrompt').value.trim() || 'fintech article';
+  const category    = document.getElementById('postCategory').value;
 
-  if (!currentContent.trim()) {
-    setEditStatus('No article content to edit. Generate an article first.', true);
+  if (!currentText.trim()) {
+    setEditStatus('No article content. Generate an article first.', true);
     return;
   }
 
   setEditBtnsDisabled(true);
-  setEditStatus('⏳ AI is working…');
+  setEditStatus('⏳ Working…');
 
-  const prompt = `You are editing a fintech article for BlogsPro (blogspro.in).
-Topic: "${topic}". Category: ${category}.
+  // Truncate to 1500 chars to stay well within free model limits
+  const snippet = currentText.length > 1500
+    ? currentText.substring(0, 1500) + '\n[…continues]'
+    : currentText;
 
-CURRENT ARTICLE:
-${currentText.substring(0, 3000)}
+  const prompt = `Edit this fintech article about "${topic}" (${category}).
 
-INSTRUCTION: ${instruction}
+ARTICLE:
+${snippet}
 
-Return ONLY the complete updated article HTML using <h2><h3><p><strong><em><ul><li><blockquote> tags.
-Return the FULL article — not just the edited section. No markdown, no extra text.`;
+TASK: ${instruction}
 
-  const result = await callAI(prompt, true);
+Return ONLY the complete updated article as clean HTML. Use only <h2><h3><p><strong><em><ul><li><blockquote><table><tr><td><th> tags. No markdown.`;
+
+  const model = document.getElementById('modelArticle')?.value || 'auto';
+  const result = await callAI(prompt, true, model);
 
   if (result.error) {
     setEditStatus('✕ ' + result.error, true);
@@ -1107,15 +1058,18 @@ Return the FULL article — not just the edited section. No markdown, no extra t
     return;
   }
 
-  // Clean and update editor
-  const clean = (result.text || '')
-    .replace(/---METADATA---[\s\S]*/g, '')
-    .replace(/\n*\{"title"[\s\S]*/g, '')
-    .trim();
+  const clean = (result.text || '').replace(/```html?|```/gi, '').replace(/---METADATA---[\s\S]*/g, '').trim();
+
+  if (!clean) {
+    setEditStatus('✕ Empty response. Try again.', true);
+    setEditBtnsDisabled(false);
+    return;
+  }
 
   document.getElementById('editor').innerHTML = clean;
   updateWordCount();
-  setEditStatus('✓ Done — reviewed and saved.');
+  const modelLabels = { groq:'Groq', deepseek:'DeepSeek', openrouter:'OpenRouter', claude:'Claude' };
+  setEditStatus(`✓ Done — ${modelLabels[result.modelUsed] || result.modelUsed || 'AI'}`);
   setEditBtnsDisabled(false);
   showToast('Article updated!', 'success');
 }
