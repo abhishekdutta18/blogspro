@@ -831,10 +831,15 @@
     try {
       const snap = await getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc')));
  
-      // Exclude the admin account from the users list
+      // Exclude the admin account using all possible identifiers
+      const adminEmail = currentUser?.email || '';
       const users = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter(u => u.uid !== ADMIN_UID);
+        .filter(u =>
+          u.id    !== ADMIN_UID &&
+          u.uid   !== ADMIN_UID &&
+          u.email !== adminEmail
+        );
  
       if (!users.length) {
         tbody.innerHTML = `<tr><td colspan="5"><div class="table-empty">No other users yet.</div></td></tr>`;
