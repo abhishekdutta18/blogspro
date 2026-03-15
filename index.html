@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+ 
     :root {
       --navy:    #080d1a;
       --navy2:   #0f1628;
@@ -23,9 +23,9 @@
       --serif:   'Cormorant Garamond', Georgia, serif;
       --sans:    'DM Sans', sans-serif;
     }
-
+ 
     html { scroll-behavior: smooth; }
-
+ 
     body {
       background: var(--navy);
       color: var(--cream);
@@ -34,9 +34,9 @@
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
     }
-
+ 
     a { color: inherit; text-decoration: none; }
-
+ 
     /* ── NAV ───────────────────────────────────────── */
     nav {
       position: sticky; top: 0; z-index: 100;
@@ -47,7 +47,7 @@
       display: flex; align-items: center; justify-content: space-between;
       height: 68px;
     }
-
+ 
     .nav-brand {
       font-family: var(--serif);
       font-size: 1.6rem;
@@ -57,12 +57,12 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-
+ 
     .nav-links {
       display: flex; align-items: center; gap: 2rem;
       list-style: none;
     }
-
+ 
     .nav-links a {
       font-size: 0.85rem;
       font-weight: 500;
@@ -71,9 +71,9 @@
       color: var(--muted);
       transition: color 0.2s;
     }
-
+ 
     .nav-links a:hover { color: var(--gold); }
-
+ 
     .nav-cta {
       background: var(--gold);
       color: var(--navy) !important;
@@ -82,9 +82,57 @@
       font-weight: 600 !important;
       transition: background 0.2s !important;
     }
-
+ 
     .nav-cta:hover { background: var(--gold2) !important; }
-
+ 
+    /* ── NAV USER CHIP ─────────────────────────────── */
+    .nav-user {
+      display: flex; align-items: center; gap: 0.6rem;
+      cursor: pointer; position: relative;
+    }
+    .nav-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold), var(--navy3));
+      border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.78rem; font-weight: 700; color: var(--navy);
+      overflow: hidden; flex-shrink: 0;
+    }
+    .nav-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .nav-user-name {
+      font-size: 0.85rem; font-weight: 500; color: var(--cream);
+      max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .nav-admin-tag {
+      background: var(--gold); color: var(--navy);
+      padding: 0.35rem 0.9rem; border-radius: 3px;
+      font-size: 0.78rem; font-weight: 700;
+      letter-spacing: 0.06em;
+      transition: background 0.2s;
+    }
+    .nav-admin-tag:hover { background: var(--gold2) !important; }
+ 
+    /* dropdown */
+    .nav-dropdown {
+      position: absolute; top: calc(100% + 0.6rem); right: 0;
+      background: var(--navy2); border: 1px solid var(--border);
+      min-width: 160px; z-index: 200;
+      display: none; flex-direction: column;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .nav-dropdown.open { display: flex; }
+    .nav-dropdown a, .nav-dropdown button {
+      padding: 0.7rem 1rem; font-size: 0.82rem; color: var(--muted);
+      background: transparent; border: none; text-align: left;
+      font-family: var(--sans); cursor: pointer; transition: all 0.15s;
+      border-bottom: 1px solid rgba(201,168,76,0.08);
+      text-decoration: none; display: block;
+    }
+    .nav-dropdown a:hover, .nav-dropdown button:hover {
+      color: var(--gold); background: rgba(201,168,76,0.05);
+    }
+    .nav-dropdown button { color: #fca5a5; }
+ 
     /* ── HERO ──────────────────────────────────────── */
     .hero {
       min-height: 88vh;
@@ -94,7 +142,7 @@
       margin: 0 auto;
       position: relative;
     }
-
+ 
     .hero::before {
       content: '';
       position: fixed; inset: 0; z-index: -1;
@@ -102,7 +150,7 @@
         radial-gradient(ellipse 60% 50% at 70% 40%, rgba(201,168,76,0.08) 0%, transparent 70%),
         radial-gradient(ellipse 40% 60% at 20% 80%, rgba(37,99,235,0.06) 0%, transparent 60%);
     }
-
+ 
     .hero-label {
       font-size: 0.72rem;
       font-weight: 600;
@@ -112,14 +160,14 @@
       margin-bottom: 1.5rem;
       display: flex; align-items: center; gap: 0.75rem;
     }
-
+ 
     .hero-label::before {
       content: '';
       display: block;
       width: 2rem; height: 1px;
       background: var(--gold);
     }
-
+ 
     .hero h1 {
       font-family: var(--serif);
       font-size: clamp(3.2rem, 7vw, 6.5rem);
@@ -129,14 +177,14 @@
       max-width: 14ch;
       margin-bottom: 1.8rem;
     }
-
+ 
     .hero h1 em {
       font-style: italic;
       background: linear-gradient(135deg, var(--gold), var(--gold2));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-
+ 
     .hero-sub {
       font-size: 1.1rem;
       color: var(--muted);
@@ -144,11 +192,11 @@
       margin-bottom: 3rem;
       line-height: 1.7;
     }
-
+ 
     .hero-actions {
       display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
     }
-
+ 
     .btn-primary {
       background: var(--gold);
       color: var(--navy);
@@ -160,29 +208,29 @@
       transition: all 0.2s;
       border: none; cursor: pointer;
     }
-
+ 
     .btn-primary:hover {
       background: var(--gold2);
       transform: translateY(-1px);
       box-shadow: 0 8px 24px rgba(201,168,76,0.3);
     }
-
+ 
     .hero-scroll {
       color: var(--muted);
       font-size: 0.85rem;
       display: flex; align-items: center; gap: 0.5rem;
       transition: color 0.2s;
     }
-
+ 
     .hero-scroll:hover { color: var(--gold); }
-
+ 
     .hero-stats {
       position: absolute; bottom: 3rem; right: 0;
       display: flex; gap: 3rem;
     }
-
+ 
     .stat-item { text-align: right; }
-
+ 
     .stat-value {
       font-family: var(--serif);
       font-size: 2.5rem;
@@ -190,7 +238,7 @@
       color: var(--cream);
       line-height: 1;
     }
-
+ 
     .stat-label {
       font-size: 0.75rem;
       color: var(--muted);
@@ -198,7 +246,7 @@
       text-transform: uppercase;
       margin-top: 0.25rem;
     }
-
+ 
     /* ── TICKER ────────────────────────────────────── */
     .ticker-bar {
       background: var(--navy3);
@@ -207,20 +255,20 @@
       overflow: hidden;
       padding: 0.7rem 0;
     }
-
+ 
     .ticker-inner {
       display: flex; gap: 4rem;
       animation: ticker 28s linear infinite;
       white-space: nowrap;
     }
-
+ 
     .ticker-inner:hover { animation-play-state: paused; }
-
+ 
     @keyframes ticker {
       from { transform: translateX(0); }
       to   { transform: translateX(-50%); }
     }
-
+ 
     .ticker-tag {
       font-size: 0.72rem;
       font-weight: 600;
@@ -228,26 +276,26 @@
       text-transform: uppercase;
       color: var(--gold);
     }
-
+ 
     .ticker-sep { color: var(--muted); }
-
+ 
     /* ── SECTION ───────────────────────────────────── */
     section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
-
+ 
     .section-header {
       display: flex; align-items: flex-end; justify-content: space-between;
       margin-bottom: 3rem;
       padding-bottom: 1.5rem;
       border-bottom: 1px solid var(--border);
     }
-
+ 
     .section-title {
       font-family: var(--serif);
       font-size: 2.2rem;
       font-weight: 700;
       letter-spacing: -0.01em;
     }
-
+ 
     .section-link {
       font-size: 0.8rem;
       font-weight: 600;
@@ -257,15 +305,15 @@
       display: flex; align-items: center; gap: 0.4rem;
       transition: gap 0.2s;
     }
-
+ 
     .section-link:hover { gap: 0.7rem; }
-
+ 
     /* ── FILTERS ───────────────────────────────────── */
     .filters {
       display: flex; gap: 0.75rem; flex-wrap: wrap;
       margin-bottom: 2.5rem;
     }
-
+ 
     .filter-btn {
       background: transparent;
       border: 1px solid var(--border);
@@ -280,20 +328,20 @@
       cursor: pointer;
       transition: all 0.2s;
     }
-
+ 
     .filter-btn:hover, .filter-btn.active {
       background: var(--gold);
       border-color: var(--gold);
       color: var(--navy);
     }
-
+ 
     /* ── GRID ──────────────────────────────────────── */
     .posts-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
       gap: 2px;
     }
-
+ 
     .post-card {
       background: var(--navy2);
       padding: 2rem;
@@ -304,12 +352,12 @@
       overflow: hidden;
       animation: fadeUp 0.5s ease both;
     }
-
+ 
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-
+ 
     .post-card::before {
       content: '';
       position: absolute;
@@ -318,14 +366,14 @@
       background: linear-gradient(180deg, var(--gold), transparent);
       transition: height 0.3s;
     }
-
+ 
     .post-card:hover {
       border-color: var(--border);
       background: #131d38;
     }
-
+ 
     .post-card:hover::before { height: 100%; }
-
+ 
     .post-category {
       font-size: 0.68rem;
       font-weight: 600;
@@ -334,7 +382,7 @@
       color: var(--gold);
       margin-bottom: 1rem;
     }
-
+ 
     .post-title {
       font-family: var(--serif);
       font-size: 1.45rem;
@@ -343,9 +391,9 @@
       margin-bottom: 0.8rem;
       transition: color 0.2s;
     }
-
+ 
     .post-card:hover .post-title { color: var(--gold2); }
-
+ 
     .post-excerpt {
       font-size: 0.88rem;
       color: var(--muted);
@@ -356,25 +404,25 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
-
+ 
     .post-meta {
       display: flex; align-items: center; justify-content: space-between;
       padding-top: 1.2rem;
       border-top: 1px solid var(--border);
     }
-
+ 
     .post-date {
       font-size: 0.75rem;
       color: var(--muted);
       letter-spacing: 0.04em;
     }
-
+ 
     .post-read-time {
       font-size: 0.72rem;
       color: var(--gold);
       letter-spacing: 0.06em;
     }
-
+ 
     /* ── FEATURED (first card large) ───────────────── */
     .post-card.featured {
       grid-column: 1 / -1;
@@ -383,15 +431,15 @@
       gap: 3rem;
       padding: 3rem;
     }
-
+ 
     .featured-body { display: flex; flex-direction: column; justify-content: center; }
-
+ 
     .featured .post-title {
       font-size: 2.4rem;
       font-weight: 700;
       line-height: 1.15;
     }
-
+ 
     .featured-badge {
       display: inline-block;
       background: var(--gold);
@@ -404,7 +452,7 @@
       border-radius: 2px;
       margin-bottom: 1rem;
     }
-
+ 
     .featured-visual {
       background: linear-gradient(135deg, var(--navy3), #1e2d50);
       border: 1px solid var(--border);
@@ -412,12 +460,12 @@
       display: flex; align-items: center; justify-content: center;
       min-height: 260px;
     }
-
+ 
     .featured-icon {
       font-size: 5rem;
       opacity: 0.3;
     }
-
+ 
     /* ── NEWSLETTER ────────────────────────────────── */
     .newsletter {
       background: var(--navy2);
@@ -427,7 +475,7 @@
       position: relative;
       overflow: hidden;
     }
-
+ 
     .newsletter::before {
       content: '';
       position: absolute;
@@ -436,25 +484,25 @@
       border-radius: 50%;
       background: radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 70%);
     }
-
+ 
     .newsletter h2 {
       font-family: var(--serif);
       font-size: 2.5rem;
       font-weight: 700;
       margin-bottom: 0.8rem;
     }
-
+ 
     .newsletter p {
       color: var(--muted);
       font-size: 1rem;
       margin-bottom: 2rem;
     }
-
+ 
     .newsletter-form {
       display: flex; gap: 0.75rem;
       max-width: 440px; margin: 0 auto;
     }
-
+ 
     .newsletter-form input {
       flex: 1;
       background: var(--navy);
@@ -467,20 +515,20 @@
       outline: none;
       transition: border-color 0.2s;
     }
-
+ 
     .newsletter-form input::placeholder { color: var(--muted); }
     .newsletter-form input:focus { border-color: var(--gold); }
-
+ 
     /* ── EMPTY STATE ───────────────────────────────── */
     .empty-state {
       text-align: center;
       padding: 5rem 2rem;
       color: var(--muted);
     }
-
+ 
     .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
     .empty-state p { font-size: 1rem; }
-
+ 
     /* ── LOADING ───────────────────────────────────── */
     .skeleton {
       background: linear-gradient(90deg, var(--navy2) 25%, var(--navy3) 50%, var(--navy2) 75%);
@@ -488,16 +536,16 @@
       animation: shimmer 1.5s infinite;
       border-radius: 3px;
     }
-
+ 
     @keyframes shimmer {
       from { background-position: 200% 0; }
       to   { background-position: -200% 0; }
     }
-
+ 
     .sk-h { height: 1rem; margin-bottom: 0.5rem; }
     .sk-title { height: 1.8rem; width: 80%; margin-bottom: 1rem; }
     .sk-block { height: 4rem; margin-bottom: 0.5rem; }
-
+ 
     /* ── FOOTER ────────────────────────────────────── */
     footer {
       border-top: 1px solid var(--border);
@@ -510,7 +558,7 @@
       flex-wrap: wrap;
       gap: 1.5rem;
     }
-
+ 
     .footer-brand {
       font-family: var(--serif);
       font-size: 1.4rem;
@@ -519,16 +567,16 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-
+ 
     .footer-copy {
       font-size: 0.8rem;
       color: var(--muted);
     }
-
+ 
     .footer-links {
       display: flex; gap: 1.5rem; list-style: none;
     }
-
+ 
     .footer-links a {
       font-size: 0.78rem;
       color: var(--muted);
@@ -536,9 +584,9 @@
       text-transform: uppercase;
       transition: color 0.2s;
     }
-
+ 
     .footer-links a:hover { color: var(--gold); }
-
+ 
     /* ── RESPONSIVE ────────────────────────────────── */
     @media (max-width: 768px) {
       .nav-links { display: none; }
@@ -551,17 +599,20 @@
   </style>
 </head>
 <body>
-
+ 
 <!-- NAV -->
 <nav>
   <a class="nav-brand" href="index.html">BlogsPro</a>
   <ul class="nav-links">
     <li><a href="#posts">Articles</a></li>
     <li><a href="#about">About</a></li>
-    <li><a href="login.html" class="nav-cta">Admin</a></li>
+    <li id="navAuthSlot">
+      <!-- Filled dynamically by Firebase Auth -->
+      <a href="login.html" class="nav-cta">Login</a>
+    </li>
   </ul>
 </nav>
-
+ 
 <!-- HERO -->
 <div class="hero">
   <p class="hero-label">Fintech · Compliance · Strategy</p>
@@ -582,7 +633,7 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- TICKER -->
 <div class="ticker-bar">
   <div class="ticker-inner" id="ticker">
@@ -604,20 +655,20 @@
     <span class="ticker-tag">Open Finance</span><span class="ticker-sep">·</span>
   </div>
 </div>
-
+ 
 <!-- POSTS -->
 <section id="posts">
   <div class="section-header">
     <h2 class="section-title">Latest Articles</h2>
   </div>
-
+ 
   <div class="filters">
     <button class="filter-btn active" data-cat="all">All</button>
     <button class="filter-btn" data-cat="Fintech">Fintech</button>
     <button class="filter-btn" data-cat="Compliance">Compliance</button>
     <button class="filter-btn" data-cat="Strategy">Strategy</button>
   </div>
-
+ 
   <div class="posts-grid" id="postsGrid">
     <!-- Skeleton Loaders -->
     <div class="post-card">
@@ -640,7 +691,7 @@
     </div>
   </div>
 </section>
-
+ 
 <!-- NEWSLETTER -->
 <section id="newsletter">
   <div class="newsletter">
@@ -655,43 +706,116 @@
     </p>
   </div>
 </section>
-
+ 
 <!-- FOOTER -->
 <footer id="about">
   <span class="footer-brand">BlogsPro</span>
   <span class="footer-copy">© <span id="year"></span> BlogsPro. All rights reserved.</span>
   <ul class="footer-links">
-    <li><a href="login.html">Admin</a></li>
+    <li><a href="login.html" id="footerAuthLink">Login</a></li>
   </ul>
 </footer>
-
+ 
 <!-- FIREBASE -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore, collection, query, orderBy, getDocs, limit, where
+    getFirestore, collection, query, orderBy, getDocs, where, addDoc
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
+  import {
+    getAuth, onAuthStateChanged, signOut
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+ 
   // ── Replace with your config ──────────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
-  authDomain: "blogspro-ai.firebaseapp.com",
-  projectId: "blogspro-ai",
-  storageBucket: "blogspro-ai.firebasestorage.app",
-  messagingSenderId: "940428277283",
-  appId: "1:940428277283:web:d3bb414f0992718ca76396",
-  measurementId: "G-N7TCB31MRD";
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
+    authDomain: "blogspro-ai.firebaseapp.com",
+    projectId: "blogspro-ai",
+    storageBucket: "blogspro-ai.firebasestorage.app",
+    messagingSenderId: "940428277283",
+    appId: "1:940428277283:web:d3bb414f0992718ca76396"
+  };
   // ─────────────────────────────────────────────────
-
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
-
-  let allPosts = [];
+ 
+  const ADMIN_UID = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
+ 
+  const app  = initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
+  const auth = getAuth(app);
+ 
+  let allPosts   = [];
   let currentCat = 'all';
-
+ 
   document.getElementById('year').textContent = new Date().getFullYear();
-
+ 
+  // ── AUTH NAV ──────────────────────────────────────
+  onAuthStateChanged(auth, user => {
+    const slot         = document.getElementById('navAuthSlot');
+    const footerLink   = document.getElementById('footerAuthLink');
+ 
+    if (!user) {
+      // Not logged in → show Login button
+      slot.innerHTML = `<a href="login.html" class="nav-cta">Login</a>`;
+      footerLink.textContent = 'Login';
+      footerLink.href        = 'login.html';
+      return;
+    }
+ 
+    if (user.uid === ADMIN_UID) {
+      // Admin → gold Admin tag + dropdown
+      slot.innerHTML = `
+        <div class="nav-user" id="navUserBtn" onclick="toggleDropdown()">
+          <div class="nav-avatar">
+            ${user.photoURL
+              ? `<img src="${user.photoURL}" alt="" />`
+              : (user.displayName || user.email || 'A')[0].toUpperCase()}
+          </div>
+          <a href="admin.html" class="nav-admin-tag">Admin</a>
+          <div class="nav-dropdown" id="navDropdown">
+            <a href="admin.html">Dashboard</a>
+            <button onclick="doSignOut()">Sign Out</button>
+          </div>
+        </div>`;
+      footerLink.textContent = 'Admin Dashboard';
+      footerLink.href        = 'admin.html';
+    } else {
+      // Regular user → show name + avatar + dropdown
+      const displayName = user.displayName || user.email?.split('@')[0] || 'User';
+      const initial     = displayName[0].toUpperCase();
+      slot.innerHTML = `
+        <div class="nav-user" id="navUserBtn" onclick="toggleDropdown()">
+          <div class="nav-avatar">
+            ${user.photoURL
+              ? `<img src="${user.photoURL}" alt="" />`
+              : initial}
+          </div>
+          <span class="nav-user-name">${displayName}</span>
+          <div class="nav-dropdown" id="navDropdown">
+            <a href="account.html">My Account</a>
+            <button onclick="doSignOut()">Sign Out</button>
+          </div>
+        </div>`;
+      footerLink.textContent = 'My Account';
+      footerLink.href        = 'account.html';
+    }
+  });
+ 
+  window.toggleDropdown = () => {
+    document.getElementById('navDropdown')?.classList.toggle('open');
+  };
+ 
+  // Close dropdown when clicking outside
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#navUserBtn')) {
+      document.getElementById('navDropdown')?.classList.remove('open');
+    }
+  });
+ 
+  window.doSignOut = async () => {
+    await signOut(auth);
+    window.location.reload();
+  };
+ 
   async function loadPosts() {
     try {
       const q = query(
@@ -708,7 +832,7 @@ const firebaseConfig = {
       renderEmpty();
     }
   }
-
+ 
   function renderPosts(posts) {
     const grid = document.getElementById('postsGrid');
     if (!posts.length) { renderEmpty(); return; }
@@ -747,7 +871,7 @@ const firebaseConfig = {
         </div>`;
     }).join('');
   }
-
+ 
   function renderEmpty() {
     document.getElementById('postsGrid').innerHTML = `
       <div class="empty-state" style="grid-column:1/-1">
@@ -755,16 +879,16 @@ const firebaseConfig = {
         <p>No articles yet. <a href="login.html" style="color:var(--gold)">Publish your first post →</a></p>
       </div>`;
   }
-
+ 
   function categoryIcon(cat) {
     const m = { Fintech:'₿', Compliance:'⚖', Strategy:'◆' };
     return m[cat] || '✦';
   }
-
+ 
   window.openPost = (id) => {
     window.location.href = `post.html?id=${id}`;
   };
-
+ 
   // Category filter
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -777,13 +901,12 @@ const firebaseConfig = {
       renderPosts(filtered);
     });
   });
-
+ 
   // Newsletter (stored in Firestore)
   window.subscribeNewsletter = async (e) => {
     e.preventDefault();
     const email = document.getElementById('emailInput').value;
     try {
-      const { addDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
       await addDoc(collection(db, 'subscribers'), { email, createdAt: new Date() });
       document.getElementById('subMsg').style.display = 'block';
       document.getElementById('emailInput').value = '';
@@ -792,7 +915,7 @@ const firebaseConfig = {
       alert('Something went wrong. Please try again.');
     }
   };
-
+ 
   loadPosts();
 </script>
 </body>
