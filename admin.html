@@ -141,6 +141,10 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 
+    .ai-edit-btn{background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0.35rem 0.7rem;border-radius:3px;font-family:var(--sans);font-size:0.75rem;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+    .ai-edit-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.06)}
+    .ai-edit-btn:disabled{opacity:0.5;cursor:not-allowed}
+
     @media(max-width:900px){
       aside{transform:translateX(-100%)}
       aside.open{transform:translateX(0)}
@@ -247,6 +251,28 @@
           <button onclick="showView('editor');document.getElementById('aiPanel').scrollIntoView({behavior:'smooth'})" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border-radius:2px;font-weight:700;font-size:0.72rem">✦ AI Write</button>
         </div>
         <div id="editor" contenteditable="true"></div>
+
+        <!-- AI Edit Toolbar — shown after article is generated -->
+        <div id="aiEditToolbar" style="display:none;margin-top:0.5rem;background:var(--navy2);border:1px solid rgba(201,168,76,0.3);border-radius:3px;padding:0.75rem;display:none">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem">✦ AI Edit Tools</div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.6rem">
+            <button onclick="aiEditAction('regenerate')"   class="ai-edit-btn">↺ Regenerate</button>
+            <button onclick="aiEditAction('professional')" class="ai-edit-btn">📊 Professional</button>
+            <button onclick="aiEditAction('conversational')" class="ai-edit-btn">💬 Conversational</button>
+            <button onclick="aiEditAction('authoritative')" class="ai-edit-btn">🎯 Authoritative</button>
+            <button onclick="aiEditAction('expand')"       class="ai-edit-btn">⤢ Expand</button>
+            <button onclick="aiEditAction('shorten')"      class="ai-edit-btn">⤡ Shorten</button>
+            <button onclick="aiEditAction('references')"   class="ai-edit-btn">📚 Add References</button>
+            <button onclick="aiEditAction('graph')"        class="ai-edit-btn">📊 Add Chart</button>
+            <button onclick="aiEditAction('image')"        class="ai-edit-btn">🖼 Add Image</button>
+          </div>
+          <div style="display:flex;gap:0.4rem">
+            <input id="aiEditCustom" class="form-input" placeholder="Custom instruction… e.g. Add a section on SEBI regulations" style="font-size:0.82rem;padding:0.5rem 0.7rem" />
+            <button onclick="aiEditCustom()" style="background:var(--gold);color:var(--navy);border:none;padding:0.5rem 0.8rem;border-radius:3px;font-family:var(--sans);font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.2s">Apply</button>
+          </div>
+          <div id="aiEditStatus" style="font-size:0.7rem;color:var(--muted);margin-top:0.4rem;min-height:1rem"></div>
+        </div>
+
         <div class="char-count"><span id="wordCount">0</span> words · <span id="readingTimeDisplay">0</span> min read</div>
       </div>
 
@@ -608,6 +634,8 @@ window.clearEditor = () => {
   document.getElementById('autoSaveMsg').textContent = '';
   document.getElementById('editorHeading').textContent = 'New Post';
   document.getElementById('premiumSwitch').classList.remove('on');
+  document.getElementById('aiEditToolbar').style.display = 'none';
+  document.getElementById('aiResultBox').style.display   = 'none';
 };
 
 window.editPost = async (id) => {
@@ -628,6 +656,7 @@ window.editPost = async (id) => {
     isPremium = p.premium === true;
     document.getElementById('premiumSwitch').classList.toggle('on', isPremium);
     updateWordCount();
+    showAIEditToolbar();
   } catch(e) { showToast('Failed to load post.','error'); }
 };
 
@@ -995,6 +1024,7 @@ Start directly with the article. No JSON, no metadata, no extra text after the a
   }
 
   document.getElementById('aiResultBox').style.display = 'block';
+  showAIEditToolbar();
   const filled = Object.values(checks).filter(Boolean).length;
   document.getElementById('aiStatus').textContent = `✓ Done — ${filled}/5 fields auto-filled.`;
   showToast(`Article ready! ${filled}/5 fields filled.`, 'success');
@@ -1027,6 +1057,99 @@ function showToast(msg, type='success') {
   toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
 }
 window.showToast = showToast;
+
+// ── AI Edit Toolbar ────────────────────────────
+function showAIEditToolbar() {
+  document.getElementById('aiEditToolbar').style.display = 'block';
+}
+
+function setEditStatus(msg, isError = false) {
+  const el = document.getElementById('aiEditStatus');
+  el.textContent = msg;
+  el.style.color = isError ? '#fca5a5' : 'var(--muted)';
+}
+
+function setEditBtnsDisabled(on) {
+  document.querySelectorAll('.ai-edit-btn').forEach(b => b.disabled = on);
+}
+
+async function runAIEdit(instruction) {
+  const currentContent = document.getElementById('editor').innerHTML;
+  const currentText    = document.getElementById('editor').innerText;
+  const topic          = document.getElementById('aiPrompt').value.trim() || 'the article';
+  const category       = document.getElementById('postCategory').value;
+  const tone           = document.getElementById('aiTone').value;
+
+  if (!currentContent.trim()) {
+    setEditStatus('No article content to edit. Generate an article first.', true);
+    return;
+  }
+
+  setEditBtnsDisabled(true);
+  setEditStatus('⏳ AI is working…');
+
+  const prompt = `You are editing a fintech article for BlogsPro (blogspro.in).
+Topic: "${topic}". Category: ${category}.
+
+CURRENT ARTICLE:
+${currentText.substring(0, 3000)}
+
+INSTRUCTION: ${instruction}
+
+Return ONLY the complete updated article HTML using <h2><h3><p><strong><em><ul><li><blockquote> tags.
+Return the FULL article — not just the edited section. No markdown, no extra text.`;
+
+  const result = await callAI(prompt, true);
+
+  if (result.error) {
+    setEditStatus('✕ ' + result.error, true);
+    setEditBtnsDisabled(false);
+    return;
+  }
+
+  // Clean and update editor
+  const clean = (result.text || '')
+    .replace(/---METADATA---[\s\S]*/g, '')
+    .replace(/\n*\{"title"[\s\S]*/g, '')
+    .trim();
+
+  document.getElementById('editor').innerHTML = clean;
+  updateWordCount();
+  setEditStatus('✓ Done — reviewed and saved.');
+  setEditBtnsDisabled(false);
+  showToast('Article updated!', 'success');
+}
+
+window.aiEditAction = async (action) => {
+  const instructions = {
+    regenerate:     'Regenerate this article completely from scratch with the same topic and outline, but different phrasing and structure. Make it fresh and original.',
+    professional:   'Rewrite this article in a highly professional, analytical tone suitable for senior finance executives and compliance officers.',
+    conversational: 'Rewrite this article in a conversational, accessible tone that is easy to understand for non-experts while keeping it informative.',
+    authoritative:  'Rewrite this article in an authoritative, expert tone — cite trends, use precise terminology, and project deep domain expertise.',
+    expand:         'Expand this article significantly. Add more depth, more examples, more data points, and additional sections where relevant.',
+    shorten:        'Shorten this article by 30-40% while keeping all key points. Remove redundancy and tighten each paragraph.',
+    references:     'Add a comprehensive References section at the end with 5-8 relevant real sources — RBI circulars, SEBI reports, industry studies, NPCI data, and reputable publications. Format each as an HTML list item.',
+    graph:          `Add an HTML-based data visualization table in a relevant section. Use a styled <table> with inline CSS (dark background #0f1628, gold #c9a84c borders, cream #f5f0e8 text) showing relevant statistics or comparisons that support the article's key points.`,
+    image:          `Add a descriptive image placeholder in a relevant section using this HTML: <div style="background:#1a2340;border:1px solid rgba(201,168,76,0.3);border-radius:4px;padding:2rem;text-align:center;margin:1.5rem 0"><p style="color:#8896b3;font-size:0.85rem">📷 [Suggested image: <em>describe what image would go here based on article context</em>]</p><p style="color:#c9a84c;font-size:0.72rem;margin-top:0.5rem">Replace with actual image URL</p></div>`,
+  };
+
+  const instruction = instructions[action];
+  if (!instruction) return;
+
+  // For regenerate — confirm first
+  if (action === 'regenerate') {
+    if (!confirm('Regenerate the entire article? Current content will be replaced.')) return;
+  }
+
+  await runAIEdit(instruction);
+};
+
+window.aiEditCustom = async () => {
+  const instruction = document.getElementById('aiEditCustom').value.trim();
+  if (!instruction) { setEditStatus('Please enter an instruction.', true); return; }
+  await runAIEdit(instruction);
+  document.getElementById('aiEditCustom').value = '';
+};
 </script>
 </body>
 </html>
