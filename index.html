@@ -85,6 +85,22 @@
  
     .nav-cta:hover { background: var(--gold2) !important; }
  
+    /* Light mode */
+    body.light {
+      --navy:  #f8f5ef; --navy2: #ffffff; --navy3: #f0ece4;
+      --cream: #1a1a2e; --muted: #6b7a99;
+      --border: rgba(201,168,76,0.3);
+    }
+    body.light nav  { background: rgba(248,245,239,0.92); }
+    body.light .hero::before { opacity: 0.4; }
+ 
+    .theme-btn-nav {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      width: 32px; height: 32px; border-radius: 50%; font-size: 0.85rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+    }
+    .theme-btn-nav:hover { border-color: var(--gold); color: var(--gold); }
+ 
     /* ── NAV USER CHIP ─────────────────────────────── */
     .nav-user {
       display: flex; align-items: center; gap: 0.6rem;
@@ -616,6 +632,7 @@
   <ul class="nav-links">
     <li><a href="#posts">Articles</a></li>
     <li><a href="#about">About</a></li>
+    <li><button class="theme-btn-nav" id="themeBtn" onclick="toggleTheme()">☀️</button></li>
     <li id="navAuthSlot">
       <!-- Filled dynamically by Firebase Auth -->
       <a href="login.html" class="nav-cta">Login</a>
@@ -758,6 +775,18 @@
   let currentCat = 'all';
  
   document.getElementById('year').textContent = new Date().getFullYear();
+ 
+  // Theme toggle
+  window.toggleTheme = () => {
+    document.body.classList.toggle('light');
+    const isLight = document.body.classList.contains('light');
+    document.getElementById('themeBtn').textContent = isLight ? '🌙' : '☀️';
+    localStorage.setItem('bpTheme', isLight ? 'light' : 'dark');
+  };
+  if (localStorage.getItem('bpTheme') === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('themeBtn').textContent = '🌙';
+  }
  
   // ── AUTH NAV ──────────────────────────────────────
   onAuthStateChanged(auth, user => {
@@ -970,4 +999,3 @@
 </script>
 </body>
 </html>
- 
