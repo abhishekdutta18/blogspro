@@ -542,6 +542,8 @@
       to   { background-position: -200% 0; }
     }
  
+    @keyframes spin { to { transform: rotate(360deg); } }
+ 
     .sk-h { height: 1rem; margin-bottom: 0.5rem; }
     .sk-title { height: 1.8rem; width: 80%; margin-bottom: 1rem; }
     .sk-block { height: 4rem; margin-bottom: 0.5rem; }
@@ -699,11 +701,12 @@
     <p>New insights on fintech, compliance & strategy — delivered to your inbox.</p>
     <form class="newsletter-form" onsubmit="subscribeNewsletter(event)">
       <input type="email" id="emailInput" placeholder="your@email.com" required />
-      <button type="submit" class="btn-primary">Subscribe</button>
+      <button type="submit" class="btn-primary" id="subBtn">
+        <span id="subBtnText">Subscribe</span>
+        <span id="subBtnSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite;display:none"></span>
+      </button>
     </form>
-    <p id="subMsg" style="margin-top:1rem;font-size:0.85rem;color:var(--gold);display:none;">
-      ✓ You're on the list.
-    </p>
+    <div id="subMsg" style="display:none;margin-top:1.2rem;padding:0.85rem 1.2rem;border-radius:3px;font-size:0.88rem;font-weight:500"></div>
   </div>
 </section>
  
@@ -913,15 +916,46 @@
   // Newsletter (stored in Firestore)
   window.subscribeNewsletter = async (e) => {
     e.preventDefault();
-    const email = document.getElementById('emailInput').value;
+    const email   = document.getElementById('emailInput').value.trim();
+    const btn     = document.getElementById('subBtn');
+    const btnText = document.getElementById('subBtnText');
+    const spinner = document.getElementById('subBtnSpinner');
+    const msg     = document.getElementById('subMsg');
+ 
+    // Loading state
+    btn.disabled          = true;
+    btnText.style.display = 'none';
+    spinner.style.display = 'inline-block';
+    msg.style.display     = 'none';
+ 
     try {
       await addDoc(collection(db, 'subscribers'), { email, createdAt: new Date() });
-      document.getElementById('subMsg').style.display = 'block';
+ 
+      // Success
       document.getElementById('emailInput').value = '';
+      msg.style.display    = 'block';
+      msg.style.background = 'rgba(34,197,94,0.12)';
+      msg.style.border     = '1px solid rgba(34,197,94,0.3)';
+      msg.style.color      = '#86efac';
+      msg.textContent      = '✓ You\'re on the list! We\'ll be in touch.';
+ 
     } catch(err) {
-      console.error(err);
-      alert('Something went wrong. Please try again.');
+      console.error('Newsletter error:', err.code, err.message);
+ 
+      // Error
+      msg.style.display    = 'block';
+      msg.style.background = 'rgba(239,68,68,0.1)';
+      msg.style.border     = '1px solid rgba(239,68,68,0.3)';
+      msg.style.color      = '#fca5a5';
+      msg.textContent      = err.code === 'permission-denied'
+        ? '✕ Subscription blocked — check Firestore rules.'
+        : '✕ Something went wrong. Please try again.';
     }
+ 
+    // Reset button
+    btn.disabled          = false;
+    btnText.style.display = 'inline';
+    spinner.style.display = 'none';
   };
  
   loadPosts();
