@@ -16,6 +16,7 @@
       --gold:#c9a84c;--gold2:#f0cc6e;--cream:#f5f0e8;
       --muted:#8896b3;--border:rgba(201,168,76,0.2);
       --green:#22c55e;--red:#ef4444;
+      --blue:#3b82f6;--blue2:#93c5fd;
       --serif:'Cormorant Garamond',Georgia,serif;
       --sans:'DM Sans',sans-serif;
       --sidebar:240px;
@@ -140,10 +141,70 @@
 
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+    @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 
     .ai-edit-btn{background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0.35rem 0.7rem;border-radius:3px;font-family:var(--sans);font-size:0.75rem;cursor:pointer;transition:all 0.15s;white-space:nowrap}
     .ai-edit-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.06)}
     .ai-edit-btn:disabled{opacity:0.5;cursor:not-allowed}
+
+    /* ── AI IMAGE GENERATOR ───────────────────── */
+    .img-gen-panel{background:var(--navy2);border:1px solid rgba(59,130,246,0.35);padding:1.5rem;margin-top:1rem}
+    .img-gen-panel h3{font-size:0.78rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--blue2);margin-bottom:0.4rem}
+    .img-gen-panel .panel-sub{font-size:0.72rem;color:var(--muted);margin-bottom:1.1rem;line-height:1.5}
+
+    .img-style-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;margin-bottom:0.9rem}
+    .img-style-btn{background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0.4rem 0.5rem;border-radius:3px;font-family:var(--sans);font-size:0.7rem;cursor:pointer;transition:all 0.15s;text-align:center}
+    .img-style-btn:hover{border-color:var(--blue2);color:var(--blue2)}
+    .img-style-btn.selected{border-color:var(--blue2);color:var(--blue2);background:rgba(59,130,246,0.1)}
+
+    .img-ratio-row{display:flex;gap:0.4rem;margin-bottom:0.9rem}
+    .img-ratio-btn{flex:1;background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.68rem;cursor:pointer;transition:all 0.15s;text-align:center;font-weight:600}
+    .img-ratio-btn:hover{border-color:var(--blue2);color:var(--blue2)}
+    .img-ratio-btn.selected{border-color:var(--blue2);color:var(--blue2);background:rgba(59,130,246,0.1)}
+
+    .btn-generate-img{width:100%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem}
+    .btn-generate-img:hover{background:linear-gradient(135deg,#2563eb,#60a5fa)}
+    .btn-generate-img:disabled{opacity:0.5;cursor:not-allowed}
+
+    .img-preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.9rem}
+    .img-preview-card{position:relative;border-radius:3px;overflow:hidden;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;background:var(--navy3)}
+    .img-preview-card:hover{border-color:var(--blue2);transform:scale(1.01)}
+    .img-preview-card img{width:100%;height:120px;object-fit:cover;display:block}
+    .img-preview-card .img-loading{height:120px;display:flex;align-items:center;justify-content:center;background:linear-gradient(90deg,var(--navy3) 25%,var(--navy2) 50%,var(--navy3) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+    .img-preview-card .img-overlay{position:absolute;inset:0;background:rgba(8,13,26,0.7);opacity:0;transition:0.2s;display:flex;align-items:center;justify-content:center;gap:0.4rem}
+    .img-preview-card:hover .img-overlay{opacity:1}
+    .img-overlay-btn{background:var(--gold);color:var(--navy);border:none;padding:0.4rem 0.7rem;border-radius:2px;font-family:var(--sans);font-size:0.7rem;font-weight:700;cursor:pointer;transition:all 0.15s}
+    .img-overlay-btn.secondary{background:var(--navy2);color:var(--cream);border:1px solid var(--border)}
+    .img-preview-card .img-num{position:absolute;top:5px;left:5px;background:rgba(8,13,26,0.8);color:var(--blue2);font-size:0.6rem;font-weight:700;padding:0.15rem 0.4rem;border-radius:2px;letter-spacing:0.08em}
+
+    .img-gen-status{font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.5rem;min-height:1rem}
+
+    .img-inserted-banner{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:3px;padding:0.5rem 0.75rem;font-size:0.72rem;color:var(--green);margin-top:0.5rem;display:none}
+
+    /* Image modal */
+    .img-modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,13,26,0.95);z-index:600;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+    .img-modal-overlay.open{display:flex}
+    .img-modal-inner{position:relative;max-width:90vw;max-height:90vh}
+    .img-modal-inner img{max-width:100%;max-height:85vh;border-radius:4px;display:block}
+    .img-modal-close{position:absolute;top:-14px;right:-14px;width:28px;height:28px;background:var(--navy2);border:1px solid var(--border);color:var(--muted);border-radius:50%;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
+    .img-modal-close:hover{border-color:var(--red);color:#fca5a5}
+    .img-modal-actions{display:flex;gap:0.6rem;margin-top:0.75rem;justify-content:center}
+
+    /* ── AUTO-PLACE PROGRESS ─────────────────── */
+    .autoplace-bar{background:var(--navy2);border:1px solid rgba(59,130,246,0.35);border-radius:3px;padding:0.75rem 0.9rem;margin-top:0.5rem;display:none}
+    .autoplace-bar.active{display:block}
+    .autoplace-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem}
+    .autoplace-title{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--blue2)}
+    .autoplace-cancel{background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.2rem 0.5rem;border-radius:2px;font-family:var(--sans);font-size:0.65rem;cursor:pointer;transition:all 0.15s}
+    .autoplace-cancel:hover{border-color:var(--red);color:#fca5a5}
+    .autoplace-track{height:4px;background:var(--navy3);border-radius:2px;overflow:hidden;margin-bottom:0.4rem}
+    .autoplace-fill{height:100%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:2px;transition:width 0.4s ease;width:0%}
+    .autoplace-status{font-size:0.7rem;color:var(--muted);line-height:1.4}
+    .autoplace-log{margin-top:0.4rem;display:flex;flex-direction:column;gap:0.2rem;max-height:80px;overflow-y:auto}
+    .autoplace-log-item{font-size:0.67rem;display:flex;align-items:center;gap:0.4rem}
+    .autoplace-log-item.done{color:var(--green)}
+    .autoplace-log-item.loading{color:var(--muted);animation:pulse 1s infinite}
+    .autoplace-log-item.failed{color:#fca5a5}
 
     @media(max-width:900px){
       aside{transform:translateX(-100%)}
@@ -152,6 +213,8 @@
       .editor-grid{grid-template-columns:1fr}
       #menuBtn{display:block}
       #sideOverlay.open{display:block}
+      .img-preview-grid{grid-template-columns:1fr 1fr}
+      .img-style-grid{grid-template-columns:1fr 1fr}
     }
   </style>
 </head>
@@ -249,11 +312,12 @@
           <button onclick="insertLink()">🔗</button>
           <div class="toolbar-sep"></div>
           <button onclick="showView('editor');document.getElementById('aiPanel').scrollIntoView({behavior:'smooth'})" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border-radius:2px;font-weight:700;font-size:0.72rem">✦ AI Write</button>
+          <button onclick="document.getElementById('imgGenPanel').scrollIntoView({behavior:'smooth'})" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border-radius:2px;font-weight:700;font-size:0.72rem">🖼 AI Image</button>
         </div>
         <div id="editor" contenteditable="true"></div>
 
         <!-- AI Edit Toolbar — shown after article is generated -->
-        <div id="aiEditToolbar" style="display:none;margin-top:0.5rem;background:var(--navy2);border:1px solid rgba(201,168,76,0.3);border-radius:3px;padding:0.75rem;display:none">
+        <div id="aiEditToolbar" style="display:none;margin-top:0.5rem;background:var(--navy2);border:1px solid rgba(201,168,76,0.3);border-radius:3px;padding:0.75rem">
           <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem">✦ AI Edit Tools</div>
           <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.6rem">
             <button onclick="aiEditAction('regenerate')"   class="ai-edit-btn">↺ Regenerate</button>
@@ -264,7 +328,24 @@
             <button onclick="aiEditAction('shorten')"      class="ai-edit-btn">⤡ Shorten</button>
             <button onclick="aiEditAction('references')"   class="ai-edit-btn">📚 Add References</button>
             <button onclick="aiEditAction('graph')"        class="ai-edit-btn">📊 Add Chart</button>
-            <button onclick="aiEditAction('image')"        class="ai-edit-btn">🖼 Add Image</button>
+          </div>
+          <!-- Auto-Place Images row — full width, prominent -->
+          <div style="border-top:1px solid var(--border);padding-top:0.6rem;margin-bottom:0.6rem">
+            <button id="btnAutoPlace" onclick="autoPlaceImages()" style="width:100%;background:linear-gradient(135deg,rgba(29,78,216,0.8),rgba(59,130,246,0.8));border:1px solid rgba(59,130,246,0.4);color:#fff;padding:0.55rem 0.8rem;border-radius:3px;font-family:var(--sans);font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem" onmouseover="this.style.background='linear-gradient(135deg,#1d4ed8,#3b82f6)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(29,78,216,0.8),rgba(59,130,246,0.8))'">
+              <span>🖼 Auto-Place Images After Every H2</span>
+              <span id="autoPlaceSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+            </button>
+            <div style="font-size:0.65rem;color:var(--muted);text-align:center;margin-top:0.3rem">Generates one unique AI image per H2 section and inserts inline</div>
+          </div>
+          <!-- Auto-place progress bar -->
+          <div class="autoplace-bar" id="autoplaceBar">
+            <div class="autoplace-header">
+              <span class="autoplace-title">🖼 Placing images…</span>
+              <button class="autoplace-cancel" onclick="cancelAutoPlace()">✕ Cancel</button>
+            </div>
+            <div class="autoplace-track"><div class="autoplace-fill" id="autoplaceFill"></div></div>
+            <div class="autoplace-status" id="autoplaceStatus">Starting…</div>
+            <div class="autoplace-log" id="autoplaceLog"></div>
           </div>
           <div style="display:flex;gap:0.4rem">
             <input id="aiEditCustom" class="form-input" placeholder="Custom instruction… e.g. Add a section on SEBI regulations" style="font-size:0.82rem;padding:0.5rem 0.7rem" />
@@ -329,6 +410,78 @@
           </div>
         </div>
 
+        <!-- ══════════════════════════════════════
+             AI IMAGE GENERATOR PANEL
+        ═══════════════════════════════════════ -->
+        <div class="img-gen-panel" id="imgGenPanel">
+          <h3>🖼 AI Image Generator</h3>
+          <p class="panel-sub">Generate real images instantly via Pollinations AI — free, no API key needed. Click any image to insert it into your article.</p>
+
+          <!-- Prompt -->
+          <div class="form-row">
+            <label class="form-label">Image Prompt</label>
+            <textarea class="form-textarea" id="imgPrompt" rows="2" placeholder="e.g. Futuristic fintech dashboard with glowing blue UI elements, dark background, professional…" style="resize:vertical;font-size:0.82rem"></textarea>
+            <button onclick="autoFillImagePrompt()" style="margin-top:0.4rem;background:transparent;border:1px solid rgba(59,130,246,0.3);color:var(--blue2);padding:0.3rem 0.7rem;border-radius:3px;font-family:var(--sans);font-size:0.7rem;cursor:pointer;transition:all 0.15s;width:100%" onmouseover="this.style.background='rgba(59,130,246,0.08)'" onmouseout="this.style.background='transparent'">✦ Auto-fill from article topic</button>
+          </div>
+
+          <!-- Style presets -->
+          <div style="margin-bottom:0.7rem">
+            <label class="form-label">Style Preset</label>
+            <div class="img-style-grid">
+              <button class="img-style-btn selected" data-style="photorealistic" onclick="selectStyle(this)">📷 Photorealistic</button>
+              <button class="img-style-btn" data-style="digital art" onclick="selectStyle(this)">🎨 Digital Art</button>
+              <button class="img-style-btn" data-style="cinematic, dramatic lighting" onclick="selectStyle(this)">🎬 Cinematic</button>
+              <button class="img-style-btn" data-style="flat design, vector illustration" onclick="selectStyle(this)">📐 Flat Design</button>
+              <button class="img-style-btn" data-style="isometric 3D illustration" onclick="selectStyle(this)">🧊 Isometric 3D</button>
+              <button class="img-style-btn" data-style="minimalist, clean, white background" onclick="selectStyle(this)">⬜ Minimalist</button>
+            </div>
+          </div>
+
+          <!-- Aspect ratio -->
+          <div style="margin-bottom:0.9rem">
+            <label class="form-label">Aspect Ratio</label>
+            <div class="img-ratio-row">
+              <button class="img-ratio-btn selected" data-w="1280" data-h="720" onclick="selectRatio(this)">16:9<br><span style="font-size:0.6rem;color:var(--muted)">Banner</span></button>
+              <button class="img-ratio-btn" data-w="1024" data-h="1024" onclick="selectRatio(this)">1:1<br><span style="font-size:0.6rem;color:var(--muted)">Square</span></button>
+              <button class="img-ratio-btn" data-w="768" data-h="1024" onclick="selectRatio(this)">3:4<br><span style="font-size:0.6rem;color:var(--muted)">Portrait</span></button>
+              <button class="img-ratio-btn" data-w="1200" data-h="630" onclick="selectRatio(this)">OG<br><span style="font-size:0.6rem;color:var(--muted)">Social</span></button>
+            </div>
+          </div>
+
+          <!-- Count -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem">
+            <label class="form-label" style="margin:0">Variations</label>
+            <div style="display:flex;gap:0.35rem">
+              <button class="img-ratio-btn selected" data-count="2" onclick="selectCount(this)" style="width:36px;height:32px;padding:0">2</button>
+              <button class="img-ratio-btn" data-count="4" onclick="selectCount(this)" style="width:36px;height:32px;padding:0">4</button>
+            </div>
+          </div>
+
+          <!-- Negative prompt -->
+          <div class="form-row" style="margin-bottom:0.9rem">
+            <label class="form-label">Avoid (negative prompt)</label>
+            <input type="text" class="form-input" id="imgNegative" placeholder="blurry, text, watermark, low quality…" style="font-size:0.78rem;padding:0.5rem 0.7rem" value="blurry, watermark, text overlay, low quality, distorted" />
+          </div>
+
+          <!-- Generate button -->
+          <button class="btn-generate-img" id="btnGenImg" onclick="generateImages()">
+            <span id="genImgBtnText">🖼 Generate Images</span>
+            <span id="genImgSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+          </button>
+
+          <div class="img-gen-status" id="imgGenStatus"></div>
+
+          <!-- Preview grid -->
+          <div class="img-preview-grid" id="imgPreviewGrid" style="display:none"></div>
+
+          <div class="img-inserted-banner" id="imgInsertedBanner">✓ Image inserted into article editor.</div>
+
+          <!-- Featured image quick-set info -->
+          <div style="margin-top:0.8rem;padding:0.6rem;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.15);border-radius:3px;font-size:0.68rem;color:var(--muted);line-height:1.5">
+            💡 <strong style="color:var(--gold)">Tip:</strong> Click any generated image to preview. Use <strong style="color:var(--cream)">Insert into Article</strong> to embed it inline, or <strong style="color:var(--cream)">Set as Featured</strong> to use it as the post thumbnail.
+          </div>
+        </div>
+
         <!-- AI Writer -->
         <div class="editor-panel" id="aiPanel" style="margin-top:1rem;border-color:rgba(201,168,76,0.35)">
           <h3 style="color:var(--gold)">✦ AI Writer — Multi-Model</h3>
@@ -360,18 +513,6 @@
               <option value="auto">Auto (best available)</option>
             </select>
             <p style="font-size:0.68rem;color:var(--muted);margin-top:0.4rem">Same model handles article, metadata, and image prompts. Auto-fallback enabled if it fails.</p>
-          </div>
-
-          <!-- Free image AI tools info -->
-          <div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:3px;padding:0.7rem;margin-bottom:0.8rem;font-size:0.72rem">
-            <div style="color:#93c5fd;font-weight:700;margin-bottom:0.3rem">🖼 Free AI Image Generators</div>
-            <div style="color:var(--muted);line-height:1.6">
-              <a href="https://ideogram.ai" target="_blank" style="color:#93c5fd">Ideogram</a> — best for text in images &nbsp;|&nbsp;
-              <a href="https://www.bing.com/images/create" target="_blank" style="color:#93c5fd">Bing Image Creator</a> — free DALL-E &nbsp;|&nbsp;
-              <a href="https://leonardo.ai" target="_blank" style="color:#93c5fd">Leonardo AI</a> — high quality &nbsp;|&nbsp;
-              <a href="https://huggingface.co/spaces/stabilityai/stable-diffusion" target="_blank" style="color:#93c5fd">Stable Diffusion</a> — open source
-            </div>
-            <div style="color:var(--muted);margin-top:0.3rem">AI will generate image prompts you can paste into any of these tools.</div>
           </div>
 
           <button onclick="generateAIPost()" id="btnAI" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.9rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem">
@@ -436,6 +577,19 @@
   </div>
 </div>
 
+<!-- Image Full-Preview Modal -->
+<div class="img-modal-overlay" id="imgModal" onclick="closeImgModal(event)">
+  <div class="img-modal-inner">
+    <button class="img-modal-close" onclick="closeImgModal()">✕</button>
+    <img id="imgModalSrc" src="" alt="Preview" />
+    <div class="img-modal-actions">
+      <button class="img-overlay-btn" onclick="insertImageFromModal()" style="padding:0.6rem 1.2rem;font-size:0.82rem">↓ Insert into Article</button>
+      <button class="img-overlay-btn" onclick="setFeaturedFromModal()" style="padding:0.6rem 1.2rem;font-size:0.82rem;background:var(--navy2);color:var(--cream);border:1px solid var(--border)">⭐ Set as Featured</button>
+      <a id="imgModalDownload" href="" download="blogspro-image.jpg" class="img-overlay-btn" style="background:var(--navy2);color:var(--cream);border:1px solid var(--border);padding:0.6rem 1.2rem;font-size:0.82rem;border-radius:2px">⬇ Download</a>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -456,8 +610,6 @@ const firebaseConfig = {
   appId:"1:940428277283:web:d3bb414f0992718ca76396"
 };
 
-const ADMIN_UID   = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
-const ADMIN_EMAIL = "abhishek.dutta1996@gmail.com";
 const WORKER_URL  = "https://blogspro-ai.abhishek-dutta1996.workers.dev";
 
 const app  = initializeApp(firebaseConfig);
@@ -471,14 +623,266 @@ let allSubs       = [];
 let isPremium     = false;
 let pendingOutline = '';
 
+// ══════════════════════════════════════════════
+// AI IMAGE GENERATOR — State
+// ══════════════════════════════════════════════
+let imgSelectedStyle  = 'photorealistic';
+let imgSelectedW      = 1280;
+let imgSelectedH      = 720;
+let imgSelectedCount  = 2;
+let currentModalImgUrl = '';
+let generatedImages   = []; // store all generated URLs
+
+// Style selector
+window.selectStyle = (btn) => {
+  document.querySelectorAll('.img-style-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  imgSelectedStyle = btn.dataset.style;
+};
+
+// Ratio selector
+window.selectRatio = (btn) => {
+  document.querySelectorAll('.img-ratio-btn[data-w]').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  imgSelectedW = parseInt(btn.dataset.w);
+  imgSelectedH = parseInt(btn.dataset.h);
+};
+
+// Count selector
+window.selectCount = (btn) => {
+  document.querySelectorAll('.img-ratio-btn[data-count]').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  imgSelectedCount = parseInt(btn.dataset.count);
+};
+
+// Auto-fill prompt from article topic
+window.autoFillImagePrompt = () => {
+  const topic = document.getElementById('aiPrompt').value.trim()
+    || document.getElementById('postTitle').value.trim();
+  if (!topic) { showToast('Add an article topic or title first.', 'error'); return; }
+  const financeKeywords = ['fintech','rbi','upi','banking','payment','digital','api','compliance','data','money','finance','investment'];
+  const isFinance = financeKeywords.some(k => topic.toLowerCase().includes(k));
+  const base = isFinance
+    ? `Professional fintech concept for "${topic}", modern dark UI, glowing blue data visualizations, clean corporate style`
+    : `Professional editorial illustration for "${topic}", modern clean design, corporate style`;
+  document.getElementById('imgPrompt').value = base;
+  showToast('Prompt auto-filled! Edit as needed.', 'success');
+};
+
+// ── Build Pollinations URL ──────────────────────
+function buildPollinationsUrl(prompt, style, negative, seed) {
+  const fullPrompt  = `${prompt}, ${style}, high resolution, professional quality`;
+  const encoded     = encodeURIComponent(fullPrompt);
+  const negEncoded  = encodeURIComponent(negative || 'blurry, watermark, text, low quality');
+  const url = `https://image.pollinations.ai/prompt/${encoded}`
+    + `?width=${imgSelectedW}&height=${imgSelectedH}`
+    + `&seed=${seed}`
+    + `&negative_prompt=${negEncoded}`
+    + `&nologo=true&enhance=true&model=flux`;
+  return url;
+}
+
+// ── Generate Images ─────────────────────────────
+window.generateImages = async () => {
+  const prompt   = document.getElementById('imgPrompt').value.trim();
+  const negative = document.getElementById('imgNegative').value.trim();
+  if (!prompt) { showToast('Please enter an image prompt.', 'error'); return; }
+
+  const btn    = document.getElementById('btnGenImg');
+  const btnTxt = document.getElementById('genImgBtnText');
+  const spinner= document.getElementById('genImgSpinner');
+  const status = document.getElementById('imgGenStatus');
+  const grid   = document.getElementById('imgPreviewGrid');
+  const banner = document.getElementById('imgInsertedBanner');
+
+  btn.disabled   = true;
+  btnTxt.textContent = 'Generating…';
+  spinner.style.display = 'inline-block';
+  status.textContent = `⏳ Generating ${imgSelectedCount} image${imgSelectedCount>1?'s':''}… this may take 10–30s`;
+  banner.style.display = 'none';
+  grid.style.display = 'grid';
+  generatedImages = [];
+
+  // Build skeleton cards immediately
+  grid.innerHTML = '';
+  const seeds = [];
+  for (let i = 0; i < imgSelectedCount; i++) {
+    const seed = Math.floor(Math.random() * 99999) + 1;
+    seeds.push(seed);
+    grid.innerHTML += `
+      <div class="img-preview-card" id="imgCard${i}">
+        <div class="img-num">IMG ${i+1}</div>
+        <div class="img-loading" id="imgLoading${i}">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(136,150,179,0.4)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        </div>
+        <img id="imgEl${i}" loading="lazy" src="" alt="Generated image ${i+1}" style="display:none;width:100%;height:120px;object-fit:cover" />
+        <div class="img-overlay">
+          <button class="img-overlay-btn" onclick="openImgModal(${i})">🔍 Preview</button>
+          <button class="img-overlay-btn secondary" onclick="insertImage(${i})">↓ Insert</button>
+        </div>
+      </div>`;
+  }
+
+  // Load each image
+  let loaded = 0, failed = 0;
+  const loadPromises = seeds.map((seed, i) => new Promise((resolve) => {
+    const url = buildPollinationsUrl(prompt, imgSelectedStyle, negative, seed);
+    generatedImages[i] = url;
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    // Retry at 15s, give up at 40s — prevents infinite shimmer
+    const retryTimer = setTimeout(() => {
+      if (!img.complete) img.src = url + '&retry=' + Date.now();
+    }, 15000);
+
+    const giveUpTimer = setTimeout(() => {
+      if (!img.complete) {
+        clearTimeout(retryTimer);
+        const ld = document.getElementById(`imgLoading${i}`);
+        if (ld) ld.innerHTML = '<span style="font-size:0.7rem;color:#fca5a5">Timed out — retry</span>';
+        failed++;
+        resolve({ ok: false, i });
+      }
+    }, 40000);
+
+    img.onload = () => {
+      clearTimeout(retryTimer);
+      clearTimeout(giveUpTimer);
+      const el = document.getElementById(`imgEl${i}`);
+      const ld = document.getElementById(`imgLoading${i}`);
+      if (el && ld) {
+        el.src = url;
+        el.style.display = 'block';
+        ld.style.display = 'none';
+        document.getElementById(`imgCard${i}`).style.cursor = 'pointer';
+      }
+      loaded++;
+      status.textContent = `✓ ${loaded}/${imgSelectedCount} image${imgSelectedCount>1?'s':''} ready`;
+      resolve({ ok: true, i });
+    };
+
+    img.onerror = () => {
+      clearTimeout(retryTimer);
+      clearTimeout(giveUpTimer);
+      const ld = document.getElementById(`imgLoading${i}`);
+      if (ld) ld.innerHTML = '<span style="font-size:0.7rem;color:#fca5a5">Failed to load</span>';
+      failed++;
+      resolve({ ok: false, i });
+    };
+
+    // Start load — Pollinations generates on first request
+    img.src = url;
+  }));
+
+  await Promise.all(loadPromises);
+
+  btn.disabled = false;
+  btnTxt.textContent = '🖼 Regenerate';
+  spinner.style.display = 'none';
+
+  if (loaded > 0) {
+    status.textContent = `✓ ${loaded} image${loaded>1?'s':''} generated${failed?' ('+failed+' failed)':''}. Click to insert.`;
+    showToast(`${loaded} image${loaded>1?'s':''} ready!`, 'success');
+  } else {
+    status.textContent = '✕ All images failed. Try a simpler prompt or check your connection.';
+    showToast('Image generation failed. Try again.', 'error');
+  }
+};
+
+// ── Insert image into editor ────────────────────
+window.insertImage = (idx) => {
+  const url = generatedImages[idx];
+  if (!url) { showToast('Image not ready yet.', 'error'); return; }
+
+  const caption = document.getElementById('imgPrompt').value.trim().substring(0,80);
+  const html = `<figure style="margin:1.5rem 0;text-align:center">
+  <img src="${url}" alt="${caption}" style="max-width:100%;border-radius:4px;border:1px solid rgba(201,168,76,0.15)" loading="lazy" />
+  <figcaption style="font-size:0.75rem;color:#8896b3;margin-top:0.4rem;font-style:italic">${caption}</figcaption>
+</figure>`;
+
+  const editor = document.getElementById('editor');
+  editor.focus();
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount) {
+    const range = sel.getRangeAt(0);
+    range.collapse(false);
+    const frag = range.createContextualFragment(html);
+    range.insertNode(frag);
+  } else {
+    editor.innerHTML += html;
+  }
+
+  updateWordCount();
+  document.getElementById('imgInsertedBanner').style.display = 'block';
+  setTimeout(() => document.getElementById('imgInsertedBanner').style.display='none', 3000);
+  showToast('Image inserted into article!', 'success');
+};
+
+// Set as featured image
+window.setFeatured = (idx) => {
+  const url = generatedImages[idx];
+  if (!url) { showToast('Image not ready.', 'error'); return; }
+  document.getElementById('postImage').value = url;
+  showToast('Featured image set!', 'success');
+};
+
+// ── Full preview modal ──────────────────────────
+window.openImgModal = (idx) => {
+  const url = generatedImages[idx];
+  if (!url) return;
+  currentModalImgUrl = url;
+  document.getElementById('imgModalSrc').src = url;
+  document.getElementById('imgModalDownload').href = url;
+  document.getElementById('imgModal').classList.add('open');
+};
+
+window.closeImgModal = (e) => {
+  if (e && e.target !== document.getElementById('imgModal')) return;
+  document.getElementById('imgModal').classList.remove('open');
+};
+
+window.insertImageFromModal = () => {
+  const idx = generatedImages.indexOf(currentModalImgUrl);
+  if (idx >= 0) insertImage(idx);
+  else {
+    // Insert by URL directly
+    const html = `<figure style="margin:1.5rem 0;text-align:center"><img src="${currentModalImgUrl}" alt="AI generated image" style="max-width:100%;border-radius:4px" loading="lazy" /></figure>`;
+    document.getElementById('editor').innerHTML += html;
+    updateWordCount();
+    showToast('Image inserted!', 'success');
+  }
+  document.getElementById('imgModal').classList.remove('open');
+};
+
+window.setFeaturedFromModal = () => {
+  document.getElementById('postImage').value = currentModalImgUrl;
+  document.getElementById('imgModal').classList.remove('open');
+  showToast('Featured image set!', 'success');
+};
+
 // ── Auth guard ────────────────────────────────
 onAuthStateChanged(auth, async user => {
   if (!user) { window.location.href = 'login.html'; return; }
-  if (user.uid !== ADMIN_UID) {
+
+  // Security fix: verify admin role from Firestore, not hardcoded UID
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    const role  = snap.exists() ? snap.data().role : null;
+    // Fallback: also allow the original owner UID for backwards compatibility
+    const isOwner = user.uid === "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
+    if (role !== 'admin' && !isOwner) {
+      await signOut(auth);
+      window.location.href = 'login.html?error=unauthorized';
+      return;
+    }
+  } catch(e) {
     await signOut(auth);
     window.location.href = 'login.html?error=unauthorized';
     return;
   }
+
   currentUser = user;
   document.getElementById('userEmail').textContent   = user.email;
   document.getElementById('userInitial').textContent = user.email[0].toUpperCase();
@@ -545,8 +949,10 @@ async function loadUsers() {
   const tbody = document.getElementById('usersTableBody');
   try {
     const snap  = await getDocs(query(collection(db,'users'), orderBy('createdAt','desc')));
+    const OWNER_UID   = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
+    const OWNER_EMAIL = "abhishek.dutta1996@gmail.com";
     const users = snap.docs.map(d=>({id:d.id,...d.data()}))
-      .filter(u => u.id !== ADMIN_UID && u.uid !== ADMIN_UID && u.email !== ADMIN_EMAIL);
+      .filter(u => u.id !== OWNER_UID && u.uid !== OWNER_UID && u.email !== OWNER_EMAIL && u.role !== 'admin');
     if (!users.length) { tbody.innerHTML=`<tr><td colspan="5"><div class="table-empty">No other users yet.</div></td></tr>`; return; }
     const roleColors = {reader:'color:#8896b3',editor:'color:#93c5fd',coauthor:'color:#c9a84c'};
     const roleLabels = {reader:'Reader',editor:'Editor',coauthor:'Co-Author'};
@@ -632,6 +1038,13 @@ window.clearEditor = () => {
   document.getElementById('premiumSwitch').classList.remove('on');
   document.getElementById('aiEditToolbar').style.display = 'none';
   document.getElementById('aiResultBox').style.display   = 'none';
+  // Reset image generator
+  document.getElementById('imgPreviewGrid').style.display = 'none';
+  document.getElementById('imgGenStatus').textContent = '';
+  document.getElementById('autoplaceBar').classList.remove('active');
+  generatedImages      = [];
+  autoPlaceCancelled   = false;
+  lastSavedContent     = '';
 };
 
 window.editPost = async (id) => {
@@ -666,7 +1079,7 @@ window.savePost = async (publish) => {
   const metaDesc= document.getElementById('postMeta').value.trim();
   const tagsRaw = document.getElementById('postTags').value.trim();
   const tags    = tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [];
-  const readMin = Math.max(1,Math.ceil((document.getElementById('editor').innerText||'').split(/\s+/).filter(Boolean).length/200));
+  const readMin = Math.max(1,Math.ceil((document.getElementById('editor').cloneNode(true).textContent||'').split(/\s+/).filter(Boolean).length/200));
 
   if (!title) { showToast('Please add a title.','error'); return; }
   document.getElementById('saveStatus').textContent = 'Saving…';
@@ -707,13 +1120,23 @@ window.togglePremium = () => {
   document.getElementById('premiumSwitch').classList.toggle('on', isPremium);
 };
 
-// ── Rich text ─────────────────────────────────
-window.fmt = (cmd) => { document.getElementById('editor').focus(); document.execCommand(cmd,false,null); };
-window.fmtBlock = (tag) => { document.getElementById('editor').focus(); document.execCommand('formatBlock',false,tag); };
-window.insertLink = () => { const url=prompt('Enter URL:'); if(url){document.getElementById('editor').focus();document.execCommand('createLink',false,url);} };
+// ── Rich text (safe execCommand wrapper) ──────
+function safeExec(cmd, value = null) {
+  const editor = document.getElementById('editor');
+  editor.focus();
+  try {
+    if (document.queryCommandSupported && document.queryCommandSupported(cmd)) {
+      document.execCommand(cmd, false, value);
+    }
+  } catch(e) { /* execCommand not supported in this context */ }
+}
+window.fmt       = (cmd)   => safeExec(cmd);
+window.fmtBlock  = (tag)   => safeExec('formatBlock', tag);
+window.insertLink = () => { const url=prompt('Enter URL:'); if(url) safeExec('createLink', url); };
 
 function updateWordCount() {
-  const text  = document.getElementById('editor').innerText || '';
+  // cloneNode avoids innerText quirks with images, figures, captions
+  const text  = document.getElementById('editor').cloneNode(true).textContent || '';
   const words = text.trim().split(/\s+/).filter(Boolean).length;
   const mins  = Math.max(1,Math.ceil(words/200));
   document.getElementById('wordCount').textContent = words;
@@ -724,13 +1147,16 @@ document.getElementById('postTitle').addEventListener('input', e => {
   if (!editingPostId) document.getElementById('postSlug').value = slugify(e.target.value);
 });
 
-// ── Auto-save ─────────────────────────────────
+// ── Auto-save (change-detected — no unnecessary Firestore writes) ─────
+let lastSavedContent = '';
 setInterval(async () => {
   if (!editingPostId) return;
   const content = document.getElementById('editor').innerHTML;
   if (!content || content.trim().length < 50) return;
+  if (content === lastSavedContent) return; // skip if nothing changed
   try {
     await updateDoc(doc(db,'posts',editingPostId),{content,updatedAt:serverTimestamp()});
+    lastSavedContent = content;
     document.getElementById('autoSaveMsg').textContent = 'Auto-saved at ' + new Date().toLocaleTimeString();
   } catch(e) {}
 }, 30000);
@@ -748,6 +1174,8 @@ window.previewPost = () => {
     h2{font-family:'Cormorant Garamond',serif;font-size:1.8rem;margin:2rem 0 1rem}
     h3{font-family:'Cormorant Garamond',serif;font-size:1.3rem;margin:1.5rem 0 .75rem}
     p{margin-bottom:1.5rem}blockquote{border-left:3px solid #c9a84c;padding-left:1.5rem;margin:2rem 0;font-style:italic;color:#8896b3}
+    figure{margin:2rem 0;text-align:center}figure img{max-width:100%;border-radius:4px}
+    figcaption{font-size:0.8rem;color:#8896b3;margin-top:0.5rem;font-style:italic}
     .badge{background:#1a2340;color:#8896b3;font-size:.75rem;padding:.4rem 1rem;border-radius:2px;display:inline-block;margin-bottom:2rem}</style></head>
     <body><div class="badge">PREVIEW — Not published</div><h1>${title}</h1>
     ${excerpt?'<p style="font-size:1.2rem;color:#8896b3;margin-bottom:2rem">'+excerpt+'</p>':''}${content}</body></html>`);
@@ -755,22 +1183,6 @@ window.previewPost = () => {
 };
 
 // ── AI Writer ─────────────────────────────────
-function restoreAISettings() {
-  const model = localStorage.getItem('bp_aiModel') || 'claude';
-  const sel = document.getElementById('aiModel');
-  if (sel) sel.value = model;
-  // Show status indicator for non-Claude models
-  const status = document.getElementById('modelStatus');
-  if (status) status.style.display = model !== 'claude' ? 'block' : 'none';
-}
-
-window.onModelChange = () => {
-  const model = document.getElementById('aiModel').value;
-  localStorage.setItem('bp_aiModel', model);
-  const status = document.getElementById('modelStatus');
-  if (status) status.style.display = model !== 'claude' ? 'block' : 'none';
-};
-
 async function callAI(prompt, silent = false, forceModel = 'auto') {
   const tone     = document.getElementById('aiTone').value;
   const category = document.getElementById('postCategory').value;
@@ -823,7 +1235,6 @@ window.generateAIPost = async () => {
   const tone     = document.getElementById('aiTone').value;
   if (!topic) { showToast('Please enter a topic first.','error'); return; }
 
-  // Step 1: Generate outline
   document.getElementById('btnAI').disabled = true;
   document.getElementById('aiBtnText').textContent = 'Generating outline…';
   document.getElementById('aiStatus').textContent = '';
@@ -839,7 +1250,7 @@ Topic: "${topic}"
 Category: ${category}. Tone: ${tone}.
 Return ONLY plain text bullet points, no HTML, no extra explanation.`;
 
-  const outResult = await callAI(outlinePrompt, true); // silent — no fallback toast for outline
+  const outResult = await callAI(outlinePrompt, true);
 
   if (outResult.error) {
     closeAIModal();
@@ -850,7 +1261,6 @@ Return ONLY plain text bullet points, no HTML, no extra explanation.`;
     return;
   }
 
-  // Show outline for confirmation
   pendingOutline = outResult.text;
   document.getElementById('aiModalTitle').textContent   = '✦ Review Outline';
   document.getElementById('aiModalSub').textContent     = 'Click "Write Full Article" to generate, or Cancel to edit your prompt.';
@@ -865,8 +1275,8 @@ window.confirmOutline = async () => {
   const category     = document.getElementById('postCategory').value;
   const tone         = document.getElementById('aiTone').value;
   const modelArticle = document.getElementById('modelArticle').value;
-  const modelMeta    = modelArticle; // same model for all tasks
-  const modelImage   = modelArticle; // same model for all tasks
+  const modelMeta    = modelArticle;
+  const modelImage   = modelArticle;
   const ML = { claude:'Claude', groq:'Groq', deepseek:'DeepSeek V3', openrouter:'OpenRouter', auto:'Auto' };
 
   const results = [], allAttempts = [];
@@ -877,7 +1287,7 @@ window.confirmOutline = async () => {
 
   // ═══ CALL 1: Long-form Article ═══
   document.getElementById('aiModalTitle').textContent = `✦ Writing article… [${ML[modelArticle]||modelArticle}]`;
-  document.getElementById('aiModalSub').textContent   = 'Generating long-form content — no output limit…';
+  document.getElementById('aiModalSub').textContent   = 'Generating long-form content…';
   document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Writing full article…</span>';
   document.getElementById('aiModal').classList.add('open');
 
@@ -893,7 +1303,7 @@ Start directly with article content. No JSON, no metadata.`, false, modelArticle
 
   if (artResult.error) {
     closeAIModal();
-    document.getElementById('aiStatus').textContent = '\u2715 Article failed: ' + artResult.error;
+    document.getElementById('aiStatus').textContent = '✕ Article failed: ' + artResult.error;
     showToast('Article generation failed.', 'error');
     return;
   }
@@ -901,7 +1311,7 @@ Start directly with article content. No JSON, no metadata.`, false, modelArticle
   const articleHTML = (artResult.text||'').replace(/---METADATA---[\s\S]*/g,'').replace(/\n*---+\s*$/gm,'').replace(/\n*\{"title"[\s\S]*/g,'').trim();
   document.getElementById('editor').innerHTML = articleHTML;
   updateWordCount();
-  addR('\u2713', 'Article written', ML[artResult.modelUsed]||artResult.modelUsed, true);
+  addR('✓', 'Article written', ML[artResult.modelUsed]||artResult.modelUsed, true);
   showAIEditToolbar();
 
   // ═══ CALL 2: Metadata ═══
@@ -937,46 +1347,34 @@ Start directly with article content. No JSON, no metadata.`, false, modelArticle
     if(parsed.tags?.length)            {document.getElementById('postTags').value=parsed.tags.join(', ');checks.tags=true;}
     if(parsed.citations?.length)       {document.getElementById('editor').innerHTML+=`<h2>References</h2><ul>${parsed.citations.map(c=>`<li><em>${c}</em></li>`).join('')}</ul>`;updateWordCount();checks.citations=true;}
   }
-  if(!checks.title&&!document.getElementById('postTitle').value.trim()){document.getElementById('postTitle').value=topic.length<80?topic:topic.substring(0,75)+'\u2026';document.getElementById('postSlug').value=slugify(topic);checks.title=true;}
+  if(!checks.title&&!document.getElementById('postTitle').value.trim()){document.getElementById('postTitle').value=topic.length<80?topic:topic.substring(0,75)+'…';document.getElementById('postSlug').value=slugify(topic);checks.title=true;}
   const metaFields=[checks.title&&'title',checks.summary&&'summary',checks.tags&&'tags',checks.meta&&'meta',checks.citations&&'citations'].filter(Boolean);
-  addR(metaFields.length?'\u2713':'\u2014','Metadata: '+(metaFields.join(', ')||'none'),ML[metaResult.modelUsed]||ML[modelMeta]||'',metaFields.length>0,metaResult.error?' ('+metaResult.error+')':'');
+  addR(metaFields.length?'✓':'—','Metadata: '+(metaFields.join(', ')||'none'),ML[metaResult.modelUsed]||ML[modelMeta]||'',metaFields.length>0,metaResult.error?' ('+metaResult.error+')':'');
 
-  // ═══ CALL 3: Image Prompts ═══
-  document.getElementById('aiModalTitle').textContent = `✦ Generating image prompts… [${ML[modelImage]||modelImage}]`;
-  document.getElementById('aiModalSub').textContent   = 'Creating prompts for free AI image generators…';
-  document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Generating image prompts…</span>';
-
-  const imgResult = await callAI(`For a fintech article about "${topic}", generate 3 detailed AI image prompts.
-Each should describe a professional illustration for the article. Style: modern fintech, clean infographic, professional.
-Return plain text numbered 1-3, one prompt per line. Be specific and detailed.`, true, modelImage);
-
-  allAttempts.push(...(imgResult.attemptsDetail||[]));
   closeAIModal();
 
-  if (!imgResult.error && imgResult.text) {
-    const prompts = imgResult.text.split('\n').filter(l=>l.trim().match(/^[1-9\-•]/)).slice(0,3);
-    if (prompts.length) {
-      document.getElementById('editor').innerHTML += `<h2>Suggested Images</h2>${prompts.map((p,i)=>`<div style="background:#1a2340;border:1px solid rgba(201,168,76,0.3);border-radius:4px;padding:1.5rem;margin:1rem 0"><p style="color:#c9a84c;font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.5rem">\uD83D\uDDBC IMAGE PROMPT ${i+1}</p><p style="color:#8896b3;font-size:0.85rem;line-height:1.6">${p.replace(/^[1-9\.\-\u2022\s]+/,'')}</p><p style="color:#c9a84c;font-size:0.7rem;margin-top:0.75rem">Generate free at: <a href="https://ideogram.ai" target="_blank" style="color:#93c5fd">Ideogram</a> &nbsp;·&nbsp; <a href="https://www.bing.com/images/create" target="_blank" style="color:#93c5fd">Bing Image Creator</a> &nbsp;·&nbsp; <a href="https://leonardo.ai" target="_blank" style="color:#93c5fd">Leonardo AI</a></p></div>`).join('')}`;
-      updateWordCount();
-      addR('\u2713', 'Image prompts (3)', ML[imgResult.modelUsed]||imgResult.modelUsed, true);
-    }
-  } else {
-    addR('\u2014', 'Image prompts', 'Skipped', false, imgResult.error?'('+imgResult.error+')':'');
-  }
-
   // Show result box
-  document.getElementById('aiResultList').innerHTML = results.map(r=>`<div style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem"><span style="color:${r.ok?'var(--green)':'var(--muted)'};flex-shrink:0;font-weight:700">${r.icon}</span><div><span style="color:${r.ok?'var(--cream)':'var(--muted)'}">${r.label}</span>${r.model?`<span style="display:inline-block;margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.1rem 0.4rem;border-radius:2px">\u26A1${r.model}</span>`:''}${r.extra?`<span style="color:#fca5a5;font-size:0.7rem;display:block;margin-top:0.1rem">${r.extra}</span>`:''}</div></div>`).join('');
+  document.getElementById('aiResultList').innerHTML = results.map(r=>`<div style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem"><span style="color:${r.ok?'var(--green)':'var(--muted)'};flex-shrink:0;font-weight:700">${r.icon}</span><div><span style="color:${r.ok?'var(--cream)':'var(--muted)'}">${r.label}</span>${r.model?`<span style="display:inline-block;margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.1rem 0.4rem;border-radius:2px">⚡${r.model}</span>`:''}${r.extra?`<span style="color:#fca5a5;font-size:0.7rem;display:block;margin-top:0.1rem">${r.extra}</span>`:''}</div></div>`).join('');
 
   const hadFallbacks = allAttempts.some(a=>!a.success);
   if (hadFallbacks) {
     document.getElementById('aiFallbackLog').style.display='block';
-    document.getElementById('aiFallbackList').innerHTML=allAttempts.map(a=>`<div style="display:flex;gap:0.5rem"><span style="color:${a.success?'var(--green)':'#fca5a5'};font-weight:700">${a.success?'\u2713':'\u2715'}</span><span><strong style="color:${a.success?'var(--cream)':'var(--muted)'}">${ML[a.model]||a.model}</strong> <span style="color:var(--muted)">\u2014 ${a.success?'Used':(a.reason||'Failed')}</span></span></div>`).join('');
+    document.getElementById('aiFallbackList').innerHTML=allAttempts.map(a=>`<div style="display:flex;gap:0.5rem"><span style="color:${a.success?'var(--green)':'#fca5a5'};font-weight:700">${a.success?'✓':'✕'}</span><span><strong style="color:${a.success?'var(--cream)':'var(--muted)'}">${ML[a.model]||a.model}</strong> <span style="color:var(--muted)">— ${a.success?'Used':(a.reason||'Failed')}</span></span></div>`).join('');
   }
 
   document.getElementById('aiResultBox').style.display = 'block';
   const total = results.filter(r=>r.ok).length;
-  document.getElementById('aiStatus').textContent = `\u2713 Complete \u2014 ${total}/${results.length} tasks done.`;
+  document.getElementById('aiStatus').textContent = `✓ Complete — ${total}/${results.length} tasks done.`;
   showToast(`Done! ${total}/${results.length} tasks completed.`, 'success');
+
+  // Auto-fill image prompt AND auto-generate cover image
+  if (!document.getElementById('imgPrompt').value.trim()) {
+    const autoPrompt = `Professional fintech editorial cover image for: "${topic}", futuristic dark dashboard, glowing data visualizations, corporate style`;
+    document.getElementById('imgPrompt').value = autoPrompt;
+    // Auto-trigger generation after a short delay so user sees it happening
+    showToast('Auto-generating cover image…', 'success');
+    setTimeout(() => generateImages(), 600);
+  }
 };
 
 window.cancelOutline = () => {
@@ -1012,6 +1410,160 @@ function showAIEditToolbar() {
   document.getElementById('aiEditToolbar').style.display = 'block';
 }
 
+// ── Auto-Place Images After Every H2 ──────────
+let autoPlaceCancelled = false;
+
+window.cancelAutoPlace = () => {
+  autoPlaceCancelled = true;
+  document.getElementById('autoplaceBar').classList.remove('active');
+  document.getElementById('btnAutoPlace').disabled = false;
+  document.getElementById('autoPlaceSpinner').style.display = 'none';
+  showToast('Auto-placement cancelled.', 'error');
+};
+
+function apLog(msg, state = 'done') {
+  const log  = document.getElementById('autoplaceLog');
+  const item = document.createElement('div');
+  item.className = `autoplace-log-item ${state}`;
+  item.innerHTML = `<span>${state==='done'?'✓':state==='failed'?'✕':'⏳'}</span><span>${msg}</span>`;
+  log.appendChild(item);
+  log.scrollTop = log.scrollHeight;
+  return item;
+}
+
+function apProgress(done, total, msg) {
+  document.getElementById('autoplaceFill').style.width   = `${Math.round((done/total)*100)}%`;
+  document.getElementById('autoplaceStatus').textContent = msg;
+}
+
+window.autoPlaceImages = async () => {
+  const editor = document.getElementById('editor');
+  const h2s    = editor.querySelectorAll('h2');
+
+  if (!h2s.length) {
+    showToast('No H2 headings found. Generate an article first.', 'error');
+    return;
+  }
+
+  // Confirm if article already has images
+  const existingImgs = editor.querySelectorAll('figure img, img');
+  if (existingImgs.length > 0) {
+    if (!confirm(`Article already has ${existingImgs.length} image(s). Add more after each H2?`)) return;
+  }
+
+  autoPlaceCancelled = false;
+  const btn = document.getElementById('btnAutoPlace');
+  btn.disabled = true;
+  document.getElementById('autoPlaceSpinner').style.display = 'inline-block';
+  document.getElementById('autoplaceBar').classList.add('active');
+  document.getElementById('autoplaceLog').innerHTML = '';
+  document.getElementById('autoplaceFill').style.width = '0%';
+
+  const topic    = document.getElementById('aiPrompt').value.trim()
+    || document.getElementById('postTitle').value.trim()
+    || 'fintech';
+  const style    = imgSelectedStyle || 'photorealistic';
+  const negative = document.getElementById('imgNegative').value.trim()
+    || 'blurry, watermark, text, low quality';
+
+  const total  = h2s.length;
+  let   placed = 0;
+
+  apProgress(0, total, `Found ${total} H2 section${total>1?'s':''}. Generating images…`);
+
+  for (let i = 0; i < h2s.length; i++) {
+    if (autoPlaceCancelled) break;
+
+    const h2      = h2s[i];
+    const heading = h2.textContent.trim();
+    const logItem = apLog(`Section ${i+1}: "${heading.substring(0,40)}${heading.length>40?'…':''}"`, 'loading');
+
+    // Build a context-aware prompt from the H2 text + topic
+    const imgPrompt = `Professional fintech illustration for article section "${heading}" about ${topic}. `
+      + `${style}, dark modern background, corporate editorial style, no text in image`;
+
+    const seed = Math.floor(Math.random() * 999999) + 1;
+    const url  = buildPollinationsUrl(imgPrompt, style, negative, seed);
+
+    // Load image with proper timeout handling
+    const imgUrl = await new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+
+      const retryTimer = setTimeout(() => {
+        if (!img.complete) img.src = url + '&retry=' + Date.now();
+      }, 15000);
+
+      const giveUpTimer = setTimeout(() => {
+        clearTimeout(retryTimer);
+        resolve(null); // timeout → skip this section
+      }, 38000);
+
+      img.onload = () => {
+        clearTimeout(retryTimer);
+        clearTimeout(giveUpTimer);
+        resolve(url);
+      };
+      img.onerror = () => {
+        clearTimeout(retryTimer);
+        clearTimeout(giveUpTimer);
+        resolve(null);
+      };
+      img.src = url;
+    });
+
+    if (autoPlaceCancelled) break;
+
+    if (imgUrl) {
+      // Build figure element
+      const figure = document.createElement('figure');
+      figure.style.cssText = 'margin:1.2rem 0 1.5rem;text-align:center';
+      figure.innerHTML = `<img src="${imgUrl}" alt="${heading}" loading="lazy"
+        style="max-width:100%;border-radius:4px;border:1px solid rgba(201,168,76,0.15)" />
+        <figcaption style="font-size:0.75rem;color:#8896b3;margin-top:0.35rem;font-style:italic">${heading}</figcaption>`;
+
+      // Insert figure immediately after the H2 (before the next sibling)
+      if (h2.nextSibling) {
+        h2.parentNode.insertBefore(figure, h2.nextSibling);
+      } else {
+        h2.parentNode.appendChild(figure);
+      }
+
+      placed++;
+      logItem.className = 'autoplace-log-item done';
+      logItem.querySelector('span').textContent = '✓';
+    } else {
+      logItem.className = 'autoplace-log-item failed';
+      logItem.querySelector('span').textContent = '✕';
+    }
+
+    apProgress(i + 1, total, `${i+1}/${total} done${imgUrl?' — image placed':' — section skipped'}`);
+  }
+
+  // Done
+  updateWordCount();
+  btn.disabled = false;
+  document.getElementById('autoPlaceSpinner').style.display = 'none';
+
+  if (!autoPlaceCancelled) {
+    apProgress(total, total, `✓ Complete — ${placed}/${total} image${placed!==1?'s':''} placed`);
+    document.getElementById('autoplaceFill').style.width = '100%';
+    document.getElementById('autoplaceFill').style.background = 'linear-gradient(90deg,var(--green),#4ade80)';
+    showToast(`${placed} image${placed!==1?'s':''} placed into article!`, 'success');
+
+    // Scroll editor into view so user sees result
+    setTimeout(() => editor.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+  }
+
+  // Fade out bar after 5 seconds
+  setTimeout(() => {
+    if (!autoPlaceCancelled) {
+      document.getElementById('autoplaceBar').classList.remove('active');
+      document.getElementById('autoplaceFill').style.background = 'linear-gradient(90deg,#1d4ed8,#3b82f6)';
+    }
+  }, 5000);
+};
+
 function setEditStatus(msg, isError = false) {
   const el = document.getElementById('aiEditStatus');
   el.textContent = msg;
@@ -1023,7 +1575,7 @@ function setEditBtnsDisabled(on) {
 }
 
 async function runAIEdit(instruction) {
-  const currentText = document.getElementById('editor').innerText;
+  const currentText = document.getElementById('editor').cloneNode(true).textContent;
   const topic       = document.getElementById('aiPrompt').value.trim() || 'fintech article';
   const category    = document.getElementById('postCategory').value;
 
@@ -1035,7 +1587,6 @@ async function runAIEdit(instruction) {
   setEditBtnsDisabled(true);
   setEditStatus('⏳ Working…');
 
-  // Truncate to 1500 chars to stay well within free model limits
   const snippet = currentText.length > 1500
     ? currentText.substring(0, 1500) + '\n[…continues]'
     : currentText;
@@ -1084,13 +1635,11 @@ window.aiEditAction = async (action) => {
     shorten:        'Shorten this article by 30-40% while keeping all key points. Remove redundancy and tighten each paragraph.',
     references:     'Add a comprehensive References section at the end with 5-8 relevant real sources — RBI circulars, SEBI reports, industry studies, NPCI data, and reputable publications. Format each as an HTML list item.',
     graph:          `Add an HTML-based data visualization table in a relevant section. Use a styled <table> with inline CSS (dark background #0f1628, gold #c9a84c borders, cream #f5f0e8 text) showing relevant statistics or comparisons that support the article's key points.`,
-    image:          `Add a descriptive image placeholder in a relevant section using this HTML: <div style="background:#1a2340;border:1px solid rgba(201,168,76,0.3);border-radius:4px;padding:2rem;text-align:center;margin:1.5rem 0"><p style="color:#8896b3;font-size:0.85rem">📷 [Suggested image: <em>describe what image would go here based on article context</em>]</p><p style="color:#c9a84c;font-size:0.72rem;margin-top:0.5rem">Replace with actual image URL</p></div>`,
   };
 
   const instruction = instructions[action];
   if (!instruction) return;
 
-  // For regenerate — confirm first
   if (action === 'regenerate') {
     if (!confirm('Regenerate the entire article? Current content will be replaced.')) return;
   }
