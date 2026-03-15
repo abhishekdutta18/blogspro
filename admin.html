@@ -1,1 +1,1664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — BlogsPro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DED9GTRR3E');</script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --navy:#080d1a;--navy2:#0f1628;--navy3:#1a2340;
+      --gold:#c9a84c;--gold2:#f0cc6e;--cream:#f5f0e8;
+      --muted:#8896b3;--border:rgba(201,168,76,0.2);
+      --green:#22c55e;--red:#ef4444;
+      --blue:#3b82f6;--blue2:#93c5fd;
+      --serif:'Cormorant Garamond',Georgia,serif;
+      --sans:'DM Sans',sans-serif;
+      --sidebar:240px;
+    }
+    html,body{height:100%}
+    body{background:var(--navy);color:var(--cream);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:flex}
+    a{color:inherit;text-decoration:none}
 
+    /* Hamburger */
+    #menuBtn{display:none;position:fixed;top:14px;left:14px;z-index:200;background:var(--navy2);border:1px solid var(--border);color:var(--cream);padding:6px 11px;font-size:1.1rem;cursor:pointer;border-radius:3px;transition:all 0.2s}
+    #menuBtn:hover{border-color:var(--gold);color:var(--gold)}
+    #sideOverlay{display:none;position:fixed;inset:0;background:rgba(8,13,26,0.6);z-index:49;backdrop-filter:blur(2px)}
+
+    /* Sidebar */
+    aside{width:var(--sidebar);height:100vh;background:var(--navy2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:50;overflow:hidden;transition:transform 0.25s ease}
+    .sidebar-brand{padding:1.8rem 1.5rem 1.5rem;border-bottom:1px solid var(--border);flex-shrink:0}
+    .sidebar-brand h1{font-family:var(--serif);font-size:1.5rem;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .sidebar-brand p{font-size:0.7rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:0.2rem}
+    nav.side-nav{flex:1;padding:1.5rem 0;overflow-y:auto;min-height:0}
+    .nav-label{font-size:0.62rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);padding:0 1.5rem;margin-bottom:0.5rem;display:block}
+    .nav-item{display:flex;align-items:center;gap:0.75rem;padding:0.7rem 1.5rem;font-size:0.88rem;color:var(--muted);cursor:pointer;transition:all 0.15s;border-left:2px solid transparent}
+    .nav-item:hover{color:var(--cream);background:rgba(255,255,255,0.03)}
+    .nav-item.active{color:var(--gold);border-left-color:var(--gold);background:rgba(201,168,76,0.05)}
+    .sidebar-footer{padding:1.5rem;border-top:1px solid var(--border);flex-shrink:0}
+    .user-chip{display:flex;align-items:center;gap:0.7rem;margin-bottom:1rem}
+    .user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--navy3));display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;color:var(--navy)}
+    .user-email{font-size:0.75rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .btn-logout{width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.6rem;border-radius:3px;font-family:var(--sans);font-size:0.78rem;cursor:pointer;transition:all 0.2s}
+    .btn-logout:hover{border-color:var(--red);color:#fca5a5}
+
+    /* Main */
+    main{margin-left:var(--sidebar);flex:1;min-height:100vh;padding:2.5rem}
+
+    /* Views */
+    .view{display:none}
+    .view.active{display:block;animation:fadeIn 0.25s ease}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+    /* Page header */
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2.5rem}
+    .page-header h2{font-family:var(--serif);font-size:2rem;font-weight:700}
+    .page-header p{font-size:0.85rem;color:var(--muted);margin-top:0.2rem}
+
+    /* Stat cards */
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;margin-bottom:3rem}
+    .stat-card{background:var(--navy2);border:1px solid var(--border);padding:1.8rem 1.5rem}
+    .stat-card-label{font-size:0.7rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.8rem}
+    .stat-card-value{font-family:var(--serif);font-size:2.8rem;font-weight:700;line-height:1}
+    .stat-card-sub{font-size:0.75rem;color:var(--green);margin-top:0.4rem}
+
+    /* Table */
+    .table-wrap{background:var(--navy2);border:1px solid var(--border);overflow:hidden}
+    .table-header{display:flex;align-items:center;justify-content:space-between;padding:1.2rem 1.5rem;border-bottom:1px solid var(--border)}
+    .table-title{font-size:0.95rem;font-weight:600}
+    table{width:100%;border-collapse:collapse}
+    th{text-align:left;font-size:0.68rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);padding:0.9rem 1.5rem;border-bottom:1px solid var(--border)}
+    td{padding:1rem 1.5rem;font-size:0.88rem;border-bottom:1px solid rgba(201,168,76,0.08)}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:rgba(255,255,255,0.02)}
+    .status-badge{display:inline-block;padding:0.25rem 0.6rem;border-radius:2px;font-size:0.68rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase}
+    .status-published{background:rgba(34,197,94,0.15);color:var(--green)}
+    .status-draft{background:rgba(136,150,179,0.15);color:var(--muted)}
+    .action-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.3rem 0.7rem;border-radius:2px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;margin-right:0.4rem}
+    .action-btn:hover{border-color:var(--gold);color:var(--gold)}
+    .action-btn.delete:hover{border-color:var(--red);color:#fca5a5}
+    .table-empty{text-align:center;padding:3rem;color:var(--muted);font-size:0.9rem}
+
+    /* Editor */
+    .editor-grid{display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:start}
+    .editor-panel{background:var(--navy2);border:1px solid var(--border);padding:1.5rem}
+    .editor-panel h3{font-size:0.78rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:1.2rem}
+    .form-row{margin-bottom:1.2rem}
+    .form-label{display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.45rem}
+    .form-input,.form-select,.form-textarea{width:100%;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.8rem 1rem;border-radius:3px;font-family:var(--sans);font-size:0.9rem;outline:none;transition:border-color 0.2s}
+    .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--gold)}
+    .form-select option{background:var(--navy2)}
+    .title-input{font-family:var(--serif);font-size:1.5rem;font-weight:600}
+    .toolbar{display:flex;flex-wrap:wrap;gap:4px;padding:0.6rem;background:var(--navy3);border:1px solid var(--border);border-bottom:none;border-radius:3px 3px 0 0}
+    .toolbar button{background:transparent;border:1px solid transparent;color:var(--muted);width:30px;height:28px;border-radius:2px;font-family:var(--sans);font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.15s}
+    .toolbar button:hover{background:rgba(201,168,76,0.1);border-color:var(--border);color:var(--gold)}
+    .toolbar-sep{width:1px;background:var(--border);margin:4px 2px}
+    #editor{min-height:420px;background:var(--navy);border:1px solid var(--border);padding:1.2rem;border-radius:0 0 3px 3px;outline:none;font-size:0.95rem;line-height:1.75;color:var(--cream)}
+    #editor:focus{border-color:var(--gold)}
+    #editor h2{font-family:var(--serif);font-size:1.5rem;margin:1rem 0 0.5rem}
+    #editor h3{font-family:var(--serif);font-size:1.2rem;margin:0.8rem 0 0.4rem}
+    #editor blockquote{border-left:3px solid var(--gold);padding-left:1rem;margin:1rem 0;font-style:italic;color:var(--muted)}
+    #editor a{color:var(--gold);text-decoration:underline}
+    .publish-row{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:1rem}
+    .btn-save-draft{background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s}
+    .btn-save-draft:hover{border-color:var(--gold);color:var(--gold)}
+    .btn-publish{background:var(--gold);color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;transition:all 0.2s}
+    .btn-publish:hover{background:var(--gold2)}
+    .char-count{font-size:0.7rem;color:var(--muted);text-align:right;margin-top:0.3rem}
+
+    /* Toggle */
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:0.8rem 0;border-top:1px solid var(--border);margin-top:0.5rem}
+    .toggle-switch{position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;flex-shrink:0}
+    .toggle-track{position:absolute;inset:0;background:var(--navy3);border:1px solid var(--border);border-radius:20px;transition:0.2s}
+    .toggle-dot{position:absolute;left:2px;top:2px;width:14px;height:14px;background:var(--muted);border-radius:50%;transition:0.2s}
+    .toggle-switch.on .toggle-track{background:rgba(201,168,76,0.2);border-color:var(--gold)}
+    .toggle-switch.on .toggle-dot{left:18px;background:var(--gold)}
+
+    /* Toast */
+    .toast{position:fixed;bottom:2rem;right:2rem;background:var(--navy3);border:1px solid var(--border);padding:1rem 1.5rem;border-radius:4px;font-size:0.88rem;z-index:999;transform:translateY(100px);opacity:0;transition:all 0.3s;max-width:340px}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast.success{border-color:var(--green)}
+    .toast.error{border-color:var(--red)}
+
+    /* Modal */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,13,26,0.85);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+    .modal-overlay.open{display:flex}
+    .modal-box{background:var(--navy2);border:1px solid var(--border);width:90%;max-width:620px;padding:2rem;position:relative;border-radius:4px}
+    .modal-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold2),transparent)}
+    .modal-title{font-family:var(--serif);font-size:1.4rem;font-weight:700;margin-bottom:0.4rem}
+    .modal-sub{font-size:0.82rem;color:var(--muted);margin-bottom:1.2rem}
+    .modal-content{background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:1rem;min-height:80px;font-size:0.85rem;color:var(--muted);line-height:1.6;white-space:pre-wrap}
+    .modal-actions{display:flex;gap:0.75rem;margin-top:1rem}
+    .btn-modal-confirm{flex:1;background:var(--gold);color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;transition:all 0.2s}
+    .btn-modal-confirm:hover{background:var(--gold2)}
+    .btn-modal-cancel{flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;cursor:pointer;transition:all 0.2s}
+    .btn-modal-cancel:hover{border-color:var(--red);color:#fca5a5}
+
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+    @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+
+    .ai-edit-btn{background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0.35rem 0.7rem;border-radius:3px;font-family:var(--sans);font-size:0.75rem;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+    .ai-edit-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.06)}
+    .ai-edit-btn:disabled{opacity:0.5;cursor:not-allowed}
+
+    /* ── AI IMAGE GENERATOR ───────────────────── */
+    .img-gen-panel{background:var(--navy2);border:1px solid rgba(59,130,246,0.35);padding:1.5rem;margin-top:1rem}
+    .img-gen-panel h3{font-size:0.78rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--blue2);margin-bottom:0.4rem}
+    .img-gen-panel .panel-sub{font-size:0.72rem;color:var(--muted);margin-bottom:1.1rem;line-height:1.5}
+
+    .img-style-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;margin-bottom:0.9rem}
+    .img-style-btn{background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0.4rem 0.5rem;border-radius:3px;font-family:var(--sans);font-size:0.7rem;cursor:pointer;transition:all 0.15s;text-align:center}
+    .img-style-btn:hover{border-color:var(--blue2);color:var(--blue2)}
+    .img-style-btn.selected{border-color:var(--blue2);color:var(--blue2);background:rgba(59,130,246,0.1)}
+
+    .img-ratio-row{display:flex;gap:0.4rem;margin-bottom:0.9rem}
+    .img-ratio-btn{flex:1;background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.68rem;cursor:pointer;transition:all 0.15s;text-align:center;font-weight:600}
+    .img-ratio-btn:hover{border-color:var(--blue2);color:var(--blue2)}
+    .img-ratio-btn.selected{border-color:var(--blue2);color:var(--blue2);background:rgba(59,130,246,0.1)}
+
+    .btn-generate-img{width:100%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem}
+    .btn-generate-img:hover{background:linear-gradient(135deg,#2563eb,#60a5fa)}
+    .btn-generate-img:disabled{opacity:0.5;cursor:not-allowed}
+
+    .img-preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.9rem}
+    .img-preview-card{position:relative;border-radius:3px;overflow:hidden;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;background:var(--navy3)}
+    .img-preview-card:hover{border-color:var(--blue2);transform:scale(1.01)}
+    .img-preview-card img{width:100%;height:120px;object-fit:cover;display:block}
+    .img-preview-card .img-loading{height:120px;display:flex;align-items:center;justify-content:center;background:linear-gradient(90deg,var(--navy3) 25%,var(--navy2) 50%,var(--navy3) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+    .img-preview-card .img-overlay{position:absolute;inset:0;background:rgba(8,13,26,0.7);opacity:0;transition:0.2s;display:flex;align-items:center;justify-content:center;gap:0.4rem}
+    .img-preview-card:hover .img-overlay{opacity:1}
+    .img-overlay-btn{background:var(--gold);color:var(--navy);border:none;padding:0.4rem 0.7rem;border-radius:2px;font-family:var(--sans);font-size:0.7rem;font-weight:700;cursor:pointer;transition:all 0.15s}
+    .img-overlay-btn.secondary{background:var(--navy2);color:var(--cream);border:1px solid var(--border)}
+    .img-preview-card .img-num{position:absolute;top:5px;left:5px;background:rgba(8,13,26,0.8);color:var(--blue2);font-size:0.6rem;font-weight:700;padding:0.15rem 0.4rem;border-radius:2px;letter-spacing:0.08em}
+
+    .img-gen-status{font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.5rem;min-height:1rem}
+
+    .img-inserted-banner{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:3px;padding:0.5rem 0.75rem;font-size:0.72rem;color:var(--green);margin-top:0.5rem;display:none}
+
+    /* Image modal */
+    .img-modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,13,26,0.95);z-index:600;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+    .img-modal-overlay.open{display:flex}
+    .img-modal-inner{position:relative;max-width:90vw;max-height:90vh}
+    .img-modal-inner img{max-width:100%;max-height:85vh;border-radius:4px;display:block}
+    .img-modal-close{position:absolute;top:-14px;right:-14px;width:28px;height:28px;background:var(--navy2);border:1px solid var(--border);color:var(--muted);border-radius:50%;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
+    .img-modal-close:hover{border-color:var(--red);color:#fca5a5}
+    .img-modal-actions{display:flex;gap:0.6rem;margin-top:0.75rem;justify-content:center}
+
+    /* ── AUTO-PLACE PROGRESS ─────────────────── */
+    .autoplace-bar{background:var(--navy2);border:1px solid rgba(59,130,246,0.35);border-radius:3px;padding:0.75rem 0.9rem;margin-top:0.5rem;display:none}
+    .autoplace-bar.active{display:block}
+    .autoplace-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem}
+    .autoplace-title{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--blue2)}
+    .autoplace-cancel{background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.2rem 0.5rem;border-radius:2px;font-family:var(--sans);font-size:0.65rem;cursor:pointer;transition:all 0.15s}
+    .autoplace-cancel:hover{border-color:var(--red);color:#fca5a5}
+    .autoplace-track{height:4px;background:var(--navy3);border-radius:2px;overflow:hidden;margin-bottom:0.4rem}
+    .autoplace-fill{height:100%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:2px;transition:width 0.4s ease;width:0%}
+    .autoplace-status{font-size:0.7rem;color:var(--muted);line-height:1.4}
+    .autoplace-log{margin-top:0.4rem;display:flex;flex-direction:column;gap:0.2rem;max-height:80px;overflow-y:auto}
+    .autoplace-log-item{font-size:0.67rem;display:flex;align-items:center;gap:0.4rem}
+    .autoplace-log-item.done{color:var(--green)}
+    .autoplace-log-item.loading{color:var(--muted);animation:pulse 1s infinite}
+    .autoplace-log-item.failed{color:#fca5a5}
+
+    @media(max-width:900px){
+      aside{transform:translateX(-100%)}
+      aside.open{transform:translateX(0)}
+      main{margin-left:0;padding:1.5rem}
+      .editor-grid{grid-template-columns:1fr}
+      #menuBtn{display:block}
+      #sideOverlay.open{display:block}
+      .img-preview-grid{grid-template-columns:1fr 1fr}
+      .img-style-grid{grid-template-columns:1fr 1fr}
+    }
+  </style>
+</head>
+<body>
+
+<button id="menuBtn" onclick="toggleSidebar()">☰</button>
+<div id="sideOverlay" onclick="toggleSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside>
+  <div class="sidebar-brand">
+    <h1>BlogsPro</h1>
+    <p>Admin Panel</p>
+  </div>
+  <nav class="side-nav">
+    <span class="nav-label">Content</span>
+    <div class="nav-item active" onclick="showView('dashboard')"><span>◈</span> Dashboard</div>
+    <div class="nav-item" onclick="showView('posts')"><span>✦</span> All Posts</div>
+    <div class="nav-item" onclick="showView('editor');clearEditor()"><span>✎</span> New Post</div>
+    <span class="nav-label" style="margin-top:1.5rem">People</span>
+    <div class="nav-item" onclick="showView('users')"><span>👥</span> Users</div>
+    <div class="nav-item" onclick="showView('subscribers')"><span>✉</span> Subscribers</div>
+    <span class="nav-label" style="margin-top:1.5rem">Site</span>
+    <div class="nav-item" onclick="window.open('index.html','_blank')"><span>↗</span> View Blog</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="user-avatar" id="userInitial">—</div>
+      <div class="user-email" id="userEmail">—</div>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main>
+
+  <!-- DASHBOARD -->
+  <div class="view active" id="view-dashboard">
+    <div class="page-header">
+      <div><h2>Dashboard</h2><p id="greetMsg">Welcome back.</p></div>
+      <button class="btn-publish" style="padding:0.7rem 1.5rem;border-radius:3px" onclick="showView('editor');clearEditor()">+ New Post</button>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-card-label">Total Posts</div><div class="stat-card-value" id="statTotal">—</div></div>
+      <div class="stat-card"><div class="stat-card-label">Published</div><div class="stat-card-value" id="statPublished">—</div><div class="stat-card-sub">Live on blog</div></div>
+      <div class="stat-card"><div class="stat-card-label">Drafts</div><div class="stat-card-value" id="statDrafts">—</div></div>
+      <div class="stat-card"><div class="stat-card-label">Subscribers</div><div class="stat-card-value" id="statSubs">—</div><div class="stat-card-sub">Newsletter</div></div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header"><span class="table-title">Recent Posts</span></div>
+      <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody id="recentPostsBody"><tr><td colspan="5"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ALL POSTS -->
+  <div class="view" id="view-posts">
+    <div class="page-header">
+      <div><h2>All Posts</h2><p>Manage your articles</p></div>
+      <button class="btn-publish" style="padding:0.7rem 1.5rem;border-radius:3px" onclick="showView('editor');clearEditor()">+ New Post</button>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody id="allPostsBody"><tr><td colspan="5"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- EDITOR -->
+  <div class="view" id="view-editor">
+    <div class="page-header">
+      <div><h2 id="editorHeading">New Post</h2><p>Write and publish your article</p></div>
+    </div>
+    <div class="editor-grid">
+      <!-- Left -->
+      <div>
+        <div class="form-row">
+          <input type="text" class="form-input title-input" id="postTitle" placeholder="Post title…" />
+        </div>
+        <div class="form-row">
+          <textarea class="form-textarea" id="postExcerpt" rows="2" placeholder="Short excerpt / summary…" style="resize:vertical"></textarea>
+        </div>
+        <div class="toolbar">
+          <button onclick="fmt('bold')" title="Bold"><b>B</b></button>
+          <button onclick="fmt('italic')" title="Italic"><i>I</i></button>
+          <button onclick="fmt('underline')" title="Underline"><u>U</u></button>
+          <div class="toolbar-sep"></div>
+          <button onclick="fmtBlock('h2')">H2</button>
+          <button onclick="fmtBlock('h3')">H3</button>
+          <div class="toolbar-sep"></div>
+          <button onclick="fmt('insertUnorderedList')">•≡</button>
+          <button onclick="fmt('insertOrderedList')">1≡</button>
+          <div class="toolbar-sep"></div>
+          <button onclick="fmtBlock('blockquote')">"</button>
+          <button onclick="insertLink()">🔗</button>
+          <div class="toolbar-sep"></div>
+          <button onclick="showView('editor');document.getElementById('aiPanel').scrollIntoView({behavior:'smooth'})" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border-radius:2px;font-weight:700;font-size:0.72rem">✦ AI Write</button>
+          <button onclick="document.getElementById('imgGenPanel').scrollIntoView({behavior:'smooth'})" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border-radius:2px;font-weight:700;font-size:0.72rem">🖼 AI Image</button>
+        </div>
+        <div id="editor" contenteditable="true"></div>
+
+        <!-- AI Edit Toolbar — shown after article is generated -->
+        <div id="aiEditToolbar" style="display:none;margin-top:0.5rem;background:var(--navy2);border:1px solid rgba(201,168,76,0.3);border-radius:3px;padding:0.75rem">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem">✦ AI Edit Tools</div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.6rem">
+            <button onclick="aiEditAction('regenerate')"   class="ai-edit-btn">↺ Regenerate</button>
+            <button onclick="aiEditAction('professional')" class="ai-edit-btn">📊 Professional</button>
+            <button onclick="aiEditAction('conversational')" class="ai-edit-btn">💬 Conversational</button>
+            <button onclick="aiEditAction('authoritative')" class="ai-edit-btn">🎯 Authoritative</button>
+            <button onclick="aiEditAction('expand')"       class="ai-edit-btn">⤢ Expand</button>
+            <button onclick="aiEditAction('shorten')"      class="ai-edit-btn">⤡ Shorten</button>
+            <button onclick="aiEditAction('references')"   class="ai-edit-btn">📚 Add References</button>
+            <button onclick="aiEditAction('graph')"        class="ai-edit-btn">📊 Add Chart</button>
+          </div>
+          <!-- Auto-Place Images row — full width, prominent -->
+          <div style="border-top:1px solid var(--border);padding-top:0.6rem;margin-bottom:0.6rem">
+            <button id="btnAutoPlace" onclick="autoPlaceImages()" style="width:100%;background:linear-gradient(135deg,rgba(29,78,216,0.8),rgba(59,130,246,0.8));border:1px solid rgba(59,130,246,0.4);color:#fff;padding:0.55rem 0.8rem;border-radius:3px;font-family:var(--sans);font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem" onmouseover="this.style.background='linear-gradient(135deg,#1d4ed8,#3b82f6)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(29,78,216,0.8),rgba(59,130,246,0.8))'">
+              <span>🖼 Auto-Place Images After Every H2</span>
+              <span id="autoPlaceSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+            </button>
+            <div style="font-size:0.65rem;color:var(--muted);text-align:center;margin-top:0.3rem">Generates one unique AI image per H2 section and inserts inline</div>
+          </div>
+          <!-- Auto-place progress bar -->
+          <div class="autoplace-bar" id="autoplaceBar">
+            <div class="autoplace-header">
+              <span class="autoplace-title">🖼 Placing images…</span>
+              <button class="autoplace-cancel" onclick="cancelAutoPlace()">✕ Cancel</button>
+            </div>
+            <div class="autoplace-track"><div class="autoplace-fill" id="autoplaceFill"></div></div>
+            <div class="autoplace-status" id="autoplaceStatus">Starting…</div>
+            <div class="autoplace-log" id="autoplaceLog"></div>
+          </div>
+          <div style="display:flex;gap:0.4rem">
+            <input id="aiEditCustom" class="form-input" placeholder="Custom instruction… e.g. Add a section on SEBI regulations" style="font-size:0.82rem;padding:0.5rem 0.7rem" />
+            <button onclick="aiEditCustom()" style="background:var(--gold);color:var(--navy);border:none;padding:0.5rem 0.8rem;border-radius:3px;font-family:var(--sans);font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.2s">Apply</button>
+          </div>
+          <div id="aiEditStatus" style="font-size:0.7rem;color:var(--muted);margin-top:0.4rem;min-height:1rem"></div>
+        </div>
+
+        <div class="char-count"><span id="wordCount">0</span> words · <span id="readingTimeDisplay">0</span> min read</div>
+      </div>
+
+      <!-- Right -->
+      <div>
+        <!-- Publish -->
+        <div class="editor-panel">
+          <h3>Publish</h3>
+          <div class="publish-row">
+            <button class="btn-save-draft" onclick="savePost(false)">Save Draft</button>
+            <button class="btn-publish" onclick="savePost(true)">Publish</button>
+          </div>
+          <button onclick="previewPost()" style="width:100%;margin-top:0.6rem;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.7rem;border-radius:3px;font-family:var(--sans);font-size:0.82rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">👁 Preview Post</button>
+          <p id="saveStatus" style="font-size:0.75rem;color:var(--muted);margin-top:0.6rem;text-align:center"></p>
+          <p id="autoSaveMsg" style="font-size:0.68rem;color:var(--muted);text-align:center"></p>
+        </div>
+
+        <!-- Details -->
+        <div class="editor-panel" style="margin-top:1rem">
+          <h3>Details</h3>
+          <div class="form-row">
+            <label class="form-label">Category</label>
+            <select class="form-select" id="postCategory">
+              <option value="Fintech">Fintech</option>
+              <option value="Compliance">Compliance</option>
+              <option value="Strategy">Strategy</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Slug (URL)</label>
+            <input type="text" class="form-input" id="postSlug" placeholder="auto-generated" style="font-size:0.8rem" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Featured Image URL</label>
+            <input type="text" class="form-input" id="postImage" placeholder="https://…" style="font-size:0.8rem" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Meta Description</label>
+            <textarea class="form-textarea" id="postMeta" rows="2" placeholder="SEO description (max 160 chars)…" style="resize:none;font-size:0.82rem" maxlength="160"></textarea>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Tags (comma separated)</label>
+            <input type="text" class="form-input" id="postTags" placeholder="fintech, rbi, upi" style="font-size:0.8rem" />
+          </div>
+          <div class="toggle-row">
+            <div>
+              <div style="font-size:0.78rem;font-weight:600;color:var(--cream)">⭐ Premium Content</div>
+              <div style="font-size:0.68rem;color:var(--muted);margin-top:0.15rem">Subscribers only</div>
+            </div>
+            <div class="toggle-switch" id="premiumSwitch" onclick="togglePremium()">
+              <div class="toggle-track"></div>
+              <div class="toggle-dot"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════
+             AI IMAGE GENERATOR PANEL
+        ═══════════════════════════════════════ -->
+        <div class="img-gen-panel" id="imgGenPanel">
+          <h3>🖼 AI Image Generator</h3>
+          <p class="panel-sub">Generate real images instantly via Pollinations AI — free, no API key needed. Click any image to insert it into your article.</p>
+
+          <!-- Prompt -->
+          <div class="form-row">
+            <label class="form-label">Image Prompt</label>
+            <textarea class="form-textarea" id="imgPrompt" rows="2" placeholder="e.g. Futuristic fintech dashboard with glowing blue UI elements, dark background, professional…" style="resize:vertical;font-size:0.82rem"></textarea>
+            <button onclick="autoFillImagePrompt()" style="margin-top:0.4rem;background:transparent;border:1px solid rgba(59,130,246,0.3);color:var(--blue2);padding:0.3rem 0.7rem;border-radius:3px;font-family:var(--sans);font-size:0.7rem;cursor:pointer;transition:all 0.15s;width:100%" onmouseover="this.style.background='rgba(59,130,246,0.08)'" onmouseout="this.style.background='transparent'">✦ Auto-fill from article topic</button>
+          </div>
+
+          <!-- Style presets -->
+          <div style="margin-bottom:0.7rem">
+            <label class="form-label">Style Preset</label>
+            <div class="img-style-grid">
+              <button class="img-style-btn selected" data-style="photorealistic" onclick="selectStyle(this)">📷 Photorealistic</button>
+              <button class="img-style-btn" data-style="digital art" onclick="selectStyle(this)">🎨 Digital Art</button>
+              <button class="img-style-btn" data-style="cinematic, dramatic lighting" onclick="selectStyle(this)">🎬 Cinematic</button>
+              <button class="img-style-btn" data-style="flat design, vector illustration" onclick="selectStyle(this)">📐 Flat Design</button>
+              <button class="img-style-btn" data-style="isometric 3D illustration" onclick="selectStyle(this)">🧊 Isometric 3D</button>
+              <button class="img-style-btn" data-style="minimalist, clean, white background" onclick="selectStyle(this)">⬜ Minimalist</button>
+            </div>
+          </div>
+
+          <!-- Aspect ratio -->
+          <div style="margin-bottom:0.9rem">
+            <label class="form-label">Aspect Ratio</label>
+            <div class="img-ratio-row">
+              <button class="img-ratio-btn selected" data-w="1280" data-h="720" onclick="selectRatio(this)">16:9<br><span style="font-size:0.6rem;color:var(--muted)">Banner</span></button>
+              <button class="img-ratio-btn" data-w="1024" data-h="1024" onclick="selectRatio(this)">1:1<br><span style="font-size:0.6rem;color:var(--muted)">Square</span></button>
+              <button class="img-ratio-btn" data-w="768" data-h="1024" onclick="selectRatio(this)">3:4<br><span style="font-size:0.6rem;color:var(--muted)">Portrait</span></button>
+              <button class="img-ratio-btn" data-w="1200" data-h="630" onclick="selectRatio(this)">OG<br><span style="font-size:0.6rem;color:var(--muted)">Social</span></button>
+            </div>
+          </div>
+
+          <!-- Count -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem">
+            <label class="form-label" style="margin:0">Variations</label>
+            <div style="display:flex;gap:0.35rem">
+              <button class="img-ratio-btn selected" data-count="2" onclick="selectCount(this)" style="width:36px;height:32px;padding:0">2</button>
+              <button class="img-ratio-btn" data-count="4" onclick="selectCount(this)" style="width:36px;height:32px;padding:0">4</button>
+            </div>
+          </div>
+
+          <!-- Negative prompt -->
+          <div class="form-row" style="margin-bottom:0.9rem">
+            <label class="form-label">Avoid (negative prompt)</label>
+            <input type="text" class="form-input" id="imgNegative" placeholder="blurry, text, watermark, low quality…" style="font-size:0.78rem;padding:0.5rem 0.7rem" value="blurry, watermark, text overlay, low quality, distorted" />
+          </div>
+
+          <!-- Generate button -->
+          <button class="btn-generate-img" id="btnGenImg" onclick="generateImages()">
+            <span id="genImgBtnText">🖼 Generate Images</span>
+            <span id="genImgSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+          </button>
+
+          <div class="img-gen-status" id="imgGenStatus"></div>
+
+          <!-- Preview grid -->
+          <div class="img-preview-grid" id="imgPreviewGrid" style="display:none"></div>
+
+          <div class="img-inserted-banner" id="imgInsertedBanner">✓ Image inserted into article editor.</div>
+
+          <!-- Featured image quick-set info -->
+          <div style="margin-top:0.8rem;padding:0.6rem;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.15);border-radius:3px;font-size:0.68rem;color:var(--muted);line-height:1.5">
+            💡 <strong style="color:var(--gold)">Tip:</strong> Click any generated image to preview. Use <strong style="color:var(--cream)">Insert into Article</strong> to embed it inline, or <strong style="color:var(--cream)">Set as Featured</strong> to use it as the post thumbnail.
+          </div>
+        </div>
+
+        <!-- AI Writer -->
+        <div class="editor-panel" id="aiPanel" style="margin-top:1rem;border-color:rgba(201,168,76,0.35)">
+          <h3 style="color:var(--gold)">✦ AI Writer — Multi-Model</h3>
+          <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem">Each task uses a dedicated AI model. All outputs combined into one complete post.</p>
+
+          <div class="form-row">
+            <label class="form-label">Topic / Prompt</label>
+            <textarea class="form-textarea" id="aiPrompt" rows="3" placeholder="e.g. Deep dive into RBI's new UPI regulations for fintech companies in 2025…" style="resize:vertical;font-size:0.85rem"></textarea>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Tone</label>
+            <select class="form-select" id="aiTone" style="font-size:0.85rem">
+              <option value="professional">Professional & Analytical</option>
+              <option value="conversational">Conversational & Accessible</option>
+              <option value="authoritative">Authoritative & Expert</option>
+              <option value="thought-leadership">Thought Leadership</option>
+            </select>
+          </div>
+
+          <!-- Single model selector for all tasks -->
+          <div style="background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.8rem;margin-bottom:0.8rem">
+            <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem">AI Model — used for all tasks</div>
+            <select class="form-select" id="modelArticle" style="font-size:0.85rem" onchange="document.getElementById('modelWarning').style.display=this.value==='openrouter'?'block':'none'">
+              <option value="auto" selected>Auto — Best Available (Recommended)</option>
+              <option value="groq">Groq Llama 3 — Fast & Free</option>
+              <option value="deepseek">DeepSeek V3 — 685B Free</option>
+              <option value="claude">Claude Sonnet — Best Quality</option>
+              <option value="openrouter" style="color:#fca5a5">⚠ OpenRouter — Unreliable (endpoints down)</option>
+            </select>
+            <div id="modelWarning" style="display:none;margin-top:0.5rem;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:3px;padding:0.45rem 0.6rem;font-size:0.68rem;color:#fca5a5;line-height:1.5">
+              ⚠ OpenRouter's free Mistral endpoint is currently down. Use <strong>Auto</strong> or <strong>Groq</strong> instead. To fix permanently, update your Cloudflare Worker to use <code style="background:rgba(0,0,0,0.3);padding:0.1rem 0.3rem;border-radius:2px">meta-llama/llama-3.1-8b-instruct:free</code> as the OpenRouter model.
+            </div>
+            <p style="font-size:0.68rem;color:var(--muted);margin-top:0.4rem">Auto tries Claude → DeepSeek → Groq in order. Fallback enabled if primary fails.</p>
+          </div>
+
+          <button onclick="generateAIPost()" id="btnAI" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.9rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+            <span id="aiBtnText">✦ Generate Full Article</span>
+            <span id="aiSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+          </button>
+          <p id="aiStatus" style="font-size:0.72rem;color:var(--muted);margin-top:0.6rem;text-align:center;min-height:1rem"></p>
+
+          <!-- Result Box -->
+          <div id="aiResultBox" style="display:none;margin-top:0.8rem;background:var(--navy);border:1px solid var(--border);border-radius:3px;overflow:hidden">
+            <div style="padding:0.6rem 0.8rem;background:rgba(201,168,76,0.08);border-bottom:1px solid var(--border)">
+              <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold)">✦ Generation Complete</span>
+            </div>
+            <div style="padding:0.75rem 0.8rem;display:flex;flex-direction:column;gap:0.5rem" id="aiResultList"></div>
+            <div id="aiFallbackLog" style="display:none;padding:0.6rem 0.8rem;border-top:1px solid var(--border)">
+              <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem">Model Attempts</div>
+              <div id="aiFallbackList" style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.72rem"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- USERS -->
+  <div class="view" id="view-users">
+    <div class="page-header"><div><h2>Users</h2><p>Manage all registered accounts</p></div></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Change Role</th></tr></thead>
+      <tbody id="usersTableBody"><tr><td colspan="5"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- SUBSCRIBERS -->
+  <div class="view" id="view-subscribers">
+    <div class="page-header">
+      <div><h2>Subscribers</h2><p>Newsletter signups</p></div>
+      <button class="btn-publish" style="padding:0.7rem 1.5rem;border-radius:3px" onclick="exportSubscribers()">⬇ Export CSV</button>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header">
+        <span class="table-title" id="subCountLabel">Loading…</span>
+        <input id="subSearch" placeholder="Search email…" oninput="filterSubs(this.value)" style="background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.4rem 0.8rem;border-radius:3px;font-family:var(--sans);font-size:0.82rem;outline:none;width:220px" />
+      </div>
+      <table><thead><tr><th>#</th><th>Email</th><th>Subscribed On</th><th>Action</th></tr></thead>
+      <tbody id="subsTableBody"><tr><td colspan="4"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+</main>
+
+<!-- AI Modal -->
+<div class="modal-overlay" id="aiModal">
+  <div class="modal-box">
+    <div class="modal-title" id="aiModalTitle">✦ Generating outline…</div>
+    <div class="modal-sub" id="aiModalSub">AI is thinking. Please wait.</div>
+    <div class="modal-content" id="aiModalContent"><span style="animation:pulse 1s infinite;display:inline-block">Working…</span></div>
+    <div class="modal-actions" id="aiModalActions" style="display:none">
+      <button class="btn-modal-confirm" onclick="confirmOutline()">✓ Write Full Article</button>
+      <button class="btn-modal-cancel" onclick="cancelOutline()">✕ Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Image Full-Preview Modal -->
+<div class="img-modal-overlay" id="imgModal" onclick="closeImgModal(event)">
+  <div class="img-modal-inner">
+    <button class="img-modal-close" onclick="closeImgModal()">✕</button>
+    <img id="imgModalSrc" src="" alt="Preview" />
+    <div class="img-modal-actions">
+      <button class="img-overlay-btn" onclick="insertImageFromModal()" style="padding:0.6rem 1.2rem;font-size:0.82rem">↓ Insert into Article</button>
+      <button class="img-overlay-btn" onclick="setFeaturedFromModal()" style="padding:0.6rem 1.2rem;font-size:0.82rem;background:var(--navy2);color:var(--cream);border:1px solid var(--border)">⭐ Set as Featured</button>
+      <a id="imgModalDownload" href="" download="blogspro-image.jpg" class="img-overlay-btn" style="background:var(--navy2);color:var(--cream);border:1px solid var(--border);padding:0.6rem 1.2rem;font-size:0.82rem;border-radius:2px">⬇ Download</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, doc,
+  getDocs, getDoc, addDoc, updateDoc, deleteDoc,
+  query, orderBy, limit, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
+  authDomain:"blogspro-ai.firebaseapp.com",
+  projectId:"blogspro-ai",
+  storageBucket:"blogspro-ai.firebasestorage.app",
+  messagingSenderId:"940428277283",
+  appId:"1:940428277283:web:d3bb414f0992718ca76396"
+};
+
+const WORKER_URL  = "https://blogspro-ai.abhishek-dutta1996.workers.dev";
+// ── CLOUDFLARE WORKER FIX ──────────────────────
+// OpenRouter's mistralai/mistral-7b-instruct:free is deprecated.
+// In your worker, replace the OpenRouter model with a working free model:
+//   "meta-llama/llama-3.1-8b-instruct:free"   ← most reliable
+//   "google/gemma-3-27b-it:free"               ← high quality
+//   "qwen/qwen-2.5-72b-instruct:free"          ← good alternative
+// Update the `openRouterModel` const in your worker.js to fix this.
+// ──────────────────────────────────────────────
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let currentUser   = null;
+let editingPostId = null;
+let allPosts      = [];
+let allSubs       = [];
+let isPremium     = false;
+let pendingOutline = '';
+
+// ══════════════════════════════════════════════
+// AI IMAGE GENERATOR — State
+// ══════════════════════════════════════════════
+let imgSelectedStyle  = 'photorealistic';
+let imgSelectedW      = 1280;
+let imgSelectedH      = 720;
+let imgSelectedCount  = 2;
+let currentModalImgUrl = '';
+let generatedImages   = []; // store all generated URLs
+
+// Style selector
+window.selectStyle = (btn) => {
+  document.querySelectorAll('.img-style-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  imgSelectedStyle = btn.dataset.style;
+};
+
+// Ratio selector
+window.selectRatio = (btn) => {
+  document.querySelectorAll('.img-ratio-btn[data-w]').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  imgSelectedW = parseInt(btn.dataset.w);
+  imgSelectedH = parseInt(btn.dataset.h);
+};
+
+// Count selector
+window.selectCount = (btn) => {
+  document.querySelectorAll('.img-ratio-btn[data-count]').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  imgSelectedCount = parseInt(btn.dataset.count);
+};
+
+// Auto-fill prompt from article topic
+window.autoFillImagePrompt = () => {
+  const topic = document.getElementById('aiPrompt').value.trim()
+    || document.getElementById('postTitle').value.trim();
+  if (!topic) { showToast('Add an article topic or title first.', 'error'); return; }
+  const financeKeywords = ['fintech','rbi','upi','banking','payment','digital','api','compliance','data','money','finance','investment'];
+  const isFinance = financeKeywords.some(k => topic.toLowerCase().includes(k));
+  const base = isFinance
+    ? `Professional fintech concept for "${topic}", modern dark UI, glowing blue data visualizations, clean corporate style`
+    : `Professional editorial illustration for "${topic}", modern clean design, corporate style`;
+  document.getElementById('imgPrompt').value = base;
+  showToast('Prompt auto-filled! Edit as needed.', 'success');
+};
+
+// ── Image via Worker proxy ─────────────────────
+// Routes through Cloudflare Worker (/image) — solves all CORS/loading issues.
+// Worker fetches Pollinations server-side and returns bytes with CORS headers.
+async function fetchImageViaWorker(prompt, style, seed) {
+  const res = await fetch(WORKER_URL + '/image', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt, style, seed,
+      width:  imgSelectedW,
+      height: imgSelectedH,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Image error: HTTP ${res.status}`);
+  }
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);  // local blob URL — always loads instantly
+}
+
+// Fallback direct URL (kept for autoPlaceImages only)
+function buildPollinationsUrl(prompt, style, negative, seed) {
+  const encoded = encodeURIComponent(`${prompt}, ${style}, high resolution`);
+  return `https://image.pollinations.ai/prompt/${encoded}` +
+    `?width=${imgSelectedW}&height=${imgSelectedH}&seed=${seed}&nologo=true&model=flux`;
+}
+
+// ── Generate Images (via Worker proxy) ──────────
+window.generateImages = async () => {
+  const prompt = document.getElementById('imgPrompt').value.trim();
+  if (!prompt) { showToast('Please enter an image prompt.', 'error'); return; }
+
+  const btn    = document.getElementById('btnGenImg');
+  const btnTxt = document.getElementById('genImgBtnText');
+  const spinner= document.getElementById('genImgSpinner');
+  const status = document.getElementById('imgGenStatus');
+  const grid   = document.getElementById('imgPreviewGrid');
+  const banner = document.getElementById('imgInsertedBanner');
+
+  btn.disabled           = true;
+  btnTxt.textContent     = 'Generating…';
+  spinner.style.display  = 'inline-block';
+  status.textContent     = `⏳ Generating ${imgSelectedCount} image${imgSelectedCount>1?'s':''}… this may take 15–30s`;
+  banner.style.display   = 'none';
+  grid.style.display     = 'grid';
+  generatedImages        = [];
+
+  // Build skeleton cards
+  grid.innerHTML = '';
+  const seeds = Array.from({ length: imgSelectedCount }, () => Math.floor(Math.random() * 99999) + 1);
+  seeds.forEach((_, i) => {
+    grid.innerHTML += `
+      <div class="img-preview-card" id="imgCard${i}">
+        <div class="img-num">IMG ${i+1}</div>
+        <div class="img-loading" id="imgLoading${i}">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(136,150,179,0.4)" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="m21 15-5-5L5 21"/>
+          </svg>
+        </div>
+        <img id="imgEl${i}" src="" alt="Generated image ${i+1}" style="display:none;width:100%;height:120px;object-fit:cover" />
+        <div class="img-overlay">
+          <button class="img-overlay-btn" onclick="openImgModal(${i})">🔍 Preview</button>
+          <button class="img-overlay-btn secondary" onclick="insertImage(${i})">↓ Insert</button>
+        </div>
+      </div>`;
+  });
+
+  // Fetch images SEQUENTIALLY with a gap — parallel requests trigger 429 rate limit
+  let loaded = 0, failed = 0;
+
+  for (let i = 0; i < seeds.length; i++) {
+    const seed = seeds[i];
+
+    // Small delay between requests (except first) to avoid rate limiting
+    if (i > 0) await new Promise(r => setTimeout(r, 2500));
+
+    try {
+      status.textContent = `⏳ Generating image ${i+1} of ${imgSelectedCount}…`;
+      const blobUrl = await fetchImageViaWorker(prompt, imgSelectedStyle, seed);
+
+      generatedImages[i] = blobUrl;
+
+      const el = document.getElementById(`imgEl${i}`);
+      const ld = document.getElementById(`imgLoading${i}`);
+      if (el && ld) {
+        el.src = blobUrl;
+        el.style.display = 'block';
+        ld.style.display = 'none';
+        document.getElementById(`imgCard${i}`).style.cursor = 'pointer';
+      }
+      loaded++;
+      status.textContent = `✓ ${loaded}/${imgSelectedCount} image${imgSelectedCount>1?'s':''} ready`;
+
+    } catch (err) {
+      const ld = document.getElementById(`imgLoading${i}`);
+      if (ld) ld.innerHTML = `<span style="font-size:0.68rem;color:#fca5a5;padding:0 0.4rem;text-align:center">✕ ${err.message||'Failed'}</span>`;
+      failed++;
+    }
+  }
+
+  btn.disabled          = false;
+  btnTxt.textContent    = '🖼 Regenerate';
+  spinner.style.display = 'none';
+
+  if (loaded > 0) {
+    status.textContent = `✓ ${loaded} image${loaded>1?'s':''} ready${failed?` (${failed} failed)`:''} — click to insert.`;
+    showToast(`${loaded} image${loaded>1?'s':''} ready!`, 'success');
+    const row = document.getElementById('imgGenResultRow');
+    if (row) row.innerHTML = `<span style="color:var(--green);flex-shrink:0;font-weight:700">✓</span><span style="color:var(--cream)">Cover image${loaded>1?'s':''} ready (${loaded})</span><span style="display:inline-block;margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:var(--blue2);padding:0.1rem 0.4rem;border-radius:2px">🖼 Pollinations</span>`;
+  } else {
+    status.textContent = '✕ All images failed. Check your worker is deployed and try again.';
+    showToast('Image generation failed.', 'error');
+    const row = document.getElementById('imgGenResultRow');
+    if (row) row.innerHTML = `<span style="color:#fca5a5;flex-shrink:0;font-weight:700">✕</span><span style="color:var(--muted)">Images failed — try manually</span>`;
+  }
+};
+
+// ── Insert image into editor ────────────────────
+window.insertImage = (idx) => {
+  const url = generatedImages[idx];
+  if (!url) { showToast('Image not ready yet.', 'error'); return; }
+
+  const caption = document.getElementById('imgPrompt').value.trim().substring(0,80);
+  const html = `<figure style="margin:1.5rem 0;text-align:center">
+  <img src="${url}" alt="${caption}" style="max-width:100%;border-radius:4px;border:1px solid rgba(201,168,76,0.15)" loading="lazy" />
+  <figcaption style="font-size:0.75rem;color:#8896b3;margin-top:0.4rem;font-style:italic">${caption}</figcaption>
+</figure>`;
+
+  const editor = document.getElementById('editor');
+  editor.focus();
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount) {
+    const range = sel.getRangeAt(0);
+    range.collapse(false);
+    const frag = range.createContextualFragment(html);
+    range.insertNode(frag);
+  } else {
+    editor.innerHTML += html;
+  }
+
+  updateWordCount();
+  document.getElementById('imgInsertedBanner').style.display = 'block';
+  setTimeout(() => document.getElementById('imgInsertedBanner').style.display='none', 3000);
+  showToast('Image inserted into article!', 'success');
+};
+
+// Set as featured image
+window.setFeatured = (idx) => {
+  const url = generatedImages[idx];
+  if (!url) { showToast('Image not ready.', 'error'); return; }
+  document.getElementById('postImage').value = url;
+  showToast('Featured image set!', 'success');
+};
+
+// ── Full preview modal ──────────────────────────
+window.openImgModal = (idx) => {
+  const url = generatedImages[idx];
+  if (!url) return;
+  currentModalImgUrl = url;
+  document.getElementById('imgModalSrc').src = url;
+  document.getElementById('imgModalDownload').href = url;
+  document.getElementById('imgModal').classList.add('open');
+};
+
+window.closeImgModal = (e) => {
+  if (e && e.target !== document.getElementById('imgModal')) return;
+  document.getElementById('imgModal').classList.remove('open');
+};
+
+window.insertImageFromModal = () => {
+  const idx = generatedImages.indexOf(currentModalImgUrl);
+  if (idx >= 0) insertImage(idx);
+  else {
+    // Insert by URL directly
+    const html = `<figure style="margin:1.5rem 0;text-align:center"><img src="${currentModalImgUrl}" alt="AI generated image" style="max-width:100%;border-radius:4px" loading="lazy" /></figure>`;
+    document.getElementById('editor').innerHTML += html;
+    updateWordCount();
+    showToast('Image inserted!', 'success');
+  }
+  document.getElementById('imgModal').classList.remove('open');
+};
+
+window.setFeaturedFromModal = () => {
+  document.getElementById('postImage').value = currentModalImgUrl;
+  document.getElementById('imgModal').classList.remove('open');
+  showToast('Featured image set!', 'success');
+};
+
+// ── Auth guard ────────────────────────────────
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.location.href = 'login.html'; return; }
+
+  // Security fix: verify admin role from Firestore, not hardcoded UID
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    const role  = snap.exists() ? snap.data().role : null;
+    // Fallback: also allow the original owner UID for backwards compatibility
+    const isOwner = user.uid === "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
+    if (role !== 'admin' && !isOwner) {
+      await signOut(auth);
+      window.location.href = 'login.html?error=unauthorized';
+      return;
+    }
+  } catch(e) {
+    await signOut(auth);
+    window.location.href = 'login.html?error=unauthorized';
+    return;
+  }
+
+  currentUser = user;
+  document.getElementById('userEmail').textContent   = user.email;
+  document.getElementById('userInitial').textContent = user.email[0].toUpperCase();
+  document.getElementById('greetMsg').textContent    = `Welcome back, ${user.email.split('@')[0]}.`;
+  loadAll();
+});
+
+// ── Navigation ────────────────────────────────
+window.showView = (name) => {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`view-${name}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(i => {
+    if (i.textContent.trim().toLowerCase().includes(name)) i.classList.add('active');
+  });
+  if (name === 'posts')       renderPostsTable(allPosts, 'allPostsBody');
+  if (name === 'users')       loadUsers();
+  if (name === 'subscribers') loadSubscribers();
+};
+
+window.toggleSidebar = () => {
+  document.querySelector('aside').classList.toggle('open');
+  document.getElementById('sideOverlay').classList.toggle('open');
+};
+
+// ── Load posts ────────────────────────────────
+async function loadAll() {
+  try {
+    const snap = await getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(50)));
+    allPosts   = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    document.getElementById('statTotal').textContent     = allPosts.length;
+    document.getElementById('statPublished').textContent = allPosts.filter(p=>p.published).length;
+    document.getElementById('statDrafts').textContent    = allPosts.filter(p=>!p.published).length;
+    try {
+      const ss = await getDocs(collection(db,'subscribers'));
+      document.getElementById('statSubs').textContent = ss.size;
+    } catch(_) { document.getElementById('statSubs').textContent = '—'; }
+    renderPostsTable(allPosts.slice(0,8), 'recentPostsBody');
+  } catch(e) { showToast('Failed to load posts: '+e.message,'error'); }
+}
+
+function renderPostsTable(posts, tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!posts.length) { tbody.innerHTML=`<tr><td colspan="5"><div class="table-empty">No posts yet.</div></td></tr>`; return; }
+  tbody.innerHTML = posts.map(p => {
+    const date   = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) || '—';
+    const status = p.published
+      ? `<span class="status-badge status-published">Published</span>`
+      : `<span class="status-badge status-draft">Draft</span>`;
+    return `<tr>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>${p.title||'(Untitled)'}</strong></td>
+      <td>${p.category||'—'}</td><td>${status}</td>
+      <td style="color:var(--muted);white-space:nowrap">${date}</td>
+      <td>
+        <button class="action-btn" onclick="editPost('${p.id}')">Edit</button>
+        <button class="action-btn" onclick="togglePublish('${p.id}',${!!p.published})">${p.published?'Unpublish':'Publish'}</button>
+        <button class="action-btn delete" onclick="deletePost('${p.id}')">Delete</button>
+      </td></tr>`;
+  }).join('');
+}
+
+// ── Users ─────────────────────────────────────
+async function loadUsers() {
+  const tbody = document.getElementById('usersTableBody');
+  try {
+    const snap  = await getDocs(query(collection(db,'users'), orderBy('createdAt','desc')));
+    const OWNER_UID   = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
+    const OWNER_EMAIL = "abhishek.dutta1996@gmail.com";
+    const users = snap.docs.map(d=>({id:d.id,...d.data()}))
+      .filter(u => u.id !== OWNER_UID && u.uid !== OWNER_UID && u.email !== OWNER_EMAIL && u.role !== 'admin');
+    if (!users.length) { tbody.innerHTML=`<tr><td colspan="5"><div class="table-empty">No other users yet.</div></td></tr>`; return; }
+    const roleColors = {reader:'color:#8896b3',editor:'color:#93c5fd',coauthor:'color:#c9a84c'};
+    const roleLabels = {reader:'Reader',editor:'Editor',coauthor:'Co-Author'};
+    tbody.innerHTML = users.map(u => {
+      const date  = u.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) || '—';
+      const style = roleColors[u.role]||'color:#8896b3';
+      const label = roleLabels[u.role]||u.role||'Reader';
+      return `<tr>
+        <td><strong>${u.name||'—'}</strong></td>
+        <td style="color:var(--muted);font-size:0.85rem">${u.email||'—'}</td>
+        <td><span style="font-size:0.75rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;${style}">${label}</span></td>
+        <td style="color:var(--muted);font-size:0.83rem;white-space:nowrap">${date}</td>
+        <td><select onchange="changeUserRole('${u.id}',this.value)" style="background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.3rem 0.5rem;border-radius:2px;font-family:var(--sans);font-size:0.78rem;cursor:pointer;outline:none">
+          <option value="reader"   ${u.role==='reader'   ?'selected':''}>Reader</option>
+          <option value="editor"   ${u.role==='editor'   ?'selected':''}>Editor</option>
+          <option value="coauthor" ${u.role==='coauthor' ?'selected':''}>Co-Author</option>
+        </select></td></tr>`;
+    }).join('');
+  } catch(e) { tbody.innerHTML=`<tr><td colspan="5"><div class="table-empty">Failed to load users.</div></td></tr>`; }
+}
+
+window.changeUserRole = async (uid, role) => {
+  try { await updateDoc(doc(db,'users',uid),{role}); showToast(`Role updated to ${role}.`,'success'); loadUsers(); }
+  catch(e) { showToast('Failed: '+e.message,'error'); }
+};
+
+// ── Subscribers ───────────────────────────────
+async function loadSubscribers() {
+  const tbody = document.getElementById('subsTableBody');
+  try {
+    const snap = await getDocs(query(collection(db,'subscribers'), orderBy('createdAt','desc')));
+    allSubs    = snap.docs.map(d=>({id:d.id,...d.data()}));
+    document.getElementById('subCountLabel').textContent = `${allSubs.length} subscriber${allSubs.length!==1?'s':''}`;
+    renderSubs(allSubs);
+  } catch(e) { tbody.innerHTML=`<tr><td colspan="4"><div class="table-empty">Failed to load.</div></td></tr>`; }
+}
+
+function renderSubs(subs) {
+  const tbody = document.getElementById('subsTableBody');
+  if (!subs.length) { tbody.innerHTML=`<tr><td colspan="4"><div class="table-empty">No subscribers yet.</div></td></tr>`; return; }
+  tbody.innerHTML = subs.map((s,i) => {
+    const date = s.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})||'—';
+    return `<tr><td style="color:var(--muted);font-size:0.82rem">${i+1}</td><td><strong>${s.email||'—'}</strong></td>
+      <td style="color:var(--muted);font-size:0.83rem;white-space:nowrap">${date}</td>
+      <td><button class="action-btn delete" onclick="deleteSub('${s.id}')">Remove</button></td></tr>`;
+  }).join('');
+}
+
+window.filterSubs = (q) => renderSubs(allSubs.filter(s=>s.email?.toLowerCase().includes(q.toLowerCase())));
+
+window.deleteSub = async (id) => {
+  if (!confirm('Remove this subscriber?')) return;
+  try {
+    await deleteDoc(doc(db,'subscribers',id));
+    allSubs = allSubs.filter(s=>s.id!==id);
+    renderSubs(allSubs);
+    document.getElementById('subCountLabel').textContent = `${allSubs.length} subscriber${allSubs.length!==1?'s':''}`;
+    showToast('Subscriber removed.','success');
+  } catch(e) { showToast('Failed: '+e.message,'error'); }
+};
+
+window.exportSubscribers = () => {
+  if (!allSubs.length) { showToast('No subscribers to export.','error'); return; }
+  const csv  = 'Email,Date\n' + allSubs.map(s=>`${s.email},${s.createdAt?.toDate?.()?.toLocaleDateString('en-IN')||''}`).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a    = Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:'subscribers.csv'});
+  a.click(); URL.revokeObjectURL(a.href);
+  showToast('CSV downloaded!','success');
+};
+
+// ── Editor ────────────────────────────────────
+window.clearEditor = () => {
+  editingPostId = null; isPremium = false;
+  ['postTitle','postExcerpt','postSlug','postImage','postMeta','postTags'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  document.getElementById('editor').innerHTML = '';
+  document.getElementById('wordCount').textContent = '0';
+  document.getElementById('readingTimeDisplay').textContent = '0';
+  document.getElementById('saveStatus').textContent = '';
+  document.getElementById('autoSaveMsg').textContent = '';
+  document.getElementById('editorHeading').textContent = 'New Post';
+  document.getElementById('premiumSwitch').classList.remove('on');
+  document.getElementById('aiEditToolbar').style.display = 'none';
+  document.getElementById('aiResultBox').style.display   = 'none';
+  // Reset image generator
+  document.getElementById('imgPreviewGrid').style.display = 'none';
+  document.getElementById('imgGenStatus').textContent = '';
+  document.getElementById('autoplaceBar').classList.remove('active');
+  generatedImages      = [];
+  autoPlaceCancelled   = false;
+  lastSavedContent     = '';
+};
+
+window.editPost = async (id) => {
+  showView('editor'); editingPostId = id;
+  document.getElementById('editorHeading').textContent = 'Edit Post';
+  try {
+    const snap = await getDoc(doc(db,'posts',id));
+    if (!snap.exists()) return;
+    const p = snap.data();
+    document.getElementById('postTitle').value    = p.title    || '';
+    document.getElementById('postExcerpt').value  = p.excerpt  || '';
+    document.getElementById('postSlug').value     = p.slug     || '';
+    document.getElementById('postImage').value    = p.image    || '';
+    document.getElementById('postMeta').value     = p.metaDesc || '';
+    document.getElementById('postTags').value     = (p.tags||[]).join(', ');
+    document.getElementById('editor').innerHTML   = p.content  || '';
+    document.getElementById('postCategory').value = p.category || 'Fintech';
+    isPremium = p.premium === true;
+    document.getElementById('premiumSwitch').classList.toggle('on', isPremium);
+    updateWordCount();
+    showAIEditToolbar();
+  } catch(e) { showToast('Failed to load post.','error'); }
+};
+
+window.savePost = async (publish) => {
+  const title   = document.getElementById('postTitle').value.trim();
+  const excerpt = document.getElementById('postExcerpt').value.trim();
+  const content = document.getElementById('editor').innerHTML;
+  const cat     = document.getElementById('postCategory').value;
+  const slug    = document.getElementById('postSlug').value.trim() || slugify(title);
+  const image   = document.getElementById('postImage').value.trim();
+  const metaDesc= document.getElementById('postMeta').value.trim();
+  const tagsRaw = document.getElementById('postTags').value.trim();
+  const tags    = tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [];
+  const readMin = Math.max(1,Math.ceil((document.getElementById('editor').cloneNode(true).textContent||'').split(/\s+/).filter(Boolean).length/200));
+
+  if (!title) { showToast('Please add a title.','error'); return; }
+  document.getElementById('saveStatus').textContent = 'Saving…';
+
+  const data = { title,excerpt,content,category:cat,slug,image,metaDesc,tags,readingTime:readMin,published:publish,premium:isPremium,updatedAt:serverTimestamp() };
+
+  try {
+    if (editingPostId) {
+      await updateDoc(doc(db,'posts',editingPostId), data);
+    } else {
+      data.createdAt = serverTimestamp();
+      const ref = await addDoc(collection(db,'posts'), data);
+      editingPostId = ref.id;
+    }
+    document.getElementById('saveStatus').textContent = publish ? '✓ Published' : '✓ Draft saved';
+    showToast(publish ? 'Post published!' : 'Draft saved.','success');
+    await loadAll();
+  } catch(e) {
+    document.getElementById('saveStatus').textContent = '';
+    showToast('Save failed: '+(e.code||e.message),'error');
+  }
+};
+
+window.togglePublish = async (id, current) => {
+  try { await updateDoc(doc(db,'posts',id),{published:!current}); showToast(current?'Unpublished.':'Published!','success'); await loadAll(); }
+  catch(e) { showToast('Update failed.','error'); }
+};
+
+window.deletePost = async (id) => {
+  if (!confirm('Delete this post? Cannot be undone.')) return;
+  try { await deleteDoc(doc(db,'posts',id)); showToast('Deleted.','success'); await loadAll(); }
+  catch(e) { showToast('Delete failed.','error'); }
+};
+
+// ── Premium toggle ────────────────────────────
+window.togglePremium = () => {
+  isPremium = !isPremium;
+  document.getElementById('premiumSwitch').classList.toggle('on', isPremium);
+};
+
+// ── Rich text (safe execCommand wrapper) ──────
+function safeExec(cmd, value = null) {
+  const editor = document.getElementById('editor');
+  editor.focus();
+  try {
+    if (document.queryCommandSupported && document.queryCommandSupported(cmd)) {
+      document.execCommand(cmd, false, value);
+    }
+  } catch(e) { /* execCommand not supported in this context */ }
+}
+window.fmt       = (cmd)   => safeExec(cmd);
+window.fmtBlock  = (tag)   => safeExec('formatBlock', tag);
+window.insertLink = () => { const url=prompt('Enter URL:'); if(url) safeExec('createLink', url); };
+
+function updateWordCount() {
+  // cloneNode avoids innerText quirks with images, figures, captions
+  const text  = document.getElementById('editor').cloneNode(true).textContent || '';
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const mins  = Math.max(1,Math.ceil(words/200));
+  document.getElementById('wordCount').textContent = words;
+  document.getElementById('readingTimeDisplay').textContent = mins;
+}
+document.getElementById('editor').addEventListener('input', updateWordCount);
+document.getElementById('postTitle').addEventListener('input', e => {
+  if (!editingPostId) document.getElementById('postSlug').value = slugify(e.target.value);
+});
+
+// ── Auto-save (change-detected — no unnecessary Firestore writes) ─────
+let lastSavedContent = '';
+setInterval(async () => {
+  if (!editingPostId) return;
+  const content = document.getElementById('editor').innerHTML;
+  if (!content || content.trim().length < 50) return;
+  if (content === lastSavedContent) return; // skip if nothing changed
+  try {
+    await updateDoc(doc(db,'posts',editingPostId),{content,updatedAt:serverTimestamp()});
+    lastSavedContent = content;
+    document.getElementById('autoSaveMsg').textContent = 'Auto-saved at ' + new Date().toLocaleTimeString();
+  } catch(e) {}
+}, 30000);
+
+// ── Preview ───────────────────────────────────
+window.previewPost = () => {
+  const title   = document.getElementById('postTitle').value || 'Preview';
+  const excerpt = document.getElementById('postExcerpt').value || '';
+  const content = document.getElementById('editor').innerHTML;
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title} — Preview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>body{font-family:'DM Sans',sans-serif;background:#080d1a;color:#f5f0e8;max-width:740px;margin:4rem auto;padding:0 2rem;line-height:1.8}
+    h1{font-family:'Cormorant Garamond',serif;font-size:3rem;font-weight:700;margin-bottom:1rem}
+    h2{font-family:'Cormorant Garamond',serif;font-size:1.8rem;margin:2rem 0 1rem}
+    h3{font-family:'Cormorant Garamond',serif;font-size:1.3rem;margin:1.5rem 0 .75rem}
+    p{margin-bottom:1.5rem}blockquote{border-left:3px solid #c9a84c;padding-left:1.5rem;margin:2rem 0;font-style:italic;color:#8896b3}
+    figure{margin:2rem 0;text-align:center}figure img{max-width:100%;border-radius:4px}
+    figcaption{font-size:0.8rem;color:#8896b3;margin-top:0.5rem;font-style:italic}
+    .badge{background:#1a2340;color:#8896b3;font-size:.75rem;padding:.4rem 1rem;border-radius:2px;display:inline-block;margin-bottom:2rem}</style></head>
+    <body><div class="badge">PREVIEW — Not published</div><h1>${title}</h1>
+    ${excerpt?'<p style="font-size:1.2rem;color:#8896b3;margin-bottom:2rem">'+excerpt+'</p>':''}${content}</body></html>`);
+  win.document.close();
+};
+
+// ── AI Writer ─────────────────────────────────
+async function callAI(prompt, silent = false, forceModel = 'auto') {
+  const tone     = document.getElementById('aiTone').value;
+  const category = document.getElementById('postCategory').value;
+
+  let res, data;
+  try {
+    res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt, tone, category, forceModel,
+        // Hint for worker: swap away from broken mistral free endpoint
+        openrouter_model: 'meta-llama/llama-3.1-8b-instruct:free'
+      })
+    });
+  } catch(e) {
+    return { error: 'Network error: ' + e.message };
+  }
+
+  try { data = await res.json(); }
+  catch(e) { return { error: 'Invalid response (HTTP ' + res.status + ')' }; }
+
+  if (data.error) {
+    return {
+      error: typeof data.error === 'object'
+        ? (data.error.message || JSON.stringify(data.error))
+        : String(data.error),
+      attemptsDetail: data.attempts_detail || []
+    };
+  }
+
+  const text = data.text || '';
+  if (!text) return { error: 'No content returned from AI.' };
+
+  const modelLabels = { claude:'Claude', groq:'Groq', deepseek:'DeepSeek V3', openrouter:'OpenRouter' };
+  if (data.fallback_used && !silent) {
+    const primary = data.attempts_detail?.[0]?.model;
+    const from    = primary ? (modelLabels[primary] || primary) : 'Primary model';
+    const to      = modelLabels[data.model_used] || data.model_used;
+    showToast(`${from} unavailable — switched to ${to}.`, 'success');
+  }
+
+  return {
+    text,
+    modelUsed:      data.model_used,
+    fallbackUsed:   data.fallback_used,
+    attemptsDetail: data.attempts_detail || []
+  };
+}
+
+window.generateAIPost = async () => {
+  const topic    = document.getElementById('aiPrompt').value.trim();
+  const category = document.getElementById('postCategory').value;
+  const tone     = document.getElementById('aiTone').value;
+  if (!topic) { showToast('Please enter a topic first.','error'); return; }
+
+  document.getElementById('btnAI').disabled = true;
+  document.getElementById('aiBtnText').textContent = 'Generating outline…';
+  document.getElementById('aiStatus').textContent = '';
+
+  document.getElementById('aiModalTitle').textContent = '✦ Generating outline…';
+  document.getElementById('aiModalSub').textContent   = 'AI is planning your article structure.';
+  document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Working…</span>';
+  document.getElementById('aiModalActions').style.display = 'none';
+  document.getElementById('aiModal').classList.add('open');
+
+  const outlinePrompt = `Create a concise article outline (5-7 bullet points) for:
+Topic: "${topic}"
+Category: ${category}. Tone: ${tone}.
+Return ONLY plain text bullet points, no HTML, no extra explanation.`;
+
+  const outResult = await callAI(outlinePrompt, true);
+
+  if (outResult.error) {
+    closeAIModal();
+    document.getElementById('aiStatus').textContent = '✕ ' + outResult.error;
+    showToast('AI Error: ' + outResult.error, 'error');
+    document.getElementById('btnAI').disabled = false;
+    document.getElementById('aiBtnText').textContent = '✦ Generate Article';
+    return;
+  }
+
+  pendingOutline = outResult.text;
+  document.getElementById('aiModalTitle').textContent   = '✦ Review Outline';
+  document.getElementById('aiModalSub').textContent     = 'Click "Write Full Article" to generate, or Cancel to edit your prompt.';
+  document.getElementById('aiModalContent').textContent = outResult.text;
+  document.getElementById('aiModalActions').style.display = 'flex';
+  document.getElementById('btnAI').disabled = false;
+  document.getElementById('aiBtnText').textContent = '✦ Generate Article';
+};
+
+window.confirmOutline = async () => {
+  const topic        = document.getElementById('aiPrompt').value.trim();
+  const category     = document.getElementById('postCategory').value;
+  const tone         = document.getElementById('aiTone').value;
+  const modelArticle = document.getElementById('modelArticle').value;
+  const modelMeta    = modelArticle;
+  const modelImage   = modelArticle;
+  const ML = { claude:'Claude', groq:'Groq', deepseek:'DeepSeek V3', openrouter:'OpenRouter', auto:'Auto' };
+
+  const results = [], allAttempts = [];
+  const addR = (icon, label, model, ok, extra='') => results.push({icon,label,model,ok,extra});
+
+  document.getElementById('aiResultBox').style.display  = 'none';
+  document.getElementById('aiModalActions').style.display = 'none';
+
+  // ═══ CALL 1: Long-form Article ═══
+  document.getElementById('aiModalTitle').textContent = `✦ Writing article… [${ML[modelArticle]||modelArticle}]`;
+  document.getElementById('aiModalSub').textContent   = 'Generating long-form content…';
+  document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Writing full article…</span>';
+  document.getElementById('aiModal').classList.add('open');
+
+  const artResult = await callAI(`You are an expert fintech writer for BlogsPro (blogspro.in).
+Write a comprehensive, long-form article about: "${topic}"
+Category: ${category}. Tone: ${tone}.
+Follow this outline:\n${pendingOutline}\n
+Write as much as needed — NO word limit. Cover every point in depth with examples, data, and analysis.
+Return ONLY clean HTML using: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>
+Start directly with article content. No JSON, no metadata.`, false, modelArticle);
+
+  allAttempts.push(...(artResult.attemptsDetail||[]));
+
+  if (artResult.error) {
+    closeAIModal();
+    document.getElementById('aiStatus').textContent = '✕ Article failed: ' + artResult.error;
+    showToast('Article generation failed.', 'error');
+    return;
+  }
+
+  const articleHTML = (artResult.text||'').replace(/---METADATA---[\s\S]*/g,'').replace(/\n*---+\s*$/gm,'').replace(/\n*\{"title"[\s\S]*/g,'').trim();
+  document.getElementById('editor').innerHTML = articleHTML;
+  updateWordCount();
+  addR('✓', 'Article written', ML[artResult.modelUsed]||artResult.modelUsed, true);
+  showAIEditToolbar();
+
+  // ═══ CALL 2: Metadata ═══
+  document.getElementById('aiModalTitle').textContent = `✦ Generating metadata… [${ML[modelMeta]||modelMeta}]`;
+  document.getElementById('aiModalSub').textContent   = 'Title, summary, SEO tags, citations…';
+  document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Generating metadata…</span>';
+
+  const metaResult = await callAI(`For a fintech article about "${topic}", return ONLY this JSON — no extra text:
+{"title":"headline max 70 chars","summary":"2-sentence summary max 160 chars","metaDescription":"SEO meta max 155 chars","tags":["tag1","tag2","tag3","tag4","tag5","tag6","tag7"],"citations":["Source 1: Publisher - full description","Source 2: Publisher - description","Source 3: Publisher - description","Source 4: Publisher - description","Source 5: Publisher - description"]}`, true, modelMeta);
+
+  allAttempts.push(...(metaResult.attemptsDetail||[]));
+  const checks = {};
+  let parsed = null;
+  const mt = metaResult.error ? '' : (metaResult.text||'');
+  if (mt) {
+    try {
+      const s=mt.indexOf('{'), e=mt.lastIndexOf('}');
+      if (s!==-1&&e!==-1) parsed=JSON.parse(mt.substring(s,e+1));
+    } catch(_) {
+      try {
+        const t=mt.match(/"title"\s*:\s*"([^"]+)"/)?.[1];
+        const sm=mt.match(/"summary"\s*:\s*"([^"]+)"/)?.[1];
+        const md=mt.match(/"metaDescription"\s*:\s*"([^"]+)"/)?.[1];
+        const tags=[...mt.matchAll(/"([^"]{2,30})"/g)].slice(0,7).map(m=>m[1]);
+        if(t||sm) parsed={title:t,summary:sm,metaDescription:md,tags,citations:[]};
+      } catch(_2){}
+    }
+  }
+  if (parsed) {
+    if(parsed.title?.trim())           {document.getElementById('postTitle').value=parsed.title.trim();document.getElementById('postSlug').value=slugify(parsed.title.trim());checks.title=true;}
+    if(parsed.summary?.trim())         {document.getElementById('postExcerpt').value=parsed.summary.trim();checks.summary=true;}
+    if(parsed.metaDescription?.trim()) {document.getElementById('postMeta').value=parsed.metaDescription.trim();checks.meta=true;}
+    if(parsed.tags?.length)            {document.getElementById('postTags').value=parsed.tags.join(', ');checks.tags=true;}
+    if(parsed.citations?.length)       {document.getElementById('editor').innerHTML+=`<h2>References</h2><ul>${parsed.citations.map(c=>`<li><em>${c}</em></li>`).join('')}</ul>`;updateWordCount();checks.citations=true;}
+  }
+  if(!checks.title&&!document.getElementById('postTitle').value.trim()){document.getElementById('postTitle').value=topic.length<80?topic:topic.substring(0,75)+'…';document.getElementById('postSlug').value=slugify(topic);checks.title=true;}
+  const metaFields=[checks.title&&'title',checks.summary&&'summary',checks.tags&&'tags',checks.meta&&'meta',checks.citations&&'citations'].filter(Boolean);
+  addR(metaFields.length?'✓':'—','Metadata: '+(metaFields.join(', ')||'none'),ML[metaResult.modelUsed]||ML[modelMeta]||'',metaFields.length>0,metaResult.error?' ('+metaResult.error+')':'');
+
+  closeAIModal();
+
+  // Show result box
+  document.getElementById('aiResultList').innerHTML = results.map(r=>`<div style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem"><span style="color:${r.ok?'var(--green)':'var(--muted)'};flex-shrink:0;font-weight:700">${r.icon}</span><div><span style="color:${r.ok?'var(--cream)':'var(--muted)'}">${r.label}</span>${r.model?`<span style="display:inline-block;margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.1rem 0.4rem;border-radius:2px">⚡${r.model}</span>`:''}${r.extra?`<span style="color:#fca5a5;font-size:0.7rem;display:block;margin-top:0.1rem">${r.extra}</span>`:''}</div></div>`).join('')
+    + `<div id="imgGenResultRow" style="display:flex;align-items:center;gap:0.5rem;font-size:0.78rem"><span style="color:var(--blue2);flex-shrink:0;font-weight:700;animation:pulse 1s infinite">⏳</span><span style="color:var(--muted)">Cover image — generating below…</span></div>`;
+
+  const hadFallbacks = allAttempts.some(a=>!a.success);
+  if (hadFallbacks) {
+    document.getElementById('aiFallbackLog').style.display='block';
+    document.getElementById('aiFallbackList').innerHTML=allAttempts.map(a=>`<div style="display:flex;gap:0.5rem"><span style="color:${a.success?'var(--green)':'#fca5a5'};font-weight:700">${a.success?'✓':'✕'}</span><span><strong style="color:${a.success?'var(--cream)':'var(--muted)'}">${ML[a.model]||a.model}</strong> <span style="color:var(--muted)">— ${a.success?'Used':(a.reason||'Failed')}</span></span></div>`).join('');
+  }
+
+  document.getElementById('aiResultBox').style.display = 'block';
+  const total = results.filter(r=>r.ok).length;
+  document.getElementById('aiStatus').textContent = `✓ Complete — ${total}/${results.length} tasks done.`;
+  showToast(`Done! Article written. Generating cover image…`, 'success');
+
+  // Always auto-generate a cover image after article is written
+  const imgPanel = document.getElementById('imgGenPanel');
+  // Build/overwrite the prompt with article-specific content
+  const autoPrompt = `Professional fintech editorial cover image for: "${topic}", futuristic dark UI, glowing data visualizations, corporate style, no text in image`;
+  document.getElementById('imgPrompt').value = autoPrompt;
+
+  // Highlight the image panel to draw attention
+  imgPanel.style.transition = 'border-color 0.3s, box-shadow 0.3s';
+  imgPanel.style.borderColor = 'rgba(59,130,246,0.8)';
+  imgPanel.style.boxShadow   = '0 0 16px rgba(59,130,246,0.25)';
+  setTimeout(() => {
+    imgPanel.style.borderColor = 'rgba(59,130,246,0.35)';
+    imgPanel.style.boxShadow   = 'none';
+  }, 2500);
+
+  // Scroll to image panel so user can see generation happening
+  setTimeout(() => {
+    imgPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Then auto-generate after scroll settles
+    setTimeout(() => generateImages(), 500);
+  }, 400);
+};
+
+window.cancelOutline = () => {
+  closeAIModal();
+  pendingOutline = '';
+};
+
+function closeAIModal() {
+  document.getElementById('aiModal').classList.remove('open');
+}
+
+// ── Helpers ───────────────────────────────────
+window.doLogout = async () => { await signOut(auth); window.location.href='index.html'; };
+
+function slugify(text) {
+  return text.toString().toLowerCase().trim()
+    .replace(/\s+/g,'-').replace(/[^\w\-]+/g,'')
+    .replace(/\-\-+/g,'-').replace(/^-+/,'').replace(/-+$/,'');
+}
+
+let toastTimer;
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = (type==='success'?'✓ ':'✕ ') + msg;
+  t.className   = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+}
+window.showToast = showToast;
+
+// ── AI Edit Toolbar ────────────────────────────
+function showAIEditToolbar() {
+  document.getElementById('aiEditToolbar').style.display = 'block';
+}
+
+// ── Auto-Place Images After Every H2 ──────────
+let autoPlaceCancelled = false;
+
+window.cancelAutoPlace = () => {
+  autoPlaceCancelled = true;
+  document.getElementById('autoplaceBar').classList.remove('active');
+  document.getElementById('btnAutoPlace').disabled = false;
+  document.getElementById('autoPlaceSpinner').style.display = 'none';
+  showToast('Auto-placement cancelled.', 'error');
+};
+
+function apLog(msg, state = 'done') {
+  const log  = document.getElementById('autoplaceLog');
+  const item = document.createElement('div');
+  item.className = `autoplace-log-item ${state}`;
+  item.innerHTML = `<span>${state==='done'?'✓':state==='failed'?'✕':'⏳'}</span><span>${msg}</span>`;
+  log.appendChild(item);
+  log.scrollTop = log.scrollHeight;
+  return item;
+}
+
+function apProgress(done, total, msg) {
+  document.getElementById('autoplaceFill').style.width   = `${Math.round((done/total)*100)}%`;
+  document.getElementById('autoplaceStatus').textContent = msg;
+}
+
+window.autoPlaceImages = async () => {
+  const editor = document.getElementById('editor');
+  const h2s    = editor.querySelectorAll('h2');
+
+  if (!h2s.length) {
+    showToast('No H2 headings found. Generate an article first.', 'error');
+    return;
+  }
+
+  // Confirm if article already has images
+  const existingImgs = editor.querySelectorAll('figure img, img');
+  if (existingImgs.length > 0) {
+    if (!confirm(`Article already has ${existingImgs.length} image(s). Add more after each H2?`)) return;
+  }
+
+  autoPlaceCancelled = false;
+  const btn = document.getElementById('btnAutoPlace');
+  btn.disabled = true;
+  document.getElementById('autoPlaceSpinner').style.display = 'inline-block';
+  document.getElementById('autoplaceBar').classList.add('active');
+  document.getElementById('autoplaceLog').innerHTML = '';
+  document.getElementById('autoplaceFill').style.width = '0%';
+
+  const topic    = document.getElementById('aiPrompt').value.trim()
+    || document.getElementById('postTitle').value.trim()
+    || 'fintech';
+  const style    = imgSelectedStyle || 'photorealistic';
+  const negative = document.getElementById('imgNegative').value.trim()
+    || 'blurry, watermark, text, low quality';
+
+  const total  = h2s.length;
+  let   placed = 0;
+
+  apProgress(0, total, `Found ${total} H2 section${total>1?'s':''}. Generating images…`);
+
+  for (let i = 0; i < h2s.length; i++) {
+    if (autoPlaceCancelled) break;
+
+    const h2      = h2s[i];
+    const heading = h2.textContent.trim();
+    const logItem = apLog(`Section ${i+1}: "${heading.substring(0,40)}${heading.length>40?'…':''}"`, 'loading');
+
+    // Build a context-aware prompt from the H2 text + topic
+    const imgPrompt = `Professional fintech illustration for article section "${heading}" about ${topic}. `
+      + `${style}, dark modern background, corporate editorial style, no text in image`;
+
+    const seed = Math.floor(Math.random() * 999999) + 1;
+
+    // Fetch via worker proxy — same as main image generator
+    let imgUrl = null;
+    try {
+      imgUrl = await fetchImageViaWorker(imgPrompt, style, seed);
+    } catch (err) {
+      // skip this section — log will show failure
+    }
+
+    if (autoPlaceCancelled) break;
+
+    if (imgUrl) {
+      // Build figure element
+      const figure = document.createElement('figure');
+      figure.style.cssText = 'margin:1.2rem 0 1.5rem;text-align:center';
+      figure.innerHTML = `<img src="${imgUrl}" alt="${heading}" loading="lazy"
+        style="max-width:100%;border-radius:4px;border:1px solid rgba(201,168,76,0.15)" />
+        <figcaption style="font-size:0.75rem;color:#8896b3;margin-top:0.35rem;font-style:italic">${heading}</figcaption>`;
+
+      // Insert figure immediately after the H2 (before the next sibling)
+      if (h2.nextSibling) {
+        h2.parentNode.insertBefore(figure, h2.nextSibling);
+      } else {
+        h2.parentNode.appendChild(figure);
+      }
+
+      placed++;
+      logItem.className = 'autoplace-log-item done';
+      logItem.querySelector('span').textContent = '✓';
+    } else {
+      logItem.className = 'autoplace-log-item failed';
+      logItem.querySelector('span').textContent = '✕';
+    }
+
+    apProgress(i + 1, total, `${i+1}/${total} done${imgUrl?' — image placed':' — section skipped'}`);
+  }
+
+  // Done
+  updateWordCount();
+  btn.disabled = false;
+  document.getElementById('autoPlaceSpinner').style.display = 'none';
+
+  if (!autoPlaceCancelled) {
+    apProgress(total, total, `✓ Complete — ${placed}/${total} image${placed!==1?'s':''} placed`);
+    document.getElementById('autoplaceFill').style.width = '100%';
+    document.getElementById('autoplaceFill').style.background = 'linear-gradient(90deg,var(--green),#4ade80)';
+    showToast(`${placed} image${placed!==1?'s':''} placed into article!`, 'success');
+
+    // Scroll editor into view so user sees result
+    setTimeout(() => editor.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+  }
+
+  // Fade out bar after 5 seconds
+  setTimeout(() => {
+    if (!autoPlaceCancelled) {
+      document.getElementById('autoplaceBar').classList.remove('active');
+      document.getElementById('autoplaceFill').style.background = 'linear-gradient(90deg,#1d4ed8,#3b82f6)';
+    }
+  }, 5000);
+};
+
+function setEditStatus(msg, isError = false) {
+  const el = document.getElementById('aiEditStatus');
+  el.textContent = msg;
+  el.style.color = isError ? '#fca5a5' : 'var(--muted)';
+}
+
+function setEditBtnsDisabled(on) {
+  document.querySelectorAll('.ai-edit-btn').forEach(b => b.disabled = on);
+}
+
+async function runAIEdit(instruction) {
+  const currentText = document.getElementById('editor').cloneNode(true).textContent;
+  const topic       = document.getElementById('aiPrompt').value.trim() || 'fintech article';
+  const category    = document.getElementById('postCategory').value;
+
+  if (!currentText.trim()) {
+    setEditStatus('No article content. Generate an article first.', true);
+    return;
+  }
+
+  setEditBtnsDisabled(true);
+  setEditStatus('⏳ Working…');
+
+  const snippet = currentText.length > 1500
+    ? currentText.substring(0, 1500) + '\n[…continues]'
+    : currentText;
+
+  const prompt = `Edit this fintech article about "${topic}" (${category}).
+
+ARTICLE:
+${snippet}
+
+TASK: ${instruction}
+
+Return ONLY the complete updated article as clean HTML. Use only <h2><h3><p><strong><em><ul><li><blockquote><table><tr><td><th> tags. No markdown.`;
+
+  const model = document.getElementById('modelArticle')?.value || 'auto';
+  const result = await callAI(prompt, true, model);
+
+  if (result.error) {
+    setEditStatus('✕ ' + result.error, true);
+    setEditBtnsDisabled(false);
+    return;
+  }
+
+  const clean = (result.text || '').replace(/```html?|```/gi, '').replace(/---METADATA---[\s\S]*/g, '').trim();
+
+  if (!clean) {
+    setEditStatus('✕ Empty response. Try again.', true);
+    setEditBtnsDisabled(false);
+    return;
+  }
+
+  document.getElementById('editor').innerHTML = clean;
+  updateWordCount();
+  const modelLabels = { groq:'Groq', deepseek:'DeepSeek', openrouter:'OpenRouter', claude:'Claude' };
+  setEditStatus(`✓ Done — ${modelLabels[result.modelUsed] || result.modelUsed || 'AI'}`);
+  setEditBtnsDisabled(false);
+  showToast('Article updated!', 'success');
+}
+
+window.aiEditAction = async (action) => {
+  const instructions = {
+    regenerate:     'Regenerate this article completely from scratch with the same topic and outline, but different phrasing and structure. Make it fresh and original.',
+    professional:   'Rewrite this article in a highly professional, analytical tone suitable for senior finance executives and compliance officers.',
+    conversational: 'Rewrite this article in a conversational, accessible tone that is easy to understand for non-experts while keeping it informative.',
+    authoritative:  'Rewrite this article in an authoritative, expert tone — cite trends, use precise terminology, and project deep domain expertise.',
+    expand:         'Expand this article significantly. Add more depth, more examples, more data points, and additional sections where relevant.',
+    shorten:        'Shorten this article by 30-40% while keeping all key points. Remove redundancy and tighten each paragraph.',
+    references:     'Add a comprehensive References section at the end with 5-8 relevant real sources — RBI circulars, SEBI reports, industry studies, NPCI data, and reputable publications. Format each as an HTML list item.',
+    graph:          `Add an HTML-based data visualization table in a relevant section. Use a styled <table> with inline CSS (dark background #0f1628, gold #c9a84c borders, cream #f5f0e8 text) showing relevant statistics or comparisons that support the article's key points.`,
+  };
+
+  const instruction = instructions[action];
+  if (!instruction) return;
+
+  if (action === 'regenerate') {
+    if (!confirm('Regenerate the entire article? Current content will be replaced.')) return;
+  }
+
+  await runAIEdit(instruction);
+};
+
+window.aiEditCustom = async () => {
+  const instruction = document.getElementById('aiEditCustom').value.trim();
+  if (!instruction) { setEditStatus('Please enter an instruction.', true); return; }
+  await runAIEdit(instruction);
+  document.getElementById('aiEditCustom').value = '';
+};
+</script>
+</body>
+</html>
