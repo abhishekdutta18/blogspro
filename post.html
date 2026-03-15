@@ -289,16 +289,25 @@
 
       loadRelated(clean.category, id);
       loadComments(id);
-      // FIX: Use window.adsbygoogle consistently to avoid ReferenceError
-      (window.adsbygoogle = window.adsbygoogle || []).push({});  // leaderboard
-      (window.adsbygoogle = window.adsbygoogle || []).push({});  // pre-comments
       if (canRead) injectInContentAds();
+      // FIX: Ads pushed after a short delay and isolated in try/catch
+      // so an AdSense load failure can never crash the article.
+      setTimeout(() => { pushAd(); pushAd(); }, 100);
 
     } catch(err) {
       console.error(err.code, err.message);
       renderError(err.code === 'permission-denied'
         ? 'Access denied — check Firestore rules.'
         : `Failed to load article. (${err.code||err.message})`);
+    }
+  }
+
+  // FIX: Isolated ad push — AdSense failures never surface as article errors
+  function pushAd() {
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch(e) {
+      console.warn('AdSense push failed:', e);
     }
   }
 
@@ -317,8 +326,8 @@
         + ' data-ad-layout="in-article"'
         + ' data-ad-format="fluid"></ins>';
       const s = document.createElement('script');
-      // FIX: Use window.adsbygoogle consistently
-      s.text = '(window.adsbygoogle = window.adsbygoogle || []).push({});';
+      // FIX: try/catch inside injected script so ad failures are silent
+      s.text = 'try{(window.adsbygoogle=window.adsbygoogle||[]).push({});}catch(e){}';
       d.appendChild(s);
       h2.after(d);
     });
@@ -334,8 +343,8 @@
           + ' data-ad-layout="in-article"'
           + ' data-ad-format="fluid"></ins>';
         const s = document.createElement('script');
-        // FIX: Use window.adsbygoogle consistently
-        s.text = '(window.adsbygoogle = window.adsbygoogle || []).push({});';
+        // FIX: try/catch inside injected script so ad failures are silent
+        s.text = 'try{(window.adsbygoogle=window.adsbygoogle||[]).push({});}catch(e){}';
         d.appendChild(s);
         paras[2].after(d);
       }
