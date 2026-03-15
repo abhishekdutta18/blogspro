@@ -828,123 +828,131 @@ window.confirmOutline = async () => {
   const tone     = document.getElementById('aiTone').value;
 
   document.getElementById('aiModalTitle').textContent     = '✦ Writing article…';
-  document.getElementById('aiModalSub').textContent       = 'Step 1 of 2 — generating content…';
-  document.getElementById('aiModalContent').innerHTML     = '<span style="animation:pulse 1s infinite;display:inline-block">Writing article…</span>';
+  document.getElementById('aiModalSub').textContent       = 'Generating content + metadata…';
+  document.getElementById('aiModalContent').innerHTML     = '<span style="animation:pulse 1s infinite;display:inline-block">Writing…</span>';
   document.getElementById('aiModalActions').style.display = 'none';
   document.getElementById('aiResultBox').style.display    = 'none';
 
-  // ── CALL 1: Generate article HTML ─────────────
+  // Single call — ask for article HTML + metadata JSON separately with a clear separator
   const articlePrompt = `You are an expert fintech writer for BlogsPro (blogspro.in).
-Write a professional, well-researched article about: "${topic}"
+Write a professional article about: "${topic}"
 Category: ${category}. Tone: ${tone}.
 Follow this outline:
 ${pendingOutline}
 
-IMPORTANT: Return ONLY clean HTML. Use ONLY these tags: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>
-No JSON, no markdown, no code blocks, no preamble. Start directly with article content. 700-900 words.`;
+INSTRUCTIONS — follow exactly in this order:
+
+PART 1: Write the full article using ONLY these HTML tags: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>
+No markdown, no JSON, no code blocks. 700-900 words.
+
+Then on a NEW LINE write exactly: ---METADATA---
+
+PART 2: After ---METADATA--- write ONLY this JSON (no extra text):
+{"title":"article headline max 70 chars","summary":"2 sentence homepage summary max 160 chars","metaDescription":"SEO description max 155 chars","tags":["tag1","tag2","tag3","tag4","tag5"],"citations":["Source: publication - detail","Source: publication - detail","Source: publication - detail"]}`;
 
   const artResult = await callAI(articlePrompt);
+  closeAIModal();
 
   if (artResult.error) {
-    closeAIModal();
     document.getElementById('aiStatus').textContent = '✕ ' + artResult.error;
     showToast('AI Error: ' + artResult.error, 'error');
     return;
   }
 
-  // Insert article immediately
-  document.getElementById('editor').innerHTML = artResult.text;
+  // ── Split article and metadata ─────────────────
+  const raw      = artResult.text || '';
+  const sepIdx   = raw.indexOf('---METADATA---');
+  let articleHTML = '';
+  let metaJSON    = '';
+
+  if (sepIdx !== -1) {
+    articleHTML = raw.substring(0, sepIdx).trim();
+    metaJSON    = raw.substring(sepIdx + 14).trim();
+  } else {
+    // No separator — try to split at first { after closing HTML tag
+    const jsonStart = raw.lastIndexOf('\n{');
+    if (jsonStart !== -1) {
+      articleHTML = raw.substring(0, jsonStart).trim();
+      metaJSON    = raw.substring(jsonStart).trim();
+    } else {
+      // Fallback: strip anything after </ul> or </p> that looks like JSON
+      articleHTML = raw.replace(/\n*JSON object:.*$/s, '').replace(/\n*\{.*"title".*\}.*$/s, '').trim();
+      const jsonMatch = raw.match(/\{[\s\S]*"title"[\s\S]*\}/);
+      if (jsonMatch) metaJSON = jsonMatch[0];
+    }
+  }
+
+  // Insert clean article
+  document.getElementById('editor').innerHTML = articleHTML || raw;
   updateWordCount();
-
-  // ── CALL 2: Generate metadata separately ──────
-  document.getElementById('aiModalTitle').textContent = '✦ Generating metadata…';
-  document.getElementById('aiModalSub').textContent   = 'Step 2 of 2 — title, summary, tags, citations…';
-  document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Generating metadata…</span>';
-
-  const metaPrompt = `Based on this fintech article about "${topic}", generate metadata.
-Return ONLY a valid JSON object — no markdown, no code fences, no explanation, pure JSON:
-{
-  "title": "compelling article headline (max 70 chars)",
-  "summary": "2-sentence engaging summary for blog homepage (max 160 chars)",
-  "metaDescription": "SEO meta description (max 155 chars, include key terms)",
-  "tags": ["tag1","tag2","tag3","tag4","tag5"],
-  "citations": ["Source: name - description of relevance","Source: name - description","Source: name - description"]
-}`;
-
-  const metaResult = await callAI(metaPrompt);
-  closeAIModal();
 
   // ── Parse metadata ─────────────────────────────
   const checks = {};
-  let parsed = null;
+  let parsed   = null;
 
-  if (!metaResult.error) {
+  if (metaJSON) {
     try {
-      const clean = metaResult.text
-        .replace(/```json/gi,'').replace(/```/g,'')
-        .replace(/^[^{]*/,'').replace(/[^}]*$/,'').trim();
+      const clean = metaJSON.replace(/```json|```/g,'').trim();
       parsed = JSON.parse(clean);
     } catch(e) {
-      console.warn('Metadata JSON parse failed:', e.message, metaResult.text.substring(0,200));
+      // Try extracting individual fields with regex as last resort
+      try {
+        const t = metaJSON.match(/"title"\s*:\s*"([^"]+)"/)?.[1];
+        const s = metaJSON.match(/"summary"\s*:\s*"([^"]+)"/)?.[1];
+        const m = metaJSON.match(/"metaDescription"\s*:\s*"([^"]+)"/)?.[1];
+        const tgRaw = metaJSON.match(/"tags"\s*:\s*\[([^\]]+)\]/)?.[1];
+        const tgs = tgRaw ? tgRaw.match(/"([^"]+)"/g)?.map(s=>s.replace(/"/g,'')) : null;
+        if (t || s) parsed = { title:t, summary:s, metaDescription:m, tags:tgs, citations:[] };
+      } catch(e2) { console.warn('Metadata parse failed'); }
     }
   }
 
   if (parsed) {
-    // Title
-    if (parsed.title && parsed.title.trim()) {
+    if (parsed.title?.trim()) {
       document.getElementById('postTitle').value = parsed.title.trim();
       document.getElementById('postSlug').value  = slugify(parsed.title.trim());
       checks.title = true;
     }
-    // Summary
-    if (parsed.summary && parsed.summary.trim()) {
+    if (parsed.summary?.trim()) {
       document.getElementById('postExcerpt').value = parsed.summary.trim();
       checks.summary = true;
     }
-    // Meta description
-    if (parsed.metaDescription && parsed.metaDescription.trim()) {
+    if (parsed.metaDescription?.trim()) {
       document.getElementById('postMeta').value = parsed.metaDescription.trim();
       checks.meta = true;
     }
-    // Tags
-    if (parsed.tags && parsed.tags.length) {
+    if (parsed.tags?.length) {
       document.getElementById('postTags').value = parsed.tags.join(', ');
       checks.tags = true;
     }
-    // Citations — append to article
-    if (parsed.citations && parsed.citations.length) {
+    if (parsed.citations?.length) {
       const citHtml = `<h2>References</h2><ul>${parsed.citations.map(c=>`<li><em>${c}</em></li>`).join('')}</ul>`;
       document.getElementById('editor').innerHTML += citHtml;
       updateWordCount();
       checks.citations = true;
     }
-  } else {
-    // Fallback: auto-fill title from topic if not already set
-    if (!document.getElementById('postTitle').value.trim()) {
-      document.getElementById('postTitle').value = topic.length < 80 ? topic : topic.substring(0, 75) + '…';
-      document.getElementById('postSlug').value  = slugify(topic);
-      checks.title = true;
-    }
+  }
+
+  // Fallback title from topic
+  if (!checks.title && !document.getElementById('postTitle').value.trim()) {
+    document.getElementById('postTitle').value = topic.length < 80 ? topic : topic.substring(0,75)+'…';
+    document.getElementById('postSlug').value  = slugify(topic);
+    checks.title = true;
   }
 
   // ── Show result info box ──────────────────────
-  const modelLabels = {
-    claude:'Claude', groq:'Groq', deepseek:'DeepSeek V3',
-    openrouter:'OpenRouter Qwen3', gemini:'Gemini', auto:'Auto'
-  };
-  const usedModel = artResult.modelUsed || 'auto';
-  const badge     = document.getElementById('aiModelBadge');
-  badge.textContent  = '⚡ ' + (modelLabels[usedModel] || usedModel);
-  badge.style.color  = usedModel === 'claude' ? 'var(--gold)' : 'var(--green)';
-  badge.style.borderColor = usedModel === 'claude' ? 'rgba(201,168,76,0.4)' : 'rgba(34,197,94,0.3)';
+  const modelLabels = { claude:'Claude', groq:'Groq', deepseek:'DeepSeek V3', openrouter:'OpenRouter Qwen3', gemini:'Gemini', auto:'Auto' };
+  const usedModel   = artResult.modelUsed || 'auto';
+  const badge       = document.getElementById('aiModelBadge');
+  badge.textContent = '⚡ ' + (modelLabels[usedModel] || usedModel);
+  badge.style.color = usedModel === 'claude' ? 'var(--gold)' : 'var(--green)';
 
   const setCheck = (id, ok) => {
-    const el   = document.getElementById(id);
-    const row  = el.closest('div');
-    const label = row.querySelector('span:last-child');
+    const el    = document.getElementById(id);
+    const label = el.closest('div').querySelector('span:last-child');
     el.textContent    = ok ? '✓' : '—';
     el.style.color    = ok ? 'var(--green)' : 'var(--muted)';
-    label.style.color = ok ? 'var(--cream)' : 'var(--muted)';
+    label.style.color = ok ? 'var(--cream)'  : 'var(--muted)';
   };
 
   setCheck('aiCheckTitle',     !!checks.title);
@@ -954,10 +962,9 @@ Return ONLY a valid JSON object — no markdown, no code fences, no explanation,
   setCheck('aiCheckCitations', !!checks.citations);
 
   document.getElementById('aiResultBox').style.display = 'block';
-
   const filled = Object.values(checks).filter(Boolean).length;
-  document.getElementById('aiStatus').textContent = `✓ Article ready — ${filled}/5 fields auto-filled.`;
-  showToast(`Article generated! ${filled}/5 fields auto-filled.`, 'success');
+  document.getElementById('aiStatus').textContent = `✓ Done — ${filled}/5 fields auto-filled.`;
+  showToast(`Article ready! ${filled}/5 fields filled.`, 'success');
 };
 
 window.cancelOutline = () => {
