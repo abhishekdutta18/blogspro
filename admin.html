@@ -333,20 +333,8 @@
             <p style="font-size:0.68rem;color:var(--muted);margin-top:0.3rem">Switch to free models if Claude credits run out.</p>
           </div>
  
-          <div id="groqKeyRow" style="display:none" class="form-row">
-            <label class="form-label">Groq API Key
-              <a href="https://console.groq.com" target="_blank" style="color:var(--gold);font-size:0.65rem;text-transform:none;font-weight:400;margin-left:0.3rem">Get free →</a>
-            </label>
-            <input type="password" class="form-input" id="groqKey" placeholder="gsk_…" style="font-size:0.82rem" oninput="saveKey('groq',this.value)" />
-            <p style="font-size:0.68rem;color:var(--green);margin-top:0.3rem" id="groqSaved"></p>
-          </div>
- 
-          <div id="geminiKeyRow" style="display:none" class="form-row">
-            <label class="form-label">Gemini API Key
-              <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--gold);font-size:0.65rem;text-transform:none;font-weight:400;margin-left:0.3rem">Get free →</a>
-            </label>
-            <input type="password" class="form-input" id="geminiKey" placeholder="AIza…" style="font-size:0.82rem" oninput="saveKey('gemini',this.value)" />
-            <p style="font-size:0.68rem;color:var(--green);margin-top:0.3rem" id="geminiSaved"></p>
+          <div id="modelStatus" style="font-size:0.72rem;color:var(--green);margin-bottom:0.75rem;display:none">
+            ✓ Key stored securely in Cloudflare — no input needed
           </div>
  
           <button onclick="generateAIPost()" id="btnAI" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem">
@@ -720,75 +708,54 @@ function restoreAISettings() {
   const model = localStorage.getItem('bp_aiModel') || 'claude';
   const sel = document.getElementById('aiModel');
   if (sel) sel.value = model;
- 
-  const groqKey = localStorage.getItem('bp_groqKey') || '';
-  if (groqKey) {
-    document.getElementById('groqKey').value = groqKey;
-    document.getElementById('groqSaved').textContent = '✓ Key remembered';
-  }
- 
-  const geminiKey = localStorage.getItem('bp_geminiKey') || '';
-  if (geminiKey) {
-    document.getElementById('geminiKey').value = geminiKey;
-    document.getElementById('geminiSaved').textContent = '✓ Key remembered';
-  }
- 
-  document.getElementById('groqKeyRow').style.display   = model === 'groq'   ? 'block' : 'none';
-  document.getElementById('geminiKeyRow').style.display = model === 'gemini' ? 'block' : 'none';
+  // Show status indicator for non-Claude models
+  const status = document.getElementById('modelStatus');
+  if (status) status.style.display = model !== 'claude' ? 'block' : 'none';
 }
  
 window.onModelChange = () => {
   const model = document.getElementById('aiModel').value;
   localStorage.setItem('bp_aiModel', model);
-  document.getElementById('groqKeyRow').style.display   = model === 'groq'   ? 'block' : 'none';
-  document.getElementById('geminiKeyRow').style.display = model === 'gemini' ? 'block' : 'none';
-};
- 
-window.saveKey = (type, value) => {
-  if (value.length > 10) {
-    localStorage.setItem('bp_' + type + 'Key', value);
-    document.getElementById(type + 'Saved').textContent = '✓ Key saved in browser';
-  }
+  const status = document.getElementById('modelStatus');
+  if (status) status.style.display = model !== 'claude' ? 'block' : 'none';
 };
  
 async function callAI(prompt) {
-  const model     = document.getElementById('aiModel').value;
-  const tone      = document.getElementById('aiTone').value;
-  const category  = document.getElementById('postCategory').value;
+  const model    = document.getElementById('aiModel').value;
+  const tone     = document.getElementById('aiTone').value;
+  const category = document.getElementById('postCategory').value;
  
-  if (model === 'claude') {
-    const res = await fetch(WORKER_URL, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ prompt, tone, category, title:'' })
+  let res, data;
+  try {
+    res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, tone, category, model })
     });
-    const data = await res.json();
-    if (data.error) return { error: typeof data.error==='object' ? (data.error.message||JSON.stringify(data.error)) : String(data.error) };
-    return { text: data.content?.[0]?.text || '' };
- 
-  } else if (model === 'groq') {
-    const key = document.getElementById('groqKey').value.trim() || localStorage.getItem('bp_groqKey') || '';
-    if (!key) return { error: 'Please enter your Groq API key above.' };
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-      body: JSON.stringify({ model:'llama3-8b-8192', max_tokens:1500, messages:[{role:'user',content:prompt}] })
-    });
-    const data = await res.json();
-    if (data.error) return { error: data.error.message || JSON.stringify(data.error) };
-    return { text: data.choices?.[0]?.message?.content || '' };
- 
-  } else if (model === 'gemini') {
-    const key = document.getElementById('geminiKey').value.trim() || localStorage.getItem('bp_geminiKey') || '';
-    if (!key) return { error: 'Please enter your Gemini API key above.' };
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+key, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ contents:[{parts:[{text:prompt}]}] })
-    });
-    const data = await res.json();
-    if (data.error) return { error: data.error.message || JSON.stringify(data.error) };
-    return { text: data.candidates?.[0]?.content?.parts?.[0]?.text || '' };
+  } catch(e) {
+    return { error: 'Network error: ' + e.message };
   }
-  return { error: 'Unknown model selected.' };
+ 
+  try { data = await res.json(); }
+  catch(e) { return { error: 'Invalid response (HTTP ' + res.status + ')' }; }
+ 
+  if (data.error) {
+    return { error: typeof data.error === 'object'
+      ? (data.error.message || JSON.stringify(data.error))
+      : String(data.error) };
+  }
+ 
+  const text = data.text || '';
+  if (!text) return { error: 'No content returned from AI.' };
+ 
+  // Show which model was used (especially if fallback triggered)
+  const modelNames = { claude:'Claude', groq:'Groq Llama 3', gemini:'Google Gemini' };
+  const usedName   = modelNames[data.model_used] || data.model_used || model;
+  if (data.fallback_used) {
+    showToast(`${modelNames[model]} unavailable — switched to ${usedName} automatically.`, 'success');
+  }
+ 
+  return { text, modelUsed: data.model_used };
 }
  
 window.generateAIPost = async () => {
