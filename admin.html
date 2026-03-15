@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1497,9 +1496,14 @@ onAuthStateChanged(auth, async user => {
       return;
     }
   } catch(e) {
-    await signOut(auth);
-    window.location.href = 'login.html?error=unauthorized';
-    return;
+    // Only redirect if it's truly a permission error, not a network blip
+    if (e.code === 'permission-denied' || e.code === 'unauthenticated') {
+      await signOut(auth);
+      window.location.href = 'login.html?error=unauthorized';
+      return;
+    }
+    // For other errors (network, index missing), allow through if user is authenticated
+    console.warn('Auth check error (non-fatal):', e.message);
   }
   currentUser = user;
   document.getElementById('userEmail').textContent   = user.email;
@@ -1510,18 +1514,57 @@ onAuthStateChanged(auth, async user => {
 
 // ── Load posts ────────────────────────────────
 async function loadAll() {
+  // Show loading state
+  ['statTotal','statPublished','statDrafts','statSubs'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '…';
+  });
+
   try {
-    const snap = await getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(50)));
-    allPosts   = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    let snap;
+    try {
+      // Try ordered query first (requires Firestore index)
+      snap = await getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(50)));
+    } catch(indexErr) {
+      // Fallback: unordered query (no index needed) — covers "index required" errors
+      console.warn('Ordered query failed, falling back:', indexErr.message);
+      snap = await getDocs(query(collection(db,'posts'), limit(50)));
+    }
+
+    allPosts = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+
+    // Sort in JS if we got unordered results
+    allPosts.sort((a,b) => {
+      const ta = a.createdAt?.toMillis?.() || a.createdAt?.seconds * 1000 || 0;
+      const tb = b.createdAt?.toMillis?.() || b.createdAt?.seconds * 1000 || 0;
+      return tb - ta;
+    });
+
     document.getElementById('statTotal').textContent     = allPosts.length;
     document.getElementById('statPublished').textContent = allPosts.filter(p=>p.published).length;
     document.getElementById('statDrafts').textContent    = allPosts.filter(p=>!p.published).length;
+
     try {
       const ss = await getDocs(query(collection(db,'subscribers'), limit(1000)));
       document.getElementById('statSubs').textContent = ss.size;
     } catch(_) { document.getElementById('statSubs').textContent = '—'; }
+
     renderPostsTable(allPosts.slice(0,8), 'recentPostsBody');
-  } catch(e) { showToast('Failed to load posts: '+e.message,'error'); }
+
+  } catch(e) {
+    // Show error inline in the table instead of a vanishing toast
+    console.error('loadAll error:', e);
+    const tbody = document.getElementById('recentPostsBody');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5"><div class="table-empty" style="color:#fca5a5">
+      ✕ Failed to load posts: ${e.message}<br>
+      <span style="font-size:0.75rem;color:var(--muted)">Check Firestore rules or create the required index.</span>
+    </div></td></tr>`;
+    ['statTotal','statPublished','statDrafts','statSubs'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
+    showToast('Failed to load: '+e.message, 'error');
+  }
 }
 
 function renderPostsTable(posts, tbodyId) {
