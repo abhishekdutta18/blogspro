@@ -1261,10 +1261,17 @@
  
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${response.status}`);
+        throw new Error(err.error || err.message || `HTTP ${response.status}: ${response.statusText}`);
       }
  
       const data = await response.json();
+ 
+      if (data.error) {
+        throw new Error(typeof data.error === 'object'
+          ? (data.error.message || JSON.stringify(data.error))
+          : data.error);
+      }
+ 
       const html = data.content?.[0]?.text || '';
       if (!html) throw new Error('No content returned from AI.');
  
