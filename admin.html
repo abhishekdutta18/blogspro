@@ -842,89 +842,77 @@ window.confirmOutline = async () => {
   const tone     = document.getElementById('aiTone').value;
 
   document.getElementById('aiModalTitle').textContent     = '✦ Writing article…';
-  document.getElementById('aiModalSub').textContent       = 'Generating content + metadata…';
+  document.getElementById('aiModalSub').textContent       = 'Step 1/2 — generating content…';
   document.getElementById('aiModalContent').innerHTML     = '<span style="animation:pulse 1s infinite;display:inline-block">Writing…</span>';
   document.getElementById('aiModalActions').style.display = 'none';
   document.getElementById('aiResultBox').style.display    = 'none';
 
-  // Single call — ask for article HTML + metadata JSON separately with a clear separator
+  // ── CALL 1: Article HTML only ──────────────────
   const articlePrompt = `You are an expert fintech writer for BlogsPro (blogspro.in).
-Write a professional article about: "${topic}"
+Write a professional, 700-900 word article about: "${topic}"
 Category: ${category}. Tone: ${tone}.
 Follow this outline:
 ${pendingOutline}
 
-INSTRUCTIONS — follow exactly in this order:
-
-PART 1: Write the full article using ONLY these HTML tags: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>
-No markdown, no JSON, no code blocks. 700-900 words.
-
-Then on a NEW LINE write exactly: ---METADATA---
-
-PART 2: After ---METADATA--- write ONLY this JSON (no extra text):
-{"title":"article headline max 70 chars","summary":"2 sentence homepage summary max 160 chars","metaDescription":"SEO description max 155 chars","tags":["tag1","tag2","tag3","tag4","tag5"],"citations":["Source: publication - detail","Source: publication - detail","Source: publication - detail"]}`;
+Return ONLY clean HTML using these tags: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>
+Start directly with the article. No JSON, no metadata, no extra text after the article.`;
 
   const artResult = await callAI(articlePrompt);
-  closeAIModal();
 
   if (artResult.error) {
+    closeAIModal();
     document.getElementById('aiStatus').textContent = '✕ ' + artResult.error;
     showToast('AI Error: ' + artResult.error, 'error');
     return;
   }
 
-  // ── Split article and metadata ─────────────────
-  const raw      = artResult.text || '';
-  const sepIdx   = raw.indexOf('---METADATA---');
-  let articleHTML = '';
-  let metaJSON    = '';
-
-  if (sepIdx !== -1) {
-    articleHTML = raw.substring(0, sepIdx).trim();
-    metaJSON    = raw.substring(sepIdx + 14).trim();
-  } else {
-    // No separator — try to split at first { after closing HTML tag
-    const jsonStart = raw.lastIndexOf('\n{');
-    if (jsonStart !== -1) {
-      articleHTML = raw.substring(0, jsonStart).trim();
-      metaJSON    = raw.substring(jsonStart).trim();
-    } else {
-      // Fallback: strip anything after </ul> or </p> that looks like JSON
-      articleHTML = raw.replace(/\n*JSON object:.*$/s, '').replace(/\n*\{.*"title".*\}.*$/s, '').trim();
-      const jsonMatch = raw.match(/\{[\s\S]*"title"[\s\S]*\}/);
-      if (jsonMatch) metaJSON = jsonMatch[0];
-    }
-  }
-
-  // Clean article — strip separator, trailing dashes, leaking JSON
-  articleHTML = (articleHTML || raw)
+  // Clean and insert article
+  const articleHTML = (artResult.text || '')
     .replace(/---METADATA---[\s\S]*/g, '')
-    .replace(/\n*---+\s*$/g, '')
-    .replace(/\n*JSON object:[\s\S]*/g, '')
+    .replace(/\n*---+\s*$/gm, '')
     .replace(/\n*\{"title"[\s\S]*/g, '')
+    .replace(/\n*JSON[\s\S]*/g, '')
     .trim();
 
   document.getElementById('editor').innerHTML = articleHTML;
   updateWordCount();
 
+  // ── CALL 2: Metadata JSON only ─────────────────
+  document.getElementById('aiModalTitle').textContent = '✦ Generating metadata…';
+  document.getElementById('aiModalSub').textContent   = 'Step 2/2 — title, tags, citations…';
+  document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Generating metadata…</span>';
+
+  const metaPrompt = `For a fintech article about "${topic}", return ONLY this exact JSON — no extra text, no markdown:
+{"title":"compelling headline under 70 chars","summary":"2 sentence homepage summary under 160 chars","metaDescription":"SEO meta under 155 chars","tags":["tag1","tag2","tag3","tag4","tag5"],"citations":["RBI Circular 2024: description","SEBI Report: description","Industry Study: description"]}`;
+
+  const metaResult = await callAI(metaPrompt, true);
+  closeAIModal();
+
   // ── Parse metadata ─────────────────────────────
   const checks = {};
   let parsed   = null;
+  const metaText = metaResult.error ? '' : (metaResult.text || '');
 
-  if (metaJSON) {
+  if (metaText) {
     try {
-      const clean = metaJSON.replace(/```json|```/g,'').trim();
-      parsed = JSON.parse(clean);
+      // Extract JSON — find first { and last }
+      const start = metaText.indexOf('{');
+      const end   = metaText.lastIndexOf('}');
+      if (start !== -1 && end !== -1) {
+        parsed = JSON.parse(metaText.substring(start, end + 1));
+      }
     } catch(e) {
-      // Try extracting individual fields with regex as last resort
+      // Regex fallback for individual fields
       try {
-        const t = metaJSON.match(/"title"\s*:\s*"([^"]+)"/)?.[1];
-        const s = metaJSON.match(/"summary"\s*:\s*"([^"]+)"/)?.[1];
-        const m = metaJSON.match(/"metaDescription"\s*:\s*"([^"]+)"/)?.[1];
-        const tgRaw = metaJSON.match(/"tags"\s*:\s*\[([^\]]+)\]/)?.[1];
-        const tgs = tgRaw ? tgRaw.match(/"([^"]+)"/g)?.map(s=>s.replace(/"/g,'')) : null;
-        if (t || s) parsed = { title:t, summary:s, metaDescription:m, tags:tgs, citations:[] };
-      } catch(e2) { console.warn('Metadata parse failed'); }
+        const t  = metaText.match(/"title"\s*:\s*"([^"]+)"/)?.[1];
+        const s  = metaText.match(/"summary"\s*:\s*"([^"]+)"/)?.[1];
+        const m  = metaText.match(/"metaDescription"\s*:\s*"([^"]+)"/)?.[1];
+        const tg = [...metaText.matchAll(/"tags"\s*:\s*\[([^\]]+)\]/g)];
+        const tags = tg[0]?.[1]?.match(/"([^"]+)"/g)?.map(s=>s.replace(/"/g,''));
+        const cit = [...metaText.matchAll(/"citations"\s*:\s*\[([^\]]+)\]/g)];
+        const citations = cit[0]?.[1]?.match(/"([^"]+)"/g)?.map(s=>s.replace(/"/g,''));
+        if (t || s) parsed = { title:t, summary:s, metaDescription:m, tags, citations };
+      } catch(e2) { console.warn('Metadata parse failed completely'); }
     }
   }
 
@@ -954,7 +942,7 @@ PART 2: After ---METADATA--- write ONLY this JSON (no extra text):
     }
   }
 
-  // Fallback title from topic
+  // Fallback title
   if (!checks.title && !document.getElementById('postTitle').value.trim()) {
     document.getElementById('postTitle').value = topic.length < 80 ? topic : topic.substring(0,75)+'…';
     document.getElementById('postSlug').value  = slugify(topic);
