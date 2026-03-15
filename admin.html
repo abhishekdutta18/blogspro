@@ -2467,7 +2467,7 @@ function closeAIModal() { document.getElementById('aiModal').classList.remove('o
 // ═══════════════════════════════════════════════
 // AI EDIT TOOLBAR
 // ═══════════════════════════════════════════════
-function showAIEditToolbar() { document.getElementById('aiEditToolbar').style.display='block'; }
+// showAIEditToolbar defined below in drawer section
 function setEditStatus(msg,isError=false) { const el=document.getElementById('aiEditStatus'); el.textContent=msg; el.style.color=isError?'#fca5a5':'var(--muted)'; }
 function setEditBtnsDisabled(on) { document.querySelectorAll('.ai-edit-btn').forEach(b=>b.disabled=on); }
 
