@@ -832,13 +832,13 @@
       const snap = await getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc')));
  
       // Exclude the admin account using all possible identifiers
-      const adminEmail = currentUser?.email || '';
+      const ADMIN_EMAIL = "abhishek.dutta1996@gmail.com";
       const users = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
         .filter(u =>
           u.id    !== ADMIN_UID &&
           u.uid   !== ADMIN_UID &&
-          u.email !== adminEmail
+          u.email !== ADMIN_EMAIL
         );
  
       if (!users.length) {
