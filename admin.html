@@ -487,6 +487,9 @@
     <div class="nav-item" onclick="showView('users')">
       <span class="nav-icon">👥</span> Users
     </div>
+    <div class="nav-item" onclick="showView('subscribers')">
+      <span class="nav-icon">✉</span> Subscribers
+    </div>
     <p class="nav-label" style="margin-top:1.5rem">Site</p>
     <div class="nav-item" onclick="window.open('index.html','_blank')">
       <span class="nav-icon">↗</span> View Blog
@@ -694,6 +697,42 @@
     </div>
   </div>
  
+  <!-- SUBSCRIBERS -->
+  <div class="view" id="view-subscribers">
+    <div class="page-header">
+      <div>
+        <h2>Subscribers</h2>
+        <p>Newsletter signups from your blog</p>
+      </div>
+      <button class="btn-publish" style="padding:0.7rem 1.5rem;border-radius:3px"
+        onclick="exportSubscribers()">⬇ Export CSV</button>
+    </div>
+ 
+    <div class="table-wrap">
+      <div class="table-header">
+        <span class="table-title" id="subCountLabel">Loading…</span>
+        <input id="subSearch" placeholder="Search email…"
+          oninput="filterSubs(this.value)"
+          style="background:var(--navy);border:1px solid var(--border);color:var(--cream);
+                 padding:0.4rem 0.8rem;border-radius:3px;font-family:var(--sans);
+                 font-size:0.82rem;outline:none;width:220px" />
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Email</th>
+            <th>Subscribed On</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="subsTableBody">
+          <tr><td colspan="4"><div class="table-empty">Loading…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+ 
 </main>
  
 <!-- TOAST -->
@@ -757,6 +796,7 @@
     });
     if (name === 'posts') renderPostsTable(allPosts, 'allPostsBody');
     if (name === 'users') loadUsers();
+    if (name === 'subscribers') loadSubscribers();
   };
  
   // ── Load data ──────────────────────────────────
@@ -828,7 +868,81 @@
     try {
       await updateDoc(doc(db, 'users', uid), { role });
       showToast(`Role updated to ${role}.`, 'success');
+      loadUsers();
     } catch(e) { showToast('Failed to update role.', 'error'); }
+  };
+ 
+  // ── Subscribers ────────────────────────────────
+  let allSubs = [];
+ 
+  async function loadSubscribers() {
+    const tbody = document.getElementById('subsTableBody');
+    try {
+      const snap = await getDocs(query(collection(db, 'subscribers'), orderBy('createdAt', 'desc')));
+      allSubs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      document.getElementById('subCountLabel').textContent =
+        `${allSubs.length} subscriber${allSubs.length !== 1 ? 's' : ''}`;
+      renderSubs(allSubs);
+    } catch(err) {
+      console.error(err);
+      tbody.innerHTML = `<tr><td colspan="4"><div class="table-empty">Failed to load. Check Firestore rules.</div></td></tr>`;
+    }
+  }
+ 
+  function renderSubs(subs) {
+    const tbody = document.getElementById('subsTableBody');
+    if (!subs.length) {
+      tbody.innerHTML = `<tr><td colspan="4"><div class="table-empty">No subscribers yet.</div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = subs.map((s, i) => {
+      const date = s.createdAt?.toDate?.()?.toLocaleDateString('en-IN', {
+        day:'numeric', month:'short', year:'numeric'
+      }) || '—';
+      return `<tr>
+        <td style="color:var(--muted);font-size:0.82rem">${i + 1}</td>
+        <td><strong>${s.email || '—'}</strong></td>
+        <td style="color:var(--muted);font-size:0.83rem;white-space:nowrap">${date}</td>
+        <td>
+          <button class="action-btn delete" onclick="deleteSub('${s.id}')">Remove</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+ 
+  window.filterSubs = (q) => {
+    const filtered = allSubs.filter(s =>
+      s.email?.toLowerCase().includes(q.toLowerCase())
+    );
+    renderSubs(filtered);
+  };
+ 
+  window.deleteSub = async (id) => {
+    if (!confirm('Remove this subscriber?')) return;
+    try {
+      await deleteDoc(doc(db, 'subscribers', id));
+      showToast('Subscriber removed.', 'success');
+      allSubs = allSubs.filter(s => s.id !== id);
+      renderSubs(allSubs);
+      document.getElementById('subCountLabel').textContent =
+        `${allSubs.length} subscriber${allSubs.length !== 1 ? 's' : ''}`;
+    } catch(e) { showToast('Failed to remove subscriber.', 'error'); }
+  };
+ 
+  window.exportSubscribers = () => {
+    if (!allSubs.length) { showToast('No subscribers to export.', 'error'); return; }
+    const csv  = 'Email,Subscribed On\n' + allSubs.map(s => {
+      const date = s.createdAt?.toDate?.()?.toLocaleDateString('en-IN') || '';
+      return `${s.email},${date}`;
+    }).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'blogspro-subscribers.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('CSV downloaded!', 'success');
   };
  
   function renderPostsTable(posts, tbodyId) {
