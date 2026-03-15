@@ -40,12 +40,13 @@
     /* ── SIDEBAR ───────────────────────────────────── */
     aside {
       width: var(--sidebar);
-      min-height: 100vh;
+      height: 100vh;
       background: var(--navy2);
       border-right: 1px solid var(--border);
       display: flex; flex-direction: column;
       position: fixed; top: 0; left: 0;
       z-index: 50;
+      overflow-y: auto;
     }
  
     .sidebar-brand {
@@ -101,6 +102,8 @@
     .sidebar-footer {
       padding: 1.5rem;
       border-top: 1px solid var(--border);
+      margin-top: auto;
+      flex-shrink: 0;
     }
  
     .user-chip {
@@ -1123,7 +1126,7 @@
   // ── Logout ─────────────────────────────────────
   window.doLogout = async () => {
     await signOut(auth);
-    window.location.href = 'login.html';
+    window.location.href = 'index.html';
   };
  
   // ── Toast ──────────────────────────────────────
