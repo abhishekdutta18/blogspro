@@ -314,7 +314,7 @@
           <button onclick="showView('editor');document.getElementById('aiPanel').scrollIntoView({behavior:'smooth'})" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border-radius:2px;font-weight:700;font-size:0.72rem">✦ AI Write</button>
           <button onclick="document.getElementById('imgGenPanel').scrollIntoView({behavior:'smooth'})" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border-radius:2px;font-weight:700;font-size:0.72rem">🖼 AI Image</button>
         </div>
-        <div id="editor" contenteditable="true"></div>
+        <div id="editor" contenteditable="true" spellcheck="false"></div>
 
         <!-- AI Edit Toolbar — shown after article is generated -->
         <div id="aiEditToolbar" style="display:none;margin-top:0.5rem;background:var(--navy2);border:1px solid rgba(201,168,76,0.3);border-radius:3px;padding:0.75rem">
@@ -388,7 +388,13 @@
           </div>
           <div class="form-row">
             <label class="form-label">Featured Image URL</label>
-            <input type="text" class="form-input" id="postImage" placeholder="https://…" style="font-size:0.8rem" />
+            <div style="display:flex;gap:0.4rem">
+              <input type="text" class="form-input" id="postImage" placeholder="https://… or upload below" style="font-size:0.8rem" />
+              <label title="Upload image from your computer" style="flex-shrink:0;background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0 0.7rem;border-radius:3px;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;gap:0.3rem;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+                📁 Upload
+                <input type="file" accept="image/*" style="display:none" onchange="uploadFeaturedImage(this)" />
+              </label>
+            </div>
           </div>
           <div class="form-row">
             <label class="form-label">Meta Description</label>
@@ -491,6 +497,18 @@
           <div class="img-preview-grid" id="imgPreviewGrid" style="display:none"></div>
 
           <div class="img-inserted-banner" id="imgInsertedBanner">✓ Image inserted into article editor.</div>
+
+          <!-- Upload your own photo -->
+          <div style="margin-top:0.8rem;background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.8rem">
+            <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.6rem">📁 Upload Your Own Photo</div>
+            <label id="uploadDropZone" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;border:1px dashed var(--border);border-radius:3px;padding:1rem;cursor:pointer;transition:all 0.2s;text-align:center" onmouseover="this.style.borderColor='var(--blue2)';this.style.background='rgba(59,130,246,0.04)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='transparent'">
+              <span style="font-size:1.2rem">🖼</span>
+              <span style="font-size:0.75rem;color:var(--muted)">Click to browse or drag & drop</span>
+              <span style="font-size:0.65rem;color:var(--muted);opacity:0.7">PNG, JPG, GIF, WebP — any size</span>
+              <input type="file" accept="image/*" multiple style="display:none" onchange="handleOwnPhotoUpload(this.files)" />
+            </label>
+            <div id="uploadedImgGrid" style="display:none;margin-top:0.6rem;display:grid;grid-template-columns:1fr 1fr;gap:0.4rem"></div>
+          </div>
 
           <!-- Featured image quick-set info -->
           <div style="margin-top:0.8rem;padding:0.6rem;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.15);border-radius:3px;font-size:0.68rem;color:var(--muted);line-height:1.5">
@@ -665,7 +683,68 @@ let currentModalImgUrl = '';
 let generatedImages   = []; // store all generated URLs
 
 // Style selector
-// ── Image provider info banner ─────────────────
+// ── Image upload handlers ──────────────────────
+
+// Upload to Featured Image field (converts to base64 data URL)
+window.uploadFeaturedImage = (input) => {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('postImage').value = e.target.result;
+    showToast('Featured image set from upload!', 'success');
+  };
+  reader.readAsDataURL(file);
+  // Reset so same file can be selected again
+  input.value = '';
+};
+
+// Upload own photos to the image panel — shows preview cards identical to AI ones
+window.handleOwnPhotoUpload = (files) => {
+  if (!files || !files.length) return;
+  const grid = document.getElementById('uploadedImgGrid');
+  grid.style.display = 'grid';
+
+  Array.from(files).forEach((file, idx) => {
+    if (!file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const blobUrl = e.target.result;
+      const uploadIdx = generatedImages.length; // append after any AI images
+      generatedImages[uploadIdx] = blobUrl;
+
+      const card = document.createElement('div');
+      card.className = 'img-preview-card';
+      card.style.position = 'relative';
+      card.innerHTML = `
+        <div class="img-num">📁 ${file.name.substring(0, 12)}${file.name.length > 12 ? '…' : ''}</div>
+        <img src="${blobUrl}" alt="${file.name}" style="width:100%;height:120px;object-fit:cover;display:block;cursor:pointer" onclick="openImgModal(${uploadIdx})" />
+        <div class="img-overlay">
+          <button class="img-overlay-btn" onclick="openImgModal(${uploadIdx})">🔍 Preview</button>
+          <button class="img-overlay-btn secondary" onclick="insertImage(${uploadIdx})">↓ Insert</button>
+        </div>`;
+      grid.appendChild(card);
+
+      showToast(`${file.name} ready to insert!`, 'success');
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+// Also support drag-and-drop on the drop zone
+document.addEventListener('DOMContentLoaded', () => {
+  const zone = document.getElementById('uploadDropZone');
+  if (!zone) return;
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.style.borderColor = 'var(--blue2)'; zone.style.background = 'rgba(59,130,246,0.08)'; });
+  zone.addEventListener('dragleave', () => { zone.style.borderColor = 'var(--border)'; zone.style.background = 'transparent'; });
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.style.borderColor = 'var(--border)';
+    zone.style.background  = 'transparent';
+    handleOwnPhotoUpload(e.dataTransfer.files);
+  });
+});
 window.onImgProviderChange = (val) => {
   const el = document.getElementById('imgProviderInfo');
   if (!el) return;
