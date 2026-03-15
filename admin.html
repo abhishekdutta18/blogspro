@@ -453,6 +453,9 @@
     .toast.success { border-color: var(--green); }
     .toast.error   { border-color: var(--red); }
  
+    @keyframes spin  { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+ 
     /* Empty table */
     .table-empty {
       text-align: center;
@@ -639,6 +642,11 @@
           <div class="toolbar-sep"></div>
           <button onclick="fmtBlock('blockquote')" title="Blockquote">"</button>
           <button onclick="insertLink()" title="Insert link">🔗</button>
+          <div class="toolbar-sep"></div>
+          <button onclick="openAIWriter()" title="AI Writer"
+            style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border-radius:2px;font-weight:700;font-size:0.72rem;letter-spacing:0.06em">
+            ✦ AI Write
+          </button>
         </div>
  
         <div id="editor" contenteditable="true"
@@ -678,7 +686,64 @@
             <input type="text" class="form-input" id="postSlug"
               placeholder="auto-generated" style="font-size:0.8rem" />
           </div>
+ 
+          <div class="form-row" style="display:flex;align-items:center;justify-content:space-between;padding:0.8rem 0;border-top:1px solid var(--border);margin-top:0.5rem">
+            <div>
+              <div style="font-size:0.78rem;font-weight:600;color:var(--cream)">⭐ Premium Content</div>
+              <div style="font-size:0.68rem;color:var(--muted);margin-top:0.15rem">Subscribers only</div>
+            </div>
+            <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer">
+              <input type="checkbox" id="postPremium" style="opacity:0;width:0;height:0">
+              <span id="premiumToggle" onclick="togglePremium()"
+                style="position:absolute;inset:0;background:var(--navy3);border:1px solid var(--border);border-radius:20px;transition:0.2s">
+                <span id="premiumDot"
+                  style="position:absolute;left:2px;top:2px;width:14px;height:14px;background:var(--muted);border-radius:50%;transition:0.2s"></span>
+              </span>
+            </label>
+          </div>
         </div>
+ 
+        <!-- AI Writer Panel -->
+        <div class="editor-panel" style="margin-top:1rem;border-color:rgba(201,168,76,0.3)">
+          <h3 style="color:var(--gold)">✦ AI Writer</h3>
+          <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem">
+            Describe what you want to write about and AI will draft the full article.
+          </p>
+          <div class="form-row">
+            <label class="form-label">Topic / Prompt</label>
+            <textarea class="form-textarea" id="aiPrompt" rows="3"
+              placeholder="e.g. Write a detailed article about RBI's new UPI regulations for fintech companies in 2025…"
+              style="resize:vertical;font-size:0.85rem"></textarea>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Tone</label>
+            <select class="form-select" id="aiTone" style="font-size:0.85rem">
+              <option value="professional">Professional & Analytical</option>
+              <option value="conversational">Conversational & Accessible</option>
+              <option value="authoritative">Authoritative & Expert</option>
+              <option value="thought-leadership">Thought Leadership</option>
+            </select>
+          </div>
+          <button onclick="generateAIPost()" id="btnAI"
+            style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+            <span id="aiBtnText">✦ Generate Article</span>
+            <span id="aiSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+          </button>
+          <div id="aiStatus" style="font-size:0.72rem;color:var(--muted);margin-top:0.6rem;text-align:center;min-height:1rem"></div>
+        </div>
+ 
+      </div>
+    </div>
+  </div>
+ 
+  <!-- AI WRITER MODAL -->
+  <div id="aiModal" style="display:none;position:fixed;inset:0;background:rgba(8,13,26,0.85);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+    <div style="background:var(--navy2);border:1px solid var(--border);width:90%;max-width:600px;padding:2rem;position:relative;border-radius:4px">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold2),transparent)"></div>
+      <h3 style="font-family:var(--serif);font-size:1.4rem;font-weight:700;margin-bottom:0.4rem">✦ AI is writing your article…</h3>
+      <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1.5rem">This may take 15–30 seconds. The article will be inserted into the editor.</p>
+      <div style="background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:1rem;min-height:80px;font-size:0.85rem;color:var(--muted);line-height:1.6" id="aiPreview">
+        <span style="display:inline-block;animation:pulse 1s infinite">Generating content…</span>
       </div>
     </div>
   </div>
@@ -1046,6 +1111,7 @@
     const data = {
       title, excerpt, content, category: cat, slug,
       published: publish,
+      premium:   isPremium,
       updatedAt: serverTimestamp(),
     };
  
@@ -1150,6 +1216,97 @@
   }
  
   window.showToast = showToast;
+ 
+  // ── Premium toggle ─────────────────────────────
+  let isPremium = false;
+  window.togglePremium = () => {
+    isPremium = !isPremium;
+    document.getElementById('premiumDot').style.left     = isPremium ? '18px' : '2px';
+    document.getElementById('premiumDot').style.background = isPremium ? 'var(--gold)' : 'var(--muted)';
+    document.getElementById('premiumToggle').style.background = isPremium ? 'rgba(201,168,76,0.2)' : 'var(--navy3)';
+  };
+ 
+  // ── AI Writer ──────────────────────────────────
+  window.openAIWriter = () => {
+    const prompt = document.getElementById('aiPrompt').value.trim();
+    if (!prompt) { showToast('Enter a topic/prompt first in the AI Writer panel.', 'error'); return; }
+    generateAIPost();
+  };
+ 
+  window.generateAIPost = async () => {
+    const prompt   = document.getElementById('aiPrompt').value.trim();
+    const tone     = document.getElementById('aiTone').value;
+    const title    = document.getElementById('postTitle').value.trim();
+    const category = document.getElementById('postCategory').value;
+ 
+    if (!prompt) { showToast('Please enter a topic or prompt.', 'error'); return; }
+ 
+    // Show loading state
+    document.getElementById('btnAI').disabled        = true;
+    document.getElementById('aiBtnText').style.display = 'none';
+    document.getElementById('aiSpinner').style.display  = 'inline-block';
+    document.getElementById('aiStatus').textContent   = 'Generating your article…';
+    document.getElementById('aiModal').style.display  = 'flex';
+ 
+    const systemPrompt = `You are an expert fintech writer for BlogsPro, a professional blog covering Fintech, Compliance, and Strategy. 
+Write authoritative, insightful articles for financial professionals and practitioners.
+Always structure articles with: an engaging introduction, 3-5 clear H2 sections, practical insights, and a strong conclusion.
+Tone: ${tone}. Category: ${category}.
+Return ONLY clean HTML using: <h2>, <h3>, <p>, <strong>, <em>, <ul>, <li>, <blockquote> tags.
+No markdown, no code blocks, no preamble — just the article HTML content starting from the first paragraph.`;
+ 
+    const userPrompt = `${title ? `Title: "${title}"\n` : ''}Topic/Instructions: ${prompt}\n\nWrite a comprehensive, well-researched article of 600-900 words.`;
+ 
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1500,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userPrompt }]
+        })
+      });
+ 
+      const data = await response.json();
+ 
+      if (data.error) throw new Error(data.error.message);
+ 
+      const html = data.content?.[0]?.text || '';
+      if (!html) throw new Error('No content returned');
+ 
+      // Inject into editor
+      document.getElementById('editor').innerHTML = html;
+      updateWordCount();
+ 
+      // Auto-fill title if empty
+      if (!title && prompt.length < 80) {
+        document.getElementById('postTitle').value = prompt;
+        document.getElementById('postSlug').value  = slugify(prompt);
+      }
+ 
+      document.getElementById('aiStatus').textContent = '✓ Article generated! Review and edit before publishing.';
+      document.getElementById('aiModal').style.display = 'none';
+      showToast('AI article generated!', 'success');
+ 
+    } catch(err) {
+      console.error('AI error:', err);
+      document.getElementById('aiStatus').textContent = '✕ ' + (err.message || 'Generation failed.');
+      document.getElementById('aiModal').style.display = 'none';
+      showToast('AI generation failed: ' + err.message, 'error');
+    }
+ 
+    document.getElementById('btnAI').disabled         = false;
+    document.getElementById('aiBtnText').style.display = 'inline';
+    document.getElementById('aiSpinner').style.display  = 'none';
+  };
+ 
+  // Close modal on click outside
+  document.getElementById('aiModal').addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+  });
 </script>
 </body>
 </html>
+ 
