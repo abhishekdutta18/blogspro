@@ -724,12 +724,10 @@
             <select class="form-select" id="modelArticle" style="font-size:0.85rem" onchange="document.getElementById('modelWarning').style.display=this.value==='openrouter'?'block':'none'">
               <option value="auto" selected>Auto — Best Available</option>
               <option value="groq">Groq Llama 3 — Fast & Free</option>
-              <option value="deepseek">DeepSeek V3 — 685B Free</option>
               <option value="claude">Claude Sonnet — Best Quality</option>
-              <option value="openrouter" style="color:#fca5a5">⚠ OpenRouter — Unreliable</option>
             </select>
             <div id="modelWarning" style="display:none;margin-top:0.5rem;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:3px;padding:0.45rem 0.6rem;font-size:0.68rem;color:#fca5a5;line-height:1.5">⚠ OpenRouter free endpoints are often down. Use Auto or Groq instead.</div>
-            <p style="font-size:0.68rem;color:var(--muted);margin-top:0.4rem">Auto tries Claude → DeepSeek → Groq in order.</p>
+            <p style="font-size:0.68rem;color:var(--muted);margin-top:0.4rem">Auto tries Claude → Groq. If all fail, retries automatically.</p>
           </div>
           <button onclick="generateAIPost()" id="btnAI" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.9rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem">
             <span id="aiBtnText">✦ Generate Full Article</span>
@@ -2231,7 +2229,7 @@ window.confirmOutline = async () => {
   const category=document.getElementById('postCategory').value;
   const tone=document.getElementById('aiTone').value;
   const modelArticle=document.getElementById('modelArticle').value;
-  const ML={claude:'Claude',groq:'Groq',deepseek:'DeepSeek V3',openrouter:'OpenRouter',auto:'Auto'};
+  const ML={claude:'Claude',groq:'Groq',openrouter:'OpenRouter',auto:'Auto'};
   const results=[]; const allAttempts=[];
   const addR=(icon,label,model,ok,extra='')=>results.push({icon,label,model,ok,extra});
   document.getElementById('aiResultBox').style.display='none';
@@ -2241,7 +2239,20 @@ window.confirmOutline = async () => {
   document.getElementById('aiModalContent').innerHTML='<span style="animation:pulse 1s infinite;display:inline-block">Writing full article…</span>';
   document.getElementById('aiModal').classList.add('open');
 
-  const artResult=await callAI(`You are an expert fintech writer for BlogsPro (blogspro.in).\nWrite a comprehensive, long-form article about: "${topic}"\nCategory: ${category}. Tone: ${tone}.\nFollow this outline:\n${pendingOutline}\n\nRULES:\n- NEVER use <h1> tags\n- Start with a plain <p> introduction paragraph — NOT bold, NOT a heading\n- Use only: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>\n- Do NOT wrap entire paragraphs in <strong>\n- Write in depth — NO word limit. Cover every point with examples, data, analysis.\n- Return ONLY clean HTML. No JSON, no metadata, no markdown.`,false,modelArticle);
+  const artPrompt = `You are an expert fintech writer for BlogsPro (blogspro.in).\nWrite a comprehensive, long-form article about: "${topic}"\nCategory: ${category}. Tone: ${tone}.\nFollow this outline:\n${pendingOutline}\n\nRULES:\n- NEVER use <h1> tags\n- Start with a plain <p> introduction paragraph — NOT bold, NOT a heading\n- Use only: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>\n- Do NOT wrap entire paragraphs in <strong>\n- Write in depth — NO word limit. Cover every point with examples, data, analysis.\n- Return ONLY clean HTML. No JSON, no metadata, no markdown.`;
+
+  // FIX: Try article generation up to 3 times across different models
+  let artResult = await callAI(artPrompt, false, modelArticle);
+  if (artResult.error) {
+    document.getElementById('aiModalContent').innerHTML='<span style="animation:pulse 1s infinite;display:inline-block">Retrying with Groq…</span>';
+    await new Promise(r => setTimeout(r, 3000));
+    artResult = await callAI(artPrompt, false, 'groq');
+  }
+  if (artResult.error) {
+    document.getElementById('aiModalContent').innerHTML='<span style="animation:pulse 1s infinite;display:inline-block">Retrying with Claude…</span>';
+    await new Promise(r => setTimeout(r, 3000));
+    artResult = await callAI(artPrompt, false, 'claude');
+  }
   allAttempts.push(...(artResult.attemptsDetail||[]));
   if (artResult.error) {
     closeAIModal();
