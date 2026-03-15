@@ -682,15 +682,15 @@ window.autoFillImagePrompt = () => {
 
 // ── Build Pollinations URL ──────────────────────
 function buildPollinationsUrl(prompt, style, negative, seed) {
-  const fullPrompt  = `${prompt}, ${style}, high resolution, professional quality`;
-  const encoded     = encodeURIComponent(fullPrompt);
-  const negEncoded  = encodeURIComponent(negative || 'blurry, watermark, text, low quality');
-  const url = `https://image.pollinations.ai/prompt/${encoded}`
+  // Keep URL minimal — only params Pollinations actually supports
+  const fullPrompt = `${prompt}, ${style}, high resolution, professional quality`;
+  const encoded    = encodeURIComponent(fullPrompt);
+  return `https://image.pollinations.ai/prompt/${encoded}`
     + `?width=${imgSelectedW}&height=${imgSelectedH}`
     + `&seed=${seed}`
-    + `&negative_prompt=${negEncoded}`
-    + `&nologo=true&enhance=true&model=flux`;
-  return url;
+    + `&nologo=true`
+    + `&model=flux`;
+  // NOTE: negative_prompt and enhance=true are NOT supported — removed
 }
 
 // ── Generate Images ─────────────────────────────
@@ -726,7 +726,7 @@ window.generateImages = async () => {
         <div class="img-loading" id="imgLoading${i}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(136,150,179,0.4)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
         </div>
-        <img id="imgEl${i}" loading="lazy" src="" alt="Generated image ${i+1}" style="display:none;width:100%;height:120px;object-fit:cover" />
+        <img id="imgEl${i}" src="" alt="Generated image ${i+1}" style="display:none;width:100%;height:120px;object-fit:cover" />
         <div class="img-overlay">
           <button class="img-overlay-btn" onclick="openImgModal(${i})">🔍 Preview</button>
           <button class="img-overlay-btn secondary" onclick="insertImage(${i})">↓ Insert</button>
@@ -741,11 +741,16 @@ window.generateImages = async () => {
     generatedImages[i] = url;
 
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    // NOTE: do NOT set crossOrigin here — Pollinations doesn't send CORS headers
+    // and setting crossOrigin causes immediate onerror on all images
 
     // Retry at 15s, give up at 40s — prevents infinite shimmer
     const retryTimer = setTimeout(() => {
-      if (!img.complete) img.src = url + '&retry=' + Date.now();
+      if (!img.complete) {
+        const retryUrl = url + '&retry=' + Date.now();
+        generatedImages[i] = retryUrl; // update stored URL to retry URL
+        img.src = retryUrl;
+      }
     }, 15000);
 
     const giveUpTimer = setTimeout(() => {
@@ -1522,7 +1527,7 @@ window.autoPlaceImages = async () => {
     // Load image with proper timeout handling
     const imgUrl = await new Promise((resolve) => {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
+      // NOTE: no crossOrigin — Pollinations doesn't support CORS headers
 
       const retryTimer = setTimeout(() => {
         if (!img.complete) img.src = url + '&retry=' + Date.now();
