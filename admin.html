@@ -1241,64 +1241,68 @@
  
     if (!prompt) { showToast('Please enter a topic or prompt.', 'error'); return; }
  
-    // Show loading state
     document.getElementById('btnAI').disabled          = true;
     document.getElementById('aiBtnText').style.display = 'none';
-    document.getElementById('aiSpinner').style.display  = 'inline-block';
+    document.getElementById('aiSpinner').style.display = 'inline-block';
     document.getElementById('aiStatus').textContent    = 'Generating your article…';
     document.getElementById('aiModal').style.display   = 'flex';
  
+    const resetBtn = () => {
+      document.getElementById('btnAI').disabled          = false;
+      document.getElementById('aiBtnText').style.display = 'inline';
+      document.getElementById('aiSpinner').style.display = 'none';
+      document.getElementById('aiModal').style.display   = 'none';
+    };
+ 
+    const showErr = (msg) => {
+      document.getElementById('aiStatus').textContent = '✕ ' + msg;
+      showToast('AI Error: ' + msg, 'error');
+      resetBtn();
+    };
+ 
+    let response, data;
+ 
     try {
-      // Call Cloudflare Worker proxy (free, no billing needed)
-      const response = await fetch(
-        'https://blogspro-ai.abhishek-dutta1996.workers.dev',
-        {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, tone, category, title })
-        }
-      );
- 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || err.message || `HTTP ${response.status}: ${response.statusText}`);
-      }
- 
-      const data = await response.json();
- 
-      if (data.error) {
-        throw new Error(typeof data.error === 'object'
-          ? (data.error.message || JSON.stringify(data.error))
-          : data.error);
-      }
- 
-      const html = data.content?.[0]?.text || '';
-      if (!html) throw new Error('No content returned from AI.');
- 
-      // Inject into editor
-      document.getElementById('editor').innerHTML = html;
-      updateWordCount();
- 
-      // Auto-fill title if empty
-      if (!title && prompt.length < 80) {
-        document.getElementById('postTitle').value = prompt;
-        document.getElementById('postSlug').value  = slugify(prompt);
-      }
- 
-      document.getElementById('aiStatus').textContent  = '✓ Article generated! Review and edit before publishing.';
-      document.getElementById('aiModal').style.display = 'none';
-      showToast('AI article generated!', 'success');
- 
-    } catch(err) {
-      console.error('AI error:', err);
-      document.getElementById('aiStatus').textContent  = '✕ ' + (err.message || 'Generation failed.');
-      document.getElementById('aiModal').style.display = 'none';
-      showToast('AI generation failed: ' + err.message, 'error');
+      response = await fetch('https://blogspro-ai.abhishek-dutta1996.workers.dev', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ prompt, tone, category, title })
+      });
+    } catch(e) {
+      showErr('Network error: ' + e.message); return;
     }
  
-    document.getElementById('btnAI').disabled          = false;
-    document.getElementById('aiBtnText').style.display = 'inline';
-    document.getElementById('aiSpinner').style.display  = 'none';
+    try {
+      data = await response.json();
+    } catch(e) {
+      showErr('Invalid response from server (HTTP ' + response.status + ')'); return;
+    }
+ 
+    if (data.error) {
+      const errMsg = typeof data.error === 'object'
+        ? (data.error.message || data.error.type || JSON.stringify(data.error))
+        : String(data.error);
+      showErr(errMsg); return;
+    }
+ 
+    if (!response.ok) {
+      showErr('HTTP ' + response.status + ': ' + response.statusText); return;
+    }
+ 
+    const html = data.content && data.content[0] && data.content[0].text;
+    if (!html) { showErr('No content returned from AI.'); return; }
+ 
+    document.getElementById('editor').innerHTML = html;
+    updateWordCount();
+ 
+    if (!title && prompt.length < 80) {
+      document.getElementById('postTitle').value = prompt;
+      document.getElementById('postSlug').value  = slugify(prompt);
+    }
+ 
+    document.getElementById('aiStatus').textContent = '✓ Article generated! Review and edit before publishing.';
+    resetBtn();
+    showToast('AI article generated!', 'success');
   };
  
   // Close modal on click outside
