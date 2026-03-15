@@ -246,6 +246,9 @@
   </button>
 
   <div class="error-msg" id="errorMsg"></div>
+  <p style="text-align:center;margin-top:1.2rem;font-size:0.85rem;color:var(--muted)">
+    Don't have an account? <a href="register.html" style="color:var(--gold)">Register →</a>
+  </p>
   <a class="back-link" href="index.html">← Back to blog</a>
 </div>
 
@@ -258,6 +261,7 @@
     GoogleAuthProvider,
     GithubAuthProvider
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   // ── Replace with your config ──────────────────
   const firebaseConfig = {
@@ -274,29 +278,37 @@
 
   const app    = initializeApp(firebaseConfig);
   const auth   = getAuth(app);
+  const db     = getFirestore(app);
   const google = new GoogleAuthProvider();
   const github = new GithubAuthProvider();
 
-  // If already logged in, only allow the real admin through
-  onAuthStateChanged(auth, async user => {
-    if (user && user.uid === ADMIN_UID) {
-      window.location.href = 'admin.html';
-    } else if (user && user.uid !== ADMIN_UID) {
-      // Someone else is logged in — sign them out silently
-      const { signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-      await signOut(auth);
-    }
+  // If already logged in, redirect appropriately
+  onAuthStateChanged(auth, user => {
+    if (user) redirectUser(user);
   });
 
-  async function checkAndRedirect(user, provider) {
+  function redirectUser(user) {
     if (user.uid === ADMIN_UID) {
       window.location.href = 'admin.html';
     } else {
-      // Not the admin — sign them out immediately
-      const { signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-      await signOut(auth);
-      showError('Access denied. This blog has a single admin.');
-      setLoading(provider, false);
+      window.location.href = 'account.html';
+    }
+  }
+
+  async function ensureUserDoc(user) {
+    const { doc, getDoc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const ref  = doc(db, 'users', user.uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, {
+        uid:       user.uid,
+        name:      user.displayName || '',
+        email:     user.email || '',
+        bio:       '',
+        photoURL:  user.photoURL || '',
+        role:      'reader',
+        createdAt: serverTimestamp()
+      });
     }
   }
 
@@ -304,7 +316,8 @@
     setLoading('google', true); hideError();
     try {
       const result = await signInWithPopup(auth, google);
-      await checkAndRedirect(result.user, 'google');
+      await ensureUserDoc(result.user);
+      redirectUser(result.user);
     } catch(e) {
       showError(friendlyError(e.code));
       setLoading('google', false);
@@ -315,7 +328,8 @@
     setLoading('github', true); hideError();
     try {
       const result = await signInWithPopup(auth, github);
-      await checkAndRedirect(result.user, 'github');
+      await ensureUserDoc(result.user);
+      redirectUser(result.user);
     } catch(e) {
       showError(friendlyError(e.code));
       setLoading('github', false);
@@ -329,7 +343,8 @@
     setLoading('email', true); hideError();
     try {
       const result = await signInWithEmailAndPassword(auth, email, pass);
-      await checkAndRedirect(result.user, 'email');
+      await ensureUserDoc(result.user);
+      redirectUser(result.user);
     } catch(e) {
       showError(friendlyError(e.code));
       setLoading('email', false);
