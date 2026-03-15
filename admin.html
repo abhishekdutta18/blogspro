@@ -505,14 +505,17 @@
           <!-- Single model selector for all tasks -->
           <div style="background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.8rem;margin-bottom:0.8rem">
             <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem">AI Model — used for all tasks</div>
-            <select class="form-select" id="modelArticle" style="font-size:0.85rem">
+            <select class="form-select" id="modelArticle" style="font-size:0.85rem" onchange="document.getElementById('modelWarning').style.display=this.value==='openrouter'?'block':'none'">
+              <option value="auto" selected>Auto — Best Available (Recommended)</option>
               <option value="groq">Groq Llama 3 — Fast & Free</option>
               <option value="deepseek">DeepSeek V3 — 685B Free</option>
-              <option value="openrouter">OpenRouter Mistral — Free</option>
               <option value="claude">Claude Sonnet — Best Quality</option>
-              <option value="auto">Auto (best available)</option>
+              <option value="openrouter" style="color:#fca5a5">⚠ OpenRouter — Unreliable (endpoints down)</option>
             </select>
-            <p style="font-size:0.68rem;color:var(--muted);margin-top:0.4rem">Same model handles article, metadata, and image prompts. Auto-fallback enabled if it fails.</p>
+            <div id="modelWarning" style="display:none;margin-top:0.5rem;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:3px;padding:0.45rem 0.6rem;font-size:0.68rem;color:#fca5a5;line-height:1.5">
+              ⚠ OpenRouter's free Mistral endpoint is currently down. Use <strong>Auto</strong> or <strong>Groq</strong> instead. To fix permanently, update your Cloudflare Worker to use <code style="background:rgba(0,0,0,0.3);padding:0.1rem 0.3rem;border-radius:2px">meta-llama/llama-3.1-8b-instruct:free</code> as the OpenRouter model.
+            </div>
+            <p style="font-size:0.68rem;color:var(--muted);margin-top:0.4rem">Auto tries Claude → DeepSeek → Groq in order. Fallback enabled if primary fails.</p>
           </div>
 
           <button onclick="generateAIPost()" id="btnAI" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.9rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem">
@@ -611,6 +614,14 @@ const firebaseConfig = {
 };
 
 const WORKER_URL  = "https://blogspro-ai.abhishek-dutta1996.workers.dev";
+// ── CLOUDFLARE WORKER FIX ──────────────────────
+// OpenRouter's mistralai/mistral-7b-instruct:free is deprecated.
+// In your worker, replace the OpenRouter model with a working free model:
+//   "meta-llama/llama-3.1-8b-instruct:free"   ← most reliable
+//   "google/gemma-3-27b-it:free"               ← high quality
+//   "qwen/qwen-2.5-72b-instruct:free"          ← good alternative
+// Update the `openRouterModel` const in your worker.js to fix this.
+// ──────────────────────────────────────────────
 
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -784,10 +795,15 @@ window.generateImages = async () => {
 
   if (loaded > 0) {
     status.textContent = `✓ ${loaded} image${loaded>1?'s':''} generated${failed?' ('+failed+' failed)':''}. Click to insert.`;
-    showToast(`${loaded} image${loaded>1?'s':''} ready!`, 'success');
+    showToast(`${loaded} image${loaded>1?'s':''} ready — click to insert!`, 'success');
+    // Update the result row in the AI completion box if present
+    const row = document.getElementById('imgGenResultRow');
+    if (row) row.innerHTML = `<span style="color:var(--green);flex-shrink:0;font-weight:700">✓</span><span style="color:var(--cream)">Cover image${loaded>1?'s':''} ready (${loaded})</span><span style="display:inline-block;margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:var(--blue2);padding:0.1rem 0.4rem;border-radius:2px">🖼 Pollinations</span>`;
   } else {
     status.textContent = '✕ All images failed. Try a simpler prompt or check your connection.';
     showToast('Image generation failed. Try again.', 'error');
+    const row = document.getElementById('imgGenResultRow');
+    if (row) row.innerHTML = `<span style="color:#fca5a5;flex-shrink:0;font-weight:700">✕</span><span style="color:var(--muted)">Cover image failed — try manually below</span>`;
   }
 };
 
@@ -1192,7 +1208,11 @@ async function callAI(prompt, silent = false, forceModel = 'auto') {
     res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, tone, category, forceModel })
+      body: JSON.stringify({
+        prompt, tone, category, forceModel,
+        // Hint for worker: swap away from broken mistral free endpoint
+        openrouter_model: 'meta-llama/llama-3.1-8b-instruct:free'
+      })
     });
   } catch(e) {
     return { error: 'Network error: ' + e.message };
@@ -1354,7 +1374,8 @@ Start directly with article content. No JSON, no metadata.`, false, modelArticle
   closeAIModal();
 
   // Show result box
-  document.getElementById('aiResultList').innerHTML = results.map(r=>`<div style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem"><span style="color:${r.ok?'var(--green)':'var(--muted)'};flex-shrink:0;font-weight:700">${r.icon}</span><div><span style="color:${r.ok?'var(--cream)':'var(--muted)'}">${r.label}</span>${r.model?`<span style="display:inline-block;margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.1rem 0.4rem;border-radius:2px">⚡${r.model}</span>`:''}${r.extra?`<span style="color:#fca5a5;font-size:0.7rem;display:block;margin-top:0.1rem">${r.extra}</span>`:''}</div></div>`).join('');
+  document.getElementById('aiResultList').innerHTML = results.map(r=>`<div style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem"><span style="color:${r.ok?'var(--green)':'var(--muted)'};flex-shrink:0;font-weight:700">${r.icon}</span><div><span style="color:${r.ok?'var(--cream)':'var(--muted)'}">${r.label}</span>${r.model?`<span style="display:inline-block;margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.1rem 0.4rem;border-radius:2px">⚡${r.model}</span>`:''}${r.extra?`<span style="color:#fca5a5;font-size:0.7rem;display:block;margin-top:0.1rem">${r.extra}</span>`:''}</div></div>`).join('')
+    + `<div id="imgGenResultRow" style="display:flex;align-items:center;gap:0.5rem;font-size:0.78rem"><span style="color:var(--blue2);flex-shrink:0;font-weight:700;animation:pulse 1s infinite">⏳</span><span style="color:var(--muted)">Cover image — generating below…</span></div>`;
 
   const hadFallbacks = allAttempts.some(a=>!a.success);
   if (hadFallbacks) {
@@ -1365,16 +1386,29 @@ Start directly with article content. No JSON, no metadata.`, false, modelArticle
   document.getElementById('aiResultBox').style.display = 'block';
   const total = results.filter(r=>r.ok).length;
   document.getElementById('aiStatus').textContent = `✓ Complete — ${total}/${results.length} tasks done.`;
-  showToast(`Done! ${total}/${results.length} tasks completed.`, 'success');
+  showToast(`Done! Article written. Generating cover image…`, 'success');
 
-  // Auto-fill image prompt AND auto-generate cover image
-  if (!document.getElementById('imgPrompt').value.trim()) {
-    const autoPrompt = `Professional fintech editorial cover image for: "${topic}", futuristic dark dashboard, glowing data visualizations, corporate style`;
-    document.getElementById('imgPrompt').value = autoPrompt;
-    // Auto-trigger generation after a short delay so user sees it happening
-    showToast('Auto-generating cover image…', 'success');
-    setTimeout(() => generateImages(), 600);
-  }
+  // Always auto-generate a cover image after article is written
+  const imgPanel = document.getElementById('imgGenPanel');
+  // Build/overwrite the prompt with article-specific content
+  const autoPrompt = `Professional fintech editorial cover image for: "${topic}", futuristic dark UI, glowing data visualizations, corporate style, no text in image`;
+  document.getElementById('imgPrompt').value = autoPrompt;
+
+  // Highlight the image panel to draw attention
+  imgPanel.style.transition = 'border-color 0.3s, box-shadow 0.3s';
+  imgPanel.style.borderColor = 'rgba(59,130,246,0.8)';
+  imgPanel.style.boxShadow   = '0 0 16px rgba(59,130,246,0.25)';
+  setTimeout(() => {
+    imgPanel.style.borderColor = 'rgba(59,130,246,0.35)';
+    imgPanel.style.boxShadow   = 'none';
+  }, 2500);
+
+  // Scroll to image panel so user can see generation happening
+  setTimeout(() => {
+    imgPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Then auto-generate after scroll settles
+    setTimeout(() => generateImages(), 500);
+  }, 400);
 };
 
 window.cancelOutline = () => {
