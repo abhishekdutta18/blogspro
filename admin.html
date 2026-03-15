@@ -363,6 +363,11 @@
                 <span style="color:var(--muted)">Citations included</span>
               </div>
             </div>
+            <!-- Fallback log — shows why models were skipped -->
+            <div id="aiFallbackLog" style="display:none;padding:0.6rem 0.8rem;border-top:1px solid var(--border)">
+              <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem">Model Attempts</div>
+              <div id="aiFallbackList" style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.72rem"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -742,7 +747,6 @@ window.onModelChange = () => {
 };
 
 async function callAI(prompt) {
-  const model    = document.getElementById('aiModel').value;
   const tone     = document.getElementById('aiTone').value;
   const category = document.getElementById('postCategory').value;
 
@@ -761,22 +765,29 @@ async function callAI(prompt) {
   catch(e) { return { error: 'Invalid response (HTTP ' + res.status + ')' }; }
 
   if (data.error) {
-    return { error: typeof data.error === 'object'
-      ? (data.error.message || JSON.stringify(data.error))
-      : String(data.error) };
+    return {
+      error: typeof data.error === 'object'
+        ? (data.error.message || JSON.stringify(data.error))
+        : String(data.error),
+      attempts: data.attempts_detail || []
+    };
   }
 
   const text = data.text || '';
   if (!text) return { error: 'No content returned from AI.' };
 
-  // Show which model was used (especially if fallback triggered)
-  const modelNames = { claude:'Claude', groq:'Groq Llama 3', gemini:'Google Gemini' };
-  const usedName   = modelNames[data.model_used] || data.model_used || model;
+  // Show fallback toast if a different model was used
+  const modelLabels = { claude:'Claude', groq:'Groq', deepseek:'DeepSeek V3', openrouter:'OpenRouter Qwen3' };
   if (data.fallback_used) {
-    showToast(`${modelNames[model]} unavailable — switched to ${usedName} automatically.`, 'success');
+    showToast(`Switched to ${modelLabels[data.model_used]||data.model_used} automatically.`, 'success');
   }
 
-  return { text, modelUsed: data.model_used };
+  return {
+    text,
+    modelUsed:      data.model_used,
+    fallbackUsed:   data.fallback_used,
+    attemptsDetail: data.attempts_detail || []
+  };
 }
 
 window.generateAIPost = async () => {
@@ -960,6 +971,30 @@ PART 2: After ---METADATA--- write ONLY this JSON (no extra text):
   setCheck('aiCheckTags',      !!checks.tags);
   setCheck('aiCheckMeta',      !!checks.meta);
   setCheck('aiCheckCitations', !!checks.citations);
+
+  // Show fallback log — why models were skipped
+  const attempts = artResult.attemptsDetail || [];
+  const logEl    = document.getElementById('aiFallbackLog');
+  const listEl   = document.getElementById('aiFallbackList');
+
+  if (attempts.length > 0) {
+    logEl.style.display = 'block';
+    listEl.innerHTML = attempts.map(a => {
+      const icon    = a.success ? '✓' : '✕';
+      const color   = a.success ? 'var(--green)' : '#fca5a5';
+      const reason  = a.success ? 'Used — generated successfully' : (a.reason || 'Failed');
+      return `<div style="display:flex;gap:0.5rem;align-items:flex-start">
+        <span style="color:${color};flex-shrink:0;font-weight:700">${icon}</span>
+        <span><strong style="color:${a.success?'var(--cream)':'var(--muted)'}">${modelLabels[a.model]||a.model}</strong>
+        <span style="color:var(--muted)"> — ${reason}</span></span>
+      </div>`;
+    }).join('');
+  } else if (artResult.fallbackUsed) {
+    logEl.style.display = 'block';
+    listEl.innerHTML = `<div style="color:var(--muted)">Fallback triggered — primary model failed, switched to ${modelLabels[usedModel]||usedModel}.</div>`;
+  } else {
+    logEl.style.display = 'none';
+  }
 
   document.getElementById('aiResultBox').style.display = 'block';
   const filled = Object.values(checks).filter(Boolean).length;
