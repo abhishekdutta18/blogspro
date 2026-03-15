@@ -483,6 +483,10 @@
     <div class="nav-item" onclick="showView('editor'); clearEditor()">
       <span class="nav-icon">✎</span> New Post
     </div>
+    <p class="nav-label" style="margin-top:1.5rem">People</p>
+    <div class="nav-item" onclick="showView('users')">
+      <span class="nav-icon">👥</span> Users
+    </div>
     <p class="nav-label" style="margin-top:1.5rem">Site</p>
     <div class="nav-item" onclick="window.open('index.html','_blank')">
       <span class="nav-icon">↗</span> View Blog
@@ -663,6 +667,33 @@
     </div>
   </div>
 
+  <!-- USERS -->
+  <div class="view" id="view-users">
+    <div class="page-header">
+      <div>
+        <h2>Users</h2>
+        <p>Manage all registered accounts</p>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Joined</th>
+            <th>Change Role</th>
+          </tr>
+        </thead>
+        <tbody id="usersTableBody">
+          <tr><td colspan="5"><div class="table-empty">Loading…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </main>
 
 <!-- TOAST -->
@@ -693,7 +724,7 @@
   const auth = getAuth(app);
   const db   = getFirestore(app);
 
-  const ADMIN_UID = "FTJpMyRkNUQTXVDiUMC1hNchfSA3";
+  const ADMIN_UID = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
 
   let currentUser   = null;
   let editingPostId = null;
@@ -725,6 +756,7 @@
       if (i.textContent.trim().toLowerCase().includes(name)) i.classList.add('active');
     });
     if (name === 'posts') renderPostsTable(allPosts, 'allPostsBody');
+    if (name === 'users') loadUsers();
   };
 
   // ── Load data ──────────────────────────────────
@@ -753,6 +785,51 @@
       showToast('Failed to load posts.', 'error');
     }
   }
+
+  async function loadUsers() {
+    const tbody = document.getElementById('usersTableBody');
+    try {
+      const snap = await getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc')));
+      if (snap.empty) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="table-empty">No users yet.</div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = snap.docs.map(d => {
+        const u    = d.data();
+        const date = u.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '—';
+        const roleColors = { reader:'color:#8896b3', editor:'color:#93c5fd', coauthor:'color:#c9a84c', admin:'color:#f0cc6e' };
+        const roleLabels = { reader:'Reader', editor:'Editor', coauthor:'Co-Author', admin:'Admin' };
+        const style = roleColors[u.role] || 'color:#8896b3';
+        const label = roleLabels[u.role] || u.role || 'Reader';
+        return `<tr>
+          <td>
+            <strong>${u.name || '—'}</strong>
+          </td>
+          <td style="color:var(--muted);font-size:0.85rem">${u.email || '—'}</td>
+          <td><span style="font-size:0.75rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;${style}">${label}</span></td>
+          <td style="color:var(--muted);font-size:0.83rem;white-space:nowrap">${date}</td>
+          <td>
+            <select onchange="changeUserRole('${d.id}', this.value)"
+              style="background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.3rem 0.5rem;border-radius:2px;font-family:var(--sans);font-size:0.78rem;cursor:pointer;outline:none">
+              <option value="reader"   ${u.role==='reader'   ?'selected':''}>Reader</option>
+              <option value="editor"   ${u.role==='editor'   ?'selected':''}>Editor</option>
+              <option value="coauthor" ${u.role==='coauthor' ?'selected':''}>Co-Author</option>
+            </select>
+          </td>
+        </tr>`;
+      }).join('');
+    } catch(err) {
+      console.error(err);
+      tbody.innerHTML = `<tr><td colspan="5"><div class="table-empty">Failed to load users.</div></td></tr>`;
+    }
+  }
+
+  window.changeUserRole = async (uid, role) => {
+    try {
+      await updateDoc(doc(db, 'users', uid), { role });
+      showToast(`Role updated to ${role}.`, 'success');
+    } catch(e) { showToast('Failed to update role.', 'error'); }
+  };
 
   function renderPostsTable(posts, tbodyId) {
     const tbody = document.getElementById(tbodyId);
