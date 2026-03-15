@@ -6,11 +6,18 @@ import { sanitize, showToast, slugify, stripTags } from './config.js';
 import { state }         from './state.js';
 import { buildInternalLinks } from './ai-editor.js';
 import { uploadToStorage, blobUrlToFile } from './images-upload.js';
-import { formatViews }   from './views.js';
 import {
   collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc,
   query, orderBy, limit, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Pure formatting — no Firebase import needed
+function formatViews(n) {
+  if (!n) return '0';
+  if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
+  if (n >= 1000)    return (n/1000).toFixed(1).replace(/\.0$/,'') + 'k';
+  return String(n);
+}
 
 export async function loadAll() {
   ['statTotal','statPublished','statDrafts','statSubs'].forEach(id => {

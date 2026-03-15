@@ -21,7 +21,6 @@ import { initDrawer } from './ai-drawer.js';
 
 // Feature modules — imported for side-effects (they register window.* handlers)
 import './posts.js';
-import './views.js';
 import './ai-writer.js';
 import './ai-editor.js';
 import './ai-images.js';
