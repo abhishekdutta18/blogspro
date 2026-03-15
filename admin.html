@@ -417,20 +417,20 @@
           <h3>🖼 AI Image Generator</h3>
           <p class="panel-sub">Generate images via Cloudflare AI, Hugging Face, or Together AI — all free. Click any image to insert into your article.</p>
 
-          <!-- Provider selector -->
-          <div class="form-row">
-            <label class="form-label">Image Provider</label>
-            <select class="form-select" id="imgProvider" style="font-size:0.82rem">
-              <option value="auto">Auto — Best Available (Recommended)</option>
-              <option value="cloudflare">Cloudflare Workers AI — Flux Schnell (fastest, 100% free)</option>
-              <option value="huggingface">Hugging Face — Flux Schnell (free account token)</option>
+          <!-- Provider selector — styled to match AI model selector -->
+          <div style="background:var(--navy);border:1px solid rgba(59,130,246,0.25);border-radius:3px;padding:0.8rem;margin-bottom:1rem">
+            <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--blue2);margin-bottom:0.6rem">🖼 Image Provider — used for all images</div>
+            <select class="form-select" id="imgProvider" style="font-size:0.85rem" onchange="onImgProviderChange(this.value)">
+              <option value="auto" selected>Auto — Best Available (Recommended)</option>
+              <option value="cloudflare">Cloudflare Workers AI — Flux Schnell (fastest)</option>
+              <option value="huggingface">Hugging Face — Flux Schnell (free token)</option>
               <option value="pollinations">Pollinations.ai — Flux (zero setup, no key)</option>
             </select>
-            <div style="font-size:0.65rem;color:var(--muted);margin-top:0.3rem;line-height:1.5">
-              All providers are 100% free. <strong style="color:var(--cream)">Cloudflare AI</strong> needs an AI binding in your image worker.
-              <strong style="color:var(--cream)">HuggingFace</strong> needs a free token at huggingface.co/settings/tokens.
-              <strong style="color:var(--cream)">Pollinations</strong> needs nothing — zero setup.
+            <!-- Per-provider info banners -->
+            <div id="imgProviderInfo" style="margin-top:0.5rem;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:3px;padding:0.45rem 0.6rem;font-size:0.68rem;color:var(--blue2);line-height:1.6">
+              ⚡ Auto tries Cloudflare AI → HuggingFace → Pollinations in order. First available wins.
             </div>
+            <p style="font-size:0.68rem;color:var(--muted);margin-top:0.4rem">All providers are 100% free. No credit card required.</p>
           </div>
 
           <!-- Prompt -->
@@ -665,6 +665,23 @@ let currentModalImgUrl = '';
 let generatedImages   = []; // store all generated URLs
 
 // Style selector
+// ── Image provider info banner ─────────────────
+window.onImgProviderChange = (val) => {
+  const el = document.getElementById('imgProviderInfo');
+  if (!el) return;
+  const info = {
+    auto:         { color: 'rgba(59,130,246,0.2)',  text: 'var(--blue2)',  msg: '⚡ Auto tries Cloudflare AI → HuggingFace → Pollinations in order. First available wins.' },
+    cloudflare:   { color: 'rgba(34,197,94,0.12)',  text: 'var(--green)',  msg: '✓ Cloudflare Workers AI — Flux Schnell. Needs <strong>AI binding</strong> in your image worker: Settings → Bindings → Add AI binding → name it "AI".' },
+    huggingface:  { color: 'rgba(201,168,76,0.12)', text: 'var(--gold)',   msg: '✓ Hugging Face — Flux Schnell. Needs <strong>HF_API_KEY</strong> secret. Get free token at <a href="https://huggingface.co/settings/tokens" target="_blank" style="color:var(--gold2)">huggingface.co/settings/tokens</a>.' },
+    pollinations: { color: 'rgba(136,150,179,0.12)','text': 'var(--muted)', msg: '✓ Pollinations.ai — Zero setup required. No key, no account. Works immediately as fallback.' },
+  };
+  const cfg = info[val] || info.auto;
+  el.style.background  = cfg.color;
+  el.style.border      = `1px solid ${cfg.color.replace('0.12','0.35').replace('0.2','0.4')}`;
+  el.style.color       = cfg.text;
+  el.innerHTML         = cfg.msg;
+};
+
 window.selectStyle = (btn) => {
   document.querySelectorAll('.img-style-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
@@ -706,25 +723,66 @@ window.autoFillImagePrompt = () => {
 async function fetchImageViaWorker(prompt, style, seed) {
   const provider = document.getElementById('imgProvider')?.value || 'auto';
 
-  const res = await fetch(IMAGE_WORKER_URL, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt, style, seed, provider,
-      width:  imgSelectedW,
-      height: imgSelectedH,
-    }),
-  });
+  // ── Try the dedicated image worker first ───────
+  try {
+    const controller = new AbortController();
+    const timeout    = setTimeout(() => controller.abort(), 60000); // 60s max
 
-  if (!res.ok) {
-    let errMsg = `Image worker: HTTP ${res.status}`;
+    const res = await fetch(IMAGE_WORKER_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal:  controller.signal,
+      body: JSON.stringify({
+        prompt, style, seed, provider,
+        width:  imgSelectedW,
+        height: imgSelectedH,
+      }),
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.size >= 500) return URL.createObjectURL(blob);
+      throw new Error('Response too small');
+    }
+
+    // Parse error from worker
+    let errMsg = `Worker HTTP ${res.status}`;
     try { const d = await res.json(); errMsg = d.error || errMsg; } catch(_) {}
     throw new Error(errMsg);
-  }
 
-  const blob = await res.blob();
-  if (blob.size < 500) throw new Error('Image response too small — provider failed');
-  return URL.createObjectURL(blob);
+  } catch (workerErr) {
+    const isTimeout = workerErr.name === 'AbortError';
+    const reason    = isTimeout ? 'Worker timed out' : workerErr.message;
+
+    // ── Fallback: direct Pollinations from browser ─
+    // Only used if worker is unavailable/timed out
+    console.warn(`Image worker failed (${reason}), trying direct Pollinations…`);
+
+    const encoded = encodeURIComponent(`${prompt}, ${style}, high resolution, no text, no watermark`);
+    const directUrl = `https://image.pollinations.ai/prompt/${encoded}` +
+      `?width=${Math.min(imgSelectedW,1024)}&height=${Math.min(imgSelectedH,1024)}&seed=${seed}&nologo=true&model=flux`;
+
+    // Load via <img> tag — avoids CORS since we don't need to read pixels
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const fallbackTimeout = setTimeout(() => {
+        img.src = '';
+        reject(new Error(`Timed out (worker: ${reason})`));
+      }, 45000);
+
+      img.onload = () => {
+        clearTimeout(fallbackTimeout);
+        // Can't create blob from tainted image, but src URL works for display
+        resolve(directUrl);
+      };
+      img.onerror = () => {
+        clearTimeout(fallbackTimeout);
+        reject(new Error(`Both worker and Pollinations failed (worker: ${reason})`));
+      };
+      img.src = directUrl;
+    });
+  }
 }
 
 // Kept as reference only
@@ -749,10 +807,30 @@ window.generateImages = async () => {
   btn.disabled           = true;
   btnTxt.textContent     = 'Generating…';
   spinner.style.display  = 'inline-block';
-  status.textContent     = `⏳ Generating ${imgSelectedCount} image${imgSelectedCount>1?'s':''}… this may take 15–30s`;
   banner.style.display   = 'none';
   grid.style.display     = 'grid';
   generatedImages        = [];
+
+  // ── Live elapsed timer ──────────────────────
+  const startTime = Date.now();
+  let   timerInterval;
+
+  function elapsedSec() {
+    return ((Date.now() - startTime) / 1000).toFixed(1);
+  }
+
+  function setStatus(msg) {
+    status.innerHTML = `${msg} <span style="color:var(--muted);font-size:0.65rem;margin-left:0.4rem">⏱ ${elapsedSec()}s</span>`;
+  }
+
+  // Tick every 100ms while generating
+  timerInterval = setInterval(() => {
+    // Only update the timer portion — don't overwrite the message
+    const timerEl = status.querySelector('span');
+    if (timerEl) timerEl.textContent = `⏱ ${elapsedSec()}s`;
+  }, 100);
+
+  setStatus(`⏳ Generating ${imgSelectedCount} image${imgSelectedCount>1?'s':''}…`);
 
   // Build skeleton cards
   grid.innerHTML = '';
@@ -777,16 +855,21 @@ window.generateImages = async () => {
 
   // Fetch images SEQUENTIALLY with a gap — parallel requests trigger 429 rate limit
   let loaded = 0, failed = 0;
+  const imgTimes = [];  // track per-image time
 
   for (let i = 0; i < seeds.length; i++) {
-    const seed = seeds[i];
+    const seed      = seeds[i];
+    const imgStart  = Date.now();
 
     // Small delay between requests (except first) to avoid rate limiting
     if (i > 0) await new Promise(r => setTimeout(r, 2500));
 
+    setStatus(`⏳ Generating image ${i+1} of ${imgSelectedCount}…`);
+
     try {
-      status.textContent = `⏳ Generating image ${i+1} of ${imgSelectedCount}…`;
       const blobUrl = await fetchImageViaWorker(prompt, imgSelectedStyle, seed);
+      const imgSec  = ((Date.now() - imgStart) / 1000).toFixed(1);
+      imgTimes.push(imgSec);
 
       generatedImages[i] = blobUrl;
 
@@ -797,9 +880,15 @@ window.generateImages = async () => {
         el.style.display = 'block';
         ld.style.display = 'none';
         document.getElementById(`imgCard${i}`).style.cursor = 'pointer';
+        // Show per-image time badge on the card
+        const card = document.getElementById(`imgCard${i}`);
+        const badge = document.createElement('div');
+        badge.style.cssText = 'position:absolute;bottom:5px;right:5px;background:rgba(8,13,26,0.75);color:var(--green);font-size:0.6rem;font-weight:700;padding:0.15rem 0.4rem;border-radius:2px;letter-spacing:0.05em;pointer-events:none';
+        badge.textContent = `${imgSec}s`;
+        card.appendChild(badge);
       }
       loaded++;
-      status.textContent = `✓ ${loaded}/${imgSelectedCount} image${imgSelectedCount>1?'s':''} ready`;
+      setStatus(`✓ ${loaded}/${imgSelectedCount} image${imgSelectedCount>1?'s':''} ready`);
 
     } catch (err) {
       const ld = document.getElementById(`imgLoading${i}`);
@@ -808,17 +897,21 @@ window.generateImages = async () => {
     }
   }
 
+  // Stop the timer
+  clearInterval(timerInterval);
+  const totalSec = ((Date.now() - startTime) / 1000).toFixed(1);
+
   btn.disabled          = false;
   btnTxt.textContent    = '🖼 Regenerate';
   spinner.style.display = 'none';
 
   if (loaded > 0) {
-    status.textContent = `✓ ${loaded} image${loaded>1?'s':''} ready${failed?` (${failed} failed)`:''} — click to insert.`;
-    showToast(`${loaded} image${loaded>1?'s':''} ready!`, 'success');
+    status.innerHTML = `✓ ${loaded} image${loaded>1?'s':''} ready${failed?` (${failed} failed)`:''} — click to insert. <span style="color:var(--muted);font-size:0.65rem;margin-left:0.3rem">⏱ ${totalSec}s total</span>`;
+    showToast(`${loaded} image${loaded>1?'s':''} ready in ${totalSec}s!`, 'success');
     const row = document.getElementById('imgGenResultRow');
-    if (row) row.innerHTML = `<span style="color:var(--green);flex-shrink:0;font-weight:700">✓</span><span style="color:var(--cream)">Cover image${loaded>1?'s':''} ready (${loaded})</span><span style="display:inline-block;margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:var(--blue2);padding:0.1rem 0.4rem;border-radius:2px">🖼 Pollinations</span>`;
+    if (row) row.innerHTML = `<span style="color:var(--green);flex-shrink:0;font-weight:700">✓</span><span style="color:var(--cream)">Cover image${loaded>1?'s':''} ready (${loaded})</span><span style="display:inline-block;margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:var(--blue2);padding:0.1rem 0.4rem;border-radius:2px">🖼 ${totalSec}s</span>`;
   } else {
-    status.textContent = '✕ All images failed. Check your worker is deployed and try again.';
+    status.innerHTML = `✕ All images failed. Check your worker is deployed and try again. <span style="color:var(--muted);font-size:0.65rem;margin-left:0.3rem">⏱ ${totalSec}s</span>`;
     showToast('Image generation failed.', 'error');
     const row = document.getElementById('imgGenResultRow');
     if (row) row.innerHTML = `<span style="color:#fca5a5;flex-shrink:0;font-weight:700">✕</span><span style="color:var(--muted)">Images failed — try manually</span>`;
@@ -1074,7 +1167,7 @@ window.clearEditor = () => {
   document.getElementById('aiResultBox').style.display   = 'none';
   // Reset image generator
   document.getElementById('imgPreviewGrid').style.display = 'none';
-  document.getElementById('imgGenStatus').textContent = '';
+  document.getElementById('imgGenStatus').innerHTML = '';
   document.getElementById('autoplaceBar').classList.remove('active');
   generatedImages      = [];
   autoPlaceCancelled   = false;
