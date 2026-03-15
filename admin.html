@@ -746,7 +746,7 @@ window.onModelChange = () => {
   if (status) status.style.display = model !== 'claude' ? 'block' : 'none';
 };
 
-async function callAI(prompt) {
+async function callAI(prompt, silent = false) {
   const tone     = document.getElementById('aiTone').value;
   const category = document.getElementById('postCategory').value;
 
@@ -776,10 +776,13 @@ async function callAI(prompt) {
   const text = data.text || '';
   if (!text) return { error: 'No content returned from AI.' };
 
-  // Show fallback toast if a different model was used
+  // Show fallback toast only during article generation (not outline)
   const modelLabels = { claude:'Claude', groq:'Groq', deepseek:'DeepSeek V3', openrouter:'OpenRouter Qwen3' };
-  if (data.fallback_used) {
-    showToast(`Switched to ${modelLabels[data.model_used]||data.model_used} automatically.`, 'success');
+  if (data.fallback_used && !silent) {
+    const primary = data.attempts_detail?.[0]?.model;
+    const from    = primary ? (modelLabels[primary] || primary) : 'Primary model';
+    const to      = modelLabels[data.model_used] || data.model_used;
+    showToast(`${from} unavailable — switched to ${to} automatically.`, 'success');
   }
 
   return {
@@ -812,7 +815,7 @@ Topic: "${topic}"
 Category: ${category}. Tone: ${tone}.
 Return ONLY plain text bullet points, no HTML, no extra explanation.`;
 
-  const outResult = await callAI(outlinePrompt);
+  const outResult = await callAI(outlinePrompt, true); // silent — no fallback toast for outline
 
   if (outResult.error) {
     closeAIModal();
