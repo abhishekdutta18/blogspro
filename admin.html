@@ -334,6 +334,36 @@
             <span id="aiSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite;display:none"></span>
           </button>
           <p id="aiStatus" style="font-size:0.72rem;color:var(--muted);margin-top:0.6rem;text-align:center;min-height:1rem"></p>
+
+          <!-- AI Result Info Box — shown after generation -->
+          <div id="aiResultBox" style="display:none;margin-top:0.8rem;background:var(--navy);border:1px solid var(--border);border-radius:3px;overflow:hidden">
+            <div style="padding:0.6rem 0.8rem;background:rgba(201,168,76,0.08);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold)">✦ AI Generation Result</span>
+              <span id="aiModelBadge" style="font-size:0.65rem;font-weight:700;background:var(--navy2);border:1px solid var(--border);color:var(--muted);padding:0.2rem 0.5rem;border-radius:2px"></span>
+            </div>
+            <div style="padding:0.75rem 0.8rem;display:flex;flex-direction:column;gap:0.4rem">
+              <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem">
+                <span id="aiCheckTitle" style="color:var(--muted)">○</span>
+                <span style="color:var(--muted)">Title auto-filled</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem">
+                <span id="aiCheckSummary" style="color:var(--muted)">○</span>
+                <span style="color:var(--muted)">Summary auto-filled</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem">
+                <span id="aiCheckTags" style="color:var(--muted)">○</span>
+                <span style="color:var(--muted)">SEO tags auto-filled</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem">
+                <span id="aiCheckMeta" style="color:var(--muted)">○</span>
+                <span style="color:var(--muted)">Meta description auto-filled</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem">
+                <span id="aiCheckCitations" style="color:var(--muted)">○</span>
+                <span style="color:var(--muted)">Citations included</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -797,19 +827,27 @@ window.confirmOutline = async () => {
   const category = document.getElementById('postCategory').value;
   const tone     = document.getElementById('aiTone').value;
 
-  document.getElementById('aiModalTitle').textContent   = '✦ Writing full article…';
-  document.getElementById('aiModalSub').textContent     = 'This takes 15–30 seconds.';
-  document.getElementById('aiModalContent').innerHTML   = '<span style="animation:pulse 1s infinite;display:inline-block">Writing…</span>';
+  document.getElementById('aiModalTitle').textContent     = '✦ Writing full article…';
+  document.getElementById('aiModalSub').textContent       = 'Auto-filling title, summary, tags, citations…';
+  document.getElementById('aiModalContent').innerHTML     = '<span style="animation:pulse 1s infinite;display:inline-block">Writing article and metadata…</span>';
   document.getElementById('aiModalActions').style.display = 'none';
+  document.getElementById('aiResultBox').style.display    = 'none';
 
-  const articlePrompt = `You are an expert fintech writer for BlogsPro.
-Write a professional, well-researched article about: "${topic}"
+  const articlePrompt = `You are an expert fintech writer for BlogsPro (blogspro.in).
+Write a complete, professional article about: "${topic}"
 Category: ${category}. Tone: ${tone}.
 Follow this outline:
 ${pendingOutline}
 
-Return ONLY clean HTML using ONLY these tags: <h2>, <h3>, <p>, <strong>, <em>, <ul>, <li>, <blockquote>.
-No markdown, no code blocks, no preamble. Start directly with article content. 600-900 words.`;
+Return a JSON object with EXACTLY these fields (no markdown, no code blocks, pure JSON only):
+{
+  "title": "compelling article title (max 70 chars)",
+  "summary": "engaging 2-sentence summary for homepage (max 160 chars)",
+  "metaDescription": "SEO meta description (max 155 chars)",
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+  "content": "full article HTML using only <h2><h3><p><strong><em><ul><li><blockquote> tags, 700-900 words",
+  "citations": ["Source 1: description", "Source 2: description", "Source 3: description"]
+}`;
 
   const artResult = await callAI(articlePrompt);
   closeAIModal();
@@ -820,17 +858,85 @@ No markdown, no code blocks, no preamble. Start directly with article content. 6
     return;
   }
 
-  document.getElementById('editor').innerHTML = artResult.text;
-  updateWordCount();
-
-  const title = document.getElementById('postTitle').value.trim();
-  if (!title && topic.length < 80) {
-    document.getElementById('postTitle').value = topic;
-    document.getElementById('postSlug').value  = slugify(topic);
+  // Parse JSON response
+  let parsed;
+  try {
+    // Strip any markdown code fences if present
+    const clean = artResult.text.replace(/```json|```/g, '').trim();
+    parsed = JSON.parse(clean);
+  } catch(e) {
+    // Fallback — AI didn't return JSON, insert raw text as content
+    document.getElementById('editor').innerHTML = artResult.text;
+    updateWordCount();
+    document.getElementById('aiStatus').textContent = '✓ Article generated (metadata auto-fill unavailable).';
+    showToast('Article generated!', 'success');
+    return;
   }
 
-  document.getElementById('aiStatus').textContent = '✓ Article generated! Review and edit before publishing.';
-  showToast('AI article ready!', 'success');
+  // ── Auto-fill all fields ──────────────────────
+  const checks = {};
+
+  // Title
+  if (parsed.title) {
+    document.getElementById('postTitle').value = parsed.title;
+    document.getElementById('postSlug').value  = slugify(parsed.title);
+    checks.title = true;
+  }
+
+  // Summary / Excerpt
+  if (parsed.summary) {
+    document.getElementById('postExcerpt').value = parsed.summary;
+    checks.summary = true;
+  }
+
+  // Meta description
+  if (parsed.metaDescription) {
+    document.getElementById('postMeta').value = parsed.metaDescription;
+    checks.meta = true;
+  }
+
+  // SEO Tags
+  if (parsed.tags && parsed.tags.length) {
+    document.getElementById('postTags').value = parsed.tags.join(', ');
+    checks.tags = true;
+  }
+
+  // Article content + citations appended
+  if (parsed.content) {
+    let fullContent = parsed.content;
+
+    // Append citations as a references section
+    if (parsed.citations && parsed.citations.length) {
+      fullContent += `<h2>References</h2><ul>${parsed.citations.map(c => `<li>${c}</li>`).join('')}</ul>`;
+      checks.citations = true;
+    }
+
+    document.getElementById('editor').innerHTML = fullContent;
+    updateWordCount();
+  }
+
+  // ── Show result info box ──────────────────────
+  const modelNames = { claude:'Claude', groq:'Groq', deepseek:'DeepSeek V3', openrouter:'OpenRouter', gemini:'Gemini' };
+  const usedModel  = artResult.modelUsed || 'AI';
+  document.getElementById('aiModelBadge').textContent = '⚡ ' + (modelNames[usedModel] || usedModel);
+  document.getElementById('aiModelBadge').style.color = usedModel === 'claude' ? 'var(--gold)' : 'var(--green)';
+
+  const setCheck = (id, ok) => {
+    const el = document.getElementById(id);
+    el.textContent = ok ? '✓' : '○';
+    el.style.color  = ok ? 'var(--green)' : 'var(--muted)';
+    el.parentElement.querySelector('span:last-child').style.color = ok ? 'var(--cream)' : 'var(--muted)';
+  };
+
+  setCheck('aiCheckTitle',     !!checks.title);
+  setCheck('aiCheckSummary',   !!checks.summary);
+  setCheck('aiCheckTags',      !!checks.tags);
+  setCheck('aiCheckMeta',      !!checks.meta);
+  setCheck('aiCheckCitations', !!checks.citations);
+
+  document.getElementById('aiResultBox').style.display = 'block';
+  document.getElementById('aiStatus').textContent = '✓ Article generated with all metadata!';
+  showToast('Article + all fields auto-filled!', 'success');
 };
 
 window.cancelOutline = () => {
