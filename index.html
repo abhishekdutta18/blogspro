@@ -202,6 +202,7 @@
     .post-meta { display: flex; align-items: center; justify-content: space-between; padding-top: 1.2rem; border-top: 1px solid var(--border); }
     .post-date { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.04em; }
     .post-read-time { font-size: 0.72rem; color: var(--gold); letter-spacing: 0.06em; }
+    .post-views { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 0.25rem; }
 
     /* ── FEATURED ── */
     .post-card.featured { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; padding: 3rem; }
@@ -388,6 +389,10 @@
     <div class="stat-item">
       <div class="stat-value">3</div>
       <div class="stat-label">Topics</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="totalViewCount">—</div>
+      <div class="stat-label">Total Views</div>
     </div>
   </div>
 </div>
@@ -600,6 +605,9 @@
           return bT - aT;
         });
       document.getElementById('postCount').textContent = allPosts.length;
+      const totalViews = allPosts.reduce((sum, p) => sum + (p.views || 0), 0);
+      const tvEl = document.getElementById('totalViewCount');
+      if (tvEl) tvEl.textContent = fmtViews(totalViews);
       renderPosts(allPosts);
     } catch(err) {
       console.error('Error loading posts:', err.code, err.message);
@@ -629,7 +637,10 @@
               <p class="post-excerpt">${p.excerpt || ''}</p>
               <div class="post-meta">
                 <span class="post-date">${date}</span>
-                <span class="post-read-time">${readTime} min read</span>
+                <div style="display:flex;align-items:center;gap:0.75rem">
+                  <span class="post-read-time">${readTime} min read</span>
+                  <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
+                </div>
               </div>
             </div>
             ${visual}
@@ -642,7 +653,10 @@
           <p class="post-excerpt">${p.excerpt || ''}</p>
           <div class="post-meta">
             <span class="post-date">${date}</span>
-            <span class="post-read-time">${readTime} min read</span>
+            <div style="display:flex;align-items:center;gap:0.75rem">
+              <span class="post-read-time">${readTime} min read</span>
+              <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
+            </div>
           </div>
         </div>`;
     }).join('');
@@ -656,7 +670,18 @@
       </div>`;
   }
 
-  window.openPost = (id) => { window.location.href = `post.html?id=${id}`; };
+  window.openPost = async (id) => {
+    // Increment view count (once per session per post)
+    const key = `bp_viewed_${id}`;
+    if (!sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, '1');
+      try {
+        const { updateDoc, increment: inc, doc: fsDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+        await updateDoc(fsDoc(db, 'posts', id), { views: inc(1) });
+      } catch(_) {}
+    }
+    window.location.href = `post.html?id=${id}`;
+  };
 
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -755,6 +780,14 @@
     }
     btn.disabled = false; btnText.style.display = 'inline'; spinner.style.display = 'none';
   };
+
+  // Format views: 1200 → "1.2k"
+  function fmtViews(n) {
+    if (!n) return '0';
+    if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
+    if (n >= 1000)    return (n/1000).toFixed(1).replace(/\.0$/,'') + 'k';
+    return String(n);
+  }
 
   loadPosts();
   loadAbout();
