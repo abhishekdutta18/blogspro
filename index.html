@@ -720,7 +720,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore, collection, query, orderBy, getDocs, addDoc
+    getFirestore, collection, getDocs, addDoc
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import {
     getAuth, onAuthStateChanged, signOut
@@ -818,21 +818,26 @@
  
   async function loadPosts() {
     try {
-      // Use simple orderBy only — no composite index needed
-      // Filter published posts in JS
-      const q = query(
-        collection(db, 'posts'),
-        orderBy('createdAt', 'desc')
-      );
-      const snap = await getDocs(q);
+      // Simplest possible query — no filters, no ordering
+      // Firestore rules just need allow list: if true
+      const snap = await getDocs(collection(db, 'posts'));
       allPosts = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter(p => p.published === true);
+        .filter(p => p.published === true)
+        .sort((a, b) => {
+          const aTime = a.createdAt?.toDate?.()?.getTime() || 0;
+          const bTime = b.createdAt?.toDate?.()?.getTime() || 0;
+          return bTime - aTime;
+        });
       document.getElementById('postCount').textContent = allPosts.length;
       renderPosts(allPosts);
     } catch(err) {
       console.error('Error loading posts:', err.code, err.message);
-      renderEmpty();
+      // Show error on page so we can debug
+      document.getElementById('postsGrid').innerHTML = `
+        <div style="grid-column:1/-1;padding:2rem;color:#fca5a5;font-size:0.9rem">
+          Error: ${err.code || err.message}. Check browser console for details.
+        </div>`;
     }
   }
  
