@@ -830,26 +830,30 @@
     const tbody = document.getElementById('usersTableBody');
     try {
       const snap = await getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc')));
-      if (snap.empty) {
-        tbody.innerHTML = `<tr><td colspan="5"><div class="table-empty">No users yet.</div></td></tr>`;
+ 
+      // Exclude the admin account from the users list
+      const users = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(u => u.uid !== ADMIN_UID);
+ 
+      if (!users.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="table-empty">No other users yet.</div></td></tr>`;
         return;
       }
-      tbody.innerHTML = snap.docs.map(d => {
-        const u    = d.data();
-        const date = u.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '—';
-        const roleColors = { reader:'color:#8896b3', editor:'color:#93c5fd', coauthor:'color:#c9a84c', admin:'color:#f0cc6e' };
-        const roleLabels = { reader:'Reader', editor:'Editor', coauthor:'Co-Author', admin:'Admin' };
-        const style = roleColors[u.role] || 'color:#8896b3';
-        const label = roleLabels[u.role] || u.role || 'Reader';
+ 
+      tbody.innerHTML = users.map(u => {
+        const date       = u.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '—';
+        const roleColors = { reader:'color:#8896b3', editor:'color:#93c5fd', coauthor:'color:#c9a84c' };
+        const roleLabels = { reader:'Reader', editor:'Editor', coauthor:'Co-Author' };
+        const style      = roleColors[u.role] || 'color:#8896b3';
+        const label      = roleLabels[u.role] || u.role || 'Reader';
         return `<tr>
-          <td>
-            <strong>${u.name || '—'}</strong>
-          </td>
+          <td><strong>${u.name || '—'}</strong></td>
           <td style="color:var(--muted);font-size:0.85rem">${u.email || '—'}</td>
           <td><span style="font-size:0.75rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;${style}">${label}</span></td>
           <td style="color:var(--muted);font-size:0.83rem;white-space:nowrap">${date}</td>
           <td>
-            <select onchange="changeUserRole('${d.id}', this.value)"
+            <select onchange="changeUserRole('${u.id}', this.value)"
               style="background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.3rem 0.5rem;border-radius:2px;font-family:var(--sans);font-size:0.78rem;cursor:pointer;outline:none">
               <option value="reader"   ${u.role==='reader'   ?'selected':''}>Reader</option>
               <option value="editor"   ${u.role==='editor'   ?'selected':''}>Editor</option>
