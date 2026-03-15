@@ -720,7 +720,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore, collection, query, orderBy, getDocs, where, addDoc
+    getFirestore, collection, query, orderBy, getDocs, addDoc
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import {
     getAuth, onAuthStateChanged, signOut
@@ -818,17 +818,20 @@
  
   async function loadPosts() {
     try {
+      // Use simple orderBy only — no composite index needed
+      // Filter published posts in JS
       const q = query(
         collection(db, 'posts'),
-        where('published', '==', true),
         orderBy('createdAt', 'desc')
       );
       const snap = await getDocs(q);
-      allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      allPosts = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(p => p.published === true);
       document.getElementById('postCount').textContent = allPosts.length;
       renderPosts(allPosts);
     } catch(err) {
-      console.error('Error loading posts:', err);
+      console.error('Error loading posts:', err.code, err.message);
       renderEmpty();
     }
   }
