@@ -1,1 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BlogsPro — Fintech | Compliance | Strategy</title>
+  <meta name="description" content="Sharp insights on fintech, regulatory compliance, and growth strategy." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+    :root {
+      --navy:    #080d1a;
+      --navy2:   #0f1628;
+      --navy3:   #1a2340;
+      --gold:    #c9a84c;
+      --gold2:   #f0cc6e;
+      --cream:   #f5f0e8;
+      --muted:   #8896b3;
+      --border:  rgba(201,168,76,0.2);
+      --serif:   'Cormorant Garamond', Georgia, serif;
+      --sans:    'DM Sans', sans-serif;
+    }
+ 
+    html { scroll-behavior: smooth; }
+ 
+    body {
+      background: var(--navy);
+      color: var(--cream);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+ 
+    a { color: inherit; text-decoration: none; }
+ 
+    /* ── NAV ───────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,13,26,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 68px;
+    }
+ 
+    .nav-brand {
+      font-family: var(--serif);
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+ 
+    .nav-links {
+      display: flex; align-items: center; gap: 2rem;
+      list-style: none;
+    }
+ 
+    .nav-links a {
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      transition: color 0.2s;
+    }
+ 
+    .nav-links a:hover { color: var(--gold); }
+ 
+    .nav-cta {
+      background: var(--gold);
+      color: var(--navy) !important;
+      padding: 0.45rem 1.1rem;
+      border-radius: 3px;
+      font-weight: 600 !important;
+      transition: background 0.2s !important;
+    }
+ 
+    .nav-cta:hover { background: var(--gold2) !important; }
+ 
+    /* Light mode */
+    body.light {
+      --navy:  #f8f5ef; --navy2: #ffffff; --navy3: #f0ece4;
+      --cream: #1a1a2e; --muted: #6b7a99;
+      --border: rgba(201,168,76,0.3);
+    }
+    body.light nav  { background: rgba(248,245,239,0.92); }
+    body.light .hero::before { opacity: 0.4; }
+ 
+    .theme-btn-nav {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      width: 32px; height: 32px; border-radius: 50%; font-size: 0.85rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+    }
+    .theme-btn-nav:hover { border-color: var(--gold); color: var(--gold); }
+ 
+    /* ── NAV USER CHIP ─────────────────────────────── */
+    .nav-user {
+      display: flex; align-items: center; gap: 0.6rem;
+      cursor: pointer; position: relative;
+    }
+    .nav-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold), var(--navy3));
+      border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.78rem; font-weight: 700; color: var(--navy);
+      overflow: hidden; flex-shrink: 0;
+    }
+    .nav-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .nav-user-name {
+      font-size: 0.85rem; font-weight: 500; color: var(--cream);
+      max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .nav-admin-tag {
+      background: var(--gold); color: var(--navy);
+      padding: 0.35rem 0.9rem; border-radius: 3px;
+      font-size: 0.78rem; font-weight: 700;
+      letter-spacing: 0.06em;
+      transition: background 0.2s;
+    }
+    .nav-admin-tag:hover { background: var(--gold2) !important; }
+ 
+    /* dropdown */
+    .nav-dropdown {
+      position: absolute; top: calc(100% + 0.6rem); right: 0;
+      background: var(--navy2); border: 1px solid var(--border);
+      min-width: 160px; z-index: 200;
+      display: none; flex-direction: column;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .nav-dropdown.open { display: flex; }
+    .nav-dropdown a, .nav-dropdown button {
+      padding: 0.7rem 1rem; font-size: 0.82rem; color: var(--muted);
+      background: transparent; border: none; text-align: left;
+      font-family: var(--sans); cursor: pointer; transition: all 0.15s;
+      border-bottom: 1px solid rgba(201,168,76,0.08);
+      text-decoration: none; display: block;
+    }
+    .nav-dropdown a:hover, .nav-dropdown button:hover {
+      color: var(--gold); background: rgba(201,168,76,0.05);
+    }
+    .nav-dropdown button { color: #fca5a5; }
+ 
+    /* ── HERO ──────────────────────────────────────── */
+    .hero {
+      min-height: 88vh;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 5rem 2rem 4rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+    }
+ 
+    .hero::before {
+      content: '';
+      position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(ellipse 60% 50% at 70% 40%, rgba(201,168,76,0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 60% at 20% 80%, rgba(37,99,235,0.06) 0%, transparent 60%);
+    }
+ 
+    .hero-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+ 
+    .hero-label::before {
+      content: '';
+      display: block;
+      width: 2rem; height: 1px;
+      background: var(--gold);
+    }
+ 
+    .hero h1 {
+      font-family: var(--serif);
+      font-size: clamp(3.2rem, 7vw, 6.5rem);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      max-width: 14ch;
+      margin-bottom: 1.8rem;
+    }
+ 
+    .hero h1 em {
+      font-style: italic;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+ 
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 48ch;
+      margin-bottom: 3rem;
+      line-height: 1.7;
+    }
+ 
+    .hero-actions {
+      display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+    }
+ 
+    .btn-primary {
+      background: var(--gold);
+      color: var(--navy);
+      padding: 0.85rem 2rem;
+      border-radius: 3px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      letter-spacing: 0.04em;
+      transition: all 0.2s;
+      border: none; cursor: pointer;
+    }
+ 
+    .btn-primary:hover {
+      background: var(--gold2);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(201,168,76,0.3);
+    }
+ 
+    .hero-scroll {
+      color: var(--muted);
+      font-size: 0.85rem;
+      display: flex; align-items: center; gap: 0.5rem;
+      transition: color 0.2s;
+    }
+ 
+    .hero-scroll:hover { color: var(--gold); }
+ 
+    .hero-stats {
+      position: absolute; bottom: 3rem; right: 0;
+      display: flex; gap: 3rem;
+    }
+ 
+    .stat-item { text-align: right; }
+ 
+    .stat-value {
+      font-family: var(--serif);
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--cream);
+      line-height: 1;
+    }
+ 
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 0.25rem;
+    }
+ 
+    /* ── TICKER ────────────────────────────────────── */
+    .ticker-bar {
+      background: var(--navy3);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+      padding: 0.7rem 0;
+    }
+ 
+    .ticker-inner {
+      display: flex; gap: 4rem;
+      animation: ticker 28s linear infinite;
+      white-space: nowrap;
+    }
+ 
+    .ticker-inner:hover { animation-play-state: paused; }
+ 
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+ 
+    .ticker-tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+ 
+    .ticker-sep { color: var(--muted); }
+ 
+    /* ── SECTION ───────────────────────────────────── */
+    section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
+ 
+    .section-header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-bottom: 3rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+ 
+    .section-title {
+      font-family: var(--serif);
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+ 
+    .section-link {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold);
+      display: flex; align-items: center; gap: 0.4rem;
+      transition: gap 0.2s;
+    }
+ 
+    .section-link:hover { gap: 0.7rem; }
+ 
+    /* ── FILTERS ───────────────────────────────────── */
+    .filters {
+      display: flex; gap: 0.75rem; flex-wrap: wrap;
+      margin-bottom: 2.5rem;
+    }
+ 
+    .filter-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 0.45rem 1rem;
+      border-radius: 2px;
+      font-family: var(--sans);
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+ 
+    .filter-btn:hover, .filter-btn.active {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: var(--navy);
+    }
+ 
+    /* ── GRID ──────────────────────────────────────── */
+    .posts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 2px;
+    }
+ 
+    .post-card {
+      background: var(--navy2);
+      padding: 2rem;
+      border: 1px solid transparent;
+      transition: all 0.3s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.5s ease both;
+    }
+ 
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+ 
+    .post-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 0;
+      background: linear-gradient(180deg, var(--gold), transparent);
+      transition: height 0.3s;
+    }
+ 
+    .post-card:hover {
+      border-color: var(--border);
+      background: #131d38;
+    }
+ 
+    .post-card:hover::before { height: 100%; }
+ 
+    .post-category {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1rem;
+    }
+ 
+    .post-title {
+      font-family: var(--serif);
+      font-size: 1.45rem;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 0.8rem;
+      transition: color 0.2s;
+    }
+ 
+    .post-card:hover .post-title { color: var(--gold2); }
+ 
+    .post-excerpt {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.65;
+      margin-bottom: 1.5rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+ 
+    .post-meta {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-top: 1.2rem;
+      border-top: 1px solid var(--border);
+    }
+ 
+    .post-date {
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+ 
+    .post-read-time {
+      font-size: 0.72rem;
+      color: var(--gold);
+      letter-spacing: 0.06em;
+    }
+ 
+    /* ── FEATURED (first card large) ───────────────── */
+    .post-card.featured {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      padding: 3rem;
+    }
+ 
+    .featured-body { display: flex; flex-direction: column; justify-content: center; }
+ 
+    .featured .post-title {
+      font-size: 2.4rem;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+ 
+    .featured-badge {
+      display: inline-block;
+      background: var(--gold);
+      color: var(--navy);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.6rem;
+      border-radius: 2px;
+      margin-bottom: 1rem;
+    }
+ 
+    .featured-visual {
+      border-radius: 4px;
+      overflow: hidden;
+      min-height: 260px;
+      position: relative;
+    }
+    .featured-visual-img img {
+      width: 100%;
+      height: 100%;
+      min-height: 260px;
+      object-fit: cover;
+      display: block;
+      border-radius: 4px;
+      transition: transform 0.4s ease;
+    }
+    .post-card.featured:hover .featured-visual-img img { transform: scale(1.03); }
+    /* No image — single column, wider text */
+    .post-card.featured.featured-no-img { grid-template-columns: 1fr; }
+    .post-card.featured.featured-no-img .featured-body { max-width: 700px; }
 
+    /* ── NEWSLETTER ────────────────────────────────── */
+    .newsletter {
+      background: var(--navy2);
+      border: 1px solid var(--border);
+      padding: 4rem 3rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+ 
+    .newsletter::before {
+      content: '';
+      position: absolute;
+      top: -50%; left: 50%; transform: translateX(-50%);
+      width: 500px; height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 70%);
+    }
+ 
+    .newsletter h2 {
+      font-family: var(--serif);
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.8rem;
+    }
+ 
+    .newsletter p {
+      color: var(--muted);
+      font-size: 1rem;
+      margin-bottom: 2rem;
+    }
+ 
+    .newsletter-form {
+      display: flex; gap: 0.75rem;
+      max-width: 440px; margin: 0 auto;
+    }
+ 
+    .newsletter-form input {
+      flex: 1;
+      background: var(--navy);
+      border: 1px solid var(--border);
+      color: var(--cream);
+      padding: 0.85rem 1rem;
+      border-radius: 3px;
+      font-family: var(--sans);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+ 
+    .newsletter-form input::placeholder { color: var(--muted); }
+    .newsletter-form input:focus { border-color: var(--gold); }
+ 
+    /* ── EMPTY STATE ───────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 5rem 2rem;
+      color: var(--muted);
+    }
+ 
+    .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+    .empty-state p { font-size: 1rem; }
+ 
+    /* ── LOADING ───────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--navy2) 25%, var(--navy3) 50%, var(--navy2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 3px;
+    }
+ 
+    @keyframes shimmer {
+      from { background-position: 200% 0; }
+      to   { background-position: -200% 0; }
+    }
+ 
+    @keyframes spin { to { transform: rotate(360deg); } }
+ 
+    .sk-h { height: 1rem; margin-bottom: 0.5rem; }
+    .sk-title { height: 1.8rem; width: 80%; margin-bottom: 1rem; }
+    .sk-block { height: 4rem; margin-bottom: 0.5rem; }
+ 
+    /* ── FOOTER ────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+ 
+    .footer-brand {
+      font-family: var(--serif);
+      font-size: 1.4rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+ 
+    .footer-copy {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+ 
+    .footer-links {
+      display: flex; gap: 1.5rem; list-style: none;
+    }
+ 
+    .footer-links a {
+      font-size: 0.78rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+ 
+    .footer-links a:hover { color: var(--gold); }
+ 
+    /* ── RESPONSIVE ────────────────────────────────── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hero-stats { display: none; }
+      .post-card.featured { grid-template-columns: 1fr; }
+      .featured-visual { display: none; }
+      .newsletter-form { flex-direction: column; }
+      footer { flex-direction: column; text-align: center; }
+    }
+  </style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-DED9GTRR3E');
+  </script>
+</head>
+<body>
+ 
+<!-- NAV -->
+<nav>
+  <a class="nav-brand" href="index.html">BlogsPro</a>
+  <ul class="nav-links">
+    <li><a href="#posts">Articles</a></li>
+    <li><a href="#about">About</a></li>
+    <li><button class="theme-btn-nav" id="themeBtn" onclick="toggleTheme()">☀️</button></li>
+    <li id="navAuthSlot">
+      <!-- Filled dynamically by Firebase Auth -->
+      <a href="login.html" class="nav-cta">Login</a>
+    </li>
+  </ul>
+</nav>
+ 
+<!-- HERO -->
+<div class="hero">
+  <p class="hero-label">Fintech · Compliance · Strategy</p>
+  <h1>The edge is in the <em>details.</em></h1>
+  <p class="hero-sub">Sharp analysis on financial technology, regulatory compliance, and growth strategy for practitioners who move markets.</p>
+  <div class="hero-actions">
+    <a href="#posts" class="btn-primary">Read Latest</a>
+    <a href="#newsletter" class="hero-scroll">Subscribe ↓</a>
+  </div>
+  <div class="hero-stats" id="heroStats">
+    <div class="stat-item">
+      <div class="stat-value" id="postCount">—</div>
+      <div class="stat-label">Articles</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">3</div>
+      <div class="stat-label">Topics</div>
+    </div>
+  </div>
+</div>
+ 
+<!-- TICKER -->
+<div class="ticker-bar">
+  <div class="ticker-inner" id="ticker">
+    <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Compliance</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Strategy</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Regulation</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Payments</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Risk</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Digital Banking</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Open Finance</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Compliance</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Strategy</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Regulation</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Payments</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Risk</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Digital Banking</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Open Finance</span><span class="ticker-sep">·</span>
+  </div>
+</div>
+ 
+<!-- POSTS -->
+<section id="posts">
+  <div class="section-header">
+    <h2 class="section-title">Latest Articles</h2>
+  </div>
+ 
+  <div class="filters">
+    <button class="filter-btn active" data-cat="all">All</button>
+    <button class="filter-btn" data-cat="Fintech">Fintech</button>
+    <button class="filter-btn" data-cat="Compliance">Compliance</button>
+    <button class="filter-btn" data-cat="Strategy">Strategy</button>
+  </div>
+ 
+  <div class="posts-grid" id="postsGrid">
+    <!-- Skeleton Loaders -->
+    <div class="post-card">
+      <div class="skeleton sk-h" style="width:40%"></div>
+      <div class="skeleton sk-title"></div>
+      <div class="skeleton sk-block"></div>
+      <div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div>
+    </div>
+    <div class="post-card">
+      <div class="skeleton sk-h" style="width:40%"></div>
+      <div class="skeleton sk-title"></div>
+      <div class="skeleton sk-block"></div>
+      <div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div>
+    </div>
+    <div class="post-card">
+      <div class="skeleton sk-h" style="width:40%"></div>
+      <div class="skeleton sk-title"></div>
+      <div class="skeleton sk-block"></div>
+      <div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div>
+    </div>
+  </div>
+</section>
+ 
+<!-- NEWSLETTER -->
+<section id="newsletter">
+  <div class="newsletter">
+    <h2>Stay ahead of the curve.</h2>
+    <p>New insights on fintech, compliance & strategy — delivered to your inbox.</p>
+    <form class="newsletter-form" onsubmit="subscribeNewsletter(event)">
+      <input type="email" id="emailInput" placeholder="your@email.com" required />
+      <button type="submit" class="btn-primary" id="subBtn">
+        <span id="subBtnText">Subscribe</span>
+        <span id="subBtnSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite;display:none"></span>
+      </button>
+    </form>
+    <div id="subMsg" style="display:none;margin-top:1.2rem;padding:0.85rem 1.2rem;border-radius:3px;font-size:0.88rem;font-weight:500"></div>
+  </div>
+</section>
+ 
+<!-- FOOTER -->
+<footer id="about">
+  <span class="footer-brand">BlogsPro</span>
+  <span class="footer-copy">© <span id="year"></span> BlogsPro. All rights reserved.</span>
+  <ul class="footer-links">
+    <li><a href="login.html" id="footerAuthLink">Login</a></li>
+  </ul>
+</footer>
+ 
+<!-- FIREBASE -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, collection, getDocs, addDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import {
+    getAuth, onAuthStateChanged, signOut
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+ 
+  // ── Replace with your config ──────────────────────
+  const firebaseConfig = {
+    apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
+    authDomain: "blogspro-ai.firebaseapp.com",
+    projectId: "blogspro-ai",
+    storageBucket: "blogspro-ai.firebasestorage.app",
+    messagingSenderId: "940428277283",
+    appId: "1:940428277283:web:d3bb414f0992718ca76396"
+  };
+  // ─────────────────────────────────────────────────
+ 
+  const ADMIN_UID = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
+ 
+  const app  = initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
+  const auth = getAuth(app);
+ 
+  let allPosts   = [];
+  let currentCat = 'all';
+ 
+  document.getElementById('year').textContent = new Date().getFullYear();
+ 
+  // Theme toggle
+  window.toggleTheme = () => {
+    document.body.classList.toggle('light');
+    const isLight = document.body.classList.contains('light');
+    document.getElementById('themeBtn').textContent = isLight ? '🌙' : '☀️';
+    localStorage.setItem('bpTheme', isLight ? 'light' : 'dark');
+  };
+  if (localStorage.getItem('bpTheme') === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('themeBtn').textContent = '🌙';
+  }
+ 
+  // ── AUTH NAV ──────────────────────────────────────
+  onAuthStateChanged(auth, user => {
+    const slot         = document.getElementById('navAuthSlot');
+    const footerLink   = document.getElementById('footerAuthLink');
+ 
+    if (!user) {
+      // Not logged in → show Login button
+      slot.innerHTML = `<a href="login.html" class="nav-cta">Login</a>`;
+      footerLink.textContent = 'Login';
+      footerLink.href        = 'login.html';
+      return;
+    }
+ 
+    if (user.uid === ADMIN_UID) {
+      // Admin → gold Admin tag + dropdown
+      slot.innerHTML = `
+        <div class="nav-user" id="navUserBtn" onclick="toggleDropdown()">
+          <div class="nav-avatar">
+            ${user.photoURL
+              ? `<img src="${user.photoURL}" alt="" />`
+              : (user.displayName || user.email || 'A')[0].toUpperCase()}
+          </div>
+          <a href="admin.html" class="nav-admin-tag">Admin</a>
+          <div class="nav-dropdown" id="navDropdown">
+            <a href="admin.html">Dashboard</a>
+            <button onclick="doSignOut()">Sign Out</button>
+          </div>
+        </div>`;
+      footerLink.textContent = 'Admin Dashboard';
+      footerLink.href        = 'admin.html';
+    } else {
+      // Regular user → show name + avatar + dropdown
+      const displayName = user.displayName || user.email?.split('@')[0] || 'User';
+      const initial     = displayName[0].toUpperCase();
+      slot.innerHTML = `
+        <div class="nav-user" id="navUserBtn" onclick="toggleDropdown()">
+          <div class="nav-avatar">
+            ${user.photoURL
+              ? `<img src="${user.photoURL}" alt="" />`
+              : initial}
+          </div>
+          <span class="nav-user-name">${displayName}</span>
+          <div class="nav-dropdown" id="navDropdown">
+            <a href="dashboard.html">My Account</a>
+            <button onclick="doSignOut()">Sign Out</button>
+          </div>
+        </div>`;
+      footerLink.textContent = 'My Account';
+      footerLink.href        = 'dashboard.html';
+    }
+  });
+ 
+  window.toggleDropdown = () => {
+    document.getElementById('navDropdown')?.classList.toggle('open');
+  };
+ 
+  // Close dropdown when clicking outside
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#navUserBtn')) {
+      document.getElementById('navDropdown')?.classList.remove('open');
+    }
+  });
+ 
+  window.doSignOut = async () => {
+    await signOut(auth);
+    window.location.reload();
+  };
+ 
+  async function loadPosts() {
+    try {
+      // Simplest possible query — no filters, no ordering
+      // Firestore rules just need allow list: if true
+      const snap = await getDocs(collection(db, 'posts'));
+      allPosts = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(p => p.published === true)
+        .sort((a, b) => {
+          const aTime = a.createdAt?.toDate?.()?.getTime() || 0;
+          const bTime = b.createdAt?.toDate?.()?.getTime() || 0;
+          return bTime - aTime;
+        });
+      document.getElementById('postCount').textContent = allPosts.length;
+      renderPosts(allPosts);
+    } catch(err) {
+      console.error('Error loading posts:', err.code, err.message);
+      // Show error on page so we can debug
+      document.getElementById('postsGrid').innerHTML = `
+        <div style="grid-column:1/-1;padding:2rem;color:#fca5a5;font-size:0.9rem">
+          Error: ${err.code || err.message}. Check browser console for details.
+        </div>`;
+    }
+  }
+ 
+  function renderPosts(posts) {
+    const grid = document.getElementById('postsGrid');
+    if (!posts.length) { renderEmpty(); return; }
+    grid.innerHTML = posts.map((p, i) => {
+      const date = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', {
+        day:'numeric', month:'short', year:'numeric'
+      }) || '';
+      const readTime = Math.max(1, Math.ceil((p.content || '').split(' ').length / 200));
+      if (i === 0) {
+        const visual = p.image
+          ? `<div class="featured-visual featured-visual-img">
+               <img src="${p.image}" alt="${p.title}" loading="lazy" />
+             </div>`
+          : '';
+        return `
+          <div class="post-card featured${p.image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}')" style="animation-delay:${i*0.08}s">
+            <div class="featured-body">
+              <span class="featured-badge">Featured</span>
+              <span class="post-category">${p.category || 'General'}</span>
+              <h2 class="post-title">${p.title}</h2>
+              <p class="post-excerpt">${p.excerpt || ''}</p>
+              <div class="post-meta">
+                <span class="post-date">${date}</span>
+                <span class="post-read-time">${readTime} min read</span>
+              </div>
+            </div>
+            ${visual}
+          </div>`;
+      }
+      return `
+        <div class="post-card" onclick="openPost('${p.id}')" style="animation-delay:${i*0.08}s">
+          <span class="post-category">${p.category || 'General'}</span>
+          <h3 class="post-title">${p.title}</h3>
+          <p class="post-excerpt">${p.excerpt || ''}</p>
+          <div class="post-meta">
+            <span class="post-date">${date}</span>
+            <span class="post-read-time">${readTime} min read</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+ 
+  function renderEmpty() {
+    document.getElementById('postsGrid').innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-state-icon">✍️</div>
+        <p>No articles yet. <a href="login.html" style="color:var(--gold)">Publish your first post →</a></p>
+      </div>`;
+  }
+ 
+  window.openPost = (id) => {
+    window.location.href = `post.html?id=${id}`;
+  };
+ 
+  // Category filter
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCat = btn.dataset.cat;
+      const filtered = currentCat === 'all'
+        ? allPosts
+        : allPosts.filter(p => p.category === currentCat);
+      renderPosts(filtered);
+    });
+  });
+ 
+  // Newsletter (stored in Firestore)
+  window.subscribeNewsletter = async (e) => {
+    e.preventDefault();
+    const email   = document.getElementById('emailInput').value.trim();
+    const btn     = document.getElementById('subBtn');
+    const btnText = document.getElementById('subBtnText');
+    const spinner = document.getElementById('subBtnSpinner');
+    const msg     = document.getElementById('subMsg');
+ 
+    // Loading state
+    btn.disabled          = true;
+    btnText.style.display = 'none';
+    spinner.style.display = 'inline-block';
+    msg.style.display     = 'none';
+ 
+    try {
+      await addDoc(collection(db, 'subscribers'), { email, createdAt: new Date() });
+ 
+      // Success
+      document.getElementById('emailInput').value = '';
+      msg.style.display    = 'block';
+      msg.style.background = 'rgba(34,197,94,0.12)';
+      msg.style.border     = '1px solid rgba(34,197,94,0.3)';
+      msg.style.color      = '#86efac';
+      msg.textContent      = '✓ You\'re on the list! We\'ll be in touch.';
+ 
+    } catch(err) {
+      console.error('Newsletter error:', err.code, err.message);
+ 
+      // Error
+      msg.style.display    = 'block';
+      msg.style.background = 'rgba(239,68,68,0.1)';
+      msg.style.border     = '1px solid rgba(239,68,68,0.3)';
+      msg.style.color      = '#fca5a5';
+      msg.textContent      = err.code === 'permission-denied'
+        ? '✕ Subscription blocked — check Firestore rules.'
+        : '✕ Something went wrong. Please try again.';
+    }
+ 
+    // Reset button
+    btn.disabled          = false;
+    btnText.style.display = 'inline';
+    spinner.style.display = 'none';
+  };
+ 
+  loadPosts();
+</script>
+</body>
+</html>
