@@ -11,8 +11,3 @@
     <priority>0.8</priority>
   </url>
 </urlset>
-```
-
-Then in Search Console go to **Sitemaps** and submit:
-```
-https://blogspro.in/sitemap.xml
