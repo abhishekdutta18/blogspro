@@ -1569,29 +1569,40 @@ window.togglePublish = async (id, current) => {
 // Scans every post for blob:// URLs and re-uploads them to Cloudinary
 window.repairBrokenImages = async () => {
   if (CLOUDINARY_CLOUD_NAME === 'YOUR_CLOUD_NAME') {
-    showToast('Configure Cloudinary first (cloud name + upload preset).', 'error');
+    showToast('Configure Cloudinary first.', 'error');
     return;
   }
 
-  if (!confirm(`Scan all ${allPosts.length} posts for broken blob:// image URLs and repair them?\n\nThis will upload any broken images to Cloudinary and update Firestore.`)) return;
+  if (!confirm(`Scan all ${allPosts.length} posts for broken blob:// image URLs and repair them?\n\n• Live blobs → uploaded to Cloudinary\n• Expired blobs → new image generated from post title via Pollinations → uploaded to Cloudinary\n\nFirestore will be updated with permanent URLs.`)) return;
 
-  const panel  = document.getElementById('repairPanel');
-  const fill   = document.getElementById('repairFill');
-  const count  = document.getElementById('repairCount');
-  const log    = document.getElementById('repairLog');
+  const panel = document.getElementById('repairPanel');
+  const fill  = document.getElementById('repairFill');
+  const count = document.getElementById('repairCount');
+  const log   = document.getElementById('repairLog');
 
-  panel.style.display = 'block';
-  log.innerHTML = '';
-  fill.style.width = '0%';
+  panel.style.display   = 'block';
+  log.innerHTML         = '';
+  fill.style.width      = '0%';
   fill.style.background = 'linear-gradient(90deg,#1d4ed8,#3b82f6)';
 
-  const addLog = (msg, ok = true) => {
+  const addLog = (msg, state = 'ok') => {
     const el = document.createElement('div');
-    el.style.color = ok ? 'var(--green)' : '#fca5a5';
-    el.textContent = (ok ? '✓ ' : '✕ ') + msg;
+    el.style.color = state === 'ok' ? 'var(--green)' : state === 'warn' ? 'var(--gold)' : '#fca5a5';
+    el.textContent = (state==='ok'?'✓ ':state==='warn'?'⚠ ':'✕ ') + msg;
     log.appendChild(el);
     log.scrollTop = log.scrollHeight;
   };
+
+  /** Fetch a Pollinations image for a given title, return as File */
+  async function generateImageForTitle(title) {
+    const prompt  = encodeURIComponent(`Professional fintech editorial illustration for "${title}", modern dark UI, no text, no watermark`);
+    const url     = `https://image.pollinations.ai/prompt/${prompt}?width=1280&height=720&seed=${Math.floor(Math.random()*99999)}&nologo=true&model=flux`;
+    const res     = await fetch(url);
+    if (!res.ok) throw new Error(`Pollinations HTTP ${res.status}`);
+    const blob    = await res.blob();
+    if (blob.size < 1000) throw new Error('Generated image too small');
+    return new File([blob], 'generated.jpg', { type: blob.type || 'image/jpeg' });
+  }
 
   let fixed = 0, skipped = 0, errors = 0;
   const total = allPosts.length;
@@ -1599,48 +1610,69 @@ window.repairBrokenImages = async () => {
   for (let i = 0; i < allPosts.length; i++) {
     const post = allPosts[i];
     fill.style.width  = `${Math.round(((i+1)/total)*100)}%`;
-    count.textContent = `${i+1} / ${total}`;
+    count.textContent = `${i+1} / ${total} — checking "${post.title?.substring(0,30)||'(untitled)'}…"`;
 
     const hasBlobImage   = post.image?.startsWith('blob:');
     const hasBlobContent = post.content?.includes('src="blob:');
 
-    if (!hasBlobImage && !hasBlobContent) {
-      skipped++;
-      continue;
-    }
+    if (!hasBlobImage && !hasBlobContent) { skipped++; continue; }
 
     try {
-      let newImage   = post.image;
+      let newImage   = post.image   || '';
       let newContent = post.content || '';
 
-      // Fix featured image
+      // ── Fix featured image ──────────────────
       if (hasBlobImage) {
-        const file = await blobUrlToFile(post.image, 'featured.jpg').catch(() => null);
-        if (file) {
-          newImage = await uploadToStorage(file, 'featured');
-          addLog(`"${post.title}" — featured image repaired`);
+        // Try recovering the live blob first
+        const liveFile = await blobUrlToFile(post.image, 'featured.jpg').catch(() => null);
+
+        if (liveFile) {
+          newImage = await uploadToStorage(liveFile, 'featured');
+          addLog(`"${post.title}" — featured image uploaded to Cloudinary`);
         } else {
-          addLog(`"${post.title}" — blob expired, cannot recover featured image`, false);
-          errors++;
-          continue;
+          // Blob expired — regenerate from title via Pollinations
+          count.textContent = `${i+1}/${total} — regenerating image for "${post.title?.substring(0,25)||'post'}…"`;
+          addLog(`"${post.title}" — blob expired, generating new image…`, 'warn');
+          const genFile = await generateImageForTitle(post.title || post.category || 'fintech');
+          newImage = await uploadToStorage(genFile, 'featured');
+          addLog(`"${post.title}" — new image generated & uploaded ✓`);
         }
       }
 
-      // Fix inline content images
+      // ── Fix inline content images ───────────
       if (hasBlobContent) {
         const matches = [...newContent.matchAll(/src="(blob:[^"]+)"/g)];
+        let replaced  = 0;
+
         for (const m of matches) {
-          const file = await blobUrlToFile(m[1], 'content.jpg').catch(() => null);
-          if (file) {
-            const url = await uploadToStorage(file, 'content');
+          const liveFile = await blobUrlToFile(m[1], 'content.jpg').catch(() => null);
+          if (liveFile) {
+            const url = await uploadToStorage(liveFile, 'content');
             newContent = newContent.replace(m[1], url);
+            replaced++;
+          } else {
+            // Expired inline blob — replace with a generated image
+            try {
+              const genFile = await generateImageForTitle(post.title || 'fintech');
+              const url = await uploadToStorage(genFile, 'content');
+              newContent = newContent.replace(m[1], url);
+              replaced++;
+            } catch(_) {
+              // Remove the broken img tag entirely rather than leave a broken one
+              newContent = newContent.replace(
+                new RegExp(`<figure[^>]*>\\s*<img[^>]*src="${m[1].replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}"[^>]*>[\\s\\S]*?</figure>`, 'g'),
+                ''
+              );
+              newContent = newContent.replace(new RegExp(`<img[^>]*src="${m[1].replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}"[^>]*>`, 'g'), '');
+            }
           }
         }
-        addLog(`"${post.title}" — ${matches.length} inline image${matches.length>1?'s':''} repaired`);
+
+        if (replaced > 0) addLog(`"${post.title}" — ${replaced} inline image${replaced>1?'s':''} repaired`);
       }
 
-      // Update Firestore
-      await updateDoc(doc(db,'posts', post.id), {
+      // ── Update Firestore ────────────────────
+      await updateDoc(doc(db, 'posts', post.id), {
         image:     newImage,
         content:   newContent,
         updatedAt: serverTimestamp(),
@@ -1648,20 +1680,18 @@ window.repairBrokenImages = async () => {
       fixed++;
 
     } catch(e) {
-      addLog(`"${post.title}" — failed: ${e.message}`, false);
+      addLog(`"${post.title}" — failed: ${e.message}`, 'error');
       errors++;
     }
   }
 
   // Done
-  fill.style.background = errors ? 'var(--gold)' : 'var(--green)';
-  fill.style.width = '100%';
-  count.textContent = `Done — ${fixed} fixed, ${skipped} clean, ${errors} failed`;
-  showToast(`Repair complete — ${fixed} post${fixed!==1?'s':''} fixed!`, 'success');
+  fill.style.background = errors > 0 ? 'var(--gold)' : 'var(--green)';
+  fill.style.width      = '100%';
+  count.textContent     = `✓ Done — ${fixed} fixed, ${skipped} already clean, ${errors} failed`;
+  showToast(`Repair complete! ${fixed} post${fixed!==1?'s':''} fixed.`, 'success');
   await loadAll();
-
-  // Auto-hide panel after 8s
-  setTimeout(() => { panel.style.display = 'none'; }, 8000);
+  setTimeout(() => { panel.style.display = 'none'; }, 10000);
 };
 
 window.deletePost = async (id) => {
