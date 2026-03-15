@@ -1398,7 +1398,7 @@ window.handleOwnPhotoUpload = async (files) => {
       <div class="img-num">📁 ${file.name.substring(0,10)}${file.name.length>10?'…':''}<span class="storage-badge uploading" id="sb${idx}">↑ uploading</span></div>
       <img src="${blobUrl}" style="width:100%;height:120px;object-fit:cover;display:block;cursor:pointer" onclick="openImgModal(${idx})" />
       <div class="img-overlay"><button class="img-overlay-btn" onclick="openImgModal(${idx})">🔍</button><button class="img-overlay-btn secondary" onclick="insertImage(${idx})">↓ Insert</button></div>
-      <button onclick="deleteImgCard(this,${idx})" style="position:absolute;top:4px;right:4px;background:rgba(8,13,26,0.85);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;width:20px;height:20px;border-radius:50%;font-size:0.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;opacity:0;transition:opacity 0.15s">✕</button>`;
+      <button onclick="deleteImgCard(this,${idx})" style="position:absolute;top:4px;right:4px;background:rgba(8,13,26,0.85);border:1px solid rgba(239,68,68,0.5);color:#fca5a5;width:22px;height:22px;border-radius:50%;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1">✕</button>`;
     grid.appendChild(card);
     setUploadProgress(true,`Uploading "${file.name}"…`,0);
     try {
@@ -1505,7 +1505,7 @@ window.generateImages = async () => {
   status.innerHTML=`⏳ Generating ${imgSelectedCount} image${imgSelectedCount>1?'s':''}… <span style="color:var(--muted);font-size:0.65rem">⏱ 0.0s</span>`;
   grid.innerHTML='';
   const seeds = Array.from({length:imgSelectedCount},()=>Math.floor(Math.random()*99999)+1);
-  seeds.forEach((_,i)=>{ grid.innerHTML+=`<div class="img-preview-card" id="imgCard${i}"><div class="img-num">IMG ${i+1}</div><div class="img-loading" id="imgLoading${i}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(136,150,179,0.4)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><img id="imgEl${i}" src="" style="display:none;width:100%;height:120px;object-fit:cover"/><div class="img-overlay"><button class="img-overlay-btn" onclick="openImgModal(${i})">🔍 Preview</button><button class="img-overlay-btn secondary" onclick="insertImage(${i})">↓ Insert</button></div><button onclick="deleteImgCard(this,${i})" style="position:absolute;top:4px;right:4px;background:rgba(8,13,26,0.85);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;width:20px;height:20px;border-radius:50%;font-size:0.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;opacity:0;transition:opacity 0.15s">✕</button></div>`; });
+  seeds.forEach((_,i)=>{ grid.innerHTML+=`<div class="img-preview-card" id="imgCard${i}"><div class="img-num">IMG ${i+1}</div><div class="img-loading" id="imgLoading${i}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(136,150,179,0.4)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><img id="imgEl${i}" src="" style="display:none;width:100%;height:120px;object-fit:cover"/><div class="img-overlay"><button class="img-overlay-btn" onclick="openImgModal(${i})">🔍 Preview</button><button class="img-overlay-btn secondary" onclick="insertImage(${i})">↓ Insert</button></div><button onclick="deleteImgCard(this,${i})" style="position:absolute;top:4px;right:4px;background:rgba(8,13,26,0.85);border:1px solid rgba(239,68,68,0.5);color:#fca5a5;width:22px;height:22px;border-radius:50%;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1">✕</button></div>`; });
   let loaded=0, failed=0;
   for (let i=0; i<seeds.length; i++) {
     const seed=seeds[i], imgStart=Date.now();
@@ -1548,7 +1548,7 @@ window.insertImage = (idx) => {
   const url = generatedImages[idx];
   if (!url) { showToast('Image not ready.','error'); return; }
   const caption = (document.getElementById('imgPrompt').value.trim()||'').substring(0,80);
-  const html = `<figure style="margin:1.5rem 0;text-align:center"><img src="${url}" alt="${caption}" style="max-width:100%;border-radius:4px;border:1px solid rgba(201,168,76,0.15)" loading="lazy"/><figcaption style="font-size:0.75rem;color:#8896b3;margin-top:0.4rem;font-style:italic">${caption}</figcaption></figure>`;
+  const html = `<figure style="margin:1.5rem 0;text-align:center"><img src="${url}" alt="${caption}" style="max-width:100%;border-radius:4px;border:1px solid rgba(201,168,76,0.15)" loading="lazy"/></figure>`;
   editor.focus();
   const sel=window.getSelection();
   if (sel?.rangeCount) { const range=sel.getRangeAt(0); range.collapse(false); range.insertNode(range.createContextualFragment(sanitize(html))); }
@@ -2005,7 +2005,7 @@ window.autoPlaceImages = async () => {
     if (imgUrl) {
       const figure=document.createElement('figure');
       figure.style.cssText='margin:1.2rem 0 1.5rem;text-align:center';
-      figure.innerHTML=`<img src="${imgUrl}" alt="${heading}" loading="lazy" style="max-width:100%;border-radius:4px;border:1px solid rgba(201,168,76,0.15)"/><figcaption style="font-size:0.75rem;color:#8896b3;margin-top:0.35rem;font-style:italic">${heading}</figcaption>`;
+      figure.innerHTML=`<img src="${imgUrl}" alt="${heading}" loading="lazy" style="max-width:100%;border-radius:4px;border:1px solid rgba(201,168,76,0.15)"/>`;
       if (h2.nextSibling) h2.parentNode.insertBefore(figure,h2.nextSibling); else h2.parentNode.appendChild(figure);
       placed++;
       logItem.className='autoplace-log-item done'; logItem.querySelector('span').textContent='✓';
