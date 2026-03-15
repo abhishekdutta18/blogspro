@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+ 
     :root {
       --navy:   #080d1a;
       --navy2:  #0f1628;
@@ -22,7 +22,7 @@
       --serif:  'Cormorant Garamond', Georgia, serif;
       --sans:   'DM Sans', sans-serif;
     }
-
+ 
     body {
       background: var(--navy);
       color: var(--cream);
@@ -33,7 +33,7 @@
       -webkit-font-smoothing: antialiased;
       overflow: hidden;
     }
-
+ 
     body::before {
       content: '';
       position: fixed; inset: 0;
@@ -42,7 +42,7 @@
         radial-gradient(ellipse 40% 50% at 10% 80%, rgba(37,99,235,0.05) 0%, transparent 60%);
       pointer-events: none;
     }
-
+ 
     .login-box {
       background: var(--navy2);
       border: 1px solid var(--border);
@@ -51,19 +51,19 @@
       position: relative;
       animation: slideUp 0.4s ease both;
     }
-
+ 
     @keyframes slideUp {
       from { opacity: 0; transform: translateY(20px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-
+ 
     .login-box::before {
       content: '';
       position: absolute; top: 0; left: 0; right: 0;
       height: 2px;
       background: linear-gradient(90deg, var(--gold), var(--gold2), transparent);
     }
-
+ 
     .login-brand {
       font-family: var(--serif);
       font-size: 2rem; font-weight: 700;
@@ -72,13 +72,13 @@
       -webkit-text-fill-color: transparent;
       margin-bottom: 0.3rem;
     }
-
+ 
     .login-subtitle {
       font-size: 0.78rem; color: var(--muted);
       letter-spacing: 0.08em; text-transform: uppercase;
       margin-bottom: 2.5rem;
     }
-
+ 
     /* Social buttons */
     .social-btn {
       width: 100%;
@@ -94,43 +94,43 @@
       background: var(--navy3);
       color: var(--cream);
     }
-
+ 
     .social-btn:hover {
       background: var(--navy);
       border-color: rgba(201,168,76,0.5);
       transform: translateY(-1px);
     }
-
+ 
     .social-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     .social-btn svg { flex-shrink: 0; }
-
+ 
     /* Divider */
     .divider {
       display: flex; align-items: center; gap: 1rem;
       margin: 1.5rem 0;
     }
-
+ 
     .divider::before, .divider::after {
       content: ''; flex: 1;
       height: 1px; background: var(--border);
     }
-
+ 
     .divider span {
       font-size: 0.72rem; color: var(--muted);
       letter-spacing: 0.1em; text-transform: uppercase;
       white-space: nowrap;
     }
-
+ 
     /* Form */
     .form-group { margin-bottom: 1.2rem; }
-
+ 
     label {
       display: block;
       font-size: 0.72rem; font-weight: 600;
       letter-spacing: 0.1em; text-transform: uppercase;
       color: var(--muted); margin-bottom: 0.45rem;
     }
-
+ 
     input[type="email"],
     input[type="password"] {
       width: 100%;
@@ -142,12 +142,12 @@
       font-family: var(--sans); font-size: 0.95rem;
       outline: none; transition: border-color 0.2s, box-shadow 0.2s;
     }
-
+ 
     input:focus {
       border-color: var(--gold);
       box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
     }
-
+ 
     .btn-login {
       width: 100%;
       background: var(--gold); color: var(--navy);
@@ -159,14 +159,14 @@
       margin-top: 0.5rem;
       display: flex; align-items: center; justify-content: center; gap: 0.5rem;
     }
-
+ 
     .btn-login:hover {
       background: var(--gold2);
       box-shadow: 0 6px 20px rgba(201,168,76,0.3);
     }
-
+ 
     .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
-
+ 
     .error-msg {
       background: rgba(239,68,68,0.1);
       border: 1px solid rgba(239,68,68,0.3);
@@ -177,16 +177,16 @@
       margin-top: 1rem;
       display: none;
     }
-
+ 
     .back-link {
       display: block; text-align: center;
       margin-top: 1.5rem;
       font-size: 0.8rem; color: var(--muted);
       transition: color 0.2s;
     }
-
+ 
     .back-link:hover { color: var(--gold); }
-
+ 
     .loading-ring {
       width: 16px; height: 16px;
       border: 2px solid rgba(255,255,255,0.2);
@@ -195,16 +195,16 @@
       animation: spin 0.6s linear infinite;
       display: none;
     }
-
+ 
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-
+ 
 <div class="login-box">
   <div class="login-brand">BlogsPro</div>
   <div class="login-subtitle">Admin Access</div>
-
+ 
   <!-- Google -->
   <button class="social-btn" id="googleBtn" onclick="signInGoogle()">
     <svg width="18" height="18" viewBox="0 0 24 24">
@@ -216,7 +216,7 @@
     Continue with Google
     <div class="loading-ring" id="googleRing"></div>
   </button>
-
+ 
   <!-- GitHub -->
   <button class="social-btn" id="githubBtn" onclick="signInGitHub()">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--cream)">
@@ -225,44 +225,45 @@
     Continue with GitHub
     <div class="loading-ring" id="githubRing"></div>
   </button>
-
+ 
   <!-- Divider -->
   <div class="divider"><span>or sign in with email</span></div>
-
+ 
   <!-- Email / Password -->
   <div class="form-group">
     <label for="email">Email Address</label>
     <input type="email" id="email" placeholder="admin@example.com" autocomplete="email" />
   </div>
-
+ 
   <div class="form-group">
     <label for="password">Password</label>
     <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
   </div>
-
+ 
   <button class="btn-login" id="loginBtn" onclick="doLogin()">
     <span id="btnText">Sign In</span>
     <div class="loading-ring" id="emailRing" style="border-top-color:var(--navy);border-color:rgba(8,13,26,0.3)"></div>
   </button>
-
+ 
   <div class="error-msg" id="errorMsg"></div>
   <p style="text-align:center;margin-top:1.2rem;font-size:0.85rem;color:var(--muted)">
     Don't have an account? <a href="register.html" style="color:var(--gold)">Register →</a>
   </p>
   <a class="back-link" href="index.html">← Back to blog</a>
 </div>
-
+ 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
     getAuth, onAuthStateChanged,
     signInWithEmailAndPassword,
     signInWithPopup,
+    getRedirectResult,
     GoogleAuthProvider,
     GithubAuthProvider
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
+ 
   // ── Replace with your config ──────────────────
   const firebaseConfig = {
     apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
@@ -273,20 +274,30 @@
     appId: "1:940428277283:web:d3bb414f0992718ca76396"
   };
   // ─────────────────────────────────────────────
-
+ 
   const ADMIN_UID = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
-
+ 
   const app    = initializeApp(firebaseConfig);
   const auth   = getAuth(app);
   const db     = getFirestore(app);
   const google = new GoogleAuthProvider();
   const github = new GithubAuthProvider();
-
+ 
   // If already logged in, redirect appropriately
   onAuthStateChanged(auth, user => {
     if (user) redirectUser(user);
   });
-
+ 
+  // Handle GitHub redirect fallback result
+  getRedirectResult(auth).then(async result => {
+    if (result?.user) {
+      await ensureUserDoc(result.user);
+      redirectUser(result.user);
+    }
+  }).catch(e => {
+    if (e.code) showError(friendlyError(e.code));
+  });
+ 
   function redirectUser(user) {
     if (user.uid === ADMIN_UID) {
       window.location.href = 'admin.html';
@@ -294,24 +305,29 @@
       window.location.href = 'account.html';
     }
   }
-
+ 
   async function ensureUserDoc(user) {
     const { doc, getDoc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-    const ref  = doc(db, 'users', user.uid);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      await setDoc(ref, {
-        uid:       user.uid,
-        name:      user.displayName || '',
-        email:     user.email || '',
-        bio:       '',
-        photoURL:  user.photoURL || '',
-        role:      'reader',
-        createdAt: serverTimestamp()
-      });
+    try {
+      const ref  = doc(db, 'users', user.uid);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        await setDoc(ref, {
+          uid:       user.uid,
+          name:      user.displayName || user.email?.split('@')[0] || 'User',
+          email:     user.email || '',          // GitHub can return null email
+          bio:       '',
+          photoURL:  user.photoURL || '',
+          role:      'reader',
+          createdAt: serverTimestamp()
+        });
+      }
+    } catch(e) {
+      console.warn('ensureUserDoc failed:', e);
+      // Don't block login if Firestore write fails
     }
   }
-
+ 
   window.signInGoogle = async () => {
     setLoading('google', true); hideError();
     try {
@@ -319,11 +335,12 @@
       await ensureUserDoc(result.user);
       redirectUser(result.user);
     } catch(e) {
+      console.error('Google login error:', e.code, e.message);
       showError(friendlyError(e.code));
       setLoading('google', false);
     }
   };
-
+ 
   window.signInGitHub = async () => {
     setLoading('github', true); hideError();
     try {
@@ -331,11 +348,18 @@
       await ensureUserDoc(result.user);
       redirectUser(result.user);
     } catch(e) {
+      console.error('GitHub login error:', e.code, e.message);
+      // If popup blocked, fall back to redirect flow
+      if (e.code === 'auth/popup-blocked') {
+        const { signInWithRedirect } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+        await signInWithRedirect(auth, github);
+        return;
+      }
       showError(friendlyError(e.code));
       setLoading('github', false);
     }
   };
-
+ 
   window.doLogin = async () => {
     const email = document.getElementById('email').value.trim();
     const pass  = document.getElementById('password').value;
@@ -350,7 +374,7 @@
       setLoading('email', false);
     }
   };
-
+ 
   function setLoading(provider, on) {
     const map = {
       google: { btn: 'googleBtn', ring: 'googleRing' },
@@ -362,33 +386,36 @@
     document.getElementById(ring).style.display = on ? 'block' : 'none';
     if (txt) document.getElementById(txt).style.display = on ? 'none' : 'inline';
   }
-
+ 
   function showError(msg) {
     const el = document.getElementById('errorMsg');
     el.textContent = msg; el.style.display = 'block';
   }
-
+ 
   function hideError() {
     document.getElementById('errorMsg').style.display = 'none';
   }
-
+ 
   function friendlyError(code) {
     const msgs = {
       'auth/user-not-found':       'No account found with this email.',
       'auth/wrong-password':       'Incorrect password.',
       'auth/invalid-email':        'Invalid email address.',
       'auth/too-many-requests':    'Too many attempts. Please try later.',
-      'auth/popup-closed-by-user': 'Sign-in popup was closed.',
+      'auth/popup-closed-by-user': 'Sign-in popup was closed. Please try again.',
+      'auth/popup-blocked':        'Popup was blocked by your browser. Trying redirect instead…',
       'auth/cancelled-popup-request': 'Sign-in was cancelled.',
       'auth/account-exists-with-different-credential':
-        'An account already exists with a different sign-in method.',
+        'An account already exists with a different sign-in method. Try Google or email instead.',
+      'auth/operation-not-allowed': 'GitHub login is not enabled. Please contact the admin.',
     };
-    return msgs[code] || 'Sign-in failed. Please try again.';
+    return msgs[code] || `Sign-in failed (${code}). Please try again.`;
   }
-
+ 
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter') window.doLogin();
   });
 </script>
 </body>
 </html>
+ 
