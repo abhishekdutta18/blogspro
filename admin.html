@@ -2265,11 +2265,23 @@ window.confirmOutline = async () => {
   addR('✓','Article written',ML[artResult.modelUsed]||artResult.modelUsed,true);
   showAIEditToolbar();
 
-  // Metadata
+  // Metadata — with automatic retry on failure
   document.getElementById('aiModalTitle').textContent=`✦ Generating metadata…`;
   document.getElementById('aiModalSub').textContent='Title, summary, SEO tags, citations…';
   document.getElementById('aiModalContent').innerHTML='<span style="animation:pulse 1s infinite;display:inline-block">Generating metadata…</span>';
-  const metaResult=await callAI(`For a fintech article about "${topic}", return ONLY this JSON with 5 real APA-format citations. Each citation must include a real accessible URL.\n{"title":"headline max 70 chars","summary":"2-sentence summary max 160 chars","metaDescription":"SEO meta max 155 chars","tags":["tag1","tag2","tag3","tag4","tag5"],"citations":[{"apa":"Author, A. (Year). Title of report. Publisher. https://real-url.com","url":"https://real-url.com"},{"apa":"Author, B. (Year). Title. Publisher. https://real-url2.com","url":"https://real-url2.com"},{"apa":"Author, C. (Year). Title. Publisher. https://real-url3.com","url":"https://real-url3.com"},{"apa":"Author, D. (Year). Title. Publisher. https://real-url4.com","url":"https://real-url4.com"},{"apa":"Author, E. (Year). Title. Publisher. https://real-url5.com","url":"https://real-url5.com"}]}\nUse real sources: RBI (rbi.org.in), SEBI (sebi.gov.in), NPCI (npci.org.in), World Bank, IMF, KPMG, PwC, McKinsey, Deloitte, NASSCOM. Return ONLY the JSON.`,true,modelArticle);
+
+  // FIX: Try metadata up to 2 times with a short delay between attempts
+  const metaPrompt = `For a fintech article about "${topic}", return ONLY this JSON with 5 real APA-format citations. Each citation must include a real accessible URL.\n{"title":"headline max 70 chars","summary":"2-sentence summary max 160 chars","metaDescription":"SEO meta max 155 chars","tags":["tag1","tag2","tag3","tag4","tag5"],"citations":[{"apa":"Author, A. (Year). Title of report. Publisher. https://real-url.com","url":"https://real-url.com"},{"apa":"Author, B. (Year). Title. Publisher. https://real-url2.com","url":"https://real-url2.com"},{"apa":"Author, C. (Year). Title. Publisher. https://real-url3.com","url":"https://real-url3.com"},{"apa":"Author, D. (Year). Title. Publisher. https://real-url4.com","url":"https://real-url4.com"},{"apa":"Author, E. (Year). Title. Publisher. https://real-url5.com","url":"https://real-url5.com"}]}\nUse real sources: RBI (rbi.org.in), SEBI (sebi.gov.in), NPCI (npci.org.in), World Bank, IMF, KPMG, PwC, McKinsey, Deloitte, NASSCOM. Return ONLY the JSON.`;
+
+  let metaResult = await callAI(metaPrompt, true, modelArticle);
+  if (metaResult.error) {
+    // Wait 3s and retry once with a simpler prompt and different model
+    document.getElementById('aiModalContent').innerHTML='<span style="animation:pulse 1s infinite;display:inline-block">Retrying metadata…</span>';
+    await new Promise(r => setTimeout(r, 3000));
+    const simpleMetaPrompt = `For a fintech article titled "${topic}", return ONLY this JSON:\n{"title":"${topic.substring(0,70)}","summary":"Two sentence summary of this article.","metaDescription":"SEO description under 155 chars.","tags":["fintech","india","finance","digital","growth"],"citations":[{"apa":"Reserve Bank of India. (2024). Annual Report. RBI. https://rbi.org.in","url":"https://rbi.org.in"},{"apa":"SEBI. (2024). Annual Report. SEBI. https://sebi.gov.in","url":"https://sebi.gov.in"},{"apa":"NPCI. (2024). Annual Report. NPCI. https://npci.org.in","url":"https://npci.org.in"},{"apa":"World Bank. (2024). Global Findex. World Bank. https://worldbank.org","url":"https://worldbank.org"},{"apa":"McKinsey & Company. (2024). Fintech Report. McKinsey. https://mckinsey.com","url":"https://mckinsey.com"}]}`;
+    metaResult = await callAI(simpleMetaPrompt, true, 'groq');
+  }
+
   allAttempts.push(...(metaResult.attemptsDetail||[]));
   let parsed=null;
   const mt=metaResult.error?'':(metaResult.text||'');
@@ -2311,7 +2323,13 @@ window.confirmOutline = async () => {
   }
   if(!checks.title&&!document.getElementById('postTitle').value.trim()){document.getElementById('postTitle').value=topic.length<80?topic:topic.substring(0,75)+'…';document.getElementById('postSlug').value=slugify(topic);checks.title=true;}
   const metaFields=[checks.title&&'title',checks.summary&&'summary',checks.tags&&'tags',checks.meta&&'meta',checks.citations&&'citations'].filter(Boolean);
-  addR(metaFields.length?'✓':'—','Metadata: '+(metaFields.join(', ')||'none'),ML[metaResult.modelUsed]||ML[modelArticle]||'',metaFields.length>0,metaResult.error?` (${metaResult.error})`:'');
+  // FIX: Only show failure if metadata completely failed — article content already succeeded
+  if (metaResult.error && !parsed) {
+    addR('—','Metadata failed — article saved without metadata. Use Auto-generate button to add later.',ML[modelArticle]||'',false,` (${metaResult.error})`);
+    showToast('Article saved! Metadata failed — click "✦ Auto-generate" to add summary.','success');
+  } else {
+    addR(metaFields.length?'✓':'—','Metadata: '+(metaFields.join(', ')||'none'),ML[metaResult.modelUsed]||ML[modelArticle]||'',metaFields.length>0,metaResult.error?` (${metaResult.error})`:'');
+  }
   closeAIModal();
   document.getElementById('aiResultList').innerHTML=results.map(r=>`<div style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem"><span style="color:${r.ok?'var(--green)':'var(--muted)'};flex-shrink:0;font-weight:700">${r.icon}</span><div><span style="color:${r.ok?'var(--cream)':'var(--muted)'}">${r.label}</span>${r.model?`<span style="display:inline-block;margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.1rem 0.4rem;border-radius:2px">⚡${r.model}</span>`:''}</div></div>`).join('');
   const hadFallbacks=allAttempts.some(a=>!a.success);
