@@ -680,23 +680,37 @@ window.autoFillImagePrompt = () => {
   showToast('Prompt auto-filled! Edit as needed.', 'success');
 };
 
-// ── Build Pollinations URL ──────────────────────
-function buildPollinationsUrl(prompt, style, negative, seed) {
-  // Keep URL minimal — only params Pollinations actually supports
-  const fullPrompt = `${prompt}, ${style}, high resolution, professional quality`;
-  const encoded    = encodeURIComponent(fullPrompt);
-  return `https://image.pollinations.ai/prompt/${encoded}`
-    + `?width=${imgSelectedW}&height=${imgSelectedH}`
-    + `&seed=${seed}`
-    + `&nologo=true`
-    + `&model=flux`;
-  // NOTE: negative_prompt and enhance=true are NOT supported — removed
+// ── Image via Worker proxy ─────────────────────
+// Routes through Cloudflare Worker (/image) — solves all CORS/loading issues.
+// Worker fetches Pollinations server-side and returns bytes with CORS headers.
+async function fetchImageViaWorker(prompt, style, seed) {
+  const res = await fetch(WORKER_URL + '/image', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt, style, seed,
+      width:  imgSelectedW,
+      height: imgSelectedH,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Image error: HTTP ${res.status}`);
+  }
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);  // local blob URL — always loads instantly
 }
 
-// ── Generate Images ─────────────────────────────
+// Fallback direct URL (kept for autoPlaceImages only)
+function buildPollinationsUrl(prompt, style, negative, seed) {
+  const encoded = encodeURIComponent(`${prompt}, ${style}, high resolution`);
+  return `https://image.pollinations.ai/prompt/${encoded}` +
+    `?width=${imgSelectedW}&height=${imgSelectedH}&seed=${seed}&nologo=true&model=flux`;
+}
+
+// ── Generate Images (via Worker proxy) ──────────
 window.generateImages = async () => {
-  const prompt   = document.getElementById('imgPrompt').value.trim();
-  const negative = document.getElementById('imgNegative').value.trim();
+  const prompt = document.getElementById('imgPrompt').value.trim();
   if (!prompt) { showToast('Please enter an image prompt.', 'error'); return; }
 
   const btn    = document.getElementById('btnGenImg');
@@ -706,25 +720,26 @@ window.generateImages = async () => {
   const grid   = document.getElementById('imgPreviewGrid');
   const banner = document.getElementById('imgInsertedBanner');
 
-  btn.disabled   = true;
-  btnTxt.textContent = 'Generating…';
-  spinner.style.display = 'inline-block';
-  status.textContent = `⏳ Generating ${imgSelectedCount} image${imgSelectedCount>1?'s':''}… this may take 10–30s`;
-  banner.style.display = 'none';
-  grid.style.display = 'grid';
-  generatedImages = [];
+  btn.disabled           = true;
+  btnTxt.textContent     = 'Generating…';
+  spinner.style.display  = 'inline-block';
+  status.textContent     = `⏳ Generating ${imgSelectedCount} image${imgSelectedCount>1?'s':''}… this may take 15–30s`;
+  banner.style.display   = 'none';
+  grid.style.display     = 'grid';
+  generatedImages        = [];
 
-  // Build skeleton cards immediately
+  // Build skeleton cards
   grid.innerHTML = '';
-  const seeds = [];
-  for (let i = 0; i < imgSelectedCount; i++) {
-    const seed = Math.floor(Math.random() * 99999) + 1;
-    seeds.push(seed);
+  const seeds = Array.from({ length: imgSelectedCount }, () => Math.floor(Math.random() * 99999) + 1);
+  seeds.forEach((_, i) => {
     grid.innerHTML += `
       <div class="img-preview-card" id="imgCard${i}">
         <div class="img-num">IMG ${i+1}</div>
         <div class="img-loading" id="imgLoading${i}">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(136,150,179,0.4)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(136,150,179,0.4)" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="m21 15-5-5L5 21"/>
+          </svg>
         </div>
         <img id="imgEl${i}" src="" alt="Generated image ${i+1}" style="display:none;width:100%;height:120px;object-fit:cover" />
         <div class="img-overlay">
@@ -732,83 +747,54 @@ window.generateImages = async () => {
           <button class="img-overlay-btn secondary" onclick="insertImage(${i})">↓ Insert</button>
         </div>
       </div>`;
-  }
+  });
 
-  // Load each image
+  // Fetch each image through the worker (parallel)
   let loaded = 0, failed = 0;
-  const loadPromises = seeds.map((seed, i) => new Promise((resolve) => {
-    const url = buildPollinationsUrl(prompt, imgSelectedStyle, negative, seed);
-    generatedImages[i] = url;
 
-    const img = new Image();
-    // NOTE: do NOT set crossOrigin here — Pollinations doesn't send CORS headers
-    // and setting crossOrigin causes immediate onerror on all images
+  const loadPromises = seeds.map(async (seed, i) => {
+    try {
+      status.textContent = `⏳ Requesting image ${i+1}/${imgSelectedCount}…`;
+      const blobUrl = await fetchImageViaWorker(prompt, imgSelectedStyle, seed);
 
-    // Retry at 15s, give up at 40s — prevents infinite shimmer
-    const retryTimer = setTimeout(() => {
-      if (!img.complete) {
-        const retryUrl = url + '&retry=' + Date.now();
-        generatedImages[i] = retryUrl; // update stored URL to retry URL
-        img.src = retryUrl;
-      }
-    }, 15000);
+      generatedImages[i] = blobUrl;
 
-    const giveUpTimer = setTimeout(() => {
-      if (!img.complete) {
-        clearTimeout(retryTimer);
-        const ld = document.getElementById(`imgLoading${i}`);
-        if (ld) ld.innerHTML = '<span style="font-size:0.7rem;color:#fca5a5">Timed out — retry</span>';
-        failed++;
-        resolve({ ok: false, i });
-      }
-    }, 40000);
-
-    img.onload = () => {
-      clearTimeout(retryTimer);
-      clearTimeout(giveUpTimer);
       const el = document.getElementById(`imgEl${i}`);
       const ld = document.getElementById(`imgLoading${i}`);
       if (el && ld) {
-        el.src = url;
+        el.src = blobUrl;
         el.style.display = 'block';
         ld.style.display = 'none';
         document.getElementById(`imgCard${i}`).style.cursor = 'pointer';
       }
       loaded++;
       status.textContent = `✓ ${loaded}/${imgSelectedCount} image${imgSelectedCount>1?'s':''} ready`;
-      resolve({ ok: true, i });
-    };
+      return { ok: true };
 
-    img.onerror = () => {
-      clearTimeout(retryTimer);
-      clearTimeout(giveUpTimer);
+    } catch (err) {
       const ld = document.getElementById(`imgLoading${i}`);
-      if (ld) ld.innerHTML = '<span style="font-size:0.7rem;color:#fca5a5">Failed to load</span>';
+      if (ld) ld.innerHTML = `<span style="font-size:0.68rem;color:#fca5a5;padding:0 0.4rem;text-align:center">✕ ${err.message||'Failed'}</span>`;
       failed++;
-      resolve({ ok: false, i });
-    };
-
-    // Start load — Pollinations generates on first request
-    img.src = url;
-  }));
+      return { ok: false };
+    }
+  });
 
   await Promise.all(loadPromises);
 
-  btn.disabled = false;
-  btnTxt.textContent = '🖼 Regenerate';
+  btn.disabled          = false;
+  btnTxt.textContent    = '🖼 Regenerate';
   spinner.style.display = 'none';
 
   if (loaded > 0) {
-    status.textContent = `✓ ${loaded} image${loaded>1?'s':''} generated${failed?' ('+failed+' failed)':''}. Click to insert.`;
-    showToast(`${loaded} image${loaded>1?'s':''} ready — click to insert!`, 'success');
-    // Update the result row in the AI completion box if present
+    status.textContent = `✓ ${loaded} image${loaded>1?'s':''} ready${failed?` (${failed} failed)`:''} — click to insert.`;
+    showToast(`${loaded} image${loaded>1?'s':''} ready!`, 'success');
     const row = document.getElementById('imgGenResultRow');
     if (row) row.innerHTML = `<span style="color:var(--green);flex-shrink:0;font-weight:700">✓</span><span style="color:var(--cream)">Cover image${loaded>1?'s':''} ready (${loaded})</span><span style="display:inline-block;margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:var(--blue2);padding:0.1rem 0.4rem;border-radius:2px">🖼 Pollinations</span>`;
   } else {
-    status.textContent = '✕ All images failed. Try a simpler prompt or check your connection.';
-    showToast('Image generation failed. Try again.', 'error');
+    status.textContent = '✕ All images failed. Check your worker is deployed and try again.';
+    showToast('Image generation failed.', 'error');
     const row = document.getElementById('imgGenResultRow');
-    if (row) row.innerHTML = `<span style="color:#fca5a5;flex-shrink:0;font-weight:700">✕</span><span style="color:var(--muted)">Cover image failed — try manually below</span>`;
+    if (row) row.innerHTML = `<span style="color:#fca5a5;flex-shrink:0;font-weight:700">✕</span><span style="color:var(--muted)">Images failed — try manually</span>`;
   }
 };
 
@@ -1522,34 +1508,14 @@ window.autoPlaceImages = async () => {
       + `${style}, dark modern background, corporate editorial style, no text in image`;
 
     const seed = Math.floor(Math.random() * 999999) + 1;
-    const url  = buildPollinationsUrl(imgPrompt, style, negative, seed);
 
-    // Load image with proper timeout handling
-    const imgUrl = await new Promise((resolve) => {
-      const img = new Image();
-      // NOTE: no crossOrigin — Pollinations doesn't support CORS headers
-
-      const retryTimer = setTimeout(() => {
-        if (!img.complete) img.src = url + '&retry=' + Date.now();
-      }, 15000);
-
-      const giveUpTimer = setTimeout(() => {
-        clearTimeout(retryTimer);
-        resolve(null); // timeout → skip this section
-      }, 38000);
-
-      img.onload = () => {
-        clearTimeout(retryTimer);
-        clearTimeout(giveUpTimer);
-        resolve(url);
-      };
-      img.onerror = () => {
-        clearTimeout(retryTimer);
-        clearTimeout(giveUpTimer);
-        resolve(null);
-      };
-      img.src = url;
-    });
+    // Fetch via worker proxy — same as main image generator
+    let imgUrl = null;
+    try {
+      imgUrl = await fetchImageViaWorker(imgPrompt, style, seed);
+    } catch (err) {
+      // skip this section — log will show failure
+    }
 
     if (autoPlaceCancelled) break;
 
