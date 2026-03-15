@@ -6,6 +6,7 @@ import { sanitize, showToast, slugify, stripTags } from './config.js';
 import { state }         from './state.js';
 import { buildInternalLinks } from './ai-editor.js';
 import { uploadToStorage, blobUrlToFile } from './images-upload.js';
+import { formatViews }   from './views.js';
 import {
   collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc,
   query, orderBy, limit, serverTimestamp
@@ -61,17 +62,18 @@ export function renderPostsTable(posts, tbodyId) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
   if (!posts.length) {
-    tbody.innerHTML = `<tr><td colspan="5"><div class="table-empty">No posts yet.</div></td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="6"><div class="table-empty">No posts yet.</div></td></tr>';
     return;
   }
   tbody.innerHTML = posts.map(p => {
-    const date = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) || '—';
-    const status = p.published
-      ? `<span class="status-badge status-published">Published</span>`
-      : `<span class="status-badge status-draft">Draft</span>`;
+    const date   = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) || '—';
+    const status = p.published ? '<span class="status-badge status-published">Published</span>' : '<span class="status-badge status-draft">Draft</span>';
+    const v      = formatViews(p.views || 0);
+    const views  = `<span style="font-size:0.82rem;color:var(--muted)">&#128065; ${v}</span>`;
     return `<tr>
       <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>${p.title||'(Untitled)'}</strong></td>
       <td>${p.category||'—'}</td><td>${status}</td>
+      <td>${views}</td>
       <td style="color:var(--muted);white-space:nowrap">${date}</td>
       <td>
         <button class="action-btn" onclick="editPost('${p.id}')">Edit</button>
