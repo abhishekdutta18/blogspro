@@ -896,8 +896,15 @@ PART 2: After ---METADATA--- write ONLY this JSON (no extra text):
     }
   }
 
-  // Insert clean article
-  document.getElementById('editor').innerHTML = articleHTML || raw;
+  // Clean article — strip separator, trailing dashes, leaking JSON
+  articleHTML = (articleHTML || raw)
+    .replace(/---METADATA---[\s\S]*/g, '')
+    .replace(/\n*---+\s*$/g, '')
+    .replace(/\n*JSON object:[\s\S]*/g, '')
+    .replace(/\n*\{"title"[\s\S]*/g, '')
+    .trim();
+
+  document.getElementById('editor').innerHTML = articleHTML;
   updateWordCount();
 
   // ── Parse metadata ─────────────────────────────
