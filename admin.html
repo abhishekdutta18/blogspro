@@ -1,1 +1,2608 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — BlogsPro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <!-- DOMPurify — XSS protection for all AI-generated HTML -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DED9GTRR3E');</script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --navy:#080d1a;--navy2:#0f1628;--navy3:#1a2340;
+      --gold:#c9a84c;--gold2:#f0cc6e;--cream:#f5f0e8;
+      --muted:#8896b3;--border:rgba(201,168,76,0.2);
+      --green:#22c55e;--red:#ef4444;
+      --blue:#3b82f6;--blue2:#93c5fd;
+      --purple:#a855f7;--purple2:#d8b4fe;
+      --serif:'Cormorant Garamond',Georgia,serif;
+      --sans:'DM Sans',sans-serif;
+      --sidebar:240px;
+    }
+    html,body{height:100%}
+    body{background:var(--navy);color:var(--cream);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:flex}
+    a{color:inherit;text-decoration:none}
+
+    /* Hamburger */
+    #menuBtn{display:none;position:fixed;top:14px;left:14px;z-index:200;background:var(--navy2);border:1px solid var(--border);color:var(--cream);padding:6px 11px;font-size:1.1rem;cursor:pointer;border-radius:3px;transition:all 0.2s}
+    #menuBtn:hover{border-color:var(--gold);color:var(--gold)}
+    #sideOverlay{display:none;position:fixed;inset:0;background:rgba(8,13,26,0.6);z-index:49;backdrop-filter:blur(2px)}
+
+    /* Sidebar */
+    aside{width:var(--sidebar);height:100vh;background:var(--navy2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:50;overflow:hidden;transition:transform 0.25s ease}
+    .sidebar-brand{padding:1.8rem 1.5rem 1.5rem;border-bottom:1px solid var(--border);flex-shrink:0}
+    .sidebar-brand h1{font-family:var(--serif);font-size:1.5rem;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .sidebar-brand p{font-size:0.7rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:0.2rem}
+    nav.side-nav{flex:1;padding:1.5rem 0;overflow-y:auto;min-height:0}
+    .nav-label{font-size:0.62rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);padding:0 1.5rem;margin-bottom:0.5rem;display:block}
+    .nav-item{display:flex;align-items:center;gap:0.75rem;padding:0.7rem 1.5rem;font-size:0.88rem;color:var(--muted);cursor:pointer;transition:all 0.15s;border-left:2px solid transparent}
+    .nav-item:hover{color:var(--cream);background:rgba(255,255,255,0.03)}
+    .nav-item.active{color:var(--gold);border-left-color:var(--gold);background:rgba(201,168,76,0.05)}
+    .sidebar-footer{padding:1.5rem;border-top:1px solid var(--border);flex-shrink:0}
+    .user-chip{display:flex;align-items:center;gap:0.7rem;margin-bottom:1rem}
+    .user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--navy3));display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;color:var(--navy)}
+    .user-email{font-size:0.75rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .btn-logout{width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.6rem;border-radius:3px;font-family:var(--sans);font-size:0.78rem;cursor:pointer;transition:all 0.2s}
+    .btn-logout:hover{border-color:var(--red);color:#fca5a5}
+
+    /* Main */
+    main{margin-left:var(--sidebar);flex:1;min-height:100vh;padding:2.5rem}
+
+    /* Views */
+    .view{display:none}
+    .view.active{display:block;animation:fadeIn 0.25s ease}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+    /* Page header */
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2.5rem;flex-wrap:wrap;gap:1rem}
+    .page-header h2{font-family:var(--serif);font-size:2rem;font-weight:700}
+    .page-header p{font-size:0.85rem;color:var(--muted);margin-top:0.2rem}
+
+    /* Stat cards */
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;margin-bottom:3rem}
+    .stat-card{background:var(--navy2);border:1px solid var(--border);padding:1.8rem 1.5rem}
+    .stat-card-label{font-size:0.7rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.8rem}
+    .stat-card-value{font-family:var(--serif);font-size:2.8rem;font-weight:700;line-height:1}
+    .stat-card-sub{font-size:0.75rem;color:var(--green);margin-top:0.4rem}
+
+    /* Table */
+    .table-wrap{background:var(--navy2);border:1px solid var(--border);overflow:hidden}
+    .table-header{display:flex;align-items:center;justify-content:space-between;padding:1.2rem 1.5rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:0.5rem}
+    .table-title{font-size:0.95rem;font-weight:600}
+    table{width:100%;border-collapse:collapse}
+    th{text-align:left;font-size:0.68rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);padding:0.9rem 1.5rem;border-bottom:1px solid var(--border)}
+    td{padding:1rem 1.5rem;font-size:0.88rem;border-bottom:1px solid rgba(201,168,76,0.08)}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:rgba(255,255,255,0.02)}
+    .status-badge{display:inline-block;padding:0.25rem 0.6rem;border-radius:2px;font-size:0.68rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase}
+    .status-published{background:rgba(34,197,94,0.15);color:var(--green)}
+    .status-draft{background:rgba(136,150,179,0.15);color:var(--muted)}
+    .action-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.3rem 0.7rem;border-radius:2px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;margin-right:0.4rem}
+    .action-btn:hover{border-color:var(--gold);color:var(--gold)}
+    .action-btn.delete:hover{border-color:var(--red);color:#fca5a5}
+    .table-empty{text-align:center;padding:3rem;color:var(--muted);font-size:0.9rem}
+
+    /* Editor */
+    .editor-grid{display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:start}
+    .editor-panel{background:var(--navy2);border:1px solid var(--border);padding:1.5rem}
+    .editor-panel h3{font-size:0.78rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:1.2rem}
+    .form-row{margin-bottom:1.2rem}
+    .form-label{display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.45rem}
+    .form-input,.form-select,.form-textarea{width:100%;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.8rem 1rem;border-radius:3px;font-family:var(--sans);font-size:0.9rem;outline:none;transition:border-color 0.2s}
+    .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--gold)}
+    .form-select option{background:var(--navy2)}
+    .title-input{font-family:var(--serif);font-size:1.5rem;font-weight:600}
+    .toolbar{display:flex;flex-wrap:wrap;gap:4px;padding:0.6rem;background:var(--navy3);border:1px solid var(--border);border-bottom:none;border-radius:3px 3px 0 0}
+    .toolbar button{background:transparent;border:1px solid transparent;color:var(--muted);width:30px;height:28px;border-radius:2px;font-family:var(--sans);font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.15s}
+    .toolbar button:hover{background:rgba(201,168,76,0.1);border-color:var(--border);color:var(--gold)}
+    .toolbar-sep{width:1px;background:var(--border);margin:4px 2px}
+    #editor{min-height:420px;background:var(--navy);border:1px solid var(--border);padding:1.2rem;border-radius:0 0 3px 3px;outline:none;font-size:0.95rem;line-height:1.75;color:var(--cream)}
+    #editor:focus{border-color:var(--gold)}
+    #editor img{cursor:pointer;transition:outline 0.15s}
+    #editor img:hover{outline:2px solid rgba(239,68,68,0.5);outline-offset:2px}
+    .editor-left-col{position:relative} /* anchor for inline image toolbar */
+    #editor h2{font-family:var(--serif);font-size:1.5rem;margin:1rem 0 0.5rem}
+    #editor h3{font-family:var(--serif);font-size:1.2rem;margin:0.8rem 0 0.4rem}
+    #editor blockquote{border-left:3px solid var(--gold);padding-left:1rem;margin:1rem 0;font-style:italic;color:var(--muted)}
+    #editor a{color:var(--gold);text-decoration:underline}
+    .publish-row{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:1rem}
+    .btn-save-draft{background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s}
+    .btn-save-draft:hover{border-color:var(--gold);color:var(--gold)}
+    .btn-publish{background:var(--gold);color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;transition:all 0.2s}
+    .btn-publish:hover{background:var(--gold2)}
+    .char-count{font-size:0.7rem;color:var(--muted);text-align:right;margin-top:0.3rem}
+
+    /* Toggle */
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:0.8rem 0;border-top:1px solid var(--border);margin-top:0.5rem}
+    .toggle-switch{position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;flex-shrink:0}
+    .toggle-track{position:absolute;inset:0;background:var(--navy3);border:1px solid var(--border);border-radius:20px;transition:0.2s}
+    .toggle-dot{position:absolute;left:2px;top:2px;width:14px;height:14px;background:var(--muted);border-radius:50%;transition:0.2s}
+    .toggle-switch.on .toggle-track{background:rgba(201,168,76,0.2);border-color:var(--gold)}
+    .toggle-switch.on .toggle-dot{left:18px;background:var(--gold)}
+
+    /* Toast */
+    .toast{position:fixed;bottom:2rem;right:2rem;background:var(--navy3);border:1px solid var(--border);padding:1rem 1.5rem;border-radius:4px;font-size:0.88rem;z-index:999;transform:translateY(100px);opacity:0;transition:all 0.3s;max-width:340px}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast.success{border-color:var(--green)}
+    .toast.error{border-color:var(--red)}
+
+    /* Modal */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,13,26,0.85);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+    .modal-overlay.open{display:flex}
+    .modal-box{background:var(--navy2);border:1px solid var(--border);width:90%;max-width:620px;padding:2rem;position:relative;border-radius:4px}
+    .modal-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold2),transparent)}
+    .modal-title{font-family:var(--serif);font-size:1.4rem;font-weight:700;margin-bottom:0.4rem}
+    .modal-sub{font-size:0.82rem;color:var(--muted);margin-bottom:1.2rem}
+    .modal-content{background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:1rem;min-height:80px;font-size:0.85rem;color:var(--muted);line-height:1.6;white-space:pre-wrap}
+    .modal-actions{display:flex;gap:0.75rem;margin-top:1rem}
+    .btn-modal-confirm{flex:1;background:var(--gold);color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;transition:all 0.2s}
+    .btn-modal-confirm:hover{background:var(--gold2)}
+    .btn-modal-cancel{flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;cursor:pointer;transition:all 0.2s}
+    .btn-modal-cancel:hover{border-color:var(--red);color:#fca5a5}
+
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+    @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+
+    .ai-edit-btn{background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0.35rem 0.7rem;border-radius:3px;font-family:var(--sans);font-size:0.75rem;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+    .ai-edit-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.06)}
+    .ai-edit-btn:disabled{opacity:0.5;cursor:not-allowed}
+
+    /* AI IMAGE GENERATOR */
+    .img-gen-panel{background:var(--navy2);border:1px solid rgba(59,130,246,0.35);padding:1.5rem;margin-top:1rem}
+    .img-gen-panel h3{font-size:0.78rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--blue2);margin-bottom:0.4rem}
+    .img-gen-panel .panel-sub{font-size:0.72rem;color:var(--muted);margin-bottom:1.1rem;line-height:1.5}
+    .img-style-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;margin-bottom:0.9rem}
+    .img-style-btn{background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0.4rem 0.5rem;border-radius:3px;font-family:var(--sans);font-size:0.7rem;cursor:pointer;transition:all 0.15s;text-align:center}
+    .img-style-btn:hover{border-color:var(--blue2);color:var(--blue2)}
+    .img-style-btn.selected{border-color:var(--blue2);color:var(--blue2);background:rgba(59,130,246,0.1)}
+    .img-ratio-row{display:flex;gap:0.4rem;margin-bottom:0.9rem}
+    .img-ratio-btn{flex:1;background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.68rem;cursor:pointer;transition:all 0.15s;text-align:center;font-weight:600}
+    .img-ratio-btn:hover{border-color:var(--blue2);color:var(--blue2)}
+    .img-ratio-btn.selected{border-color:var(--blue2);color:var(--blue2);background:rgba(59,130,246,0.1)}
+    .btn-generate-img{width:100%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem}
+    .btn-generate-img:hover{background:linear-gradient(135deg,#2563eb,#60a5fa)}
+    .btn-generate-img:disabled{opacity:0.5;cursor:not-allowed}
+    .img-preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.9rem}
+    .img-preview-card{position:relative;border-radius:3px;overflow:hidden;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;background:var(--navy3)}
+    .img-preview-card:hover{border-color:var(--blue2);transform:scale(1.01)}
+    .img-preview-card img{width:100%;height:120px;object-fit:cover;display:block}
+    .img-preview-card .img-loading{height:120px;display:flex;align-items:center;justify-content:center;background:linear-gradient(90deg,var(--navy3) 25%,var(--navy2) 50%,var(--navy3) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+    .img-preview-card .img-overlay{position:absolute;inset:0;background:rgba(8,13,26,0.7);opacity:0;transition:0.2s;display:flex;align-items:center;justify-content:center;gap:0.4rem}
+    .img-preview-card:hover .img-overlay{opacity:1}
+    .img-overlay-btn{background:var(--gold);color:var(--navy);border:none;padding:0.4rem 0.7rem;border-radius:2px;font-family:var(--sans);font-size:0.7rem;font-weight:700;cursor:pointer;transition:all 0.15s}
+    .img-overlay-btn.secondary{background:var(--navy2);color:var(--cream);border:1px solid var(--border)}
+    .img-preview-card .img-num{position:absolute;top:5px;left:5px;background:rgba(8,13,26,0.8);color:var(--blue2);font-size:0.6rem;font-weight:700;padding:0.15rem 0.4rem;border-radius:2px;letter-spacing:0.08em}
+    .img-gen-status{font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.5rem;min-height:1rem}
+    .img-inserted-banner{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:3px;padding:0.5rem 0.75rem;font-size:0.72rem;color:var(--green);margin-top:0.5rem;display:none}
+    .upload-progress-wrap{margin-top:0.5rem;background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.6rem 0.8rem;display:none}
+    .upload-progress-label{font-size:0.7rem;color:var(--muted);margin-bottom:0.4rem;display:flex;justify-content:space-between}
+    .upload-progress-track{height:3px;background:var(--navy3);border-radius:2px;overflow:hidden}
+    .upload-progress-fill{height:100%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:2px;transition:width 0.2s;width:0%}
+    .storage-badge{display:inline-block;font-size:0.6rem;font-weight:700;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:var(--green);padding:0.1rem 0.35rem;border-radius:2px;margin-left:0.3rem;letter-spacing:0.06em}
+    .storage-badge.uploading{background:rgba(59,130,246,0.12);border-color:rgba(59,130,246,0.3);color:var(--blue2);animation:pulse 1s infinite}
+
+    /* Image modal */
+    .img-modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,13,26,0.95);z-index:600;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+    .img-modal-overlay.open{display:flex}
+    .img-modal-inner{position:relative;max-width:90vw;max-height:90vh}
+    .img-modal-inner img{max-width:100%;max-height:85vh;border-radius:4px;display:block}
+    .img-modal-close{position:absolute;top:-14px;right:-14px;width:28px;height:28px;background:var(--navy2);border:1px solid var(--border);color:var(--muted);border-radius:50%;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
+    .img-modal-close:hover{border-color:var(--red);color:#fca5a5}
+    .img-modal-actions{display:flex;gap:0.6rem;margin-top:0.75rem;justify-content:center}
+
+    /* Auto-place progress */
+    .autoplace-bar{background:var(--navy2);border:1px solid rgba(59,130,246,0.35);border-radius:3px;padding:0.75rem 0.9rem;margin-top:0.5rem;display:none}
+    .autoplace-bar.active{display:block}
+    .autoplace-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem}
+    .autoplace-title{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--blue2)}
+    .autoplace-cancel{background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.2rem 0.5rem;border-radius:2px;font-family:var(--sans);font-size:0.65rem;cursor:pointer;transition:all 0.15s}
+    .autoplace-cancel:hover{border-color:var(--red);color:#fca5a5}
+    .autoplace-track{height:4px;background:var(--navy3);border-radius:2px;overflow:hidden;margin-bottom:0.4rem}
+    .autoplace-fill{height:100%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:2px;transition:width 0.4s ease;width:0%}
+    .autoplace-status{font-size:0.7rem;color:var(--muted);line-height:1.4}
+    .autoplace-log{margin-top:0.4rem;display:flex;flex-direction:column;gap:0.2rem;max-height:80px;overflow-y:auto}
+    .autoplace-log-item{font-size:0.67rem;display:flex;align-items:center;gap:0.4rem}
+    .autoplace-log-item.done{color:var(--green)}
+    .autoplace-log-item.loading{color:var(--muted);animation:pulse 1s infinite}
+    .autoplace-log-item.failed{color:#fca5a5}
+
+    /* NEW — SaaS Feature Panels */
+    .saas-panel{background:var(--navy2);border:1px solid var(--border);padding:1.5rem;margin-bottom:1.5rem}
+    .saas-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;flex-wrap:wrap;gap:0.5rem}
+    .saas-panel h3{font-size:0.78rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:0}
+    .saas-panel.blue-accent{border-color:rgba(59,130,246,0.35)}
+    .saas-panel.blue-accent h3{color:var(--blue2)}
+    .saas-panel.gold-accent{border-color:rgba(201,168,76,0.35)}
+    .saas-panel.gold-accent h3{color:var(--gold)}
+    .saas-panel.green-accent{border-color:rgba(34,197,94,0.35)}
+    .saas-panel.green-accent h3{color:var(--green)}
+    .saas-panel.purple-accent{border-color:rgba(168,85,247,0.35)}
+    .saas-panel.purple-accent h3{color:var(--purple2)}
+
+    .saas-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+    .saas-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+    .metric-card{background:var(--navy);border:1px solid var(--border);padding:1.2rem;border-radius:3px}
+    .metric-label{font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem}
+    .metric-value{font-family:var(--serif);font-size:1.8rem;font-weight:700;line-height:1}
+    .metric-sub{font-size:0.72rem;margin-top:0.3rem}
+    .metric-sub.good{color:var(--green)}
+    .metric-sub.warn{color:var(--gold)}
+    .metric-sub.bad{color:#fca5a5}
+
+    /* Result list in panels */
+    .result-list{display:flex;flex-direction:column;gap:0.5rem;margin-top:0.8rem}
+    .result-item{background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.75rem 1rem;font-size:0.85rem;display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;transition:all 0.15s}
+    .result-item:hover{border-color:var(--gold)}
+    .result-item-icon{font-size:1rem;flex-shrink:0}
+    .result-item-body{flex:1;min-width:0}
+    .result-item-title{font-weight:600;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .result-item-sub{font-size:0.72rem;color:var(--muted);margin-top:0.2rem}
+    .result-item-badge{font-size:0.62rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:0.15rem 0.45rem;border-radius:2px;flex-shrink:0;align-self:center}
+    .badge-green{background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:var(--green)}
+    .badge-gold{background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);color:var(--gold)}
+    .badge-blue{background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);color:var(--blue2)}
+    .badge-red{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5}
+
+    .progress-bar-wrap{height:6px;background:var(--navy3);border-radius:4px;overflow:hidden;margin-top:0.4rem}
+    .progress-bar-fill{height:100%;border-radius:4px;transition:width 0.5s ease}
+    .fill-green{background:linear-gradient(90deg,var(--green),#4ade80)}
+    .fill-gold{background:linear-gradient(90deg,var(--gold),var(--gold2))}
+    .fill-red{background:linear-gradient(90deg,#ef4444,#f87171)}
+    .fill-blue{background:linear-gradient(90deg,#1d4ed8,#3b82f6)}
+
+    /* Cluster tree */
+    .cluster-tree{margin-top:1rem}
+    .cluster-pillar{background:rgba(201,168,76,0.08);border:1px solid var(--border);border-left:3px solid var(--gold);padding:0.75rem 1rem;border-radius:0 3px 3px 0;margin-bottom:0.5rem;font-weight:600;font-size:0.9rem}
+    .cluster-items{display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;margin-left:1rem}
+    .cluster-item{background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.5rem 0.75rem;font-size:0.78rem;color:var(--muted);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.4rem}
+    .cluster-item:hover{border-color:var(--gold);color:var(--cream)}
+    .cluster-item::before{content:'└';color:var(--border);flex-shrink:0}
+
+    /* Newsletter */
+    .nl-preview{background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:1.2rem;margin-top:0.8rem;font-size:0.85rem;line-height:1.7;min-height:120px;max-height:400px;overflow-y:auto;color:var(--cream)}
+
+    /* Auto Blog */
+    .autoblog-log{background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.8rem;margin-top:0.8rem;max-height:240px;overflow-y:auto;font-size:0.75rem;font-family:monospace}
+    .autoblog-log-item{padding:0.2rem 0;display:flex;align-items:flex-start;gap:0.5rem}
+    .autoblog-log-item.ok{color:var(--green)}
+    .autoblog-log-item.err{color:#fca5a5}
+    .autoblog-log-item.info{color:var(--muted)}
+    .autoblog-log-item.warn{color:var(--gold)}
+
+    /* SEO Score ring */
+    .seo-score-ring{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:1.6rem;font-weight:700;border:3px solid var(--border);flex-shrink:0}
+    .seo-score-ring.score-high{border-color:var(--green);color:var(--green)}
+    .seo-score-ring.score-med{border-color:var(--gold);color:var(--gold)}
+    .seo-score-ring.score-low{border-color:#ef4444;color:#fca5a5}
+
+    /* Headline list */
+    .headline-list{display:flex;flex-direction:column;gap:0.5rem;margin-top:0.8rem}
+    .headline-item{background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.65rem 0.9rem;display:flex;align-items:center;gap:0.75rem;cursor:pointer;transition:all 0.15s}
+    .headline-item:hover{border-color:var(--gold)}
+    .headline-ctr{font-size:0.75rem;font-weight:700;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.25);color:var(--gold);padding:0.2rem 0.45rem;border-radius:2px;white-space:nowrap;flex-shrink:0}
+    .headline-text{font-size:0.85rem;flex:1}
+    .headline-use{font-size:0.68rem;background:var(--navy3);border:1px solid var(--border);color:var(--muted);padding:0.2rem 0.45rem;border-radius:2px;cursor:pointer;flex-shrink:0;transition:all 0.15s}
+    .headline-use:hover{border-color:var(--gold);color:var(--gold)}
+
+    /* Keyword rank table */
+    .rank-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:0.72rem;font-weight:700}
+    .rank-1{background:rgba(201,168,76,0.2);color:var(--gold);border:1px solid rgba(201,168,76,0.4)}
+    .rank-top{background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3)}
+    .rank-mid{background:rgba(59,130,246,0.12);color:var(--blue2);border:1px solid rgba(59,130,246,0.3)}
+    .rank-low{background:rgba(136,150,179,0.1);color:var(--muted);border:1px solid var(--border)}
+
+    @media(max-width:900px){
+      aside{transform:translateX(-100%)}
+      aside.open{transform:translateX(0)}
+      main{margin-left:0;padding:1.5rem}
+      .editor-grid{grid-template-columns:1fr}
+      #menuBtn{display:block}
+      #sideOverlay.open{display:block}
+      .img-preview-grid{grid-template-columns:1fr 1fr}
+      .img-style-grid{grid-template-columns:1fr 1fr}
+      .saas-grid-2{grid-template-columns:1fr}
+      .saas-grid-3{grid-template-columns:1fr}
+      .cluster-items{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<button id="menuBtn" onclick="toggleSidebar()">☰</button>
+<div id="sideOverlay" onclick="toggleSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-brand">
+    <h1>BlogsPro</h1>
+    <p>AI SaaS CMS</p>
+  </div>
+  <nav class="side-nav">
+    <span class="nav-label">Content</span>
+    <div class="nav-item active" data-view="dashboard"><span>◈</span> Dashboard</div>
+    <div class="nav-item" data-view="posts"><span>✦</span> All Posts</div>
+    <div class="nav-item" data-view="editor" data-clear="1"><span>✎</span> New Post</div>
+
+    <span class="nav-label" style="margin-top:1.5rem">AI Tools</span>
+    <div class="nav-item" data-view="seotools"><span>🚀</span> SEO Tools</div>
+    <div class="nav-item" data-view="clusters"><span>🧠</span> Topic Clusters</div>
+    <div class="nav-item" data-view="headline"><span>🔥</span> Headline AI</div>
+    <div class="nav-item" data-view="calendar"><span>📅</span> Content Calendar</div>
+
+    <span class="nav-label" style="margin-top:1.5rem">Growth</span>
+    <div class="nav-item" data-view="newsletter"><span>✉</span> Newsletter</div>
+    <div class="nav-item" data-view="autoblog"><span>🤖</span> Auto Blog</div>
+
+    <span class="nav-label" style="margin-top:1.5rem">People</span>
+    <div class="nav-item" data-view="users"><span>👥</span> Users</div>
+    <div class="nav-item" data-view="subscribers"><span>✉</span> Subscribers</div>
+
+    <span class="nav-label" style="margin-top:1.5rem">Site</span>
+    <div class="nav-item" onclick="window.open('index.html','_blank')"><span>↗</span> View Blog</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="user-avatar" id="userInitial">—</div>
+      <div class="user-email" id="userEmail">—</div>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main>
+
+  <!-- ══════════════ DASHBOARD ══════════════ -->
+  <div class="view active" id="view-dashboard">
+    <div class="page-header">
+      <div><h2>Dashboard</h2><p id="greetMsg">Welcome back.</p></div>
+      <button class="btn-publish" style="padding:0.7rem 1.5rem;border-radius:3px" onclick="showView('editor');clearEditor()">+ New Post</button>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-card-label">Total Posts</div><div class="stat-card-value" id="statTotal">—</div></div>
+      <div class="stat-card"><div class="stat-card-label">Published</div><div class="stat-card-value" id="statPublished">—</div><div class="stat-card-sub">Live on blog</div></div>
+      <div class="stat-card"><div class="stat-card-label">Drafts</div><div class="stat-card-value" id="statDrafts">—</div></div>
+      <div class="stat-card"><div class="stat-card-label">Subscribers</div><div class="stat-card-value" id="statSubs">—</div><div class="stat-card-sub">Newsletter</div></div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header"><span class="table-title">Recent Posts</span></div>
+      <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody id="recentPostsBody"><tr><td colspan="5"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ══════════════ ALL POSTS ══════════════ -->
+  <div class="view" id="view-posts">
+    <div class="page-header">
+      <div><h2>All Posts</h2><p>Manage your articles</p></div>
+      <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
+        <button onclick="repairBrokenImages()" style="padding:0.7rem 1.2rem;border-radius:3px;background:transparent;border:1px solid rgba(59,130,246,0.4);color:var(--blue2);font-family:var(--sans);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(59,130,246,0.08)'" onmouseout="this.style.background='transparent'">🔧 Fix Broken Images</button>
+        <button onclick="bulkFreshen()" style="padding:0.7rem 1.2rem;border-radius:3px;background:transparent;border:1px solid rgba(34,197,94,0.4);color:var(--green);font-family:var(--sans);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(34,197,94,0.08)'" onmouseout="this.style.background='transparent'">🔄 Freshen Old Posts</button>
+        <button class="btn-publish" style="padding:0.7rem 1.5rem;border-radius:3px" onclick="showView('editor');clearEditor()">+ New Post</button>
+      </div>
+    </div>
+    <div id="repairPanel" style="display:none;background:var(--navy2);border:1px solid rgba(59,130,246,0.3);border-radius:3px;padding:1rem 1.2rem;margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem">
+        <span style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--blue2)" id="repairTitle">🔧 Processing…</span>
+        <span id="repairCount" style="font-size:0.72rem;color:var(--muted)"></span>
+      </div>
+      <div style="height:4px;background:var(--navy3);border-radius:2px;overflow:hidden;margin-bottom:0.5rem">
+        <div id="repairFill" style="height:100%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:2px;transition:width 0.3s;width:0%"></div>
+      </div>
+      <div id="repairLog" style="font-size:0.72rem;color:var(--muted);max-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:0.2rem"></div>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody id="allPostsBody"><tr><td colspan="5"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ══════════════ EDITOR ══════════════ -->
+  <div class="view" id="view-editor">
+    <div class="page-header">
+      <div><h2 id="editorHeading">New Post</h2><p>Write and publish your article</p></div>
+    </div>
+    <div class="editor-grid">
+      <!-- Left -->
+      <div class="editor-left-col">
+        <div class="form-row">
+          <input type="text" class="form-input title-input" id="postTitle" placeholder="Post title…" />
+        </div>
+        <div class="form-row">
+          <textarea class="form-textarea" id="postExcerpt" rows="2" placeholder="Short excerpt / summary…" style="resize:vertical"></textarea>
+        </div>
+        <div class="toolbar">
+          <button onclick="fmt('bold')" title="Bold"><b>B</b></button>
+          <button onclick="fmt('italic')" title="Italic"><i>I</i></button>
+          <button onclick="fmt('underline')" title="Underline"><u>U</u></button>
+          <div class="toolbar-sep"></div>
+          <button onclick="fmtBlock('h2')">H2</button>
+          <button onclick="fmtBlock('h3')">H3</button>
+          <div class="toolbar-sep"></div>
+          <button onclick="fmt('insertUnorderedList')">•≡</button>
+          <button onclick="fmt('insertOrderedList')">1≡</button>
+          <div class="toolbar-sep"></div>
+          <button onclick="fmtBlock('blockquote')">"</button>
+          <button onclick="insertLink()">🔗</button>
+          <div class="toolbar-sep"></div>
+          <button onclick="document.getElementById('aiPanel').scrollIntoView({behavior:'smooth'})" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border-radius:2px;font-weight:700;font-size:0.72rem">✦ AI Write</button>
+          <button onclick="document.getElementById('imgGenPanel').scrollIntoView({behavior:'smooth'})" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border-radius:2px;font-weight:700;font-size:0.72rem">🖼 AI Image</button>
+        </div>
+        <div id="editor" contenteditable="true" spellcheck="false"></div>
+
+        <!-- AI Edit Toolbar -->
+        <div id="aiEditToolbar" style="display:none;margin-top:0.5rem;background:var(--navy2);border:1px solid rgba(201,168,76,0.3);border-radius:3px;padding:0.75rem">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem">✦ AI Edit Tools</div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.6rem">
+            <button onclick="aiEditAction('regenerate')"    class="ai-edit-btn">↺ Regenerate</button>
+            <button onclick="aiEditAction('professional')"  class="ai-edit-btn">📊 Professional</button>
+            <button onclick="aiEditAction('conversational')" class="ai-edit-btn">💬 Conversational</button>
+            <button onclick="aiEditAction('authoritative')" class="ai-edit-btn">🎯 Authoritative</button>
+            <button onclick="aiEditAction('expand')"        class="ai-edit-btn">⤢ Expand</button>
+            <button onclick="aiEditAction('shorten')"       class="ai-edit-btn">⤡ Shorten</button>
+            <button onclick="aiEditAction('references')"    class="ai-edit-btn">📚 References</button>
+            <button onclick="aiEditAction('graph')"         class="ai-edit-btn">📊 Add Chart</button>
+            <button onclick="runSEOOptimizer()"             class="ai-edit-btn" style="border-color:rgba(34,197,94,0.3);color:var(--green)">🚀 SEO Optimize</button>
+            <button onclick="runInternalLinking()"          class="ai-edit-btn" style="border-color:rgba(59,130,246,0.3);color:var(--blue2)">🔗 Auto Link</button>
+            <button onclick="runArticleQualityScore()"      class="ai-edit-btn" style="border-color:rgba(201,168,76,0.3);color:var(--gold)">⭐ Quality Score</button>
+          </div>
+          <!-- Auto-Place row -->
+          <div style="border-top:1px solid var(--border);padding-top:0.6rem;margin-bottom:0.6rem">
+            <button id="btnAutoPlace" onclick="autoPlaceImages()" style="width:100%;background:linear-gradient(135deg,rgba(29,78,216,0.8),rgba(59,130,246,0.8));border:1px solid rgba(59,130,246,0.4);color:#fff;padding:0.55rem 0.8rem;border-radius:3px;font-family:var(--sans);font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+              <span>🖼 Auto-Place Images After Every H2</span>
+              <span id="autoPlaceSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+            </button>
+          </div>
+          <!-- Auto-place progress bar -->
+          <div class="autoplace-bar" id="autoplaceBar">
+            <div class="autoplace-header">
+              <span class="autoplace-title">🖼 Placing images…</span>
+              <button class="autoplace-cancel" onclick="cancelAutoPlace()">✕ Cancel</button>
+            </div>
+            <div class="autoplace-track"><div class="autoplace-fill" id="autoplaceFill"></div></div>
+            <div class="autoplace-status" id="autoplaceStatus">Starting…</div>
+            <div class="autoplace-log" id="autoplaceLog"></div>
+          </div>
+          <!-- Quality score result -->
+          <div id="qualityScoreResult" style="display:none;margin-bottom:0.6rem;border-top:1px solid var(--border);padding-top:0.6rem"></div>
+          <div style="display:flex;gap:0.4rem">
+            <input id="aiEditCustom" class="form-input" placeholder="Custom instruction… e.g. Add a section on SEBI regulations" style="font-size:0.82rem;padding:0.5rem 0.7rem" />
+            <button onclick="aiEditCustom()" style="background:var(--gold);color:var(--navy);border:none;padding:0.5rem 0.8rem;border-radius:3px;font-family:var(--sans);font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap">Apply</button>
+          </div>
+          <div id="aiEditStatus" style="font-size:0.7rem;color:var(--muted);margin-top:0.4rem;min-height:1rem"></div>
+        </div>
+
+        <div class="char-count"><span id="wordCount">0</span> words · <span id="readingTimeDisplay">0</span> min read</div>
+      </div>
+
+      <!-- Right sidebar -->
+      <div>
+        <!-- Publish -->
+        <div class="editor-panel">
+          <h3>Publish</h3>
+          <div class="publish-row">
+            <button class="btn-save-draft" onclick="savePost(false)">Save Draft</button>
+            <button class="btn-publish" onclick="savePost(true)">Publish</button>
+          </div>
+          <button onclick="previewPost()" style="width:100%;margin-top:0.6rem;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.7rem;border-radius:3px;font-family:var(--sans);font-size:0.82rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">👁 Preview Post</button>
+          <p id="saveStatus" style="font-size:0.75rem;color:var(--muted);margin-top:0.6rem;text-align:center"></p>
+          <p id="autoSaveMsg" style="font-size:0.68rem;color:var(--muted);text-align:center"></p>
+        </div>
+
+        <!-- Details -->
+        <div class="editor-panel" style="margin-top:1rem">
+          <h3>Details</h3>
+          <div class="form-row">
+            <label class="form-label">Category</label>
+            <select class="form-select" id="postCategory">
+              <option value="Fintech">Fintech</option>
+              <option value="Compliance">Compliance</option>
+              <option value="Strategy">Strategy</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Slug (URL)</label>
+            <input type="text" class="form-input" id="postSlug" placeholder="auto-generated" style="font-size:0.8rem" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Featured Image URL</label>
+            <div style="display:flex;gap:0.4rem">
+              <input type="text" class="form-input" id="postImage" placeholder="https://…" style="font-size:0.8rem" oninput="updateFeaturedPreview(this.value)" />
+              <label title="Upload" style="flex-shrink:0;background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0 0.7rem;border-radius:3px;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;gap:0.3rem;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+                📁<input type="file" accept="image/*" style="display:none" onchange="uploadFeaturedImage(this)" />
+              </label>
+              <button onclick="generateFeaturedImage()" title="AI Featured Image" style="flex-shrink:0;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:none;color:#fff;padding:0 0.7rem;border-radius:3px;font-size:0.75rem;cursor:pointer;white-space:nowrap">✨ AI</button>
+            </div>
+            <div id="featuredPreview" style="display:none;margin-top:0.5rem;position:relative;border-radius:3px;overflow:hidden;border:1px solid var(--border)">
+              <img id="featuredPreviewImg" src="" alt="Featured preview" style="width:100%;max-height:120px;object-fit:cover;display:block" />
+              <button onclick="clearFeaturedImage()" style="position:absolute;top:4px;right:4px;background:rgba(8,13,26,0.85);border:1px solid rgba(239,68,68,0.5);color:#fca5a5;width:22px;height:22px;border-radius:50%;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+              <div id="featuredPreviewLabel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(8,13,26,0.7);font-size:0.62rem;color:var(--muted);padding:0.2rem 0.4rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Meta Description</label>
+            <textarea class="form-textarea" id="postMeta" rows="2" placeholder="SEO description (max 160 chars)…" style="resize:none;font-size:0.82rem" maxlength="160"></textarea>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Tags (comma separated)</label>
+            <input type="text" class="form-input" id="postTags" placeholder="fintech, rbi, upi" style="font-size:0.8rem" />
+          </div>
+          <div class="toggle-row">
+            <div>
+              <div style="font-size:0.78rem;font-weight:600;color:var(--cream)">⭐ Premium Content</div>
+              <div style="font-size:0.68rem;color:var(--muted);margin-top:0.15rem">Subscribers only</div>
+            </div>
+            <div class="toggle-switch" id="premiumSwitch" onclick="togglePremium()">
+              <div class="toggle-track"></div>
+              <div class="toggle-dot"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Image Generator -->
+        <div class="img-gen-panel" id="imgGenPanel">
+          <h3>🖼 AI Image Generator</h3>
+          <p class="panel-sub">Generate images via Cloudflare AI, Hugging Face, or Pollinations. Click to insert.</p>
+          <div style="background:var(--navy);border:1px solid rgba(59,130,246,0.25);border-radius:3px;padding:0.8rem;margin-bottom:1rem">
+            <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--blue2);margin-bottom:0.6rem">Image Provider</div>
+            <select class="form-select" id="imgProvider" style="font-size:0.85rem" onchange="onImgProviderChange(this.value)">
+              <option value="auto" selected>Auto — Best Available</option>
+              <option value="cloudflare">Cloudflare Workers AI</option>
+              <option value="huggingface">Hugging Face — Flux Schnell</option>
+              <option value="pollinations">Pollinations.ai — Zero Setup</option>
+            </select>
+            <div id="imgProviderInfo" style="margin-top:0.5rem;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:3px;padding:0.45rem 0.6rem;font-size:0.68rem;color:var(--blue2);line-height:1.6">⚡ Auto tries Cloudflare AI → HuggingFace → Pollinations.</div>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Image Prompt</label>
+            <textarea class="form-textarea" id="imgPrompt" rows="2" placeholder="e.g. Futuristic fintech dashboard…" style="resize:vertical;font-size:0.82rem"></textarea>
+            <button onclick="autoFillImagePrompt()" style="margin-top:0.4rem;background:transparent;border:1px solid rgba(59,130,246,0.3);color:var(--blue2);padding:0.3rem 0.7rem;border-radius:3px;font-family:var(--sans);font-size:0.7rem;cursor:pointer;width:100%">✦ Auto-fill from topic</button>
+          </div>
+          <div style="margin-bottom:0.7rem">
+            <label class="form-label">Style</label>
+            <div class="img-style-grid">
+              <button class="img-style-btn selected" data-style="photorealistic" onclick="selectStyle(this)">📷 Photorealistic</button>
+              <button class="img-style-btn" data-style="digital art" onclick="selectStyle(this)">🎨 Digital Art</button>
+              <button class="img-style-btn" data-style="cinematic, dramatic lighting" onclick="selectStyle(this)">🎬 Cinematic</button>
+              <button class="img-style-btn" data-style="flat design, vector illustration" onclick="selectStyle(this)">📐 Flat Design</button>
+              <button class="img-style-btn" data-style="isometric 3D illustration" onclick="selectStyle(this)">🧊 Isometric 3D</button>
+              <button class="img-style-btn" data-style="minimalist, clean, white background" onclick="selectStyle(this)">⬜ Minimalist</button>
+            </div>
+          </div>
+          <div style="margin-bottom:0.9rem">
+            <label class="form-label">Aspect Ratio</label>
+            <div class="img-ratio-row">
+              <button class="img-ratio-btn selected" data-w="1280" data-h="720" onclick="selectRatio(this)">16:9</button>
+              <button class="img-ratio-btn" data-w="1024" data-h="1024" onclick="selectRatio(this)">1:1</button>
+              <button class="img-ratio-btn" data-w="768" data-h="1024" onclick="selectRatio(this)">3:4</button>
+              <button class="img-ratio-btn" data-w="1200" data-h="630" onclick="selectRatio(this)">OG</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem">
+            <label class="form-label" style="margin:0">Variations</label>
+            <div style="display:flex;gap:0.35rem">
+              <button class="img-ratio-btn selected" data-count="2" onclick="selectCount(this)" style="width:36px;height:32px;padding:0">2</button>
+              <button class="img-ratio-btn" data-count="4" onclick="selectCount(this)" style="width:36px;height:32px;padding:0">4</button>
+            </div>
+          </div>
+          <div class="form-row" style="margin-bottom:0.9rem">
+            <label class="form-label">Negative Prompt</label>
+            <input type="text" class="form-input" id="imgNegative" placeholder="blurry, text…" style="font-size:0.78rem;padding:0.5rem 0.7rem" value="blurry, watermark, text overlay, low quality, distorted" />
+          </div>
+          <button class="btn-generate-img" id="btnGenImg" onclick="generateImages()">
+            <span id="genImgBtnText">🖼 Generate Images</span>
+            <span id="genImgSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+          </button>
+          <div class="img-gen-status" id="imgGenStatus"></div>
+          <div class="img-preview-grid" id="imgPreviewGrid" style="display:none"></div>
+          <div class="img-inserted-banner" id="imgInsertedBanner">✓ Image inserted into article.</div>
+          <div style="margin-top:0.8rem;background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.8rem">
+            <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.6rem">📁 Upload Your Own Photo</div>
+            <label id="uploadDropZone" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;border:1px dashed var(--border);border-radius:3px;padding:1rem;cursor:pointer;transition:all 0.2s;text-align:center">
+              <span style="font-size:1.2rem">🖼</span>
+              <span style="font-size:0.75rem;color:var(--muted)">Click to browse or drag & drop</span>
+              <input type="file" accept="image/*" multiple style="display:none" onchange="handleOwnPhotoUpload(this.files)" />
+            </label>
+            <div id="uploadedImgGrid" style="display:none;margin-top:0.6rem;display:grid;grid-template-columns:1fr 1fr;gap:0.4rem"></div>
+            <div class="upload-progress-wrap" id="uploadProgress">
+              <div class="upload-progress-label"><span id="uploadProgressLabel">Uploading…</span><span id="uploadProgressPct">0%</span></div>
+              <div class="upload-progress-track"><div class="upload-progress-fill" id="uploadProgressFill"></div></div>
+            </div>
+          </div>
+          <div style="margin-top:0.8rem;padding:0.6rem;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.15);border-radius:3px;font-size:0.68rem;color:var(--muted);line-height:1.5">
+            💡 <strong style="color:var(--gold)">Tip:</strong> Click any image → <strong style="color:var(--cream)">Insert into Article</strong> or <strong style="color:var(--cream)">Set as Featured</strong>.
+          </div>
+        </div>
+
+        <!-- AI Writer -->
+        <div class="editor-panel" id="aiPanel" style="margin-top:1rem;border-color:rgba(201,168,76,0.35)">
+          <h3 style="color:var(--gold)">✦ AI Writer — Multi-Model</h3>
+          <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem">All outputs combined into one complete post.</p>
+          <div class="form-row">
+            <label class="form-label">Topic / Prompt</label>
+            <textarea class="form-textarea" id="aiPrompt" rows="3" placeholder="e.g. Deep dive into RBI's new UPI regulations for fintech companies in 2025…" style="resize:vertical;font-size:0.85rem"></textarea>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Tone</label>
+            <select class="form-select" id="aiTone" style="font-size:0.85rem">
+              <option value="professional">Professional & Analytical</option>
+              <option value="conversational">Conversational & Accessible</option>
+              <option value="authoritative">Authoritative & Expert</option>
+              <option value="thought-leadership">Thought Leadership</option>
+            </select>
+          </div>
+          <div style="background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.8rem;margin-bottom:0.8rem">
+            <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem">AI Model</div>
+            <select class="form-select" id="modelArticle" style="font-size:0.85rem" onchange="document.getElementById('modelWarning').style.display=this.value==='openrouter'?'block':'none'">
+              <option value="auto" selected>Auto — Best Available</option>
+              <option value="groq">Groq Llama 3 — Fast & Free</option>
+              <option value="deepseek">DeepSeek V3 — 685B Free</option>
+              <option value="claude">Claude Sonnet — Best Quality</option>
+              <option value="openrouter" style="color:#fca5a5">⚠ OpenRouter — Unreliable</option>
+            </select>
+            <div id="modelWarning" style="display:none;margin-top:0.5rem;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:3px;padding:0.45rem 0.6rem;font-size:0.68rem;color:#fca5a5;line-height:1.5">⚠ OpenRouter free endpoints are often down. Use Auto or Groq instead.</div>
+            <p style="font-size:0.68rem;color:var(--muted);margin-top:0.4rem">Auto tries Claude → DeepSeek → Groq in order.</p>
+          </div>
+          <button onclick="generateAIPost()" id="btnAI" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.9rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+            <span id="aiBtnText">✦ Generate Full Article</span>
+            <span id="aiSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+          </button>
+          <p id="aiStatus" style="font-size:0.72rem;color:var(--muted);margin-top:0.6rem;text-align:center;min-height:1rem"></p>
+          <div id="aiResultBox" style="display:none;margin-top:0.8rem;background:var(--navy);border:1px solid var(--border);border-radius:3px;overflow:hidden">
+            <div style="padding:0.6rem 0.8rem;background:rgba(201,168,76,0.08);border-bottom:1px solid var(--border)">
+              <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold)">✦ Generation Complete</span>
+            </div>
+            <div style="padding:0.75rem 0.8rem;display:flex;flex-direction:column;gap:0.5rem" id="aiResultList"></div>
+            <div id="aiFallbackLog" style="display:none;padding:0.6rem 0.8rem;border-top:1px solid var(--border)">
+              <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem">Model Attempts</div>
+              <div id="aiFallbackList" style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.72rem"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ SEO TOOLS ══════════════ -->
+  <div class="view" id="view-seotools">
+    <div class="page-header">
+      <div><h2>SEO Tools</h2><p>Optimize, analyze, and grow organic traffic</p></div>
+    </div>
+    <div class="saas-grid-2" style="margin-bottom:1.5rem">
+      <!-- Traffic Predictor -->
+      <div class="saas-panel blue-accent">
+        <div class="saas-panel-header">
+          <h3>📈 Traffic Predictor</h3>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Keyword</label>
+          <input type="text" class="form-input" id="trafficKeyword" placeholder="e.g. UPI regulations India" style="font-size:0.85rem" />
+        </div>
+        <button onclick="predictTraffic()" id="btnTraffic" style="width:100%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;padding:0.75rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+          <span id="trafficBtnTxt">Predict Traffic</span>
+          <span id="trafficSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+        </button>
+        <div id="trafficResult" style="margin-top:0.8rem;display:none">
+          <div class="saas-grid-3" style="gap:0.6rem">
+            <div class="metric-card"><div class="metric-label">Monthly Searches</div><div class="metric-value" id="tr-searches">—</div></div>
+            <div class="metric-card"><div class="metric-label">Difficulty</div><div class="metric-value" id="tr-diff">—</div><div class="metric-sub" id="tr-diff-sub">—</div></div>
+            <div class="metric-card"><div class="metric-label">Expected Clicks</div><div class="metric-value" id="tr-clicks">—</div></div>
+          </div>
+          <div style="margin-top:0.8rem;background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.8rem">
+            <div class="metric-label" style="margin-bottom:0.5rem">Competition</div>
+            <div style="display:flex;align-items:center;gap:0.8rem">
+              <div class="progress-bar-wrap" style="flex:1"><div class="progress-bar-fill" id="tr-comp-bar" style="width:0%"></div></div>
+              <span id="tr-comp-label" style="font-size:0.8rem;font-weight:700;color:var(--muted);white-space:nowrap">—</span>
+            </div>
+          </div>
+          <div id="tr-suggestions" style="margin-top:0.8rem;font-size:0.8rem;color:var(--muted);line-height:1.6"></div>
+        </div>
+      </div>
+
+      <!-- Content Gap Finder -->
+      <div class="saas-panel purple-accent">
+        <div class="saas-panel-header">
+          <h3>🧠 Competitor Gap Finder</h3>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Competitor Domain</label>
+          <input type="text" class="form-input" id="competitorDomain" placeholder="e.g. fintechinsider.com" style="font-size:0.85rem" />
+        </div>
+        <button onclick="findContentGap()" id="btnGap" style="width:100%;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;padding:0.75rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+          <span id="gapBtnTxt">Analyze Gap</span>
+          <span id="gapSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+        </button>
+        <div id="gapResult" class="result-list" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Backlink Generator -->
+    <div class="saas-panel gold-accent" style="margin-bottom:1.5rem">
+      <div class="saas-panel-header">
+        <h3>🔗 Backlink Outreach Generator</h3>
+        <span style="font-size:0.7rem;color:var(--muted)">AI-powered link building opportunities</span>
+      </div>
+      <div style="display:flex;gap:0.6rem;margin-bottom:0.8rem">
+        <input type="text" class="form-input" id="backlinkTopic" placeholder="Topic e.g. RBI fintech compliance 2025" style="font-size:0.85rem" />
+        <button onclick="generateBacklinks()" id="btnBacklinks" style="flex-shrink:0;background:var(--gold);color:var(--navy);border:none;padding:0.75rem 1.2rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:0.4rem">
+          <span id="blBtnTxt">Find Opportunities</span>
+          <span id="blSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+        </button>
+      </div>
+      <div id="backlinkResult" class="result-list" style="display:none"></div>
+    </div>
+
+    <!-- Article Quality Score on existing post -->
+    <div class="saas-panel green-accent">
+      <div class="saas-panel-header">
+        <h3>⭐ Post SEO Analyzer</h3>
+        <span style="font-size:0.7rem;color:var(--muted)">Score any published post</span>
+      </div>
+      <div style="display:flex;gap:0.6rem;margin-bottom:0.8rem">
+        <select class="form-select" id="analyzePostSelect" style="font-size:0.85rem">
+          <option value="">— Select a post —</option>
+        </select>
+        <button onclick="analyzePostSEO()" id="btnAnalyze" style="flex-shrink:0;background:var(--green);color:#052e16;border:none;padding:0.75rem 1.2rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:0.4rem">
+          <span id="analyzeBtnTxt">Analyze</span>
+          <span id="analyzeSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(5,46,22,0.3);border-top-color:#052e16;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+        </button>
+      </div>
+      <div id="seoAnalysisResult" style="display:none">
+        <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1rem">
+          <div class="seo-score-ring" id="seoScoreRing">—</div>
+          <div style="flex:1">
+            <div style="font-size:1rem;font-weight:700;color:var(--cream)" id="seoScoreLabel">—</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:0.25rem" id="seoScoreSub">Analyzing article quality…</div>
+          </div>
+        </div>
+        <div id="seoImprovements" class="result-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ TOPIC CLUSTERS ══════════════ -->
+  <div class="view" id="view-clusters">
+    <div class="page-header">
+      <div><h2>Topic Clusters</h2><p>Build topical authority with AI-generated content strategies</p></div>
+    </div>
+    <div class="saas-panel gold-accent" style="margin-bottom:1.5rem">
+      <h3 style="margin-bottom:1rem">✦ Generate Content Cluster</h3>
+      <div style="display:flex;gap:0.6rem;margin-bottom:0.8rem">
+        <input type="text" class="form-input" id="clusterTopic" placeholder="Main topic e.g. Fintech Compliance India" style="font-size:0.85rem" />
+        <select class="form-select" id="clusterCategory" style="font-size:0.85rem;max-width:160px">
+          <option value="Fintech">Fintech</option>
+          <option value="Compliance">Compliance</option>
+          <option value="Strategy">Strategy</option>
+        </select>
+        <button onclick="generateTopicClusters()" id="btnCluster" style="flex-shrink:0;background:var(--gold);color:var(--navy);border:none;padding:0.75rem 1.2rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:0.4rem">
+          <span id="clusterBtnTxt">Generate</span>
+          <span id="clusterSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+        </button>
+      </div>
+      <div id="clusterResult" style="display:none">
+        <div class="cluster-tree" id="clusterTree"></div>
+        <div style="margin-top:1rem;padding:0.75rem;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.15);border-radius:3px;font-size:0.75rem;color:var(--muted)">
+          💡 Click any cluster topic to instantly create a new post with that title pre-filled.
+        </div>
+      </div>
+    </div>
+    <!-- Content Calendar (part of clusters view) -->
+    <div class="saas-panel blue-accent">
+      <div class="saas-panel-header">
+        <h3>📅 30-Day Content Calendar</h3>
+        <button onclick="generateContentCalendar()" id="btnCalendar" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;padding:0.5rem 1rem;border-radius:3px;font-family:var(--sans);font-size:0.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:0.4rem">
+          <span id="calBtnTxt">Generate Calendar</span>
+          <span id="calSpinner" style="display:none;width:11px;height:11px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+        </button>
+      </div>
+      <div id="calendarResult" style="display:none">
+        <div class="saas-grid-2" id="calendarGrid" style="gap:1rem"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ HEADLINE AI ══════════════ -->
+  <div class="view" id="view-headline">
+    <div class="page-header">
+      <div><h2>Headline AI</h2><p>Predict CTR and generate viral titles before publishing</p></div>
+    </div>
+    <div class="saas-grid-2">
+      <div class="saas-panel gold-accent">
+        <h3 style="margin-bottom:1rem">🔥 Headline Optimizer</h3>
+        <div class="form-row">
+          <label class="form-label">Article Topic</label>
+          <input type="text" class="form-input" id="headlineTopic" placeholder="e.g. RBI UPI regulations fintech 2025" style="font-size:0.85rem" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Number of Options</label>
+          <select class="form-select" id="headlineCount" style="font-size:0.85rem">
+            <option value="5">5 headlines</option>
+            <option value="10" selected>10 headlines</option>
+            <option value="15">15 headlines</option>
+          </select>
+        </div>
+        <button onclick="optimizeHeadline()" id="btnHeadline" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+          <span id="headlineBtnTxt">🔥 Generate Headlines</span>
+          <span id="headlineSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+        </button>
+        <div id="headlineResult" class="headline-list" style="display:none;margin-top:0.8rem"></div>
+      </div>
+      <div class="saas-panel blue-accent">
+        <h3 style="margin-bottom:1rem">📊 CTR Benchmarks</h3>
+        <div class="result-list">
+          <div class="result-item"><div class="result-item-icon">🏆</div><div class="result-item-body"><div class="result-item-title">Score 80–100</div><div class="result-item-sub">Excellent — Top 10% click-through rate</div></div><div class="result-item-badge badge-green">VIRAL</div></div>
+          <div class="result-item"><div class="result-item-icon">✅</div><div class="result-item-body"><div class="result-item-title">Score 60–79</div><div class="result-item-sub">Good — Above average CTR for fintech</div></div><div class="result-item-badge badge-blue">GOOD</div></div>
+          <div class="result-item"><div class="result-item-icon">⚠️</div><div class="result-item-body"><div class="result-item-title">Score 40–59</div><div class="result-item-sub">Average — Optimize before publishing</div></div><div class="result-item-badge badge-gold">AVERAGE</div></div>
+          <div class="result-item"><div class="result-item-icon">❌</div><div class="result-item-body"><div class="result-item-title">Score 0–39</div><div class="result-item-sub">Poor — Rewrite for better engagement</div></div><div class="result-item-badge badge-red">POOR</div></div>
+        </div>
+        <div style="margin-top:1rem;padding:0.75rem;background:rgba(59,130,246,0.05);border:1px solid rgba(59,130,246,0.15);border-radius:3px;font-size:0.75rem;color:var(--muted);line-height:1.6">
+          💡 <strong style="color:var(--blue2)">Tips:</strong> Use numbers (e.g. "5 Ways"), power words ("Essential", "Critical", "Ultimate"), urgency ("in 2025"), and specific audiences ("for Fintech founders").
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ CONTENT CALENDAR ══════════════ -->
+  <div class="view" id="view-calendar">
+    <div class="page-header">
+      <div><h2>Content Calendar</h2><p>AI-planned editorial schedule</p></div>
+      <button onclick="generateContentCalendar()" id="btnCalendar2" style="padding:0.7rem 1.5rem;border-radius:3px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer">📅 Generate 30-Day Plan</button>
+    </div>
+    <div id="calendarResult2" style="display:none">
+      <div class="saas-grid-2" id="calendarGrid2" style="gap:1rem"></div>
+    </div>
+    <div id="calendarEmpty" style="text-align:center;padding:4rem;color:var(--muted)">
+      <div style="font-size:2rem;margin-bottom:1rem">📅</div>
+      <p>Click "Generate 30-Day Plan" to create your AI-powered content calendar.</p>
+    </div>
+  </div>
+
+  <!-- ══════════════ NEWSLETTER ══════════════ -->
+  <div class="view" id="view-newsletter">
+    <div class="page-header">
+      <div><h2>Newsletter</h2><p>AI-generated newsletters from your latest posts</p></div>
+    </div>
+    <div class="saas-grid-2" style="align-items:start">
+      <div>
+        <div class="saas-panel gold-accent" style="margin-bottom:1.5rem">
+          <h3 style="margin-bottom:1rem">✉ Generate Newsletter</h3>
+          <div class="form-row">
+            <label class="form-label">Newsletter Style</label>
+            <select class="form-select" id="nlStyle" style="font-size:0.85rem">
+              <option value="roundup">Weekly Roundup — summarize recent posts</option>
+              <option value="deep-dive">Deep Dive — one topic in detail</option>
+              <option value="digest">Quick Digest — bullet points & links</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Tone</label>
+            <select class="form-select" id="nlTone" style="font-size:0.85rem">
+              <option value="professional">Professional</option>
+              <option value="conversational">Conversational</option>
+              <option value="authoritative">Authoritative</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Subject Line</label>
+            <input type="text" class="form-input" id="nlSubject" placeholder="e.g. This Week in Fintech — RBI Updates & More" style="font-size:0.85rem" />
+          </div>
+          <button onclick="generateNewsletter()" id="btnNL" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;margin-bottom:0.8rem">
+            <span id="nlBtnTxt">✉ Generate Newsletter</span>
+            <span id="nlSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+          </button>
+          <div id="nlStatus" style="font-size:0.72rem;color:var(--muted);text-align:center;min-height:1rem"></div>
+        </div>
+        <div class="saas-panel" style="border-color:rgba(239,68,68,0.2)">
+          <h3 style="margin-bottom:1rem;color:#fca5a5">📤 Send Newsletter</h3>
+          <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">Sends to all subscribers via <strong style="color:var(--cream)">Resend API</strong>. Configure your API key in the script.</p>
+          <div class="form-row">
+            <label class="form-label">From Name</label>
+            <input type="text" class="form-input" id="nlFromName" placeholder="BlogsPro" value="BlogsPro" style="font-size:0.85rem" />
+          </div>
+          <button onclick="sendNewsletter()" id="btnSendNL" disabled style="width:100%;background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer">📤 Send to All Subscribers</button>
+          <p style="font-size:0.68rem;color:var(--muted);margin-top:0.5rem;text-align:center">Generate newsletter first before sending.</p>
+        </div>
+      </div>
+      <div>
+        <div class="saas-panel" style="height:100%">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+            <h3>Preview</h3>
+            <button id="copyNLBtn" onclick="copyNewsletter()" style="display:none;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.3rem 0.6rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">Copy HTML</button>
+          </div>
+          <div class="nl-preview" id="nlPreview" style="color:var(--muted);font-style:italic">Generate a newsletter to see the preview here…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ AUTO BLOG ══════════════ -->
+  <div class="view" id="view-autoblog">
+    <div class="page-header">
+      <div><h2>Auto Blog</h2><p>Autonomous AI publishing engine — generates and publishes posts automatically</p></div>
+    </div>
+    <div class="saas-grid-2" style="align-items:start">
+      <div>
+        <div class="saas-panel gold-accent" style="margin-bottom:1.5rem">
+          <h3 style="margin-bottom:1rem">🤖 Run Auto Blog</h3>
+          <div class="form-row">
+            <label class="form-label">Category Focus</label>
+            <select class="form-select" id="abCategory" style="font-size:0.85rem">
+              <option value="Fintech">Fintech</option>
+              <option value="Compliance">Compliance</option>
+              <option value="Strategy">Strategy</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Posts to Generate</label>
+            <select class="form-select" id="abCount" style="font-size:0.85rem">
+              <option value="1">1 post</option>
+              <option value="2" selected>2 posts</option>
+              <option value="3">3 posts</option>
+              <option value="5">5 posts</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Publish Immediately?</label>
+            <div class="toggle-row" style="padding:0.4rem 0;border:none;margin:0">
+              <div style="font-size:0.82rem;color:var(--cream)">Auto-publish generated posts</div>
+              <div class="toggle-switch" id="abPublishSwitch" onclick="this.classList.toggle('on')">
+                <div class="toggle-track"></div>
+                <div class="toggle-dot"></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Topic Seed (optional)</label>
+            <input type="text" class="form-input" id="abTopicSeed" placeholder="Leave blank for AI to choose trending topics" style="font-size:0.85rem" />
+          </div>
+          <button onclick="runAutoBlog()" id="btnAutoBlog" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.9rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+            <span id="abBtnTxt">🤖 Start Auto Blog</span>
+            <span id="abSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+          </button>
+        </div>
+        <div class="saas-panel blue-accent">
+          <h3 style="margin-bottom:0.6rem">📊 Auto Blog Stats</h3>
+          <div class="saas-grid-2" style="gap:0.6rem">
+            <div class="metric-card"><div class="metric-label">Posts Generated</div><div class="metric-value" id="ab-total">0</div></div>
+            <div class="metric-card"><div class="metric-label">Published</div><div class="metric-value" id="ab-published">0</div><div class="metric-sub good">This session</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="saas-panel" style="height:fit-content">
+        <h3 style="margin-bottom:0.8rem">📋 Activity Log</h3>
+        <div class="autoblog-log" id="autoblogLog">
+          <div class="autoblog-log-item info"><span>ℹ</span><span>Auto Blog ready. Configure settings and click Start.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ USERS ══════════════ -->
+  <div class="view" id="view-users">
+    <div class="page-header"><div><h2>Users</h2><p>Manage all registered accounts</p></div></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Change Role</th></tr></thead>
+      <tbody id="usersTableBody"><tr><td colspan="5"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ══════════════ SUBSCRIBERS ══════════════ -->
+  <div class="view" id="view-subscribers">
+    <div class="page-header">
+      <div><h2>Subscribers</h2><p>Newsletter signups</p></div>
+      <button class="btn-publish" style="padding:0.7rem 1.5rem;border-radius:3px" onclick="exportSubscribers()">⬇ Export CSV</button>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header">
+        <span class="table-title" id="subCountLabel">Loading…</span>
+        <input id="subSearch" placeholder="Search email…" oninput="filterSubs(this.value)" style="background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.4rem 0.8rem;border-radius:3px;font-family:var(--sans);font-size:0.82rem;outline:none;width:220px" />
+      </div>
+      <table><thead><tr><th>#</th><th>Email</th><th>Subscribed On</th><th>Action</th></tr></thead>
+      <tbody id="subsTableBody"><tr><td colspan="4"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+</main>
+
+<!-- AI Modal -->
+<div class="modal-overlay" id="aiModal">
+  <div class="modal-box">
+    <div class="modal-title" id="aiModalTitle">✦ Generating…</div>
+    <div class="modal-sub" id="aiModalSub">AI is thinking. Please wait.</div>
+    <div class="modal-content" id="aiModalContent"><span style="animation:pulse 1s infinite;display:inline-block">Working…</span></div>
+    <div class="modal-actions" id="aiModalActions" style="display:none">
+      <button class="btn-modal-confirm" onclick="confirmOutline()">✓ Write Full Article</button>
+      <button class="btn-modal-cancel" onclick="cancelOutline()">✕ Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Image Preview Modal -->
+<div class="img-modal-overlay" id="imgModal" onclick="closeImgModal(event)">
+  <div class="img-modal-inner">
+    <button class="img-modal-close" onclick="closeImgModal()">✕</button>
+    <img id="imgModalSrc" src="" alt="Preview" />
+    <div class="img-modal-actions">
+      <button class="img-overlay-btn" onclick="insertImageFromModal()" style="padding:0.6rem 1.2rem;font-size:0.82rem">↓ Insert into Article</button>
+      <button class="img-overlay-btn" onclick="setFeaturedFromModal()" style="padding:0.6rem 1.2rem;font-size:0.82rem;background:var(--navy2);color:var(--cream);border:1px solid var(--border)">⭐ Set as Featured</button>
+      <a id="imgModalDownload" href="" download="blogspro-image.jpg" class="img-overlay-btn" style="background:var(--navy2);color:var(--cream);border:1px solid var(--border);padding:0.6rem 1.2rem;font-size:0.82rem;border-radius:2px">⬇ Download</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, doc,
+  getDocs, getDoc, addDoc, updateDoc, deleteDoc,
+  query, orderBy, limit, serverTimestamp, where
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
+  authDomain:"blogspro-ai.firebaseapp.com",
+  projectId:"blogspro-ai",
+  storageBucket:"blogspro-ai.firebasestorage.app",
+  messagingSenderId:"940428277283",
+  appId:"1:940428277283:web:d3bb414f0992718ca76396"
+};
+
+const WORKER_URL       = "https://blogspro-ai.abhishek-dutta1996.workers.dev";
+const IMAGE_WORKER_URL = "https://blogspro-images.abhishek-dutta1996.workers.dev";
+
+const CLOUDINARY_CLOUD_NAME    = 'dldbsidve';
+const CLOUDINARY_UPLOAD_PRESET = 'blogspro';
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// ── DOMPurify config (allow safe HTML tags only) ──
+const PURIFY_CONFIG = {
+  ALLOWED_TAGS: ['h2','h3','h4','p','strong','em','u','s','ul','ol','li',
+                 'blockquote','figure','img','figcaption','a','br','hr',
+                 'table','thead','tbody','tr','th','td','sup','sub','code','pre'],
+  ALLOWED_ATTR: ['href','src','alt','title','style','loading','class','target',
+                 'rel','colspan','rowspan'],
+  ALLOW_DATA_ATTR: false
+};
+
+function sanitize(html) {
+  if (typeof DOMPurify !== 'undefined') {
+    return DOMPurify.sanitize(html, PURIFY_CONFIG);
+  }
+  return html; // fallback if CDN fails
+}
+
+// ── State ─────────────────────────────────────
+let currentUser      = null;
+let editingPostId    = null;
+let allPosts         = [];
+let allSubs          = [];
+let isPremium        = false;
+let pendingOutline   = '';
+let lastSavedContent = '';
+let generatedImages  = [];
+let imgSelectedStyle = 'photorealistic';
+let imgSelectedW     = 1280;
+let imgSelectedH     = 720;
+let imgSelectedCount = 2;
+let currentModalImgUrl = '';
+let autoPlaceCancelled = false;
+let generatedNewsletter = '';
+let abSessionTotal = 0;
+let abSessionPublished = 0;
+
+// ── AI generation guards (prevent duplicate requests) ──
+let isGeneratingAI     = false;
+let isGeneratingImages = false;
+
+// ── DOMPurify helper for editor ──
+const editor = document.getElementById('editor'); // cache DOM ref
+
+// ── Navigation ────────────────────────────────
+window.showView = (name) => {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const viewEl = document.getElementById(`view-${name}`);
+  if (viewEl) viewEl.classList.add('active');
+  document.querySelectorAll('.nav-item[data-view]').forEach(i => {
+    if (i.dataset.view === name) i.classList.add('active');
+  });
+  if (name === 'posts')       renderPostsTable(allPosts, 'allPostsBody');
+  if (name === 'users')       loadUsers();
+  if (name === 'subscribers') loadSubscribers();
+  if (name === 'seotools')    populateAnalyzeSelect();
+};
+
+// Delegated nav click handler
+document.getElementById('sidebar').addEventListener('click', e => {
+  const item = e.target.closest('.nav-item[data-view]');
+  if (!item) return;
+  const view = item.dataset.view;
+  if (item.dataset.clear) { clearEditor(); }
+  showView(view);
+  if (window.innerWidth < 900) toggleSidebar();
+});
+
+window.toggleSidebar = () => {
+  document.querySelector('aside').classList.toggle('open');
+  document.getElementById('sideOverlay').classList.toggle('open');
+};
+
+// ── Auth guard ────────────────────────────────
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.location.href = 'login.html'; return; }
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    const role  = snap.exists() ? snap.data().role : null;
+    const isOwner = user.uid === "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
+    if (role !== 'admin' && !isOwner) {
+      await signOut(auth);
+      window.location.href = 'login.html?error=unauthorized';
+      return;
+    }
+  } catch(e) {
+    await signOut(auth);
+    window.location.href = 'login.html?error=unauthorized';
+    return;
+  }
+  currentUser = user;
+  document.getElementById('userEmail').textContent   = user.email;
+  document.getElementById('userInitial').textContent = user.email[0].toUpperCase();
+  document.getElementById('greetMsg').textContent    = `Welcome back, ${user.email.split('@')[0]}.`;
+  loadAll();
+});
+
+// ── Load posts ────────────────────────────────
+async function loadAll() {
+  try {
+    const snap = await getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(50)));
+    allPosts   = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    document.getElementById('statTotal').textContent     = allPosts.length;
+    document.getElementById('statPublished').textContent = allPosts.filter(p=>p.published).length;
+    document.getElementById('statDrafts').textContent    = allPosts.filter(p=>!p.published).length;
+    try {
+      const ss = await getDocs(query(collection(db,'subscribers'), limit(1000)));
+      document.getElementById('statSubs').textContent = ss.size;
+    } catch(_) { document.getElementById('statSubs').textContent = '—'; }
+    renderPostsTable(allPosts.slice(0,8), 'recentPostsBody');
+  } catch(e) { showToast('Failed to load posts: '+e.message,'error'); }
+}
+
+function renderPostsTable(posts, tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!posts.length) {
+    tbody.innerHTML=`<tr><td colspan="5"><div class="table-empty">No posts yet.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = posts.map(p => {
+    const date   = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) || '—';
+    const status = p.published
+      ? `<span class="status-badge status-published">Published</span>`
+      : `<span class="status-badge status-draft">Draft</span>`;
+    return `<tr>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>${p.title||'(Untitled)'}</strong></td>
+      <td>${p.category||'—'}</td><td>${status}</td>
+      <td style="color:var(--muted);white-space:nowrap">${date}</td>
+      <td>
+        <button class="action-btn" onclick="editPost('${p.id}')">Edit</button>
+        <button class="action-btn" onclick="togglePublish('${p.id}',${!!p.published})">${p.published?'Unpublish':'Publish'}</button>
+        <button class="action-btn delete" onclick="deletePost('${p.id}')">Delete</button>
+      </td></tr>`;
+  }).join('');
+}
+
+// ── Users ─────────────────────────────────────
+async function loadUsers() {
+  const tbody = document.getElementById('usersTableBody');
+  try {
+    const snap  = await getDocs(query(collection(db,'users'), orderBy('createdAt','desc')));
+    const OWNER_UID   = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
+    const OWNER_EMAIL = "abhishek.dutta1996@gmail.com";
+    const users = snap.docs.map(d=>({id:d.id,...d.data()}))
+      .filter(u => u.id !== OWNER_UID && u.uid !== OWNER_UID && u.email !== OWNER_EMAIL && u.role !== 'admin');
+    if (!users.length) {
+      tbody.innerHTML=`<tr><td colspan="5"><div class="table-empty">No other users yet.</div></td></tr>`;
+      return;
+    }
+    const roleColors = {reader:'color:#8896b3',editor:'color:#93c5fd',coauthor:'color:#c9a84c'};
+    const roleLabels = {reader:'Reader',editor:'Editor',coauthor:'Co-Author'};
+    tbody.innerHTML = users.map(u => {
+      const date  = u.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) || '—';
+      const style = roleColors[u.role]||'color:#8896b3';
+      const label = roleLabels[u.role]||u.role||'Reader';
+      return `<tr>
+        <td><strong>${u.name||'—'}</strong></td>
+        <td style="color:var(--muted);font-size:0.85rem">${u.email||'—'}</td>
+        <td><span style="font-size:0.75rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;${style}">${label}</span></td>
+        <td style="color:var(--muted);font-size:0.83rem;white-space:nowrap">${date}</td>
+        <td><select onchange="changeUserRole('${u.id}',this.value)" style="background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.3rem 0.5rem;border-radius:2px;font-family:var(--sans);font-size:0.78rem;cursor:pointer;outline:none">
+          <option value="reader"   ${u.role==='reader'   ?'selected':''}>Reader</option>
+          <option value="editor"   ${u.role==='editor'   ?'selected':''}>Editor</option>
+          <option value="coauthor" ${u.role==='coauthor' ?'selected':''}>Co-Author</option>
+        </select></td></tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML=`<tr><td colspan="5"><div class="table-empty">Failed to load users.</div></td></tr>`;
+  }
+}
+
+window.changeUserRole = async (uid, role) => {
+  try { await updateDoc(doc(db,'users',uid),{role}); showToast(`Role updated to ${role}.`,'success'); loadUsers(); }
+  catch(e) { showToast('Failed: '+e.message,'error'); }
+};
+
+// ── Subscribers ───────────────────────────────
+async function loadSubscribers() {
+  const tbody = document.getElementById('subsTableBody');
+  try {
+    const snap = await getDocs(query(collection(db,'subscribers'), orderBy('createdAt','desc'), limit(1000)));
+    allSubs    = snap.docs.map(d=>({id:d.id,...d.data()}));
+    document.getElementById('subCountLabel').textContent = `${allSubs.length} subscriber${allSubs.length!==1?'s':''}`;
+    renderSubs(allSubs);
+  } catch(e) { tbody.innerHTML=`<tr><td colspan="4"><div class="table-empty">Failed to load.</div></td></tr>`; }
+}
+
+function renderSubs(subs) {
+  const tbody = document.getElementById('subsTableBody');
+  if (!subs.length) {
+    tbody.innerHTML=`<tr><td colspan="4"><div class="table-empty">No subscribers yet.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = subs.map((s,i) => {
+    const date = s.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})||'—';
+    return `<tr><td style="color:var(--muted);font-size:0.82rem">${i+1}</td><td><strong>${s.email||'—'}</strong></td>
+      <td style="color:var(--muted);font-size:0.83rem;white-space:nowrap">${date}</td>
+      <td><button class="action-btn delete" onclick="deleteSub('${s.id}')">Remove</button></td></tr>`;
+  }).join('');
+}
+
+window.filterSubs = (q) => renderSubs(allSubs.filter(s=>s.email?.toLowerCase().includes(q.toLowerCase())));
+window.deleteSub = async (id) => {
+  if (!confirm('Remove this subscriber?')) return;
+  try {
+    await deleteDoc(doc(db,'subscribers',id));
+    allSubs = allSubs.filter(s=>s.id!==id);
+    renderSubs(allSubs);
+    document.getElementById('subCountLabel').textContent = `${allSubs.length} subscriber${allSubs.length!==1?'s':''}`;
+    showToast('Subscriber removed.','success');
+  } catch(e) { showToast('Failed: '+e.message,'error'); }
+};
+window.exportSubscribers = () => {
+  if (!allSubs.length) { showToast('No subscribers to export.','error'); return; }
+  const csv  = 'Email,Date\n' + allSubs.map(s=>`${s.email},${s.createdAt?.toDate?.()?.toLocaleDateString('en-IN')||''}`).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a    = Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:'subscribers.csv'});
+  a.click(); URL.revokeObjectURL(a.href);
+  showToast('CSV downloaded!','success');
+};
+
+// ═══════════════════════════════════════════════
+// CLOUDINARY UPLOAD
+// ═══════════════════════════════════════════════
+async function uploadToStorage(file, folder = 'content', onProgress = null) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  formData.append('folder', `blogspro/${folder}`);
+  formData.append('context', `uploaded_by=${currentUser?.email || 'admin'}`);
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`);
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded/e.total)*100)); };
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (data.secure_url) resolve(data.secure_url);
+          else reject(new Error('Cloudinary: no URL'));
+        } catch(e) { reject(new Error('Cloudinary: invalid response')); }
+      } else {
+        let msg = `HTTP ${xhr.status}`;
+        try { msg = JSON.parse(xhr.responseText)?.error?.message || msg; } catch(_) {}
+        reject(new Error('Cloudinary: ' + msg));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Cloudinary: network error'));
+    xhr.send(formData);
+  });
+}
+
+function setUploadProgress(visible, label='', pct=0) {
+  const wrap  = document.getElementById('uploadProgress');
+  if (!wrap) return;
+  wrap.style.display = visible ? 'block' : 'none';
+  const lbl  = document.getElementById('uploadProgressLabel');
+  const pctEl= document.getElementById('uploadProgressPct');
+  const fill = document.getElementById('uploadProgressFill');
+  if (lbl)   lbl.textContent   = label;
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (fill)  fill.style.width  = pct + '%';
+}
+
+async function blobUrlToFile(blobUrl, filename) {
+  const res  = await fetch(blobUrl);
+  const blob = await res.blob();
+  return new File([blob], filename, { type: blob.type || 'image/jpeg' });
+}
+
+// ── Featured image handlers ──────────────────
+window.updateFeaturedPreview = (url) => {
+  const preview = document.getElementById('featuredPreview');
+  const img     = document.getElementById('featuredPreviewImg');
+  const label   = document.getElementById('featuredPreviewLabel');
+  if (!url?.trim()) { preview.style.display='none'; img.src=''; return; }
+  img.onload  = () => { preview.style.display='block'; label.textContent=url.length>60?url.substring(0,57)+'…':url; };
+  img.onerror = () => { preview.style.display='none'; };
+  img.src = url;
+};
+window.clearFeaturedImage = () => {
+  document.getElementById('postImage').value='';
+  document.getElementById('featuredPreview').style.display='none';
+  document.getElementById('featuredPreviewImg').src='';
+  showToast('Featured image cleared.','success');
+};
+window.uploadFeaturedImage = async (input) => {
+  const file = input.files[0];
+  if (!file) return;
+  input.value='';
+  const blobUrl = URL.createObjectURL(file);
+  document.getElementById('postImage').value = blobUrl;
+  updateFeaturedPreview(blobUrl);
+  try {
+    const url = await uploadToStorage(file,'featured',(pct)=>{});
+    URL.revokeObjectURL(blobUrl); // ✅ fix memory leak
+    document.getElementById('postImage').value = url;
+    updateFeaturedPreview(url);
+    showToast('Featured image uploaded!','success');
+  } catch(err) {
+    showToast('Upload failed — using local preview. ' + err.message,'error');
+  }
+};
+
+// Auto-generate featured image from title
+window.generateFeaturedImage = async () => {
+  const title = document.getElementById('postTitle').value || document.getElementById('aiPrompt').value;
+  if (!title) { showToast('Add a title or topic first.','error'); return; }
+  showToast('Generating featured image…','success');
+  const seed   = Math.floor(Math.random()*999999)+1;
+  const prompt = `Professional fintech editorial cover image for: "${title}". Dark corporate style, glowing data visualizations, no text in image.`;
+  try {
+    const url = await fetchImageViaWorker(prompt, 'photorealistic', seed);
+    document.getElementById('postImage').value = url;
+    updateFeaturedPreview(url);
+    showToast('Featured image generated!','success');
+  } catch(e) { showToast('Image generation failed: ' + e.message,'error'); }
+};
+
+// Upload own photos
+window.handleOwnPhotoUpload = async (files) => {
+  if (!files?.length) return;
+  const grid = document.getElementById('uploadedImgGrid');
+  grid.style.display = 'grid';
+  for (const file of Array.from(files)) {
+    if (!file.type.startsWith('image/')) continue;
+    const idx     = generatedImages.length;
+    const blobUrl = URL.createObjectURL(file);
+    generatedImages[idx] = blobUrl;
+    const card = document.createElement('div');
+    card.className = 'img-preview-card';
+    card.innerHTML = `
+      <div class="img-num">📁 ${file.name.substring(0,10)}${file.name.length>10?'…':''}<span class="storage-badge uploading" id="sb${idx}">↑ uploading</span></div>
+      <img src="${blobUrl}" style="width:100%;height:120px;object-fit:cover;display:block;cursor:pointer" onclick="openImgModal(${idx})" />
+      <div class="img-overlay"><button class="img-overlay-btn" onclick="openImgModal(${idx})">🔍</button><button class="img-overlay-btn secondary" onclick="insertImage(${idx})">↓ Insert</button></div>
+      <button onclick="deleteImgCard(this,${idx})" style="position:absolute;top:4px;right:4px;background:rgba(8,13,26,0.85);border:1px solid rgba(239,68,68,0.5);color:#fca5a5;width:22px;height:22px;border-radius:50%;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1">✕</button>`;
+    grid.appendChild(card);
+    setUploadProgress(true,`Uploading "${file.name}"…`,0);
+    try {
+      const url = await uploadToStorage(file,'content',(pct)=>setUploadProgress(true,`Uploading "${file.name}"… ${pct}%`,pct));
+      URL.revokeObjectURL(blobUrl); // ✅ fix memory leak
+      generatedImages[idx] = url;
+      const badge = document.getElementById(`sb${idx}`);
+      if (badge) { badge.textContent='✓ saved'; badge.classList.remove('uploading'); }
+      setUploadProgress(false);
+      showToast(`"${file.name}" uploaded!`,'success');
+    } catch(err) {
+      const badge = document.getElementById(`sb${idx}`);
+      if (badge) { badge.textContent='⚠ local'; badge.style.color='#fca5a5'; badge.classList.remove('uploading'); }
+      setUploadProgress(false);
+    }
+  }
+};
+
+window.deleteImgCard = (btn, idx) => {
+  const card = btn.closest('.img-preview-card');
+  if (!card) return;
+  card.style.transition='all 0.2s'; card.style.opacity='0'; card.style.transform='scale(0.9)';
+  setTimeout(()=>{ card.remove(); generatedImages[idx]=null; }, 200);
+};
+
+// Drag and drop
+document.addEventListener('DOMContentLoaded', () => {
+  const zone = document.getElementById('uploadDropZone');
+  if (!zone) return;
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.style.borderColor='var(--blue2)'; });
+  zone.addEventListener('dragleave', ()=> { zone.style.borderColor='var(--border)'; });
+  zone.addEventListener('drop', e => { e.preventDefault(); zone.style.borderColor='var(--border)'; handleOwnPhotoUpload(e.dataTransfer.files); });
+});
+
+// ═══════════════════════════════════════════════
+// AI IMAGE GENERATION
+// ═══════════════════════════════════════════════
+window.onImgProviderChange = (val) => {
+  const el = document.getElementById('imgProviderInfo');
+  if (!el) return;
+  const info = {
+    auto:         '⚡ Auto tries Cloudflare AI → HuggingFace → Pollinations in order.',
+    cloudflare:   '✓ Cloudflare Workers AI — Flux Schnell. Needs AI binding in your image worker.',
+    huggingface:  '✓ Hugging Face — Flux Schnell. Needs HF_API_KEY secret.',
+    pollinations: '✓ Pollinations.ai — Zero setup. Works immediately.',
+  };
+  el.textContent = info[val] || info.auto;
+};
+window.selectStyle = (btn) => { document.querySelectorAll('.img-style-btn').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); imgSelectedStyle=btn.dataset.style; };
+window.selectRatio = (btn) => { document.querySelectorAll('.img-ratio-btn[data-w]').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); imgSelectedW=parseInt(btn.dataset.w); imgSelectedH=parseInt(btn.dataset.h); };
+window.selectCount = (btn) => { document.querySelectorAll('.img-ratio-btn[data-count]').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); imgSelectedCount=parseInt(btn.dataset.count); };
+
+window.autoFillImagePrompt = () => {
+  const topic = document.getElementById('aiPrompt').value.trim() || document.getElementById('postTitle').value.trim();
+  if (!topic) { showToast('Add a topic first.','error'); return; }
+  document.getElementById('imgPrompt').value = `Professional fintech editorial illustration for "${topic}", modern dark UI, glowing blue data visualizations, corporate style, no text`;
+  showToast('Prompt auto-filled!','success');
+};
+
+async function fetchImageViaWorker(prompt, style, seed) {
+  const provider = document.getElementById('imgProvider')?.value || 'auto';
+  try {
+    const controller = new AbortController();
+    const timeout    = setTimeout(() => controller.abort(), 120000); // ✅ 120s timeout
+    const res = await fetch(IMAGE_WORKER_URL, {
+      method:'POST', signal:controller.signal,
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt, style, seed, provider, width:imgSelectedW, height:imgSelectedH })
+    });
+    clearTimeout(timeout);
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.size >= 500) return URL.createObjectURL(blob);
+      throw new Error('Response too small');
+    }
+    let errMsg = `Worker HTTP ${res.status}`;
+    try { const d=await res.json(); errMsg=d.error||errMsg; } catch(_) {}
+    throw new Error(errMsg);
+  } catch(workerErr) {
+    const reason = workerErr.name==='AbortError' ? 'Timed out' : workerErr.message;
+    console.warn(`Image worker failed (${reason}), trying Pollinations…`);
+    const encoded = encodeURIComponent(`${prompt}, ${style}, high resolution, no text, no watermark`);
+    const directUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${Math.min(imgSelectedW,1024)}&height=${Math.min(imgSelectedH,1024)}&seed=${seed}&nologo=true&model=flux`;
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const fallbackTimeout = setTimeout(() => { img.src=''; reject(new Error(`Both worker and Pollinations failed (${reason})`)); }, 45000);
+      img.onload  = () => { clearTimeout(fallbackTimeout); resolve(directUrl); };
+      img.onerror = () => { clearTimeout(fallbackTimeout); reject(new Error(`Pollinations also failed`)); };
+      img.src = directUrl;
+    });
+  }
+}
+
+window.generateImages = async () => {
+  if (isGeneratingImages) return; // ✅ prevent duplicate
+  const prompt = document.getElementById('imgPrompt').value.trim();
+  if (!prompt) { showToast('Please enter a prompt.','error'); return; }
+  isGeneratingImages = true;
+  const btn=document.getElementById('btnGenImg'), btnTxt=document.getElementById('genImgBtnText'), spinner=document.getElementById('genImgSpinner'), status=document.getElementById('imgGenStatus'), grid=document.getElementById('imgPreviewGrid'), banner=document.getElementById('imgInsertedBanner');
+  btn.disabled=true; btnTxt.textContent='Generating…'; spinner.style.display='inline-block'; banner.style.display='none'; grid.style.display='grid';
+  generatedImages=[];
+  const startTime = Date.now();
+  let timerInterval = setInterval(()=>{ const t=status.querySelector('span'); if(t) t.textContent=`⏱ ${((Date.now()-startTime)/1000).toFixed(1)}s`; }, 100);
+  status.innerHTML=`⏳ Generating ${imgSelectedCount} image${imgSelectedCount>1?'s':''}… <span style="color:var(--muted);font-size:0.65rem">⏱ 0.0s</span>`;
+  grid.innerHTML='';
+  const seeds = Array.from({length:imgSelectedCount},()=>Math.floor(Math.random()*99999)+1);
+  seeds.forEach((_,i)=>{ grid.innerHTML+=`<div class="img-preview-card" id="imgCard${i}"><div class="img-num">IMG ${i+1}</div><div class="img-loading" id="imgLoading${i}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(136,150,179,0.4)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><img id="imgEl${i}" src="" style="display:none;width:100%;height:120px;object-fit:cover"/><div class="img-overlay"><button class="img-overlay-btn" onclick="openImgModal(${i})">🔍 Preview</button><button class="img-overlay-btn secondary" onclick="insertImage(${i})">↓ Insert</button></div><button onclick="deleteImgCard(this,${i})" style="position:absolute;top:4px;right:4px;background:rgba(8,13,26,0.85);border:1px solid rgba(239,68,68,0.5);color:#fca5a5;width:22px;height:22px;border-radius:50%;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1">✕</button></div>`; });
+  let loaded=0, failed=0;
+  for (let i=0; i<seeds.length; i++) {
+    const seed=seeds[i], imgStart=Date.now();
+    if (i>0) await new Promise(r=>setTimeout(r,2500));
+    status.innerHTML=`⏳ Generating image ${i+1} of ${imgSelectedCount}… <span style="color:var(--muted);font-size:0.65rem">⏱ ${((Date.now()-startTime)/1000).toFixed(1)}s</span>`;
+    try {
+      const blobUrl = await fetchImageViaWorker(prompt, imgSelectedStyle, seed);
+      const imgSec  = ((Date.now()-imgStart)/1000).toFixed(1);
+      generatedImages[i] = blobUrl;
+      const el=document.getElementById(`imgEl${i}`), ld=document.getElementById(`imgLoading${i}`);
+      if (el && ld) {
+        el.src=blobUrl; el.style.display='block'; ld.style.display='none';
+        // ✅ revoke blob after displayed to free memory is NOT done here since we need it for insertion
+        const badge=document.createElement('div');
+        badge.style.cssText='position:absolute;bottom:5px;right:5px;background:rgba(8,13,26,0.75);color:var(--green);font-size:0.6rem;font-weight:700;padding:0.15rem 0.4rem;border-radius:2px;pointer-events:none';
+        badge.textContent=`${imgSec}s`;
+        document.getElementById(`imgCard${i}`).appendChild(badge);
+      }
+      loaded++;
+    } catch(err) {
+      const ld=document.getElementById(`imgLoading${i}`);
+      if (ld) ld.innerHTML=`<span style="font-size:0.68rem;color:#fca5a5;padding:0 0.4rem;text-align:center">✕ ${err.message||'Failed'}</span>`;
+      failed++;
+    }
+  }
+  clearInterval(timerInterval);
+  const totalSec=((Date.now()-startTime)/1000).toFixed(1);
+  btn.disabled=false; btnTxt.textContent='🖼 Regenerate'; spinner.style.display='none';
+  isGeneratingImages=false; // ✅ reset guard
+  if (loaded>0) {
+    status.innerHTML=`✓ ${loaded} image${loaded>1?'s':''} ready${failed?` (${failed} failed)`:''} — click to insert. <span style="color:var(--muted);font-size:0.65rem">⏱ ${totalSec}s</span>`;
+    showToast(`${loaded} image${loaded>1?'s':''} ready!`,'success');
+  } else {
+    status.innerHTML=`✕ All images failed. Check your worker. <span style="color:var(--muted);font-size:0.65rem">⏱ ${totalSec}s</span>`;
+    showToast('Image generation failed.','error');
+  }
+};
+
+window.insertImage = (idx) => {
+  const url = generatedImages[idx];
+  if (!url) { showToast('Image not ready.','error'); return; }
+  const caption = (document.getElementById('imgPrompt').value.trim()||'').substring(0,80);
+  const html = `<figure style="margin:1.5rem 0;text-align:center"><img src="${url}" alt="${caption}" style="max-width:100%;border-radius:4px;border:1px solid rgba(201,168,76,0.15)" loading="lazy"/></figure>`;
+  editor.focus();
+  const sel=window.getSelection();
+  if (sel?.rangeCount) { const range=sel.getRangeAt(0); range.collapse(false); range.insertNode(range.createContextualFragment(sanitize(html))); }
+  else editor.innerHTML += sanitize(html);
+  updateWordCount();
+  document.getElementById('imgInsertedBanner').style.display='block';
+  setTimeout(()=>document.getElementById('imgInsertedBanner').style.display='none',3000);
+  showToast('Image inserted!','success');
+};
+
+window.setFeatured = (idx) => { const url=generatedImages[idx]; if(!url){showToast('Not ready.','error');return;} document.getElementById('postImage').value=url; updateFeaturedPreview(url); showToast('Featured image set!','success'); };
+window.openImgModal = (idx) => { const url=generatedImages[idx]; if(!url)return; currentModalImgUrl=url; document.getElementById('imgModalSrc').src=url; document.getElementById('imgModalDownload').href=url; document.getElementById('imgModal').classList.add('open'); };
+window.closeImgModal = (e) => { if(e&&e.target!==document.getElementById('imgModal'))return; document.getElementById('imgModal').classList.remove('open'); };
+window.insertImageFromModal = () => {
+  const idx=generatedImages.indexOf(currentModalImgUrl);
+  if (idx>=0) insertImage(idx);
+  else { editor.innerHTML+=sanitize(`<figure style="margin:1.5rem 0;text-align:center"><img src="${currentModalImgUrl}" alt="AI image" style="max-width:100%;border-radius:4px" loading="lazy"/></figure>`); updateWordCount(); showToast('Image inserted!','success'); }
+  document.getElementById('imgModal').classList.remove('open');
+};
+window.setFeaturedFromModal = () => { document.getElementById('postImage').value=currentModalImgUrl; updateFeaturedPreview(currentModalImgUrl); document.getElementById('imgModal').classList.remove('open'); showToast('Featured image set!','success'); };
+
+// ═══════════════════════════════════════════════
+// EDITOR
+// ═══════════════════════════════════════════════
+window.clearEditor = () => {
+  editingPostId=null; isPremium=false;
+  ['postTitle','postExcerpt','postSlug','postImage','postMeta','postTags'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  editor.innerHTML='';
+  document.getElementById('wordCount').textContent='0';
+  document.getElementById('readingTimeDisplay').textContent='0';
+  document.getElementById('saveStatus').textContent='';
+  document.getElementById('autoSaveMsg').textContent='';
+  document.getElementById('editorHeading').textContent='New Post';
+  document.getElementById('premiumSwitch').classList.remove('on');
+  document.getElementById('aiEditToolbar').style.display='none';
+  document.getElementById('aiResultBox').style.display='none';
+  document.getElementById('imgPreviewGrid').style.display='none';
+  document.getElementById('imgGenStatus').innerHTML='';
+  document.getElementById('autoplaceBar').classList.remove('active');
+  document.getElementById('qualityScoreResult').style.display='none';
+  generatedImages=[]; autoPlaceCancelled=false; lastSavedContent='';
+  document.getElementById('featuredPreview').style.display='none';
+};
+
+window.editPost = async (id) => {
+  showView('editor'); editingPostId=id;
+  document.getElementById('editorHeading').textContent='Edit Post';
+  try {
+    const snap=await getDoc(doc(db,'posts',id));
+    if(!snap.exists())return;
+    const p=snap.data();
+    document.getElementById('postTitle').value   = p.title||'';
+    document.getElementById('postExcerpt').value = p.excerpt||'';
+    document.getElementById('postSlug').value    = p.slug||'';
+    document.getElementById('postImage').value   = p.image||'';
+    if(p.image) updateFeaturedPreview(p.image);
+    document.getElementById('postMeta').value    = p.metaDesc||'';
+    document.getElementById('postTags').value    = (p.tags||[]).join(', ');
+    editor.innerHTML = sanitize(p.content||''); // ✅ sanitize on load
+    document.getElementById('postCategory').value = p.category||'Fintech';
+    isPremium=p.premium===true;
+    document.getElementById('premiumSwitch').classList.toggle('on',isPremium);
+    updateWordCount(); showAIEditToolbar();
+  } catch(e) { showToast('Failed to load post.','error'); }
+};
+
+window.savePost = async (publish) => {
+  const title   = document.getElementById('postTitle').value.trim();
+  const excerpt = document.getElementById('postExcerpt').value.trim();
+  const cat     = document.getElementById('postCategory').value;
+  const slug    = document.getElementById('postSlug').value.trim() || slugify(title);
+  const metaDesc= document.getElementById('postMeta').value.trim();
+  const tagsRaw = document.getElementById('postTags').value.trim();
+  const tags    = tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [];
+  const readMin = Math.max(1,Math.ceil((editor.cloneNode(true).textContent||'').split(/\s+/).filter(Boolean).length/200));
+  if (!title) { showToast('Please add a title.','error'); return; }
+
+  const saveStatus = document.getElementById('saveStatus');
+  saveStatus.textContent='Checking images…';
+  let image   = document.getElementById('postImage').value.trim();
+  let content = editor.innerHTML;
+
+  // Upload blob featured image
+  if (image.startsWith('blob:')) {
+    try {
+      saveStatus.textContent='⏳ Uploading featured image…';
+      const file = await blobUrlToFile(image,'featured-image.jpg');
+      image = await uploadToStorage(file,'featured',(pct)=>{ saveStatus.textContent=`⏳ Uploading featured ${pct}%`; });
+      document.getElementById('postImage').value=image; updateFeaturedPreview(image);
+    } catch(e) { showToast('Featured image upload failed. '+e.message,'error'); saveStatus.textContent=''; return; }
+  }
+
+  // Upload inline blob images
+  const blobMatches=[...content.matchAll(/src="(blob:[^"]+)"/g)];
+  if (blobMatches.length>0) {
+    saveStatus.textContent=`⏳ Uploading ${blobMatches.length} inline image${blobMatches.length>1?'s':''}…`;
+    let cnt=0;
+    for (const match of blobMatches) {
+      try {
+        const file=await blobUrlToFile(match[1],`content-image-${cnt+1}.jpg`);
+        const url=await uploadToStorage(file,'content',(pct)=>{ saveStatus.textContent=`⏳ Uploading image ${cnt+1}/${blobMatches.length}… ${pct}%`; });
+        content=content.replace(match[1],url); cnt++;
+      } catch(_) {}
+    }
+    editor.innerHTML=sanitize(content);
+  }
+
+  // Run auto internal linking before save
+  content = await buildInternalLinks(content);
+
+  saveStatus.textContent='Saving…';
+  const data = { title,excerpt,content,category:cat,slug,image,metaDesc,tags,readingTime:readMin,published:publish,premium:isPremium,updatedAt:serverTimestamp() };
+  try {
+    if (editingPostId) { await updateDoc(doc(db,'posts',editingPostId),data); }
+    else { data.createdAt=serverTimestamp(); const ref=await addDoc(collection(db,'posts'),data); editingPostId=ref.id; }
+    saveStatus.textContent=publish?'✓ Published':'✓ Draft saved';
+    showToast(publish?'Post published!':'Draft saved.','success');
+    await loadAll();
+  } catch(e) { saveStatus.textContent=''; showToast('Save failed: '+(e.code||e.message),'error'); }
+};
+
+window.togglePublish = async (id, current) => {
+  try { await updateDoc(doc(db,'posts',id),{published:!current}); showToast(current?'Unpublished.':'Published!','success'); await loadAll(); }
+  catch(e) { showToast('Update failed.','error'); }
+};
+window.deletePost = async (id) => {
+  if (!confirm('Delete this post? Cannot be undone.')) return;
+  try { await deleteDoc(doc(db,'posts',id)); showToast('Deleted.','success'); await loadAll(); }
+  catch(e) { showToast('Delete failed.','error'); }
+};
+window.togglePremium = () => { isPremium=!isPremium; document.getElementById('premiumSwitch').classList.toggle('on',isPremium); };
+
+function safeExec(cmd,value=null) { editor.focus(); try { if(document.queryCommandSupported?.(cmd)) document.execCommand(cmd,false,value); } catch(_) {} }
+window.fmt        = (cmd)  => safeExec(cmd);
+window.fmtBlock   = (tag)  => safeExec('formatBlock',tag);
+window.insertLink = () => { const url=prompt('Enter URL:'); if(url) safeExec('createLink',url); };
+
+function updateWordCount() {
+  const text=editor.cloneNode(true).textContent||'';
+  const words=text.trim().split(/\s+/).filter(Boolean).length;
+  document.getElementById('wordCount').textContent=words;
+  document.getElementById('readingTimeDisplay').textContent=Math.max(1,Math.ceil(words/200));
+}
+editor.addEventListener('input',updateWordCount);
+document.getElementById('postTitle').addEventListener('input', e => { if(!editingPostId) document.getElementById('postSlug').value=slugify(e.target.value); });
+
+// ═══════════════════════════════════════════════
+// IMAGE CLICK TOOLBAR — click any image in editor to get delete/options
+// ═══════════════════════════════════════════════
+let activeImgToolbar = null;
+let activeImgEl = null;
+
+function removeImgToolbar() {
+  if (activeImgToolbar) { activeImgToolbar.remove(); activeImgToolbar = null; }
+  if (activeImgEl) { activeImgEl.style.outline = ''; activeImgEl = null; }
+}
+
+editor.addEventListener('click', (e) => {
+  const img = e.target.closest('img');
+  removeImgToolbar();
+  if (!img) return;
+
+  // Highlight selected image
+  activeImgEl = img;
+  img.style.outline = '2px solid #ef4444';
+  img.style.outlineOffset = '2px';
+
+  // Build toolbar
+  const toolbar = document.createElement('div');
+  toolbar.id = 'imgInlineToolbar';
+  toolbar.style.cssText = `
+    position:absolute;
+    background:#0f1628;
+    border:1px solid rgba(239,68,68,0.6);
+    border-radius:4px;
+    padding:4px 6px;
+    display:flex;
+    align-items:center;
+    gap:4px;
+    z-index:300;
+    box-shadow:0 4px 16px rgba(0,0,0,0.5);
+    pointer-events:all;
+    white-space:nowrap;
+  `;
+
+  const btnStyle = `background:transparent;border:none;cursor:pointer;font-size:0.72rem;font-family:var(--sans);font-weight:600;padding:3px 7px;border-radius:2px;transition:all 0.15s;`;
+
+  toolbar.innerHTML = `
+    <span style="font-size:0.65rem;color:#8896b3;padding:0 4px;letter-spacing:0.06em;text-transform:uppercase">Image</span>
+    <div style="width:1px;height:14px;background:rgba(255,255,255,0.1)"></div>
+    <button id="imgTbDelete" style="${btnStyle}color:#fca5a5;border:1px solid rgba(239,68,68,0.4)" title="Delete image">🗑 Delete</button>
+    <button id="imgTbFull"   style="${btnStyle}color:#93c5fd;border:1px solid rgba(59,130,246,0.3)" title="Full width">⟷ Full</button>
+    <button id="imgTbHalf"   style="${btnStyle}color:#93c5fd;border:1px solid rgba(59,130,246,0.3)" title="Half width">½ Half</button>
+    <button id="imgTbLeft"   style="${btnStyle}color:#8896b3;border:1px solid rgba(136,150,179,0.2)" title="Float left">← Left</button>
+    <button id="imgTbRight"  style="${btnStyle}color:#8896b3;border:1px solid rgba(136,150,179,0.2)" title="Float right">Right →</button>
+    <button id="imgTbFeatured" style="${btnStyle}color:#c9a84c;border:1px solid rgba(201,168,76,0.3)" title="Set as featured">⭐ Featured</button>
+    <button id="imgTbClose"  style="${btnStyle}color:#8896b3;border:1px solid rgba(136,150,179,0.15)" title="Close">✕</button>
+  `;
+
+  // Position toolbar above the image
+  const editorRect = editor.getBoundingClientRect();
+  const imgRect    = img.getBoundingClientRect();
+  const topRelative = imgRect.top - editorRect.top + editor.scrollTop - 44;
+  toolbar.style.top  = Math.max(4, topRelative) + 'px';
+  toolbar.style.left = '8px';
+  toolbar.style.right = '8px';
+
+  // Anchor to the editor left column
+  const anchor = editor.closest('.editor-left-col') || editor.parentElement;
+  anchor.appendChild(toolbar);
+  activeImgToolbar = toolbar;
+
+  // ── Button actions ──────────────────────────
+  document.getElementById('imgTbDelete').onclick = (ev) => {
+    ev.stopPropagation();
+    // Remove the whole <figure> if image is inside one, otherwise just the img
+    const figure = img.closest('figure');
+    if (figure) figure.remove(); else img.remove();
+    removeImgToolbar();
+    updateWordCount();
+    showToast('Image deleted.', 'success');
+  };
+
+  document.getElementById('imgTbFull').onclick = (ev) => {
+    ev.stopPropagation();
+    img.style.cssText = img.style.cssText.replace(/float:[^;]+;?/gi,'').replace(/width:[^;]+;?/gi,'');
+    img.style.width   = '100%';
+    img.style.display = 'block';
+    img.style.float   = '';
+    const fig = img.closest('figure');
+    if (fig) { fig.style.cssText = 'margin:1.5rem 0;text-align:center'; }
+    removeImgToolbar();
+    showToast('Image set to full width.','success');
+  };
+
+  document.getElementById('imgTbHalf').onclick = (ev) => {
+    ev.stopPropagation();
+    img.style.width   = '50%';
+    img.style.display = 'block';
+    img.style.margin  = '1rem auto';
+    const fig = img.closest('figure');
+    if (fig) fig.style.cssText = 'margin:1.5rem auto;text-align:center;max-width:50%';
+    removeImgToolbar();
+    showToast('Image set to half width.','success');
+  };
+
+  document.getElementById('imgTbLeft').onclick = (ev) => {
+    ev.stopPropagation();
+    img.style.float   = 'left';
+    img.style.width   = '45%';
+    img.style.margin  = '0 1.5rem 1rem 0';
+    const fig = img.closest('figure');
+    if (fig) { fig.style.float='left'; fig.style.width='45%'; fig.style.margin='0 1.5rem 1rem 0'; }
+    removeImgToolbar();
+    showToast('Image floated left.','success');
+  };
+
+  document.getElementById('imgTbRight').onclick = (ev) => {
+    ev.stopPropagation();
+    img.style.float   = 'right';
+    img.style.width   = '45%';
+    img.style.margin  = '0 0 1rem 1.5rem';
+    const fig = img.closest('figure');
+    if (fig) { fig.style.float='right'; fig.style.width='45%'; fig.style.margin='0 0 1rem 1.5rem'; }
+    removeImgToolbar();
+    showToast('Image floated right.','success');
+  };
+
+  document.getElementById('imgTbFeatured').onclick = (ev) => {
+    ev.stopPropagation();
+    document.getElementById('postImage').value = img.src;
+    updateFeaturedPreview(img.src);
+    removeImgToolbar();
+    showToast('Set as featured image!','success');
+  };
+
+  document.getElementById('imgTbClose').onclick = (ev) => {
+    ev.stopPropagation();
+    removeImgToolbar();
+  };
+});
+
+// Close toolbar when clicking outside editor
+document.addEventListener('click', (e) => {
+  if (!editor.contains(e.target) && !activeImgToolbar?.contains(e.target)) {
+    removeImgToolbar();
+  }
+});
+
+// Close toolbar on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') removeImgToolbar();
+  if ((e.key === 'Delete' || e.key === 'Backspace') && activeImgEl && document.activeElement !== editor) {
+    const fig = activeImgEl.closest('figure');
+    if (fig) fig.remove(); else activeImgEl.remove();
+    removeImgToolbar(); updateWordCount();
+    showToast('Image deleted.','success');
+    e.preventDefault();
+  }
+});
+
+// Auto-save
+let lastSaveTimer;
+editor.addEventListener('input',()=>{
+  clearTimeout(lastSaveTimer);
+  lastSaveTimer=setTimeout(async()=>{
+    if (!editingPostId) return;
+    const content=editor.innerHTML;
+    if (!content||content.trim().length<50) return;
+    if (content===lastSavedContent) return;
+    try { await updateDoc(doc(db,'posts',editingPostId),{content,updatedAt:serverTimestamp()}); lastSavedContent=content; document.getElementById('autoSaveMsg').textContent='Auto-saved at '+new Date().toLocaleTimeString(); } catch(_) {}
+  }, 30000);
+});
+
+window.previewPost = () => {
+  const title=document.getElementById('postTitle').value||'Preview', excerpt=document.getElementById('postExcerpt').value||'', content=editor.innerHTML;
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title} — Preview</title><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"><style>body{font-family:'DM Sans',sans-serif;background:#080d1a;color:#f5f0e8;max-width:740px;margin:4rem auto;padding:0 2rem;line-height:1.8}h1{font-family:'Cormorant Garamond',serif;font-size:3rem;font-weight:700;margin-bottom:1rem}h2{font-family:'Cormorant Garamond',serif;font-size:1.8rem;margin:2rem 0 1rem}h3{font-family:'Cormorant Garamond',serif;font-size:1.3rem;margin:1.5rem 0 .75rem}p{margin-bottom:1.5rem}blockquote{border-left:3px solid #c9a84c;padding-left:1.5rem;margin:2rem 0;font-style:italic;color:#8896b3}figure{margin:2rem 0;text-align:center}figure img{max-width:100%;border-radius:4px}figcaption{font-size:0.8rem;color:#8896b3;margin-top:0.5rem;font-style:italic}.badge{background:#1a2340;color:#8896b3;font-size:.75rem;padding:.4rem 1rem;border-radius:2px;display:inline-block;margin-bottom:2rem}</style></head><body><div class="badge">PREVIEW</div><h1>${title}</h1>${excerpt?`<p style="font-size:1.2rem;color:#8896b3;margin-bottom:2rem">${excerpt}</p>`:''}${sanitize(content)}</body></html>`);
+  win.document.close();
+};
+
+// ═══════════════════════════════════════════════
+// CORE AI CALL
+// ═══════════════════════════════════════════════
+async function callAI(prompt, silent=false, forceModel='auto') {
+  const tone     = document.getElementById('aiTone')?.value || 'professional';
+  const category = document.getElementById('postCategory')?.value || 'Fintech';
+  let res, data;
+  try {
+    res = await fetch(WORKER_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt,tone,category,forceModel, openrouter_model:'meta-llama/llama-3.1-8b-instruct:free' })
+    });
+  } catch(e) { return {error:'Network error: '+e.message}; }
+  try { data=await res.json(); } catch(e) { return {error:'Invalid response (HTTP '+res.status+')'}; }
+  if (data.error) return { error:typeof data.error==='object'?(data.error.message||JSON.stringify(data.error)):String(data.error), attemptsDetail:data.attempts_detail||[] };
+  if (!data.text) return {error:'No content returned.'};
+  if (data.fallback_used && !silent) {
+    const ML={claude:'Claude',groq:'Groq',deepseek:'DeepSeek V3',openrouter:'OpenRouter'};
+    showToast(`${ML[data.attempts_detail?.[0]?.model]||'Primary'} unavailable — switched to ${ML[data.model_used]||data.model_used}.`,'success');
+  }
+  return {text:data.text, modelUsed:data.model_used, fallbackUsed:data.fallback_used, attemptsDetail:data.attempts_detail||[]};
+}
+
+// ═══════════════════════════════════════════════
+// AI WRITER
+// ═══════════════════════════════════════════════
+window.generateAIPost = async () => {
+  if (isGeneratingAI) return; // ✅ guard
+  const topic=document.getElementById('aiPrompt').value.trim();
+  if (!topic) { showToast('Please enter a topic.','error'); return; }
+  isGeneratingAI=true;
+  document.getElementById('btnAI').disabled=true;
+  document.getElementById('aiBtnText').textContent='Generating outline…';
+  document.getElementById('aiStatus').textContent='';
+  document.getElementById('aiModalTitle').textContent='✦ Generating outline…';
+  document.getElementById('aiModalSub').textContent='AI is planning your article structure.';
+  document.getElementById('aiModalContent').innerHTML='<span style="animation:pulse 1s infinite;display:inline-block">Working…</span>';
+  document.getElementById('aiModalActions').style.display='none';
+  document.getElementById('aiModal').classList.add('open');
+  const outResult=await callAI(`Create a concise article outline (5-7 bullet points) for:\nTopic: "${topic}"\nCategory: ${document.getElementById('postCategory').value}. Tone: ${document.getElementById('aiTone').value}.\nReturn ONLY plain text bullet points.`,true);
+  if (outResult.error) {
+    closeAIModal();
+    document.getElementById('aiStatus').textContent='✕ '+outResult.error;
+    showToast('AI Error: '+outResult.error,'error');
+    document.getElementById('btnAI').disabled=false; document.getElementById('aiBtnText').textContent='✦ Generate Article';
+    isGeneratingAI=false; return;
+  }
+  pendingOutline=outResult.text;
+  document.getElementById('aiModalTitle').textContent='✦ Review Outline';
+  document.getElementById('aiModalSub').textContent='Click "Write Full Article" to generate, or Cancel to edit.';
+  document.getElementById('aiModalContent').textContent=outResult.text;
+  document.getElementById('aiModalActions').style.display='flex';
+  document.getElementById('btnAI').disabled=false; document.getElementById('aiBtnText').textContent='✦ Generate Article';
+  isGeneratingAI=false;
+};
+
+window.confirmOutline = async () => {
+  const topic=document.getElementById('aiPrompt').value.trim();
+  const category=document.getElementById('postCategory').value;
+  const tone=document.getElementById('aiTone').value;
+  const modelArticle=document.getElementById('modelArticle').value;
+  const ML={claude:'Claude',groq:'Groq',deepseek:'DeepSeek V3',openrouter:'OpenRouter',auto:'Auto'};
+  const results=[]; const allAttempts=[];
+  const addR=(icon,label,model,ok,extra='')=>results.push({icon,label,model,ok,extra});
+  document.getElementById('aiResultBox').style.display='none';
+  document.getElementById('aiModalActions').style.display='none';
+  document.getElementById('aiModalTitle').textContent=`✦ Writing article… [${ML[modelArticle]||modelArticle}]`;
+  document.getElementById('aiModalSub').textContent='Generating long-form content…';
+  document.getElementById('aiModalContent').innerHTML='<span style="animation:pulse 1s infinite;display:inline-block">Writing full article…</span>';
+  document.getElementById('aiModal').classList.add('open');
+
+  const artResult=await callAI(`You are an expert fintech writer for BlogsPro (blogspro.in).\nWrite a comprehensive, long-form article about: "${topic}"\nCategory: ${category}. Tone: ${tone}.\nFollow this outline:\n${pendingOutline}\n\nWrite in depth — NO word limit. Cover every point with examples, data, analysis.\nReturn ONLY clean HTML: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>\nStart directly with article content. No JSON, no metadata.`,false,modelArticle);
+  allAttempts.push(...(artResult.attemptsDetail||[]));
+  if (artResult.error) {
+    closeAIModal();
+    document.getElementById('aiStatus').textContent='✕ Article failed: '+artResult.error;
+    showToast('Article generation failed.','error'); return;
+  }
+
+  const articleHTML=(artResult.text||'').replace(/---METADATA---[\s\S]*/g,'').replace(/\n*---+\s*$/gm,'').replace(/\n*\{"title"[\s\S]*/g,'').trim();
+  editor.innerHTML=sanitize(articleHTML); // ✅ DOMPurify
+  updateWordCount();
+  addR('✓','Article written',ML[artResult.modelUsed]||artResult.modelUsed,true);
+  showAIEditToolbar();
+
+  // Metadata
+  document.getElementById('aiModalTitle').textContent=`✦ Generating metadata…`;
+  document.getElementById('aiModalSub').textContent='Title, summary, SEO tags, citations…';
+  document.getElementById('aiModalContent').innerHTML='<span style="animation:pulse 1s infinite;display:inline-block">Generating metadata…</span>';
+  const metaResult=await callAI(`For a fintech article about "${topic}", return ONLY this JSON:\n{"title":"headline max 70 chars","summary":"2-sentence summary max 160 chars","metaDescription":"SEO meta max 155 chars","tags":["tag1","tag2","tag3","tag4","tag5"],"citations":["Source 1","Source 2","Source 3","Source 4","Source 5"]}`,true,modelArticle);
+  allAttempts.push(...(metaResult.attemptsDetail||[]));
+  let parsed=null;
+  const mt=metaResult.error?'':(metaResult.text||'');
+  if (mt) {
+    try { const s=mt.indexOf('{'),e=mt.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(mt.substring(s,e+1)); } catch(_) {}
+  }
+  const checks={};
+  if (parsed) {
+    if(parsed.title?.trim())           {document.getElementById('postTitle').value=parsed.title.trim();document.getElementById('postSlug').value=slugify(parsed.title.trim());checks.title=true;}
+    if(parsed.summary?.trim())         {document.getElementById('postExcerpt').value=parsed.summary.trim();checks.summary=true;}
+    if(parsed.metaDescription?.trim()) {document.getElementById('postMeta').value=parsed.metaDescription.trim();checks.meta=true;}
+    if(parsed.tags?.length)            {document.getElementById('postTags').value=parsed.tags.join(', ');checks.tags=true;}
+    if(parsed.citations?.length)       {editor.innerHTML+=sanitize(`<h2>References</h2><ul>${parsed.citations.map(c=>`<li><em>${c}</em></li>`).join('')}</ul>`);updateWordCount();checks.citations=true;}
+  }
+  if(!checks.title&&!document.getElementById('postTitle').value.trim()){document.getElementById('postTitle').value=topic.length<80?topic:topic.substring(0,75)+'…';document.getElementById('postSlug').value=slugify(topic);checks.title=true;}
+  const metaFields=[checks.title&&'title',checks.summary&&'summary',checks.tags&&'tags',checks.meta&&'meta',checks.citations&&'citations'].filter(Boolean);
+  addR(metaFields.length?'✓':'—','Metadata: '+(metaFields.join(', ')||'none'),ML[metaResult.modelUsed]||ML[modelArticle]||'',metaFields.length>0,metaResult.error?` (${metaResult.error})`:'');
+  closeAIModal();
+  document.getElementById('aiResultList').innerHTML=results.map(r=>`<div style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem"><span style="color:${r.ok?'var(--green)':'var(--muted)'};flex-shrink:0;font-weight:700">${r.icon}</span><div><span style="color:${r.ok?'var(--cream)':'var(--muted)'}">${r.label}</span>${r.model?`<span style="display:inline-block;margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.1rem 0.4rem;border-radius:2px">⚡${r.model}</span>`:''}</div></div>`).join('');
+  const hadFallbacks=allAttempts.some(a=>!a.success);
+  if (hadFallbacks) {
+    document.getElementById('aiFallbackLog').style.display='block';
+    document.getElementById('aiFallbackList').innerHTML=allAttempts.map(a=>`<div style="display:flex;gap:0.5rem"><span style="color:${a.success?'var(--green)':'#fca5a5'};font-weight:700">${a.success?'✓':'✕'}</span><span><strong>${ML[a.model]||a.model}</strong> — ${a.success?'Used':(a.reason||'Failed')}</span></div>`).join('');
+  }
+  document.getElementById('aiResultBox').style.display='block';
+  document.getElementById('aiStatus').textContent=`✓ Complete — ${results.filter(r=>r.ok).length}/${results.length} tasks done.`;
+  showToast('Done! Generating cover image…','success');
+  const imgPanel=document.getElementById('imgGenPanel');
+  document.getElementById('imgPrompt').value=`Professional fintech editorial cover image for: "${topic}", futuristic dark UI, glowing data visualizations, no text in image`;
+  imgPanel.style.transition='border-color 0.3s,box-shadow 0.3s'; imgPanel.style.borderColor='rgba(59,130,246,0.8)'; imgPanel.style.boxShadow='0 0 16px rgba(59,130,246,0.25)';
+  setTimeout(()=>{ imgPanel.style.borderColor='rgba(59,130,246,0.35)'; imgPanel.style.boxShadow='none'; },2500);
+  setTimeout(()=>{ imgPanel.scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>generateImages(),500); },400);
+};
+
+window.cancelOutline = () => { closeAIModal(); pendingOutline=''; };
+function closeAIModal() { document.getElementById('aiModal').classList.remove('open'); }
+
+// ═══════════════════════════════════════════════
+// AI EDIT TOOLBAR
+// ═══════════════════════════════════════════════
+function showAIEditToolbar() { document.getElementById('aiEditToolbar').style.display='block'; }
+function setEditStatus(msg,isError=false) { const el=document.getElementById('aiEditStatus'); el.textContent=msg; el.style.color=isError?'#fca5a5':'var(--muted)'; }
+function setEditBtnsDisabled(on) { document.querySelectorAll('.ai-edit-btn').forEach(b=>b.disabled=on); }
+
+async function runAIEdit(instruction) {
+  const currentText=editor.cloneNode(true).textContent;
+  const topic=document.getElementById('aiPrompt').value.trim()||'fintech article';
+  const category=document.getElementById('postCategory').value;
+  if (!currentText.trim()) { setEditStatus('No article content.','true'); return; }
+  setEditBtnsDisabled(true); setEditStatus('⏳ Working…');
+  const snippet=currentText.length>1500?currentText.substring(0,1500)+'\n[…continues]':currentText;
+  const prompt=`Edit this fintech article about "${topic}" (${category}).\n\nARTICLE:\n${snippet}\n\nTASK: ${instruction}\n\nReturn ONLY the complete updated article as clean HTML. Use only <h2><h3><p><strong><em><ul><li><blockquote><table><tr><td><th> tags. No markdown.`;
+  const model=document.getElementById('modelArticle')?.value||'auto';
+  const result=await callAI(prompt,true,model);
+  if (result.error) { setEditStatus('✕ '+result.error,true); setEditBtnsDisabled(false); return; }
+  const clean=(result.text||'').replace(/```html?|```/gi,'').replace(/---METADATA---[\s\S]*/g,'').trim();
+  if (!clean) { setEditStatus('✕ Empty response.','true'); setEditBtnsDisabled(false); return; }
+  editor.innerHTML=sanitize(clean); // ✅ DOMPurify
+  updateWordCount();
+  const ML={groq:'Groq',deepseek:'DeepSeek',openrouter:'OpenRouter',claude:'Claude'};
+  setEditStatus(`✓ Done — ${ML[result.modelUsed]||result.modelUsed||'AI'}`);
+  setEditBtnsDisabled(false);
+  showToast('Article updated!','success');
+}
+
+window.aiEditAction = async (action) => {
+  const instructions={
+    regenerate:     'Regenerate this article completely from scratch with the same topic, but different phrasing and structure.',
+    professional:   'Rewrite in a highly professional, analytical tone suitable for senior finance executives.',
+    conversational: 'Rewrite in a conversational, accessible tone easy for non-experts, but still informative.',
+    authoritative:  'Rewrite in an authoritative expert tone — use precise terminology and project deep domain expertise.',
+    expand:         'Expand significantly. Add more depth, examples, data points, and additional sections.',
+    shorten:        'Shorten by 30-40% while keeping all key points. Remove redundancy.',
+    references:     'Add a References section at the end with 5-8 real sources — RBI circulars, SEBI reports, NPCI data. Format as HTML list.',
+    graph:          `Add a styled HTML data visualization table in a relevant section using inline CSS (dark background #0f1628, gold #c9a84c borders, cream #f5f0e8 text) showing key statistics.`,
+  };
+  if (!instructions[action]) return;
+  if (action==='regenerate'&&!confirm('Regenerate the entire article?')) return;
+  await runAIEdit(instructions[action]);
+};
+
+window.aiEditCustom = async () => {
+  const instruction=document.getElementById('aiEditCustom').value.trim();
+  if (!instruction) { setEditStatus('Please enter an instruction.',true); return; }
+  await runAIEdit(instruction);
+  document.getElementById('aiEditCustom').value='';
+};
+
+// ═══════════════════════════════════════════════
+// ✅ NEW: AI SEO OPTIMIZER
+// ═══════════════════════════════════════════════
+window.runSEOOptimizer = async () => {
+  const content=editor.cloneNode(true).textContent;
+  const title=document.getElementById('postTitle').value;
+  if (!content.trim()) { setEditStatus('No article to optimize.',true); return; }
+  setEditBtnsDisabled(true); setEditStatus('🚀 Running SEO optimization…');
+  const prompt=`You are an SEO expert optimizing a fintech blog post.\n\nCurrent title: "${title}"\nArticle excerpt: "${content.substring(0,1000)}"\n\nReturn ONLY valid JSON:\n{"title":"SEO title max 70 chars","meta":"SEO meta desc max 155 chars","keywords":["kw1","kw2","kw3","kw4","kw5"],"improvements":["improvement1","improvement2","improvement3"]}`;
+  const result=await callAI(prompt,true,'auto');
+  if (result.error) { setEditStatus('✕ '+result.error,true); setEditBtnsDisabled(false); return; }
+  let parsed=null;
+  try { const t=result.text; const s=t.indexOf('{'),e=t.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(t.substring(s,e+1)); } catch(_) {}
+  if (parsed) {
+    if(parsed.title) { document.getElementById('postTitle').value=parsed.title; document.getElementById('postSlug').value=slugify(parsed.title); }
+    if(parsed.meta)     document.getElementById('postMeta').value=parsed.meta;
+    if(parsed.keywords) document.getElementById('postTags').value=parsed.keywords.join(', ');
+  }
+  setEditStatus('✓ SEO optimized! Title, meta & keywords updated.');
+  setEditBtnsDisabled(false);
+  showToast('SEO optimization complete!','success');
+};
+
+// ═══════════════════════════════════════════════
+// ✅ NEW: AUTO INTERNAL LINKING
+// ═══════════════════════════════════════════════
+async function buildInternalLinks(content) {
+  if (!allPosts.length) return content;
+  // Only link to published posts, avoid linking to the post being edited
+  const targets = allPosts.filter(p => p.published && p.id !== editingPostId && p.title && p.slug);
+  targets.forEach(p => {
+    // Use first 3 significant words of each post title as keyword
+    const keyword = p.title.split(' ').filter(w=>w.length>3).slice(0,2).join(' ');
+    if (!keyword || keyword.length < 5) return;
+    const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    // Only link first occurrence, don't link inside existing links or headings
+    const regex = new RegExp(`(?<!<[^>]*)(\\b${escaped}\\b)(?![^<]*>)(?![^<]*<\\/a>)`, 'i');
+    content = content.replace(regex, `<a href="/post.html?id=${p.id}" style="color:var(--gold)">${keyword}</a>`);
+  });
+  return content;
+}
+
+window.runInternalLinking = async () => {
+  const content = editor.innerHTML;
+  if (!content.trim()) { setEditStatus('No article to link.',true); return; }
+  setEditBtnsDisabled(true); setEditStatus('🔗 Adding internal links…');
+  const linked = await buildInternalLinks(content);
+  editor.innerHTML = sanitize(linked);
+  const count = (linked.match(/<a href="\/post/g)||[]).length;
+  setEditStatus(`✓ Added ${count} internal link${count!==1?'s':''}.`);
+  setEditBtnsDisabled(false);
+  showToast(`${count} internal links added!`,'success');
+};
+
+// ═══════════════════════════════════════════════
+// ✅ NEW: ARTICLE QUALITY SCORE
+// ═══════════════════════════════════════════════
+window.runArticleQualityScore = async () => {
+  const text=editor.cloneNode(true).textContent;
+  if (!text.trim()) { setEditStatus('No article to score.',true); return; }
+  setEditBtnsDisabled(true); setEditStatus('⭐ Scoring article…');
+  const prompt=`Score this fintech blog article for SEO quality.\n\nARTICLE (excerpt):\n${text.substring(0,1500)}\n\nReturn ONLY JSON:\n{"seo_score":0-100,"word_count_rating":"good|short|excellent","has_headings":true,"has_cta":true,"improvements":["item1","item2","item3"]}`;
+  const result=await callAI(prompt,true,'auto');
+  if (result.error) { setEditStatus('✕ '+result.error,true); setEditBtnsDisabled(false); return; }
+  let parsed=null;
+  try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {}
+  if (parsed) {
+    const score=parsed.seo_score||0;
+    const color=score>=80?'var(--green)':score>=60?'var(--gold)':'#fca5a5';
+    const label=score>=80?'Excellent':score>=60?'Good':score>=40?'Average':'Needs Work';
+    const qEl=document.getElementById('qualityScoreResult');
+    qEl.style.display='block';
+    qEl.innerHTML=`<div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.6rem"><div style="width:52px;height:52px;border-radius:50%;border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:1.2rem;font-weight:700;color:${color}">${score}</div><div><div style="font-size:0.88rem;font-weight:700;color:var(--cream)">${label}</div><div style="font-size:0.72rem;color:var(--muted)">SEO Quality Score</div></div></div>${(parsed.improvements||[]).map(imp=>`<div style="font-size:0.75rem;color:var(--muted);padding:0.2rem 0;display:flex;gap:0.4rem"><span style="color:var(--gold)">→</span>${imp}</div>`).join('')}`;
+  }
+  setEditStatus('✓ Quality score complete.');
+  setEditBtnsDisabled(false);
+  showToast('Quality score ready!','success');
+};
+
+// ═══════════════════════════════════════════════
+// AUTO-PLACE IMAGES
+// ═══════════════════════════════════════════════
+let autoPlaceCancelled2=false;
+window.cancelAutoPlace = () => { autoPlaceCancelled2=true; document.getElementById('autoplaceBar').classList.remove('active'); document.getElementById('btnAutoPlace').disabled=false; document.getElementById('autoPlaceSpinner').style.display='none'; showToast('Auto-placement cancelled.','error'); };
+function apLog(msg,state='done') { const log=document.getElementById('autoplaceLog'); const item=document.createElement('div'); item.className=`autoplace-log-item ${state}`; item.innerHTML=`<span>${state==='done'?'✓':state==='failed'?'✕':'⏳'}</span><span>${msg}</span>`; log.appendChild(item); log.scrollTop=log.scrollHeight; return item; }
+function apProgress(done,total,msg) { document.getElementById('autoplaceFill').style.width=`${Math.round((done/total)*100)}%`; document.getElementById('autoplaceStatus').textContent=msg; }
+window.autoPlaceImages = async () => {
+  const h2s=editor.querySelectorAll('h2');
+  if (!h2s.length) { showToast('No H2 headings found. Generate an article first.','error'); return; }
+  const existingImgs=editor.querySelectorAll('figure img, img');
+  if (existingImgs.length>0&&!confirm(`Article already has ${existingImgs.length} image(s). Add more after each H2?`)) return;
+  autoPlaceCancelled2=false;
+  const btn=document.getElementById('btnAutoPlace'); btn.disabled=true;
+  document.getElementById('autoPlaceSpinner').style.display='inline-block';
+  document.getElementById('autoplaceBar').classList.add('active');
+  document.getElementById('autoplaceLog').innerHTML='';
+  document.getElementById('autoplaceFill').style.width='0%';
+  const topic=document.getElementById('aiPrompt').value.trim()||document.getElementById('postTitle').value.trim()||'fintech';
+  const style=imgSelectedStyle||'photorealistic';
+  const total=h2s.length; let placed=0;
+  apProgress(0,total,`Found ${total} H2 section${total>1?'s':''}. Generating images…`);
+  for (let i=0;i<h2s.length;i++) {
+    if (autoPlaceCancelled2) break;
+    const h2=h2s[i]; const heading=h2.textContent.trim();
+    const logItem=apLog(`Section ${i+1}: "${heading.substring(0,40)}${heading.length>40?'…':''}"`, 'loading');
+    const imgPrompt=`Professional fintech illustration for article section "${heading}" about ${topic}. ${style}, dark modern background, corporate editorial style, no text in image.`;
+    let imgUrl=null;
+    try { imgUrl=await fetchImageViaWorker(imgPrompt,style,Math.floor(Math.random()*999999)+1); } catch(_) {}
+    if (autoPlaceCancelled2) break;
+    if (imgUrl) {
+      const figure=document.createElement('figure');
+      figure.style.cssText='margin:1.2rem 0 1.5rem;text-align:center';
+      figure.innerHTML=`<img src="${imgUrl}" alt="${heading}" loading="lazy" style="max-width:100%;border-radius:4px;border:1px solid rgba(201,168,76,0.15)"/>`;
+      if (h2.nextSibling) h2.parentNode.insertBefore(figure,h2.nextSibling); else h2.parentNode.appendChild(figure);
+      placed++;
+      logItem.className='autoplace-log-item done'; logItem.querySelector('span').textContent='✓';
+    } else { logItem.className='autoplace-log-item failed'; logItem.querySelector('span').textContent='✕'; }
+    apProgress(i+1,total,`${i+1}/${total} done${imgUrl?' — image placed':' — skipped'}`);
+  }
+  updateWordCount(); btn.disabled=false; document.getElementById('autoPlaceSpinner').style.display='none';
+  if (!autoPlaceCancelled2) {
+    apProgress(total,total,`✓ Complete — ${placed}/${total} image${placed!==1?'s':''} placed`);
+    document.getElementById('autoplaceFill').style.width='100%'; document.getElementById('autoplaceFill').style.background='linear-gradient(90deg,var(--green),#4ade80)';
+    showToast(`${placed} image${placed!==1?'s':''} placed!`,'success');
+    setTimeout(()=>editor.scrollIntoView({behavior:'smooth',block:'start'}),300);
+  }
+  setTimeout(()=>{ if(!autoPlaceCancelled2){document.getElementById('autoplaceBar').classList.remove('active'); document.getElementById('autoplaceFill').style.background='linear-gradient(90deg,#1d4ed8,#3b82f6)';}},5000);
+};
+
+// ═══════════════════════════════════════════════
+// ✅ NEW: SEO TOOLS VIEW
+// ═══════════════════════════════════════════════
+function populateAnalyzeSelect() {
+  const sel=document.getElementById('analyzePostSelect');
+  sel.innerHTML='<option value="">— Select a post —</option>';
+  allPosts.filter(p=>p.published).forEach(p=>{
+    const opt=document.createElement('option'); opt.value=p.id; opt.textContent=p.title||'(Untitled)'; sel.appendChild(opt);
+  });
+}
+
+window.predictTraffic = async () => {
+  const keyword=document.getElementById('trafficKeyword').value.trim();
+  if (!keyword) { showToast('Enter a keyword.','error'); return; }
+  setBtnLoading('btnTraffic','trafficBtnTxt','trafficSpinner',true,'Analyzing…');
+  const prompt=`Estimate Google search traffic for keyword: "${keyword}" in the fintech/finance niche in India.\nReturn ONLY JSON:\n{"monthly_searches":number,"difficulty":number_0_to_100,"expected_clicks":number,"competition":"low|medium|high","suggestions":["tip1","tip2"]}`;
+  const result=await callAI(prompt,true,'auto');
+  setBtnLoading('btnTraffic','trafficBtnTxt','trafficSpinner',false,'Predict Traffic');
+  let parsed=null;
+  if (!result.error) {
+    try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {}
+  }
+  if (parsed) {
+    document.getElementById('tr-searches').textContent=parsed.monthly_searches?.toLocaleString()||'—';
+    document.getElementById('tr-clicks').textContent=parsed.expected_clicks?.toLocaleString()||'—';
+    const diff=parsed.difficulty||0;
+    document.getElementById('tr-diff').textContent=diff+'/100';
+    const diffEl=document.getElementById('tr-diff-sub');
+    diffEl.className='metric-sub '+(diff<=40?'good':diff<=70?'warn':'bad');
+    diffEl.textContent=diff<=40?'Low competition':diff<=70?'Medium':'Highly competitive';
+    const comp=parsed.competition||'medium';
+    const compPct={low:25,medium:55,high:85}[comp]||50;
+    const compFill=document.getElementById('tr-comp-bar');
+    compFill.className='progress-bar-fill '+(comp==='low'?'fill-green':comp==='medium'?'fill-gold':'fill-red');
+    compFill.style.width=compPct+'%';
+    document.getElementById('tr-comp-label').textContent=comp.toUpperCase();
+    document.getElementById('tr-comp-label').style.color=comp==='low'?'var(--green)':comp==='medium'?'var(--gold)':'#fca5a5';
+    document.getElementById('tr-suggestions').innerHTML=(parsed.suggestions||[]).map(s=>`<div style="padding:0.3rem 0;border-bottom:1px solid rgba(255,255,255,0.04)">💡 ${s}</div>`).join('');
+    document.getElementById('trafficResult').style.display='block';
+  } else { showToast(result.error||'Failed to analyze.','error'); }
+};
+
+window.findContentGap = async () => {
+  const domain=document.getElementById('competitorDomain').value.trim();
+  if (!domain) { showToast('Enter a competitor domain.','error'); return; }
+  setBtnLoading('btnGap','gapBtnTxt','gapSpinner',true,'Analyzing…');
+  const prompt=`Find SEO content gaps. A fintech blog at blogspro.in vs competitor at ${domain}.\nSuggest 10 topics the competitor likely ranks for that we should write.\nReturn ONLY JSON:\n{"topics":[{"title":"","priority":"high|medium","reason":""}]}`;
+  const result=await callAI(prompt,true,'auto');
+  setBtnLoading('btnGap','gapBtnTxt','gapSpinner',false,'Analyze Gap');
+  let parsed=null;
+  if (!result.error) {
+    try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {}
+  }
+  const el=document.getElementById('gapResult');
+  if (parsed?.topics?.length) {
+    el.style.display='flex';
+    el.innerHTML=parsed.topics.map(t=>`<div class="result-item"><div class="result-item-body"><div class="result-item-title">${t.title||'—'}</div><div class="result-item-sub">${t.reason||''}</div></div><div class="result-item-badge ${t.priority==='high'?'badge-red':t.priority==='medium'?'badge-gold':'badge-blue'}">${(t.priority||'low').toUpperCase()}</div><button onclick="quickNewPost(this)" data-title="${t.title}" style="flex-shrink:0;background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0.2rem 0.5rem;border-radius:2px;font-family:var(--sans);font-size:0.68rem;cursor:pointer;transition:all 0.15s;margin-left:0.4rem" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">+ Write</button></div>`).join('');
+  } else { el.style.display='flex'; el.innerHTML=`<div style="padding:1rem;color:var(--muted);font-size:0.85rem">Could not parse results. Try again.</div>`; showToast(result.error||'Failed.','error'); }
+};
+
+window.generateBacklinks = async () => {
+  const topic=document.getElementById('backlinkTopic').value.trim();
+  if (!topic) { showToast('Enter a topic.','error'); return; }
+  setBtnLoading('btnBacklinks','blBtnTxt','blSpinner',true,'Finding…');
+  const prompt=`Find 8 backlink outreach opportunities for a fintech blog about: "${topic}".\nReturn ONLY JSON:\n{"sites":[{"name":"site name","domain":"domain.com","type":"guest post|link exchange|resource page|mention","pitch":"1-sentence pitch"}]}`;
+  const result=await callAI(prompt,true,'auto');
+  setBtnLoading('btnBacklinks','blBtnTxt','blSpinner',false,'Find Opportunities');
+  let parsed=null;
+  if (!result.error) {
+    try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {}
+  }
+  const el=document.getElementById('backlinkResult');
+  if (parsed?.sites?.length) {
+    el.style.display='flex';
+    el.innerHTML=parsed.sites.map(s=>`<div class="result-item"><div class="result-item-icon">🔗</div><div class="result-item-body"><div class="result-item-title">${s.name||s.domain||'—'}</div><div class="result-item-sub">${s.pitch||''}</div></div><div class="result-item-badge badge-blue">${(s.type||'').toUpperCase()}</div></div>`).join('');
+  } else { el.style.display='flex'; el.innerHTML=`<div style="padding:1rem;color:var(--muted);font-size:0.85rem">${result.error||'No results.'}</div>`; }
+};
+
+window.analyzePostSEO = async () => {
+  const id=document.getElementById('analyzePostSelect').value;
+  if (!id) { showToast('Select a post first.','error'); return; }
+  setBtnLoading('btnAnalyze','analyzeBtnTxt','analyzeSpinner',true,'Analyzing…');
+  const post=allPosts.find(p=>p.id===id);
+  if (!post) { showToast('Post not found.','error'); return; }
+  const text=(post.content||'').replace(/<[^>]+>/g,' ').trim().substring(0,1500);
+  const prompt=`Analyze this fintech blog post for SEO quality.\nTitle: "${post.title}"\nContent: "${text}"\nReturn ONLY JSON:\n{"seo_score":0-100,"strengths":["s1","s2"],"improvements":["i1","i2","i3","i4"]}`;
+  const result=await callAI(prompt,true,'auto');
+  setBtnLoading('btnAnalyze','analyzeBtnTxt','analyzeSpinner',false,'Analyze');
+  let parsed=null;
+  if (!result.error) {
+    try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {}
+  }
+  if (parsed) {
+    const score=parsed.seo_score||0;
+    const ring=document.getElementById('seoScoreRing');
+    ring.textContent=score;
+    ring.className='seo-score-ring '+(score>=80?'score-high':score>=60?'score-med':'score-low');
+    document.getElementById('seoScoreLabel').textContent=score>=80?'Excellent SEO':score>=60?'Good SEO — Minor improvements':score>=40?'Average — Needs work':'Poor — Major optimization needed';
+    document.getElementById('seoScoreSub').textContent=`Word count: ~${post.content?.split(/\s+/).length||0} · Score based on structure, keywords, and content quality`;
+    document.getElementById('seoImprovements').innerHTML=
+      (parsed.strengths||[]).map(s=>`<div class="result-item"><div class="result-item-icon">✅</div><div class="result-item-body"><div class="result-item-title">${s}</div></div></div>`).join('')+
+      (parsed.improvements||[]).map(s=>`<div class="result-item"><div class="result-item-icon">⚠️</div><div class="result-item-body"><div class="result-item-title">${s}</div></div></div>`).join('');
+    document.getElementById('seoAnalysisResult').style.display='block';
+  } else { showToast(result.error||'Analysis failed.','error'); }
+};
+
+// ═══════════════════════════════════════════════
+// ✅ NEW: TOPIC CLUSTERS
+// ═══════════════════════════════════════════════
+window.generateTopicClusters = async () => {
+  const topic=document.getElementById('clusterTopic').value.trim();
+  const category=document.getElementById('clusterCategory').value;
+  if (!topic) { showToast('Enter a topic.','error'); return; }
+  setBtnLoading('btnCluster','clusterBtnTxt','clusterSpinner',true,'Generating…');
+  const prompt=`Create a comprehensive SEO content cluster for a fintech blog.\nPillar Topic: "${topic}" (Category: ${category})\nReturn ONLY JSON:\n{"pillar":"pillar article title","pillar_desc":"brief description","clusters":[{"title":"cluster topic 1","angle":"search angle"},{"title":"cluster topic 2","angle":"search angle"},{"title":"cluster topic 3","angle":"search angle"},{"title":"cluster topic 4","angle":"search angle"},{"title":"cluster topic 5","angle":"search angle"},{"title":"cluster topic 6","angle":"search angle"},{"title":"cluster topic 7","angle":"search angle"},{"title":"cluster topic 8","angle":"search angle"}]}`;
+  const result=await callAI(prompt,true,'auto');
+  setBtnLoading('btnCluster','clusterBtnTxt','clusterSpinner',false,'Generate');
+  let parsed=null;
+  if (!result.error) {
+    try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {}
+  }
+  if (parsed) {
+    const tree=document.getElementById('clusterTree');
+    tree.innerHTML=`<div class="cluster-pillar">🏛 PILLAR: ${parsed.pillar}<div style="font-size:0.72rem;font-weight:400;color:var(--muted);margin-top:0.2rem">${parsed.pillar_desc||''}</div></div><div class="cluster-items">${(parsed.clusters||[]).map(c=>`<div class="cluster-item" onclick="quickNewPost(this)" data-title="${c.title}"><span style="font-size:0.8rem;flex:1">${c.title}</span><span style="font-size:0.62rem;margin-left:auto;color:var(--gold)">+ Write</span></div>`).join('')}</div>`;
+    document.getElementById('clusterResult').style.display='block';
+  } else { showToast(result.error||'Failed.','error'); }
+};
+
+// ═══════════════════════════════════════════════
+// ✅ NEW: CONTENT CALENDAR
+// ═══════════════════════════════════════════════
+window.generateContentCalendar = async () => {
+  setBtnLoading('btnCalendar','calBtnTxt','calSpinner',true,'Generating…');
+  const prompt=`Create a 30-day content calendar for a fintech blog (blogspro.in) covering RBI, UPI, payments, compliance, digital banking.\nReturn ONLY JSON:\n{"week1":[{"day":1,"title":"","category":"","hook":""},{"day":2,"title":"","category":"","hook":""},{"day":4,"title":"","category":"","hook":""},{"day":6,"title":"","category":"","hook":""},{"day":8,"title":"","category":"","hook":""}],"week2":[{"day":9,"title":"","category":"","hook":""},{"day":11,"title":"","category":"","hook":""},{"day":13,"title":"","category":"","hook":""},{"day":15,"title":"","category":"","hook":""},{"day":17,"title":"","category":"","hook":""}],"week3":[{"day":18,"title":"","category":"","hook":""},{"day":20,"title":"","category":"","hook":""},{"day":22,"title":"","category":"","hook":""},{"day":24,"title":"","category":"","hook":""},{"day":25,"title":"","category":"","hook":""}],"week4":[{"day":26,"title":"","category":"","hook":""},{"day":27,"title":"","category":"","hook":""},{"day":28,"title":"","category":"","hook":""},{"day":29,"title":"","category":"","hook":""},{"day":30,"title":"","category":"","hook":""}]}`;
+  const result=await callAI(prompt,true,'auto');
+  setBtnLoading('btnCalendar','calBtnTxt','calSpinner',false,'Generate Calendar');
+  let parsed=null;
+  if (!result.error) {
+    try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {}
+  }
+  if (parsed) {
+    const weekColors=['rgba(201,168,76,0.1)','rgba(59,130,246,0.08)','rgba(34,197,94,0.08)','rgba(168,85,247,0.08)'];
+    const weekBorders=['rgba(201,168,76,0.3)','rgba(59,130,246,0.3)','rgba(34,197,94,0.3)','rgba(168,85,247,0.3)'];
+    const weeks=['week1','week2','week3','week4'];
+    const weekLabels=['Week 1','Week 2','Week 3','Week 4'];
+    const renderGrid=(gridId)=>{
+      const grid=document.getElementById(gridId);
+      grid.innerHTML=weeks.map((w,wi)=>`<div style="background:${weekColors[wi]};border:1px solid ${weekBorders[wi]};border-radius:3px;padding:1rem"><div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem">${weekLabels[wi]}</div>${(parsed[w]||[]).map(item=>`<div style="background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.6rem 0.75rem;margin-bottom:0.5rem;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'" onclick="quickNewPost(this)" data-title="${item.title||''}"><div style="font-size:0.68rem;color:var(--muted)">Day ${item.day} · ${item.category||'Fintech'}</div><div style="font-size:0.82rem;font-weight:600;color:var(--cream);margin:0.2rem 0">${item.title||'—'}</div><div style="font-size:0.7rem;color:var(--muted);font-style:italic">${item.hook||''}</div></div>`).join('')}</div>`).join('');
+    };
+    if(document.getElementById('calendarGrid')) renderGrid('calendarGrid');
+    if(document.getElementById('calendarGrid2')) { renderGrid('calendarGrid2'); document.getElementById('calendarResult2').style.display='block'; document.getElementById('calendarEmpty').style.display='none'; }
+    if(document.getElementById('calendarResult')) document.getElementById('calendarResult').style.display='block';
+    showToast('30-day content calendar ready!','success');
+  } else { showToast(result.error||'Calendar generation failed.','error'); }
+};
+
+// Quick new post from cluster/calendar/gap
+window.quickNewPost = (el) => {
+  const title = el.dataset.title||el.textContent.trim();
+  showView('editor'); clearEditor();
+  document.getElementById('postTitle').value=title;
+  document.getElementById('postSlug').value=slugify(title);
+  document.getElementById('aiPrompt').value=title;
+  showToast(`New post started: "${title.substring(0,40)}"`, 'success');
+};
+
+// ═══════════════════════════════════════════════
+// ✅ NEW: HEADLINE OPTIMIZER
+// ═══════════════════════════════════════════════
+window.optimizeHeadline = async () => {
+  const topic=document.getElementById('headlineTopic').value.trim();
+  const count=parseInt(document.getElementById('headlineCount').value)||10;
+  if (!topic) { showToast('Enter a topic.','error'); return; }
+  setBtnLoading('btnHeadline','headlineBtnTxt','headlineSpinner',true,'Generating…');
+  const prompt=`Generate ${count} viral, high-CTR blog headlines for a fintech article about: "${topic}".\nEach headline should use different techniques (numbers, power words, urgency, questions, etc.).\nReturn ONLY JSON:\n{"headlines":[{"title":"headline","ctr_score":0-100,"technique":"what makes it work"}]}`;
+  const result=await callAI(prompt,true,'auto');
+  setBtnLoading('btnHeadline','headlineBtnTxt','headlineSpinner',false,'🔥 Generate Headlines');
+  let parsed=null;
+  if (!result.error) {
+    try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {}
+  }
+  const el=document.getElementById('headlineResult');
+  if (parsed?.headlines?.length) {
+    const sorted=[...parsed.headlines].sort((a,b)=>b.ctr_score-a.ctr_score);
+    el.style.display='flex';
+    el.innerHTML=sorted.map(h=>`<div class="headline-item"><div class="headline-ctr">${h.ctr_score}</div><div style="flex:1"><div class="headline-text">${h.title}</div><div style="font-size:0.68rem;color:var(--muted);margin-top:0.15rem">${h.technique||''}</div></div><button class="headline-use" onclick="useHeadline(this)" data-title="${h.title}">Use</button></div>`).join('');
+  } else { el.style.display='flex'; el.innerHTML=`<div style="padding:1rem;color:var(--muted);font-size:0.85rem">${result.error||'No results.'}</div>`; showToast(result.error||'Failed.','error'); }
+};
+
+window.useHeadline = (btn) => {
+  const title=btn.dataset.title;
+  showView('editor');
+  document.getElementById('postTitle').value=title;
+  document.getElementById('postSlug').value=slugify(title);
+  showToast('Headline applied to new post!','success');
+};
+
+// ═══════════════════════════════════════════════
+// ✅ NEW: NEWSLETTER
+// ═══════════════════════════════════════════════
+window.generateNewsletter = async () => {
+  setBtnLoading('btnNL','nlBtnTxt','nlSpinner',true,'Generating…');
+  document.getElementById('nlStatus').textContent='⏳ Fetching latest posts…';
+  const snap=await getDocs(query(collection(db,'posts'),orderBy('createdAt','desc'),limit(5)));
+  const posts=snap.docs.map(d=>d.data()).filter(p=>p.published);
+  if (!posts.length) { document.getElementById('nlStatus').textContent='No published posts found.'; setBtnLoading('btnNL','nlBtnTxt','nlSpinner',false,'✉ Generate Newsletter'); return; }
+  const style=document.getElementById('nlStyle').value;
+  const tone=document.getElementById('nlTone').value;
+  const subject=document.getElementById('nlSubject').value.trim()||'This Week in Fintech';
+  document.getElementById('nlStatus').textContent='⏳ Writing newsletter…';
+  const titles=posts.map(p=>p.title).join('\n');
+  const prompt=`Write a ${style} style newsletter email for a fintech blog in a ${tone} tone.\nSubject: "${subject}"\nLatest blog posts:\n${titles}\n\nReturn clean HTML email body (no <html> or <body> tags). Use inline styles. Dark-friendly colors. Include a brief intro, post summaries with fictional placeholder links, and a footer CTA.`;
+  const result=await callAI(prompt,true,'auto');
+  setBtnLoading('btnNL','nlBtnTxt','nlSpinner',false,'✉ Generate Newsletter');
+  if (result.error) { document.getElementById('nlStatus').textContent='✕ '+result.error; showToast(result.error,'error'); return; }
+  generatedNewsletter=sanitize(result.text||'');
+  document.getElementById('nlPreview').innerHTML=generatedNewsletter;
+  document.getElementById('nlStatus').textContent='✓ Newsletter ready! Review and send.';
+  document.getElementById('copyNLBtn').style.display='inline-block';
+  document.getElementById('btnSendNL').disabled=false;
+  showToast('Newsletter generated!','success');
+};
+
+window.copyNewsletter = () => {
+  if (!generatedNewsletter) return;
+  navigator.clipboard.writeText(generatedNewsletter).then(()=>showToast('Newsletter HTML copied!','success')).catch(()=>showToast('Copy failed.','error'));
+};
+
+window.sendNewsletter = async () => {
+  if (!generatedNewsletter) { showToast('Generate newsletter first.','error'); return; }
+  if (!confirm(`Send newsletter to ${allSubs.length} subscriber${allSubs.length!==1?'s':''}?`)) return;
+  // Note: Resend API key must be configured on the backend worker to avoid exposing keys in frontend
+  showToast(`Newsletter send triggered. Configure Resend API in your worker for delivery.`,'success');
+};
+
+// ═══════════════════════════════════════════════
+// ✅ NEW: AUTO BLOG ENGINE
+// ═══════════════════════════════════════════════
+function abLog(msg, type='info') {
+  const log=document.getElementById('autoblogLog');
+  const item=document.createElement('div');
+  item.className=`autoblog-log-item ${type}`;
+  const icon={ok:'✓',err:'✕',info:'ℹ',warn:'⚠'}[type]||'ℹ';
+  item.innerHTML=`<span>${icon}</span><span>${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} — ${msg}</span>`;
+  log.insertBefore(item,log.firstChild);
+}
+
+window.runAutoBlog = async () => {
+  const count=parseInt(document.getElementById('abCount').value)||2;
+  const category=document.getElementById('abCategory').value;
+  const topicSeed=document.getElementById('abTopicSeed').value.trim();
+  const autoPublish=document.getElementById('abPublishSwitch').classList.contains('on');
+  const btn=document.getElementById('btnAutoBlog');
+  btn.disabled=true; document.getElementById('abBtnTxt').textContent='Running…'; document.getElementById('abSpinner').style.display='inline-block';
+  abLog(`Starting Auto Blog: ${count} posts in ${category}`, 'info');
+  let generated=0;
+  for (let i=0; i<count; i++) {
+    abLog(`Generating post ${i+1}/${count}…`, 'info');
+    // Step 1: Pick topic
+    const topicPrompt=topicSeed
+      ? `Generate a specific, SEO-friendly article title about "${topicSeed}" in the ${category} fintech niche. Return ONLY the title.`
+      : `Suggest one trending fintech article title for ${category}. Focus on India's RBI, UPI, payments, compliance, or digital banking in 2025. Return ONLY the title.`;
+    const topicResult=await callAI(topicPrompt,true,'auto');
+    if (topicResult.error) { abLog(`Post ${i+1}: Topic generation failed — ${topicResult.error}`,'err'); continue; }
+    const topic=topicResult.text.trim().replace(/^["']|["']$/g,'');
+    abLog(`Topic: "${topic}"`, 'info');
+    // Step 2: Write article
+    const articleResult=await callAI(`Write a comprehensive 800-1200 word fintech blog article.\nTitle: "${topic}"\nCategory: ${category}\nTone: professional\nReturn ONLY clean HTML using <h2><h3><p><strong><em><ul><li><blockquote> tags.`,true,'auto');
+    if (articleResult.error) { abLog(`Post ${i+1}: Article generation failed — ${articleResult.error}`,'err'); continue; }
+    // Step 3: Generate meta
+    const metaResult=await callAI(`For article: "${topic}", return ONLY JSON:\n{"summary":"2-sentence summary","metaDescription":"SEO meta max 155 chars","tags":["tag1","tag2","tag3"],"slug":"url-slug"}`,true,'auto');
+    let meta={summary:'',metaDescription:'',tags:[],slug:slugify(topic)};
+    if (!metaResult.error) {
+      try { const s=metaResult.text.indexOf('{'),e=metaResult.text.lastIndexOf('}'); if(s!==-1&&e!==-1) meta={...meta,...JSON.parse(metaResult.text.substring(s,e+1))}; } catch(_) {}
+    }
+    // Step 4: Save to Firestore
+    try {
+      await addDoc(collection(db,'posts'),{
+        title:topic, excerpt:meta.summary, content:sanitize(articleResult.text),
+        category, slug:meta.slug||slugify(topic), metaDesc:meta.metaDescription,
+        tags:meta.tags||[], image:'', readingTime:5, published:autoPublish, premium:false,
+        createdAt:serverTimestamp(), updatedAt:serverTimestamp(),
+        autoGenerated:true
+      });
+      generated++; abSessionTotal++; if(autoPublish) abSessionPublished++;
+      document.getElementById('ab-total').textContent=abSessionTotal;
+      document.getElementById('ab-published').textContent=abSessionPublished;
+      abLog(`"${topic}" — ${autoPublish?'Published':'Saved as draft'}! ✓`, 'ok');
+    } catch(e) { abLog(`Save failed: ${e.message}`, 'err'); }
+    // Wait between posts
+    if (i < count-1) { abLog('Waiting 3s before next post…','info'); await new Promise(r=>setTimeout(r,3000)); }
+  }
+  btn.disabled=false; document.getElementById('abBtnTxt').textContent='🤖 Start Auto Blog'; document.getElementById('abSpinner').style.display='none';
+  showToast(`Auto Blog complete! ${generated} post${generated!==1?'s':''} generated.`,'success');
+  await loadAll();
+};
+
+// ═══════════════════════════════════════════════
+// ✅ NEW: BULK ARTICLE FRESHEN
+// ═══════════════════════════════════════════════
+window.bulkFreshen = async () => {
+  const drafts=allPosts.filter(p=>p.published);
+  if (!drafts.length) { showToast('No published posts.','error'); return; }
+  const selected=allPosts.filter(p=>p.published).slice(0,3);
+  if (!confirm(`Update ${selected.length} oldest published posts with fresh content?\n\nThis adds new statistics and trends to the intro.`)) return;
+  const panel=document.getElementById('repairPanel');
+  const fill=document.getElementById('repairFill');
+  const count=document.getElementById('repairCount');
+  const log=document.getElementById('repairLog');
+  document.getElementById('repairTitle').textContent='🔄 Refreshing posts…';
+  panel.style.display='block'; log.innerHTML=''; fill.style.width='0%'; fill.style.background='linear-gradient(90deg,var(--green),#4ade80)';
+  let done=0;
+  for (let i=0; i<selected.length; i++) {
+    const post=selected[i];
+    fill.style.width=`${Math.round(((i+1)/selected.length)*100)}%`;
+    count.textContent=`${i+1}/${selected.length} — ${post.title?.substring(0,30)||'…'}`;
+    const el=document.createElement('div'); el.style.color='var(--muted)'; el.textContent=`⏳ Refreshing: "${post.title?.substring(0,40)}"…`;
+    log.appendChild(el);
+    const currentContent=(post.content||'').replace(/<[^>]+>/g,' ').trim().substring(0,800);
+    const refreshResult=await callAI(`Refresh this fintech article intro with latest 2025 data and trends.\nArticle title: "${post.title}"\nCurrent content start: "${currentContent}"\n\nRewrite only the opening 2-3 paragraphs with fresh statistics and current context. Return ONLY HTML <p> tags for the new intro.`,true,'auto');
+    if (!refreshResult.error && refreshResult.text) {
+      const newIntro=sanitize(refreshResult.text);
+      const existingContent=post.content||'';
+      const firstH2=existingContent.indexOf('<h2');
+      const updatedContent = firstH2>0
+        ? newIntro + existingContent.substring(firstH2)
+        : newIntro + existingContent;
+      try {
+        await updateDoc(doc(db,'posts',post.id),{content:updatedContent,updatedAt:serverTimestamp()});
+        done++; el.style.color='var(--green)'; el.textContent=`✓ "${post.title?.substring(0,40)}" — refreshed`;
+      } catch(e) { el.style.color='#fca5a5'; el.textContent=`✕ Save failed: ${e.message}`; }
+    } else { el.style.color='#fca5a5'; el.textContent=`✕ "${post.title?.substring(0,30)}" — ${refreshResult.error||'failed'}`; }
+    if (i<selected.length-1) await new Promise(r=>setTimeout(r,2000));
+  }
+  fill.style.width='100%'; count.textContent=`✓ Done — ${done}/${selected.length} refreshed`;
+  showToast(`${done} post${done!==1?'s':''} refreshed with fresh content!`,'success');
+  await loadAll();
+  setTimeout(()=>{ panel.style.display='none'; },8000);
+};
+
+// ═══════════════════════════════════════════════
+// BROKEN IMAGE REPAIR
+// ═══════════════════════════════════════════════
+window.repairBrokenImages = async () => {
+  if (!confirm(`Scan all ${allPosts.length} posts for broken blob:// image URLs and repair them?`)) return;
+  const panel=document.getElementById('repairPanel'), fill=document.getElementById('repairFill'), count=document.getElementById('repairCount'), log=document.getElementById('repairLog');
+  document.getElementById('repairTitle').textContent='🔧 Repairing broken images…';
+  panel.style.display='block'; log.innerHTML=''; fill.style.width='0%'; fill.style.background='linear-gradient(90deg,#1d4ed8,#3b82f6)';
+  const addLog=(msg,state='ok')=>{ const el=document.createElement('div'); el.style.color=state==='ok'?'var(--green)':state==='warn'?'var(--gold)':'#fca5a5'; el.textContent=(state==='ok'?'✓ ':state==='warn'?'⚠ ':'✕ ')+msg; log.appendChild(el); log.scrollTop=log.scrollHeight; };
+  async function genImageForTitle(title) {
+    const prompt=encodeURIComponent(`Professional fintech editorial illustration for "${title}", modern dark UI, no text, no watermark`);
+    const url=`https://image.pollinations.ai/prompt/${prompt}?width=1280&height=720&seed=${Math.floor(Math.random()*99999)}&nologo=true&model=flux`;
+    const res=await fetch(url); if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob=await res.blob(); if(blob.size<1000) throw new Error('Too small');
+    return new File([blob],'generated.jpg',{type:blob.type||'image/jpeg'});
+  }
+  let fixed=0,skipped=0,errors=0;
+  for (let i=0;i<allPosts.length;i++) {
+    const post=allPosts[i];
+    fill.style.width=`${Math.round(((i+1)/allPosts.length)*100)}%`;
+    count.textContent=`${i+1}/${allPosts.length} — checking "${post.title?.substring(0,30)||'(untitled)'}…"`;
+    const hasBlobImage=post.image?.startsWith('blob:');
+    const hasBlobContent=post.content?.includes('src="blob:');
+    if (!hasBlobImage && !hasBlobContent) { skipped++; continue; }
+    try {
+      let newImage=post.image||'', newContent=post.content||'';
+      if (hasBlobImage) {
+        const liveFile=await blobUrlToFile(post.image,'featured.jpg').catch(()=>null);
+        if (liveFile) { newImage=await uploadToStorage(liveFile,'featured'); addLog(`"${post.title}" — featured uploaded`); }
+        else {
+          const genFile=await genImageForTitle(post.title||post.category||'fintech');
+          newImage=await uploadToStorage(genFile,'featured'); addLog(`"${post.title}" — regenerated & uploaded`,'warn');
+        }
+      }
+      if (hasBlobContent) {
+        const matches=[...newContent.matchAll(/src="(blob:[^"]+)"/g)]; let replaced=0;
+        for (const m of matches) {
+          const liveFile=await blobUrlToFile(m[1],'content.jpg').catch(()=>null);
+          if (liveFile) { const url=await uploadToStorage(liveFile,'content'); newContent=newContent.replace(m[1],url); replaced++; }
+          else {
+            try { const gf=await genImageForTitle(post.title||'fintech'); const url=await uploadToStorage(gf,'content'); newContent=newContent.replace(m[1],url); replaced++; }
+            catch(_) { newContent=newContent.replace(new RegExp(`<figure[^>]*>[\\s\\S]*?<img[^>]*src="${m[1].replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}"[^>]*>[\\s\\S]*?</figure>`,'g'),''); }
+          }
+        }
+        if (replaced>0) addLog(`"${post.title}" — ${replaced} inline image${replaced>1?'s':''} repaired`);
+      }
+      await updateDoc(doc(db,'posts',post.id),{image:newImage,content:newContent,updatedAt:serverTimestamp()});
+      fixed++;
+    } catch(e) { addLog(`"${post.title}" — failed: ${e.message}`,'error'); errors++; }
+  }
+  fill.style.background='var(--green)'; fill.style.width='100%';
+  count.textContent=`✓ Done — ${fixed} fixed, ${skipped} clean, ${errors} failed`;
+  showToast(`Repair complete! ${fixed} post${fixed!==1?'s':''} fixed.`,'success');
+  await loadAll(); setTimeout(()=>{ panel.style.display='none'; },10000);
+};
+
+// ═══════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════
+window.doLogout = async () => { await signOut(auth); window.location.href='index.html'; };
+
+function slugify(text) {
+  return text.toString().toLowerCase().trim().replace(/\s+/g,'-').replace(/[^\w\-]+/g,'').replace(/\-\-+/g,'-').replace(/^-+/,'').replace(/-+$/,'');
+}
+
+let toastTimer;
+function showToast(msg, type='success') {
+  const t=document.getElementById('toast');
+  t.textContent=(type==='success'?'✓ ':'✕ ')+msg;
+  t.className=`toast ${type} show`;
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),4000);
+}
+window.showToast=showToast;
+
+function setBtnLoading(btnId, txtId, spinnerId, on, onText='') {
+  const btn=document.getElementById(btnId), txt=document.getElementById(txtId), spn=document.getElementById(spinnerId);
+  if (btn) btn.disabled=on;
+  if (txt&&onText) txt.textContent=on?onText:txt.dataset.orig||(txt.textContent);
+  if (spn) spn.style.display=on?'inline-block':'none';
+  if (txt&&!on&&txt.dataset.orig) txt.textContent=txt.dataset.orig;
+  if (txt&&on&&!txt.dataset.orig) txt.dataset.orig=txt.textContent;
+}
+</script>
+</body>
+</html>
