@@ -1,64 +1,39 @@
-<!DOCTYPE html>
-<html>
-
-<head>
-<title>BlogsPro Login</title>
-</head>
-
-<body>
-
-<h2>BlogsPro User Login</h2>
-
-<input id="email" type="email" placeholder="Email">
-<br><br>
-
-<input id="password" type="password" placeholder="Password">
-<br><br>
-
-<button id="loginBtn">Login</button>
-<button id="signupBtn">Sign Up</button>
-
 <script type="module">
 
-import { auth } from "./firebase-init.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, GithubAuthProvider, signInWithPopup } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-import {
- signInWithEmailAndPassword,
- createUserWithEmailAndPassword
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
+  authDomain: "blogspro-ai.firebaseapp.com",
+  projectId: "blogspro-ai",
+  storageBucket: "blogspro-ai.firebasestorage.app",
+  messagingSenderId: "940428277283",
+  appId: "1:940428277283:web:d3bb414f0992718ca76396",
+  measurementId: "G-N7TCB31MRD"
+};
 
-document.getElementById("loginBtn").onclick = function(){
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 
-const email=document.getElementById("email").value;
-const password=document.getElementById("password").value;
+const provider = new GithubAuthProvider();
 
-signInWithEmailAndPassword(auth,email,password)
-.then(()=>{
-alert("Login successful");
-window.location="dashboard.html";
+document.getElementById("githubLogin").onclick = () => {
+
+signInWithPopup(auth, provider)
+.then((result) => {
+console.log(result.user);
+window.location = "dashboard.html";
 })
-.catch(error=>{
+.catch((error) => {
 alert(error.message);
 });
 
-}
-
-document.getElementById("signupBtn").onclick=function(){
-
-const email=document.getElementById("email").value;
-const password=document.getElementById("password").value;
-
-createUserWithEmailAndPassword(auth,email,password)
-.then(()=>{
-alert("Account created");
-})
-.catch(error=>{
-alert(error.message);
-});
-
-}
+};
 
 </script>
 
-</body>
-</html>
+<button id="githubLogin">
+Login with GitHub
+</button>
