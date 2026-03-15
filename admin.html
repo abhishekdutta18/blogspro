@@ -23,12 +23,12 @@
     html,body{height:100%}
     body{background:var(--navy);color:var(--cream);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:flex}
     a{color:inherit;text-decoration:none}
- 
+
     /* Hamburger */
     #menuBtn{display:none;position:fixed;top:14px;left:14px;z-index:200;background:var(--navy2);border:1px solid var(--border);color:var(--cream);padding:6px 11px;font-size:1.1rem;cursor:pointer;border-radius:3px;transition:all 0.2s}
     #menuBtn:hover{border-color:var(--gold);color:var(--gold)}
     #sideOverlay{display:none;position:fixed;inset:0;background:rgba(8,13,26,0.6);z-index:49;backdrop-filter:blur(2px)}
- 
+
     /* Sidebar */
     aside{width:var(--sidebar);height:100vh;background:var(--navy2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:50;overflow:hidden;transition:transform 0.25s ease}
     .sidebar-brand{padding:1.8rem 1.5rem 1.5rem;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -45,27 +45,27 @@
     .user-email{font-size:0.75rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .btn-logout{width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.6rem;border-radius:3px;font-family:var(--sans);font-size:0.78rem;cursor:pointer;transition:all 0.2s}
     .btn-logout:hover{border-color:var(--red);color:#fca5a5}
- 
+
     /* Main */
     main{margin-left:var(--sidebar);flex:1;min-height:100vh;padding:2.5rem}
- 
+
     /* Views */
     .view{display:none}
     .view.active{display:block;animation:fadeIn 0.25s ease}
     @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
- 
+
     /* Page header */
     .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2.5rem}
     .page-header h2{font-family:var(--serif);font-size:2rem;font-weight:700}
     .page-header p{font-size:0.85rem;color:var(--muted);margin-top:0.2rem}
- 
+
     /* Stat cards */
     .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;margin-bottom:3rem}
     .stat-card{background:var(--navy2);border:1px solid var(--border);padding:1.8rem 1.5rem}
     .stat-card-label{font-size:0.7rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.8rem}
     .stat-card-value{font-family:var(--serif);font-size:2.8rem;font-weight:700;line-height:1}
     .stat-card-sub{font-size:0.75rem;color:var(--green);margin-top:0.4rem}
- 
+
     /* Table */
     .table-wrap{background:var(--navy2);border:1px solid var(--border);overflow:hidden}
     .table-header{display:flex;align-items:center;justify-content:space-between;padding:1.2rem 1.5rem;border-bottom:1px solid var(--border)}
@@ -82,7 +82,7 @@
     .action-btn:hover{border-color:var(--gold);color:var(--gold)}
     .action-btn.delete:hover{border-color:var(--red);color:#fca5a5}
     .table-empty{text-align:center;padding:3rem;color:var(--muted);font-size:0.9rem}
- 
+
     /* Editor */
     .editor-grid{display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:start}
     .editor-panel{background:var(--navy2);border:1px solid var(--border);padding:1.5rem}
@@ -109,7 +109,7 @@
     .btn-publish{background:var(--gold);color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;transition:all 0.2s}
     .btn-publish:hover{background:var(--gold2)}
     .char-count{font-size:0.7rem;color:var(--muted);text-align:right;margin-top:0.3rem}
- 
+
     /* Toggle */
     .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:0.8rem 0;border-top:1px solid var(--border);margin-top:0.5rem}
     .toggle-switch{position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;flex-shrink:0}
@@ -117,13 +117,13 @@
     .toggle-dot{position:absolute;left:2px;top:2px;width:14px;height:14px;background:var(--muted);border-radius:50%;transition:0.2s}
     .toggle-switch.on .toggle-track{background:rgba(201,168,76,0.2);border-color:var(--gold)}
     .toggle-switch.on .toggle-dot{left:18px;background:var(--gold)}
- 
+
     /* Toast */
     .toast{position:fixed;bottom:2rem;right:2rem;background:var(--navy3);border:1px solid var(--border);padding:1rem 1.5rem;border-radius:4px;font-size:0.88rem;z-index:999;transform:translateY(100px);opacity:0;transition:all 0.3s;max-width:340px}
     .toast.show{transform:translateY(0);opacity:1}
     .toast.success{border-color:var(--green)}
     .toast.error{border-color:var(--red)}
- 
+
     /* Modal */
     .modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,13,26,0.85);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
     .modal-overlay.open{display:flex}
@@ -137,10 +137,10 @@
     .btn-modal-confirm:hover{background:var(--gold2)}
     .btn-modal-cancel{flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;cursor:pointer;transition:all 0.2s}
     .btn-modal-cancel:hover{border-color:var(--red);color:#fca5a5}
- 
+
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
- 
+
     @media(max-width:900px){
       aside{transform:translateX(-100%)}
       aside.open{transform:translateX(0)}
@@ -152,10 +152,10 @@
   </style>
 </head>
 <body>
- 
+
 <button id="menuBtn" onclick="toggleSidebar()">☰</button>
 <div id="sideOverlay" onclick="toggleSidebar()"></div>
- 
+
 <!-- SIDEBAR -->
 <aside>
   <div class="sidebar-brand">
@@ -181,10 +181,10 @@
     <button class="btn-logout" onclick="doLogout()">Sign Out</button>
   </div>
 </aside>
- 
+
 <!-- MAIN -->
 <main>
- 
+
   <!-- DASHBOARD -->
   <div class="view active" id="view-dashboard">
     <div class="page-header">
@@ -203,7 +203,7 @@
       <tbody id="recentPostsBody"><tr><td colspan="5"><div class="table-empty">Loading…</div></td></tr></tbody></table>
     </div>
   </div>
- 
+
   <!-- ALL POSTS -->
   <div class="view" id="view-posts">
     <div class="page-header">
@@ -215,7 +215,7 @@
       <tbody id="allPostsBody"><tr><td colspan="5"><div class="table-empty">Loading…</div></td></tr></tbody></table>
     </div>
   </div>
- 
+
   <!-- EDITOR -->
   <div class="view" id="view-editor">
     <div class="page-header">
@@ -249,7 +249,7 @@
         <div id="editor" contenteditable="true"></div>
         <div class="char-count"><span id="wordCount">0</span> words · <span id="readingTimeDisplay">0</span> min read</div>
       </div>
- 
+
       <!-- Right -->
       <div>
         <!-- Publish -->
@@ -263,7 +263,7 @@
           <p id="saveStatus" style="font-size:0.75rem;color:var(--muted);margin-top:0.6rem;text-align:center"></p>
           <p id="autoSaveMsg" style="font-size:0.68rem;color:var(--muted);text-align:center"></p>
         </div>
- 
+
         <!-- Details -->
         <div class="editor-panel" style="margin-top:1rem">
           <h3>Details</h3>
@@ -302,17 +302,17 @@
             </div>
           </div>
         </div>
- 
+
         <!-- AI Writer -->
         <div class="editor-panel" id="aiPanel" style="margin-top:1rem;border-color:rgba(201,168,76,0.35)">
           <h3 style="color:var(--gold)">✦ AI Writer</h3>
           <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem">Describe your topic. AI generates an outline first, then the full article.</p>
- 
+
           <div class="form-row">
             <label class="form-label">Topic / Prompt</label>
             <textarea class="form-textarea" id="aiPrompt" rows="3" placeholder="e.g. Write about RBI's new UPI regulations for fintech companies in 2025…" style="resize:vertical;font-size:0.85rem"></textarea>
           </div>
- 
+
           <div class="form-row">
             <label class="form-label">Tone</label>
             <select class="form-select" id="aiTone" style="font-size:0.85rem">
@@ -322,21 +322,13 @@
               <option value="thought-leadership">Thought Leadership</option>
             </select>
           </div>
- 
-          <div class="form-row">
-            <label class="form-label">AI Model</label>
-            <select class="form-select" id="aiModel" style="font-size:0.85rem" onchange="onModelChange()">
-              <option value="claude">Claude (Anthropic) — Best quality</option>
-              <option value="groq">Groq Llama 3 — Free &amp; fast ✓</option>
-              <option value="gemini">Google Gemini — Free tier ✓</option>
-            </select>
-            <p style="font-size:0.68rem;color:var(--muted);margin-top:0.3rem">Switch to free models if Claude credits run out.</p>
+
+          <div style="font-size:0.72rem;color:var(--green);margin-bottom:0.75rem;padding:0.6rem 0.8rem;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:3px">
+            ✦ Auto-selects best available model: DeepSeek → OpenRouter → Groq → Claude
           </div>
- 
-          <div id="modelStatus" style="font-size:0.72rem;color:var(--green);margin-bottom:0.75rem;display:none">
-            ✓ Key stored securely in Cloudflare — no input needed
-          </div>
- 
+          <!-- Hidden model input — always auto -->
+          <input type="hidden" id="aiModel" value="auto" />
+
           <button onclick="generateAIPost()" id="btnAI" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem">
             <span id="aiBtnText">✦ Generate Article</span>
             <span id="aiSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite;display:none"></span>
@@ -346,7 +338,7 @@
       </div>
     </div>
   </div>
- 
+
   <!-- USERS -->
   <div class="view" id="view-users">
     <div class="page-header"><div><h2>Users</h2><p>Manage all registered accounts</p></div></div>
@@ -355,7 +347,7 @@
       <tbody id="usersTableBody"><tr><td colspan="5"><div class="table-empty">Loading…</div></td></tr></tbody></table>
     </div>
   </div>
- 
+
   <!-- SUBSCRIBERS -->
   <div class="view" id="view-subscribers">
     <div class="page-header">
@@ -371,9 +363,9 @@
       <tbody id="subsTableBody"><tr><td colspan="4"><div class="table-empty">Loading…</div></td></tr></tbody></table>
     </div>
   </div>
- 
+
 </main>
- 
+
 <!-- AI Modal -->
 <div class="modal-overlay" id="aiModal">
   <div class="modal-box">
@@ -386,9 +378,9 @@
     </div>
   </div>
 </div>
- 
+
 <div class="toast" id="toast"></div>
- 
+
 <script type="module">
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -397,7 +389,7 @@ import {
   getDocs, getDoc, addDoc, updateDoc, deleteDoc,
   query, orderBy, limit, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
- 
+
 const firebaseConfig = {
   apiKey:"AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
   authDomain:"blogspro-ai.firebaseapp.com",
@@ -406,22 +398,22 @@ const firebaseConfig = {
   messagingSenderId:"940428277283",
   appId:"1:940428277283:web:d3bb414f0992718ca76396"
 };
- 
+
 const ADMIN_UID   = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
 const ADMIN_EMAIL = "abhishek.dutta1996@gmail.com";
 const WORKER_URL  = "https://blogspro-ai.abhishek-dutta1996.workers.dev";
- 
+
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
- 
+
 let currentUser   = null;
 let editingPostId = null;
 let allPosts      = [];
 let allSubs       = [];
 let isPremium     = false;
 let pendingOutline = '';
- 
+
 // ── Auth guard ────────────────────────────────
 onAuthStateChanged(auth, async user => {
   if (!user) { window.location.href = 'login.html'; return; }
@@ -435,9 +427,8 @@ onAuthStateChanged(auth, async user => {
   document.getElementById('userInitial').textContent = user.email[0].toUpperCase();
   document.getElementById('greetMsg').textContent    = `Welcome back, ${user.email.split('@')[0]}.`;
   loadAll();
-  restoreAISettings();
 });
- 
+
 // ── Navigation ────────────────────────────────
 window.showView = (name) => {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -450,12 +441,12 @@ window.showView = (name) => {
   if (name === 'users')       loadUsers();
   if (name === 'subscribers') loadSubscribers();
 };
- 
+
 window.toggleSidebar = () => {
   document.querySelector('aside').classList.toggle('open');
   document.getElementById('sideOverlay').classList.toggle('open');
 };
- 
+
 // ── Load posts ────────────────────────────────
 async function loadAll() {
   try {
@@ -471,7 +462,7 @@ async function loadAll() {
     renderPostsTable(allPosts.slice(0,8), 'recentPostsBody');
   } catch(e) { showToast('Failed to load posts: '+e.message,'error'); }
 }
- 
+
 function renderPostsTable(posts, tbodyId) {
   const tbody = document.getElementById(tbodyId);
   if (!posts.length) { tbody.innerHTML=`<tr><td colspan="5"><div class="table-empty">No posts yet.</div></td></tr>`; return; }
@@ -491,7 +482,7 @@ function renderPostsTable(posts, tbodyId) {
       </td></tr>`;
   }).join('');
 }
- 
+
 // ── Users ─────────────────────────────────────
 async function loadUsers() {
   const tbody = document.getElementById('usersTableBody');
@@ -519,12 +510,12 @@ async function loadUsers() {
     }).join('');
   } catch(e) { tbody.innerHTML=`<tr><td colspan="5"><div class="table-empty">Failed to load users.</div></td></tr>`; }
 }
- 
+
 window.changeUserRole = async (uid, role) => {
   try { await updateDoc(doc(db,'users',uid),{role}); showToast(`Role updated to ${role}.`,'success'); loadUsers(); }
   catch(e) { showToast('Failed: '+e.message,'error'); }
 };
- 
+
 // ── Subscribers ───────────────────────────────
 async function loadSubscribers() {
   const tbody = document.getElementById('subsTableBody');
@@ -535,7 +526,7 @@ async function loadSubscribers() {
     renderSubs(allSubs);
   } catch(e) { tbody.innerHTML=`<tr><td colspan="4"><div class="table-empty">Failed to load.</div></td></tr>`; }
 }
- 
+
 function renderSubs(subs) {
   const tbody = document.getElementById('subsTableBody');
   if (!subs.length) { tbody.innerHTML=`<tr><td colspan="4"><div class="table-empty">No subscribers yet.</div></td></tr>`; return; }
@@ -546,9 +537,9 @@ function renderSubs(subs) {
       <td><button class="action-btn delete" onclick="deleteSub('${s.id}')">Remove</button></td></tr>`;
   }).join('');
 }
- 
+
 window.filterSubs = (q) => renderSubs(allSubs.filter(s=>s.email?.toLowerCase().includes(q.toLowerCase())));
- 
+
 window.deleteSub = async (id) => {
   if (!confirm('Remove this subscriber?')) return;
   try {
@@ -559,7 +550,7 @@ window.deleteSub = async (id) => {
     showToast('Subscriber removed.','success');
   } catch(e) { showToast('Failed: '+e.message,'error'); }
 };
- 
+
 window.exportSubscribers = () => {
   if (!allSubs.length) { showToast('No subscribers to export.','error'); return; }
   const csv  = 'Email,Date\n' + allSubs.map(s=>`${s.email},${s.createdAt?.toDate?.()?.toLocaleDateString('en-IN')||''}`).join('\n');
@@ -568,7 +559,7 @@ window.exportSubscribers = () => {
   a.click(); URL.revokeObjectURL(a.href);
   showToast('CSV downloaded!','success');
 };
- 
+
 // ── Editor ────────────────────────────────────
 window.clearEditor = () => {
   editingPostId = null; isPremium = false;
@@ -583,7 +574,7 @@ window.clearEditor = () => {
   document.getElementById('editorHeading').textContent = 'New Post';
   document.getElementById('premiumSwitch').classList.remove('on');
 };
- 
+
 window.editPost = async (id) => {
   showView('editor'); editingPostId = id;
   document.getElementById('editorHeading').textContent = 'Edit Post';
@@ -604,7 +595,7 @@ window.editPost = async (id) => {
     updateWordCount();
   } catch(e) { showToast('Failed to load post.','error'); }
 };
- 
+
 window.savePost = async (publish) => {
   const title   = document.getElementById('postTitle').value.trim();
   const excerpt = document.getElementById('postExcerpt').value.trim();
@@ -616,12 +607,12 @@ window.savePost = async (publish) => {
   const tagsRaw = document.getElementById('postTags').value.trim();
   const tags    = tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [];
   const readMin = Math.max(1,Math.ceil((document.getElementById('editor').innerText||'').split(/\s+/).filter(Boolean).length/200));
- 
+
   if (!title) { showToast('Please add a title.','error'); return; }
   document.getElementById('saveStatus').textContent = 'Saving…';
- 
+
   const data = { title,excerpt,content,category:cat,slug,image,metaDesc,tags,readingTime:readMin,published:publish,premium:isPremium,updatedAt:serverTimestamp() };
- 
+
   try {
     if (editingPostId) {
       await updateDoc(doc(db,'posts',editingPostId), data);
@@ -638,29 +629,29 @@ window.savePost = async (publish) => {
     showToast('Save failed: '+(e.code||e.message),'error');
   }
 };
- 
+
 window.togglePublish = async (id, current) => {
   try { await updateDoc(doc(db,'posts',id),{published:!current}); showToast(current?'Unpublished.':'Published!','success'); await loadAll(); }
   catch(e) { showToast('Update failed.','error'); }
 };
- 
+
 window.deletePost = async (id) => {
   if (!confirm('Delete this post? Cannot be undone.')) return;
   try { await deleteDoc(doc(db,'posts',id)); showToast('Deleted.','success'); await loadAll(); }
   catch(e) { showToast('Delete failed.','error'); }
 };
- 
+
 // ── Premium toggle ────────────────────────────
 window.togglePremium = () => {
   isPremium = !isPremium;
   document.getElementById('premiumSwitch').classList.toggle('on', isPremium);
 };
- 
+
 // ── Rich text ─────────────────────────────────
 window.fmt = (cmd) => { document.getElementById('editor').focus(); document.execCommand(cmd,false,null); };
 window.fmtBlock = (tag) => { document.getElementById('editor').focus(); document.execCommand('formatBlock',false,tag); };
 window.insertLink = () => { const url=prompt('Enter URL:'); if(url){document.getElementById('editor').focus();document.execCommand('createLink',false,url);} };
- 
+
 function updateWordCount() {
   const text  = document.getElementById('editor').innerText || '';
   const words = text.trim().split(/\s+/).filter(Boolean).length;
@@ -672,7 +663,7 @@ document.getElementById('editor').addEventListener('input', updateWordCount);
 document.getElementById('postTitle').addEventListener('input', e => {
   if (!editingPostId) document.getElementById('postSlug').value = slugify(e.target.value);
 });
- 
+
 // ── Auto-save ─────────────────────────────────
 setInterval(async () => {
   if (!editingPostId) return;
@@ -683,7 +674,7 @@ setInterval(async () => {
     document.getElementById('autoSaveMsg').textContent = 'Auto-saved at ' + new Date().toLocaleTimeString();
   } catch(e) {}
 }, 30000);
- 
+
 // ── Preview ───────────────────────────────────
 window.previewPost = () => {
   const title   = document.getElementById('postTitle').value || 'Preview';
@@ -702,7 +693,7 @@ window.previewPost = () => {
     ${excerpt?'<p style="font-size:1.2rem;color:#8896b3;margin-bottom:2rem">'+excerpt+'</p>':''}${content}</body></html>`);
   win.document.close();
 };
- 
+
 // ── AI Writer ─────────────────────────────────
 function restoreAISettings() {
   const model = localStorage.getItem('bp_aiModel') || 'claude';
@@ -712,76 +703,76 @@ function restoreAISettings() {
   const status = document.getElementById('modelStatus');
   if (status) status.style.display = model !== 'claude' ? 'block' : 'none';
 }
- 
+
 window.onModelChange = () => {
   const model = document.getElementById('aiModel').value;
   localStorage.setItem('bp_aiModel', model);
   const status = document.getElementById('modelStatus');
   if (status) status.style.display = model !== 'claude' ? 'block' : 'none';
 };
- 
+
 async function callAI(prompt) {
   const model    = document.getElementById('aiModel').value;
   const tone     = document.getElementById('aiTone').value;
   const category = document.getElementById('postCategory').value;
- 
+
   let res, data;
   try {
     res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, tone, category, model })
+      body: JSON.stringify({ prompt, tone, category, model: 'auto' })
     });
   } catch(e) {
     return { error: 'Network error: ' + e.message };
   }
- 
+
   try { data = await res.json(); }
   catch(e) { return { error: 'Invalid response (HTTP ' + res.status + ')' }; }
- 
+
   if (data.error) {
     return { error: typeof data.error === 'object'
       ? (data.error.message || JSON.stringify(data.error))
       : String(data.error) };
   }
- 
+
   const text = data.text || '';
   if (!text) return { error: 'No content returned from AI.' };
- 
+
   // Show which model was used (especially if fallback triggered)
   const modelNames = { claude:'Claude', groq:'Groq Llama 3', gemini:'Google Gemini' };
   const usedName   = modelNames[data.model_used] || data.model_used || model;
   if (data.fallback_used) {
     showToast(`${modelNames[model]} unavailable — switched to ${usedName} automatically.`, 'success');
   }
- 
+
   return { text, modelUsed: data.model_used };
 }
- 
+
 window.generateAIPost = async () => {
   const topic    = document.getElementById('aiPrompt').value.trim();
   const category = document.getElementById('postCategory').value;
   const tone     = document.getElementById('aiTone').value;
   if (!topic) { showToast('Please enter a topic first.','error'); return; }
- 
+
   // Step 1: Generate outline
   document.getElementById('btnAI').disabled = true;
   document.getElementById('aiBtnText').textContent = 'Generating outline…';
   document.getElementById('aiStatus').textContent = '';
- 
+
   document.getElementById('aiModalTitle').textContent = '✦ Generating outline…';
   document.getElementById('aiModalSub').textContent   = 'AI is planning your article structure.';
   document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Working…</span>';
   document.getElementById('aiModalActions').style.display = 'none';
   document.getElementById('aiModal').classList.add('open');
- 
+
   const outlinePrompt = `Create a concise article outline (5-7 bullet points) for:
 Topic: "${topic}"
 Category: ${category}. Tone: ${tone}.
 Return ONLY plain text bullet points, no HTML, no extra explanation.`;
- 
+
   const outResult = await callAI(outlinePrompt);
- 
+
   if (outResult.error) {
     closeAIModal();
     document.getElementById('aiStatus').textContent = '✕ ' + outResult.error;
@@ -790,7 +781,7 @@ Return ONLY plain text bullet points, no HTML, no extra explanation.`;
     document.getElementById('aiBtnText').textContent = '✦ Generate Article';
     return;
   }
- 
+
   // Show outline for confirmation
   pendingOutline = outResult.text;
   document.getElementById('aiModalTitle').textContent   = '✦ Review Outline';
@@ -800,66 +791,66 @@ Return ONLY plain text bullet points, no HTML, no extra explanation.`;
   document.getElementById('btnAI').disabled = false;
   document.getElementById('aiBtnText').textContent = '✦ Generate Article';
 };
- 
+
 window.confirmOutline = async () => {
   const topic    = document.getElementById('aiPrompt').value.trim();
   const category = document.getElementById('postCategory').value;
   const tone     = document.getElementById('aiTone').value;
- 
+
   document.getElementById('aiModalTitle').textContent   = '✦ Writing full article…';
   document.getElementById('aiModalSub').textContent     = 'This takes 15–30 seconds.';
   document.getElementById('aiModalContent').innerHTML   = '<span style="animation:pulse 1s infinite;display:inline-block">Writing…</span>';
   document.getElementById('aiModalActions').style.display = 'none';
- 
+
   const articlePrompt = `You are an expert fintech writer for BlogsPro.
 Write a professional, well-researched article about: "${topic}"
 Category: ${category}. Tone: ${tone}.
 Follow this outline:
 ${pendingOutline}
- 
+
 Return ONLY clean HTML using ONLY these tags: <h2>, <h3>, <p>, <strong>, <em>, <ul>, <li>, <blockquote>.
 No markdown, no code blocks, no preamble. Start directly with article content. 600-900 words.`;
- 
+
   const artResult = await callAI(articlePrompt);
   closeAIModal();
- 
+
   if (artResult.error) {
     document.getElementById('aiStatus').textContent = '✕ ' + artResult.error;
     showToast('AI Error: ' + artResult.error, 'error');
     return;
   }
- 
+
   document.getElementById('editor').innerHTML = artResult.text;
   updateWordCount();
- 
+
   const title = document.getElementById('postTitle').value.trim();
   if (!title && topic.length < 80) {
     document.getElementById('postTitle').value = topic;
     document.getElementById('postSlug').value  = slugify(topic);
   }
- 
+
   document.getElementById('aiStatus').textContent = '✓ Article generated! Review and edit before publishing.';
   showToast('AI article ready!', 'success');
 };
- 
+
 window.cancelOutline = () => {
   closeAIModal();
   pendingOutline = '';
 };
- 
+
 function closeAIModal() {
   document.getElementById('aiModal').classList.remove('open');
 }
- 
+
 // ── Helpers ───────────────────────────────────
 window.doLogout = async () => { await signOut(auth); window.location.href='index.html'; };
- 
+
 function slugify(text) {
   return text.toString().toLowerCase().trim()
     .replace(/\s+/g,'-').replace(/[^\w\-]+/g,'')
     .replace(/\-\-+/g,'-').replace(/^-+/,'').replace(/-+$/,'');
 }
- 
+
 let toastTimer;
 function showToast(msg, type='success') {
   const t = document.getElementById('toast');
