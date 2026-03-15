@@ -1242,39 +1242,31 @@
     if (!prompt) { showToast('Please enter a topic or prompt.', 'error'); return; }
  
     // Show loading state
-    document.getElementById('btnAI').disabled        = true;
+    document.getElementById('btnAI').disabled          = true;
     document.getElementById('aiBtnText').style.display = 'none';
     document.getElementById('aiSpinner').style.display  = 'inline-block';
-    document.getElementById('aiStatus').textContent   = 'Generating your article…';
-    document.getElementById('aiModal').style.display  = 'flex';
- 
-    const systemPrompt = `You are an expert fintech writer for BlogsPro, a professional blog covering Fintech, Compliance, and Strategy. 
-Write authoritative, insightful articles for financial professionals and practitioners.
-Always structure articles with: an engaging introduction, 3-5 clear H2 sections, practical insights, and a strong conclusion.
-Tone: ${tone}. Category: ${category}.
-Return ONLY clean HTML using: <h2>, <h3>, <p>, <strong>, <em>, <ul>, <li>, <blockquote> tags.
-No markdown, no code blocks, no preamble — just the article HTML content starting from the first paragraph.`;
- 
-    const userPrompt = `${title ? `Title: "${title}"\n` : ''}Topic/Instructions: ${prompt}\n\nWrite a comprehensive, well-researched article of 600-900 words.`;
+    document.getElementById('aiStatus').textContent    = 'Generating your article…';
+    document.getElementById('aiModal').style.display   = 'flex';
  
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1500,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: userPrompt }]
-        })
-      });
+      // Call Cloudflare Worker proxy (free, no billing needed)
+      const response = await fetch(
+        'https://blogspro-ai.abhishek-dutta1996.workers.dev',
+        {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, tone, category, title })
+        }
+      );
+ 
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${response.status}`);
+      }
  
       const data = await response.json();
- 
-      if (data.error) throw new Error(data.error.message);
- 
       const html = data.content?.[0]?.text || '';
-      if (!html) throw new Error('No content returned');
+      if (!html) throw new Error('No content returned from AI.');
  
       // Inject into editor
       document.getElementById('editor').innerHTML = html;
@@ -1286,18 +1278,18 @@ No markdown, no code blocks, no preamble — just the article HTML content start
         document.getElementById('postSlug').value  = slugify(prompt);
       }
  
-      document.getElementById('aiStatus').textContent = '✓ Article generated! Review and edit before publishing.';
+      document.getElementById('aiStatus').textContent  = '✓ Article generated! Review and edit before publishing.';
       document.getElementById('aiModal').style.display = 'none';
       showToast('AI article generated!', 'success');
  
     } catch(err) {
       console.error('AI error:', err);
-      document.getElementById('aiStatus').textContent = '✕ ' + (err.message || 'Generation failed.');
+      document.getElementById('aiStatus').textContent  = '✕ ' + (err.message || 'Generation failed.');
       document.getElementById('aiModal').style.display = 'none';
       showToast('AI generation failed: ' + err.message, 'error');
     }
  
-    document.getElementById('btnAI').disabled         = false;
+    document.getElementById('btnAI').disabled          = false;
     document.getElementById('aiBtnText').style.display = 'inline';
     document.getElementById('aiSpinner').style.display  = 'none';
   };
@@ -1309,4 +1301,3 @@ No markdown, no code blocks, no preamble — just the article HTML content start
 </script>
 </body>
 </html>
- 
