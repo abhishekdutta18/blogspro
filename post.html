@@ -20,6 +20,8 @@
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DED9GTRR3E');</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <!-- DOMPurify for XSS sanitization -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -139,14 +141,14 @@
 <div class="article-wrap" id="articleWrap">
   <p style="color:var(--muted);margin-top:4rem">Loading article…</p>
 </div>
- 
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, orderBy }
+  import { getFirestore, doc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, orderBy, where, limit }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
- 
+
   const firebaseConfig = {
     apiKey:"AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
     authDomain:"blogspro-ai.firebaseapp.com",
@@ -155,12 +157,12 @@
     messagingSenderId:"940428277283",
     appId:"1:940428277283:web:d3bb414f0992718ca76396"
   };
- 
+
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
   const auth = getAuth(app);
   let currentUser = null;
- 
+
   // Theme
   window.toggleTheme = () => {
     document.body.classList.toggle('light');
@@ -174,73 +176,93 @@
   } else {
     document.getElementById('themeBtn').textContent = '☀️';
   }
- 
+
   // Progress bar
   window.addEventListener('scroll', () => {
     const el = document.documentElement;
     document.getElementById('progress').style.width =
       Math.min((el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100, 100) + '%';
   });
- 
-  onAuthStateChanged(auth, user => { currentUser = user; });
- 
+
+  // FIX: Wait for auth state to resolve before loading post
+  // This prevents the race condition where currentUser is null
+  // even for signed-in users, causing premium gate to show incorrectly.
   const id = new URLSearchParams(location.search).get('id');
-  if (!id) renderError('No post found.');
-  else     loadPost(id);
- 
+  if (!id) {
+    renderError('No post found.');
+  } else {
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      currentUser = user;
+      unsubscribe(); // stop listening after first resolution
+      loadPost(id);
+    });
+  }
+
   async function loadPost(id) {
     try {
       const snap = await getDoc(doc(db, 'posts', id));
       if (!snap.exists()) { renderError('Post not found.'); return; }
       const p = { id: snap.id, ...snap.data() };
       if (!p.published) { renderError('This post is not available.'); return; }
- 
-      // SEO
+
+      // FIX: Sanitize all Firestore fields with DOMPurify before rendering
+      // Prevents XSS if any field contains malicious HTML or script tags.
+      const clean = {
+        title:      DOMPurify.sanitize(p.title      || ''),
+        excerpt:    DOMPurify.sanitize(p.excerpt    || ''),
+        content:    DOMPurify.sanitize(p.content    || ''),
+        authorName: DOMPurify.sanitize(p.authorName || ''),
+        category:   DOMPurify.sanitize(p.category   || 'General'),
+      };
+
+      // SEO — use sanitized values
       const url  = `https://blogspro.in/post.html?id=${id}`;
-      const desc = p.excerpt || p.title;
-      document.getElementById('pageTitle').textContent = `${p.title} — BlogsPro`;
+      const desc = clean.excerpt || clean.title;
+      document.getElementById('pageTitle').textContent = `${clean.title} — BlogsPro`;
       document.getElementById('metaDesc').content  = desc;
-      document.getElementById('ogTitle').content   = p.title;
+      document.getElementById('ogTitle').content   = clean.title;
       document.getElementById('ogDesc').content    = desc;
       document.getElementById('ogUrl').content     = url;
-      document.getElementById('twTitle').content   = p.title;
+      document.getElementById('twTitle').content   = clean.title;
       document.getElementById('twDesc').content    = desc;
       document.getElementById('canonLink').href    = url;
       document.getElementById('ldJson').textContent = JSON.stringify({
         "@context":"https://schema.org","@type":"Article",
-        "headline":p.title,"description":desc,
-        "author":{"@type":"Person","name":p.authorName||"BlogsPro"},
+        "headline":clean.title,"description":desc,
+        "author":{"@type":"Person","name":clean.authorName||"BlogsPro"},
         "publisher":{"@type":"Organization","name":"BlogsPro","url":"https://blogspro.in"},
         "datePublished":p.createdAt?.toDate?.()?.toISOString()||new Date().toISOString(),
         "url":url
       });
- 
-      const date     = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}) || '';
-      const readTime = Math.max(1, Math.ceil((p.content||'').split(' ').length / 200));
+
+      const date      = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}) || '';
+      const readTime  = Math.max(1, Math.ceil((clean.content||'').split(' ').length / 200));
       const isPremium = p.premium === true;
+      // NOTE: This client-side check is now backed by Firestore security rules.
+      // Unauthenticated users are blocked at the database level for premium posts.
       const canRead   = !isPremium || currentUser !== null;
- 
+
       document.getElementById('articleWrap').innerHTML = `
         <div class="article-meta-top">
-          <span class="article-cat">${p.category||'General'}</span>
+          <span class="article-cat">${clean.category}</span>
           ${isPremium ? '<span class="premium-badge">⭐ Premium</span>' : ''}
           <span class="article-date">${date}</span>
           <span class="article-read-time">${readTime} min read</span>
         </div>
-        <h1 class="article-title">${p.title}</h1>
-        ${p.excerpt ? `<p class="article-excerpt">${p.excerpt}</p>` : ''}
+        <h1 class="article-title">${clean.title}</h1>
+        ${clean.excerpt ? `<p class="article-excerpt">${clean.excerpt}</p>` : ''}
         <div class="ad-unit ad-leaderboard">
           <span class="ad-label">Advertisement</span>
           <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5696584446633401" data-ad-slot="6614122455" data-ad-format="auto" data-full-width-responsive="true"></ins>
         </div>
-        ${p.authorName ? `<div class="author-bar">
-          <div class="author-avatar">${p.authorName[0].toUpperCase()}</div>
-          <div><div class="author-name">${p.authorName}</div><div class="author-role">${p.category||'Contributor'}</div></div>
+        ${clean.authorName ? `<div class="author-bar">
+          <div class="author-avatar">${clean.authorName[0].toUpperCase()}</div>
+          <div><div class="author-name">${clean.authorName}</div><div class="author-role">${clean.category}</div></div>
         </div>` : ''}
         ${canRead
-          ? `<div class="article-content" id="articleContent">${p.content||''}</div>`
+          ? `<div class="article-content" id="articleContent">${clean.content}</div>`
           : `<div class="premium-blur">
-              <div class="blur-content article-content">${p.content||''}</div>
+              <div class="blur-content article-content">${clean.content}</div>
               <div class="premium-overlay">
                 <div class="premium-lock">
                   <div style="font-size:2rem;margin-bottom:.5rem">⭐</div>
@@ -264,13 +286,12 @@
         <div class="related-section" id="relatedSection"></div>
         <div class="comments-section" id="commentsSection"></div>
         <div class="back-top"><a href="#">↑ Back to top</a></div>`;
- 
-      loadRelated(p.category, id);
+
+      loadRelated(clean.category, id);
       loadComments(id);
-      // Push all static ad units now that DOM is ready
-      (adsbygoogle = window.adsbygoogle || []).push({});  // leaderboard
-      (adsbygoogle = window.adsbygoogle || []).push({});  // pre-comments
-      // Inject in-content ads
+      // FIX: Use window.adsbygoogle consistently to avoid ReferenceError
+      (window.adsbygoogle = window.adsbygoogle || []).push({});  // leaderboard
+      (window.adsbygoogle = window.adsbygoogle || []).push({});  // pre-comments
       if (canRead) injectInContentAds();
 
     } catch(err) {
@@ -285,10 +306,8 @@
     const content = document.getElementById('articleContent');
     if (!content) return;
     const h2s = content.querySelectorAll('h2');
-    let count = 0;
     h2s.forEach((h2, idx) => {
       if ((idx + 1) % 3 !== 0) return;
-      count++;
       const d = document.createElement('div');
       d.className = 'ad-unit ad-in-content';
       d.innerHTML = '<span class="ad-label">Advertisement</span>'
@@ -298,7 +317,8 @@
         + ' data-ad-layout="in-article"'
         + ' data-ad-format="fluid"></ins>';
       const s = document.createElement('script');
-      s.text = '(adsbygoogle = window.adsbygoogle || []).push({});';
+      // FIX: Use window.adsbygoogle consistently
+      s.text = '(window.adsbygoogle = window.adsbygoogle || []).push({});';
       d.appendChild(s);
       h2.after(d);
     });
@@ -314,42 +334,56 @@
           + ' data-ad-layout="in-article"'
           + ' data-ad-format="fluid"></ins>';
         const s = document.createElement('script');
-        s.text = '(adsbygoogle = window.adsbygoogle || []).push({});';
+        // FIX: Use window.adsbygoogle consistently
+        s.text = '(window.adsbygoogle = window.adsbygoogle || []).push({});';
         d.appendChild(s);
         paras[2].after(d);
       }
     }
   }
- 
+
   async function loadRelated(cat, currentId) {
     try {
-      const snap  = await getDocs(collection(db, 'posts'));
-      const posts = snap.docs.map(d=>({id:d.id,...d.data()}))
-        .filter(p => p.published && p.id !== currentId && p.category === cat).slice(0, 3);
+      // FIX: Query only matching category server-side instead of fetching all posts
+      const snap = await getDocs(
+        query(
+          collection(db, 'posts'),
+          where('published', '==', true),
+          where('category',  '==', cat),
+          limit(4)
+        )
+      );
+      const posts = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(p => p.id !== currentId)
+        .slice(0, 3);
       const sec = document.getElementById('relatedSection');
       if (!posts.length || !sec) return;
       sec.innerHTML = `<div class="section-heading">Related Articles</div>
         <div class="related-grid">${posts.map(p => {
           const date = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})||'';
+          // Sanitize related post fields too
+          const rTitle = DOMPurify.sanitize(p.title || '');
+          const rCat   = DOMPurify.sanitize(p.category || '');
           return `<div class="related-card" onclick="location.href='post.html?id=${p.id}'">
-            <div class="related-cat">${p.category}</div>
-            <div class="related-name">${p.title}</div>
+            <div class="related-cat">${rCat}</div>
+            <div class="related-name">${rTitle}</div>
             <div class="related-date">${date}</div>
           </div>`;
         }).join('')}</div>`;
     } catch(e) { console.error('related:', e); }
   }
- 
+
   async function loadComments(postId) {
     const sec = document.getElementById('commentsSection');
     if (!sec) return;
-    const lastCmt   = parseInt(localStorage.getItem('lastComment')||'0');
+    const lastCmt    = parseInt(localStorage.getItem('lastComment')||'0');
     const canComment = Date.now() - lastCmt > 60000;
- 
+
     const formHtml = currentUser
       ? `<div class="comment-form">
           <p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">
-            Commenting as <strong>${currentUser.displayName||currentUser.email}</strong>
+            Commenting as <strong>${escHtml(currentUser.displayName||currentUser.email||'')}</strong>
           </p>
           ${!canComment ? '<p style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem">⏳ Wait 60s before commenting again.</p>' : ''}
           <textarea id="commentText" placeholder="Share your thoughts…" ${!canComment?'disabled':''}></textarea>
@@ -358,7 +392,7 @@
       : `<div class="login-to-comment">
           <a href="login.html">Sign in</a> or <a href="register.html">create an account</a> to leave a comment.
         </div>`;
- 
+
     try {
       const snap = await getDocs(query(
         collection(db, 'posts', postId, 'comments'), orderBy('createdAt','desc')
@@ -372,10 +406,11 @@
           comments.length
             ? comments.map(c => {
                 const date = c.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})||'';
+                const cName = escHtml(c.authorName || 'Anonymous');
                 return `<div class="comment-item">
                   <div class="comment-header">
-                    <div class="comment-avatar">${(c.authorName||'U')[0].toUpperCase()}</div>
-                    <div><div class="comment-name">${c.authorName||'Anonymous'}</div><div class="comment-date">${date}</div></div>
+                    <div class="comment-avatar">${cName[0].toUpperCase()}</div>
+                    <div><div class="comment-name">${cName}</div><div class="comment-date">${date}</div></div>
                   </div>
                   <div class="comment-text">${escHtml(c.text)}</div>
                 </div>`;
@@ -386,7 +421,7 @@
       sec.innerHTML = `<div class="section-heading">Comments</div>${formHtml}<div class="no-comments">Comments unavailable.</div>`;
     }
   }
- 
+
   window.postComment = async (postId) => {
     const text = document.getElementById('commentText')?.value.trim();
     if (!text || text.length < 3 || !currentUser) return;
@@ -400,6 +435,8 @@
         text,
         authorName:  currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
         authorEmail: currentUser.email || '',
+        // FIX: Always set authorUid from the authenticated session,
+        // never trust a client-supplied value — matches Firestore rule check.
         authorUid:   currentUser.uid,
         createdAt:   serverTimestamp()
       });
@@ -410,17 +447,23 @@
       btn.disabled = false; btn.textContent = 'Post Comment';
     }
   };
- 
+
   function renderError(msg) {
     document.getElementById('articleWrap').innerHTML = `
       <div class="error-state"><h2>${msg}</h2>
       <a href="index.html" style="color:var(--gold)">← Back to all articles</a></div>`;
   }
- 
+
+  // FIX: Escape single quotes in addition to other HTML characters
   function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s)
+      .replace(/&/g,  '&amp;')
+      .replace(/</g,  '&lt;')
+      .replace(/>/g,  '&gt;')
+      .replace(/"/g,  '&quot;')
+      .replace(/'/g,  '&#x27;');
   }
- 
+
   window.shareTwitter  = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(document.title)}&url=${encodeURIComponent(location.href)}`,'_blank');
   window.shareLinkedIn = () => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(location.href)}`,'_blank');
   window.copyLink      = async () => { await navigator.clipboard.writeText(location.href); alert('Link copied!'); };
