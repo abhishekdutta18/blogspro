@@ -42,8 +42,8 @@ export function clearEditor() {
   const editor = document.getElementById('editor');
   if (editor) editor.innerHTML = '';
 
-  document.getElementById('wordCount')?.setAttribute('textContent','0');
-  document.getElementById('wordCount') && (document.getElementById('wordCount').textContent = '0');
+  const _wc = document.getElementById('wordCount');
+  if (_wc) _wc.textContent = '0';
   document.getElementById('readingTimeDisplay') && (document.getElementById('readingTimeDisplay').textContent = '0');
   document.getElementById('saveStatus')         && (document.getElementById('saveStatus').textContent = '');
   document.getElementById('autoSaveMsg')        && (document.getElementById('autoSaveMsg').textContent = '');
@@ -62,7 +62,7 @@ export function updateWordCount() {
   const editor = document.getElementById('editor');
   if (!editor) return;
   const text  = editor.textContent || '';
-  const words = text.trim() ? text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0 : 0;
+  const words = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
   document.getElementById('wordCount')        && (document.getElementById('wordCount').textContent = words);
   document.getElementById('readingTimeDisplay') && (document.getElementById('readingTimeDisplay').textContent = Math.max(1, Math.ceil(words/200)));
 }
