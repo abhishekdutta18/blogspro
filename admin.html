@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src * data: blob:; connect-src *;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Dashboard — BlogsPro</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -201,8 +202,8 @@
     .drawer-section-label{font-size:0.62rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.45rem;display:block}
     .drawer-tab-pane{display:none}
     .drawer-tab-pane.active{display:block}
-    @keyframes spin{to{transform:rotate(360deg)}
-    @keyframes roadmapPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.4); } 50% { box-shadow: 0 0 0 4px rgba(201,168,76,0); } }}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes roadmapPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.4); } 50% { box-shadow: 0 0 0 4px rgba(201,168,76,0); } }
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
     @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 
@@ -321,19 +322,6 @@
     .cluster-item:hover{border-color:var(--gold);color:var(--cream)}
     .cluster-item::before{content:'└';color:var(--border);flex-shrink:0}
 
-    /* ── Failed section placeholder ── */
-    .failed-section-block{margin:1.5rem 0;border:1px dashed rgba(239,68,68,0.4);border-radius:4px;overflow:hidden}
-    .failed-section-block h2{padding:0.8rem 1rem 0;font-family:var(--serif);font-size:1.4rem;color:var(--cream)}
-    .failed-section-inner{display:flex;align-items:center;gap:1rem;padding:0.75rem 1rem 1rem;flex-wrap:wrap}
-    .failed-icon{font-size:1.4rem;flex-shrink:0}
-    .failed-text{flex:1;font-size:0.82rem;line-height:1.6;color:var(--muted)}
-    .failed-text strong{color:#fca5a5}
-    .failed-retry-btn{flex-shrink:0;background:linear-gradient(135deg,#b45309,#d97706);color:#fff;border:none;padding:0.55rem 1.1rem;border-radius:3px;font-family:var(--sans);font-size:0.82rem;font-weight:700;cursor:pointer;transition:all 0.2s;white-space:nowrap}
-    .failed-retry-btn:hover{box-shadow:0 3px 12px rgba(217,119,6,0.4)}
-    .failed-retry-btn:disabled{opacity:0.5;cursor:not-allowed}
-    .failed-section-block.retrying{border-color:rgba(201,168,76,0.4);animation:pulse 1s infinite}
-    .failed-section-block.success-replace{border-color:rgba(34,197,94,0.3)}
-
     /* Newsletter */
     .nl-preview{background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:1.2rem;margin-top:0.8rem;font-size:0.85rem;line-height:1.7;min-height:120px;max-height:400px;overflow-y:auto;color:var(--cream)}
 
@@ -402,80 +390,6 @@
     .ait-metric-label{font-size:0.6rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.2rem}
     .ait-metric-val{font-family:var(--serif);font-size:1.3rem;font-weight:700;line-height:1}
 
-
-    /* ══ V2 EDITOR SHELL ══ */
-    .v2-shell{display:grid;grid-template-columns:220px 1fr 260px;gap:0;border-radius:6px;overflow:hidden;border:1px solid var(--border)}
-    .v2-left{background:var(--navy2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;min-height:580px}
-    .v2-left-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
-    .v2-ltab{flex:1;padding:8px 4px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s}
-    .v2-ltab.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(201,168,76,0.04)}
-    .v2-left-body{flex:1;overflow-y:auto}
-    .v2-ai-sec{border-bottom:1px solid var(--border)}
-    .v2-ai-sec-head{padding:8px 12px;font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:color 0.15s}
-    .v2-ai-sec-head:hover{color:var(--cream)}
-    .v2-ai-sec-body{padding:0 10px 10px}
-    .v2-tool-btn{width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 8px;border-radius:3px;font-family:inherit;font-size:11px;cursor:pointer;text-align:left;margin-bottom:4px;transition:all 0.15s}
-    .v2-tool-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.04)}
-    .v2-tool-btn.v2-gold{border-color:rgba(201,168,76,0.35);color:var(--gold)}
-    .v2-tool-btn.v2-blue{border-color:rgba(59,130,246,0.3);color:var(--blue2)}
-    .v2-tool-btn.v2-green{border-color:rgba(34,197,94,0.3);color:var(--green)}
-    .v2-gen-btn{width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#080d1a;border:none;padding:8px;border-radius:3px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;margin-top:6px;transition:opacity 0.15s}
-    .v2-gen-btn:hover{opacity:0.9}
-    .v2-quick-input{width:100%;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:5px 8px;border-radius:3px;font-family:inherit;font-size:11px;outline:none;margin-bottom:4px;transition:border-color 0.15s}
-    .v2-quick-input:focus{border-color:var(--gold)}
-    .v2-wc-btn{flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 0;border-radius:3px;font-size:9px;cursor:pointer;transition:all 0.15s;text-align:center;font-family:inherit}
-    .v2-wc-btn.active{background:rgba(201,168,76,0.1);border-color:rgba(201,168,76,0.3);color:var(--gold)}
-    .v2-wc-btn.v2-wc-purple{border-color:rgba(168,85,247,0.35);color:#c084fc}
-    .v2-editor-main{background:var(--navy);display:flex;flex-direction:column;min-width:0}
-    .v2-editor-topbar{background:var(--navy2);border-bottom:1px solid var(--border);padding:9px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-    .v2-btn-top{background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 10px;border-radius:3px;font-size:10px;cursor:pointer;font-family:inherit;transition:all 0.15s}
-    .v2-btn-top:hover{border-color:var(--gold);color:var(--gold)}
-    .v2-btn-pub{background:var(--gold);color:#080d1a;border:none;padding:5px 14px;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit}
-    .v2-editor-scroll{flex:1;overflow-y:auto;padding:16px}
-    .v2-post-title{width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--cream);font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:700;padding:0 0 10px;outline:none;margin-bottom:12px}
-    .v2-excerpt-bar{display:flex;align-items:flex-start;gap:8px;background:var(--navy2);border:1px solid var(--border);border-radius:3px;padding:5px 10px;margin-bottom:6px}
-    .v2-excerpt-input{flex:1;background:transparent;border:none;color:var(--muted);font-size:11px;outline:none;resize:none;font-family:inherit;min-height:20px}
-    .v2-right{background:var(--navy2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
-    .v2-r-sec{border-bottom:1px solid var(--border)}
-    .v2-r-head{padding:10px 12px;font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
-    .v2-r-body{padding:0 12px 12px;display:flex;flex-direction:column;gap:7px}
-    .v2-f-label{font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
-    .v2-f-input{width:100%;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:5px 7px;border-radius:3px;font-family:inherit;font-size:11px;outline:none;transition:border-color 0.15s}
-    .v2-f-input:focus{border-color:var(--gold)}
-    /* Roadmap */
-    .v2-roadmap{background:var(--navy2);border:1px solid var(--border);border-radius:6px;overflow:hidden}
-    .v2-roadmap-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
-    .v2-roadmap-body{padding:20px;overflow-x:auto}
-    .v2-timeline{display:flex;align-items:flex-start;gap:0;position:relative;min-width:640px}
-    .v2-tl-node{display:flex;flex-direction:column;align-items:center;flex:1;position:relative}
-    .v2-tl-connector{position:absolute;top:19px;left:50%;right:-50%;height:2px;background:linear-gradient(90deg,var(--border),rgba(201,168,76,0.15));z-index:0}
-    .v2-tl-node:last-child .v2-tl-connector{display:none}
-    .v2-tl-dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;position:relative;z-index:1;border:2px solid var(--border)}
-    .v2-tl-dot.claude{background:rgba(201,168,76,0.12);border-color:var(--gold)}
-    .v2-tl-dot.multi{background:rgba(59,130,246,0.1);border-color:var(--blue)}
-    .v2-tl-dot.img-ai{background:rgba(168,85,247,0.1);border-color:#a855f7}
-    .v2-tl-dot.user-dot{background:rgba(34,197,94,0.1);border-color:var(--green)}
-    .v2-tl-dot.pub-dot{background:rgba(201,168,76,0.2);border-color:var(--gold2);animation:roadmapPulse 2s infinite}
-    .v2-tl-label{font-size:9px;font-weight:700;text-align:center;margin-top:6px;color:var(--cream);white-space:nowrap}
-    .v2-tl-sub{font-size:8px;color:var(--muted);text-align:center;margin-top:1px;white-space:nowrap}
-    .v2-tl-badge{font-size:8px;font-weight:700;margin-top:3px;padding:1px 5px;border-radius:2px;white-space:nowrap}
-    .v2-tl-badge.gold{background:rgba(201,168,76,0.1);color:var(--gold)}
-    .v2-tl-badge.blue{background:rgba(59,130,246,0.08);color:var(--blue2)}
-    .v2-tl-badge.purple{background:rgba(168,85,247,0.08);color:#c084fc}
-    .v2-tl-badge.green{background:rgba(34,197,94,0.08);color:var(--green)}
-    /* AI Participation */
-    .v2-ai-part-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-    .v2-ai-card{background:var(--navy);border:1px solid var(--border);border-radius:4px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;transition:border-color 0.15s}
-    .v2-ai-card.v2-ai-on{border-color:rgba(34,197,94,0.25)}
-    .v2-ai-card.v2-ai-off{opacity:0.55}
-    .v2-ai-name{font-size:11px;font-weight:700;color:var(--cream)}
-    .v2-ai-task{font-size:9px;color:var(--muted);line-height:1.4}
-    .v2-ai-badge{font-size:8px;font-weight:700;padding:1px 6px;border-radius:2px;align-self:flex-start;text-transform:uppercase;letter-spacing:0.06em;margin-top:2px}
-    .v2-ai-badge.on{background:rgba(34,197,94,0.1);color:var(--green)}
-    .v2-ai-badge.off{background:rgba(136,150,179,0.1);color:var(--muted)}
-    @media(max-width:1100px){.v2-shell{grid-template-columns:200px 1fr 230px}}
-    @media(max-width:900px){.v2-shell{grid-template-columns:1fr}.v2-left,.v2-right{display:none}}
-
     @media(max-width:900px){
       aside{transform:translateX(-100%)}
       aside.open{transform:translateX(0)}
@@ -529,7 +443,7 @@
     <div class="nav-item" data-view="subscribers"><span>✉</span> Subscribers</div>
 
     <span class="nav-label" style="margin-top:1.5rem">Site</span>
-    <div class="nav-item" onclick="window.open('index.html','_blank')"><span>↗</span> View Blog</div>
+    <div class="nav-item" onclick="window.open('index.html','_blank','noopener,noreferrer')"><span>↗</span> View Blog</div>
   </nav>
   <div class="sidebar-footer">
     <div class="user-chip">
@@ -590,335 +504,319 @@
 
   <!-- ══════════════ EDITOR ══════════════ -->
   <div class="view" id="view-editor">
-    <div class="page-header" style="margin-bottom:1.2rem">
+    <div class="page-header">
       <div><h2 id="editorHeading">New Post</h2><p>Write and publish your article</p></div>
     </div>
-
-    <!-- ══ V2 THREE-COLUMN SHELL ══ -->
-    <div class="v2-shell">
-
-      <!-- ━━ LEFT: AI & Images ━━ -->
-      <div class="v2-left">
-        <div class="v2-left-tabs">
-          <div class="v2-ltab active" onclick="v2ShowTab('ai',this)">✦ AI</div>
-          <div class="v2-ltab"        onclick="v2ShowTab('imgs',this)">🖼 Images</div>
+    <div class="editor-grid">
+      <!-- Left -->
+      <div class="editor-left-col">
+        <div class="form-row">
+          <input type="text" class="form-input title-input" id="postTitle" placeholder="Post title…" />
         </div>
-        <div class="v2-left-body">
-
-          <!-- AI TAB -->
-          <div id="v2-tab-ai">
-
-            <!-- Write -->
-            <div class="v2-ai-sec">
-              <div class="v2-ai-sec-head" onclick="toggleV2Sec(this)">✦ Write <span>▾</span></div>
-              <div class="v2-ai-sec-body">
-                <textarea class="v2-quick-input" id="v2TopicPrompt" rows="2" placeholder="Topic / prompt…" oninput="syncV2Topic(this.value)"></textarea>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px">
-                  <select class="v2-quick-input" style="margin:0" id="v2WriteTone">
-                    <option>Professional</option><option>Conversational</option>
-                  </select>
-                  <select class="v2-quick-input" style="margin:0" id="v2Model" onchange="v2SyncModel(this.value)">
-                    <option value="auto">Auto</option>
-                    <option value="auto-free">OpenRouter Free</option>
-                    <option value="llama">Llama 3.3</option>
-                    <option value="mistral">Mistral</option>
-                    <option value="gemma">Gemma 3</option>
-                    <option value="hermes">Hermes 405B</option>
-                    <option value="qwen">Qwen 3</option>
-                  </select>
-                </div>
-                <!-- Word count preset buttons -->
-                <div style="display:flex;gap:3px;margin-bottom:4px;flex-wrap:wrap">
-                  <button class="v2-wc-btn active" data-words="1500"  onclick="v2SetWC(this,1500)">1.5k</button>
-                  <button class="v2-wc-btn"         data-words="2500"  onclick="v2SetWC(this,2500)">2.5k</button>
-                  <button class="v2-wc-btn"         data-words="5000"  onclick="v2SetWC(this,5000)">5k</button>
-                  <button class="v2-wc-btn"         data-words="10000" onclick="v2SetWC(this,10000)">10k</button>
-                  <button class="v2-wc-btn v2-wc-purple" data-words="50000"  onclick="v2SetWC(this,50000)">50k</button>
-                  <button class="v2-wc-btn v2-wc-purple" data-words="100000" onclick="v2SetWC(this,100000)">100k</button>
-                </div>
-                <!-- Custom word count textbox (max 100,000) -->
-                <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
-                  <span style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap">Custom</span>
-                  <input type="number" id="v2WCInput" min="100" max="100000" step="100" placeholder="e.g. 3000"
-                    oninput="v2ApplyCustomWC(this)"
-                    style="flex:1;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:4px 6px;border-radius:3px;font-size:11px;outline:none;-moz-appearance:textfield"
-                    onfocus="this.style.borderColor=\'var(--gold)\'" onblur="this.style.borderColor=\'var(--border)\'" />
-                  <span id="v2WCLabel" style="font-size:10px;font-weight:700;color:var(--muted);min-width:30px;text-align:right">—</span>
-                </div>
-                <div id="v2LongForm" style="display:none;margin-bottom:6px;padding:4px 6px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.25);border-radius:3px;font-size:9px;color:#c084fc;line-height:1.5">⚡ Long-form: built chunk by chunk. Keep tab open.</div>
-                <button class="v2-gen-btn" onclick="v2BeforeGenerate()">✦ Generate Article</button>
-              </div>
-            </div>
-
-            <!-- Edit -->
-            <div class="v2-ai-sec">
-              <div class="v2-ai-sec-head" onclick="toggleV2Sec(this)">✎ Edit <span>▾</span></div>
-              <div class="v2-ai-sec-body">
-                <button class="v2-tool-btn" onclick="aiEditAction(\'regenerate\')">↺ Regenerate</button>
-                <button class="v2-tool-btn" onclick="aiEditAction(\'expand\')">⤢ Expand</button>
-                <button class="v2-tool-btn" onclick="aiEditAction(\'shorten\')">⤡ Shorten</button>
-                <button class="v2-tool-btn" onclick="aiEditAction(\'conversational\')">💬 Conversational</button>
-                <button class="v2-tool-btn" onclick="aiEditAction(\'authoritative\')">🎯 Authoritative</button>
-                <button class="v2-tool-btn v2-gold" onclick="runCitationEngine()">📚 Citations</button>
-                <button class="v2-tool-btn v2-green" onclick="runSEOOptimizer()">🚀 SEO Optimize</button>
-                <button class="v2-tool-btn v2-blue" onclick="runInternalLinking()">🔗 Auto Link</button>
-                <button class="v2-tool-btn v2-gold" onclick="runArticleQualityScore()">⭐ Quality Score</button>
-              </div>
-            </div>
-
-            <!-- SEO -->
-            <div class="v2-ai-sec">
-              <div class="v2-ai-sec-head" onclick="toggleV2Sec(this)">📈 SEO <span>▾</span></div>
-              <div class="v2-ai-sec-body">
-                <button class="v2-tool-btn" onclick="toggleAIT(\'traffic\');v2ScrollToAit()">📈 Traffic Predictor</button>
-                <button class="v2-tool-btn" onclick="toggleAIT(\'headline\');v2ScrollToAit()">🔥 Headline AI</button>
-                <button class="v2-tool-btn" onclick="toggleAIT(\'cluster\');v2ScrollToAit()">🧠 Topic Clusters</button>
-                <button class="v2-tool-btn" onclick="toggleAIT(\'calendar\');v2ScrollToAit()">📅 Content Calendar</button>
-                <button class="v2-tool-btn" onclick="toggleAIT(\'gap\');v2ScrollToAit()">🕵️ Competitor Gap</button>
-                <button class="v2-tool-btn" onclick="toggleAIT(\'links\');v2ScrollToAit()">🔗 Backlink Finder</button>
-              </div>
-            </div>
-
-            <!-- Distribute -->
-            <div class="v2-ai-sec">
-              <div class="v2-ai-sec-head" onclick="toggleV2Sec(this)">✉ Distribute <span>▾</span></div>
-              <div class="v2-ai-sec-body">
-                <button class="v2-tool-btn" onclick="toggleAIT(\'nl\');v2ScrollToAit()">✉ Newsletter</button>
-                <button class="v2-tool-btn" onclick="toggleAIT(\'auto\');v2ScrollToAit()">🤖 Auto Blog</button>
-              </div>
-            </div>
-
-          </div><!-- /v2-tab-ai -->
-
-          <!-- IMAGES TAB -->
-          <div id="v2-tab-imgs" style="display:none;padding:10px">
-            <div style="background:var(--navy);border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:8px">
-              <div style="font-size:10px;font-weight:700;color:var(--cream);margin-bottom:6px">Cover Photo <span style="font-size:9px;background:rgba(201,168,76,0.12);color:var(--gold);padding:1px 5px;border-radius:2px">Cover</span></div>
-              <div style="display:flex;gap:3px;margin-bottom:6px">
-                <label style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px;border-radius:2px;font-size:9px;cursor:pointer;text-align:center;transition:all 0.12s" onmouseover="this.style.borderColor=\'var(--gold)\';this.style.color=\'var(--gold)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--muted)\'">📁 Upload<input type="file" accept="image/*" style="display:none" onchange="uploadFeaturedImage(this)" /></label>
-                <button onclick="generateFeaturedImage()" style="flex:1;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:none;color:#fff;padding:4px;border-radius:2px;font-size:9px;cursor:pointer">✨ AI Gen</button>
-              </div>
-              <div id="featuredPreview" style="display:none;position:relative;border-radius:3px;overflow:hidden;border:1px solid var(--border);margin-bottom:6px">
-                <img id="featuredPreviewImg" src="" alt="" style="width:100%;max-height:80px;object-fit:cover;display:block" />
-                <button onclick="clearFeaturedImage()" style="position:absolute;top:3px;right:3px;background:rgba(8,13,26,0.85);border:1px solid rgba(239,68,68,0.5);color:#fca5a5;width:18px;height:18px;border-radius:50%;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
-                <div id="featuredPreviewLabel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(8,13,26,0.7);font-size:9px;color:var(--muted);padding:2px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
-              </div>
-            </div>
-            <button onclick="openAIDrawer(\'image\')" style="width:100%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:none;color:#fff;padding:7px;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;margin-bottom:8px">🖼 Open AI Image Generator</button>
-            <div style="font-size:9px;color:var(--muted);line-height:1.5;padding:6px;background:rgba(59,130,246,0.05);border:1px solid rgba(59,130,246,0.15);border-radius:3px">💡 Generate AI images, upload your own, or use the full image drawer for styles, ratios and variations.</div>
+        <div class="form-row">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.45rem">
+            <label class="form-label" style="margin:0">Summary / Excerpt</label>
+            <button id="btnGenSummary" onclick="generateSummary()" style="background:transparent;border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:0.2rem 0.6rem;border-radius:3px;font-family:var(--sans);font-size:0.68rem;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.background='rgba(201,168,76,0.08)'" onmouseout="this.style.background='transparent'">✦ Auto-generate</button>
           </div>
-
-        </div><!-- /v2-left-body -->
-      </div><!-- /v2-left -->
-
-      <!-- ━━ CENTER: Editor ━━ -->
-      <div class="v2-editor-main">
-        <div class="v2-editor-topbar">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:13px;font-weight:600;color:var(--cream)">New Post</span>
-            <span style="font-size:10px;color:var(--muted);background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:10px">Draft</span>
-            <span style="font-size:10px;color:var(--muted)"><span id="wordCount">0</span> words</span>
-          </div>
-          <div style="display:flex;gap:5px">
-            <button class="v2-btn-top" onclick="previewPost()">👁 Preview</button>
-            <button class="v2-btn-top" onclick="savePost(false)">Save Draft</button>
-            <button class="v2-btn-pub" onclick="savePost(true)">Publish</button>
-          </div>
+          <textarea class="form-textarea" id="postExcerpt" rows="2" placeholder="Short excerpt / summary…" style="resize:vertical"></textarea>
+          <p id="summaryStatus" style="font-size:0.68rem;color:var(--muted);margin-top:0.3rem;min-height:0.9rem"></p>
         </div>
-        <div class="v2-editor-scroll" id="v2EditorScrollArea">
-          <input type="text" class="v2-post-title" id="postTitle" placeholder="Post title…" />
-          <div class="v2-excerpt-bar">
-            <span style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap;flex-shrink:0">Excerpt</span>
-            <textarea class="v2-excerpt-input" id="postExcerpt" placeholder="Short summary…" rows="1"></textarea>
-            <button onclick="generateSummary()" style="flex-shrink:0;background:transparent;border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:2px 7px;border-radius:2px;font-size:9px;font-weight:700;cursor:pointer">✦ Auto</button>
-          </div>
-          <p id="summaryStatus" style="font-size:0.68rem;color:var(--muted);margin-bottom:0.4rem;min-height:0.9rem"></p>
-          <div class="toolbar">
-            <button onclick="fmt(\'bold\')" title="Bold"><b>B</b></button>
-            <button onclick="fmt(\'italic\')" title="Italic"><i>I</i></button>
-            <button onclick="fmt(\'underline\')" title="Underline"><u>U</u></button>
-            <div class="toolbar-sep"></div>
-            <button onclick="fmtBlock(\'h2\')">H2</button>
-            <button onclick="fmtBlock(\'h3\')">H3</button>
-            <div class="toolbar-sep"></div>
-            <button onclick="fmt(\'insertUnorderedList\')">•≡</button>
-            <button onclick="fmt(\'insertOrderedList\')">1≡</button>
-            <button onclick="fmtBlock(\'blockquote\')">"</button>
-            <button onclick="insertLink()">🔗</button>
-            <div class="toolbar-sep"></div>
-            <button onclick="openAIDrawer(\'write\')" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border-radius:2px;font-weight:700;font-size:0.72rem">✦ AI Write</button>
-            <button onclick="openAIDrawer(\'image\')" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border-radius:2px;font-weight:700;font-size:0.72rem">🖼 AI Image</button>
-          </div>
-          <div id="editor" contenteditable="true" spellcheck="false"></div>
-          <div class="char-count"><span id="readingTimeDisplay">0</span> min read</div>
+        <div class="toolbar">
+          <button onclick="fmt('bold')" title="Bold"><b>B</b></button>
+          <button onclick="fmt('italic')" title="Italic"><i>I</i></button>
+          <button onclick="fmt('underline')" title="Underline"><u>U</u></button>
+          <div class="toolbar-sep"></div>
+          <button onclick="fmtBlock('h2')">H2</button>
+          <button onclick="fmtBlock('h3')">H3</button>
+          <div class="toolbar-sep"></div>
+          <button onclick="fmt('insertUnorderedList')">•≡</button>
+          <button onclick="fmt('insertOrderedList')">1≡</button>
+          <div class="toolbar-sep"></div>
+          <button onclick="fmtBlock('blockquote')">"</button>
+          <button onclick="insertLink()">🔗</button>
+          <div class="toolbar-sep"></div>
+          <button onclick="openAIDrawer('write')" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border-radius:2px;font-weight:700;font-size:0.72rem">✦ AI Write</button>
+          <button onclick="openAIDrawer('image')" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border-radius:2px;font-weight:700;font-size:0.72rem">🖼 AI Image</button>
+        </div>
+        <div id="editor" contenteditable="true" spellcheck="false"></div>
 
-          <!-- Inline AI Tools (below editor) -->
-          <div id="v2AitSection">
-            <div style="margin-top:1.5rem;padding:0.6rem 0;display:flex;align-items:center;gap:0.75rem">
-              <div style="flex:1;height:1px;background:var(--border)"></div>
-              <span style="font-size:0.62rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);white-space:nowrap">Inline AI Tools</span>
-              <div style="flex:1;height:1px;background:var(--border)"></div>
-            </div>
-            <div class="ait-card" id="ait-seo"><div class="ait-header" onclick="toggleAIT(\'seo\')"><span class="ait-icon">🚀</span><span class="ait-title">SEO Optimizer</span><span class="ait-sub">Title · Meta · Keywords</span><span class="ait-chevron" id="ait-seo-chev">▸</span></div><div class="ait-body" id="ait-seo-body" style="display:none"><p class="ait-desc">Rewrites your title, meta description and tags for maximum Google ranking.</p><button class="ait-run-btn green" onclick="aitRunSEOInline()"><span>🚀 Run SEO Optimizer</span><span class="ait-spinner" id="sp-seo" style="display:none"></span></button><div class="ait-result" id="res-seo" style="display:none"></div></div></div>
-            <div class="ait-card" id="ait-headline"><div class="ait-header" onclick="toggleAIT(\'headline\')"><span class="ait-icon">🔥</span><span class="ait-title">Headline AI</span><span class="ait-sub">CTR-optimized titles</span><span class="ait-chevron" id="ait-headline-chev">▸</span></div><div class="ait-body" id="ait-headline-body" style="display:none"><p class="ait-desc">Generates viral headline variants ranked by predicted CTR score. Click any to apply.</p><select class="form-select" id="ait-hl-count" style="font-size:0.8rem;margin-bottom:0.6rem"><option value="5">5 variants</option><option value="8" selected>8 variants</option><option value="12">12 variants</option></select><button class="ait-run-btn gold" onclick="aitRunHeadlines()"><span>🔥 Generate Headlines</span><span class="ait-spinner" id="sp-hl" style="display:none"></span></button><div class="ait-result" id="res-hl" style="display:none"></div></div></div>
-            <div class="ait-card" id="ait-traffic"><div class="ait-header" onclick="toggleAIT(\'traffic\')"><span class="ait-icon">📈</span><span class="ait-title">Traffic Predictor</span><span class="ait-sub">Monthly searches · Difficulty</span><span class="ait-chevron" id="ait-traffic-chev">▸</span></div><div class="ait-body" id="ait-traffic-body" style="display:none"><p class="ait-desc">Estimates search volume and competition for this article's main keyword.</p><input type="text" class="form-input" id="ait-traffic-kw" placeholder="Keyword (or leave blank to auto-detect)" style="font-size:0.82rem;margin-bottom:0.6rem" /><button class="ait-run-btn blue" onclick="aitRunTraffic()"><span>📈 Predict Traffic</span><span class="ait-spinner" id="sp-traffic" style="display:none"></span></button><div class="ait-result" id="res-traffic" style="display:none"></div></div></div>
-            <div class="ait-card" id="ait-cluster"><div class="ait-header" onclick="toggleAIT(\'cluster\')"><span class="ait-icon">🧠</span><span class="ait-title">Topic Clusters</span><span class="ait-sub">Build topical authority</span><span class="ait-chevron" id="ait-cluster-chev">▸</span></div><div class="ait-body" id="ait-cluster-body" style="display:none"><p class="ait-desc">Generates a pillar + cluster content strategy. Click any cluster topic to open it as a new post.</p><button class="ait-run-btn gold" onclick="aitRunClusters()"><span>🧠 Generate Clusters</span><span class="ait-spinner" id="sp-cluster" style="display:none"></span></button><div class="ait-result" id="res-cluster" style="display:none"></div></div></div>
-            <div class="ait-card" id="ait-calendar"><div class="ait-header" onclick="toggleAIT(\'calendar\')"><span class="ait-icon">📅</span><span class="ait-title">Content Calendar</span><span class="ait-sub">30-day publishing plan</span><span class="ait-chevron" id="ait-calendar-chev">▸</span></div><div class="ait-body" id="ait-calendar-body" style="display:none"><p class="ait-desc">Creates a full 30-day editorial calendar. Click any topic to start writing it instantly.</p><select class="form-select" id="ait-cal-cat" style="font-size:0.8rem;margin-bottom:0.6rem"><option value="Fintech">Fintech</option><option value="Compliance">Compliance</option><option value="Strategy">Strategy</option></select><button class="ait-run-btn blue" onclick="aitRunCalendar()"><span>📅 Generate Calendar</span><span class="ait-spinner" id="sp-cal" style="display:none"></span></button><div class="ait-result" id="res-cal" style="display:none"></div></div></div>
-            <div class="ait-card" id="ait-gap"><div class="ait-header" onclick="toggleAIT(\'gap\')"><span class="ait-icon">🕵️</span><span class="ait-title">Competitor Gap</span><span class="ait-sub">Topics you're missing</span><span class="ait-chevron" id="ait-gap-chev">▸</span></div><div class="ait-body" id="ait-gap-body" style="display:none"><p class="ait-desc">Finds topics your competitors rank for that you haven't covered yet.</p><input type="text" class="form-input" id="ait-gap-domain" placeholder="Competitor domain e.g. fintechinsider.com" style="font-size:0.82rem;margin-bottom:0.6rem" /><button class="ait-run-btn purple" onclick="aitRunGap()"><span>🕵️ Find Gaps</span><span class="ait-spinner" id="sp-gap" style="display:none"></span></button><div class="ait-result" id="res-gap" style="display:none"></div></div></div>
-            <div class="ait-card" id="ait-links"><div class="ait-header" onclick="toggleAIT(\'links\')"><span class="ait-icon">🔗</span><span class="ait-title">Backlink Finder</span><span class="ait-sub">Outreach opportunities</span><span class="ait-chevron" id="ait-links-chev">▸</span></div><div class="ait-body" id="ait-links-body" style="display:none"><p class="ait-desc">Generates link-building targets and pitch angles for this article topic.</p><button class="ait-run-btn gold" onclick="aitRunBacklinks()"><span>🔗 Find Opportunities</span><span class="ait-spinner" id="sp-links" style="display:none"></span></button><div class="ait-result" id="res-links" style="display:none"></div></div></div>
-            <div class="ait-card" id="ait-nl"><div class="ait-header" onclick="toggleAIT(\'nl\')"><span class="ait-icon">✉</span><span class="ait-title">Newsletter</span><span class="ait-sub">Auto-generate from this post</span><span class="ait-chevron" id="ait-nl-chev">▸</span></div><div class="ait-body" id="ait-nl-body" style="display:none"><p class="ait-desc">Writes a newsletter email promoting this article, ready to send to subscribers.</p><select class="form-select" id="ait-nl-style" style="font-size:0.8rem;margin-bottom:0.6rem"><option value="roundup">Weekly Roundup</option><option value="deep-dive">Deep Dive</option><option value="digest">Quick Digest</option></select><button class="ait-run-btn green" onclick="aitRunNewsletter()"><span>✉ Generate Newsletter</span><span class="ait-spinner" id="sp-nl" style="display:none"></span></button><div class="ait-result" id="res-nl" style="display:none"></div></div></div>
-            <div class="ait-card" id="ait-auto"><div class="ait-header" onclick="toggleAIT(\'auto\')"><span class="ait-icon">🤖</span><span class="ait-title">Auto Blog</span><span class="ait-sub">Autonomous AI publishing</span><span class="ait-chevron" id="ait-auto-chev">▸</span></div><div class="ait-body" id="ait-auto-body" style="display:none"><p class="ait-desc">Generates and publishes multiple posts automatically.</p><div style="display:flex;gap:0.5rem;margin-bottom:0.6rem"><select class="form-select" id="ait-auto-count" style="font-size:0.8rem"><option value="1">1 post</option><option value="2" selected>2 posts</option><option value="3">3 posts</option></select><select class="form-select" id="ait-auto-pub" style="font-size:0.8rem"><option value="draft">Save as draft</option><option value="publish">Auto-publish</option></select></div><button class="ait-run-btn gold" onclick="aitRunAutoBlog()"><span>🤖 Start Auto Blog</span><span class="ait-spinner" id="sp-auto" style="display:none"></span></button><div class="ait-result" id="res-auto" style="display:none"></div></div></div>
-          </div><!-- /v2AitSection -->
-        </div><!-- /v2-editor-scroll -->
-      </div><!-- /v2-editor-main -->
+        <!-- aiEditToolbar moved to drawer -->
 
-      <!-- ━━ RIGHT: Post Details ━━ -->
-      <div class="v2-right">
+        <div class="char-count"><span id="wordCount">0</span> words · <span id="readingTimeDisplay">0</span> min read</div>
+      </div>
 
+      <!-- Right sidebar -->
+      <div>
         <!-- Publish -->
-        <div class="v2-r-sec">
-          <div class="v2-r-head">Publish <span>▾</span></div>
-          <div class="v2-r-body">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
-              <button class="btn-save-draft" onclick="savePost(false)" style="padding:7px;font-size:10px">Save Draft</button>
-              <button class="btn-publish" onclick="savePost(true)" style="padding:7px;font-size:10px">Publish</button>
-            </div>
-            <button onclick="previewPost()" style="width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px;border-radius:3px;font-family:inherit;font-size:10px;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor=\'var(--gold)\';this.style.color=\'var(--gold)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--muted)\'">👁 Preview Post</button>
-            <p id="saveStatus" style="font-size:10px;color:var(--muted);text-align:center;min-height:1rem"></p>
-            <p id="autoSaveMsg" style="font-size:9px;color:var(--muted);text-align:center;min-height:0.8rem"></p>
+        <div class="editor-panel">
+          <h3>Publish</h3>
+          <div class="publish-row">
+            <button class="btn-save-draft" onclick="savePost(false)">Save Draft</button>
+            <button class="btn-publish" onclick="savePost(true)">Publish</button>
           </div>
+          <button onclick="previewPost()" style="width:100%;margin-top:0.6rem;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.7rem;border-radius:3px;font-family:var(--sans);font-size:0.82rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">👁 Preview Post</button>
+          <p id="saveStatus" style="font-size:0.75rem;color:var(--muted);margin-top:0.6rem;text-align:center"></p>
+          <p id="autoSaveMsg" style="font-size:0.68rem;color:var(--muted);text-align:center"></p>
         </div>
 
         <!-- Details -->
-        <div class="v2-r-sec">
-          <div class="v2-r-head">Details <span>▾</span></div>
-          <div class="v2-r-body">
-            <div><div class="v2-f-label">Category</div>
-              <select class="v2-f-input" id="postCategory">
-                <option value="Fintech">Fintech</option><option value="Compliance">Compliance</option><option value="Strategy">Strategy</option>
+        <div class="editor-panel" style="margin-top:1rem">
+          <h3>Details</h3>
+          <div class="form-row">
+            <label class="form-label">Category</label>
+            <select class="form-select" id="postCategory">
+              <option value="Fintech">Fintech</option>
+              <option value="Compliance">Compliance</option>
+              <option value="Strategy">Strategy</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Slug (URL)</label>
+            <input type="text" class="form-input" id="postSlug" placeholder="auto-generated" style="font-size:0.8rem" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Featured Image URL</label>
+            <div style="display:flex;gap:0.4rem">
+              <input type="text" class="form-input" id="postImage" placeholder="https://…" style="font-size:0.8rem" oninput="updateFeaturedPreview(this.value)" />
+              <label title="Upload" style="flex-shrink:0;background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0 0.7rem;border-radius:3px;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;gap:0.3rem;transition:all 0.15s;white-space:nowrap" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+                📁<input type="file" accept="image/*" style="display:none" onchange="uploadFeaturedImage(this)" />
+              </label>
+              <button onclick="generateFeaturedImage()" title="AI Featured Image" style="flex-shrink:0;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:none;color:#fff;padding:0 0.7rem;border-radius:3px;font-size:0.75rem;cursor:pointer;white-space:nowrap">✨ AI</button>
+            </div>
+            <div id="featuredPreview" style="display:none;margin-top:0.5rem;position:relative;border-radius:3px;overflow:hidden;border:1px solid var(--border)">
+              <img id="featuredPreviewImg" src="" alt="Featured preview" style="width:100%;max-height:120px;object-fit:cover;display:block" />
+              <button onclick="clearFeaturedImage()" style="position:absolute;top:4px;right:4px;background:rgba(8,13,26,0.85);border:1px solid rgba(239,68,68,0.5);color:#fca5a5;width:22px;height:22px;border-radius:50%;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+              <div id="featuredPreviewLabel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(8,13,26,0.7);font-size:0.62rem;color:var(--muted);padding:0.2rem 0.4rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Meta Description</label>
+            <textarea class="form-textarea" id="postMeta" rows="2" placeholder="SEO description (max 160 chars)…" style="resize:none;font-size:0.82rem" maxlength="160"></textarea>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Tags (comma separated)</label>
+            <input type="text" class="form-input" id="postTags" placeholder="fintech, rbi, upi" style="font-size:0.8rem" />
+          </div>
+          <div class="toggle-row">
+            <div>
+              <div style="font-size:0.78rem;font-weight:600;color:var(--cream)">⭐ Premium Content</div>
+              <div style="font-size:0.68rem;color:var(--muted);margin-top:0.15rem">Subscribers only</div>
+            </div>
+            <div class="toggle-switch" id="premiumSwitch" onclick="togglePremium()">
+              <div class="toggle-track"></div>
+              <div class="toggle-dot"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- imgGenPanel moved to drawer -->
+
+        <!-- aiPanel moved to drawer -->
+
+        <!-- ══════════════════════════════════════
+             INLINE AI TOOLS SUITE
+        ═══════════════════════════════════════ -->
+
+        <!-- SECTION HEADER -->
+        <div style="margin-top:1.5rem;padding:0.6rem 0;display:flex;align-items:center;gap:0.75rem">
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <span style="font-size:0.62rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);white-space:nowrap">AI Tools</span>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+
+        <!-- ── 1. SEO OPTIMIZER ── -->
+        <div class="ait-card" id="ait-seo">
+          <div class="ait-header" onclick="toggleAIT('seo')">
+            <span class="ait-icon">🚀</span>
+            <span class="ait-title">SEO Optimizer</span>
+            <span class="ait-sub">Title · Meta · Keywords</span>
+            <span class="ait-chevron" id="ait-seo-chev">▸</span>
+          </div>
+          <div class="ait-body" id="ait-seo-body" style="display:none">
+            <p class="ait-desc">Rewrites your title, meta description and tags for maximum Google ranking.</p>
+            <button class="ait-run-btn green" onclick="aitRunSEOInline()">
+              <span>🚀 Run SEO Optimizer</span>
+              <span class="ait-spinner" id="sp-seo" style="display:none"></span>
+            </button>
+            <div class="ait-result" id="res-seo" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- ── 2. HEADLINE AI ── -->
+        <div class="ait-card" id="ait-headline">
+          <div class="ait-header" onclick="toggleAIT('headline')">
+            <span class="ait-icon">🔥</span>
+            <span class="ait-title">Headline AI</span>
+            <span class="ait-sub">CTR-optimized titles</span>
+            <span class="ait-chevron" id="ait-headline-chev">▸</span>
+          </div>
+          <div class="ait-body" id="ait-headline-body" style="display:none">
+            <p class="ait-desc">Generates 8 viral headline variants ranked by predicted CTR score. Click any to apply.</p>
+            <select class="form-select" id="ait-hl-count" style="font-size:0.8rem;margin-bottom:0.6rem">
+              <option value="5">5 variants</option>
+              <option value="8" selected>8 variants</option>
+              <option value="12">12 variants</option>
+            </select>
+            <button class="ait-run-btn gold" onclick="aitRunHeadlines()">
+              <span>🔥 Generate Headlines</span>
+              <span class="ait-spinner" id="sp-hl" style="display:none"></span>
+            </button>
+            <div class="ait-result" id="res-hl" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- ── 3. TRAFFIC PREDICTOR ── -->
+        <div class="ait-card" id="ait-traffic">
+          <div class="ait-header" onclick="toggleAIT('traffic')">
+            <span class="ait-icon">📈</span>
+            <span class="ait-title">Traffic Predictor</span>
+            <span class="ait-sub">Monthly searches · Difficulty</span>
+            <span class="ait-chevron" id="ait-traffic-chev">▸</span>
+          </div>
+          <div class="ait-body" id="ait-traffic-body" style="display:none">
+            <p class="ait-desc">Estimates search volume and competition for this article's main keyword.</p>
+            <input type="text" class="form-input" id="ait-traffic-kw" placeholder="Keyword (or leave blank to auto-detect)" style="font-size:0.82rem;margin-bottom:0.6rem" />
+            <button class="ait-run-btn blue" onclick="aitRunTraffic()">
+              <span>📈 Predict Traffic</span>
+              <span class="ait-spinner" id="sp-traffic" style="display:none"></span>
+            </button>
+            <div class="ait-result" id="res-traffic" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- ── 4. TOPIC CLUSTERS ── -->
+        <div class="ait-card" id="ait-cluster">
+          <div class="ait-header" onclick="toggleAIT('cluster')">
+            <span class="ait-icon">🧠</span>
+            <span class="ait-title">Topic Clusters</span>
+            <span class="ait-sub">Build topical authority</span>
+            <span class="ait-chevron" id="ait-cluster-chev">▸</span>
+          </div>
+          <div class="ait-body" id="ait-cluster-body" style="display:none">
+            <p class="ait-desc">Generates a pillar + cluster content strategy. Click any cluster topic to open it as a new post.</p>
+            <button class="ait-run-btn gold" onclick="aitRunClusters()">
+              <span>🧠 Generate Clusters</span>
+              <span class="ait-spinner" id="sp-cluster" style="display:none"></span>
+            </button>
+            <div class="ait-result" id="res-cluster" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- ── 5. CONTENT CALENDAR ── -->
+        <div class="ait-card" id="ait-calendar">
+          <div class="ait-header" onclick="toggleAIT('calendar')">
+            <span class="ait-icon">📅</span>
+            <span class="ait-title">Content Calendar</span>
+            <span class="ait-sub">30-day publishing plan</span>
+            <span class="ait-chevron" id="ait-calendar-chev">▸</span>
+          </div>
+          <div class="ait-body" id="ait-calendar-body" style="display:none">
+            <p class="ait-desc">Creates a full 30-day editorial calendar. Click any topic to start writing it instantly.</p>
+            <select class="form-select" id="ait-cal-cat" style="font-size:0.8rem;margin-bottom:0.6rem">
+              <option value="Fintech">Fintech</option>
+              <option value="Compliance">Compliance</option>
+              <option value="Strategy">Strategy</option>
+            </select>
+            <button class="ait-run-btn blue" onclick="aitRunCalendar()">
+              <span>📅 Generate Calendar</span>
+              <span class="ait-spinner" id="sp-cal" style="display:none"></span>
+            </button>
+            <div class="ait-result" id="res-cal" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- ── 6. COMPETITOR GAP ── -->
+        <div class="ait-card" id="ait-gap">
+          <div class="ait-header" onclick="toggleAIT('gap')">
+            <span class="ait-icon">🕵️</span>
+            <span class="ait-title">Competitor Gap</span>
+            <span class="ait-sub">Topics you're missing</span>
+            <span class="ait-chevron" id="ait-gap-chev">▸</span>
+          </div>
+          <div class="ait-body" id="ait-gap-body" style="display:none">
+            <p class="ait-desc">Finds topics your competitors rank for that you haven't covered yet.</p>
+            <input type="text" class="form-input" id="ait-gap-domain" placeholder="Competitor domain e.g. fintechinsider.com" style="font-size:0.82rem;margin-bottom:0.6rem" />
+            <button class="ait-run-btn purple" onclick="aitRunGap()">
+              <span>🕵️ Find Gaps</span>
+              <span class="ait-spinner" id="sp-gap" style="display:none"></span>
+            </button>
+            <div class="ait-result" id="res-gap" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- ── 7. BACKLINK FINDER ── -->
+        <div class="ait-card" id="ait-links">
+          <div class="ait-header" onclick="toggleAIT('links')">
+            <span class="ait-icon">🔗</span>
+            <span class="ait-title">Backlink Finder</span>
+            <span class="ait-sub">Outreach opportunities</span>
+            <span class="ait-chevron" id="ait-links-chev">▸</span>
+          </div>
+          <div class="ait-body" id="ait-links-body" style="display:none">
+            <p class="ait-desc">Generates link-building targets and pitch angles for this article topic.</p>
+            <button class="ait-run-btn gold" onclick="aitRunBacklinks()">
+              <span>🔗 Find Opportunities</span>
+              <span class="ait-spinner" id="sp-links" style="display:none"></span>
+            </button>
+            <div class="ait-result" id="res-links" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- ── 8. NEWSLETTER ── -->
+        <div class="ait-card" id="ait-nl">
+          <div class="ait-header" onclick="toggleAIT('nl')">
+            <span class="ait-icon">✉</span>
+            <span class="ait-title">Newsletter</span>
+            <span class="ait-sub">Auto-generate from this post</span>
+            <span class="ait-chevron" id="ait-nl-chev">▸</span>
+          </div>
+          <div class="ait-body" id="ait-nl-body" style="display:none">
+            <p class="ait-desc">Writes a newsletter email promoting this article, ready to send to subscribers.</p>
+            <select class="form-select" id="ait-nl-style" style="font-size:0.8rem;margin-bottom:0.6rem">
+              <option value="roundup">Weekly Roundup</option>
+              <option value="deep-dive">Deep Dive</option>
+              <option value="digest">Quick Digest</option>
+            </select>
+            <button class="ait-run-btn green" onclick="aitRunNewsletter()">
+              <span>✉ Generate Newsletter</span>
+              <span class="ait-spinner" id="sp-nl" style="display:none"></span>
+            </button>
+            <div class="ait-result" id="res-nl" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- ── 9. AUTO BLOG ── -->
+        <div class="ait-card" id="ait-auto">
+          <div class="ait-header" onclick="toggleAIT('auto')">
+            <span class="ait-icon">🤖</span>
+            <span class="ait-title">Auto Blog</span>
+            <span class="ait-sub">Generate & publish posts</span>
+            <span class="ait-chevron" id="ait-auto-chev">▸</span>
+          </div>
+          <div class="ait-body" id="ait-auto-body" style="display:none">
+            <p class="ait-desc">Autonomously generates and optionally publishes new blog posts on related topics.</p>
+            <div style="display:flex;gap:0.4rem;margin-bottom:0.6rem">
+              <select class="form-select" id="ait-auto-count" style="font-size:0.8rem">
+                <option value="1">1 post</option>
+                <option value="2" selected>2 posts</option>
+                <option value="3">3 posts</option>
+              </select>
+              <select class="form-select" id="ait-auto-pub" style="font-size:0.8rem">
+                <option value="draft">Save as draft</option>
+                <option value="publish">Auto-publish</option>
               </select>
             </div>
-            <div><div class="v2-f-label">Slug (URL)</div>
-              <input type="text" class="v2-f-input" id="postSlug" placeholder="auto-generated" />
-            </div>
-            <div><div class="v2-f-label">Meta Description</div>
-              <textarea class="v2-f-input" id="postMeta" rows="2" placeholder="SEO description (max 160 chars)…" style="resize:none;line-height:1.5" maxlength="160"></textarea>
-            </div>
-            <div><div class="v2-f-label">Tags</div>
-              <input type="text" class="v2-f-input" id="postTags" placeholder="fintech, rbi, upi" />
-            </div>
-            <div class="toggle-row" style="padding:0.5rem 0 0;border-top:1px solid var(--border);margin-top:0.2rem">
-              <div><div style="font-size:0.75rem;font-weight:600;color:var(--cream)">⭐ Premium</div><div style="font-size:0.65rem;color:var(--muted)">Subscribers only</div></div>
-              <div class="toggle-switch" id="premiumSwitch" onclick="togglePremium()"><div class="toggle-track"></div><div class="toggle-dot"></div></div>
-            </div>
+            <button class="ait-run-btn gold" onclick="aitRunAutoBlog()">
+              <span>🤖 Start Auto Blog</span>
+              <span class="ait-spinner" id="sp-auto" style="display:none"></span>
+            </button>
+            <div class="ait-result" id="res-auto" style="display:none"></div>
           </div>
         </div>
 
-        <!-- Featured Image -->
-        <div class="v2-r-sec">
-          <div class="v2-r-head">Featured Image <span>▾</span></div>
-          <div class="v2-r-body">
-            <div style="display:flex;gap:3px">
-              <input type="text" class="v2-f-input" id="postImage" placeholder="https://…" oninput="updateFeaturedPreview(this.value)" />
-              <label style="flex-shrink:0;background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0 7px;border-radius:3px;font-size:10px;cursor:pointer;display:flex;align-items:center;transition:all 0.15s" onmouseover="this.style.borderColor=\'var(--gold)\';this.style.color=\'var(--gold)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--muted)\'">📁<input type="file" accept="image/*" style="display:none" onchange="uploadFeaturedImage(this)" /></label>
-              <button onclick="generateFeaturedImage()" style="flex-shrink:0;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:none;color:#fff;padding:0 7px;border-radius:3px;font-size:10px;cursor:pointer">✨</button>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- /v2-right -->
-    </div><!-- /v2-shell -->
-
-    <!-- ══ AI PIPELINE ROADMAP ══ -->
-    <div class="v2-roadmap" style="margin-top:1.5rem" id="v2RoadmapPanel">
-      <div class="v2-roadmap-head" onclick="v2TogglePanel(\'v2RoadmapBody\',this)">
-        <span style="font-size:0.82rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--cream)">🗺 AI Pipeline Roadmap</span>
-        <span style="font-size:10px;color:var(--muted)">How AI models collaborate on your article ▾</span>
-      </div>
-      <div class="v2-roadmap-body" id="v2RoadmapBody">
-        <div class="v2-timeline">
-          <div class="v2-tl-node">
-            <div class="v2-tl-connector"></div>
-            <div class="v2-tl-dot user-dot">📝</div>
-            <div class="v2-tl-label">Topic Input</div>
-            <div class="v2-tl-sub">You write</div>
-            <span class="v2-tl-badge green">User</span>
-          </div>
-          <div class="v2-tl-node">
-            <div class="v2-tl-connector"></div>
-            <div class="v2-tl-dot multi">✍️</div>
-            <div class="v2-tl-label">Article Write</div>
-            <div class="v2-tl-sub">Multi-model</div>
-            <span class="v2-tl-badge blue">Llama · Mistral · Gemma</span>
-          </div>
-          <div class="v2-tl-node">
-            <div class="v2-tl-connector"></div>
-            <div class="v2-tl-dot claude">🚀</div>
-            <div class="v2-tl-label">SEO Optimize</div>
-            <div class="v2-tl-sub">Title · Meta · Tags</div>
-            <span class="v2-tl-badge gold">Auto / Qwen</span>
-          </div>
-          <div class="v2-tl-node">
-            <div class="v2-tl-connector"></div>
-            <div class="v2-tl-dot claude">🔥</div>
-            <div class="v2-tl-label">Headline AI</div>
-            <div class="v2-tl-sub">CTR scoring</div>
-            <span class="v2-tl-badge gold">Auto / Hermes</span>
-          </div>
-          <div class="v2-tl-node">
-            <div class="v2-tl-connector"></div>
-            <div class="v2-tl-dot img-ai">🖼</div>
-            <div class="v2-tl-label">AI Images</div>
-            <div class="v2-tl-sub">Cover + inline</div>
-            <span class="v2-tl-badge purple">CF · HF · Pollinations</span>
-          </div>
-          <div class="v2-tl-node">
-            <div class="v2-tl-connector"></div>
-            <div class="v2-tl-dot claude">✉</div>
-            <div class="v2-tl-label">Newsletter</div>
-            <div class="v2-tl-sub">Distribution</div>
-            <span class="v2-tl-badge gold">Auto model</span>
-          </div>
-          <div class="v2-tl-node">
-            <div class="v2-tl-dot pub-dot">🚀</div>
-            <div class="v2-tl-label">Publish</div>
-            <div class="v2-tl-sub">Firebase live</div>
-            <span class="v2-tl-badge green">Live</span>
-          </div>
-        </div>
       </div>
     </div>
-
-    <!-- ══ AI PARTICIPATION STATUS ══ -->
-    <div style="margin-top:1.2rem;background:var(--navy2);border:1px solid var(--border);border-radius:6px;overflow:hidden" id="v2ParticipationPanel">
-      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none" onclick="v2TogglePanel(\'v2PartBody\',this)">
-        <span style="font-size:0.82rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--cream)">🤖 AI Participation Status</span>
-        <span style="font-size:10px;color:var(--muted)">Active · Inactive models in your pipeline ▾</span>
-      </div>
-      <div style="padding:16px" id="v2PartBody">
-        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:12px;line-height:1.5">Models marked <span style="color:var(--green);font-weight:700">● Active</span> are integrated and participate in article generation. Models marked <span style="color:var(--muted);font-weight:700">○ Not Used</span> are not yet connected.</div>
-        <div class="v2-ai-part-grid">
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🦙 Llama 3.3 70B</div><div class="v2-ai-task">Article writing, long-form content generation</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌪 Mistral Small 24B</div><div class="v2-ai-task">Fast drafts, editing, quick rewrites</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">💎 Gemma 3 27B</div><div class="v2-ai-task">SEO optimization, meta summaries</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🧠 Hermes 405B</div><div class="v2-ai-task">Headlines, complex reasoning, deep analysis</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🐼 Qwen 3 80B</div><div class="v2-ai-task">Multilingual content, topic clusters</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">⚡ DeepSeek V3</div><div class="v2-ai-task">Auto-mode first choice, code, fintech</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">☁️ Cloudflare AI</div><div class="v2-ai-task">Image generation — primary provider</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🤗 HuggingFace</div><div class="v2-ai-task">Image gen — Flux Schnell fallback</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌸 Pollinations.ai</div><div class="v2-ai-task">Image gen — zero-setup fallback</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">💬 GPT-4o</div><div class="v2-ai-task">OpenAI — not integrated in this pipeline</div><span class="v2-ai-badge off">○ Not Used</span></div>
-          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">♊ Gemini 1.5 Pro</div><div class="v2-ai-task">Google — not integrated in this pipeline</div><span class="v2-ai-badge off">○ Not Used</span></div>
-          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">🔮 Claude (Anthropic)</div><div class="v2-ai-task">Requires separate API key — not set</div><span class="v2-ai-badge off">○ Not Used</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Hidden inputs used by JS -->
-    <input type="hidden" id="wordTarget" value="1500">
-
   </div>
-
 
   <!-- ══════════════ SEO TOOLS ══════════════ -->
   <div class="view" id="view-seotools">
@@ -1344,7 +1242,7 @@
           <div id="longFormNotice" style="display:none;margin-top:0.5rem;padding:0.4rem 0.6rem;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.25);border-radius:3px;font-size:0.68rem;color:var(--purple2);line-height:1.5">
             ⚡ Long-form mode: built chunk by chunk. 20k ≈ 10 chunks · 50k ≈ 25 chunks · 100k ≈ 50 chunks. Keep tab open.
           </div>
-          <!-- wordTarget moved to editor view -->
+          <input type="hidden" id="wordTarget" value="1500">
         </div>
 
       <!-- Result box (shown after generation) -->
@@ -1598,16 +1496,40 @@ const PURIFY_CONFIG = {
   ALLOWED_TAGS: ['h2','h3','h4','p','strong','em','u','s','ul','ol','li',
                  'blockquote','figure','img','figcaption','a','br','hr',
                  'table','thead','tbody','tr','th','td','sup','sub','code','pre'],
-  ALLOWED_ATTR: ['href','src','alt','title','style','loading','class','target',
+  ALLOWED_ATTR: ['href','src','alt','title','loading','class','target',
                  'rel','colspan','rowspan'],
   ALLOW_DATA_ATTR: false
 };
+
+// ── Editor HTML cleanup — removes nested spans and normalises tags before save ──
+function cleanEditorHTML(rawHtml) {
+  const div = document.createElement('div');
+  div.innerHTML = rawHtml;
+  div.querySelectorAll('span').forEach(span => {
+    if (!span.className && !span.style.cssText && !span.getAttribute('data-id')) {
+      const frag = document.createDocumentFragment();
+      while (span.firstChild) frag.appendChild(span.firstChild);
+      span.replaceWith(frag);
+    }
+  });
+  div.querySelectorAll('b').forEach(el => {
+    const s = document.createElement('strong'); s.innerHTML = el.innerHTML; el.replaceWith(s);
+  });
+  div.querySelectorAll('i').forEach(el => {
+    const e2 = document.createElement('em'); e2.innerHTML = el.innerHTML; el.replaceWith(e2);
+  });
+  div.querySelectorAll('p').forEach(p => {
+    if (!p.textContent.trim() && !p.querySelector('img,br')) p.remove();
+  });
+  return div.innerHTML;
+}
 
 function sanitize(html) {
   if (typeof DOMPurify !== 'undefined') {
     return DOMPurify.sanitize(html, PURIFY_CONFIG);
   }
-  return html; // fallback if CDN fails
+  console.error('DOMPurify not loaded — stripping all HTML tags as fallback');
+  return html.replace(/<[^>]*>/g,''); // safe fallback: strip all tags
 }
 
 // ── State ─────────────────────────────────────
@@ -1668,7 +1590,7 @@ document.getElementById('sidebar').addEventListener('click', e => {
 });
 
 window.toggleSidebar = () => {
-  document.querySelector('aside').classList.toggle('open');
+  document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('sideOverlay').classList.toggle('open');
 };
 
@@ -1713,7 +1635,7 @@ async function loadAll() {
     let snap;
     try {
       // Try ordered query first (requires Firestore index)
-      snap = await getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(50)));
+      snap = await getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(50))); // ⚠ Paginate here if posts > 500 (use startAfter for next page)
     } catch(indexErr) {
       // Fallback: unordered query (no index needed) — covers "index required" errors
       console.warn('Ordered query failed, falling back:', indexErr.message);
@@ -1993,6 +1915,8 @@ window.handleOwnPhotoUpload = async (files) => {
       const url = await uploadToStorage(file,'content',(pct)=>setUploadProgress(true,`Uploading "${file.name}"… ${pct}%`,pct));
       URL.revokeObjectURL(blobUrl); // ✅ fix memory leak
       generatedImages[idx] = url;
+      // Cap array to prevent memory leak
+      if (generatedImages.length > 20) generatedImages = generatedImages.slice(-20);
       const badge = document.getElementById(`sb${idx}`);
       if (badge) { badge.textContent='✓ saved'; badge.classList.remove('uploading'); }
       setUploadProgress(false);
@@ -2211,13 +2135,13 @@ window.savePost = async (publish) => {
   const metaDesc= document.getElementById('postMeta').value.trim();
   const tagsRaw = document.getElementById('postTags').value.trim();
   const tags    = tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [];
-  const readMin = Math.max(1,Math.ceil((editor.cloneNode(true).textContent||'').split(/\s+/).filter(Boolean).length/200));
+  const readMin = Math.max(1,Math.ceil((editor.textContent||'').split(/\s+/).filter(Boolean).length/200));
   if (!title) { showToast('Please add a title.','error'); return; }
 
   const saveStatus = document.getElementById('saveStatus');
   saveStatus.textContent='Checking images…';
   let image   = document.getElementById('postImage').value.trim();
-  let content = editor.innerHTML;
+  let content = cleanEditorHTML(editor.innerHTML);
 
   // Upload blob featured image
   if (image.startsWith('blob:')) {
@@ -2275,12 +2199,14 @@ window.fmtBlock   = (tag)  => safeExec('formatBlock',tag);
 window.insertLink = () => { const url=prompt('Enter URL:'); if(url) safeExec('createLink',url); };
 
 function updateWordCount() {
-  const text=editor.cloneNode(true).textContent||'';
-  const words=text.trim().split(/\s+/).filter(Boolean).length;
+  const text=editor.textContent||'';
+  const words = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
   document.getElementById('wordCount').textContent=words;
   document.getElementById('readingTimeDisplay').textContent=Math.max(1,Math.ceil(words/200));
 }
-editor.addEventListener('input',updateWordCount);
+// Debounced word count — prevents hundreds of calls per second while typing
+let _wcTimer;
+editor.addEventListener('input', () => { clearTimeout(_wcTimer); _wcTimer = setTimeout(updateWordCount, 150); });
 document.getElementById('postTitle').addEventListener('input', e => {
   // Strip any HTML that got pasted or typed into the title
   const clean = stripTags(e.target.value);
@@ -3389,7 +3315,7 @@ Return ONLY clean HTML using <h2><p><strong><em><blockquote><ul><li> tags. No ma
     if (status) status.textContent = `⏳ Step ${step}/${sectionLines.length + 2} — Writing: "${section.substring(0, 50)}…"`;
 
     // Context: what came before (last 200 words for continuity)
-    const prevText = editor.cloneNode(true).textContent.slice(-300);
+    const prevText = editor.textContent.slice(-300);
 
     const secResult = await callAI(
       `You are writing section ${i+1} of ${sectionLines.length} in a long-form article about: "${topic}".
@@ -3415,37 +3341,8 @@ Return ONLY clean HTML using <h2><h3><p><strong><em><blockquote><ul><ol><li> tag
       editor.innerHTML += sanitize(clean);
       updateWordCount();
     } else {
-      // ── Auto-retry once before giving up ──
-      if (status) status.textContent = `⚠ Section "${section.substring(0,40)}" failed — retrying in 3s…`;
-      await new Promise(r => setTimeout(r, 3000));
-      const retryResult = await callAI(
-        `Write a detailed section for an article about: "${topic}".
-Section title: "${section}"
-Category: ${category}. Tone: ${tone}.
-Target: approximately ${sectionWords} words.
-Write 4-6 solid paragraphs. Return ONLY clean HTML using <h2><h3><p><strong><em><ul><li> tags. Start with <h2>${section}</h2>.`,
-        true, model, 8000
-      );
-      if (!retryResult.error && retryResult.text) {
-        const clean = retryResult.text.replace(/```html?|```/gi,'').replace(/<h1[^>]*>.*?<\/h1>/gi,'').trim();
-        editor.innerHTML += sanitize(clean);
-        updateWordCount();
-      } else {
-        // Still failed — insert styled placeholder with one-click retry button
-        const safeTitle = section.replace(/"/g, '&quot;').replace(/'/g, "\\'");
-        const placeholder = `<div class="failed-section-block" id="failed-${i}" data-section="${safeTitle}" data-topic="${topic.replace(/"/g,'&quot;').replace(/'/g,"\\'")}" data-category="${category}" data-tone="${tone}" data-words="${sectionWords}" data-model="${model}">
-  <h2>${section}</h2>
-  <div class="failed-section-inner">
-    <span class="failed-icon">⚠</span>
-    <div class="failed-text">
-      <strong>This section failed to generate</strong><br>
-      <span>The AI model timed out or hit a rate limit for this chunk.</span>
-    </div>
-    <button class="failed-retry-btn" onclick="retrySectionGen(this)">🔄 Retry Now</button>
-  </div>
-</div>`;
-        editor.innerHTML += placeholder;
-      }
+      // Insert placeholder if section failed
+      editor.innerHTML += sanitize(`<h2>${section}</h2><p><em>[This section could not be generated — please write it manually or use the Edit tab to regenerate.]</em></p>`);
     }
 
     // Update word count display
@@ -3525,7 +3422,7 @@ function setEditStatus(msg,isError=false) { const el=document.getElementById('ai
 function setEditBtnsDisabled(on) { document.querySelectorAll('.ai-edit-btn').forEach(b=>b.disabled=on); }
 
 async function runAIEdit(instruction) {
-  const currentText=editor.cloneNode(true).textContent;
+  const currentText=editor.textContent;
   const topic=document.getElementById('aiPrompt').value.trim()||'fintech article';
   const category=document.getElementById('postCategory').value;
   if (!currentText.trim()) { setEditStatus('No article content.','true'); return; }
@@ -3704,7 +3601,7 @@ window.insertCitations = () => {
 // ✅ NEW: AI SEO OPTIMIZER
 // ═══════════════════════════════════════════════
 window.runSEOOptimizer = async () => {
-  const content=editor.cloneNode(true).textContent;
+  const content=editor.textContent;
   const title=document.getElementById('postTitle').value;
   if (!content.trim()) { setEditStatus('No article to optimize.',true); return; }
   setEditBtnsDisabled(true); setEditStatus('🚀 Running SEO optimization…');
@@ -3728,7 +3625,7 @@ window.runSEOOptimizer = async () => {
 // ═══════════════════════════════════════════════
 window.generateSummary = async () => {
   const title   = document.getElementById('postTitle').value.trim();
-  const content = editor.cloneNode(true).textContent.trim();
+  const content = editor.textContent.trim();
   const topic   = document.getElementById('aiPrompt').value.trim();
   const source  = title || topic;
   if (!source && !content) { showToast('Add a title or write some content first.','error'); return; }
@@ -3790,7 +3687,7 @@ window.runInternalLinking = async () => {
 // ✅ NEW: ARTICLE QUALITY SCORE
 // ═══════════════════════════════════════════════
 window.runArticleQualityScore = async () => {
-  const text=editor.cloneNode(true).textContent;
+  const text=editor.textContent;
   if (!text.trim()) { setEditStatus('No article to score.',true); return; }
   setEditBtnsDisabled(true); setEditStatus('⭐ Scoring article…');
   const prompt=`Score this fintech blog article for SEO quality.\n\nARTICLE (excerpt):\n${text.substring(0,1500)}\n\nReturn ONLY JSON:\n{"seo_score":0-100,"word_count_rating":"good|short|excellent","has_headings":true,"has_cta":true,"improvements":["item1","item2","item3"]}`;
@@ -4322,8 +4219,7 @@ function aitShowResult(id, html) {
 // Get current article topic (title or AI prompt)
 function aitGetTopic() {
   return document.getElementById('postTitle').value.trim()
-    || document.getElementById('v2TopicPrompt')?.value.trim()
-    || document.getElementById('aiPrompt')?.value.trim()
+    || document.getElementById('aiPrompt').value.trim()
     || 'fintech article';
 }
 
@@ -4333,7 +4229,7 @@ function aitGetTopic() {
 const _origSEO = window.runSEOOptimizer;
 window.aitRunSEOInline = async () => {
   aitLoading('seo', true);
-  const content = editor.cloneNode(true).textContent;
+  const content = editor.textContent;
   const title   = document.getElementById('postTitle').value;
   if (!content.trim()) { aitLoading('seo', false); setEditStatus('No article to optimize.', true); return; }
   setEditBtnsDisabled(true); setEditStatus('🚀 Running SEO optimization…');
@@ -4636,163 +4532,6 @@ window.aitRunAutoBlog = async () => {
   showToast(`Auto Blog done! ${done} post${done>1?'s':''} created.`, 'success');
   await loadAll();
 };
-
-// ── Retry a single failed section inline ──
-window.retrySectionGen = async function(btn) {
-  const block = btn.closest('.failed-section-block');
-  if (!block) return;
-
-  const section  = block.dataset.section  || '';
-  const topic    = block.dataset.topic    || section;
-  const category = block.dataset.category || 'Fintech';
-  const tone     = block.dataset.tone     || 'Professional';
-  const words    = parseInt(block.dataset.words) || 600;
-  const model    = block.dataset.model    || 'auto';
-
-  btn.disabled = true;
-  btn.textContent = '⏳ Generating…';
-  block.classList.add('retrying');
-
-  const inner = block.querySelector('.failed-section-inner');
-  if (inner) inner.querySelector('.failed-text span').textContent = 'Requesting from AI model…';
-
-  const result = await callAI(
-    `Write a detailed section for an article about: "${topic}".
-Section title: "${section}"
-Category: ${category}. Tone: ${tone}.
-Target: approximately ${words} words.
-Write 4-6 solid paragraphs with examples and analysis.
-Return ONLY clean HTML using <h2><h3><p><strong><em><blockquote><ul><li> tags. Start with <h2>${section}</h2>.`,
-    true, model, 8000
-  );
-
-  block.classList.remove('retrying');
-
-  if (!result.error && result.text) {
-    const clean = sanitize(result.text.replace(/```html?|```/gi,'').replace(/<h1[^>]*>.*?<\/h1>/gi,'').trim());
-    block.classList.add('success-replace');
-    // Fade out the block, insert new content in its place
-    block.style.transition = 'opacity 0.4s';
-    block.style.opacity = '0';
-    setTimeout(() => {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = clean;
-      block.replaceWith(tmp);
-      updateWordCount();
-      showToast(`Section "${section.substring(0,40)}" regenerated!`, 'success');
-    }, 400);
-  } else {
-    btn.disabled = false;
-    btn.textContent = '🔄 Retry Now';
-    if (inner) inner.querySelector('.failed-text span').textContent = `Still failing — ${result.error || 'try again or write manually'}`;
-    showToast('Retry failed. Try again in a moment.', 'error');
-  }
-};
-
-function v2ShowTab(tab, el) {
-  document.getElementById('v2-tab-ai').style.display   = tab === 'ai'   ? 'block' : 'none';
-  document.getElementById('v2-tab-imgs').style.display = tab === 'imgs' ? 'block' : 'none';
-  document.querySelectorAll('.v2-ltab').forEach((t,i) => {
-    t.classList.toggle('active', (i===0&&tab==='ai')||(i===1&&tab==='imgs'));
-  });
-}
-function toggleV2Sec(head) {
-  const body = head.nextElementSibling;
-  if (!body) return;
-  const open = body.style.display !== 'none';
-  body.style.display = open ? 'none' : 'block';
-  head.querySelector('span:last-child').textContent = open ? '▸' : '▾';
-}
-function v2SetWC(btn, words) {
-  document.querySelectorAll('.v2-wc-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const wt = document.getElementById('wordTarget');
-  if (wt) wt.value = words;
-  // Sync with existing drawer buttons
-  document.querySelectorAll('.word-target-btn').forEach(b => {
-    b.classList.toggle('active', parseInt(b.dataset.words) === words);
-    const on = parseInt(b.dataset.words) === words;
-    b.style.background = on ? 'rgba(201,168,76,0.1)' : 'transparent';
-    b.style.borderColor = on ? 'rgba(201,168,76,0.3)' : '';
-    b.style.color = on ? 'var(--gold)' : '';
-  });
-  const lf = document.getElementById('v2LongForm');
-  if (lf) lf.style.display = words >= 20000 ? 'block' : 'none';
-  const lf2 = document.getElementById('longFormNotice');
-  if (lf2) lf2.style.display = words >= 20000 ? 'block' : 'none';
-  const lbl = document.getElementById('v2WCLabel');
-  if (lbl) { lbl.textContent = words >= 1000 ? (words/1000)+'k' : words; }
-  const inp = document.getElementById('v2WCInput');
-  if (inp) inp.value = '';
-}
-function v2ApplyCustomWC(input) {
-  let v = parseInt(input.value);
-  if (isNaN(v) || v < 1) { document.getElementById('v2WCLabel').textContent = '—'; return; }
-  if (v > 100000) { v = 100000; input.value = 100000; }
-  const wt = document.getElementById('wordTarget');
-  if (wt) wt.value = v;
-  document.querySelectorAll('.v2-wc-btn').forEach(b => b.classList.remove('active'));
-  const lbl = document.getElementById('v2WCLabel');
-  if (lbl) lbl.textContent = v >= 1000 ? (v/1000).toFixed(1).replace('.0','')+'k' : v;
-  const lf = document.getElementById('v2LongForm');
-  if (lf) lf.style.display = v >= 20000 ? 'block' : 'none';
-  // Also sync existing custom input
-  const ci = document.getElementById('wordTargetCustom');
-  if (ci) ci.value = v;
-  if (typeof applyCustomWordTarget === 'function') applyCustomWordTarget({value:v});
-}
-function v2SyncModel(val) {
-  const m = document.getElementById('modelArticle');
-  if (m) m.value = val;
-  if (typeof onModelChange === 'function') onModelChange(val);
-}
-// Also sync tone when v2 tone selector changes
-document.addEventListener('DOMContentLoaded', () => {
-  const v2Tone = document.getElementById('v2WriteTone');
-  if (v2Tone) v2Tone.addEventListener('change', () => {
-    const at = document.getElementById('aiTone');
-    if (at) at.value = v2Tone.value.toLowerCase();
-  });
-  // On load, pre-fill v2TopicPrompt from aiPrompt if any
-  const ap = document.getElementById('aiPrompt');
-  const v2 = document.getElementById('v2TopicPrompt');
-  if (ap && v2 && ap.value && !v2.value) v2.value = ap.value;
-});
-function v2BeforeGenerate() {
-  // Sync topic
-  const v2Topic = document.getElementById('v2TopicPrompt')?.value.trim();
-  const ap = document.getElementById('aiPrompt');
-  if (v2Topic && ap) ap.value = v2Topic;
-
-  // Sync model
-  const v2Model = document.getElementById('v2Model')?.value;
-  const ma = document.getElementById('modelArticle');
-  if (v2Model && ma) { ma.value = v2Model; if (typeof onModelChange === 'function') onModelChange(v2Model); }
-
-  // Sync tone
-  const v2Tone = document.getElementById('v2WriteTone')?.value;
-  const at = document.getElementById('aiTone');
-  if (v2Tone && at) at.value = v2Tone.toLowerCase();
-
-  // Now call the real generate
-  handleGenerateClick();
-}
-
-  // Keep the old drawer textarea in sync so generateAIPost/generateLongForm can read it
-  const ap = document.getElementById('aiPrompt');
-  if (ap) ap.value = val;
-}
-function v2ScrollToAit() {
-  const el = document.getElementById('v2AitSection');
-  if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
-}
-function v2TogglePanel(bodyId, head) {
-  const body = document.getElementById(bodyId);
-  if (!body) return;
-  const open = body.style.display !== 'none';
-  body.style.display = open ? 'none' : 'block';
-  const arrow = head.querySelector('span:last-child');
-  if (arrow) arrow.textContent = open ? '▸' : '▾';
-}
-
 </script>
+</body>
+</html>
