@@ -21,6 +21,13 @@ export const db   = getFirestore(app);
 
 // ── App constants (imported by other modules) ─
 export const WORKER_URL            = "https://blogspro-ai.abhishek-dutta1996.workers.dev";
+
+// ── AI Fallback Keys ──────────────────────────
+// Cloudflare is always used first. These only activate if Cloudflare rate-limits.
+// Groq:   free at console.groq.com  — no credit card needed
+// Gemini: free at aistudio.google.com — no credit card needed
+export const GROQ_API_KEY   = "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";   // replace with gsk_...
+export const GEMINI_API_KEY = "AIzaSyD6js1u4fJYLIB4SQcEdR2Hf2m9sAev8Yg"; // replace with AIza...
 export const IMAGE_WORKER_URL      = "https://blogspro-images.abhishek-dutta1996.workers.dev";
 export const CLOUDINARY_CLOUD_NAME    = "dldbsidve";
 export const CLOUDINARY_UPLOAD_PRESET = "blogspro";
