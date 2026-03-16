@@ -1,28 +1,25 @@
-// ═══════════════════════════════════════
-// state.js — Global CMS State
-// ═══════════════════════════════════════
+// ═══════════════════════════════════════════════
+// state.js — All shared mutable state
+// ═══════════════════════════════════════════════
 
 export const state = {
-
-  // All blog posts
-  allPosts: JSON.parse(localStorage.getItem("blogspro_posts") || "[]"),
-
-  // Current editor post
-  currentPostId: null,
-
-  // Subscribers list
-  subscribers: JSON.parse(localStorage.getItem("blogspro_subscribers") || "[]")
-
+  currentUser:         null,
+  editingPostId:       null,
+  allPosts:            [],
+  allSubs:             [],
+  isPremium:           false,
+  pendingOutline:      '',
+  lastSavedContent:    '',
+  generatedImages:     [],
+  imgSelectedStyle:    'photorealistic',
+  imgSelectedW:        1280,
+  imgSelectedH:        720,
+  imgSelectedCount:    2,
+  currentModalImgUrl:  '',
+  autoPlaceCancelled:  false,
+  generatedNewsletter: '',
+  abSessionTotal:      0,
+  abSessionPublished:  0,
+  isGeneratingAI:      false,
+  isGeneratingImages:  false,
 };
-
-
-// Save posts helper
-export function savePosts() {
-  localStorage.setItem("blogspro_posts", JSON.stringify(state.allPosts));
-}
-
-
-// Save subscribers helper
-export function saveSubscribers() {
-  localStorage.setItem("blogspro_subscribers", JSON.stringify(state.subscribers));
-}
