@@ -23,3 +23,10 @@ export const state = {
   isGeneratingAI:      false,
   isGeneratingImages:  false,
 };
+
+
+// ── Legacy shims (used by v2-editor.js) ──────
+// In Firebase mode, data is persisted via Firestore — these are no-ops.
+// They exist only to prevent import errors from modules that call them.
+export function savePosts() {}
+export function saveSubscribers() {}
