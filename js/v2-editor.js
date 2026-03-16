@@ -1,40 +1,31 @@
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════
 // v2-editor.js — Blog Editor Logic
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════
 
-import { callAI } from './ai-core.js';
-import { showToast, slugify, sanitize, setBtnLoading, parseAIJson } from './config.js';
-import { state } from './state.js';
-
-
-// ═════════════════════════════════════
-// LOAD POST INTO EDITOR
-// ═════════════════════════════════════
-export function loadPostEditor(postId) {
-
-  const post = state.allPosts.find(p => p.id === postId);
-
-  if (!post) {
-    showToast("Post not found", "error");
-    return;
-  }
-
-  document.getElementById("postTitle").value = post.title || "";
-  document.getElementById("postSlug").value = post.slug || "";
-  document.getElementById("postCategory").value = post.category || "General";
-  document.getElementById("postContent").value = post.content || "";
-
-  state.currentPostId = postId;
-
-  showToast("Post loaded", "success");
-}
+import { callAI } from "./ai-core.js";
+import { showToast, slugify, sanitize, setBtnLoading, parseAIJson } from "./config.js";
+import { state, savePosts } from "./state.js";
 
 
+// ═══════════════════════════════════════
+// UPDATE SLUG WHEN TITLE CHANGES
+// ═══════════════════════════════════════
 
-// ═════════════════════════════════════
-// NEW POST
-// ═════════════════════════════════════
-export function clearEditor() {
+window.updateSlug = function () {
+
+  const title = document.getElementById("postTitle")?.value || "";
+
+  const slugField = document.getElementById("postSlug");
+
+  if (slugField) slugField.value = slugify(title);
+};
+
+
+// ═══════════════════════════════════════
+// CLEAR EDITOR
+// ═══════════════════════════════════════
+
+window.clearEditor = function () {
 
   document.getElementById("postTitle").value = "";
   document.getElementById("postSlug").value = "";
@@ -42,122 +33,72 @@ export function clearEditor() {
   document.getElementById("aiPrompt").value = "";
 
   state.currentPostId = null;
-}
-
-
-
-// ═════════════════════════════════════
-// AUTO SLUG
-// ═════════════════════════════════════
-window.updateSlug = () => {
-
-  const title = document.getElementById("postTitle").value;
-
-  document.getElementById("postSlug").value = slugify(title);
 };
 
 
-
-// ═════════════════════════════════════
+// ═══════════════════════════════════════
 // SAVE POST
-// ═════════════════════════════════════
-window.savePost = () => {
+// ═══════════════════════════════════════
+
+window.savePost = function () {
 
   const title = document.getElementById("postTitle").value.trim();
   const slug = document.getElementById("postSlug").value.trim();
   const content = document.getElementById("postContent").value.trim();
-  const category = document.getElementById("postCategory").value;
 
   if (!title) {
-    showToast("Title required", "error");
+    showToast("Title is required", "error");
     return;
   }
 
   const postData = {
+
     id: state.currentPostId || Date.now().toString(),
-    title,
-    slug,
-    category,
-    content,
+
+    title: title,
+
+    slug: slug,
+
+    content: content,
+
     status: "draft",
+
     date: new Date().toISOString()
+
   };
 
   if (state.currentPostId) {
 
     const index = state.allPosts.findIndex(p => p.id === state.currentPostId);
 
-    state.allPosts[index] = postData;
+    if (index !== -1) state.allPosts[index] = postData;
 
   } else {
 
     state.allPosts.push(postData);
   }
 
-  localStorage.setItem("blogspro_posts", JSON.stringify(state.allPosts));
+  savePosts();
 
   showToast("Post saved!", "success");
 };
 
 
-
-// ═════════════════════════════════════
-// AI GENERATE CONTENT
-// ═════════════════════════════════════
-window.generateAIContent = async () => {
-
-  const prompt = document.getElementById("aiPrompt").value.trim();
-
-  if (!prompt) {
-    showToast("Enter a prompt", "error");
-    return;
-  }
-
-  setBtnLoading("btnGenerateAI","aiBtnTxt","aiSpinner",true,"Generating…");
-
-  const result = await callAI(
-`Write a detailed SEO optimized blog article about:
-"${prompt}"
-
-Return ONLY JSON:
-{
-"title":"",
-"content":"HTML formatted blog article"
-}`, true);
-
-  setBtnLoading("btnGenerateAI","aiBtnTxt","aiSpinner",false,"Generate Article");
-
-  const parsed = parseAIJson(result.error ? "" : result.text || "");
-
-  if (!parsed) {
-    showToast(result.error || "AI failed", "error");
-    return;
-  }
-
-  document.getElementById("postTitle").value = parsed.title || prompt;
-  document.getElementById("postSlug").value = slugify(parsed.title || prompt);
-  document.getElementById("postContent").value = sanitize(parsed.content || "");
-
-  showToast("AI content generated", "success");
-};
-
-
-
-// ═════════════════════════════════════
+// ═══════════════════════════════════════
 // DELETE POST
-// ═════════════════════════════════════
-window.deletePost = () => {
+// ═══════════════════════════════════════
+
+window.deletePost = function () {
 
   if (!state.currentPostId) {
+
     showToast("No post selected", "error");
     return;
   }
 
-  if (!confirm("Delete this post?")) return;
-
   state.allPosts = state.allPosts.filter(p => p.id !== state.currentPostId);
 
-  localStorage.setItem("blogspro_posts", JSON.stringify(state.allPosts));
+  savePosts();
 
   clearEditor();
 
@@ -165,26 +106,72 @@ window.deletePost = () => {
 };
 
 
-
-// ═════════════════════════════════════
+// ═══════════════════════════════════════
 // PUBLISH POST
-// ═════════════════════════════════════
-window.publishPost = () => {
+// ═══════════════════════════════════════
 
-  const id = state.currentPostId;
+window.publishPost = function () {
 
-  if (!id) {
-    showToast("Save post first", "error");
+  if (!state.currentPostId) {
+
+    showToast("Save the post first", "error");
     return;
   }
 
-  const post = state.allPosts.find(p => p.id === id);
+  const post = state.allPosts.find(p => p.id === state.currentPostId);
 
   if (!post) return;
 
   post.status = "published";
 
-  localStorage.setItem("blogspro_posts", JSON.stringify(state.allPosts));
+  savePosts();
 
   showToast("Post published!", "success");
+};
+
+
+// ═══════════════════════════════════════
+// AI ARTICLE GENERATOR
+// ═══════════════════════════════════════
+
+window.generateAIContent = async function () {
+
+  const prompt = document.getElementById("aiPrompt").value.trim();
+
+  if (!prompt) {
+
+    showToast("Enter a topic first", "error");
+    return;
+  }
+
+  setBtnLoading("btnGenerateAI", "aiBtnTxt", "aiSpinner", true, "Generating…");
+
+  const result = await callAI(
+`Write a detailed SEO optimized blog article about: "${prompt}"
+
+Return ONLY JSON:
+
+{
+"title":"",
+"content":"HTML formatted article"
+}`
+  );
+
+  setBtnLoading("btnGenerateAI", "aiBtnTxt", "aiSpinner", false, "Generate Article");
+
+  const parsed = parseAIJson(result.error ? "" : result.text);
+
+  if (!parsed) {
+
+    showToast(result.error || "AI failed to generate article", "error");
+    return;
+  }
+
+  document.getElementById("postTitle").value = parsed.title || prompt;
+
+  document.getElementById("postSlug").value = slugify(parsed.title || prompt);
+
+  document.getElementById("postContent").value = sanitize(parsed.content || "");
+
+  showToast("AI article generated!", "success");
 };
