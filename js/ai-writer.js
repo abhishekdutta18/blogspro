@@ -133,10 +133,12 @@ export async function confirmOutline() {
     const maxTokPerSection = Math.min(8000, wordsPerSection * 2);
 
     // ── Parallel batch config ──────────────────
-    // Batch size: how many sections fire simultaneously
-    // 3 is safe for free tiers (avoids 429 rate-limits)
-    // Increase to 5 if on paid plans
-    const BATCH_SIZE = 3;
+    // Batch size 2 = best balance for free tier TPM limits
+    // Each section uses ~1500-2000 tokens, 2 parallel = ~3-4k TPM peak
+    // Free tier limit is ~10-12k TPM — stays well within range
+    // Increase to 3 on paid Groq tier
+    const BATCH_SIZE = 2;
+    const STAGGER_MS = 600; // ms between each call in a batch to smooth TPM
 
     document.getElementById('aiModalTitle').textContent = `✦ Writing ${wordTarget.toLocaleString()}-word article…`;
     document.getElementById('aiModalSub').textContent   = `${totalSections} sections · ${BATCH_SIZE} at a time. Keep tab open.`;
@@ -229,12 +231,15 @@ Rules:
       const batchEnd     = Math.min(batchStart + BATCH_SIZE, totalSections);
       const batchIndices = Array.from({length: batchEnd - batchStart}, (_, i) => batchStart + i);
 
-      // Fire all sections in this batch simultaneously
-      await Promise.all(batchIndices.map(i => generateSection(i)));
+      // Fire sections with a small stagger to smooth TPM usage
+      await Promise.all(batchIndices.map((i, offset) =>
+        new Promise(resolve => setTimeout(resolve, offset * STAGGER_MS))
+          .then(() => generateSection(i))
+      ));
 
-      // Small pause between batches to respect rate limits
+      // Pause between batches to let TPM window reset
       if (batchEnd < totalSections) {
-        await new Promise(r => setTimeout(r, 800));
+        await new Promise(r => setTimeout(r, 1500));
       }
     }
 
