@@ -7,8 +7,7 @@
 //   3. Gemini           (Google free tier)
 // ═══════════════════════════════════════════════
 
-import { WORKER_URL, GROQ_API_KEY, GEMINI_API_KEY } from './config.js';
-import { showToast } from './config.js';
+import { WORKER_URL, GROQ_API_KEY, GEMINI_API_KEY, initKeys, showToast } from './config.js';
 
 // ── Fetch with timeout ───────────────────────
 async function fetchWithTimeout(url, options, timeoutMs = 25000) {
@@ -244,6 +243,9 @@ function markFailed(provider) {
  * Fallback chain: Cloudflare -> Groq -> Gemini -> error
  */
 export async function callAI(prompt, silent = false, forceModel = 'auto', maxTokens = 4000) {
+  // Ensure Remote Config keys are loaded before first AI call
+  await initKeys();
+
   const tone     = document.getElementById('aiTone')?.value     || 'professional';
   const category = document.getElementById('postCategory')?.value || 'Fintech';
 
