@@ -22,6 +22,7 @@ export const state = {
   abSessionPublished:  0,
   isGeneratingAI:      false,
   isGeneratingImages:  false,
+  pendingWordTarget:    null,
 };
 
 
