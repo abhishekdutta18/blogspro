@@ -47,30 +47,6 @@ function aitOpenCluster(title) {
   showToast(`New post: "${title.substring(0,40)}"`, 'success');
 }
 
-// ── 1. SEO Optimizer ──────────────────────────
-window.runSEOOptimizer = async () => {
-  aitLoading('seo', true);
-  const content = document.getElementById('editor')?.textContent || '';
-  const title   = document.getElementById('postTitle')?.value || '';
-  if (!content.trim()) { aitLoading('seo', false); showToast('No article to optimize.','error'); return; }
-  const result = await callAI(
-    `You are an SEO expert optimizing a fintech blog post.\nTitle: "${title}"\nContent: "${content.substring(0,1000)}"\nReturn ONLY JSON:\n{"title":"SEO title max 70 chars","meta":"SEO meta desc max 155 chars","keywords":["kw1","kw2","kw3","kw4","kw5"],"improvements":["improvement 1","improvement 2","improvement 3"]}`,
-    true
-  );
-  aitLoading('seo', false);
-  let parsed = null;
-  if (!result.error) { try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {} }
-  if (parsed) {
-    if (parsed.title)    { document.getElementById('postTitle').value=parsed.title; document.getElementById('postSlug').value=slugify(parsed.title); }
-    if (parsed.meta)     document.getElementById('postMeta').value=parsed.meta;
-    if (parsed.keywords) document.getElementById('postTags').value=parsed.keywords.join(', ');
-    aitShowResult('seo', `
-      <div style="margin-bottom:0.5rem;font-size:0.72rem;font-weight:700;color:var(--green)">✓ Fields updated</div>
-      ${parsed.title?`<div style="margin-bottom:0.3rem"><span style="color:var(--muted);font-size:0.68rem">TITLE</span><div style="color:var(--cream);font-size:0.78rem;margin-top:0.1rem">${parsed.title}</div></div>`:''}
-      ${(parsed.improvements||[]).map(i=>`<div style="padding:0.25rem 0;border-top:1px solid rgba(255,255,255,0.05);color:var(--muted);font-size:0.72rem">→ ${i}</div>`).join('')}`);
-    showToast('SEO optimization complete!','success');
-  } else { aitShowResult('seo',`<div style="color:#fca5a5">✕ ${result.error||'Failed'}</div>`); }
-};
 
 // ── 2. Headline AI ────────────────────────────
 window.aitRunHeadlines = async () => {
