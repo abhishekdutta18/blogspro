@@ -152,54 +152,71 @@ async function callGemini(prompt, maxTokens) {
   return { text, modelUsed: 'gemini-2.5-flash', fallbackUsed: true };
 }
 
+// ── Session-level provider health tracking ───
+// Once a provider rate-limits, skip it for the rest of the session
+// This avoids wasting 2-3 seconds on a known-failed provider
+const _providerFailed = { cloudflare: false, groq: false, gemini: false };
+
+function markFailed(provider) {
+  _providerFailed[provider] = true;
+  console.warn(`[ai-core] ${provider} marked as rate-limited for this session`);
+}
+
 // ── Main callAI — tries providers in order ───
 /**
  * callAI(prompt, silent, forceModel, maxTokens)
  * Returns: { text, modelUsed, fallbackUsed, attemptsDetail } | { error }
  *
- * Fallback chain:
- *   Cloudflare → (rate limit?) → Groq → (rate limit?) → Gemini → error
+ * Fallback chain (skips known-failed providers instantly):
+ *   Cloudflare → Groq (multi-model) → Gemini → error
  */
 export async function callAI(prompt, silent = false, forceModel = 'auto', maxTokens = 4000) {
   const tone     = document.getElementById('aiTone')?.value     || 'professional';
   const category = document.getElementById('postCategory')?.value || 'Fintech';
 
   // ── Step 1: Cloudflare Worker ────────────────
-  const cfResult = await callCloudflare(prompt, tone, category, forceModel, maxTokens);
-  if (!cfResult.error) return cfResult;
+  if (!_providerFailed.cloudflare) {
+    const cfResult = await callCloudflare(prompt, tone, category, forceModel, maxTokens);
+    if (!cfResult.error) return cfResult;
 
-  // Only fall through if it's a rate-limit / quota error
-  if (!isRateLimit(cfResult.error)) {
-    // Non-rate-limit error (network down, config issue) — return immediately
-    return cfResult;
+    if (isRateLimit(cfResult.error)) {
+      markFailed('cloudflare');
+      if (!silent) showToast('Cloudflare quota reached — switching to Groq…', 'info');
+    } else {
+      // Non-rate-limit error — return immediately, don't fall through
+      return cfResult;
+    }
   }
 
-  if (!silent) showToast('Cloudflare quota reached — trying Groq…', 'info');
-  console.warn('Cloudflare rate-limited, falling back to Groq:', cfResult.error);
+  // ── Step 2: Groq (tries multiple models) ─────
+  if (!_providerFailed.groq) {
+    const groqResult = await callGroq(prompt, maxTokens);
+    if (!groqResult.error) {
+      if (!silent && _providerFailed.cloudflare) showToast('Using Groq ✓', 'info');
+      return groqResult;
+    }
 
-  // ── Step 2: Groq ─────────────────────────────
-  const groqResult = await callGroq(prompt, maxTokens);
-  if (!groqResult.error) {
-    if (!silent) showToast('Using Groq (fallback)', 'info');
-    return groqResult;
+    if (isRateLimit(groqResult.error) || groqResult.error.includes('not configured')) {
+      markFailed('groq');
+      if (!silent) showToast('Groq quota reached — switching to Gemini…', 'info');
+    } else {
+      return groqResult;
+    }
   }
-
-  if (!isRateLimit(groqResult.error) && !groqResult.error.includes('not configured')) {
-    return groqResult;
-  }
-
-  if (!silent) showToast('Groq quota reached — trying Gemini…', 'info');
-  console.warn('Groq failed, falling back to Gemini:', groqResult.error);
 
   // ── Step 3: Gemini ────────────────────────────
-  const geminiResult = await callGemini(prompt, maxTokens);
-  if (!geminiResult.error) {
-    if (!silent) showToast('Using Gemini (fallback)', 'info');
-    return geminiResult;
+  if (!_providerFailed.gemini) {
+    const geminiResult = await callGemini(prompt, maxTokens);
+    if (!geminiResult.error) {
+      if (!silent) showToast('Using Gemini ✓', 'info');
+      return geminiResult;
+    }
+    if (isRateLimit(geminiResult.error)) {
+      markFailed('gemini');
+    } else {
+      return geminiResult;
+    }
   }
 
-  // All providers failed
-  const allFailed = `All AI providers failed.\n• Cloudflare: ${cfResult.error}\n• Groq: ${groqResult.error}\n• Gemini: ${geminiResult.error}`;
-  console.error(allFailed);
-  return { error: 'All providers rate-limited or unavailable. Try again tomorrow.' };
+  return { error: 'All AI providers rate-limited. Reset at midnight UTC or add credits.' };
 }
