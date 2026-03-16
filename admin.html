@@ -418,20 +418,21 @@
       </div>
       <div style="padding:16px" id="v2PartBody">
         <div style="font-size:0.7rem;color:var(--muted);margin-bottom:12px;line-height:1.5">Models marked <span style="color:var(--green);font-weight:700">● Active</span> are integrated and participate in article generation. Models marked <span style="color:var(--muted);font-weight:700">○ Not Used</span> are not yet connected.</div>
+        <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Priority order — best quality first</div>
         <div class="v2-ai-part-grid">
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🦙 Llama 3.3 70B</div><div class="v2-ai-task">Article writing, long-form content generation</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌪 Mistral Small 24B</div><div class="v2-ai-task">Fast drafts, editing, quick rewrites</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">💎 Gemma 3 27B</div><div class="v2-ai-task">SEO optimization, meta summaries</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🧠 Hermes 405B</div><div class="v2-ai-task">Headlines, complex reasoning, deep analysis</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🐼 Qwen 3 80B</div><div class="v2-ai-task">Multilingual content, topic clusters</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">⚡ DeepSeek V3</div><div class="v2-ai-task">Auto-mode first choice, code, fintech</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">☁️ Cloudflare AI</div><div class="v2-ai-task">Image generation — primary provider</div><span class="v2-ai-badge on">● Active</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌙 Kimi K2</div><div class="v2-ai-task">1T MoE — highest quality, Groq #1 pick</div><span class="v2-ai-badge on">● Active</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🤖 GPT-OSS 120B</div><div class="v2-ai-task">OpenAI open-weight — Groq #2 pick</div><span class="v2-ai-badge on">● Active</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🦙 Llama 4 Scout</div><div class="v2-ai-task">Meta Llama 4 — Groq #3 pick</div><span class="v2-ai-badge on">● Active</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🐼 Qwen3 32B</div><div class="v2-ai-task">Alibaba — reasoning, multilingual</div><span class="v2-ai-badge on">● Active</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🦙 Llama 3.3 70B</div><div class="v2-ai-task">Reliable fallback — proven quality</div><span class="v2-ai-badge on">● Active</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌪 Mistral 24B</div><div class="v2-ai-task">Fast drafts and rewrites</div><span class="v2-ai-badge on">● Active</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">✨ Gemini 2.5 Flash</div><div class="v2-ai-task">Google — fallback when Groq rate-limits</div><span class="v2-ai-badge on">● Active</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">⚡ Cloudflare AI</div><div class="v2-ai-task">Primary worker — routes all models above</div><span class="v2-ai-badge on">● Active</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">☁️ Cloudflare Images</div><div class="v2-ai-task">Image generation — primary provider</div><span class="v2-ai-badge on">● Active</span></div>
           <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🤗 HuggingFace</div><div class="v2-ai-task">Image gen — Flux Schnell fallback</div><span class="v2-ai-badge on">● Active</span></div>
           <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌸 Pollinations.ai</div><div class="v2-ai-task">Image gen — zero-setup fallback</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">⚡ Groq (Llama)</div><div class="v2-ai-task">Fallback provider — fast free tier</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">💬 GPT-4o</div><div class="v2-ai-task">OpenAI — not integrated in this pipeline</div><span class="v2-ai-badge off">○ Not Used</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">♊ Gemini 2.0 Flash</div><div class="v2-ai-task">Google — fallback when Cloudflare rate-limits</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">🔮 Claude (Anthropic)</div><div class="v2-ai-task">Requires separate API key — not set</div><span class="v2-ai-badge off">○ Not Used</span></div>
+          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">💬 GPT-4o</div><div class="v2-ai-task">OpenAI — paid API, not integrated</div><span class="v2-ai-badge off">○ Not Used</span></div>
+          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">🔮 Claude (Anthropic)</div><div class="v2-ai-task">Paid API — requires separate key</div><span class="v2-ai-badge off">○ Not Used</span></div>
         </div>
       </div>
     </div>
