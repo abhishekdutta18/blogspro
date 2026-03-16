@@ -16,28 +16,84 @@ function setEditBtnsDisabled(on) {
 }
 
 async function runAIEdit(instruction) {
-  const editor  = getEditor();
-  const currentText = editor?.textContent;
-  const topic   = document.getElementById('aiPrompt').value.trim() || 'fintech article';
+  const editor      = getEditor();
+  const currentHTML = editor?.innerHTML || '';
+  const currentText = editor?.textContent || '';
+  const topic    = document.getElementById('aiPrompt').value.trim() || 'fintech article';
   const category = document.getElementById('postCategory').value;
+  const model    = document.getElementById('modelArticle')?.value || 'auto';
   if (!currentText?.trim()) { setEditStatus('No article content.', true); return; }
 
   setEditBtnsDisabled(true);
-  setEditStatus('⏳ Working…');
-  const snippet = currentText.length > 1500 ? currentText.substring(0,1500)+'\n[…continues]' : currentText;
-  const model   = document.getElementById('modelArticle')?.value || 'auto';
-  const result  = await callAI(
-    `Edit this fintech article about "${topic}" (${category}).\n\nARTICLE:\n${snippet}\n\nTASK: ${instruction}\n\nReturn ONLY the complete updated article as clean HTML. Use only <h2><h3><p><strong><em><ul><li><blockquote><table><tr><td><th> tags. No markdown.`,
-    true, model, 4000
-  );
+  const wordCount = currentText.trim().split(/\s+/).filter(Boolean).length;
 
-  if (result.error) { setEditStatus('✕ '+result.error, true); setEditBtnsDisabled(false); return; }
-  const clean = (result.text||'').replace(/```html?|```/gi,'').replace(/---METADATA---[\s\S]*/g,'').trim();
-  if (!clean) { setEditStatus('✕ Empty response.', true); setEditBtnsDisabled(false); return; }
+  // For long articles: edit section-by-section to preserve word count
+  // Split on <h2> boundaries so each call handles one section at a time
+  const isLong = wordCount > 1000;
 
-  editor.innerHTML = sanitize(clean);
+  if (isLong) {
+    setEditStatus(`⏳ Editing ${wordCount.toLocaleString()} words section by section…`);
+    // Split HTML into sections by <h2>
+    const sections = currentHTML.split(/(?=<h2[^>]*>)/i).filter(Boolean);
+    if (sections.length <= 1) {
+      // No h2 splits — chunk by character
+      const chunks = [];
+      const chunkSize = 3000;
+      for (let i = 0; i < currentText.length; i += chunkSize) {
+        chunks.push(currentText.substring(i, i + chunkSize));
+      }
+      const results = [];
+      for (let i = 0; i < chunks.length; i++) {
+        setEditStatus(`⏳ Editing chunk ${i+1}/${chunks.length}…`);
+        const r = await callAI(
+          `Edit this section of a fintech article about "${topic}" (${category}).
+SECTION: ${chunks[i]}
+TASK: ${instruction}
+RULES: Return ONLY clean HTML. NEVER shorten — output must be same length or longer.`,
+          true, model, 8000
+        );
+        results.push(r.error ? chunks[i] : (r.text||'').replace(/\`\`\`html?|\`\`\`/gi,'').trim());
+      }
+      editor.innerHTML = sanitize(results.join('\n'));
+    } else {
+      const edited = new Array(sections.length).fill(null);
+      for (let i = 0; i < sections.length; i++) {
+        setEditStatus(`⏳ Editing section ${i+1}/${sections.length}…`);
+        const sText = sections[i].replace(/<[^>]+>/g,' ').trim();
+        const r = await callAI(
+          `Edit this section of a fintech article about "${topic}" (${category}).
+Section ${i+1} of ${sections.length}.
+SECTION HTML: ${sections[i]}
+TASK: ${instruction}
+RULES: Return ONLY clean HTML for this section. Same or more words, never fewer.`,
+          true, model, 8000
+        );
+        edited[i] = r.error
+          ? sections[i]
+          : (r.text||'').replace(/\`\`\`html?|\`\`\`/gi,'').replace(/<h1[^>]*>.*?<\/h1>/gi,'').trim();
+      }
+      editor.innerHTML = sanitize(edited.join('\n'));
+    }
+  } else {
+    // Short articles: single call
+    setEditStatus(`⏳ Working… (${wordCount.toLocaleString()} words)`);
+    const r = await callAI(
+      `Edit this fintech article about "${topic}" (${category}).
+Word count: ${wordCount} words.
+ARTICLE: ${currentText}
+TASK: ${instruction}
+RULES: Return ONLY clean HTML. Use <h2><h3><p><strong><em><ul><li><blockquote>. NEVER use <h1>. Never reduce word count.`,
+      true, model, 8000
+    );
+    if (r.error) { setEditStatus('✕ '+r.error, true); setEditBtnsDisabled(false); return; }
+    const clean = (r.text||'').replace(/\`\`\`html?|\`\`\`/gi,'').trim();
+    if (!clean) { setEditStatus('✕ Empty response.', true); setEditBtnsDisabled(false); return; }
+    editor.innerHTML = sanitize(clean);
+  }
+
   updateWordCount();
-  setEditStatus('✓ Done');
+  const newCount = editor.textContent.trim().split(/\s+/).filter(Boolean).length;
+  setEditStatus(`✓ Done — ${newCount.toLocaleString()} words`);
   setEditBtnsDisabled(false);
   showToast('Article updated!','success');
 }
@@ -140,18 +196,26 @@ export async function runArticleQualityScore() {
     const s=result.text.indexOf('{'), e=result.text.lastIndexOf('}');
     const p = JSON.parse(result.text.substring(s,e+1));
     const color = p.score>=80?'var(--green)':p.score>=60?'var(--gold)':'#fca5a5';
-    const el = document.getElementById('qualityScoreResult');
-    if (el) {
-      el.style.display = 'block';
-      el.innerHTML = `
-        <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:0.5rem">
-          <div style="font-size:2rem;font-weight:700;color:${color}">${p.score}</div>
-          <div><div style="font-size:0.8rem;font-weight:700;color:${color}">Grade ${p.grade}</div></div>
+    // Write result into BOTH the drawer element AND the v2 edit status area
+    const resultHTML = `
+      <div style="background:var(--navy2);border:1px solid var(--border);border-radius:4px;padding:0.8rem;margin-top:0.5rem">
+        <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:0.6rem">
+          <div style="font-size:2rem;font-weight:700;color:${color};line-height:1">${p.score}</div>
+          <div>
+            <div style="font-size:0.8rem;font-weight:700;color:${color}">Grade ${p.grade}</div>
+            <div style="font-size:0.7rem;color:var(--muted)">Quality Score</div>
+          </div>
         </div>
         ${(p.strengths||[]).map(s=>`<div style="font-size:0.72rem;color:var(--green);margin-bottom:0.2rem">✓ ${s}</div>`).join('')}
-        ${(p.improvements||[]).map(i=>`<div style="font-size:0.72rem;color:#fca5a5;margin-bottom:0.2rem">⚠ ${i}</div>`).join('')}`;
-    }
-    setEditStatus(`✓ Score: ${p.score}/100`);
+        ${(p.improvements||[]).map(i=>`<div style="font-size:0.72rem;color:#fca5a5;margin-bottom:0.2rem">⚠ ${i}</div>`).join('')}
+      </div>`;
+    // Show in old drawer
+    const el = document.getElementById('qualityScoreResult');
+    if (el) { el.style.display = 'block'; el.innerHTML = resultHTML; }
+    // Also show in v2 panel aiEditStatus area
+    const statusEl = document.getElementById('aiEditStatus');
+    if (statusEl) statusEl.innerHTML = `<span style="color:${color};font-weight:700">Score: ${p.score}/100 (${p.grade})</span>${resultHTML}`;
+    showToast(`Quality Score: ${p.score}/100 — Grade ${p.grade}`, p.score >= 70 ? 'success' : 'error');
   } catch(_) { setEditStatus('✕ Parse error', true); }
 }
 window.runArticleQualityScore = runArticleQualityScore;
