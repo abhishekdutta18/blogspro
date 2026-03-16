@@ -19,6 +19,12 @@ const app = initializeApp(FIREBASE_CONFIG);
 export const auth = getAuth(app);
 export const db   = getFirestore(app);
 
+// ── App constants (imported by other modules) ─
+export const WORKER_URL            = "https://blogspro-ai.abhishek-dutta1996.workers.dev";
+export const IMAGE_WORKER_URL      = "https://blogspro-images.abhishek-dutta1996.workers.dev";
+export const CLOUDINARY_CLOUD_NAME    = "dldbsidve";
+export const CLOUDINARY_UPLOAD_PRESET = "blogspro";
+
 // ── Utilities ─────────────────────────────────
 
 export function showToast(message, type = "info") {
