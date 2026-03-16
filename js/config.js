@@ -8,7 +8,6 @@ import {
 
 export let AI_KEYS = {};
 
-
 export async function loadRemoteConfig() {
 
   try {
@@ -32,9 +31,7 @@ export async function loadRemoteConfig() {
 
     console.log("[config] Remote Config loaded");
 
-  }
-
-  catch (err) {
+  } catch (err) {
 
     console.warn("[config] Remote Config failed", err);
 
@@ -42,11 +39,6 @@ export async function loadRemoteConfig() {
 
 }
 
-
-
-/* ------------------------------------------------
-Editor HTML Cleaner
------------------------------------------------- */
 
 export function cleanEditorHTML(html) {
 
