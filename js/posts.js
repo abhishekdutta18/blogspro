@@ -54,14 +54,21 @@ export async function loadAll() {
 
   } catch(e) {
     console.error('loadAll error:', e);
+    const isRules = e.code === 'permission-denied' || e.message?.includes('Missing or insufficient');
+    const isInit  = !e.code && e.message?.includes('undefined');
+    let hint = 'Check Firestore rules or index.';
+    if (isRules) hint = 'Firestore rules not deployed — go to Firebase Console → Firestore → Rules and publish the new rules.';
+    if (isInit)  hint = 'config.js not updated — deploy the new config.js from blogspro-complete-fix.zip and hard-refresh.';
     const tbody = document.getElementById('recentPostsBody');
-    if (tbody) tbody.innerHTML = `<tr><td colspan="6"><div class="table-empty" style="color:#fca5a5">
-      ✕ ${e.message}<br><span style="font-size:0.75rem;color:var(--muted)">Check Firestore rules or index.</span>
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6"><div class="table-empty" style="color:#fca5a5;line-height:1.8">
+      ✕ ${e.message || 'Unknown error'}<br>
+      <span style="font-size:0.75rem;color:var(--muted)">${hint}</span><br>
+      <button onclick="loadAll()" style="margin-top:8px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:4px 12px;border-radius:3px;font-size:0.75rem;cursor:pointer">↺ Retry</button>
     </div></td></tr>`;
     ['statTotal','statPublished','statDrafts','statSubs'].forEach(id => {
       const el = document.getElementById(id); if (el) el.textContent = '—';
     });
-    showToast('Failed to load: ' + e.message, 'error');
+    showToast('Failed to load: ' + (e.message || e.code), 'error');
   }
 }
 
