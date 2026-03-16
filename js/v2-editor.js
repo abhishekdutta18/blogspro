@@ -202,6 +202,17 @@ Return ONLY clean HTML using h2,h3,p,strong,em,blockquote,ul,li tags.`,
 // Bridges the onclick="doLogout()" button to initLogout's signOut logic
 import { auth } from './config.js';
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// ── Generate Article button bridge ───────────
+// Both btnAI (onclick="handleGenerateClick()") and v2BeforeGenerate() call this.
+// It delegates to generateAIPost() from ai-writer.js which is registered on window.
+window.handleGenerateClick = () => {
+  if (typeof window.generateAIPost === 'function') {
+    window.generateAIPost();
+  } else {
+    console.error('generateAIPost not loaded yet — check ai-writer.js import in main.js');
+  }
+};
 window.doLogout = async () => {
   try { await signOut(auth); } catch(_) {}
   window.location.href = 'login.html';
