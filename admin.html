@@ -1198,12 +1198,13 @@
           <span class="drawer-section-label">AI Model</span>
           <select class="form-select" id="modelArticle" style="font-size:0.82rem" onchange="onModelChange(this.value)">
             <option value="auto" selected>Auto — Best Available</option>
-            <option value="deepseek">DeepSeek V3 — Best Quality ✦</option>
-            <option value="gemini-pro">Gemini 2.0 Flash — Fast + Smart</option>
-            <option value="qwen">Qwen 2.5 72B — Structured</option>
-            <option value="llama">Llama 3.3 70B — Balanced</option>
-            <option value="mixtral">Mistral Small — Lightweight</option>
-            <option value="claude">Claude 3 Haiku — Premium</option>
+            <option value="gpt-oss">GPT OSS 120B — OpenAI Free ✦</option>
+            <option value="hermes">Hermes 405B — Highest Capacity</option>
+            <option value="llama">Llama 3.3 70B — Reliable</option>
+            <option value="qwen">Qwen 3 80B — Structured</option>
+            <option value="mistral">Mistral Small 24B — Fast</option>
+            <option value="gemma">Gemma 3 27B — Google Free</option>
+            <option value="auto-free">OpenRouter Free — Always Works</option>
           </select>
         </div>
       </div>
@@ -2305,13 +2306,14 @@ window.previewPost = () => {
 
 // ── Model selector helper ─────────────────────
 const MODEL_DESCRIPTIONS = {
-  'auto':       '⚡ Auto — tries DeepSeek V3 → Gemini 2.0 → Qwen → Llama in order',
-  'deepseek':   '✦ DeepSeek V3 — best long-form quality, detailed analysis',
-  'gemini-pro': '✦ Gemini 2.0 Flash — fast generation, excellent structure',
-  'qwen':       '✦ Qwen 2.5 72B — strong at structured, data-heavy content',
-  'llama':      '✦ Llama 3.3 70B — balanced speed and quality',
-  'mixtral':    '✦ Mistral Small — lightweight, good for short articles',
-  'claude':     '✦ Claude 3 Haiku — premium quality (uses OpenRouter credits)',
+  'auto':       '⚡ Auto — tries GPT OSS 120B → Hermes 405B → Llama → Qwen in order',
+  'gpt-oss':    '✦ GPT OSS 120B — OpenAI free model, excellent long-form quality',
+  'hermes':     '✦ Hermes 3 405B — highest parameter count free model available',
+  'llama':      '✦ Llama 3.3 70B — reliable, balanced speed and quality',
+  'qwen':       '✦ Qwen 3 80B — strong structured and analytical content',
+  'mistral':    '✦ Mistral Small 24B — fast, good for shorter articles',
+  'gemma':      '✦ Gemma 3 27B — Google free model, clean outputs',
+  'auto-free':  '✦ OpenRouter Free — auto-picks any available free model',
 };
 
 window.onModelChange = (val) => {
@@ -2335,7 +2337,7 @@ window.setWordTarget = (btn, words) => {
 // ═══════════════════════════════════════════════
 // CORE AI CALL — via Cloudflare Worker proxy
 // ═══════════════════════════════════════════════
-async function callAI(prompt, silent=false, forceModel='auto', maxTokens=4000) {
+async function callAI(prompt, silent=false, forceModel='auto', maxTokens=8000) {
   const tone     = document.getElementById('aiTone')?.value || 'professional';
   const category = document.getElementById('postCategory')?.value || 'Fintech';
   let res, data;
@@ -2389,7 +2391,7 @@ window.confirmOutline = async () => {
   const category=document.getElementById('postCategory').value;
   const tone=document.getElementById('aiTone').value;
   const modelArticle=document.getElementById('modelArticle').value;
-  const ML={claude:'Claude',groq:'Groq',openrouter:'OpenRouter',auto:'Auto'};
+  const ML={'gpt-oss':'GPT OSS 120B','hermes':'Hermes 405B','llama':'Llama 70B','qwen':'Qwen 80B','mistral':'Mistral 24B','gemma':'Gemma 27B','auto-free':'OpenRouter Free','auto':'Auto'};
   const results=[]; const allAttempts=[];
   const addR=(icon,label,model,ok,extra='')=>results.push({icon,label,model,ok,extra});
   document.getElementById('aiResultBox').style.display='none';
@@ -2475,7 +2477,7 @@ IMPORTANT for citations: use REAL, WORKING URLs from authoritative sources like 
     document.getElementById('aiModalContent').innerHTML='<span style="animation:pulse 1s infinite;display:inline-block">Retrying metadata…</span>';
     await new Promise(r => setTimeout(r, 3000));
     const simpleMetaPrompt = `Return ONLY this JSON for a fintech article about "${topic.substring(0,50)}":\n{"title":"${topic.substring(0,60)}","summary":"Brief 2-sentence article summary.","metaDescription":"SEO description.","tags":["finance","strategy","insights","analysis","growth"],"citations":[{"apa":"World Bank. (2024). Global Finance Report. World Bank.","url":"https://worldbank.org"},{"apa":"IMF. (2024). World Economic Outlook. IMF.","url":"https://imf.org"},{"apa":"McKinsey & Company. (2024). Global Insights. McKinsey.","url":"https://mckinsey.com"},{"apa":"Harvard Business Review. (2024). Strategy Insights. HBR.","url":"https://hbr.org"},{"apa":"Deloitte. (2024). Industry Report. Deloitte.","url":"https://deloitte.com"}]}`;
-    metaResult = await callAI(simpleMetaPrompt, true, 'groq');
+    metaResult = await callAI(simpleMetaPrompt, true, 'auto');
   }
 
   allAttempts.push(...(metaResult.attemptsDetail||[]));
@@ -2570,7 +2572,7 @@ async function runAIEdit(instruction) {
   if (!clean) { setEditStatus('✕ Empty response.','true'); setEditBtnsDisabled(false); return; }
   editor.innerHTML=sanitize(clean); // ✅ DOMPurify
   updateWordCount();
-  const ML={groq:'Groq',deepseek:'DeepSeek',openrouter:'OpenRouter',claude:'Claude'};
+  const ML={'gpt-oss':'GPT OSS 120B','hermes':'Hermes 405B','llama':'Llama 70B','qwen':'Qwen 80B','mistral':'Mistral 24B','gemma':'Gemma 27B','auto-free':'OpenRouter Free','auto':'Auto'};
   setEditStatus(`✓ Done — ${ML[result.modelUsed]||result.modelUsed||'AI'}`);
   setEditBtnsDisabled(false);
   showToast('Article updated!','success');
