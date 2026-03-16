@@ -7,8 +7,8 @@ import { doc, getDoc }                   from "https://www.gstatic.com/firebasej
 import { state }                         from './state.js';
 import { loadAll }                       from './posts.js';
 
-const OWNER_UID   = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
-const OWNER_EMAIL = "abhishek.dutta1996@gmail.com";
+// No hardcoded UIDs or emails — admin status is determined
+// exclusively by role: "admin" in the user's Firestore document.
 
 export function initAuth() {
   onAuthStateChanged(auth, async user => {
@@ -17,9 +17,8 @@ export function initAuth() {
     try {
       const snap = await getDoc(doc(db, 'users', user.uid));
       const role  = snap.exists() ? snap.data().role : null;
-      const isOwner = user.uid === OWNER_UID;
 
-      if (role !== 'admin' && !isOwner) {
+      if (role !== 'admin') {
         await signOut(auth);
         window.location.href = 'login.html?error=unauthorized';
         return;

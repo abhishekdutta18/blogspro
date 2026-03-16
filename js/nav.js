@@ -53,7 +53,7 @@ export function initNav() {
 }
 
 export function toggleSidebar() {
-  document.querySelector('aside')?.classList.toggle('open');
+  document.getElementById('sidebar')?.classList.toggle('open');
   document.getElementById('sideOverlay')?.classList.toggle('open');
 }
 window.toggleSidebar = toggleSidebar;

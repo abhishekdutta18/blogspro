@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 // editor.js — Rich text editor, toolbar, autosave
 // ═══════════════════════════════════════════════
-import { sanitize, showToast, slugify, stripTags } from './config.js';
+import { sanitize, showToast, slugify, stripTags, cleanEditorHTML } from './config.js';
 import { db }        from './config.js';
 import { state }     from './state.js';
 import { doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -10,7 +10,8 @@ export function initEditor() {
   const editor = document.getElementById('editor');
   if (!editor) return;
 
-  editor.addEventListener('input', updateWordCount);
+  let _wcTimer;
+  editor.addEventListener('input', () => { clearTimeout(_wcTimer); _wcTimer = setTimeout(updateWordCount, 150); });
   editor.addEventListener('input', scheduleAutoSave);
 
   document.getElementById('postTitle')?.addEventListener('input', e => {
@@ -60,8 +61,8 @@ window.clearEditor = clearEditor;
 export function updateWordCount() {
   const editor = document.getElementById('editor');
   if (!editor) return;
-  const text  = editor.cloneNode(true).textContent || '';
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const text  = editor.textContent || '';
+  const words = text.trim() ? text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0 : 0;
   document.getElementById('wordCount')        && (document.getElementById('wordCount').textContent = words);
   document.getElementById('readingTimeDisplay') && (document.getElementById('readingTimeDisplay').textContent = Math.max(1, Math.ceil(words/200)));
 }

@@ -31,7 +31,7 @@ import './seo-page.js';
 import './newsletter.js';
 import './auto-blog.js';
 import './ai-tools.js';
-import './about.js';
+import './v2-editor.js';
 
 // ── Boot ──────────────────────────────────────
 initNav();
@@ -42,7 +42,7 @@ initLogout();
 
 // Mobile sidebar overlay click
 document.getElementById('sideOverlay')?.addEventListener('click', () => {
-  document.querySelector('aside')?.classList.remove('open');
+  document.getElementById('sidebar')?.classList.remove('open');
   document.getElementById('sideOverlay')?.classList.remove('open');
 });
 

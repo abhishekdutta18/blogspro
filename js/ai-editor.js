@@ -17,7 +17,7 @@ function setEditBtnsDisabled(on) {
 
 async function runAIEdit(instruction) {
   const editor  = getEditor();
-  const currentText = editor?.cloneNode(true).textContent;
+  const currentText = editor?.textContent;
   const topic   = document.getElementById('aiPrompt').value.trim() || 'fintech article';
   const category = document.getElementById('postCategory').value;
   if (!currentText?.trim()) { setEditStatus('No article content.', true); return; }
@@ -68,7 +68,7 @@ window.aiEditCustom = async () => {
 
 // ── SEO Optimizer ─────────────────────────────
 export async function runSEOOptimizer() {
-  const content  = getEditor()?.cloneNode(true).textContent;
+  const content  = getEditor()?.textContent;
   const title    = document.getElementById('postTitle').value.trim();
   if (!content?.trim()) { showToast('Write an article first.','error'); return; }
   setEditBtnsDisabled(true); setEditStatus('⏳ SEO analysis…');
@@ -126,7 +126,7 @@ export async function buildInternalLinks(content) {
 
 // ── Quality Score ─────────────────────────────
 export async function runArticleQualityScore() {
-  const content = getEditor()?.cloneNode(true).textContent;
+  const content = getEditor()?.textContent;
   const title   = document.getElementById('postTitle').value.trim();
   if (!content?.trim()) { showToast('Write an article first.','error'); return; }
   setEditBtnsDisabled(true); setEditStatus('⏳ Scoring…');
@@ -166,7 +166,7 @@ window.cancelAutoPlace = () => { state.autoPlaceCancelled = true; };
 // ── Summary generator ─────────────────────────
 window.generateSummary = async () => {
   const title   = document.getElementById('postTitle').value.trim();
-  const content = getEditor()?.cloneNode(true).textContent.substring(0,1000);
+  const content = getEditor()?.textContent.substring(0,1000);
   if (!title && !content) { showToast('Add a title or write content first.','error'); return; }
   const statusEl = document.getElementById('summaryStatus');
   if (statusEl) statusEl.textContent = '⏳ Generating summary…';

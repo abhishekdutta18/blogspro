@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 // ai-writer.js — AI article generation
 // ═══════════════════════════════════════════════
-import { sanitize, showToast, slugify, stripTags } from './config.js';
+import { sanitize, showToast, slugify, stripTags, parseAIJson } from './config.js';
 import { callAI }    from './ai-core.js';
 import { state }     from './state.js';
 import { updateWordCount } from './editor.js';
@@ -9,10 +9,19 @@ import { openAIDrawer }    from './ai-drawer.js';
 
 function closeAIModal() { document.getElementById('aiModal')?.classList.remove('open'); }
 
+export function getTopicFromUI() {
+  return document.getElementById('postTitle')?.value.trim()
+    || document.getElementById('v2TopicPrompt')?.value.trim()
+    || document.getElementById('aiPrompt')?.value.trim()
+    || '';
+}
+
 export async function generateAIPost() {
   if (state.isGeneratingAI) return;
-  const topic = document.getElementById('aiPrompt').value.trim();
+  const topic = getTopicFromUI();
   if (!topic) { showToast('Please enter a topic.','error'); return; }
+  // Sync back to aiPrompt for compatibility
+  const apEl = document.getElementById('aiPrompt'); if (apEl) apEl.value = topic;
 
   state.isGeneratingAI = true;
   const btnAI = document.getElementById('btnAI');
@@ -119,11 +128,7 @@ IMPORTANT for citations: use REAL working URLs from rbi.org.in, sebi.gov.in, npc
   }
 
   allAttempts.push(...(metaResult.attemptsDetail||[]));
-  let parsed = null;
-  const mt = metaResult.error ? '' : (metaResult.text||'');
-  if (mt) {
-    try { const s=mt.indexOf('{'),e=mt.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(mt.substring(s,e+1)); } catch(_) {}
-  }
+  const parsed = parseAIJson(metaResult.error ? '' : (metaResult.text || ''));
 
   const checks = {};
   if (parsed) {

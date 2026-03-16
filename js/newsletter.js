@@ -2,14 +2,10 @@
 // newsletter.js — Newsletter generation
 // ═══════════════════════════════════════════════
 import { callAI }    from './ai-core.js';
-import { sanitize, showToast, db } from './config.js';
+import { sanitize, showToast, db, setBtnLoading } from './config.js';
 import { state }     from './state.js';
 import { collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-function setBtnLoading(btnId, txtId, spinnerId, loading, text='') {
-  const btn=document.getElementById(btnId), txt=document.getElementById(txtId), sp=document.getElementById(spinnerId);
-  if(btn) btn.disabled=loading; if(txt&&text) txt.textContent=text; if(sp) sp.style.display=loading?'inline-block':'none';
-}
 
 window.generateNewsletter = async () => {
   setBtnLoading('btnNL','nlBtnTxt','nlSpinner',true,'Generating…');

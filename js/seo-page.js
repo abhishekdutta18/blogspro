@@ -2,17 +2,8 @@
 // seo-page.js — SEO Tools page functions
 // ═══════════════════════════════════════════════
 import { callAI }    from './ai-core.js';
-import { showToast, slugify } from './config.js';
+import { showToast, slugify, sanitize, setBtnLoading, parseAIJson } from './config.js';
 import { state }     from './state.js';
-
-function setBtnLoading(btnId, txtId, spinnerId, loading, loadingText='') {
-  const btn = document.getElementById(btnId);
-  const txt = document.getElementById(txtId);
-  const sp  = document.getElementById(spinnerId);
-  if (btn) btn.disabled = loading;
-  if (txt && loadingText) txt.textContent = loadingText;
-  if (sp) sp.style.display = loading ? 'inline-block' : 'none';
-}
 
 export function populateAnalyzeSelect() {
   const sel = document.getElementById('analyzePostSelect');
@@ -30,8 +21,7 @@ window.predictTraffic = async () => {
     true
   );
   setBtnLoading('btnTraffic','trafficBtnTxt','trafficSpinner',false,'Predict Traffic');
-  let parsed = null;
-  if (!result.error) { try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {} }
+  let parsed = parseAIJson(result.error ? '' : (result.text || ''));
   if (parsed) {
     document.getElementById('tr-searches').textContent = parsed.monthly_searches || '—';
     document.getElementById('tr-clicks').textContent   = parsed.expected_clicks?.toLocaleString() || '—';
@@ -59,12 +49,11 @@ window.findContentGap = async () => {
     true
   );
   setBtnLoading('btnGap','gapBtnTxt','gapSpinner',false,'Analyze Gap');
-  let parsed = null;
-  if (!result.error) { try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {} }
+  let parsed = parseAIJson(result.error ? '' : (result.text || ''));
   const el = document.getElementById('gapResult');
   if (el && parsed?.topics?.length) {
     el.style.display='flex';
-    el.innerHTML = parsed.topics.map(t=>`<div class="result-item"><div class="result-item-body"><div class="result-item-title">${t.title||'—'}</div><div class="result-item-sub">${t.reason||''}</div></div><div class="result-item-badge ${t.priority==='high'?'badge-red':t.priority==='medium'?'badge-gold':'badge-blue'}">${(t.priority||'low').toUpperCase()}</div><button onclick="quickNewPost(this)" data-title="${t.title}" style="flex-shrink:0;background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0.2rem 0.5rem;border-radius:2px;font-family:var(--sans);font-size:0.68rem;cursor:pointer;margin-left:0.4rem" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">+ Write</button></div>`).join('');
+    el.innerHTML = sanitize(el.innerHTML = sanitize(parsed.topics.map(t=>`<div class="result-item"><div class="result-item-body"><div class="result-item-title">${t.title||'—'}</div><div class="result-item-sub">${t.reason||''}</div></div><div class="result-item-badge ${t.priority==='high'?'badge-red':t.priority==='medium'?'badge-gold':'badge-blue'}">${(t.priority||'low').toUpperCase()}</div><button onclick="quickNewPost(this)" data-title="${t.title}" style="flex-shrink:0;background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0.2rem 0.5rem;border-radius:2px;font-family:var(--sans);font-size:0.68rem;cursor:pointer;margin-left:0.4rem" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">+ Write</button></div>`).join('');.replace('el.innerHTML = ', ''));
   } else if (el) { el.style.display='flex'; el.innerHTML=`<div style="padding:1rem;color:var(--muted);font-size:0.85rem">Could not parse results. Try again.</div>`; showToast(result.error||'Failed.','error'); }
 };
 
@@ -77,12 +66,11 @@ window.generateBacklinks = async () => {
     true
   );
   setBtnLoading('btnBacklinks','blBtnTxt','blSpinner',false,'Find Opportunities');
-  let parsed = null;
-  if (!result.error) { try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {} }
+  let parsed = parseAIJson(result.error ? '' : (result.text || ''));
   const el = document.getElementById('backlinkResult');
   if (el && parsed?.sites?.length) {
     el.style.display='flex';
-    el.innerHTML = parsed.sites.map(s=>`<div class="result-item"><div class="result-item-icon">🔗</div><div class="result-item-body"><div class="result-item-title">${s.name||s.domain||'—'}</div><div class="result-item-sub">${s.pitch||''}</div></div><div class="result-item-badge badge-blue">${(s.type||'').toUpperCase()}</div></div>`).join('');
+    el.innerHTML = sanitize(el.innerHTML = sanitize(parsed.sites.map(s=>`<div class="result-item"><div class="result-item-icon">🔗</div><div class="result-item-body"><div class="result-item-title">${s.name||s.domain||'—'}</div><div class="result-item-sub">${s.pitch||''}</div></div><div class="result-item-badge badge-blue">${(s.type||'').toUpperCase()}</div></div>`).join('');.replace('el.innerHTML = ', ''));
   } else if (el) { el.style.display='flex'; el.innerHTML=`<div style="padding:1rem;color:var(--muted);font-size:0.85rem">${result.error||'No results.'}</div>`; }
 };
 
@@ -98,8 +86,7 @@ window.analyzePostSEO = async () => {
     true
   );
   setBtnLoading('btnAnalyze','analyzeBtnTxt','analyzeSpinner',false,'Analyze');
-  let parsed = null;
-  if (!result.error) { try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {} }
+  let parsed = parseAIJson(result.error ? '' : (result.text || ''));
   if (parsed) {
     const score = parsed.seo_score||0;
     const ring  = document.getElementById('seoScoreRing');
@@ -126,8 +113,7 @@ window.generateTopicClusters = async () => {
     true
   );
   setBtnLoading('btnCluster','clusterBtnTxt','clusterSpinner',false,'Generate Clusters');
-  let parsed = null;
-  if (!result.error) { try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {} }
+  let parsed = parseAIJson(result.error ? '' : (result.text || ''));
   const el = document.getElementById('clusterResult');
   if (el && parsed) {
     el.style.display = 'block';
@@ -153,8 +139,7 @@ window.generateContentCalendar = async () => {
     true
   );
   setBtnLoading('btnCalendar','calBtnTxt','calSpinner',false,'Generate Calendar');
-  let parsed = null;
-  if (!result.error) { try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {} }
+  let parsed = parseAIJson(result.error ? '' : (result.text || ''));
   if (parsed) {
     const weekColors  = ['rgba(201,168,76,0.1)','rgba(59,130,246,0.08)','rgba(34,197,94,0.08)','rgba(168,85,247,0.08)'];
     const weekBorders = ['rgba(201,168,76,0.3)','rgba(59,130,246,0.3)','rgba(34,197,94,0.3)','rgba(168,85,247,0.3)'];
@@ -186,14 +171,13 @@ window.optimizeHeadline = async () => {
     true
   );
   setBtnLoading('btnHeadline','headlineBtnTxt','headlineSpinner',false,'🔥 Generate Headlines');
-  let parsed = null;
-  if (!result.error) { try { const s=result.text.indexOf('{'),e=result.text.lastIndexOf('}'); if(s!==-1&&e!==-1) parsed=JSON.parse(result.text.substring(s,e+1)); } catch(_) {} }
+  let parsed = parseAIJson(result.error ? '' : (result.text || ''));
   const el = document.getElementById('headlineResult');
   if (el && parsed?.headlines?.length) {
     const sorted = [...parsed.headlines].sort((a,b)=>b.ctr_score-a.ctr_score);
     el.style.display='flex';
-    el.innerHTML = sorted.map(h=>`<div class="headline-item"><div class="headline-ctr">${h.ctr_score}</div><div style="flex:1"><div class="headline-text">${h.title}</div><div style="font-size:0.68rem;color:var(--muted);margin-top:0.15rem">${h.technique||''}</div></div><button class="headline-use" onclick="useHeadline(this)" data-title="${h.title}">Use</button></div>`).join('');
-  } else if (el) { el.style.display='flex'; el.innerHTML=`<div style="padding:1rem;color:var(--muted);font-size:0.85rem">${result.error||'No results.'}</div>`; showToast(result.error||'Failed.','error'); }
+    el.innerHTML = sorted.map(h=>`<div class="headline-item"><div class="headline-ctr">${h.ctr_score}</div><div style="flex:1"><div class="headline-text">${h.title}</div><div style="font-size:0.68rem;color:var(--muted);margin-top:0.15rem">${h.technique||''}</div></div><button class="headline-use" onclick="useHeadline(this)" data-title="${h.title}">Use</button></div>`).join(''));
+  } else if (el) { el.style.display='flex'; el.innerHTML=sanitize(`<div style="padding:1rem;color:var(--muted);font-size:0.85rem">${result.error||'No results.'}</div>`; showToast(result.error||'Failed.','error'); }
 };
 
 window.useHeadline = (btn) => {

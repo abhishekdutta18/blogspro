@@ -99,7 +99,7 @@ export async function savePost(publish) {
   const tagsRaw  = document.getElementById('postTags').value.trim();
   const tags     = tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [];
   const editor   = document.getElementById('editor');
-  const readMin  = Math.max(1, Math.ceil((editor.cloneNode(true).textContent||'').split(/\s+/).filter(Boolean).length/200));
+  const readMin  = Math.max(1, Math.ceil((editor.textContent||'').split(/\s+/).filter(Boolean).length/200));
 
   if (!title) { showToast('Please add a title.','error'); return; }
 

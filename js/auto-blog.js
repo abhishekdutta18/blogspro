@@ -2,7 +2,7 @@
 // auto-blog.js — Autonomous bulk post generation
 // ═══════════════════════════════════════════════
 import { callAI }    from './ai-core.js';
-import { sanitize, showToast, slugify, db } from './config.js';
+import { sanitize, showToast, slugify, db, parseAIJson } from './config.js';
 import { state }     from './state.js';
 import { loadAll }   from './posts.js';
 import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -19,7 +19,7 @@ function logItem(logId, msg, ok=true) {
 window.runAutoBlog = async () => {
   const count    = parseInt(document.getElementById('abCount')?.value)||2;
   const category = document.getElementById('abCategory')?.value||'Fintech';
-  const topicSeed= document.getElementById('abTopicSeed')?.value.trim()||'fintech trends India 2025';
+  const topicSeed= document.getElementById('abTopicSeed')?.value.trim()||`fintech trends ${new Date().getFullYear()}`;
   const pub      = document.getElementById('abPublishSwitch')?.classList.contains('on');
   const logEl    = document.getElementById('autoblogLog');
   const btn      = document.getElementById('btnAutoBlog');
@@ -37,7 +37,7 @@ window.runAutoBlog = async () => {
   for (let i=0; i<count; i++) {
     // Step 1: generate topic
     const topicR = await callAI(
-      `Generate a specific trending fintech article title related to "${topicSeed}" in ${category} for 2025 India market. Return ONLY the title, nothing else.`,
+      `Generate a specific trending fintech article title related to "${topicSeed}" in ${category} for ${new Date().getFullYear()}. Return ONLY the title, nothing else.`,
       true
     );
     if (topicR.error) { logItem('autoblogLog', `Post ${i+1}: topic failed — ${topicR.error}`, false); continue; }
@@ -57,9 +57,8 @@ window.runAutoBlog = async () => {
       true
     );
     let meta = { summary:'', tags:[], slug:slugify(t) };
-    if (!metaR.error) {
-      try { const s=metaR.text.indexOf('{'),e=metaR.text.lastIndexOf('}'); if(s!==-1&&e!==-1) meta={...meta,...JSON.parse(metaR.text.substring(s,e+1))}; } catch(_) {}
-    }
+    const metaParsed = parseAIJson(metaR.error ? '' : metaR.text);
+    if (metaParsed) meta = { ...meta, ...metaParsed };
 
     // Step 4: save to Firestore
     try {

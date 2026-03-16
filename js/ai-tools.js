@@ -25,7 +25,7 @@ function aitShowResult(id, html) {
 
 function aitGetTopic() {
   return document.getElementById('postTitle')?.value.trim()
-      || document.getElementById('aiPrompt')?.value.trim()
+      || (document.getElementById('v2TopicPrompt')?.value.trim() || document.getElementById('aiPrompt')?.value.trim())
       || 'fintech article';
 }
 
@@ -50,7 +50,7 @@ function aitOpenCluster(title) {
 // ── 1. SEO Optimizer ──────────────────────────
 window.runSEOOptimizer = async () => {
   aitLoading('seo', true);
-  const content = document.getElementById('editor')?.cloneNode(true).textContent || '';
+  const content = document.getElementById('editor')?.textContent || '';
   const title   = document.getElementById('postTitle')?.value || '';
   if (!content.trim()) { aitLoading('seo', false); showToast('No article to optimize.','error'); return; }
   const result = await callAI(
