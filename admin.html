@@ -201,7 +201,8 @@
     .drawer-section-label{font-size:0.62rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.45rem;display:block}
     .drawer-tab-pane{display:none}
     .drawer-tab-pane.active{display:block}
-    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes spin{to{transform:rotate(360deg)}
+    @keyframes roadmapPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.4); } 50% { box-shadow: 0 0 0 4px rgba(201,168,76,0); } }}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
     @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 
@@ -1212,16 +1213,33 @@
         <div style="margin-top:0.8rem">
           <span class="drawer-section-label">Target Length</span>
           <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
-            <button onclick="setWordTarget(this,1500)" class="word-target-btn active" data-words="1500" style="flex:1;min-width:48px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s">1.5k</button>
-            <button onclick="setWordTarget(this,2500)" class="word-target-btn" data-words="2500" style="flex:1;min-width:48px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s">2.5k</button>
-            <button onclick="setWordTarget(this,5000)" class="word-target-btn" data-words="5000" style="flex:1;min-width:48px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s">5k</button>
-            <button onclick="setWordTarget(this,10000)" class="word-target-btn" data-words="10000" style="flex:1;min-width:48px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s">10k</button>
-            <button onclick="setWordTarget(this,20000)" class="word-target-btn" data-words="20000" style="flex:1;min-width:48px;background:transparent;border:1px solid rgba(168,85,247,0.4);color:var(--purple2);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s">20k</button>
-            <button onclick="setWordTarget(this,50000)" class="word-target-btn" data-words="50000" style="flex:1;min-width:48px;background:transparent;border:1px solid rgba(168,85,247,0.4);color:var(--purple2);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s">50k</button>
-            <button onclick="setWordTarget(this,100000)" class="word-target-btn" data-words="100000" style="flex:1;min-width:48px;background:transparent;border:1px solid rgba(168,85,247,0.4);color:var(--purple2);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s">100k</button>
+            <button onclick="setWordTarget(this,1500)"  class="word-target-btn active" data-words="1500"  style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);color:var(--gold);flex:1;min-width:44px;padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;text-align:center">1.5k</button>
+            <button onclick="setWordTarget(this,2500)"  class="word-target-btn" data-words="2500"  style="background:transparent;border:1px solid var(--border);color:var(--muted);flex:1;min-width:44px;padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;text-align:center">2.5k</button>
+            <button onclick="setWordTarget(this,5000)"  class="word-target-btn" data-words="5000"  style="background:transparent;border:1px solid var(--border);color:var(--muted);flex:1;min-width:44px;padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;text-align:center">5k</button>
+            <button onclick="setWordTarget(this,10000)" class="word-target-btn" data-words="10000" style="background:transparent;border:1px solid var(--border);color:var(--muted);flex:1;min-width:44px;padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;text-align:center">10k</button>
+            <button onclick="setWordTarget(this,20000)" class="word-target-btn" data-words="20000" style="background:transparent;border:1px solid rgba(168,85,247,0.35);color:#c084fc;flex:1;min-width:44px;padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;text-align:center">20k</button>
+            <button onclick="setWordTarget(this,50000)" class="word-target-btn" data-words="50000" style="background:transparent;border:1px solid rgba(168,85,247,0.35);color:#c084fc;flex:1;min-width:44px;padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;text-align:center">50k</button>
+            <button onclick="setWordTarget(this,100000)" class="word-target-btn" data-words="100000" style="background:transparent;border:1px solid rgba(168,85,247,0.35);color:#c084fc;flex:1;min-width:44px;padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;text-align:center">100k</button>
+          </div>
+          <!-- Custom word count input -->
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.6rem">
+            <span style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap">Custom</span>
+            <input
+              type="number"
+              id="wordTargetCustom"
+              min="100"
+              max="100000"
+              step="100"
+              placeholder="e.g. 3000"
+              oninput="applyCustomWordTarget(this)"
+              style="flex:1;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.35rem 0.55rem;border-radius:3px;font-family:var(--mono);font-size:0.78rem;outline:none;transition:border-color 0.15s;-moz-appearance:textfield"
+              onfocus="this.style.borderColor='var(--gold)'"
+              onblur="this.style.borderColor='var(--border)'"
+            />
+            <span id="wordTargetCustomLabel" style="font-size:0.7rem;font-weight:700;font-family:var(--mono);color:var(--muted);min-width:32px;text-align:right">—</span>
           </div>
           <div id="longFormNotice" style="display:none;margin-top:0.5rem;padding:0.4rem 0.6rem;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.25);border-radius:3px;font-size:0.68rem;color:var(--purple2);line-height:1.5">
-            ⚡ Long-form mode: article will be built in multiple AI chunks and assembled automatically.
+            ⚡ Long-form mode: built chunk by chunk. 20k ≈ 10 chunks · 50k ≈ 25 chunks · 100k ≈ 50 chunks. Keep tab open.
           </div>
           <input type="hidden" id="wordTarget" value="1500">
         </div>
@@ -1389,6 +1407,38 @@
   <div class="modal-box">
     <div class="modal-title" id="aiModalTitle">✦ Generating…</div>
     <div class="modal-sub" id="aiModalSub">AI is thinking. Please wait.</div>
+    <!-- AI Roadmap -->
+    <div id="aiRoadmap" style="display:none;margin-bottom:1rem;background:var(--navy);border:1px solid var(--border);border-radius:4px;overflow:hidden">
+      <div style="padding:0.45rem 0.75rem;background:rgba(201,168,76,0.05);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:0.62rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted)">AI Pipeline</span>
+        <div id="aiRoadmapModelBadges" style="display:flex;gap:4px"></div>
+      </div>
+      <div id="aiRoadmapTrack" style="padding:0.65rem 0.75rem;overflow-x:auto">
+        <!-- Chunks injected here -->
+      </div>
+    </div>
+
+    <!-- Timer bar -->
+    <div id="aiTimerBar" style="display:none;margin-bottom:1rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
+        <div style="display:flex;align-items:center;gap:0.6rem">
+          <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Elapsed</span>
+          <span id="aiTimerElapsed" style="font-family:var(--mono);font-size:0.82rem;font-weight:700;color:var(--cream)">0:00</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.6rem">
+          <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Remaining</span>
+          <span id="aiTimerRemaining" style="font-family:var(--mono);font-size:0.82rem;font-weight:700;color:var(--gold)">—</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.6rem">
+          <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Speed</span>
+          <span id="aiTimerSpeed" style="font-family:var(--mono);font-size:0.82rem;font-weight:700;color:var(--cream)">—</span>
+        </div>
+      </div>
+      <div style="background:var(--navy3);border-radius:2px;height:3px;overflow:hidden">
+        <div id="aiTimerTrack" style="height:3px;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px;width:0%;transition:width 0.8s ease"></div>
+      </div>
+      <div id="aiTimerChunkLog" style="margin-top:0.6rem;font-size:0.7rem;color:var(--muted);max-height:60px;overflow-y:auto;line-height:1.6"></div>
+    </div>
     <div class="modal-content" id="aiModalContent"><span style="animation:pulse 1s infinite;display:inline-block">Working…</span></div>
     <div class="modal-actions" id="aiModalActions" style="display:none">
       <button class="btn-modal-confirm" onclick="confirmOutline()">✓ Write Full Article</button>
@@ -2334,8 +2384,45 @@ window.onModelChange = (val) => {
   if (el) el.textContent = MODEL_DESCRIPTIONS[val] || MODEL_DESCRIPTIONS['auto'];
 };
 
+window.applyCustomWordTarget = (input) => {
+  // Clamp to 100–100000
+  let val = parseInt(input.value) || 0;
+  if (val > 100000) { val = 100000; input.value = 100000; }
+  if (val < 100)    { val = 100; }
+  if (!val) {
+    document.getElementById('wordTargetCustomLabel').textContent = '—';
+    return;
+  }
+  // Deselect all preset buttons
+  document.querySelectorAll('.word-target-btn').forEach(b => {
+    b.style.background    = b.dataset.words > 10000 ? 'transparent' : 'transparent';
+    b.style.borderColor   = b.dataset.words > 10000 ? 'rgba(168,85,247,0.35)' : 'var(--border)';
+    b.style.color         = b.dataset.words > 10000 ? '#c084fc' : 'var(--muted)';
+  });
+  // Update hidden input
+  document.getElementById('wordTarget').value = val;
+  // Show label
+  const label = document.getElementById('wordTargetCustomLabel');
+  if (label) label.textContent = val >= 1000 ? (val/1000).toFixed(val%1000===0?0:1)+'k' : val+'w';
+  // Show long-form notice if needed
+  const notice = document.getElementById('longFormNotice');
+  if (notice) notice.style.display = val > 3500 ? 'block' : 'none';
+  input.style.borderColor = val > 100000 ? 'rgba(239,68,68,0.6)' : 'var(--gold)';
+};
+
 window.setWordTarget = (btn, words) => {
   const isLong = words > 5000;
+  // Show estimated time/chunks for large targets
+  if (words >= 20000) {
+    const chunks = Math.ceil(words / 2000);
+    const mins   = Math.ceil(chunks * 0.5); // ~30s per chunk
+    btn.title = `~${chunks} chunks · ~${mins} min`;
+  }
+  // Clear custom input when a preset is clicked
+  const customInput = document.getElementById('wordTargetCustom');
+  if (customInput) { customInput.value = ''; }
+  const customLabel = document.getElementById('wordTargetCustomLabel');
+  if (customLabel) customLabel.textContent = '—';
   document.querySelectorAll('.word-target-btn').forEach(b => {
     b.style.background = 'transparent';
     b.style.borderColor = 'var(--border)';
@@ -2353,7 +2440,7 @@ window.setWordTarget = (btn, words) => {
 // Dispatcher: normal vs long-form
 window.handleGenerateClick = () => {
   const words = parseInt(document.getElementById('wordTarget')?.value || '1500');
-  if (words >= 5000) {
+  if (words > 3500) {
     generateLongForm();
   } else {
     generateAIPost();
@@ -2445,88 +2532,450 @@ Return ONLY the outline in the format above. No preamble, no meta-commentary.`,t
 };
 
 // ═══════════════════════════════════════════════
+
+
+// ═══════════════════════════════════════════════
+// AI PIPELINE ROADMAP ENGINE
+// Live visual timeline shown during generation
+// ═══════════════════════════════════════════════
+const _roadmap = {
+  // All models the worker knows about
+  ALL_MODELS: ['auto-free','gpt-oss','hermes','llama','qwen','mistral','gemma'],
+
+  // Per-model accent colour (matches worker model keys)
+  COLORS: {
+    'auto-free': '#c9a84c',
+    'gpt-oss':   '#3b82f6',
+    'hermes':    '#a855f7',
+    'llama':     '#22c55e',
+    'qwen':      '#06b6d4',
+    'mistral':   '#f97316',
+    'gemma':     '#ec4899',
+    'auto':      '#c9a84c',
+    'unknown':   '#8896b3',
+  },
+
+  LABELS: {
+    'auto-free': 'OR Free',
+    'gpt-oss':   'GPT-OSS',
+    'hermes':    'Hermes',
+    'llama':     'Llama',
+    'qwen':      'Qwen',
+    'mistral':   'Mistral',
+    'gemma':     'Gemma',
+    'auto':      'Auto',
+  },
+
+  chunks: [],        // state per chunk
+  usedModels: new Set(),
+  failedModels: new Set(),
+
+  // ── Called once before generation starts ──────────────────────────────────
+  init(assignments, preferredModel) {
+    this.chunks      = assignments.map(c => ({
+      num:      c.num,
+      total:    c.total,
+      sections: c.sections,
+      status:   'pending',  // pending | running | done | failed
+      model:    null,
+      words:    0,
+      ms:       0,
+      attempts: [],
+    }));
+    this.usedModels   = new Set();
+    this.failedModels = new Set();
+
+    const roadmap = document.getElementById('aiRoadmap');
+    if (roadmap) roadmap.style.display = 'block';
+
+    this._render();
+    this._renderLegend(preferredModel);
+  },
+
+  setRunning(chunkNum) {
+    const c = this.chunks.find(x => x.num === chunkNum);
+    if (c) { c.status = 'running'; this._render(); }
+  },
+
+  setDone(chunkNum, modelKey, attempts, words, ms) {
+    const c = this.chunks.find(x => x.num === chunkNum);
+    if (c) {
+      c.status   = 'done';
+      c.model    = modelKey;
+      c.words    = words;
+      c.ms       = ms;
+      c.attempts = attempts || [];
+      this.usedModels.add(modelKey);
+      // Track failed models from attempts
+      (attempts || []).forEach(a => {
+        if (!a.success) this.failedModels.add(a.model);
+      });
+      this._render();
+      this._renderLegend();
+    }
+  },
+
+  setFailed(chunkNum, error, ms) {
+    const c = this.chunks.find(x => x.num === chunkNum);
+    if (c) { c.status = 'failed'; c.ms = ms; c.error = error; this._render(); }
+  },
+
+  finish() {
+    this._render();
+    this._renderLegend();
+  },
+
+  hide() {
+    const roadmap = document.getElementById('aiRoadmap');
+    if (roadmap) roadmap.style.display = 'none';
+    this.chunks = [];
+    this.usedModels = new Set();
+    this.failedModels = new Set();
+  },
+
+  // ── Render the chunk strip ─────────────────────────────────────────────────
+  _render() {
+    const track = document.getElementById('aiRoadmapTrack');
+    if (!track || !this.chunks.length) return;
+
+    const isCompact = this.chunks.length > 20;
+    const sz        = isCompact ? 28 : 36;
+
+    track.innerHTML = `
+      <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:flex-start">
+        ${this.chunks.map(c => {
+          const col  = c.model ? (this.COLORS[c.model] || this.COLORS.unknown) : 'rgba(255,255,255,0.07)';
+          const lbl  = c.model ? (this.LABELS[c.model] || c.model) : String(c.num);
+          const spin = c.status === 'running';
+          const tick = c.status === 'done';
+          const fail = c.status === 'failed';
+          const secs = c.ms ? (c.ms/1000).toFixed(1)+'s' : '';
+          const wds  = c.words ? (c.words > 999 ? (c.words/1000).toFixed(1)+'k' : c.words) + 'w' : '';
+
+          const titleText = c.status === 'done'
+            ? `Chunk ${c.num} · ${this.LABELS[c.model]||c.model} · ${wds} · ${secs}${c.attempts.filter(a=>!a.success).length ? ' · '+c.attempts.filter(a=>!a.success).length+' fallback(s)' : ''}`
+            : c.status === 'failed'
+              ? `Chunk ${c.num} · FAILED · ${c.error||''}`
+              : c.status === 'running'
+                ? `Chunk ${c.num} · Writing now…`
+                : `Chunk ${c.num} · Pending`;
+
+          return `<div title="${titleText}" style="
+            position:relative;
+            width:${sz}px;height:${sz}px;
+            border-radius:4px;
+            background:${tick||fail ? col : 'rgba(255,255,255,0.05)'};
+            border:1px solid ${tick ? col : fail ? '#ef4444' : spin ? 'rgba(201,168,76,0.5)' : 'rgba(255,255,255,0.08)'};
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            transition:all 0.3s;
+            opacity:${c.status === 'pending' ? '0.45' : '1'};
+            ${spin ? 'animation:roadmapPulse 1s ease-in-out infinite;' : ''}
+            cursor:default;
+            flex-shrink:0;
+          ">
+            ${tick ? `
+              <span style="font-size:${isCompact?'8':'9'}px;font-weight:700;color:#080d1a;line-height:1;font-family:var(--mono)">${lbl}</span>
+              ${!isCompact && wds ? `<span style="font-size:7px;color:rgba(8,13,26,0.7);margin-top:1px">${wds}</span>` : ''}
+            ` : fail ? `
+              <span style="font-size:11px;color:#fca5a5;">✕</span>
+            ` : spin ? `
+              <span style="display:block;width:12px;height:12px;border:2px solid rgba(201,168,76,0.25);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite"></span>
+            ` : `
+              <span style="font-size:${isCompact?'7':'8'}px;font-weight:700;color:rgba(255,255,255,0.2);font-family:var(--mono)">${c.num}</span>
+            `}
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:6px;font-size:0.62rem;color:var(--muted);flex-wrap:wrap">
+        <span>
+          <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--gold);margin-right:3px"></span>Done
+        </span>
+        <span>
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;border:2px solid var(--gold);margin-right:3px"></span>Running
+        </span>
+        <span>
+          <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(255,255,255,0.1);margin-right:3px"></span>Pending
+        </span>
+        <span>
+          <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#ef4444;margin-right:3px"></span>Failed
+        </span>
+        <span style="margin-left:auto;color:rgba(255,255,255,0.3)">hover chunk for details</span>
+      </div>`;
+  },
+
+  // ── Render the model legend (who participated) ─────────────────────────────
+  _renderLegend(preferredModel) {
+    const container = document.getElementById('aiRoadmapModelBadges');
+    if (!container) return;
+
+    const allModels = this.ALL_MODELS;
+    container.innerHTML = allModels.map(m => {
+      const used   = this.usedModels.has(m);
+      const failed = this.failedModels.has(m) && !used;
+      const pref   = m === preferredModel || (preferredModel === 'auto' && m === 'auto-free');
+      const col    = this.COLORS[m] || '#8896b3';
+      const lbl    = this.LABELS[m] || m;
+
+      if (used) {
+        // Participated and produced output
+        return `<span title="${lbl} — used successfully" style="
+          display:inline-flex;align-items:center;gap:3px;
+          background:${col}22;border:1px solid ${col}88;
+          color:${col};padding:2px 6px;border-radius:3px;
+          font-family:var(--mono);font-size:9px;font-weight:700;
+        ">✓ ${lbl}</span>`;
+      } else if (failed) {
+        // Was tried but failed, fell back
+        return `<span title="${lbl} — tried but failed" style="
+          display:inline-flex;align-items:center;gap:3px;
+          background:rgba(239,68,68,0.08);border:1px dashed rgba(239,68,68,0.35);
+          color:rgba(252,165,165,0.6);padding:2px 6px;border-radius:3px;
+          font-family:var(--mono);font-size:9px;font-weight:700;text-decoration:line-through;
+        ">✕ ${lbl}</span>`;
+      } else {
+        // Not involved at all
+        return `<span title="${lbl} — not used" style="
+          display:inline-flex;align-items:center;gap:3px;
+          background:transparent;border:1px solid rgba(255,255,255,0.06);
+          color:rgba(255,255,255,0.2);padding:2px 6px;border-radius:3px;
+          font-family:var(--mono);font-size:9px;
+        ">${lbl}</span>`;
+      }
+    }).join('');
+  },
+};
+
+// ═══════════════════════════════════════════════
+// GENERATION TIMER ENGINE
+// ═══════════════════════════════════════════════
+const _timer = {
+  interval:   null,
+  startTime:  0,
+  chunkTimes: [],  // ms per completed chunk
+  totalChunks: 0,
+  doneChunks:  0,
+  logLines:    [],
+
+  start(totalChunks) {
+    this.startTime   = Date.now();
+    this.totalChunks = totalChunks;
+    this.doneChunks  = 0;
+    this.chunkTimes  = [];
+    this.logLines    = [];
+    const bar = document.getElementById('aiTimerBar');
+    if (bar) bar.style.display = 'block';
+    this._tick();
+    this.interval = setInterval(() => this._tick(), 1000);
+  },
+
+  chunkDone(chunkNum, wordsWritten) {
+    const elapsed = Date.now() - this.startTime;
+    this.doneChunks = chunkNum;
+    this.chunkTimes.push(elapsed / chunkNum); // avg ms per chunk so far
+    const line = `✓ Chunk ${chunkNum}/${this.totalChunks} — ${wordsWritten.toLocaleString()} words — ${this._fmt(elapsed)}`;
+    this.logLines.push(line);
+    const log = document.getElementById('aiTimerChunkLog');
+    if (log) {
+      log.innerHTML = this.logLines.slice(-4).map(l =>
+        `<div>${l}</div>`
+      ).join('');
+      log.scrollTop = log.scrollHeight;
+    }
+    this._tick();
+  },
+
+  stop() {
+    if (this.interval) { clearInterval(this.interval); this.interval = null; }
+    const elapsed = Date.now() - this.startTime;
+    const el = document.getElementById('aiTimerElapsed');
+    const rm = document.getElementById('aiTimerRemaining');
+    const sp = document.getElementById('aiTimerSpeed');
+    const tr = document.getElementById('aiTimerTrack');
+    if (el) el.textContent = this._fmt(elapsed);
+    if (rm) { rm.textContent = 'Done'; rm.style.color = 'var(--green)'; }
+    if (sp) sp.textContent = '—';
+    if (tr) tr.style.width = '100%';
+  },
+
+  hide() {
+    const bar = document.getElementById('aiTimerBar');
+    if (bar) bar.style.display = 'none';
+    if (this.interval) { clearInterval(this.interval); this.interval = null; }
+  },
+
+  _tick() {
+    const elapsed = Date.now() - this.startTime;
+    const el = document.getElementById('aiTimerElapsed');
+    const rm = document.getElementById('aiTimerRemaining');
+    const sp = document.getElementById('aiTimerSpeed');
+    const tr = document.getElementById('aiTimerTrack');
+
+    if (el) el.textContent = this._fmt(elapsed);
+
+    const pct = this.totalChunks > 0
+      ? Math.min(99, Math.round(this.doneChunks / this.totalChunks * 100))
+      : 0;
+    if (tr) tr.style.width = pct + '%';
+
+    if (this.chunkTimes.length > 0) {
+      const avgMs     = this.chunkTimes[this.chunkTimes.length - 1];
+      const remaining = Math.max(0, (this.totalChunks - this.doneChunks) * avgMs);
+      const wpm       = this.doneChunks > 0
+        ? Math.round((this.doneChunks * 2000) / (elapsed / 60000))
+        : 0;
+      if (rm) rm.textContent = this.doneChunks > 0 ? '~' + this._fmt(remaining) : '—';
+      if (sp) sp.textContent = wpm > 0 ? wpm.toLocaleString() + ' wpm' : '—';
+    }
+  },
+
+  _fmt(ms) {
+    const s   = Math.floor(ms / 1000);
+    const min = Math.floor(s / 60);
+    const sec = s % 60;
+    return min + ':' + String(sec).padStart(2, '0');
+  },
+};
+
 // LONG-FORM MULTI-CHUNK ENGINE
 // Splits large articles into chunks, runs parallel
 // AI calls, then assembles into one document.
 // ═══════════════════════════════════════════════
 
+// ─── CHUNK SIZE STRATEGY ────────────────────────────────────────────────────
+// Each AI call produces ~2000-2500 reliable words.
+// For huge targets we also generate an expanded outline first so every
+// chunk has unique, non-repeating section assignments.
+// ─────────────────────────────────────────────────────────────────────────────
 async function generateLongFormArticle(topic, category, tone, modelArticle, wordTarget, outline) {
-  const CHUNK_WORDS = 2500; // words per chunk
-  const chunks = Math.ceil(wordTarget / CHUNK_WORDS);
 
-  // Parse outline sections to distribute across chunks
-  const outlineLines = outline.split('\n').filter(l => l.trim());
-  const sections = outlineLines.filter(l => l.startsWith('##'));
-  const sectionsPerChunk = Math.max(1, Math.ceil(sections.length / chunks));
+  const CHUNK_WORDS = 2000; // safe per-chunk target (models reliably hit this)
+  const totalChunks = Math.ceil(wordTarget / CHUNK_WORDS);
 
-  // Build section assignments
+  // ── For very large targets, expand the outline first ──────────────────────
+  let workingOutline = outline;
+  if (wordTarget >= 20000) {
+    document.getElementById('aiModalTitle').textContent = `✦ Expanding outline for ${(wordTarget/1000).toFixed(0)}k article…`;
+    document.getElementById('aiModalSub').textContent = `Building ${totalChunks}-chunk structure`;
+    document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Generating detailed section plan…</span>';
+
+    const expandPrompt = `You are planning a ${wordTarget}-word long-form article on: "${topic}".
+
+Generate a highly detailed, comprehensive outline with EXACTLY ${totalChunks * 3} sections (H2 headings).
+Each section should be a distinct, substantive topic that fills ~${CHUNK_WORDS} words.
+No sections should overlap or repeat.
+
+Return ONLY the outline — one ## heading per line, with 2-3 bullet sub-points per section.
+Example:
+## Section Title
+- Sub-point 1
+- Sub-point 2
+- Sub-point 3`;
+
+    const expandResult = await callAI(expandPrompt, true, modelArticle, 8000);
+    if (!expandResult.error && expandResult.text) {
+      workingOutline = expandResult.text;
+    }
+  }
+
+  // ── Parse sections from the (possibly expanded) outline ───────────────────
+  const outlineLines = workingOutline.split('\n').filter(l => l.trim());
+  let sections = outlineLines.filter(l => l.startsWith('##'));
+
+  // If outline has fewer sections than chunks needed, generate synthetic ones
+  if (sections.length < totalChunks) {
+    const needed = totalChunks - sections.length;
+    for (let i = 0; i < needed; i++) {
+      sections.push(`## Extended Analysis Part ${sections.length + 1}: Deep Dive into ${topic}`);
+    }
+  }
+
+  // Distribute sections across chunks
+  const sectionsPerChunk = Math.max(2, Math.ceil(sections.length / totalChunks));
   const chunkAssignments = [];
-  for (let i = 0; i < chunks; i++) {
+  for (let i = 0; i < totalChunks; i++) {
     const start = i * sectionsPerChunk;
     const end   = Math.min(start + sectionsPerChunk, sections.length);
     const chunkSections = sections.slice(start, end);
     if (chunkSections.length === 0 && i > 0) break;
     chunkAssignments.push({
-      num: i + 1,
-      total: chunks,
+      num:      i + 1,
+      total:    chunkAssignments.length + (totalChunks - i), // updated at end
       sections: chunkSections,
-      isFirst: i === 0,
-      isLast: i === chunks - 1,
+      isFirst:  i === 0,
+      isLast:   false, // set after loop
     });
   }
+  if (chunkAssignments.length > 0) {
+    chunkAssignments[chunkAssignments.length - 1].isLast = true;
+    chunkAssignments.forEach((c, i) => c.total = chunkAssignments.length);
+  }
 
-  let fullHTML = '';
+  let fullHTML   = '';
   let chunkErrors = 0;
-  const editor = document.getElementById('editor');
+  let totalWords  = 0;
+  const editor   = document.getElementById('editor');
+
+  // ── Init roadmap + timer ──────────────────────────────────────────────────
+  _roadmap.init(chunkAssignments, modelArticle);
+  _timer.start(chunkAssignments.length);
 
   for (const chunk of chunkAssignments) {
-    // Update modal progress
-    document.getElementById('aiModalTitle').textContent = `✦ Writing chunk ${chunk.num} of ${chunk.total}…`;
-    document.getElementById('aiModalSub').textContent = `Building section ${chunk.num * sectionsPerChunk - sectionsPerChunk + 1}–${Math.min(chunk.num * sectionsPerChunk, sections.length)} of ${sections.length}`;
-    document.getElementById('aiModalContent').innerHTML = `<div style="margin-bottom:0.8rem">
-      <div style="background:var(--navy3);border-radius:3px;height:6px;overflow:hidden">
-        <div style="background:var(--gold);height:100%;transition:width 0.4s;width:${Math.round((chunk.num-1)/chunk.total*100)}%"></div>
-      </div>
-      <div style="font-size:0.72rem;color:var(--muted);margin-top:0.4rem;text-align:center">${Math.round((chunk.num-1)/chunk.total*100)}% complete</div>
-    </div>
-    <span style="animation:pulse 1s infinite;display:inline-block">Writing chunk ${chunk.num} of ${chunk.total}…</span>`;
+
+    // Mark this chunk as running in the roadmap
+    _roadmap.setRunning(chunk.num);
+
+    // Update modal title/sub
+    document.getElementById('aiModalTitle').textContent =
+      `✦ Writing ${(wordTarget/1000).toFixed(0)}k article — Chunk ${chunk.num}/${chunk.total}`;
+    document.getElementById('aiModalSub').textContent =
+      `${totalWords.toLocaleString()} words written so far`;
 
     const isFirst = chunk.isFirst;
     const isLast  = chunk.isLast;
     const chunkSectionList = chunk.sections.length > 0
       ? chunk.sections.join('\n')
-      : `Part ${chunk.num} of article`;
+      : `Part ${chunk.num}: continue the article on ${topic}`;
 
-    const chunkPrompt = `You are writing CHUNK ${chunk.num} OF ${chunk.total} of a long-form article.
+    const chunkPrompt =
+      `You are writing CHUNK ${chunk.num} of ${chunk.total} for a ${wordTarget}-word comprehensive article.
 
 TOPIC: "${topic}"
 CATEGORY: ${category}
 TONE: ${tone}
-CHUNK TARGET: approximately ${CHUNK_WORDS} words
+TARGET FOR THIS CHUNK: ${CHUNK_WORDS} words minimum — write fully, do not truncate
 
-${isFirst ? `THIS IS THE OPENING CHUNK — start with an engaging introduction, then cover these sections:` : isLast ? `THIS IS THE FINAL CHUNK — cover these sections and end with a strong conclusion:"` : `CONTINUE THE ARTICLE — cover these sections (do NOT repeat earlier content or add an intro):`}
+${isFirst
+  ? 'THIS IS CHUNK 1 (OPENING) — Begin with a compelling introduction paragraph, then cover:'
+  : isLast
+    ? 'THIS IS THE FINAL CHUNK — Cover the sections below, then write a strong conclusion:'
+    : `CHUNK ${chunk.num} (MIDDLE) — Continue the article. Do NOT repeat earlier content. Cover:`}
 
 ${chunkSectionList}
 
-From the full outline context:
-${outline}
+Full outline for context (do not repeat already-covered sections):
+${workingOutline.substring(0, 1500)}
 
-RULES:
-- Write ${CHUNK_WORDS} words minimum for this chunk
-- ${isFirst ? 'Begin with a strong <p> introduction' : 'Do NOT start with an introduction — continue directly into the sections'}
-- ${isLast ? 'End with a conclusion section' : 'Do NOT write a conclusion — the article continues after this chunk'}
-- Use <h2> for main sections, <h3> for subsections
-- Include examples, data, analysis — never pad with filler
-- NEVER use <h1>, markdown, or code fences
-- Return ONLY clean HTML`;
+WRITING RULES:
+- Write ${CHUNK_WORDS}+ words for this chunk — every section needs 4-6 paragraphs minimum
+- Use <h2> for each section, <h3> for subsections
+- Include real examples, statistics, analysis — no filler
+- ${isFirst ? 'Start with <p> intro' : 'Jump straight into <h2> — no re-introduction'}
+- ${isLast ? 'End with a <h2>Conclusion</h2> section' : 'Do NOT write a conclusion — article continues'}
+- Return ONLY clean HTML: <h2> <h3> <p> <ul> <li> <ol> <blockquote> <strong> <em>
+- NEVER use <h1>, markdown, or code fences`;
 
-    let result = await callAI(chunkPrompt, true, modelArticle, 12000);
+    // ── Fire AI call ──────────────────────────────────────────────────────
+    const chunkStart = Date.now();
+    let result = await callAI(chunkPrompt, true, modelArticle, 16000);
     if (result.error) {
-      result = await callAI(chunkPrompt, true, 'auto', 12000);
+      await new Promise(r => setTimeout(r, 3000));
+      result = await callAI(chunkPrompt, true, 'auto', 16000);
     }
+    const chunkMs = Date.now() - chunkStart;
 
     if (result.error) {
       chunkErrors++;
+      _roadmap.setFailed(chunk.num, result.error, chunkMs);
       fullHTML += `<h2>⚠ Chunk ${chunk.num} Failed</h2><p style="color:#fca5a5">Error: ${result.error}</p>\n`;
     } else {
       let chunkHTML = (result.text || '')
@@ -2534,18 +2983,31 @@ RULES:
         .replace(/<h1[^>]*>.*?<\/h1>/gi, '')
         .replace(/---METADATA---[\s\S]*/g, '')
         .trim();
-      fullHTML += chunkHTML + '\n\n';
+      fullHTML  += chunkHTML + '\n\n';
+      totalWords = fullHTML.split(/\s+/).length;
+      const chunkWords = chunkHTML.split(/\s+/).length;
+      _roadmap.setDone(chunk.num, result.modelUsed || modelArticle, result.attemptsDetail || [], chunkWords, chunkMs);
+      _timer.chunkDone(chunk.num, totalWords);
     }
 
-    // Show progress in editor in real-time
-    editor.innerHTML = sanitize(fullHTML + `<p style="color:var(--muted);font-style:italic;border-top:1px solid var(--border);padding-top:1rem;margin-top:2rem">⏳ Writing chunk ${chunk.num + 1} of ${chunk.total}…</p>`);
+    // Live editor preview
+    if (!isLast) {
+      editor.innerHTML = sanitize(
+        fullHTML +
+        `<p style="color:var(--muted);font-style:italic;border-top:1px solid var(--border);padding-top:1rem;margin-top:2rem">
+          ⏳ Chunk ${chunk.num + 1}/${chunk.total} in progress — ${totalWords.toLocaleString()} words so far…
+        </p>`
+      );
+    }
     updateWordCount();
 
-    // Small delay between chunks to avoid rate limits
-    if (!isLast) await new Promise(r => setTimeout(r, 1500));
+    const delayMs = wordTarget >= 50000 ? 3000 : wordTarget >= 20000 ? 2000 : 1500;
+    if (!isLast) await new Promise(r => setTimeout(r, delayMs));
   }
 
-  return { html: fullHTML, errors: chunkErrors };
+  _timer.stop();
+  _roadmap.finish();
+  return { html: fullHTML, errors: chunkErrors, totalWords };
 }
 
 window.confirmOutline = async () => {
@@ -2920,6 +3382,8 @@ Return ONLY valid JSON:
 
 window.cancelOutline = () => { closeAIModal(); pendingOutline=''; };
 function closeAIModal() { document.getElementById('aiModal').classList.remove('open'); }
+  _roadmap.hide();
+  _timer.hide();
 
 // ═══════════════════════════════════════════════
 // AI EDIT TOOLBAR
