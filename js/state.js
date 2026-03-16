@@ -1,26 +1,13 @@
-// ═══════════════════════════════════════════════
-// state.js — All shared mutable state
-// Import and mutate these across modules.
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════
+// state.js — Global CMS state
+// ═══════════════════════════════════════
 
 export const state = {
-  currentUser:       null,
-  editingPostId:     null,
-  allPosts:          [],
-  allSubs:           [],
-  isPremium:         false,
-  pendingOutline:    '',
-  lastSavedContent:  '',
-  generatedImages:   [],
-  imgSelectedStyle:  'photorealistic',
-  imgSelectedW:      1280,
-  imgSelectedH:      720,
-  imgSelectedCount:  2,
-  currentModalImgUrl:'',
-  autoPlaceCancelled:false,
-  generatedNewsletter:'',
-  abSessionTotal:    0,
-  abSessionPublished:0,
-  isGeneratingAI:    false,
-  isGeneratingImages:false,
+
+  allPosts: JSON.parse(localStorage.getItem("blogspro_posts") || "[]"),
+
+  currentPostId: null,
+
+  subscribers: []
+
 };
