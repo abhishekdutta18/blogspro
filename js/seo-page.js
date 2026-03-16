@@ -33,7 +33,8 @@ Return ONLY JSON:
 "difficulty":0-100,
 "competition":"low|medium|high",
 "suggestions":["tip1","tip2","tip3"]
-}`
+}`,
+    true
   );
 
   setBtnLoading("btnTraffic", "trafficBtnTxt", "trafficSpinner", false, "Predict Traffic");
@@ -91,7 +92,8 @@ Return ONLY JSON:
 "topics":[
 {"title":"","priority":"high|medium|low","reason":""}
 ]
-}`
+}`,
+    true
   );
 
   setBtnLoading("btnGap", "gapBtnTxt", "gapSpinner", false, "Analyze Gap");
@@ -150,7 +152,8 @@ Return ONLY JSON:
 "sites":[
 {"name":"","domain":"","type":"","pitch":""}
 ]
-}`
+}`,
+    true
   );
 
   setBtnLoading("btnBacklinks", "blBtnTxt", "blSpinner", false, "Find Opportunities");
@@ -207,7 +210,8 @@ Return ONLY JSON:
 "headlines":[
 {"title":"","ctr_score":0-100,"technique":""}
 ]
-}`
+}`,
+    true
   );
 
   setBtnLoading("btnHeadline", "headlineBtnTxt", "headlineSpinner", false, "Generate Headlines");
@@ -350,3 +354,19 @@ window.insertCitations    = () => window.aiEditAction?.('references');
 window.repairBrokenImages = () => showToast('Image repair: coming soon.', 'info');
 window.sendNewsletter     = () => showToast('Connect your email provider to send.', 'info');
 window.setWordTarget      = (v) => { const wt = document.getElementById('wordTarget'); if (wt) wt.value = v; };
+
+
+// ── quickNewPost — called from cluster/calendar card clicks ──
+window.quickNewPost = function(el) {
+  const title = el?.dataset?.title || '';
+  if (!title) return;
+  window.showView?.('editor');
+  window.clearEditor?.();
+  const titleEl = document.getElementById('postTitle');
+  const slugEl  = document.getElementById('postSlug');
+  const promptEl = document.getElementById('aiPrompt') || document.getElementById('v2TopicPrompt');
+  if (titleEl)  titleEl.value  = title;
+  if (promptEl) promptEl.value = title;
+  if (slugEl && window.slugify) slugEl.value = window.slugify(title);
+  showToast(`New post: "${title.substring(0, 40)}"`, 'success');
+};

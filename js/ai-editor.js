@@ -99,17 +99,17 @@ RULES: Return ONLY clean HTML. Use <h2><h3><p><strong><em><ul><li><blockquote>. 
 }
 
 const EDIT_INSTRUCTIONS = {
-  regenerate:     'Regenerate this article completely from scratch with the same topic, but different phrasing and structure.',
-  professional:   'Rewrite in a highly professional, analytical tone suitable for senior finance executives.',
-  conversational: 'Rewrite in a conversational, accessible tone easy for non-experts, but still informative.',
-  authoritative:  'Rewrite in an authoritative expert tone — use precise terminology and project deep domain expertise.',
-  expand:         'Expand significantly. Add more depth, examples, data points, and additional sections.',
-  shorten:        'Shorten by 30-40% while keeping all key points. Remove redundancy.',
-  references:     'Add a References section at the end with 5-8 REAL sources in APA format using REAL working URLs. Do NOT use example.com or placeholder URLs. Use actual URLs from: rbi.org.in, sebi.gov.in, npci.org.in, worldbank.org, imf.org, bis.org, mckinsey.com, pwc.com, kpmg.com, deloitte.com, forbes.com. Make each URL a clickable gold link: <a href="REAL_URL" target="_blank" rel="noopener" style="color:#c9a84c">REAL_URL</a>. Use an <ol> numbered list.',
-  graph:          'Add a styled HTML data visualization table in a relevant section using inline CSS (dark background #0f1628, gold #c9a84c borders, cream #f5f0e8 text) showing key statistics.',
+  regenerate:     'Regenerate this article completely from scratch with the same topic, but different phrasing and structure. Write ONLY in English.',
+  professional:   'Rewrite in a highly professional, analytical tone suitable for senior finance executives. Write ONLY in English.',
+  conversational: 'Rewrite in a conversational, accessible tone easy for non-experts. Write ONLY in English.',
+  authoritative:  'Rewrite in an authoritative expert tone with precise terminology. Write ONLY in English.',
+  expand:         'Expand significantly — add more depth, examples, data points, and additional sections. Write ONLY in English.',
+  shorten:        'Shorten by 30-40% while keeping all key points. Write ONLY in English.',
+  graph:          'Add a styled HTML data table in a relevant section using inline CSS (dark background #0f1628, gold #c9a84c borders, cream #f5f0e8 text) showing key statistics. Write ONLY in English.',
 };
 
 window.aiEditAction = async (action) => {
+  if (action === 'references') { await insertReferencesBlock(); return; }
   if (!EDIT_INSTRUCTIONS[action]) return;
   if (action === 'regenerate' && !confirm('Regenerate the entire article?')) return;
   await runAIEdit(EDIT_INSTRUCTIONS[action]);
@@ -120,6 +120,240 @@ window.aiEditCustom = async () => {
   if (!instruction) { setEditStatus('Please enter an instruction.', true); return; }
   await runAIEdit(instruction);
   document.getElementById('aiEditCustom').value = '';
+};
+
+
+// ── APA References Block ──────────────────────
+// Extracts real claims from the article and renders a
+// properly formatted APA reference list at the bottom.
+async function insertReferencesBlock() {
+  const editor  = getEditor();
+  const content = editor?.textContent;
+  const title   = document.getElementById('postTitle')?.value.trim() || '';
+  if (!content?.trim()) { showToast('Write an article first.', 'error'); return; }
+
+  setEditBtnsDisabled(true);
+  setEditStatus('⏳ Extracting claims and finding sources…');
+
+  const result = await callAI(
+    `You are a research librarian. Read this article and generate 6-8 real, verifiable APA-format references.
+Article title: "${title}"
+Article content (first 2000 chars): "${content.substring(0, 2000)}"
+
+Rules:
+- Use ONLY real, existing sources from these domains: rbi.org.in, sebi.gov.in, npci.org.in, worldbank.org, imf.org, bis.org, mckinsey.com, pwc.com, kpmg.com, deloitte.com, forbes.com, reuters.com, ft.com, economist.com
+- Write ONLY in English
+- Return ONLY valid JSON — no markdown, no explanation:
+{
+  "references": [
+    {
+      "authors": "Last, F. M., & Last, F. M.",
+      "year": "2024",
+      "title": "Full article or report title",
+      "source": "Journal or Website Name",
+      "url": "https://real-url.com/path"
+    }
+  ]
+}`,
+    true
+  );
+
+  if (result.error) {
+    setEditStatus('✕ ' + result.error, true);
+    setEditBtnsDisabled(false);
+    return;
+  }
+
+  let refs = [];
+  try {
+    const s = result.text.indexOf('{');
+    const e = result.text.lastIndexOf('}');
+    const parsed = JSON.parse(result.text.substring(s, e + 1));
+    refs = parsed.references || [];
+  } catch(_) {
+    setEditStatus('✕ Could not parse references', true);
+    setEditBtnsDisabled(false);
+    return;
+  }
+
+  if (!refs.length) {
+    setEditStatus('✕ No references returned', true);
+    setEditBtnsDisabled(false);
+    return;
+  }
+
+  // Remove existing references block if present
+  const existing = editor.querySelector('.bp-references-block');
+  if (existing) existing.remove();
+
+  // Build APA reference list HTML
+  const listItems = refs.map((r, i) => {
+    const authors = r.authors || 'Unknown';
+    const year    = r.year ? `(${r.year}).` : '';
+    const title   = r.title ? `<em>${r.title}.</em>` : '';
+    const source  = r.source ? `${r.source}.` : '';
+    const urlTag  = r.url
+      ? `<a href="${r.url}" target="_blank" rel="noopener"
+           style="color:#c9a84c;word-break:break-all;font-size:0.8rem">${r.url}</a>`
+      : '';
+    return `<li style="margin-bottom:0.75rem;line-height:1.6;font-size:0.85rem;color:#f5f0e8">
+      ${authors} ${year} ${title} ${source} ${urlTag}
+    </li>`;
+  }).join('');
+
+  const block = `
+<div class="bp-references-block" style="
+  margin-top:2.5rem;
+  padding:1.5rem;
+  background:#0c1322;
+  border:1px solid rgba(255,255,255,0.08);
+  border-left:3px solid #c9a84c;
+  border-radius:6px;
+  font-family:var(--sans,sans-serif)
+">
+  <h2 style="font-size:1.1rem;font-weight:700;color:#c9a84c;margin:0 0 1rem 0;letter-spacing:0.03em">References</h2>
+  <ol style="padding-left:1.4rem;margin:0">${listItems}</ol>
+</div>`;
+
+  editor.innerHTML = sanitize(editor.innerHTML + block);
+  updateWordCount();
+  setEditStatus(`✓ ${refs.length} APA references added`);
+  setEditBtnsDisabled(false);
+  showToast(`${refs.length} references added in APA format!`, 'success');
+}
+window.insertReferencesBlock = insertReferencesBlock;
+
+
+// ── In-line Citation Insertion ────────────────
+// Scans the article for factual claims and adds superscript citation markers
+window.insertInlineCitations = async () => {
+  const editor  = getEditor();
+  const content = editor?.innerHTML;
+  if (!content?.trim()) { showToast('Write an article first.', 'error'); return; }
+
+  setEditBtnsDisabled(true);
+  setEditStatus('⏳ Adding inline citations…');
+
+  const result = await callAI(
+    `Add numbered inline citation markers to factual claims in this HTML article.
+For each verifiable statistic or fact, add a superscript like: <sup style="color:#c9a84c;font-size:0.7em">[1]</sup>
+Keep existing HTML intact. Write ONLY in English.
+Return ONLY the modified HTML with citation markers added.
+ARTICLE HTML: ${content.substring(0, 4000)}`,
+    true
+  );
+
+  if (result.error) {
+    setEditStatus('✕ ' + result.error, true);
+    setEditBtnsDisabled(false);
+    return;
+  }
+
+  const clean = result.text.replace(/```html?|```/gi, '').trim();
+  if (clean && clean.includes('<')) {
+    editor.innerHTML = sanitize(clean);
+    updateWordCount();
+    setEditStatus('✓ Inline citations added');
+    showToast('Inline citations added!', 'success');
+  } else {
+    setEditStatus('✕ No HTML returned', true);
+  }
+  setEditBtnsDisabled(false);
+};
+
+
+// ── Quality Score with Auto-Implement ─────────
+export async function runArticleQualityScore() {
+  const content = getEditor()?.textContent;
+  const title   = document.getElementById('postTitle')?.value.trim() || '';
+  if (!content?.trim()) { showToast('Write an article first.', 'error'); return; }
+  setEditBtnsDisabled(true);
+  setEditStatus('⏳ Scoring article…');
+
+  const result = await callAI(
+    `Score this fintech article for quality (0-100).
+Title: "${title}"
+Content preview: "${content.substring(0, 1500)}"
+Write ONLY in English.
+Return ONLY JSON:
+{"score":0-100,"grade":"A/B/C/D","strengths":["s1","s2","s3"],"improvements":["i1","i2","i3"],"auto_fixes":["add_statistics","improve_headings","expand_intro","add_examples","fix_tone"]}
+auto_fixes must be a subset of the exact strings listed above — only include fixes that apply.`,
+    true
+  );
+
+  if (result.error) { setEditStatus('✕ ' + result.error, true); setEditBtnsDisabled(false); return; }
+
+  let p;
+  try {
+    const s = result.text.indexOf('{');
+    const e = result.text.lastIndexOf('}');
+    p = JSON.parse(result.text.substring(s, e + 1));
+  } catch(_) { setEditStatus('✕ Parse error', true); setEditBtnsDisabled(false); return; }
+
+  const color     = p.score >= 80 ? 'var(--green)' : p.score >= 60 ? 'var(--gold)' : '#fca5a5';
+  const autoFixes = p.auto_fixes || [];
+
+  const fixBtns = autoFixes.length ? `
+    <div style="margin-top:0.6rem;border-top:1px solid var(--border);padding-top:0.6rem">
+      <div style="font-size:0.68rem;color:var(--muted);margin-bottom:0.4rem">AUTO-FIX SUGGESTIONS</div>
+      ${autoFixes.map(fix => `
+        <button onclick="applyQualityFix('${fix}')"
+          style="display:block;width:100%;text-align:left;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);
+                 color:var(--gold);padding:0.3rem 0.6rem;border-radius:3px;font-family:var(--sans);font-size:0.7rem;
+                 cursor:pointer;margin-bottom:0.25rem">
+          ✦ ${_fixLabel(fix)}
+        </button>`).join('')}
+    </div>` : '';
+
+  const resultHTML = `
+    <div style="background:var(--navy2);border:1px solid var(--border);border-radius:4px;padding:0.8rem;margin-top:0.5rem">
+      <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:0.6rem">
+        <div style="font-size:2rem;font-weight:700;color:${color};line-height:1">${p.score}</div>
+        <div>
+          <div style="font-size:0.8rem;font-weight:700;color:${color}">Grade ${p.grade}</div>
+          <div style="font-size:0.7rem;color:var(--muted)">Quality Score</div>
+        </div>
+      </div>
+      ${(p.strengths || []).map(s => `<div style="font-size:0.72rem;color:var(--green);margin-bottom:0.2rem">✓ ${s}</div>`).join('')}
+      ${(p.improvements || []).map(i => `<div style="font-size:0.72rem;color:#fca5a5;margin-bottom:0.2rem">⚠ ${i}</div>`).join('')}
+      ${fixBtns}
+    </div>`;
+
+  const el = document.getElementById('qualityScoreResult');
+  if (el) { el.style.display = 'block'; el.innerHTML = resultHTML; }
+  const statusEl = document.getElementById('aiEditStatus');
+  if (statusEl) statusEl.innerHTML = `<span style="color:${color};font-weight:700">Score: ${p.score}/100 (${p.grade})</span>${resultHTML}`;
+  setEditBtnsDisabled(false);
+  showToast(`Quality Score: ${p.score}/100 — Grade ${p.grade}`, p.score >= 70 ? 'success' : 'error');
+}
+window.runArticleQualityScore = runArticleQualityScore;
+
+// Maps fix key → human label
+function _fixLabel(fix) {
+  const labels = {
+    add_statistics:   'Add statistics & data points',
+    improve_headings: 'Improve section headings',
+    expand_intro:     'Expand introduction',
+    add_examples:     'Add real-world examples',
+    fix_tone:         'Fix writing tone & clarity',
+  };
+  return labels[fix] || fix;
+}
+
+// Maps fix key → AI instruction
+const FIX_INSTRUCTIONS = {
+  add_statistics:   'Add specific statistics, percentages, and real data points throughout the article to support claims. Write ONLY in English.',
+  improve_headings: 'Rewrite all <h2> and <h3> headings to be more descriptive, SEO-friendly, and engaging. Write ONLY in English.',
+  expand_intro:     'Significantly expand the introduction — make it more compelling with a stronger hook, context, and preview of key insights. Write ONLY in English.',
+  add_examples:     'Add 2-3 real-world examples or case studies to support the key arguments in the article. Write ONLY in English.',
+  fix_tone:         'Improve writing tone and clarity — remove passive voice, jargon, and filler sentences. Write ONLY in English.',
+};
+
+window.applyQualityFix = async (fix) => {
+  const instruction = FIX_INSTRUCTIONS[fix];
+  if (!instruction) return;
+  setEditStatus(`⏳ Applying: ${_fixLabel(fix)}…`);
+  await runAIEdit(instruction);
 };
 
 // ── SEO Optimizer ─────────────────────────────
@@ -179,46 +413,6 @@ export async function buildInternalLinks(content) {
   }
   return linked;
 }
-
-// ── Quality Score ─────────────────────────────
-export async function runArticleQualityScore() {
-  const content = getEditor()?.textContent;
-  const title   = document.getElementById('postTitle').value.trim();
-  if (!content?.trim()) { showToast('Write an article first.','error'); return; }
-  setEditBtnsDisabled(true); setEditStatus('⏳ Scoring…');
-  const result = await callAI(
-    `Score this fintech article for quality (0-100).\nTitle: "${title}"\nContent preview: "${content.substring(0,1200)}"\nReturn ONLY JSON:\n{"score":0-100,"grade":"A/B/C/D","strengths":["s1","s2"],"improvements":["i1","i2"]}`,
-    true
-  );
-  setEditBtnsDisabled(false);
-  if (result.error) { setEditStatus('✕ '+result.error, true); return; }
-  try {
-    const s=result.text.indexOf('{'), e=result.text.lastIndexOf('}');
-    const p = JSON.parse(result.text.substring(s,e+1));
-    const color = p.score>=80?'var(--green)':p.score>=60?'var(--gold)':'#fca5a5';
-    // Write result into BOTH the drawer element AND the v2 edit status area
-    const resultHTML = `
-      <div style="background:var(--navy2);border:1px solid var(--border);border-radius:4px;padding:0.8rem;margin-top:0.5rem">
-        <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:0.6rem">
-          <div style="font-size:2rem;font-weight:700;color:${color};line-height:1">${p.score}</div>
-          <div>
-            <div style="font-size:0.8rem;font-weight:700;color:${color}">Grade ${p.grade}</div>
-            <div style="font-size:0.7rem;color:var(--muted)">Quality Score</div>
-          </div>
-        </div>
-        ${(p.strengths||[]).map(s=>`<div style="font-size:0.72rem;color:var(--green);margin-bottom:0.2rem">✓ ${s}</div>`).join('')}
-        ${(p.improvements||[]).map(i=>`<div style="font-size:0.72rem;color:#fca5a5;margin-bottom:0.2rem">⚠ ${i}</div>`).join('')}
-      </div>`;
-    // Show in old drawer
-    const el = document.getElementById('qualityScoreResult');
-    if (el) { el.style.display = 'block'; el.innerHTML = resultHTML; }
-    // Also show in v2 panel aiEditStatus area
-    const statusEl = document.getElementById('aiEditStatus');
-    if (statusEl) statusEl.innerHTML = `<span style="color:${color};font-weight:700">Score: ${p.score}/100 (${p.grade})</span>${resultHTML}`;
-    showToast(`Quality Score: ${p.score}/100 — Grade ${p.grade}`, p.score >= 70 ? 'success' : 'error');
-  } catch(_) { setEditStatus('✕ Parse error', true); }
-}
-window.runArticleQualityScore = runArticleQualityScore;
 
 // ── Auto-place images ─────────────────────────
 export async function autoPlaceImages() {

@@ -1,16 +1,13 @@
 // ═══════════════════════════════════════════════
-// ai-writer.js — Full article AI generation
-// Fixes:
-//   1. Opens #aiModal so timer/roadmap are visible
-//   2. Section-by-section generation to hit large word targets (50k+)
-//   3. Exposes window.generateAIPost used by v2-editor / handleGenerateClick
+// ai-writer.js — Section-by-section article generation
 // ═══════════════════════════════════════════════
-import { callAI }                    from './ai-core.js';
-import { sanitize, showToast }       from './config.js';
-import { state }                     from './state.js';
-import { updateWordCount }           from './editor.js';
+import { callAI, PROVIDER_META }        from './ai-core.js';
+import { sanitize, showToast }          from './config.js';
+import { state }                        from './state.js';
+import { updateWordCount }              from './editor.js';
+import { generateChartForSection }      from './chart-builder.js';
 import {
-  startTimer, stopTimer, hideTimer,
+  startTimer, stopTimer, hideTimer, updateProgress,
   timerLog, showRoadmap, setRoadmapStep, hideRoadmap
 } from './timer.js';
 
@@ -20,28 +17,25 @@ let _cancelled = false;
 // ─────────────────────────────────────────────
 // Modal helpers
 // ─────────────────────────────────────────────
-function openModal(title = '✦ Generating…', sub = 'AI is thinking. Please wait.') {
-  const modal = document.getElementById('aiModal');
-  if (modal) modal.classList.add('open');
-  _setModalTitle(title, sub);
+function openModal(title, sub) {
+  document.getElementById('aiModal')?.classList.add('open');
+  _setModalText(title, sub);
   const actions = document.getElementById('aiModalActions');
   if (actions) actions.style.display = 'none';
-  const content = document.getElementById('aiModalContent');
-  if (content) content.innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Starting…</span>';
+  _setModalContent('<span style="animation:pulse 1s infinite;display:inline-block">Starting…</span>');
 }
 
 function closeModal() {
-  const modal = document.getElementById('aiModal');
-  if (modal) modal.classList.remove('open');
+  document.getElementById('aiModal')?.classList.remove('open');
   hideTimer();
   hideRoadmap();
 }
 
-function _setModalTitle(title, sub) {
+function _setModalText(title, sub) {
   const t = document.getElementById('aiModalTitle');
   const s = document.getElementById('aiModalSub');
-  if (t) t.textContent = title;
-  if (s) s.textContent = sub;
+  if (t && title) t.textContent = title;
+  if (s && sub)   s.textContent = sub;
 }
 
 function _setModalContent(html) {
@@ -50,7 +44,7 @@ function _setModalContent(html) {
 }
 
 // ─────────────────────────────────────────────
-// Cancel support
+// Cancel
 // ─────────────────────────────────────────────
 window.cancelOutline = () => {
   _cancelled = true;
@@ -59,22 +53,61 @@ window.cancelOutline = () => {
 };
 
 // ─────────────────────────────────────────────
-// How many sections needed to reach word target
-// Each API call reliably produces ~600-800 words
+// How many sections to hit the word target
+// Each call reliably returns 600–800 words
 // ─────────────────────────────────────────────
 function sectionsNeeded(wordTarget) {
-  const wordsPerCall = 700;
-  return Math.max(3, Math.ceil(wordTarget / wordsPerCall));
+  const wordsPerSection = 700;
+  return Math.max(3, Math.ceil(wordTarget / wordsPerSection));
+}
+
+function getWordCount() {
+  return (document.getElementById('editor')?.textContent || '')
+    .trim().split(/\s+/).filter(Boolean).length;
 }
 
 // ─────────────────────────────────────────────
-// Main entry — called by handleGenerateClick()
+// Retry a single section up to maxRetries times
+// Returns { text, error, provider }
+// ─────────────────────────────────────────────
+async function callWithRetry(prompt, model, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const result = await callAI(prompt, true, model, 8000);
+    if (!result.error && result.text?.trim().length > 100) return result;
+    if (attempt < maxRetries) {
+      timerLog(`  ↺ Retry ${attempt}/${maxRetries - 1}…`);
+      await _sleep(1200 * attempt);
+    }
+  }
+  return { text: '', error: 'All retries failed', provider: null };
+}
+
+// ─────────────────────────────────────────────
+// Render a provider badge for the modal
+// ─────────────────────────────────────────────
+function _providerBadge(provider) {
+  if (!provider) return '';
+  const meta = PROVIDER_META[provider] || { label: provider, color: 'var(--muted)', icon: '🤖' };
+  return `<span style="
+    display:inline-flex;align-items:center;gap:4px;
+    background:rgba(255,255,255,0.05);
+    border:1px solid ${meta.color}55;
+    border-radius:3px;padding:2px 8px;
+    font-size:0.7rem;font-weight:700;
+    color:${meta.color};
+    font-family:var(--mono,monospace);
+    white-space:nowrap;
+  ">${meta.icon} ${meta.label}</span>`;
+}
+
+// ─────────────────────────────────────────────
+// window.generateAIPost — entry point
 // ─────────────────────────────────────────────
 window.generateAIPost = async function generateAIPost() {
   if (aiWriting) { showToast('Already generating — please wait.', 'info'); return; }
 
-  const topic      = (document.getElementById('v2TopicPrompt')?.value.trim()
-                   || document.getElementById('aiPrompt')?.value.trim());
+  const topic      = document.getElementById('v2TopicPrompt')?.value.trim()
+                  || document.getElementById('aiPrompt')?.value.trim() || '';
   const category   = document.getElementById('postCategory')?.value || 'Fintech';
   const tone       = document.getElementById('aiTone')?.value || 'professional';
   const model      = document.getElementById('modelArticle')?.value || 'auto';
@@ -82,183 +115,245 @@ window.generateAIPost = async function generateAIPost() {
 
   if (!topic) {
     showToast('Enter a topic first.', 'error');
-    document.getElementById('v2TopicPrompt')?.focus() || document.getElementById('aiPrompt')?.focus();
+    (document.getElementById('v2TopicPrompt') || document.getElementById('aiPrompt'))?.focus();
     return;
   }
 
-  aiWriting          = true;
-  _cancelled         = false;
+  aiWriting            = true;
+  _cancelled           = false;
   state.isGeneratingAI = true;
   _setBtnsDisabled(true);
 
   const editor = document.getElementById('editor');
   if (editor) editor.innerHTML = '';
 
-  // Open the modal — this makes the timer bar and roadmap visible
-  openModal('✦ Generating Article…', `Topic: "${topic.substring(0, 60)}" · Target: ${(wordTarget/1000).toFixed(0)}k words`);
+  const numSections = sectionsNeeded(wordTarget);
+  const wordsPerSec = Math.ceil(wordTarget / numSections);
+
+  openModal(
+    '✦ Generating Article…',
+    `"${topic.substring(0, 55)}" · ${(wordTarget / 1000).toFixed(0)}k words · ${numSections} sections`
+  );
   showRoadmap();
 
   try {
     // ── STEP 1: Outline ──────────────────────────
     setRoadmapStep('outline', 'active');
-    startTimer('outline');
-    timerLog('Building outline…');
-    _setModalContent('📋 Building section outline…');
+    startTimer(numSections);
+    timerLog(`Building ${numSections}-section outline…`);
+    _setModalContent('📋 Building outline…');
 
-    const numSections = sectionsNeeded(wordTarget);
-
-    const outlineResult = await callAI(
-      `Create a detailed blog post outline for: "${topic}"
+    const outlineResult = await callWithRetry(
+      `You are a professional blog editor. Create a detailed outline.
+Article topic: "${topic}"
 Category: ${category} | Tone: ${tone} | Target: ${wordTarget} words
 
-Generate exactly ${numSections} section titles that will cover the topic thoroughly.
-Return ONLY a valid JSON array of strings — nothing else.
-Example: ["Section One", "Section Two", "Section Three"]`,
-      true, model
+Generate exactly ${numSections} section titles in English only.
+First item must be "Introduction". Last item must be "Conclusion & Key Takeaways".
+Each title should be specific and descriptive (not generic like "Section 1").
+
+CRITICAL: Return ONLY a valid JSON array of strings. Nothing else. No explanation, no markdown, no preamble.
+["Introduction", "Section Title Two", ..., "Conclusion & Key Takeaways"]`,
+      model
     );
 
-    if (_cancelled) return;
+    if (_cancelled) return _cleanup();
 
     let sections = [];
     if (!outlineResult.error) {
       try {
-        const s = outlineResult.text.indexOf('[');
-        const e = outlineResult.text.lastIndexOf(']');
-        if (s !== -1 && e !== -1) sections = JSON.parse(outlineResult.text.substring(s, e + 1));
+        const raw = outlineResult.text || '';
+        const s   = raw.indexOf('[');
+        const e   = raw.lastIndexOf(']');
+        if (s !== -1 && e !== -1) sections = JSON.parse(raw.substring(s, e + 1));
       } catch(_) {}
     }
-
-    // Fallback: generate section names manually if parse failed
-    if (!sections.length) {
-      sections = Array.from({ length: numSections }, (_, i) =>
-        i === 0 ? 'Introduction' : i === numSections - 1 ? 'Conclusion' : `Section ${i}`
-      );
+    if (!Array.isArray(sections) || sections.length < 2) {
+      // Auto-generate fallback outline
+      sections = ['Introduction'];
+      for (let i = 2; i < numSections; i++) sections.push(`Section ${i}: ${topic}`);
+      sections.push('Conclusion & Key Takeaways');
     }
+    // Trim/pad to exactly numSections
+    while (sections.length < numSections) sections.push(`Deep Dive ${sections.length}`);
+    sections = sections.slice(0, numSections);
 
     state.pendingOutline = sections.join('\n');
     setRoadmapStep('outline', 'done');
-    stopTimer();
+    timerLog(`✓ Outline: ${sections.length} sections`);
 
-    // ── STEP 2: Write each section ───────────────
+    // ── STEP 2: Write sections one by one ────────
     setRoadmapStep('article', 'active');
-    const wordsPerSection = Math.ceil(wordTarget / sections.length);
-    // Scale estimate: 45s base + 20s per extra section
-    const articleEstimateSecs = 45 + (sections.length - 3) * 20;
-    startTimer('article');
-    // Override estimate for long articles
-    if (window._timerEstimate !== undefined) window._timerEstimate = articleEstimateSecs;
-
-    timerLog(`Writing ${sections.length} sections (~${wordsPerSection} words each)…`);
-
     const sectionHTMLs = [];
+    let   failedCount  = 0;
 
     for (let i = 0; i < sections.length; i++) {
       if (_cancelled) break;
 
-      const sectionTitle = sections[i];
+      const title    = sections[i];
+      const isFirst  = i === 0;
+      const isLast   = i === sections.length - 1;
       const progress = `${i + 1}/${sections.length}`;
 
-      timerLog(`✍ Section ${progress}: "${sectionTitle.substring(0, 40)}"`);
+      timerLog(`✍ [${progress}] ${title.substring(0, 45)}`);
+
       _setModalContent(
-        `<div style="color:var(--muted);font-size:0.8rem;margin-bottom:0.5rem">Section ${progress} of ${sections.length}</div>` +
-        `<div style="font-size:0.9rem;color:var(--cream);font-weight:600">"${sectionTitle.substring(0, 60)}"</div>` +
-        `<div style="margin-top:0.8rem;color:var(--muted);font-size:0.75rem">${sectionHTMLs.length * wordsPerSection} / ${wordTarget} words written</div>`
+        `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem">
+          <span style="font-size:0.75rem;color:var(--muted)">Section ${progress}</span>
+          <span style="font-size:0.75rem;color:var(--gold);font-weight:700">${getWordCount().toLocaleString()} words so far</span>
+        </div>
+        <div style="font-size:0.88rem;color:var(--cream);font-weight:600;margin-bottom:0.5rem">"${title.substring(0, 60)}"</div>
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem">
+          <span style="font-size:0.7rem;color:var(--muted)">Writing with</span>
+          ${_providerBadge(model === 'auto' ? null : model)}
+          <span style="font-size:0.65rem;color:var(--muted);font-style:italic">${model === 'auto' ? '(auto — trying providers in order)' : ''}</span>
+        </div>
+        <div style="background:var(--navy2);border-radius:3px;height:4px;overflow:hidden">
+          <div style="background:var(--gold);height:100%;width:${Math.round((i/sections.length)*100)}%;transition:width 0.5s"></div>
+        </div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:0.4rem">${Math.round((i/sections.length)*100)}% complete</div>`
       );
 
-      const isFirst = i === 0;
-      const isLast  = i === sections.length - 1;
+      const LANG_RULE = `LANGUAGE: Write ONLY in English. Do NOT use any other language.
+OUTPUT: Start your response DIRECTLY with <h2>. Do NOT include any preamble, reasoning, explanation, thinking, or markdown. Output ONLY valid HTML.`;
 
-      const sectionPrompt = isFirst
-        ? `Write an engaging introduction section for a blog post about: "${topic}"
-Category: ${category} | Tone: ${tone}
-Section title: "${sectionTitle}"
-Target: ${wordsPerSection} words
-- Hook the reader immediately
-- Explain what the article will cover
-- Use <h2> for the section title, then <p> tags
-- Return ONLY clean HTML`
+      const prompt = isFirst
+        ? `You are a professional blog writer. Write an engaging introduction section.
+Topic: "${topic}" | Category: ${category} | Tone: ${tone}
+Section heading: "${title}"
+Target: ${wordsPerSec} words minimum.
+Requirements:
+- Start with a strong hook that grabs attention
+- Explain what the article covers and why it matters
+- Use <h2>${title}</h2> as the heading, followed by <p> paragraphs
+- Include real statistics or facts where possible
+${LANG_RULE}`
+
         : isLast
-        ? `Write a strong conclusion section for a blog post about: "${topic}"
-Category: ${category} | Tone: ${tone}
-Section title: "${sectionTitle}"
-Target: ${wordsPerSection} words
-- Summarise key takeaways
-- End with a clear call to action
-- Use <h2> for the section title, then <p> tags
-- Return ONLY clean HTML`
-        : `Write a detailed section for a blog post about: "${topic}"
-Category: ${category} | Tone: ${tone}
-Section title: "${sectionTitle}"
-Target: ${wordsPerSection} words
-- Cover this section in depth with examples, data points, and analysis
-- Use <h2> for the section title, <h3> for sub-points
-- Use <p>, <strong>, <em>, <ul>, <li>, <blockquote> where appropriate
-- NEVER use <h1> or <script>
-- Return ONLY clean HTML for this section`;
+        ? `You are a professional blog writer. Write a strong conclusion section.
+Topic: "${topic}" | Category: ${category} | Tone: ${tone}
+Section heading: "${title}"
+Target: ${wordsPerSec} words minimum.
+Requirements:
+- Summarise the key insights from the article
+- Provide clear, actionable takeaways for the reader
+- End with a compelling call to action
+- Use <h2>${title}</h2> as heading, followed by <p> paragraphs
+${LANG_RULE}`
 
-      const result = await callAI(sectionPrompt, true, model, 8000);
+        : `You are a professional blog writer. Write a detailed, well-researched section.
+Topic: "${topic}" | Category: ${category} | Tone: ${tone}
+Section heading: "${title}"
+Target: ${wordsPerSec} words minimum — do NOT cut short.
+Requirements:
+- Cover this section comprehensively with examples, data points, and analysis
+- Use <h2>${title}</h2> for the main heading
+- Use <h3> for sub-points, <p> for paragraphs
+- Use <strong> for key terms, <ul><li> for lists, <blockquote> for quotes
+- Include at least one specific statistic, case study, or real-world example
+- Every paragraph must be substantive — no filler sentences
+${LANG_RULE}`;
+
+      const result = await callWithRetry(prompt, model);
 
       if (_cancelled) break;
 
-      if (result.error) {
-        // Insert a placeholder for failed sections so the article isn't broken
+      // Show which AI responded in the modal
+      const badge = _providerBadge(result.provider);
+
+      if (result.error || !result.text?.trim()) {
+        failedCount++;
         sectionHTMLs.push(
-          `<div class="failed-section-block" data-section="${sectionTitle}" data-topic="${topic}" data-category="${category}" data-tone="${tone}" data-words="${wordsPerSection}" data-model="${model}">
-            <div class="failed-section-inner" style="background:rgba(239,68,68,0.06);border:1px dashed rgba(239,68,68,0.3);border-radius:4px;padding:1rem;margin:1rem 0">
-              <div class="failed-text" style="color:#fca5a5;font-size:0.82rem">⚠ Section failed: "${sectionTitle}" — <span>${result.error}</span></div>
-              <button onclick="retrySectionGen(this)" style="margin-top:0.5rem;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:0.3rem 0.8rem;border-radius:3px;font-size:0.75rem;cursor:pointer">🔄 Retry Now</button>
+          `<div class="failed-section-block"
+              data-section="${_esc(title)}" data-topic="${_esc(topic)}"
+              data-category="${_esc(category)}" data-tone="${_esc(tone)}"
+              data-words="${wordsPerSec}" data-model="${_esc(model)}">
+            <div style="background:rgba(239,68,68,0.06);border:1px dashed rgba(239,68,68,0.3);border-radius:4px;padding:1rem;margin:1rem 0">
+              <div style="color:#fca5a5;font-size:0.82rem;margin-bottom:0.5rem">
+                ⚠ Section failed: "<strong>${title}</strong>" — ${result.error || 'empty response'}
+              </div>
+              <button onclick="retrySectionGen(this)"
+                style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:0.3rem 0.8rem;border-radius:3px;font-size:0.75rem;cursor:pointer">
+                🔄 Retry this section
+              </button>
             </div>
           </div>`
         );
       } else {
-        const clean = sanitize(
-          (result.text || '')
-            .replace(/```html?|```/gi, '')
-            .replace(/<h1[^>]*>.*?<\/h1>/gi, '')
-            .trim()
+        const clean = sanitize(_stripReasoning(result.text));
+
+        // ── Chart injection ──────────────────────
+        // Inject a chart every 3rd body section (not intro/conclusion)
+        // Also always inject one after the 2nd section if article is long enough
+        let chartHTML = '';
+        const isBodySection = !isFirst && !isLast;
+        const shouldChart   = isBodySection && (
+          i === 2 ||                            // always after 2nd body section
+          (i > 2 && (i % 3 === 0))              // then every 3rd section
         );
-        sectionHTMLs.push(clean);
+
+        if (shouldChart && wordTarget >= 800) {
+          timerLog(`  📊 [${progress}] generating chart…`);
+          _setModalContent(
+            `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem">
+              <span style="font-size:0.75rem;color:var(--muted)">Section ${progress} — Chart</span>
+              <span style="font-size:0.75rem;color:var(--gold);font-weight:700">${getWordCount().toLocaleString()} words so far</span>
+            </div>
+            <div style="font-size:0.88rem;color:var(--cream);font-weight:600;margin-bottom:0.5rem">📊 Building data visualization…</div>
+            <div style="font-size:0.7rem;color:var(--muted)">"${title.substring(0, 55)}"</div>`
+          );
+          try {
+            chartHTML = await generateChartForSection(topic, title, category, model);
+            if (chartHTML) timerLog(`  ✓ [${progress}] chart injected`);
+          } catch(_) { chartHTML = ''; }
+        }
+
+        sectionHTMLs.push(clean + (chartHTML ? '\n' + chartHTML : ''));
       }
 
-      // Append section to editor live so user sees progress
+      // Write to editor live — user sees article building in real time
       if (editor) {
         editor.innerHTML = sectionHTMLs.join('\n');
         updateWordCount();
       }
 
-      // Small pause between calls to avoid rate limits on large articles
-      if (i < sections.length - 1 && wordTarget >= 5000) {
-        await _sleep(800);
+      // Update modal to show which AI actually handled this section
+      if (!result.error && result.provider) {
+        timerLog(`  ✓ [${progress}] responded by ${PROVIDER_META[result.provider]?.label || result.provider}`);
+      }
+
+      // Report real progress to timer
+      updateProgress(i + 1, getWordCount());
+
+      // Throttle between sections to avoid rate-limiting on large articles
+      if (!_cancelled && i < sections.length - 1) {
+        await _sleep(wordTarget >= 10000 ? 1000 : 400);
       }
     }
 
-    setRoadmapStep('article', 'done');
+    setRoadmapStep('article', _cancelled ? 'error' : 'done');
     stopTimer();
 
-    if (_cancelled) {
-      closeModal();
-      showToast('Generation cancelled.', 'info');
-      return;
-    }
+    if (_cancelled) return _cleanup();
 
     // ── STEP 3: Metadata ─────────────────────────
     setRoadmapStep('metadata', 'active');
-    startTimer('metadata');
     timerLog('Generating metadata…');
-    _setModalContent('🏷 Generating title, excerpt, tags…');
+    _setModalContent('🏷 Writing title, excerpt, tags…');
 
     const metaResult = await callAI(
-      `For this blog post about "${topic}", return ONLY valid JSON:
-{"title":"SEO title under 60 chars","excerpt":"compelling 2-sentence summary","slug":"url-slug","metaDesc":"meta description under 155 chars","tags":["tag1","tag2","tag3","tag4","tag5"]}`,
+      `For the blog post about "${topic}" (${category}), return ONLY valid JSON — no markdown, no explanation:
+{"title":"SEO-optimised title under 60 chars","excerpt":"2-sentence compelling summary","slug":"url-friendly-slug","metaDesc":"meta description under 155 chars","tags":["tag1","tag2","tag3","tag4","tag5"]}`,
       true, model
     );
 
     if (!metaResult.error) {
       try {
-        const s = metaResult.text.indexOf('{');
-        const e = metaResult.text.lastIndexOf('}');
+        const raw = metaResult.text || '';
+        const s   = raw.indexOf('{');
+        const e   = raw.lastIndexOf('}');
         if (s !== -1 && e !== -1) {
-          const meta = JSON.parse(metaResult.text.substring(s, e + 1));
+          const meta = JSON.parse(raw.substring(s, e + 1));
           _setField('postTitle',   meta.title);
           _setField('postExcerpt', meta.excerpt);
           _setField('postSlug',    meta.slug);
@@ -273,31 +368,53 @@ Target: ${wordsPerSection} words
     stopTimer();
 
     // ── Done ─────────────────────────────────────
-    const finalCount = (editor?.textContent || '').trim().split(/\s+/).filter(Boolean).length;
-    _setModalTitle('✓ Article Ready!', `${finalCount.toLocaleString()} words generated across ${sections.length} sections.`);
+    const finalWords = getWordCount();
+    const failNote   = failedCount > 0 ? ` (${failedCount} section${failedCount > 1 ? 's' : ''} need retry)` : '';
+
+    _setModalText(
+      failedCount > 0 ? '⚠ Article Ready (with failed sections)' : '✓ Article Ready!',
+      `${finalWords.toLocaleString()} words · ${sections.length} sections${failNote}`
+    );
     _setModalContent(
-      `<div style="color:var(--green);font-size:1.1rem;font-weight:700;margin-bottom:0.5rem">✓ Done!</div>` +
-      `<div style="color:var(--muted);font-size:0.82rem">${finalCount.toLocaleString()} words · ${sections.length} sections · Target was ${wordTarget.toLocaleString()} words</div>`
+      `<div style="color:${failedCount > 0 ? 'var(--gold)' : 'var(--green)'};font-size:1.1rem;font-weight:700;margin-bottom:0.5rem">
+        ${failedCount > 0 ? '⚠' : '✓'} Done!
+      </div>
+      <div style="color:var(--muted);font-size:0.82rem">
+        ${finalWords.toLocaleString()} words written<br>
+        Target was ${wordTarget.toLocaleString()} words<br>
+        ${failedCount > 0 ? `<span style="color:#fca5a5">${failedCount} section(s) failed — scroll down to retry them</span>` : ''}
+      </div>`
     );
 
-    // Auto-close modal after 2s
-    setTimeout(closeModal, 2000);
-    showToast(`Article ready! ${finalCount.toLocaleString()} words.`, 'success');
+    setTimeout(closeModal, 2500);
+    showToast(
+      failedCount > 0
+        ? `Done — ${finalWords.toLocaleString()} words. ${failedCount} section(s) need retry.`
+        : `Article ready! ${finalWords.toLocaleString()} words.`,
+      failedCount > 0 ? 'info' : 'success'
+    );
 
   } catch(err) {
-    console.error('[ai-writer] generateAIPost failed:', err);
-    closeModal();
+    console.error('[ai-writer]', err);
+    _setModalContent(`<div style="color:#fca5a5">✕ ${err.message}</div>`);
+    setTimeout(closeModal, 3000);
     showToast('Generation failed: ' + err.message, 'error');
   } finally {
-    aiWriting          = false;
+    aiWriting            = false;
     state.isGeneratingAI = false;
     _setBtnsDisabled(false);
   }
 };
 
+function _cleanup() {
+  aiWriting            = false;
+  state.isGeneratingAI = false;
+  _setBtnsDisabled(false);
+  closeModal();
+}
 
 // ─────────────────────────────────────────────
-// initAIWriter — wires up simple #aiWriteBtn
+// initAIWriter — wires up the simple #aiWriteBtn
 // ─────────────────────────────────────────────
 export function initAIWriter() {
   const btn         = document.getElementById('aiWriteBtn');
@@ -313,14 +430,14 @@ export function initAIWriter() {
       aiWriting     = true;
       btn.disabled  = true;
       btn.innerText = 'Generating…';
-      const result = await callAI(prompt, true);
+      const result  = await callAI(prompt, true);
       if (result.error) throw new Error(result.error);
       if (editor) {
         editor.innerHTML += `<p>${sanitize(result.text)}</p>`;
         updateWordCount();
       }
     } catch(err) {
-      showToast('AI generation failed: ' + err.message, 'error');
+      showToast('Failed: ' + err.message, 'error');
     } finally {
       aiWriting     = false;
       btn.disabled  = false;
@@ -329,10 +446,25 @@ export function initAIWriter() {
   });
 }
 
-
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
+function _stripReasoning(text) {
+  if (!text) return '';
+  // Remove <think>...</think> blocks (DeepSeek, some models)
+  text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  // Remove lines that look like chain-of-thought (start with "Let me", "I will", "First,", "Okay,", "Sure,")
+  text = text.replace(/^(let me|i will|i'll|okay|sure|alright|here is|here's|of course|certainly|below is)[^\n]*/gim, '');
+  // Remove markdown code fences
+  text = text.replace(/```html?|```/gi, '');
+  // Remove any <h1> tags
+  text = text.replace(/<h1[^>]*>.*?<\/h1>/gi, '');
+  // If text starts before any HTML tag — strip leading non-HTML lines
+  const firstTag = text.search(/<(h[2-6]|p|div|ul|ol|blockquote|section)/i);
+  if (firstTag > 10) text = text.substring(firstTag);
+  return text.trim();
+}
+
 function _setBtnsDisabled(on) {
   ['aiWriteBtn', 'btnAI', 'v2GenerateBtn'].forEach(id => {
     const el = document.getElementById(id);
@@ -346,6 +478,10 @@ function _setField(id, value) {
   if (el) el.value = value;
 }
 
+function _esc(str) {
+  return (str || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function _sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise(r => setTimeout(r, ms));
 }

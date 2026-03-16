@@ -35,7 +35,7 @@ export function initEditor() {
 
 function setupEvents() {
 
-  editor.addEventListener("input", saveHistory);
+  editor.addEventListener("input", () => { saveHistory(); updateWordCount(); });
 
   editor.addEventListener("paste", handlePaste);
 
@@ -385,13 +385,27 @@ export function setEditorHTML(html) {
 
 export function updateWordCount() {
   const ed = document.getElementById("editor");
-  const el = document.getElementById("wordCount");
   if (!ed) return;
-  const count = (ed.textContent || "").trim().split(/\s+/).filter(Boolean).length;
-  if (el) el.textContent = count.toLocaleString() + " words";
-  // Also sync the v2 editor word-count badge if present
-  const v2el = document.getElementById("v2WordCount");
-  if (v2el) v2el.textContent = count.toLocaleString() + " words";
+  const count   = (ed.textContent || "").trim().split(/\s+/).filter(Boolean).length;
+  const readMin = Math.max(1, Math.ceil(count / 200));
+
+  // Top bar
+  const wcTop = document.getElementById("wordCount");
+  if (wcTop) wcTop.textContent = count.toLocaleString();
+
+  const rtTop = document.getElementById("readingTimeTop");
+  if (rtTop) rtTop.textContent = readMin;
+
+  // Bottom bar
+  const wcBot = document.getElementById("wordCountBottom");
+  if (wcBot) wcBot.textContent = count.toLocaleString();
+
+  const rtBot = document.getElementById("readingTimeDisplay");
+  if (rtBot) rtBot.textContent = readMin;
+
+  // v2 panel
+  const v2wc = document.getElementById("v2WordCount");
+  if (v2wc) v2wc.textContent = count.toLocaleString() + " words";
 }
 window.updateWordCount = updateWordCount;
 

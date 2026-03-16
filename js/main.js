@@ -20,6 +20,7 @@ import "./images-upload.js";
 import "./ai-editor.js";
 import "./ai-tools.js";
 import "./v2-editor.js";
+import "./image-manager.js";
 
 import { initAIWriter } from "./ai-writer.js";
 import { initAutoBlog } from "./auto-blog.js";
