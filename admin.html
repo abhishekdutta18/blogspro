@@ -411,7 +411,7 @@
     </div>
 
     <!-- ══ AI PARTICIPATION STATUS ══ -->
-    <div style="margin-top:1.2rem;background:var(--navy2);border:1px solid var(--border);border-radius:6px;overflow:hidden" id="v2ParticipationPanel">
+    <div style="margin-top:1.2rem;background:var(--navy2);border:1px solid var(--border);border-radius:6px" id="v2ParticipationPanel">
       <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none" onclick="v2TogglePanel('v2PartBody',this)">
         <span style="font-size:0.82rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--cream)">🤖 AI Participation Status</span>
         <span style="font-size:10px;color:var(--muted)">Active · Inactive models in your pipeline ▾</span>
@@ -428,8 +428,9 @@
           <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">☁️ Cloudflare AI</div><div class="v2-ai-task">Image generation — primary provider</div><span class="v2-ai-badge on">● Active</span></div>
           <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🤗 HuggingFace</div><div class="v2-ai-task">Image gen — Flux Schnell fallback</div><span class="v2-ai-badge on">● Active</span></div>
           <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌸 Pollinations.ai</div><div class="v2-ai-task">Image gen — zero-setup fallback</div><span class="v2-ai-badge on">● Active</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">⚡ Groq (Llama)</div><div class="v2-ai-task">Fallback provider — fast free tier</div><span class="v2-ai-badge on">● Active</span></div>
           <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">💬 GPT-4o</div><div class="v2-ai-task">OpenAI — not integrated in this pipeline</div><span class="v2-ai-badge off">○ Not Used</span></div>
-          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">♊ Gemini 1.5 Pro</div><div class="v2-ai-task">Google — not integrated in this pipeline</div><span class="v2-ai-badge off">○ Not Used</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">♊ Gemini 2.0 Flash</div><div class="v2-ai-task">Google — fallback when Cloudflare rate-limits</div><span class="v2-ai-badge on">● Active</span></div>
           <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">🔮 Claude (Anthropic)</div><div class="v2-ai-task">Requires separate API key — not set</div><span class="v2-ai-badge off">○ Not Used</span></div>
         </div>
       </div>
