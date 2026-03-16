@@ -5,16 +5,18 @@ import { runImageAI } from "./ai/image-engine.js";
 const cache    = new Map();
 const CACHE_TTL = 10 * 60 * 1000;
 
-// Provider display metadata — label + color shown in the modal
+// Provider display metadata — label + color + model shown in the modal
 export const PROVIDER_META = {
-  cloudflare: { label: 'Cloudflare AI',  color: '#f6821f', icon: '☁️'  },
-  groq:       { label: 'Groq',           color: '#f55036', icon: '⚡'  },
-  openrouter: { label: 'OpenRouter',     color: '#7c3aed', icon: '🔀'  },
-  together:   { label: 'Together AI',    color: '#0ea5e9', icon: '🤝'  },
-  deepinfra:  { label: 'DeepInfra',      color: '#10b981', icon: '🧠'  },
-  deepseek:   { label: 'DeepSeek',       color: '#3b82f6', icon: '🔍'  },
-  mistral:    { label: 'Mistral AI',     color: '#ff6b35', icon: '🌀'  },
-  gemini:     { label: 'Gemini',         color: '#4285f4', icon: '✨'  },
+  groq:        { label: 'Kimi K2 (Groq)',       color: '#f55036', icon: '🌙', model: 'kimi-k2-instruct'        },
+  openrouter:  { label: 'Qwen3 235B',            color: '#7c3aed', icon: '🐼', model: 'qwen3-235b-a22b'          },
+  together:    { label: 'DeepSeek V3',           color: '#0ea5e9', icon: '🔍', model: 'DeepSeek-V3'              },
+  deepinfra:   { label: 'Llama 3.3 70B',         color: '#10b981', icon: '🦙', model: 'Llama-3.3-70B-Instruct'  },
+  gemini:      { label: 'Gemini 2.0 Flash',      color: '#4285f4', icon: '✨', model: 'gemini-2.0-flash'         },
+  mistral:     { label: 'Mistral Large',         color: '#ff6b35', icon: '🌀', model: 'mistral-large-latest'     },
+  deepseek:    { label: 'DeepSeek Chat',         color: '#3b82f6', icon: '💬', model: 'deepseek-chat'            },
+  cloudflare:  { label: 'Cloudflare AI',         color: '#f6821f', icon: '☁️', model: 'workers-ai'               },
+  pollinations:{ label: 'Pollinations',          color: '#ec4899', icon: '🌸', model: 'flux-schnell'             },
+  huggingface: { label: 'HuggingFace',           color: '#fbbf24', icon: '🤗', model: 'flux-schnell'             },
 };
 
 // callAI supports two calling conventions:

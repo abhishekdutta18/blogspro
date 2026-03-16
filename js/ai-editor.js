@@ -7,10 +7,26 @@ import { state }   from './state.js';
 import { updateWordCount } from './editor.js';
 
 function getEditor() { return document.getElementById('editor'); }
-function setEditStatus(msg, isError=false) {
+
+function setEditStatus(msg, isError = false) {
   const el = document.getElementById('aiEditStatus');
-  if (el) { el.textContent = msg; el.style.color = isError ? '#fca5a5' : 'var(--muted)'; }
+  if (!el) return;
+  el.style.color = isError ? '#fca5a5' : 'var(--muted)';
+  el.innerHTML = msg; // use innerHTML so we can embed progress bar HTML
 }
+
+// Renders an inline progress bar into the status area
+function setEditProgress(current, total, label = '') {
+  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+  setEditStatus(`
+    <div style="margin-bottom:4px;font-size:0.72rem;color:var(--muted)">${label || `Section ${current} of ${total}`}</div>
+    <div style="background:rgba(255,255,255,0.06);border-radius:3px;height:6px;overflow:hidden;width:100%">
+      <div style="background:linear-gradient(90deg,var(--gold),var(--gold2));height:100%;width:${pct}%;transition:width 0.4s ease;border-radius:3px"></div>
+    </div>
+    <div style="margin-top:3px;font-size:0.68rem;color:var(--gold)">${pct}%</div>
+  `);
+}
+
 function setEditBtnsDisabled(on) {
   document.querySelectorAll('.ai-edit-btn').forEach(b => b.disabled = on);
 }
@@ -19,83 +35,85 @@ async function runAIEdit(instruction) {
   const editor      = getEditor();
   const currentHTML = editor?.innerHTML || '';
   const currentText = editor?.textContent || '';
-  const topic    = document.getElementById('aiPrompt').value.trim() || 'fintech article';
-  const category = document.getElementById('postCategory').value;
+  const topic    = document.getElementById('aiPrompt')?.value.trim()
+                || document.getElementById('v2TopicPrompt')?.value.trim()
+                || 'fintech article';
+  const category = document.getElementById('postCategory')?.value || 'General';
   const model    = document.getElementById('modelArticle')?.value || 'auto';
   if (!currentText?.trim()) { setEditStatus('No article content.', true); return; }
 
   setEditBtnsDisabled(true);
   const wordCount = currentText.trim().split(/\s+/).filter(Boolean).length;
-
-  // For long articles: edit section-by-section to preserve word count
-  // Split on <h2> boundaries so each call handles one section at a time
-  const isLong = wordCount > 1000;
+  const isLong    = wordCount > 800;
 
   if (isLong) {
-    setEditStatus(`⏳ Editing ${wordCount.toLocaleString()} words section by section…`);
-    // Split HTML into sections by <h2>
     const sections = currentHTML.split(/(?=<h2[^>]*>)/i).filter(Boolean);
+
     if (sections.length <= 1) {
-      // No h2 splits — chunk by character
-      const chunks = [];
+      // Chunk by characters
+      const chunks    = [];
       const chunkSize = 3000;
       for (let i = 0; i < currentText.length; i += chunkSize) {
         chunks.push(currentText.substring(i, i + chunkSize));
       }
       const results = [];
       for (let i = 0; i < chunks.length; i++) {
-        setEditStatus(`⏳ Editing chunk ${i+1}/${chunks.length}…`);
+        setEditProgress(i + 1, chunks.length, `⏳ Editing chunk ${i + 1} of ${chunks.length}…`);
         const r = await callAI(
           `Edit this section of a fintech article about "${topic}" (${category}).
 SECTION: ${chunks[i]}
 TASK: ${instruction}
-RULES: Return ONLY clean HTML. NEVER shorten — output must be same length or longer.`,
+Write ONLY in English. Return ONLY clean HTML. Same length or longer.`,
           true, model, 8000
         );
-        results.push(r.error ? chunks[i] : (r.text||'').replace(/\`\`\`html?|\`\`\`/gi,'').trim());
+        results.push(r.error ? chunks[i] : (r.text || '').replace(/```html?|```/gi, '').trim());
       }
       editor.innerHTML = sanitize(results.join('\n'));
+
     } else {
       const edited = new Array(sections.length).fill(null);
       for (let i = 0; i < sections.length; i++) {
-        setEditStatus(`⏳ Editing section ${i+1}/${sections.length}…`);
-        const sText = sections[i].replace(/<[^>]+>/g,' ').trim();
+        const secTitle = (sections[i].match(/<h2[^>]*>([^<]*)<\/h2>/i)?.[1] || `Section ${i + 1}`).trim();
+        setEditProgress(i + 1, sections.length, `⏳ Editing: "${secTitle.substring(0, 40)}"`);
         const r = await callAI(
           `Edit this section of a fintech article about "${topic}" (${category}).
-Section ${i+1} of ${sections.length}.
+Section ${i + 1} of ${sections.length}: "${secTitle}"
 SECTION HTML: ${sections[i]}
 TASK: ${instruction}
-RULES: Return ONLY clean HTML for this section. Same or more words, never fewer.`,
+Write ONLY in English. Return ONLY clean HTML for this section. Same or more words.`,
           true, model, 8000
         );
         edited[i] = r.error
           ? sections[i]
-          : (r.text||'').replace(/\`\`\`html?|\`\`\`/gi,'').replace(/<h1[^>]*>.*?<\/h1>/gi,'').trim();
+          : (r.text || '').replace(/```html?|```/gi, '').replace(/<h1[^>]*>.*?<\/h1>/gi, '').trim();
+        // Update editor live after each section
+        editor.innerHTML = sanitize(edited.map((s, j) => s ?? sections[j]).join('\n'));
+        updateWordCount();
       }
       editor.innerHTML = sanitize(edited.join('\n'));
     }
+
   } else {
-    // Short articles: single call
     setEditStatus(`⏳ Working… (${wordCount.toLocaleString()} words)`);
     const r = await callAI(
       `Edit this fintech article about "${topic}" (${category}).
 Word count: ${wordCount} words.
 ARTICLE: ${currentText}
 TASK: ${instruction}
-RULES: Return ONLY clean HTML. Use <h2><h3><p><strong><em><ul><li><blockquote>. NEVER use <h1>. Never reduce word count.`,
+Write ONLY in English. Return ONLY clean HTML. Use <h2><h3><p><strong><em><ul><li><blockquote>. Never use <h1>. Never reduce word count.`,
       true, model, 8000
     );
-    if (r.error) { setEditStatus('✕ '+r.error, true); setEditBtnsDisabled(false); return; }
-    const clean = (r.text||'').replace(/\`\`\`html?|\`\`\`/gi,'').trim();
+    if (r.error) { setEditStatus('✕ ' + r.error, true); setEditBtnsDisabled(false); return; }
+    const clean = (r.text || '').replace(/```html?|```/gi, '').trim();
     if (!clean) { setEditStatus('✕ Empty response.', true); setEditBtnsDisabled(false); return; }
     editor.innerHTML = sanitize(clean);
   }
 
   updateWordCount();
-  const newCount = editor.textContent.trim().split(/\s+/).filter(Boolean).length;
+  const newCount = (editor?.textContent || '').trim().split(/\s+/).filter(Boolean).length;
   setEditStatus(`✓ Done — ${newCount.toLocaleString()} words`);
   setEditBtnsDisabled(false);
-  showToast('Article updated!','success');
+  showToast('Article updated!', 'success');
 }
 
 const EDIT_INSTRUCTIONS = {
@@ -133,7 +151,11 @@ async function insertReferencesBlock() {
   if (!content?.trim()) { showToast('Write an article first.', 'error'); return; }
 
   setEditBtnsDisabled(true);
-  setEditStatus('⏳ Extracting claims and finding sources…');
+  setEditStatus(`
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px">⏳ Extracting claims and finding sources…</div>
+    <div style="background:rgba(255,255,255,0.06);border-radius:3px;height:6px;overflow:hidden">
+      <div style="background:linear-gradient(90deg,#c9a84c,#e2c97e);height:100%;width:50%;animation:pulse 1s infinite;border-radius:3px"></div>
+    </div>`);
 
   const result = await callAI(
     `You are a research librarian. Read this article and generate 6-8 real, verifiable APA-format references.
@@ -232,7 +254,11 @@ window.insertInlineCitations = async () => {
   if (!content?.trim()) { showToast('Write an article first.', 'error'); return; }
 
   setEditBtnsDisabled(true);
-  setEditStatus('⏳ Adding inline citations…');
+  setEditStatus(`
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px">⏳ Adding inline citation markers…</div>
+    <div style="background:rgba(255,255,255,0.06);border-radius:3px;height:6px;overflow:hidden">
+      <div style="background:linear-gradient(90deg,#93c5fd,#60a5fa);height:100%;width:55%;animation:pulse 1s infinite;border-radius:3px"></div>
+    </div>`);
 
   const result = await callAI(
     `Add numbered inline citation markers to factual claims in this HTML article.
@@ -268,7 +294,11 @@ export async function runArticleQualityScore() {
   const title   = document.getElementById('postTitle')?.value.trim() || '';
   if (!content?.trim()) { showToast('Write an article first.', 'error'); return; }
   setEditBtnsDisabled(true);
-  setEditStatus('⏳ Scoring article…');
+  setEditStatus(`
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px">⏳ Scoring article quality…</div>
+    <div style="background:rgba(255,255,255,0.06);border-radius:3px;height:6px;overflow:hidden">
+      <div style="background:linear-gradient(90deg,#4ade80,#22c55e);height:100%;width:70%;animation:pulse 1s infinite;border-radius:3px"></div>
+    </div>`);
 
   const result = await callAI(
     `Score this fintech article for quality (0-100).
@@ -359,11 +389,20 @@ window.applyQualityFix = async (fix) => {
 // ── SEO Optimizer ─────────────────────────────
 export async function runSEOOptimizer() {
   const content  = getEditor()?.textContent;
-  const title    = document.getElementById('postTitle').value.trim();
+  const title    = document.getElementById('postTitle')?.value.trim() || '';
   if (!content?.trim()) { showToast('Write an article first.','error'); return; }
-  setEditBtnsDisabled(true); setEditStatus('⏳ SEO analysis…');
+  setEditBtnsDisabled(true);
+  setEditStatus(`
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px">⏳ Analysing SEO…</div>
+    <div style="background:rgba(255,255,255,0.06);border-radius:3px;height:6px;overflow:hidden">
+      <div style="background:linear-gradient(90deg,#3b82f6,#60a5fa);height:100%;width:60%;animation:pulse 1s infinite;border-radius:3px"></div>
+    </div>`);
   const result = await callAI(
-    `Optimize this fintech article for SEO.\nTitle: "${title}"\nContent: "${content.substring(0,1500)}"\nReturn ONLY JSON:\n{"optimizedTitle":"under 60 chars","metaDescription":"under 155 chars","tags":["t1","t2","t3","t4","t5"],"focusKeyword":"main keyword"}`,
+    `Optimize this fintech article for SEO. Write ONLY in English.
+Title: "${title}"
+Content: "${content.substring(0,1500)}"
+Return ONLY JSON (no markdown):
+{"optimizedTitle":"under 60 chars","metaDescription":"under 155 chars","tags":["t1","t2","t3","t4","t5"],"focusKeyword":"main keyword"}`,
     true
   );
   if (result.error) { setEditStatus('✕ '+result.error, true); setEditBtnsDisabled(false); return; }
@@ -384,7 +423,12 @@ window.runSEOOptimizer = runSEOOptimizer;
 export async function runInternalLinking() {
   const content = getEditor()?.innerHTML;
   if (!content?.trim()) { showToast('Write an article first.','error'); return; }
-  setEditBtnsDisabled(true); setEditStatus('⏳ Adding internal links…');
+  setEditBtnsDisabled(true);
+  setEditStatus(`
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px">⏳ Scanning for link opportunities…</div>
+    <div style="background:rgba(255,255,255,0.06);border-radius:3px;height:6px;overflow:hidden">
+      <div style="background:linear-gradient(90deg,var(--gold),var(--gold2));height:100%;width:45%;animation:pulse 1s infinite;border-radius:3px"></div>
+    </div>`);
   const linked = await buildInternalLinks(content);
   const editor = getEditor();
   editor.innerHTML = sanitize(linked);

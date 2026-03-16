@@ -171,12 +171,28 @@ CRITICAL: Return ONLY a valid JSON array of strings. Nothing else. No explanatio
     if (!Array.isArray(sections) || sections.length < 2) {
       // Auto-generate fallback outline
       sections = ['Introduction'];
-      for (let i = 2; i < numSections; i++) sections.push(`Section ${i}: ${topic}`);
+      for (let i = 1; i < numSections - 1; i++) sections.push(`Section ${i + 1}: ${topic}`);
       sections.push('Conclusion & Key Takeaways');
     }
-    // Trim/pad to exactly numSections
-    while (sections.length < numSections) sections.push(`Deep Dive ${sections.length}`);
-    sections = sections.slice(0, numSections);
+
+    // Always ensure conclusion is last — AI sometimes puts it in the middle
+    const conclusionIdx = sections.findIndex(s =>
+      /conclusion|summary|key takeaway|final/i.test(s)
+    );
+    if (conclusionIdx !== -1 && conclusionIdx !== sections.length - 1) {
+      const [conclusion] = sections.splice(conclusionIdx, 1);
+      sections.push(conclusion);
+    }
+
+    // Trim/pad to exactly numSections — keep conclusion pinned at end
+    if (sections.length > numSections) {
+      const conclusion = sections[sections.length - 1];
+      sections = sections.slice(0, numSections - 1);
+      sections.push(conclusion);
+    }
+    while (sections.length < numSections) {
+      sections.splice(sections.length - 1, 0, `Deep Dive ${sections.length}`);
+    }
 
     state.pendingOutline = sections.join('\n');
     setRoadmapStep('outline', 'done');
@@ -342,25 +358,40 @@ ${LANG_RULE}`;
     _setModalContent('🏷 Writing title, excerpt, tags…');
 
     const metaResult = await callAI(
-      `For the blog post about "${topic}" (${category}), return ONLY valid JSON — no markdown, no explanation:
-{"title":"SEO-optimised title under 60 chars","excerpt":"2-sentence compelling summary","slug":"url-friendly-slug","metaDesc":"meta description under 155 chars","tags":["tag1","tag2","tag3","tag4","tag5"]}`,
-      true, model
+      `You are an SEO copywriter. Write metadata for this blog post.
+Topic: "${topic}"
+Category: ${category}
+
+CRITICAL: Respond ONLY with a single valid JSON object. No markdown, no backticks, no explanation. Start with { and end with }.
+
+{"title":"compelling SEO title under 60 characters","excerpt":"2 engaging sentences that make readers click — no quotes inside","slug":"url-friendly-slug-no-spaces","metaDesc":"meta description under 155 characters","tags":["tag1","tag2","tag3","tag4","tag5"]}`,
+      true
     );
 
-    if (!metaResult.error) {
+    if (!metaResult.error && metaResult.text) {
       try {
-        const raw = metaResult.text || '';
-        const s   = raw.indexOf('{');
-        const e   = raw.lastIndexOf('}');
+        // Strip any markdown fences or leading text before the JSON
+        let raw = metaResult.text
+          .replace(/```json|```/gi, '')
+          .replace(/^[^{]*/s, '')   // strip anything before first {
+          .trim();
+        const s = raw.indexOf('{');
+        const e = raw.lastIndexOf('}');
         if (s !== -1 && e !== -1) {
           const meta = JSON.parse(raw.substring(s, e + 1));
-          _setField('postTitle',   meta.title);
-          _setField('postExcerpt', meta.excerpt);
-          _setField('postSlug',    meta.slug);
-          _setField('postMeta',    meta.metaDesc);
-          if (meta.tags?.length) _setField('postTags', meta.tags.join(', '));
+          // Force-set all fields — don't skip if already has a value
+          if (meta.title)    { const el = document.getElementById('postTitle');   if (el) el.value = meta.title; }
+          if (meta.excerpt)  { const el = document.getElementById('postExcerpt'); if (el) el.value = meta.excerpt; }
+          if (meta.slug)     { const el = document.getElementById('postSlug');    if (el) el.value = meta.slug; }
+          if (meta.metaDesc) { const el = document.getElementById('postMeta');    if (el) el.value = meta.metaDesc; }
+          if (meta.tags?.length) { const el = document.getElementById('postTags'); if (el) el.value = meta.tags.join(', '); }
+          timerLog(`✓ Metadata: "${(meta.title||'').substring(0,40)}"`);
         }
-      } catch(_) {}
+      } catch(parseErr) {
+        timerLog(`⚠ Metadata parse failed: ${parseErr.message}`);
+      }
+    } else {
+      timerLog(`⚠ Metadata AI error: ${metaResult.error}`);
     }
 
     setRoadmapStep('metadata', 'done');

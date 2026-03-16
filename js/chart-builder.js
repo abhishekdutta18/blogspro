@@ -29,52 +29,48 @@ const THEME = {
 // ─────────────────────────────────────────────
 export async function generateChartForSection(topic, sectionTitle, category, model) {
 
-  // Ask AI what kind of chart fits this section and get the data
   const result = await callAI(
-    `You are a data analyst writing for a ${category} blog.
-The article is about: "${topic}"
-Current section: "${sectionTitle}"
+    `You are a data analyst. Generate a data visualization for a ${category} article.
+Article topic: "${topic}"
+Section: "${sectionTitle}"
 
-Generate a realistic, relevant data visualization for this section.
-Choose the most appropriate chart type for the data.
+Pick the best chart type and generate REAL, SPECIFIC numeric data relevant to this section.
 
-Return ONLY valid JSON — no markdown, no explanation:
-{
-  "type": "bar" | "line" | "pie" | "table" | "stats",
-  "title": "chart title",
-  "subtitle": "optional source or note",
-  "labels": ["label1", "label2", ...],
-  "datasets": [
-    { "name": "Series name", "values": [number, number, ...] }
-  ],
-  "unit": "% or ₹ or $ or x or empty string",
-  "source": "Source: e.g. RBI 2024 or World Bank 2024"
-}
+CRITICAL: Return ONLY a raw JSON object. No markdown, no backticks, no explanation. Start with {
+
+Example for a bar chart:
+{"type":"bar","title":"Top 5 Fintech Markets by Investment","subtitle":"2024 data","labels":["USA","China","UK","India","Brazil"],"datasets":[{"name":"Investment $B","values":[89,52,31,8,4]}],"unit":"$B","source":"Source: CB Insights 2024"}
+
+Example for a stats chart:
+{"type":"stats","title":"Key Market Statistics","subtitle":"Global fintech 2024","labels":["Market Size","YoY Growth","Active Users","Funding Rounds"],"datasets":[{"name":"values","values":["$340B","23%","4.8B","2,847"]}],"unit":"","source":"Source: Statista 2024"}
+
+Example for a table:
+{"type":"table","title":"Feature Comparison","subtitle":"","labels":["Speed","Cost","Security","Ease of Use"],"datasets":[{"name":"Provider A","values":["Fast","Low","High","Easy"]},{"name":"Provider B","values":["Medium","Medium","High","Medium"]}],"unit":"","source":""}
 
 Rules:
-- Use "stats" type for 3-5 key headline numbers (e.g. market size, growth rate)
-- Use "table" for comparison data (features, providers, metrics)
-- Use "bar" for categorical comparisons
-- Use "line" for trends over time
-- Use "pie" for share/breakdown data
-- All values must be realistic numbers for the topic
-- labels and values arrays must be the same length
-- For "stats" type: datasets[0].values = numbers, labels = stat names
-- For "table" type: labels = column headers, datasets = rows (each dataset.name = row label, dataset.values = cell values as strings)`,
-    true, model
+- ALL numbers must be realistic for the topic — do NOT use placeholder zeros
+- labels array and values array MUST have the same length
+- For stats type: values can be strings like "23%" or "$340B"
+- Choose: bar (comparisons), line (trends over time with years as labels), pie (market share), stats (key numbers), table (feature comparison)`,
+    true
   );
 
   if (result.error || !result.text) return '';
 
   let data;
   try {
-    const s = result.text.indexOf('{');
-    const e = result.text.lastIndexOf('}');
+    let raw = result.text.replace(/```json|```/gi, '').trim();
+    const s = raw.indexOf('{');
+    const e = raw.lastIndexOf('}');
     if (s === -1 || e === -1) return '';
-    data = JSON.parse(result.text.substring(s, e + 1));
+    data = JSON.parse(raw.substring(s, e + 1));
   } catch(_) { return ''; }
 
+  // Validate — reject empty data
   if (!data?.type || !data?.labels?.length) return '';
+  if (!data.datasets?.[0]?.values?.length) return '';
+  if (data.labels.length !== data.datasets[0].values.length &&
+      data.type !== 'table') return '';
 
   switch(data.type) {
     case 'bar':   return buildBarChart(data);
