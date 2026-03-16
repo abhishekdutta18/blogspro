@@ -18,6 +18,21 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-3d@0.3.0/build/index.umd.min.js"></script>
 </head>
 <body>
+<script>
+// Inline bootstrap — defines critical onclick handlers before ES modules load
+// ES modules are deferred, so onclick="toggleSidebar()" would fail without this
+function toggleSidebar() {
+  var s = document.getElementById('sidebar');
+  var o = document.getElementById('sideOverlay');
+  if (s) s.classList.toggle('open');
+  if (o) o.classList.toggle('open');
+}
+function doLogout() {
+  // Will be overridden by v2-editor.js after load — this prevents click errors early
+  if (window._doLogout) window._doLogout();
+  else window.location.href = 'login.html';
+}
+</script>
 
 <!-- Mobile top bar (hidden on desktop, shown on mobile) -->
 <div id="mobileTopBar">
