@@ -10,6 +10,26 @@ import { startTimer, stopTimer, hideTimer, timerLog, showRoadmap, setRoadmapStep
 
 function closeAIModal() { document.getElementById('aiModal')?.classList.remove('open'); }
 
+// ── Read word target from UI ──────────────────
+function getWordTarget() {
+  const wt = document.getElementById('wordTarget');
+  return parseInt(wt?.value) || 1500;
+}
+
+// ── Word target → token budget ────────────────
+// 1 word ≈ 1.35 tokens; add 20% buffer; cap per-call at 8000
+function wordsToTokens(words) {
+  return Math.min(8000, Math.ceil(words * 1.35 * 1.2));
+}
+
+// ── Number of citations based on word target ──
+function citationCount(words) {
+  if (words >= 20000) return 15;
+  if (words >= 10000) return 12;
+  if (words >= 5000)  return 10;
+  return 8;
+}
+
 export function getTopicFromUI() {
   return document.getElementById('postTitle')?.value.trim()
     || document.getElementById('v2TopicPrompt')?.value.trim()
@@ -21,16 +41,17 @@ export async function generateAIPost() {
   if (state.isGeneratingAI) return;
   const topic = getTopicFromUI();
   if (!topic) { showToast('Please enter a topic.','error'); return; }
-  // Sync back to aiPrompt for compatibility
   const apEl = document.getElementById('aiPrompt'); if (apEl) apEl.value = topic;
 
   state.isGeneratingAI = true;
-  const btnAI = document.getElementById('btnAI');
+  const btnAI  = document.getElementById('btnAI');
   const btnTxt = document.getElementById('aiBtnText');
   const spinner = document.getElementById('aiSpinner');
   if (btnAI) btnAI.disabled = true;
   if (btnTxt) btnTxt.textContent = 'Generating outline…';
   if (spinner) spinner.style.display = 'inline-block';
+
+  const wordTarget = getWordTarget();
 
   document.getElementById('aiModalTitle').textContent = '✦ Generating outline…';
   document.getElementById('aiModalSub').textContent   = 'AI is planning your article structure.';
@@ -41,16 +62,19 @@ export async function generateAIPost() {
   setRoadmapStep('outline', 'active');
   startTimer('outline');
 
+  // For long-form, request a detailed multi-section outline
+  const sectionCount = wordTarget >= 20000 ? 15
+                     : wordTarget >= 10000 ? 10
+                     : wordTarget >= 5000  ? 7 : 5;
+
   const outResult = await callAI(
-    `Create a concise article outline (5-7 bullet points) for:\nTopic: "${topic}"\nCategory: ${document.getElementById('postCategory').value}. Tone: ${document.getElementById('aiTone').value}.\nReturn ONLY plain text bullet points.`,
+    `Create a detailed article outline with ${sectionCount} sections for:\nTopic: "${topic}"\nCategory: ${document.getElementById('postCategory').value}. Tone: ${document.getElementById('aiTone').value}.\nTarget length: ${wordTarget.toLocaleString()} words.\nReturn ONLY plain text bullet points, one per section. Each bullet should be a full section title.`,
     true
   );
 
   if (outResult.error) {
     setRoadmapStep('outline', 'error');
-    hideTimer();
-    hideRoadmap();
-    closeAIModal();
+    hideTimer(); hideRoadmap(); closeAIModal();
     document.getElementById('aiStatus').textContent = '✕ ' + outResult.error;
     showToast('AI Error: ' + outResult.error,'error');
     if (btnAI) btnAI.disabled = false;
@@ -62,8 +86,9 @@ export async function generateAIPost() {
 
   stopTimer();
   setRoadmapStep('outline', 'done');
-  state.pendingOutline = outResult.text;
-  document.getElementById('aiModalTitle').textContent   = '✦ Review Outline';
+  state.pendingOutline  = outResult.text;
+  state.pendingWordTarget = wordTarget;
+  document.getElementById('aiModalTitle').textContent   = `✦ Review Outline (${wordTarget.toLocaleString()} words)`;
   document.getElementById('aiModalSub').textContent     = 'Click "Write Full Article" to generate, or Cancel.';
   document.getElementById('aiModalContent').textContent = outResult.text;
   document.getElementById('aiModalActions').style.display = 'flex';
@@ -75,56 +100,156 @@ export async function generateAIPost() {
 window.generateAIPost = generateAIPost;
 
 export async function confirmOutline() {
-  const topic      = document.getElementById('aiPrompt').value.trim();
-  const category   = document.getElementById('postCategory').value;
-  const tone       = document.getElementById('aiTone').value;
+  const topic        = document.getElementById('aiPrompt').value.trim();
+  const category     = document.getElementById('postCategory').value;
+  const tone         = document.getElementById('aiTone').value;
   const modelArticle = document.getElementById('modelArticle').value;
-  const results    = [];
-  const allAttempts = [];
+  const wordTarget   = state.pendingWordTarget || getWordTarget();
+  const isLongForm   = wordTarget >= 5000;
+  const maxTok       = wordsToTokens(wordTarget);
+  const results      = [];
+  const allAttempts  = [];
   const addR = (icon, label, model, ok) => results.push({icon,label,model,ok});
 
   document.getElementById('aiResultBox').style.display = 'none';
   document.getElementById('aiModalActions').style.display = 'none';
-  document.getElementById('aiModalTitle').textContent = '✦ Writing article…';
-  document.getElementById('aiModalSub').textContent   = 'Generating long-form content…';
-  document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Writing full article…</span>';
   document.getElementById('aiModal').classList.add('open');
   setRoadmapStep('outline', 'done');
   setRoadmapStep('article', 'active');
   startTimer('article');
 
-  const artPrompt = `You are an expert fintech writer for BlogsPro (blogspro.in).\nWrite a comprehensive, long-form article about: "${topic}"\nCategory: ${category}. Tone: ${tone}.\nFollow this outline:\n${state.pendingOutline}\n\nRULES:\n- NEVER use <h1> tags\n- Start with a plain <p> introduction — NOT bold, NOT a heading\n- Use only: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>\n- Do NOT wrap entire paragraphs in <strong>\n- Write in depth — NO word limit\n- Return ONLY clean HTML. No JSON, no metadata, no markdown.`;
-
-  let artResult = await callAI(artPrompt, false, modelArticle, 4000);
-  if (artResult.error) {
-    document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Retrying…</span>';
-    await new Promise(r => setTimeout(r, 2000));
-    artResult = await callAI(artPrompt, false, 'auto', 4000);
-  }
-  allAttempts.push(...(artResult.attemptsDetail||[]));
-
-  if (artResult.error) {
-    setRoadmapStep('article', 'error');
-    hideTimer();
-    hideRoadmap();
-    closeAIModal();
-    document.getElementById('aiStatus').textContent = '✕ Article failed: ' + artResult.error;
-    showToast('Article generation failed.','error');
-    return;
-  }
-
-  const articleHTML = (artResult.text||'')
-    .replace(/---METADATA---[\s\S]*/g,'')
-    .replace(/\n*---+\s*$/gm,'')
-    .replace(/\n*\{"title"[\s\S]*/g,'')
-    .replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '')
-    .replace(/<p><strong>([\s\S]*?)<\/strong><\/p>/g, '<p>$1</p>')
-    .trim();
-
   const editor = document.getElementById('editor');
-  editor.innerHTML = sanitize(articleHTML);
-  updateWordCount();
-  addR('✓', 'Article written', modelArticle, true);
+  editor.innerHTML = '';
+
+  // ── CHUNK-BASED for long-form (≥5k words) ────
+  if (isLongForm) {
+    const sections = state.pendingOutline
+      .split('\n')
+      .map(l => l.replace(/^[-•*\d.]+\s*/, '').trim())
+      .filter(Boolean);
+
+    const totalSections = sections.length;
+    let fullHTML = '';
+    let chunksFailed = 0;
+
+    document.getElementById('aiModalTitle').textContent = `✦ Writing ${wordTarget.toLocaleString()}-word article…`;
+    document.getElementById('aiModalSub').textContent   = `Building ${totalSections} sections. Keep tab open.`;
+
+    const wordsPerSection = Math.ceil(wordTarget / totalSections);
+
+    for (let i = 0; i < sections.length; i++) {
+      const section = sections[i];
+      const pct     = Math.round(((i) / totalSections) * 100);
+
+      document.getElementById('aiModalContent').innerHTML =
+        `<div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.5rem">
+          Section ${i+1} of ${totalSections} · ${pct}% complete
+        </div>
+        <div style="background:var(--navy3);border-radius:2px;height:3px;margin-bottom:0.8rem">
+          <div style="height:3px;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px;width:${pct}%;transition:width 0.5s"></div>
+        </div>
+        <span style="animation:pulse 1s infinite;display:inline-block">Writing: ${section}…</span>`;
+
+      timerLog(`[${i+1}/${totalSections}] ${section}`);
+
+      const isFirst = i === 0;
+      const sectionPrompt = `You are an expert fintech writer for BlogsPro.
+Article topic: "${topic}" | Category: ${category} | Tone: ${tone}
+Write the section titled: "${section}"
+${isFirst ? 'This is the OPENING section — start with a compelling <p> introduction (no heading), then use <h2> for the section title.' : 'Use <h2> for the section title.'}
+Target: ${wordsPerSection} words for this section.
+Rules:
+- Use only: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>
+- NEVER use <h1> tags
+- Write in depth with examples, data, and analysis
+- Return ONLY clean HTML for this section. No JSON, no metadata.`;
+
+      let sResult = await callAI(sectionPrompt, false, modelArticle, Math.min(8000, wordsPerSection * 2));
+      if (sResult.error) {
+        await new Promise(r => setTimeout(r, 1500));
+        sResult = await callAI(sectionPrompt, false, 'auto', Math.min(8000, wordsPerSection * 2));
+      }
+
+      if (sResult.error) {
+        chunksFailed++;
+        // Insert a retry placeholder for failed sections
+        const placeholder = `<div class="failed-section-block" data-section="${section}" data-topic="${topic}" data-category="${category}" data-tone="${tone}" data-words="${wordsPerSection}" data-model="${modelArticle}" style="border:1px dashed rgba(239,68,68,0.4);border-radius:4px;padding:1rem;margin:1rem 0">
+          <div class="failed-section-inner">
+            <h2 style="color:#fca5a5">${section}</h2>
+            <div class="failed-text" style="font-size:0.8rem;color:#fca5a5"><span>⚠ This section failed to generate.</span></div>
+            <button class="action-btn" onclick="retrySectionGen(this)" style="margin-top:0.5rem">🔄 Retry Now</button>
+          </div>
+        </div>`;
+        fullHTML += placeholder;
+      } else {
+        const clean = (sResult.text || '')
+          .replace(/```html?|```/gi, '')
+          .replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, '')
+          .replace(/<p><strong>([\s\S]*?)<\/strong><\/p>/g, '<p>$1</p>')
+          .trim();
+        fullHTML += clean + '\n';
+      }
+
+      // Stream into editor live
+      editor.innerHTML = sanitize(fullHTML);
+      updateWordCount();
+      allAttempts.push(...(sResult.attemptsDetail||[]));
+    }
+
+    addR(chunksFailed === 0 ? '✓' : '⚠',
+      `Article: ${totalSections} sections (${chunksFailed} failed)`,
+      modelArticle, chunksFailed === 0);
+
+  } else {
+    // ── SINGLE CALL for short articles (<5k words) ─
+    document.getElementById('aiModalTitle').textContent = '✦ Writing article…';
+    document.getElementById('aiModalSub').textContent   = 'Generating content…';
+    document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Writing full article…</span>';
+
+    const artPrompt = `You are an expert fintech writer for BlogsPro (blogspro.in).
+Write a comprehensive article about: "${topic}"
+Category: ${category}. Tone: ${tone}.
+Target length: ${wordTarget} words.
+Follow this outline:
+${state.pendingOutline}
+
+RULES:
+- NEVER use <h1> tags
+- Start with a plain <p> introduction — NOT bold, NOT a heading
+- Use only: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>
+- Do NOT wrap entire paragraphs in <strong>
+- Write exactly ${wordTarget} words
+- Return ONLY clean HTML. No JSON, no metadata, no markdown.`;
+
+    let artResult = await callAI(artPrompt, false, modelArticle, maxTok);
+    if (artResult.error) {
+      document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Retrying…</span>';
+      await new Promise(r => setTimeout(r, 2000));
+      artResult = await callAI(artPrompt, false, 'auto', maxTok);
+    }
+    allAttempts.push(...(artResult.attemptsDetail||[]));
+
+    if (artResult.error) {
+      setRoadmapStep('article', 'error');
+      hideTimer(); hideRoadmap(); closeAIModal();
+      document.getElementById('aiStatus').textContent = '✕ Article failed: ' + artResult.error;
+      showToast('Article generation failed.','error');
+      return;
+    }
+
+    const articleHTML = (artResult.text||'')
+      .replace(/---METADATA---[\s\S]*/g,'')
+      .replace(/\n*---+\s*$/gm,'')
+      .replace(/\n*\{"title"[\s\S]*/g,'')
+      .replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '')
+      .replace(/<p><strong>([\s\S]*?)<\/strong><\/p>/g, '<p>$1</p>')
+      .trim();
+
+    editor.innerHTML = sanitize(articleHTML);
+    updateWordCount();
+    addR('✓', 'Article written', modelArticle, true);
+  }
+
   openAIDrawer('edit');
 
   // ── Metadata ──────────────────────────────────
@@ -136,9 +261,29 @@ export async function confirmOutline() {
   document.getElementById('aiModalSub').textContent   = 'Title, summary, SEO, citations…';
   document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Generating metadata…</span>';
 
-  const metaPrompt = `Fintech article topic: "${topic}". Return ONLY valid JSON, no extra text.
-IMPORTANT for citations: use REAL working URLs from rbi.org.in, sebi.gov.in, npci.org.in, worldbank.org, imf.org, bis.org, mckinsey.com, pwc.com, deloitte.com, kpmg.com, forbes.com, ft.com, bloomberg.com. Do NOT use example.com or placeholder URLs.
-{"title":"SEO headline under 70 chars","summary":"2 sentences under 160 chars","metaDescription":"under 155 chars","tags":["tag1","tag2","tag3","tag4","tag5"],"citations":[{"apa":"Author, A. (Year). Real Title. Real Publisher.","url":"https://real-source.com/path"},{"apa":"Author, B. (Year). Real Title. Real Publisher.","url":"https://real-source.com/path"},{"apa":"Author, C. (Year). Real Title. Real Publisher.","url":"https://real-source.com/path"},{"apa":"Author, D. (Year). Real Title. Real Publisher.","url":"https://real-source.com/path"},{"apa":"Author, E. (Year). Real Title. Real Publisher.","url":"https://real-source.com/path"}]}`;
+  const numCitations = citationCount(wordTarget);
+
+  // Build citation template entries
+  const citationTemplate = Array.from({length: numCitations}, (_, i) =>
+    `{"apa":"Author ${String.fromCharCode(65+i)}. (Year). Real Title. Real Publisher.","url":"https://real-source.com/path"}`
+  ).join(',');
+
+  const metaPrompt = `You are writing metadata for a fintech article titled about: "${topic}".
+
+Return ONLY this exact JSON — no extra text, no markdown:
+{
+  "title": "Exact specific headline about ${topic} — under 70 chars, NOT generic",
+  "summary": "2 compelling sentences summarising THIS specific article — under 160 chars",
+  "metaDescription": "SEO meta description specific to ${topic} — under 155 chars",
+  "tags": ["specific-tag-1","specific-tag-2","specific-tag-3","specific-tag-4","specific-tag-5"],
+  "citations": [${citationTemplate}]
+}
+
+CRITICAL RULES:
+- title must be SPECIFIC to "${topic}" — not generic like "A Guide to Fintech"
+- citations MUST use REAL URLs from: rbi.org.in, sebi.gov.in, worldbank.org, imf.org, bis.org, mckinsey.com, pwc.com, deloitte.com, ft.com, bloomberg.com
+- Do NOT use example.com or placeholder URLs
+- Return exactly ${numCitations} citations`;
 
   let metaResult = await callAI(metaPrompt, true, modelArticle);
   if (metaResult.error) {
@@ -148,31 +293,41 @@ IMPORTANT for citations: use REAL working URLs from rbi.org.in, sebi.gov.in, npc
 
   allAttempts.push(...(metaResult.attemptsDetail||[]));
 
-  // If both metadata calls failed, warn user but don't block — article is already written
   if (metaResult.error) {
     const isRateLimit = metaResult.error.toLowerCase().includes('rate limit') ||
                         metaResult.error.toLowerCase().includes('credits');
-    if (isRateLimit) {
-      showToast('Article saved! Metadata skipped — daily AI quota reached. Try again tomorrow or add credits.', 'error');
-    } else {
-      showToast('Article saved! Metadata generation failed: ' + metaResult.error, 'error');
-    }
+    showToast(isRateLimit
+      ? 'Article saved! Metadata skipped — daily AI quota reached.'
+      : 'Article saved! Metadata failed: ' + metaResult.error, 'error');
   }
 
   const parsed = parseAIJson(metaResult.error ? '' : (metaResult.text || ''));
 
   const checks = {};
   if (parsed) {
-    if (parsed.title?.trim())           { document.getElementById('postTitle').value = stripTags(parsed.title.trim()); document.getElementById('postSlug').value = slugify(stripTags(parsed.title.trim())); checks.title=true; }
-    if (parsed.summary?.trim())         { document.getElementById('postExcerpt').value = parsed.summary.trim(); checks.summary=true; }
-    if (parsed.metaDescription?.trim()) { document.getElementById('postMeta').value = parsed.metaDescription.trim(); checks.meta=true; }
-    if (parsed.tags?.length)            { document.getElementById('postTags').value = parsed.tags.join(', '); checks.tags=true; }
+    if (parsed.title?.trim()) {
+      document.getElementById('postTitle').value = stripTags(parsed.title.trim());
+      document.getElementById('postSlug').value  = slugify(stripTags(parsed.title.trim()));
+      checks.title = true;
+    }
+    if (parsed.summary?.trim()) {
+      document.getElementById('postExcerpt').value = parsed.summary.trim();
+      checks.summary = true;
+    }
+    if (parsed.metaDescription?.trim()) {
+      document.getElementById('postMeta').value = parsed.metaDescription.trim();
+      checks.meta = true;
+    }
+    if (parsed.tags?.length) {
+      document.getElementById('postTags').value = parsed.tags.join(', ');
+      checks.tags = true;
+    }
     if (parsed.citations?.length) {
       const citationItems = parsed.citations.map(c => {
         if (typeof c === 'object' && c.apa) {
           const apaText = c.apa.replace(/https?:\/\/[^\s]+/g,'').trim().replace(/\.?\s*$/,'');
-          const url = c.url || (c.apa.match(/https?:\/\/[^\s]+/)||[])[0] || '';
-          const isFake = !url || url.includes('example.com') || url.includes('real-source.com');
+          const url     = c.url || (c.apa.match(/https?:\/\/[^\s]+/)||[])[0] || '';
+          const isFake  = !url || url.includes('example.com') || url.includes('real-source.com');
           return `<li style="margin-bottom:0.5rem">
             <span style="color:var(--cream)">${apaText}.</span>
             ${!isFake ? `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:var(--gold);word-break:break-all"> ${url}</a>` : ''}
@@ -195,7 +350,7 @@ IMPORTANT for citations: use REAL working URLs from rbi.org.in, sebi.gov.in, npc
   }
 
   if (!checks.title && !document.getElementById('postTitle').value.trim()) {
-    document.getElementById('postTitle').value = topic.length<80 ? topic : topic.substring(0,75)+'…';
+    document.getElementById('postTitle').value = topic.length < 80 ? topic : topic.substring(0,75)+'…';
     document.getElementById('postSlug').value  = slugify(topic);
   }
 
@@ -208,7 +363,6 @@ IMPORTANT for citations: use REAL working URLs from rbi.org.in, sebi.gov.in, npc
   setTimeout(hideRoadmap, 1200);
   closeAIModal();
 
-  // Show result in drawer
   document.getElementById('aiResultList').innerHTML = results.map(r =>
     `<div style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem">
       <span style="color:${r.ok?'var(--green)':'var(--muted)'};flex-shrink:0;font-weight:700">${r.icon}</span>
@@ -217,11 +371,12 @@ IMPORTANT for citations: use REAL working URLs from rbi.org.in, sebi.gov.in, npc
   ).join('');
   document.getElementById('aiResultBox').style.display = 'block';
   document.getElementById('aiStatus').textContent = `✓ Complete`;
-  showToast('Article generated!','success');
+  showToast(`Article generated! ${wordTarget >= 5000 ? '(Long-form — chunk by chunk)' : ''}`, 'success');
 }
 window.confirmOutline = confirmOutline;
 
 window.cancelOutline = () => {
   document.getElementById('aiModal')?.classList.remove('open');
   state.pendingOutline = '';
+  state.pendingWordTarget = null;
 };
