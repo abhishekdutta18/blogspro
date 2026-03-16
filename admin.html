@@ -632,7 +632,7 @@
           </div>
           <div class="ait-body" id="ait-seo-body" style="display:none">
             <p class="ait-desc">Rewrites your title, meta description and tags for maximum Google ranking.</p>
-            <button class="ait-run-btn green" onclick="runSEOOptimizer()">
+            <button class="ait-run-btn green" onclick="aitRunSEOInline()">
               <span>🚀 Run SEO Optimizer</span>
               <span class="ait-spinner" id="sp-seo" style="display:none"></span>
             </button>
@@ -3735,7 +3735,7 @@ function aitGetTopic() {
 // Already wired to runSEOOptimizer() which updates the fields directly.
 // Override to also show inline feedback:
 const _origSEO = window.runSEOOptimizer;
-window.runSEOOptimizer = async () => {
+window.aitRunSEOInline = async () => {
   aitLoading('seo', true);
   const content = editor.cloneNode(true).textContent;
   const title   = document.getElementById('postTitle').value;
