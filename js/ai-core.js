@@ -3,15 +3,8 @@
 //
 // Priority order:
 //   1. Cloudflare Worker (your primary — full model routing)
-//   2. Groq             (free, 1000 req/day)
-//   3. Gemini           (Google free tier, 1000 req/day)
-//
-// To enable fallbacks:
-//   1. Get a free Groq key at console.groq.com (no card needed)
-//   2. Get a free Gemini key at aistudio.google.com (no card needed)
-//   3. Set them in config.js:
-//        export const GROQ_API_KEY   = "gsk_...";
-//        export const GEMINI_API_KEY = "AIza...";
+//   2. Groq             (free tier — verified active models only)
+//   3. Gemini           (Google free tier)
 // ═══════════════════════════════════════════════
 
 import { WORKER_URL, GROQ_API_KEY, GEMINI_API_KEY } from './config.js';
@@ -32,7 +25,7 @@ async function fetchWithTimeout(url, options, timeoutMs = 25000) {
   }
 }
 
-// ── Rate-limit / daily-limit detection ───────
+// ── Rate-limit detection ──────────────────────
 function isRateLimit(errorStr) {
   if (!errorStr) return false;
   const s = errorStr.toLowerCase();
@@ -51,6 +44,15 @@ function isDailyLimit(errorStr) {
   return s.includes('per-day') || s.includes('per day') ||
          s.includes('daily') || s.includes('free model') ||
          s.includes('free-models');
+}
+
+function isDecommissioned(errorStr) {
+  if (!errorStr) return false;
+  const s = errorStr.toLowerCase();
+  return s.includes('decommission') || s.includes('no longer supported') ||
+         s.includes('does not exist') || s.includes('not found') ||
+         s.includes('no access') || s.includes('404') ||
+         s.includes('deprecated');
 }
 
 // ── Provider 1: Cloudflare Worker ────────────
@@ -86,18 +88,17 @@ async function callCloudflare(prompt, tone, category, forceModel, maxTokens) {
 }
 
 // ── Provider 2: Groq ─────────────────────────
-// Only verified working models on Groq free tier (confirmed 2026)
-// Removed: llama-4-maverick, llama-4-scout, qwen3-32b, kimi-k2, mistral-saba (all 404/unavailable)
+// VERIFIED ACTIVE on Groq free tier (confirmed by 429 responses = model reached successfully)
+// Removed all decommissioned models (llama3-70b-8192, deepseek-r1-distill-llama-70b,
+// mixtral-8x7b-32768, gemma2-9b-it, llama-4-maverick, llama-4-scout, qwen3-32b, kimi-k2)
 
 export const ARTICLE_MODEL_POOL = [
-  'llama-3.3-70b-versatile',          // Best quality, highest TPM
-  'deepseek-r1-distill-llama-70b',    // Strong reasoning model
-  'llama-3.3-70b-versatile',          // Double weight — most reliable anchor
-  'llama3-70b-8192',                  // Llama 3 70B (stable fallback)
-  'mixtral-8x7b-32768',               // Mixtral — long context
-  'llama-3.3-70b-versatile',          // Triple weight
-  'gemma2-9b-it',                     // Google Gemma 2
-  'gemini',                           // Gemini (special: routes to callGemini)
+  'llama-3.3-70b-versatile',    // Best quality — confirmed active
+  'llama-3.1-8b-instant',       // Fastest — confirmed active, lowest TPM pressure
+  'llama-3.3-70b-versatile',    // Double weight for quality
+  'llama-3.1-8b-instant',       // Alternate fast pass
+  'llama-3.3-70b-versatile',    // Triple weight anchor
+  'gemini',                     // Gemini (special: routes to callGemini)
 ];
 
 let _poolIndex = 0;
@@ -108,14 +109,10 @@ export function getNextPoolModel() {
 }
 export function resetModelPool() { _poolIndex = 0; }
 
-// Verified Groq free-tier models only
+// Only models confirmed working on Groq free tier (got 429, not 400/404)
 const GROQ_MODELS = [
-  { id: 'llama-3.3-70b-versatile',         name: 'Llama 3.3 70B'        },  // best quality + highest TPM
-  { id: 'deepseek-r1-distill-llama-70b',   name: 'DeepSeek R1 70B'      },  // strong reasoning
-  { id: 'llama3-70b-8192',                 name: 'Llama 3 70B'          },  // stable fallback
-  { id: 'mixtral-8x7b-32768',              name: 'Mixtral 8x7B'         },  // long context
-  { id: 'llama-3.1-8b-instant',            name: 'Llama 3.1 8B Instant' },  // fastest, lowest TPM usage
-  { id: 'gemma2-9b-it',                    name: 'Gemma 2 9B'           },  // Google model via Groq
+  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B'        },  // best quality
+  { id: 'llama-3.1-8b-instant',    name: 'Llama 3.1 8B Instant' },  // fastest, lowest TPM
 ];
 
 async function callGroqModel(prompt, maxTokens, model) {
@@ -146,7 +143,6 @@ async function callGroqModel(prompt, maxTokens, model) {
   return { text, modelUsed: 'groq/' + model.name, fallbackUsed: true };
 }
 
-// Track which individual Groq models are failed this session
 const _groqModelFailed = {};
 
 async function callGroq(prompt, maxTokens) {
@@ -158,25 +154,24 @@ async function callGroq(prompt, maxTokens) {
     const result = await callGroqModel(prompt, maxTokens, model);
     if (!result.error) return result;
 
-    // Account-level daily limit — no point trying other models, bail immediately
+    // Account-level daily cap — bail immediately, no point trying other models
     if (isDailyLimit(result.error)) {
-      console.warn('[ai-core] Groq daily free-model limit hit — skipping to Gemini');
+      console.warn('[ai-core] Groq daily limit hit, skipping to Gemini');
       return { error: result.error };
     }
-    // TPM / per-model rate limit — try the next model
+    // Per-model TPM limit — try next model
     if (isRateLimit(result.error)) {
       _groqModelFailed[model.id] = true;
       console.warn('[ai-core] Groq model ' + model.name + ' TPM-limited, trying next');
       continue;
     }
-    // Model not found / no access — skip silently
-    if (result.error.includes('not found') || result.error.includes('404') ||
-        result.error.includes('does not exist') || result.error.includes('no access')) {
+    // Decommissioned / 400 / 404 — skip silently
+    if (isDecommissioned(result.error) || result.error.includes('400')) {
       _groqModelFailed[model.id] = true;
-      console.warn('[ai-core] Groq model ' + model.name + ' unavailable, skipping');
+      console.warn('[ai-core] Groq model ' + model.name + ' unavailable/decommissioned, skipping');
       continue;
     }
-    return result; // other unexpected error — stop and report
+    return result;
   }
   return { error: 'All Groq models exhausted.' };
 }
@@ -201,7 +196,7 @@ async function callGemini(prompt, maxTokens) {
           },
         }),
       },
-      30000
+      45000  // 45s timeout — Gemini 2.5 Flash can be slow on long prompts
     );
   } catch(e) {
     return { error: 'Gemini network error: ' + e.message };
@@ -228,7 +223,6 @@ export async function callAIWithModel(prompt, poolModel, maxTokens = 4000) {
   const model = { id: poolModel, name: poolModel.split('/').pop() };
   const result = await callGroqModel(prompt, maxTokens, model);
   if (result.error) {
-    // Mark model as failed and fall back to full callAI chain
     _groqModelFailed[poolModel] = true;
     return callAI(prompt, true, 'auto', maxTokens);
   }
@@ -247,8 +241,7 @@ function markFailed(provider) {
 /**
  * callAI(prompt, silent, forceModel, maxTokens)
  * Returns: { text, modelUsed, fallbackUsed, attemptsDetail } | { error }
- *
- * Fallback chain: Cloudflare -> Groq (multi-model) -> Gemini -> error
+ * Fallback chain: Cloudflare -> Groq -> Gemini -> error
  */
 export async function callAI(prompt, silent = false, forceModel = 'auto', maxTokens = 4000) {
   const tone     = document.getElementById('aiTone')?.value     || 'professional';
@@ -261,15 +254,14 @@ export async function callAI(prompt, silent = false, forceModel = 'auto', maxTok
 
     markFailed('cloudflare');
     if (!silent) {
-      const msg = isRateLimit(cfResult.error)
+      showToast(isRateLimit(cfResult.error)
         ? 'Cloudflare quota reached, switching to Groq...'
-        : 'Cloudflare unavailable, switching to Groq...';
-      showToast(msg, 'info');
+        : 'Cloudflare unavailable, switching to Groq...', 'info');
     }
     console.warn('[ai-core] Cloudflare failed, falling back to Groq. Error:', cfResult.error);
   }
 
-  // ── Step 2: Groq (tries multiple models) ─────
+  // ── Step 2: Groq ─────────────────────────────
   if (!_providerFailed.groq) {
     const groqResult = await callGroq(prompt, maxTokens);
     if (!groqResult.error) {
@@ -279,10 +271,9 @@ export async function callAI(prompt, silent = false, forceModel = 'auto', maxTok
 
     markFailed('groq');
     if (!silent) {
-      const msg = isDailyLimit(groqResult.error)
+      showToast(isDailyLimit(groqResult.error)
         ? 'Groq daily limit reached, switching to Gemini...'
-        : 'Groq unavailable, switching to Gemini...';
-      showToast(msg, 'info');
+        : 'Groq unavailable, switching to Gemini...', 'info');
     }
     console.warn('[ai-core] Groq failed, falling back to Gemini. Error:', groqResult.error);
   }
