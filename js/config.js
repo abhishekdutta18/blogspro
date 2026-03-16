@@ -1,14 +1,15 @@
 // ═══════════════════════════════════════
-// config.js — Utility functions
+// config.js — Global utilities + local DB
 // ═══════════════════════════════════════
 
-// Toast / notifications
+
+// Toast messages
 export function showToast(message, type = "info") {
   console.log(`[${type}] ${message}`);
 }
 
 
-// Generate URL slug
+// Generate slug
 export function slugify(text) {
   if (!text) return "";
 
@@ -20,7 +21,7 @@ export function slugify(text) {
 }
 
 
-// Simple sanitizer (for text)
+// Escape text
 export function sanitize(text) {
   const div = document.createElement("div");
   div.textContent = text;
@@ -28,7 +29,7 @@ export function sanitize(text) {
 }
 
 
-// Clean HTML from editor
+// Clean editor HTML
 export function cleanEditorHTML(html) {
 
   if (!html) return "";
@@ -36,10 +37,10 @@ export function cleanEditorHTML(html) {
   const div = document.createElement("div");
   div.innerHTML = html;
 
-  // Remove script tags
+  // remove scripts
   div.querySelectorAll("script").forEach(el => el.remove());
 
-  // Remove inline JS events (onclick etc.)
+  // remove inline JS events
   div.querySelectorAll("*").forEach(el => {
     [...el.attributes].forEach(attr => {
       if (attr.name.startsWith("on")) {
@@ -80,7 +81,7 @@ export function setBtnLoading(btnId, txtId, spinnerId, loading, label) {
 }
 
 
-// Safe AI JSON parsing
+// Parse AI JSON safely
 export function parseAIJson(text) {
 
   if (!text) return null;
@@ -92,3 +93,28 @@ export function parseAIJson(text) {
     return null;
   }
 }
+
+
+// ═══════════════════════════════════════
+// Simple Local Database (fixes your error)
+// ═══════════════════════════════════════
+
+export const db = {
+
+  getPosts() {
+    return JSON.parse(localStorage.getItem("blogspro_posts") || "[]");
+  },
+
+  savePosts(posts) {
+    localStorage.setItem("blogspro_posts", JSON.stringify(posts));
+  },
+
+  getSubscribers() {
+    return JSON.parse(localStorage.getItem("blogspro_subscribers") || "[]");
+  },
+
+  saveSubscribers(list) {
+    localStorage.setItem("blogspro_subscribers", JSON.stringify(list));
+  }
+
+};
