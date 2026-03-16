@@ -11,7 +11,8 @@ const FIREBASE_CONFIG = {
   projectId:         "blogspro-ai",
   storageBucket:     "blogspro-ai.firebasestorage.app",
   messagingSenderId: "940428277283",
-  appId:             "1:940428277283:web:d3bb414f0992718ca76396"
+  appId:             "1:940428277283:web:d3bb414f0992718ca76396",
+  measurementId:     "G-N7TCB31MRD"
 };
 
 const app = initializeApp(FIREBASE_CONFIG);
