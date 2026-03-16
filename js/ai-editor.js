@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 // ai-editor.js — Post editing AI tools
 // ═══════════════════════════════════════════════
-import { sanitize, showToast } from './config.js';
+import { cleanEditorHTML } from "./config.js";
 import { callAI }  from './ai-core.js';
 import { state }   from './state.js';
 import { updateWordCount } from './editor.js';
