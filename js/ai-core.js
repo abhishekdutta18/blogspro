@@ -2,27 +2,38 @@
 // ai-core.js — AI request handler
 // ═══════════════════════════════════════
 
-export async function callAI(prompt, json = true) {
+export async function callAI(prompt, expectJson = true) {
+
   try {
-    const res = await fetch("/api/ai", {
+
+    const response = await fetch("/api/ai", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ prompt })
+      body: JSON.stringify({
+        prompt: prompt
+      })
     });
 
-    const data = await res.json();
+    if (!response.ok) {
+      throw new Error("AI request failed");
+    }
+
+    const data = await response.json();
 
     return {
       text: data.text || "",
       error: null
     };
 
-  } catch (err) {
+  } catch (error) {
+
+    console.error("AI Error:", error);
+
     return {
       text: "",
-      error: err.message
+      error: error.message
     };
   }
 }
