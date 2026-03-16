@@ -1,4 +1,4 @@
-import { AI_KEYS } from "../config.js";
+import { AI_KEYS } from "../remote-config.js";
 
 export async function callProvider(provider, prompt, type = "text") {
 
