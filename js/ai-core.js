@@ -61,10 +61,18 @@ async function callCloudflare(prompt, tone, category, forceModel, maxTokens) {
 }
 
 // ── Provider 2: Groq ─────────────────────────
-async function callGroq(prompt, maxTokens) {
-  if (!GROQ_API_KEY || GROQ_API_KEY === 'YOUR_GROQ_KEY') {
-    return { error: 'Groq key not configured.' };
-  }
+// Groq model priority list — best quality first
+// Falls through to next model if one fails or rate-limits
+const GROQ_MODELS = [
+  { id: 'moonshotai/kimi-k2-instruct',   name: 'Kimi K2'          },  // 1T MoE, top quality
+  { id: 'openai/gpt-oss-120b',           name: 'GPT-OSS 120B'     },  // OpenAI open-weight
+  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout' },
+  { id: 'qwen/qwen3-32b',                name: 'Qwen3 32B'        },
+  { id: 'llama-3.3-70b-versatile',       name: 'Llama 3.3 70B'   },  // reliable fallback
+  { id: 'mistral-sma-24b-instruct-2501', name: 'Mistral 24B'     },
+];
+
+async function callGroqModel(prompt, maxTokens, model) {
   let res, data;
   try {
     res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -74,24 +82,39 @@ async function callGroq(prompt, maxTokens) {
         'Authorization': 'Bearer ' + GROQ_API_KEY,
       },
       body: JSON.stringify({
-        model:      'llama-3.3-70b-versatile',
-        messages:   [{ role: 'user', content: prompt }],
-        max_tokens: Math.min(maxTokens, 8000),
+        model:       model.id,
+        messages:    [{ role: 'user', content: prompt }],
+        max_tokens:  Math.min(maxTokens, 8000),
         temperature: 0.7,
       }),
     });
-  } catch(e) {
-    return { error: 'Groq network error: ' + e.message };
-  }
+  } catch(e) { return { error: 'Groq network error: ' + e.message }; }
   try { data = await res.json(); } catch(e) {
     return { error: 'Groq invalid response (HTTP ' + res.status + ')' };
   }
   if (data.error) {
-    return { error: 'Groq: ' + (data.error.message || JSON.stringify(data.error)) };
+    return { error: 'Groq ' + model.name + ': ' + (data.error.message || JSON.stringify(data.error)) };
   }
   const text = data.choices?.[0]?.message?.content;
-  if (!text) return { error: 'Groq: no content returned.' };
-  return { text, modelUsed: 'groq/llama-3.3-70b', fallbackUsed: true };
+  if (!text) return { error: 'Groq ' + model.name + ': no content.' };
+  return { text, modelUsed: 'groq/' + model.name, fallbackUsed: true };
+}
+
+async function callGroq(prompt, maxTokens) {
+  if (!GROQ_API_KEY || GROQ_API_KEY === 'YOUR_GROQ_KEY') {
+    return { error: 'Groq key not configured.' };
+  }
+  // Try each model in priority order
+  for (const model of GROQ_MODELS) {
+    const result = await callGroqModel(prompt, maxTokens, model);
+    if (!result.error) return result;
+    // Only fall through if it's a model-not-found or rate-limit error
+    if (!result.error.includes('not found') && !isRateLimit(result.error)) {
+      return result; // real error — stop trying
+    }
+    console.warn('Groq model ' + model.name + ' failed, trying next:', result.error);
+  }
+  return { error: 'All Groq models failed or rate-limited.' };
 }
 
 // ── Provider 3: Gemini ───────────────────────
@@ -102,7 +125,7 @@ async function callGemini(prompt, maxTokens) {
   let res, data;
   try {
     res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -126,7 +149,7 @@ async function callGemini(prompt, maxTokens) {
   }
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) return { error: 'Gemini: no content returned.' };
-  return { text, modelUsed: 'gemini-2.0-flash', fallbackUsed: true };
+  return { text, modelUsed: 'gemini-2.5-flash', fallbackUsed: true };
 }
 
 // ── Main callAI — tries providers in order ───
