@@ -147,6 +147,18 @@ IMPORTANT for citations: use REAL working URLs from rbi.org.in, sebi.gov.in, npc
   }
 
   allAttempts.push(...(metaResult.attemptsDetail||[]));
+
+  // If both metadata calls failed, warn user but don't block — article is already written
+  if (metaResult.error) {
+    const isRateLimit = metaResult.error.toLowerCase().includes('rate limit') ||
+                        metaResult.error.toLowerCase().includes('credits');
+    if (isRateLimit) {
+      showToast('Article saved! Metadata skipped — daily AI quota reached. Try again tomorrow or add credits.', 'error');
+    } else {
+      showToast('Article saved! Metadata generation failed: ' + metaResult.error, 'error');
+    }
+  }
+
   const parsed = parseAIJson(metaResult.error ? '' : (metaResult.text || ''));
 
   const checks = {};
