@@ -2,7 +2,7 @@
 // ai-writer.js — AI article generation
 // ═══════════════════════════════════════════════
 import { sanitize, showToast, slugify, stripTags, parseAIJson } from './config.js';
-import { callAI }    from './ai-core.js';
+import { callAI, callAIWithModel, getNextPoolModel, resetModelPool } from './ai-core.js';
 import { state }     from './state.js';
 import { updateWordCount } from './editor.js';
 import { openAIDrawer }    from './ai-drawer.js';
@@ -30,6 +30,120 @@ function citationCount(words) {
   return 8;
 }
 
+// ── AI Chart + Data Generator ────────────────
+// Generates an inline Chart.js visualization with data sourced from AI
+// plus a small references section below it
+async function generateChartForSection(sectionTitle, topic, category, sectionIndex) {
+  try {
+    const chartPrompt = `You are a fintech data analyst. Generate realistic statistical data for a chart about: "${sectionTitle}" in the context of "${topic}" (${category}).
+
+Return ONLY valid JSON — no markdown, no extra text:
+{
+  "chart_title": "Short descriptive title",
+  "chart_type": "bar" or "line",
+  "labels": ["Label1","Label2","Label3","Label4","Label5"],
+  "values": [number1, number2, number3, number4, number5],
+  "unit": "% or $B or number",
+  "y_axis_label": "Y axis label",
+  "sources": [
+    {"name": "Real Source Name", "year": 2024, "url": "https://real-url.com"},
+    {"name": "Real Source Name 2", "year": 2023, "url": "https://real-url2.com"}
+  ]
+}
+
+Use REAL plausible data. Sources must be real organizations (World Bank, IMF, McKinsey, Deloitte, etc.)`;
+
+    const result = await callAI(chartPrompt, true, 'auto', 1000);
+    if (result.error) return null;
+
+    const parsed = (text => {
+      try {
+        const s = text.indexOf('{'), e = text.lastIndexOf('}');
+        return s !== -1 ? JSON.parse(text.substring(s, e+1)) : null;
+      } catch { return null; }
+    })(result.text || '');
+
+    if (!parsed?.labels?.length || !parsed?.values?.length) return null;
+
+    const chartId  = 'chart-' + sectionIndex + '-' + Date.now();
+    const type     = parsed.chart_type === 'line' ? 'line' : 'bar';
+
+    // Multi-color palette for 3D bars
+    const palette  = ['#c9a84c','#3b82f6','#22c55e','#a855f7','#f97316','#06b6d4'];
+    const bgColors = parsed.values.map((_, i) => palette[i % palette.length] + 'cc');
+    const brColors = parsed.values.map((_, i) => palette[i % palette.length]);
+
+    const sourcesHTML = (parsed.sources || []).map(s =>
+      `<span style="margin-right:12px">` +
+      (s.url ? `<a href="${s.url}" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:none">${s.name}</a>` : s.name) +
+      (s.year ? ` (${s.year})` : '') +
+      `</span>`
+    ).join('');
+
+    // Serialize data for inline script
+    const labelsStr  = JSON.stringify(parsed.labels);
+    const valuesStr  = JSON.stringify(parsed.values);
+    const bgStr      = JSON.stringify(bgColors);
+    const brStr      = JSON.stringify(brColors);
+    const yLabelStr  = JSON.stringify(parsed.y_axis_label || parsed.unit || '');
+    const unitStr    = parsed.unit || '';
+
+    return `
+<figure style="margin:2rem 0;background:var(--navy2);border:1px solid var(--border);border-radius:6px;padding:1.2rem;overflow:hidden">
+  <div style="font-size:0.82rem;font-weight:700;color:var(--cream);margin-bottom:0.8rem;text-align:center">${parsed.chart_title}</div>
+  <canvas id="${chartId}" style="max-height:300px;width:100%"></canvas>
+  <div style="margin-top:0.8rem;padding-top:0.6rem;border-top:1px solid var(--border);font-size:0.68rem;color:var(--muted);line-height:1.8">
+    <span style="font-weight:600;color:var(--muted);letter-spacing:0.06em;margin-right:6px;text-transform:uppercase;font-size:0.6rem">Sources</span>
+    ${sourcesHTML || '<em>Industry data compilation</em>'}
+  </div>
+</figure>
+<script>
+(function(){
+  function render(){
+    var el=document.getElementById('${chartId}');
+    if(!el||typeof Chart==='undefined'){setTimeout(render,700);return;}
+    if(el._done)return; el._done=true;
+    var has3d=Chart.controllers&&Chart.controllers.bar3D;
+    var t=has3d?'bar3D':'${type}';
+    new Chart(el.getContext('2d'),{
+      type:t,
+      data:{
+        labels:${labelsStr},
+        datasets:[{
+          label:${yLabelStr},
+          data:${valuesStr},
+          backgroundColor:${bgStr},
+          borderColor:${brStr},
+          borderWidth:2,
+          borderRadius:has3d?0:6,
+          fill:false,tension:0.4,
+          pointBackgroundColor:'#c9a84c',
+          pointRadius:5
+        }]
+      },
+      options:{
+        responsive:true,
+        plugins:{
+          legend:{labels:{color:'#8896b3',font:{size:11}}},
+          tooltip:{callbacks:{label:function(c){return ' '+c.parsed.y+' ${unitStr}';}}}
+        },
+        scales:{
+          x:{ticks:{color:'#8896b3',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
+          y:{ticks:{color:'#8896b3',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'},
+             title:{display:true,text:${yLabelStr},color:'#8896b3',font:{size:10}}}
+        }
+      }
+    });
+  }
+  render();
+})();
+</script>`;
+  } catch(e) {
+    console.warn('Chart generation failed:', e.message);
+    return null;
+  }
+}
+
 export function getTopicFromUI() {
   return document.getElementById('postTitle')?.value.trim()
     || document.getElementById('v2TopicPrompt')?.value.trim()
@@ -52,6 +166,7 @@ export async function generateAIPost() {
   if (spinner) spinner.style.display = 'inline-block';
 
   const wordTarget = getWordTarget();
+  resetModelPool(); // reset round-robin for this generation
 
   document.getElementById('aiModalTitle').textContent = '✦ Generating outline…';
   document.getElementById('aiModalSub').textContent   = 'AI is planning your article structure.';
@@ -194,9 +309,13 @@ Rules:
       const section = sections[index];
       timerLog(`[${index+1}/${totalSections}] ${section}`);
 
-      let result = await callAI(buildSectionPrompt(section, index), false, modelArticle, maxTokPerSection);
+      // Use round-robin model pool — each section gets a different model
+      const poolModel = getNextPoolModel();
+      timerLog(`[${index+1}] Using: ${poolModel.split('/').pop()}`);
+      let result = await callAIWithModel(buildSectionPrompt(section, index), poolModel, maxTokPerSection);
       if (result.error) {
         await new Promise(r => setTimeout(r, 1000));
+        // Fallback to normal chain if pool model failed
         result = await callAI(buildSectionPrompt(section, index), false, 'auto', maxTokPerSection);
       }
 
@@ -216,6 +335,15 @@ Rules:
 
       completedCount++;
       renderProgress();
+
+      // Every 3rd completed section, inject an AI-generated chart
+      if (completedCount % 3 === 0 && completedCount < totalSections) {
+        generateChartForSection(section, topic, category, index).then(chartHTML => {
+          if (chartHTML && sectionResults[index]) {
+            sectionResults[index] = (sectionResults[index] || '') + chartHTML;
+          }
+        });
+      }
 
       // Stream completed sections into editor in order
       const orderedHTML = sectionResults
