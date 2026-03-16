@@ -13,6 +13,9 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DED9GTRR3E');</script>
   <link rel="stylesheet" href="css/admin.css" />
+  <!-- Chart.js + 3D plugin for AI-generated data visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-3d@0.3.0/build/index.umd.min.js"></script>
 </head>
 <body>
 
@@ -184,6 +187,7 @@
                 <button class="v2-tool-btn v2-green" onclick="runSEOOptimizer()">🚀 SEO Optimize</button>
                 <button class="v2-tool-btn v2-blue" onclick="runInternalLinking()">🔗 Auto Link</button>
                 <button class="v2-tool-btn v2-gold" onclick="runArticleQualityScore()">⭐ Quality Score</button>
+                <div id="aiEditStatus" style="font-size:0.72rem;color:var(--muted);min-height:0.9rem;margin-top:4px;line-height:1.5"></div>
               </div>
             </div>
 
@@ -239,6 +243,7 @@
             <span style="font-size:13px;font-weight:600;color:var(--cream)">New Post</span>
             <span style="font-size:10px;color:var(--muted);background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:10px">Draft</span>
             <span style="font-size:10px;color:var(--muted)"><span id="wordCount">0</span> words</span>
+            <span style="font-size:10px;color:var(--muted);background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:10px"><span id="readingTimeTop">0</span> min read</span>
           </div>
           <div style="display:flex;gap:5px">
             <button class="v2-btn-top" onclick="previewPost()">👁 Preview</button>
@@ -250,7 +255,7 @@
           <input type="text" class="v2-post-title" id="postTitle" placeholder="Post title…" />
           <div class="v2-excerpt-bar">
             <span style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap;flex-shrink:0">Excerpt</span>
-            <textarea class="v2-excerpt-input" id="postExcerpt" placeholder="Short summary…" rows="1"></textarea>
+            <textarea class="v2-excerpt-input" id="postExcerpt" placeholder="Short summary…" rows="3" style="min-height:52px;resize:vertical"></textarea>
             <button onclick="generateSummary()" style="flex-shrink:0;background:transparent;border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:2px 7px;border-radius:2px;font-size:9px;font-weight:700;cursor:pointer">✦ Auto</button>
           </div>
           <p id="summaryStatus" style="font-size:0.68rem;color:var(--muted);margin-bottom:0.4rem;min-height:0.9rem"></p>
@@ -271,7 +276,17 @@
             <button onclick="openAIDrawer('image')" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border-radius:2px;font-weight:700;font-size:0.72rem">🖼 AI Image</button>
           </div>
           <div id="editor" contenteditable="true" spellcheck="false"></div>
-          <div class="char-count"><span id="readingTimeDisplay">0</span> min read</div>
+          <div class="char-count" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="color:var(--muted)"><span id="wordCountBottom">0</span> words</span>
+              <span style="color:var(--border)">·</span>
+              <span style="color:var(--muted)"><span id="readingTimeDisplay">0</span> min read</span>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button onclick="document.getElementById('postTitle').scrollIntoView({behavior:'smooth'})" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:3px;font-size:9px;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↑ Top</button>
+              <button onclick="document.getElementById('v2AitSection').scrollIntoView({behavior:'smooth'})" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:3px;font-size:9px;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↓ Bottom</button>
+            </div>
+          </div>
 
           <!-- Inline AI Tools (below editor) -->
           <div id="v2AitSection">
@@ -1089,5 +1104,30 @@
 <div class="toast" id="toast"></div>
 
 <script type="module" src="js/main.js"></script>
+  <!-- Floating scroll buttons -->
+  <div id="scrollFloats" style="position:fixed;bottom:80px;right:18px;display:flex;flex-direction:column;gap:6px;z-index:400;opacity:0;transition:opacity 0.3s;pointer-events:none">
+    <button onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Scroll to top"
+      style="width:36px;height:36px;border-radius:50%;background:var(--navy2);border:1px solid var(--border);color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.3)"
+      onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↑</button>
+    <button onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="Scroll to bottom"
+      style="width:36px;height:36px;border-radius:50%;background:var(--navy2);border:1px solid var(--border);color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.3)"
+      onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↓</button>
+  </div>
+  <script>
+    // Show/hide floating buttons based on scroll position
+    window.addEventListener('scroll', () => {
+      const el = document.getElementById('scrollFloats');
+      if (!el) return;
+      if (window.scrollY > 300) {
+        el.style.opacity = '1';
+        el.style.pointerEvents = 'auto';
+      } else {
+        el.style.opacity = '0';
+        el.style.pointerEvents = 'none';
+      }
+    });
+  </script>
 </body>
 </html>
