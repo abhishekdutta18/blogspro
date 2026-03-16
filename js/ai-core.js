@@ -41,7 +41,9 @@ function isRateLimit(errorStr) {
   const s = errorStr.toLowerCase();
   return s.includes('rate limit') || s.includes('credits') ||
          s.includes('quota') || s.includes('too many') ||
-         s.includes('limit exceeded') || s.includes('429');
+         s.includes('limit exceeded') || s.includes('429') ||
+         s.includes('tokens per minute') || s.includes('tpm') ||
+         s.includes('please try again') || s.includes('upgrade');
 }
 
 // ── Provider 1: Cloudflare Worker ────────────
@@ -79,13 +81,15 @@ async function callCloudflare(prompt, tone, category, forceModel, maxTokens) {
 // ── Provider 2: Groq ─────────────────────────
 // Groq model priority list — best quality first
 // Falls through to next model if one fails or rate-limits
+// Groq model priority — ordered by TPM limit (high → low) for parallel safety
+// Free tier TPM limits (approx): Llama3.3=12k, Llama4=8k, Qwen3=6k, Kimi=10k
 const GROQ_MODELS = [
-  { id: 'moonshotai/kimi-k2-instruct',   name: 'Kimi K2'          },  // 1T MoE, top quality
-  { id: 'openai/gpt-oss-120b',           name: 'GPT-OSS 120B'     },  // OpenAI open-weight
-  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout' },
-  { id: 'qwen/qwen3-32b',                name: 'Qwen3 32B'        },
-  { id: 'llama-3.3-70b-versatile',       name: 'Llama 3.3 70B'   },  // reliable fallback
-  { id: 'mistral-sma-24b-instruct-2501', name: 'Mistral 24B'     },
+  { id: 'llama-3.3-70b-versatile',                   name: 'Llama 3.3 70B'  },  // highest TPM, most reliable
+  { id: 'meta-llama/llama-4-maverick-17b-128e-instruct', name: 'Llama 4 Maverick' }, // good quality + high TPM
+  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout'  },
+  { id: 'qwen/qwen3-32b',                            name: 'Qwen3 32B'      },
+  { id: 'moonshotai/kimi-k2-instruct',               name: 'Kimi K2'        },  // best quality but low TPM — use as last resort
+  { id: 'mistral-small-24b-instruct-2501',           name: 'Mistral 24B'    },
 ];
 
 async function callGroqModel(prompt, maxTokens, model) {
@@ -116,21 +120,30 @@ async function callGroqModel(prompt, maxTokens, model) {
   return { text, modelUsed: 'groq/' + model.name, fallbackUsed: true };
 }
 
+// Track which individual Groq models are TPM-limited this session
+const _groqModelFailed = {};
+
 async function callGroq(prompt, maxTokens) {
   if (!GROQ_API_KEY || GROQ_API_KEY === 'YOUR_GROQ_KEY') {
     return { error: 'Groq key not configured.' };
   }
-  // Try each model in priority order
+  // Try each model in priority order, skipping known-failed ones
   for (const model of GROQ_MODELS) {
+    if (_groqModelFailed[model.id]) continue; // skip this session
     const result = await callGroqModel(prompt, maxTokens, model);
     if (!result.error) return result;
-    // Only fall through if it's a model-not-found or rate-limit error
-    if (!result.error.includes('not found') && !isRateLimit(result.error)) {
-      return result; // real error — stop trying
+    if (isRateLimit(result.error)) {
+      _groqModelFailed[model.id] = true; // mark only this model as failed
+      console.warn('[ai-core] Groq model ' + model.name + ' TPM-limited, trying next');
+      continue;
     }
-    console.warn('Groq model ' + model.name + ' failed, trying next:', result.error);
+    if (result.error.includes('not found') || result.error.includes('404')) {
+      _groqModelFailed[model.id] = true;
+      continue;
+    }
+    return result; // other error — stop
   }
-  return { error: 'All Groq models failed or rate-limited.' };
+  return { error: 'All Groq models rate-limited.' };
 }
 
 // ── Provider 3: Gemini ───────────────────────
