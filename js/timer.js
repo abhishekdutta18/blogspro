@@ -110,21 +110,28 @@ function buildRoadmap() {
   if (!track || track.dataset.built) return;
   track.dataset.built = '1';
   track.innerHTML = `
-    <div style="display:flex;align-items:center;gap:0;min-width:300px">
+    <div style="display:flex;align-items:center;gap:0;width:100%;max-width:520px;margin:0 auto">
       ${ROADMAP_STEPS.map((s, i) => `
-        <div id="${s.id}" style="display:flex;flex-direction:column;align-items:center;flex:1;opacity:0.35;transition:opacity 0.4s,transform 0.3s">
-          <div style="width:34px;height:34px;border-radius:50%;background:var(--navy3);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1rem;position:relative;z-index:1">${s.icon}</div>
-          <div style="font-size:9px;font-weight:700;color:var(--cream);margin-top:5px;white-space:nowrap">${s.label}</div>
-          <div id="${s.id}-badge" style="font-size:8px;margin-top:2px;color:var(--muted)">waiting</div>
+        <div id="${s.id}" style="display:flex;flex-direction:column;align-items:center;flex:0 0 80px;opacity:0.35;transition:opacity 0.4s,transform 0.3s">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--navy3);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.8rem;position:relative;z-index:1">${s.icon}</div>
+          <div style="font-size:9px;font-weight:700;color:var(--cream);margin-top:4px;white-space:nowrap">${s.label}</div>
+          <div id="${s.id}-badge" style="font-size:8px;margin-top:1px;color:var(--muted)">waiting</div>
         </div>
-        ${i < ROADMAP_STEPS.length - 1 ? `<div style="flex:1;height:2px;background:var(--border);margin-bottom:22px;transition:background 0.4s" id="${s.id}-line"></div>` : ''}
+        ${i < ROADMAP_STEPS.length - 1 ? `<div style="flex:1;height:1.5px;background:var(--border);margin-bottom:20px;transition:background 0.4s;min-width:20px" id="${s.id}-line"></div>` : ''}
       `).join('')}
     </div>`;
 }
 
 export function showRoadmap() {
   const el = document.getElementById('aiRoadmap');
-  if (el) el.style.display = 'block';
+  if (el) {
+    el.style.display = 'block';
+    // Tighten the padding inside the roadmap header + track
+    const header = el.querySelector('div:first-child');
+    if (header) header.style.padding = '0.35rem 0.75rem';
+    const track = document.getElementById('aiRoadmapTrack');
+    if (track) track.style.padding = '0.5rem 0.75rem';
+  }
   buildRoadmap();
   // Reset all steps
   ROADMAP_STEPS.forEach(s => {
