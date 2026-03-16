@@ -48,7 +48,6 @@ async function boot() {
 boot();
 
 
-
 const overlay = document.getElementById("sideOverlay");
 
 overlay?.addEventListener("click", () => {
