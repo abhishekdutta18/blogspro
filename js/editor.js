@@ -1,136 +1,376 @@
-// ═══════════════════════════════════════════════
-// editor.js — Rich text editor, toolbar, autosave
-// ═══════════════════════════════════════════════
-import { sanitize, showToast, slugify, stripTags, cleanEditorHTML } from './config.js';
-import { db }        from './config.js';
-import { state }     from './state.js';
-import { doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { cleanEditorHTML } from "./config.js";
+import { callAI } from "./ai-core.js";
+
+let editor = null;
+
+let history = [];
+let historyIndex = -1;
+
+
+/* =========================================
+   INIT EDITOR
+========================================= */
 
 export function initEditor() {
-  const editor = document.getElementById('editor');
+
+  editor = document.getElementById("editor");
+
   if (!editor) return;
 
-  let _wcTimer;
-  editor.addEventListener('input', () => { clearTimeout(_wcTimer); _wcTimer = setTimeout(updateWordCount, 150); });
-  editor.addEventListener('input', scheduleAutoSave);
+  editor.contentEditable = true;
 
-  document.getElementById('postTitle')?.addEventListener('input', e => {
-    const clean = stripTags(e.target.value);
-    if (clean !== e.target.value) e.target.value = clean;
-    if (!state.editingPostId)
-      document.getElementById('postSlug').value = slugify(clean);
+  console.log("[editor] initialized");
+
+  setupEvents();
+
+  saveHistory();
+
+}
+
+
+
+/* =========================================
+   EVENTS
+========================================= */
+
+function setupEvents() {
+
+  editor.addEventListener("input", saveHistory);
+
+  editor.addEventListener("paste", handlePaste);
+
+  editor.addEventListener("click", handleClick);
+
+  editor.addEventListener("keydown", handleSlashCommands);
+
+  editor.addEventListener("drop", handleDrop);
+
+  editor.addEventListener("dragover", e => e.preventDefault());
+
+  document.addEventListener("keydown", handleShortcuts);
+
+}
+
+
+
+/* =========================================
+   PASTE SANITIZATION
+========================================= */
+
+function handlePaste(e) {
+
+  e.preventDefault();
+
+  const text = (e.clipboardData || window.clipboardData).getData("text/plain");
+
+  document.execCommand("insertText", false, text);
+
+}
+
+
+
+/* =========================================
+   DRAG DROP IMAGE
+========================================= */
+
+function handleDrop(e) {
+
+  e.preventDefault();
+
+  const file = e.dataTransfer.files[0];
+
+  if (!file || !file.type.startsWith("image/")) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(evt) {
+
+    insertImage(evt.target.result);
+
+  };
+
+  reader.readAsDataURL(file);
+
+}
+
+
+
+/* =========================================
+   SHORTCUTS
+========================================= */
+
+function handleShortcuts(e) {
+
+  if (e.ctrlKey && e.key === "z") undo();
+
+  if (e.ctrlKey && e.key === "y") redo();
+
+}
+
+
+
+/* =========================================
+   HISTORY
+========================================= */
+
+function saveHistory() {
+
+  const html = editor.innerHTML;
+
+  if (history[historyIndex] === html) return;
+
+  history.push(html);
+
+  historyIndex = history.length - 1;
+
+}
+
+function undo() {
+
+  if (historyIndex <= 0) return;
+
+  historyIndex--;
+
+  editor.innerHTML = history[historyIndex];
+
+}
+
+function redo() {
+
+  if (historyIndex >= history.length - 1) return;
+
+  historyIndex++;
+
+  editor.innerHTML = history[historyIndex];
+
+}
+
+
+
+/* =========================================
+   SLASH COMMANDS
+========================================= */
+
+async function handleSlashCommands(e) {
+
+  if (e.key !== "/") return;
+
+  setTimeout(showSlashMenu, 10);
+
+}
+
+
+function showSlashMenu() {
+
+  removeSlashMenu();
+
+  const menu = document.createElement("div");
+
+  menu.id = "slashMenu";
+
+  menu.style.position = "absolute";
+  menu.style.background = "#111";
+  menu.style.padding = "10px";
+  menu.style.borderRadius = "8px";
+  menu.style.zIndex = "999";
+
+  menu.innerHTML = `
+    <div data-cmd="ai">AI Write</div>
+    <div data-cmd="image">Insert Image</div>
+    <div data-cmd="quote">Quote</div>
+  `;
+
+  document.body.appendChild(menu);
+
+  menu.addEventListener("click", async e => {
+
+    const cmd = e.target.dataset.cmd;
+
+    removeSlashMenu();
+
+    if (cmd === "quote") {
+
+      document.execCommand("insertHTML", false, "<blockquote>Quote</blockquote>");
+
+    }
+
+    if (cmd === "image") {
+
+      const url = prompt("Image URL");
+
+      if (url) insertImage(url);
+
+    }
+
+    if (cmd === "ai") {
+
+      const prompt = prompt("AI prompt");
+
+      if (!prompt) return;
+
+      const text = await callAI(prompt);
+
+      document.execCommand("insertText", false, text);
+
+    }
+
   });
 
-  document.getElementById('postTitle')?.addEventListener('paste', e => {
-    e.preventDefault();
-    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-    document.execCommand('insertText', false, stripTags(text).trim());
-  });
 }
 
-export function clearEditor() {
-  state.editingPostId  = null;
-  state.isPremium      = false;
-  state.generatedImages = [];
-  state.autoPlaceCancelled = false;
-  state.lastSavedContent   = '';
 
-  ['postTitle','postExcerpt','postSlug','postImage','postMeta','postTags'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
+function removeSlashMenu() {
 
-  const editor = document.getElementById('editor');
-  if (editor) editor.innerHTML = '';
+  const m = document.getElementById("slashMenu");
 
-  const _wc = document.getElementById('wordCount');
-  if (_wc) _wc.textContent = '0';
-  document.getElementById('readingTimeDisplay') && (document.getElementById('readingTimeDisplay').textContent = '0');
-  document.getElementById('saveStatus')         && (document.getElementById('saveStatus').textContent = '');
-  document.getElementById('autoSaveMsg')        && (document.getElementById('autoSaveMsg').textContent = '');
-  document.getElementById('editorHeading')      && (document.getElementById('editorHeading').textContent = 'New Post');
-  document.getElementById('premiumSwitch')?.classList.remove('on');
-  document.getElementById('aiResultBox')        && (document.getElementById('aiResultBox').style.display = 'none');
-  document.getElementById('imgPreviewGrid')     && (document.getElementById('imgPreviewGrid').style.display = 'none');
-  document.getElementById('imgGenStatus')       && (document.getElementById('imgGenStatus').innerHTML = '');
-  document.getElementById('autoplaceBar')?.classList.remove('active');
-  document.getElementById('qualityScoreResult') && (document.getElementById('qualityScoreResult').style.display = 'none');
-  document.getElementById('featuredPreview')    && (document.getElementById('featuredPreview').style.display = 'none');
-}
-window.clearEditor = clearEditor;
+  if (m) m.remove();
 
-export function updateWordCount() {
-  const editor = document.getElementById('editor');
-  if (!editor) return;
-  const text  = editor.textContent || '';
-  const words = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
-  document.getElementById('wordCount')        && (document.getElementById('wordCount').textContent = words);
-  document.getElementById('readingTimeDisplay') && (document.getElementById('readingTimeDisplay').textContent = Math.max(1, Math.ceil(words/200)));
-}
-window.updateWordCount = updateWordCount;
-
-// ── Auto-save ──────────────────────────────────
-let _autoSaveTimer;
-function scheduleAutoSave() {
-  clearTimeout(_autoSaveTimer);
-  _autoSaveTimer = setTimeout(async () => {
-    if (!state.editingPostId) return;
-    const editor = document.getElementById('editor');
-    const content = editor?.innerHTML;
-    if (!content || content.trim().length < 50) return;
-    if (content === state.lastSavedContent) return;
-    try {
-      await updateDoc(doc(db,'posts',state.editingPostId), { content, updatedAt: serverTimestamp() });
-      state.lastSavedContent = content;
-      const msg = document.getElementById('autoSaveMsg');
-      if (msg) msg.textContent = 'Auto-saved at ' + new Date().toLocaleTimeString();
-    } catch(_) {}
-  }, 30000);
 }
 
-// ── Toolbar commands ───────────────────────────
-function safeExec(cmd, value = null) {
-  const editor = document.getElementById('editor');
-  editor?.focus();
-  try { if (document.queryCommandSupported?.(cmd)) document.execCommand(cmd, false, value); } catch(_) {}
+
+
+/* =========================================
+   IMAGE CLICK
+========================================= */
+
+function handleClick(e) {
+
+  const img = e.target.closest("img");
+
+  removeImgToolbar();
+
+  if (!img) return;
+
+  showImageToolbar(img);
+
 }
-window.fmt      = cmd  => safeExec(cmd);
-window.fmtBlock = tag  => safeExec('formatBlock', tag);
-window.insertLink = () => { const url = prompt('Enter URL:'); if (url) safeExec('createLink', url); };
-window.togglePremium = () => {
-  state.isPremium = !state.isPremium;
-  document.getElementById('premiumSwitch')?.classList.toggle('on', state.isPremium);
-};
 
-// ── Preview ────────────────────────────────────
-window.previewPost = () => {
-  const title   = document.getElementById('postTitle').value || 'Preview';
-  const excerpt = document.getElementById('postExcerpt').value || '';
-  const content = document.getElementById('editor').innerHTML;
-  const win = window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title} — Preview</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <style>body{font-family:'DM Sans',sans-serif;background:#080d1a;color:#f5f0e8;max-width:740px;margin:4rem auto;padding:0 2rem;line-height:1.8}h1{font-family:'Cormorant Garamond',serif;font-size:3rem;font-weight:700;margin-bottom:1rem}h2{font-family:'Cormorant Garamond',serif;font-size:1.8rem;margin:2rem 0 1rem}h3{font-family:'Cormorant Garamond',serif;font-size:1.3rem;margin:1.5rem 0 .75rem}p{margin-bottom:1.5rem}blockquote{border-left:3px solid #c9a84c;padding-left:1.5rem;margin:2rem 0;font-style:italic;color:#8896b3}figure{margin:2rem 0;text-align:center}figure img{max-width:100%;border-radius:4px}.badge{background:#1a2340;color:#8896b3;font-size:.75rem;padding:.4rem 1rem;border-radius:2px;display:inline-block;margin-bottom:2rem}</style></head>
-  <body><div class="badge">PREVIEW</div><h1>${title}</h1>${excerpt?`<p style="font-size:1.2rem;color:#8896b3;margin-bottom:2rem">${excerpt}</p>`:''}${sanitize(content)}</body></html>`);
-  win.document.close();
-};
 
-// ── Featured image ─────────────────────────────
-window.updateFeaturedPreview = (url) => {
-  const preview = document.getElementById('featuredPreview');
-  const img     = document.getElementById('featuredPreviewImg');
-  const label   = document.getElementById('featuredPreviewLabel');
-  if (!url?.trim()) { if (preview) preview.style.display='none'; if (img) img.src=''; return; }
-  if (img) {
-    img.onload  = () => { if (preview) preview.style.display='block'; if (label) label.textContent = url.length>60?url.substring(0,57)+'…':url; };
-    img.onerror = () => { if (preview) preview.style.display='none'; };
-    img.src = url;
-  }
-};
-window.clearFeaturedImage = () => {
-  document.getElementById('postImage').value = '';
-  const preview = document.getElementById('featuredPreview');
-  const img = document.getElementById('featuredPreviewImg');
-  if (preview) preview.style.display = 'none';
-  if (img) img.src = '';
-  showToast('Featured image cleared.','success');
-};
+
+/* =========================================
+   IMAGE TOOLBAR
+========================================= */
+
+function showImageToolbar(img) {
+
+  const toolbar = document.createElement("div");
+
+  toolbar.id = "imgToolbar";
+
+  toolbar.style.position = "absolute";
+  toolbar.style.background = "#111";
+  toolbar.style.padding = "6px";
+  toolbar.style.borderRadius = "6px";
+  toolbar.style.display = "flex";
+  toolbar.style.gap = "6px";
+  toolbar.style.zIndex = "999";
+
+  const rect = img.getBoundingClientRect();
+
+  toolbar.style.top = rect.top + window.scrollY - 40 + "px";
+  toolbar.style.left = rect.left + "px";
+
+
+  toolbar.append(
+    createBtn("Left", () => img.style.float = "left"),
+    createBtn("Center", () => {
+      img.style.display = "block";
+      img.style.margin = "auto";
+      img.style.float = "none";
+    }),
+    createBtn("Right", () => img.style.float = "right"),
+    createBtn("Resize", () => enableResize(img)),
+    createBtn("Remove", () => {
+      img.remove();
+      removeImgToolbar();
+    })
+  );
+
+  document.body.appendChild(toolbar);
+
+}
+
+
+function createBtn(label, action) {
+
+  const btn = document.createElement("button");
+
+  btn.innerText = label;
+
+  btn.onclick = action;
+
+  return btn;
+
+}
+
+
+
+/* =========================================
+   RESIZE
+========================================= */
+
+function enableResize(img) {
+
+  img.style.resize = "both";
+
+  img.style.overflow = "auto";
+
+}
+
+
+
+/* =========================================
+   REMOVE TOOLBAR
+========================================= */
+
+export function removeImgToolbar() {
+
+  const tb = document.getElementById("imgToolbar");
+
+  if (tb) tb.remove();
+
+}
+
+
+
+/* =========================================
+   INSERT IMAGE
+========================================= */
+
+export function insertImage(url) {
+
+  const img = document.createElement("img");
+
+  img.src = url;
+
+  img.style.maxWidth = "100%";
+
+  img.style.margin = "10px 0";
+
+  editor.appendChild(img);
+
+}
+
+
+
+/* =========================================
+   GET HTML
+========================================= */
+
+export function getEditorHTML() {
+
+  return cleanEditorHTML(editor.innerHTML);
+
+}
+
+
+
+/* =========================================
+   SET HTML
+========================================= */
+
+export function setEditorHTML(html) {
+
+  editor.innerHTML = html;
+
+}
