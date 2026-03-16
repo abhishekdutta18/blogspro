@@ -88,11 +88,11 @@ async function callCloudflare(prompt, tone, category, forceModel, maxTokens) {
 // bears the full TPM load. Best quality models given more slots.
 export const ARTICLE_MODEL_POOL = [
   'llama-3.3-70b-versatile',                      // Groq: Llama 3.3 70B
-  'meta-llama/llama-4-maverick-17b-128e-instruct', // Groq: Llama 4 Maverick
+  'llama-4-maverick-17b-128e-instruct', // Groq: Llama 4 Maverick
   'llama-3.3-70b-versatile',                      // Llama 3.3 again (double weight — most reliable)
-  'meta-llama/llama-4-scout-17b-16e-instruct',    // Groq: Llama 4 Scout
+  'llama-4-scout-17b-16e-instruct',    // Groq: Llama 4 Scout
   'qwen/qwen3-32b',                               // Groq: Qwen3
-  'meta-llama/llama-4-maverick-17b-128e-instruct', // Maverick again
+  'llama-4-maverick-17b-128e-instruct', // Maverick again
   'moonshotai/kimi-k2-instruct',                  // Groq: Kimi K2 (quality boost)
   'llama-3.3-70b-versatile',                      // Llama 3.3 again
   'mistral-small-24b-instruct-2501',              // Groq: Mistral
@@ -109,8 +109,8 @@ export function resetModelPool() { _poolIndex = 0; }
 
 const GROQ_MODELS = [
   { id: 'llama-3.3-70b-versatile',                   name: 'Llama 3.3 70B'  },  // highest TPM, most reliable
-  { id: 'meta-llama/llama-4-maverick-17b-128e-instruct', name: 'Llama 4 Maverick' }, // good quality + high TPM
-  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout'  },
+  { id: 'llama-4-maverick-17b-128e-instruct', name: 'Llama 4 Maverick' }, // good quality + high TPM
+  { id: 'llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout'  },
   { id: 'qwen/qwen3-32b',                            name: 'Qwen3 32B'      },
   { id: 'moonshotai/kimi-k2-instruct',               name: 'Kimi K2'        },  // best quality but low TPM — use as last resort
   { id: 'mistral-small-24b-instruct-2501',           name: 'Mistral 24B'    },
