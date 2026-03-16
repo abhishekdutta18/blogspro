@@ -2,127 +2,48 @@ import { runTextAI } from "./ai/text-engine.js";
 import { runCodeAI } from "./ai/code-engine.js";
 import { runImageAI } from "./ai/image-engine.js";
 
-const failedProviders = new Set();
 const cache = new Map();
 
-let running = false;
+const CACHE_TTL = 10 * 60 * 1000;
 
 
-/**
- * Main AI entry point
- */
 export async function callAI(prompt, type = "text") {
 
-  if (!prompt) {
-    throw new Error("Prompt required");
-  }
-
-  // prevent duplicate simultaneous calls
-  if (running) {
-    console.warn("[ai-core] AI already running");
-  }
-
-  // cache check
   const key = type + ":" + prompt;
 
-  if (cache.has(key)) {
-    return cache.get(key);
-  }
+  const cached = cache.get(key);
 
-  running = true;
+  if (cached && Date.now() - cached.time < CACHE_TTL) {
 
-  try {
-
-    let result;
-
-    if (type === "text") {
-      result = await runTextAI(prompt);
-    }
-
-    else if (type === "code") {
-      result = await runCodeAI(prompt);
-    }
-
-    else if (type === "image") {
-      result = await runImageAI(prompt);
-    }
-
-    else {
-      throw new Error("Unknown AI type");
-    }
-
-    cache.set(key, result);
-
-    return result;
+    return cached.value;
 
   }
 
-  catch (err) {
+  let result;
 
-    console.error("[ai-core] AI failed:", err);
+  if (type === "text") {
 
-    throw err;
-
-  }
-
-  finally {
-
-    running = false;
+    result = await runTextAI(prompt);
 
   }
 
-}
+  else if (type === "code") {
 
+    result = await runCodeAI(prompt);
 
+  }
 
-/**
- * Mark provider failure (rate limit or error)
- */
-export function markFailed(provider) {
+  else if (type === "image") {
 
-  failedProviders.add(provider);
+    result = await runImageAI(prompt);
 
-  console.warn("[ai-core] provider marked as failed:", provider);
+  }
 
-}
+  cache.set(key, {
+    value: result,
+    time: Date.now()
+  });
 
-
-
-/**
- * Check if provider failed recently
- */
-export function isProviderFailed(provider) {
-
-  return failedProviders.has(provider);
-
-}
-
-
-
-/**
- * Reset failed providers
- */
-export function resetFailures() {
-
-  failedProviders.clear();
-
-}
-
-
-
-/**
- * Utility to detect rate limits
- */
-export function isRateLimitError(err) {
-
-  if (!err) return false;
-
-  const msg = String(err).toLowerCase();
-
-  return (
-    msg.includes("rate limit") ||
-    msg.includes("429") ||
-    msg.includes("quota")
-  );
+  return result;
 
 }
