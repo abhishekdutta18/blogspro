@@ -83,6 +83,30 @@ async function callCloudflare(prompt, tone, category, forceModel, maxTokens) {
 // Falls through to next model if one fails or rate-limits
 // Groq model priority — ordered by TPM limit (high → low) for parallel safety
 // Free tier TPM limits (approx): Llama3.3=12k, Llama4=8k, Qwen3=6k, Kimi=10k
+// ── Round-robin model pool for article sections ─
+// All text-generating models, cycled across sections so no single model
+// bears the full TPM load. Best quality models given more slots.
+export const ARTICLE_MODEL_POOL = [
+  'llama-3.3-70b-versatile',                      // Groq: Llama 3.3 70B
+  'meta-llama/llama-4-maverick-17b-128e-instruct', // Groq: Llama 4 Maverick
+  'llama-3.3-70b-versatile',                      // Llama 3.3 again (double weight — most reliable)
+  'meta-llama/llama-4-scout-17b-16e-instruct',    // Groq: Llama 4 Scout
+  'qwen/qwen3-32b',                               // Groq: Qwen3
+  'meta-llama/llama-4-maverick-17b-128e-instruct', // Maverick again
+  'moonshotai/kimi-k2-instruct',                  // Groq: Kimi K2 (quality boost)
+  'llama-3.3-70b-versatile',                      // Llama 3.3 again
+  'mistral-small-24b-instruct-2501',              // Groq: Mistral
+  'gemini',                                       // Gemini (special: routes to callGemini)
+];
+
+let _poolIndex = 0;
+export function getNextPoolModel() {
+  const model = ARTICLE_MODEL_POOL[_poolIndex % ARTICLE_MODEL_POOL.length];
+  _poolIndex++;
+  return model;
+}
+export function resetModelPool() { _poolIndex = 0; }
+
 const GROQ_MODELS = [
   { id: 'llama-3.3-70b-versatile',                   name: 'Llama 3.3 70B'  },  // highest TPM, most reliable
   { id: 'meta-llama/llama-4-maverick-17b-128e-instruct', name: 'Llama 4 Maverick' }, // good quality + high TPM
@@ -180,6 +204,26 @@ async function callGemini(prompt, maxTokens) {
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) return { error: 'Gemini: no content returned.' };
   return { text, modelUsed: 'gemini-2.5-flash', fallbackUsed: true };
+}
+
+// ── Call with a specific model from the pool ─
+// Handles 'gemini' as a special route, otherwise forces that Groq model
+export async function callAIWithModel(prompt, poolModel, maxTokens = 4000) {
+  if (poolModel === 'gemini') {
+    return await callGemini(prompt, maxTokens);
+  }
+  // Force a specific Groq model directly
+  if (!GROQ_API_KEY || GROQ_API_KEY === 'YOUR_GROQ_KEY') {
+    return callAI(prompt, true, 'auto', maxTokens);
+  }
+  const model = { id: poolModel, name: poolModel.split('/').pop() };
+  const result = await callGroqModel(prompt, maxTokens, model);
+  if (result.error && isRateLimit(result.error)) {
+    // This model is rate-limited — fall back to normal callAI chain
+    _groqModelFailed[poolModel] = true;
+    return callAI(prompt, true, 'auto', maxTokens);
+  }
+  return result;
 }
 
 // ── Session-level provider health tracking ───
