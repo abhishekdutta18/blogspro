@@ -646,7 +646,7 @@
                   <span id="v2WCLabel" style="font-size:10px;font-weight:700;color:var(--muted);min-width:30px;text-align:right">—</span>
                 </div>
                 <div id="v2LongForm" style="display:none;margin-bottom:6px;padding:4px 6px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.25);border-radius:3px;font-size:9px;color:#c084fc;line-height:1.5">⚡ Long-form: built chunk by chunk. Keep tab open.</div>
-                <button class="v2-gen-btn" onclick="handleGenerateClick()">✦ Generate Article</button>
+                <button class="v2-gen-btn" onclick="v2BeforeGenerate()">✦ Generate Article</button>
               </div>
             </div>
 
@@ -4322,7 +4322,8 @@ function aitShowResult(id, html) {
 // Get current article topic (title or AI prompt)
 function aitGetTopic() {
   return document.getElementById('postTitle').value.trim()
-    || document.getElementById('aiPrompt').value.trim()
+    || document.getElementById('v2TopicPrompt')?.value.trim()
+    || document.getElementById('aiPrompt')?.value.trim()
     || 'fintech article';
 }
 
@@ -4745,8 +4746,41 @@ function v2SyncModel(val) {
   if (m) m.value = val;
   if (typeof onModelChange === 'function') onModelChange(val);
 }
-function syncV2Topic(val) {
-  // keep v2 topic in sync with drawer prompt textarea if needed
+// Also sync tone when v2 tone selector changes
+document.addEventListener('DOMContentLoaded', () => {
+  const v2Tone = document.getElementById('v2WriteTone');
+  if (v2Tone) v2Tone.addEventListener('change', () => {
+    const at = document.getElementById('aiTone');
+    if (at) at.value = v2Tone.value.toLowerCase();
+  });
+  // On load, pre-fill v2TopicPrompt from aiPrompt if any
+  const ap = document.getElementById('aiPrompt');
+  const v2 = document.getElementById('v2TopicPrompt');
+  if (ap && v2 && ap.value && !v2.value) v2.value = ap.value;
+});
+function v2BeforeGenerate() {
+  // Sync topic
+  const v2Topic = document.getElementById('v2TopicPrompt')?.value.trim();
+  const ap = document.getElementById('aiPrompt');
+  if (v2Topic && ap) ap.value = v2Topic;
+
+  // Sync model
+  const v2Model = document.getElementById('v2Model')?.value;
+  const ma = document.getElementById('modelArticle');
+  if (v2Model && ma) { ma.value = v2Model; if (typeof onModelChange === 'function') onModelChange(v2Model); }
+
+  // Sync tone
+  const v2Tone = document.getElementById('v2WriteTone')?.value;
+  const at = document.getElementById('aiTone');
+  if (v2Tone && at) at.value = v2Tone.toLowerCase();
+
+  // Now call the real generate
+  handleGenerateClick();
+}
+
+  // Keep the old drawer textarea in sync so generateAIPost/generateLongForm can read it
+  const ap = document.getElementById('aiPrompt');
+  if (ap) ap.value = val;
 }
 function v2ScrollToAit() {
   const el = document.getElementById('v2AitSection');
