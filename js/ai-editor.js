@@ -171,7 +171,14 @@ window.generateSummary = async () => {
   const statusEl = document.getElementById('summaryStatus');
   if (statusEl) statusEl.textContent = '⏳ Generating summary…';
   const result = await callAI(`Write a 2-sentence compelling excerpt for this fintech article.\nTitle: "${title}"\nContent: "${content}"\nReturn ONLY the 2 sentences, no quotes.`, true);
-  if (result.error) { if (statusEl) statusEl.textContent = '✕ '+result.error; return; }
+  if (result.error) {
+    if (statusEl) {
+      statusEl.textContent = '✕ ' + result.error;
+      setTimeout(() => { statusEl.textContent = ''; }, 6000);
+    }
+    showToast(result.error, 'error');
+    return;
+  }
   document.getElementById('postExcerpt').value = result.text.trim();
   if (statusEl) statusEl.textContent = '✓ Summary generated';
   setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
