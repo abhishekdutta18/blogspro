@@ -170,11 +170,11 @@
     /* Modal */
     .modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,13,26,0.85);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
     .modal-overlay.open{display:flex}
-    .modal-box{background:var(--navy2);border:1px solid var(--border);width:90%;max-width:620px;padding:2rem;position:relative;border-radius:4px}
+    .modal-box{background:var(--navy2);border:1px solid var(--border);width:90%;max-width:720px;padding:2rem;position:relative;border-radius:4px}
     .modal-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold2),transparent)}
     .modal-title{font-family:var(--serif);font-size:1.4rem;font-weight:700;margin-bottom:0.4rem}
     .modal-sub{font-size:0.82rem;color:var(--muted);margin-bottom:1.2rem}
-    .modal-content{background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:1rem;min-height:80px;font-size:0.85rem;color:var(--muted);line-height:1.6;white-space:pre-wrap}
+    .modal-content{background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:1rem;min-height:200px;max-height:60vh;overflow-y:auto;font-size:0.85rem;color:var(--muted);line-height:1.7;white-space:pre-wrap}
     .modal-actions{display:flex;gap:0.75rem;margin-top:1rem}
     .btn-modal-confirm{flex:1;background:var(--gold);color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;transition:all 0.2s}
     .btn-modal-confirm:hover{background:var(--gold2)}
@@ -1198,13 +1198,12 @@
           <span class="drawer-section-label">AI Model</span>
           <select class="form-select" id="modelArticle" style="font-size:0.82rem" onchange="onModelChange(this.value)">
             <option value="auto" selected>Auto — Best Available</option>
-            <option value="gpt-oss">GPT OSS 120B — OpenAI Free ✦</option>
-            <option value="hermes">Hermes 405B — Highest Capacity</option>
-            <option value="llama">Llama 3.3 70B — Reliable</option>
-            <option value="qwen">Qwen 3 80B — Structured</option>
+            <option value="auto-free">OpenRouter Free — Fastest ✦</option>
+            <option value="llama">Llama 3.3 70B — Balanced</option>
             <option value="mistral">Mistral Small 24B — Fast</option>
-            <option value="gemma">Gemma 3 27B — Google Free</option>
-            <option value="auto-free">OpenRouter Free — Always Works</option>
+            <option value="gemma">Gemma 3 27B — Google</option>
+            <option value="hermes">Hermes 405B — Large (may be slow)</option>
+            <option value="qwen">Qwen 3 80B — Large (may be slow)</option>
           </select>
         </div>
       </div>
@@ -2306,14 +2305,13 @@ window.previewPost = () => {
 
 // ── Model selector helper ─────────────────────
 const MODEL_DESCRIPTIONS = {
-  'auto':       '⚡ Auto — tries GPT OSS 120B → Hermes 405B → Llama → Qwen in order',
-  'gpt-oss':    '✦ GPT OSS 120B — OpenAI free model, excellent long-form quality',
-  'hermes':     '✦ Hermes 3 405B — highest parameter count free model available',
-  'llama':      '✦ Llama 3.3 70B — reliable, balanced speed and quality',
-  'qwen':       '✦ Qwen 3 80B — strong structured and analytical content',
-  'mistral':    '✦ Mistral Small 24B — fast, good for shorter articles',
-  'gemma':      '✦ Gemma 3 27B — Google free model, clean outputs',
-  'auto-free':  '✦ OpenRouter Free — auto-picks any available free model',
+  'auto':       '⚡ Auto — OpenRouter picks best available free model, then falls back to Llama/Mistral/Gemma',
+  'auto-free':  '✦ OpenRouter Free — fastest, routes to best available model automatically',
+  'llama':      '✦ Llama 3.3 70B — reliable workhorse, good for most content',
+  'mistral':    '✦ Mistral Small 24B — fast generation, good for shorter articles',
+  'gemma':      '✦ Gemma 3 27B — Google free model, clean and structured output',
+  'hermes':     '✦ Hermes 3 405B — very large model, higher quality but may be slow',
+  'qwen':       '✦ Qwen 3 80B — strong analytical content, may be slow',
 };
 
 window.onModelChange = (val) => {
@@ -2365,11 +2363,43 @@ window.generateAIPost = async () => {
   document.getElementById('aiBtnText').textContent='Generating outline…';
   document.getElementById('aiStatus').textContent='';
   document.getElementById('aiModalTitle').textContent='✦ Generating outline…';
-  document.getElementById('aiModalSub').textContent='AI is planning your article structure.';
+  document.getElementById('aiModalSub').textContent='Building a detailed multi-section outline…';
   document.getElementById('aiModalContent').innerHTML='<span style="animation:pulse 1s infinite;display:inline-block">Working…</span>';
   document.getElementById('aiModalActions').style.display='none';
   document.getElementById('aiModal').classList.add('open');
-  const outResult=await callAI(`Create a concise article outline (5-7 bullet points) for:\nTopic: "${topic}"\nCategory: ${document.getElementById('postCategory').value}. Tone: ${document.getElementById('aiTone').value}.\nReturn ONLY plain text bullet points.`,true);
+  const wordTarget = document.getElementById('wordTarget')?.value || '2500';
+  const outResult=await callAI(`Create a comprehensive, detailed article outline for a ${wordTarget}-word article.
+
+TOPIC: "${topic}"
+CATEGORY: ${document.getElementById('postCategory').value}
+TONE: ${document.getElementById('aiTone').value}
+
+Generate a rich, multi-level outline with:
+- 6 to 8 major sections (H2 headings)
+- 3 to 5 sub-points under each section (what to cover, data to include, angle to take)
+- An introduction section and a conclusion section
+- At least one section for data, statistics, or case studies
+- At least one section for future outlook or implications
+
+FORMAT — use this exact structure:
+## Introduction
+- Hook and context: [what angle to open with]
+- Thesis: [core argument or insight]
+- What the reader will learn
+
+## [Section Title]
+- [Sub-point: specific thing to cover]
+- [Sub-point: data or example to include]
+- [Sub-point: insight or analysis to provide]
+
+[...continue for all sections...]
+
+## Conclusion
+- Key takeaways summary
+- Forward-looking perspective
+- Call to action or closing thought
+
+Return ONLY the outline in the format above. No preamble, no meta-commentary.`,true);
   if (outResult.error) {
     closeAIModal();
     document.getElementById('aiStatus').textContent='✕ '+outResult.error;
@@ -2402,34 +2432,41 @@ window.confirmOutline = async () => {
   document.getElementById('aiModal').classList.add('open');
 
   const wordTarget = document.getElementById('wordTarget')?.value || '2000';
-  const artPrompt = `You are an expert journalist and content strategist writing comprehensive, authoritative articles for BlogsPro (blogspro.in).
+  const artPrompt = `You are an expert content writer producing a high-quality, publication-ready article for BlogsPro (blogspro.in).
 
-ARTICLE TOPIC: "${topic}"
+TOPIC: "${topic}"
 CATEGORY: ${category}
 TONE: ${tone}
-OUTLINE TO FOLLOW:
+TARGET LENGTH: AT LEAST ${wordTarget} words — firm minimum. Do not stop early.
+
+DETAILED OUTLINE TO FOLLOW — expand every section and sub-point fully:
 ${pendingOutline}
 
-WORD COUNT REQUIREMENT: Write AT LEAST ${wordTarget} words. This is mandatory. Do not stop early. Each section must be thoroughly developed with:
-- Real-world examples and case studies relevant to the topic
-- Specific data points, statistics, and credible references
-- Expert analysis and strategic insights
-- Practical implications for practitioners
+WRITING INSTRUCTIONS:
+For each H2 section in the outline:
+- Write 4-6 substantive paragraphs minimum
+- Develop each sub-point into at least one full paragraph
+- Include specific examples, data, and real-world evidence
+- Add analysis — what the facts mean and why they matter
 
-CONTENT QUALITY RULES:
-- Start with a compelling <p> introduction (2-3 sentences hooking the reader)
-- Every <h2> section must have at least 3-4 substantial paragraphs
-- Include at least one <blockquote> with a key insight or data point
-- Add at least one <ul> or <ol> list with detailed items
-- Use <strong> only for genuinely important terms, never full sentences
-- End with a forward-looking conclusion section
+REQUIRED ELEMENTS:
+- Compelling opening paragraph that hooks the reader and establishes stakes
+- At least 2 <blockquote> elements with key insights or notable statistics  
+- At least 2 <ul> or <ol> lists that add genuine value
+- <h3> subheadings within longer sections for scannability
+- A conclusion section that synthesises insights and looks forward
 
-HTML FORMAT RULES:
-- NEVER use <h1> tags
-- Use ONLY: <h2> <h3> <p> <strong> <em> <ul> <li> <ol> <blockquote> <table> <tr> <td> <th>
-- Return ONLY clean HTML — no JSON, no markdown, no code fences, no metadata
+HTML FORMAT — use ONLY these tags:
+<h2> <h3> <p> <strong> <em> <ul> <ol> <li> <blockquote> <table> <thead> <tbody> <tr> <th> <td>
 
-Write the full article now. Do not truncate. Do not summarise. Write every section in full.`;
+STRICT RULES:
+- NEVER use <h1>
+- NEVER use markdown (no **, no ##, no ---)
+- NEVER include JSON, metadata, or code fences
+- NEVER truncate — write every section fully and completely
+- Return ONLY the article HTML, nothing else
+
+Write the complete article now from introduction to conclusion.`;
 
   // Use high token limit for long-form articles
   let artResult = await callAI(artPrompt, false, modelArticle, 12000);
