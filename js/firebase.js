@@ -7,7 +7,6 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebas
 import { getRemoteConfig } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-remote-config.js";
 
 
-// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
   authDomain: "blogspro-ai.firebaseapp.com",
@@ -19,11 +18,8 @@ const firebaseConfig = {
 };
 
 
-// Initialize Firebase
 export const app = initializeApp(firebaseConfig);
 
-
-// Firebase services
 export const auth = getAuth(app);
 
 export const db = getFirestore(app);
