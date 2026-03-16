@@ -19,6 +19,22 @@
 import { WORKER_URL, GROQ_API_KEY, GEMINI_API_KEY } from './config.js';
 import { showToast } from './config.js';
 
+// ── Fetch with timeout ───────────────────────
+// Prevents silent hangs when a provider takes too long
+async function fetchWithTimeout(url, options, timeoutMs = 25000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timer);
+    return res;
+  } catch(e) {
+    clearTimeout(timer);
+    if (e.name === 'AbortError') throw new Error('Request timed out after ' + (timeoutMs/1000) + 's');
+    throw e;
+  }
+}
+
 // ── Rate-limit detection ──────────────────────
 function isRateLimit(errorStr) {
   if (!errorStr) return false;
@@ -32,11 +48,11 @@ function isRateLimit(errorStr) {
 async function callCloudflare(prompt, tone, category, forceModel, maxTokens) {
   let res, data;
   try {
-    res = await fetch(WORKER_URL, {
+    res = await fetchWithTimeout(WORKER_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ prompt, tone, category, forceModel, maxTokens }),
-    });
+    }, 20000); // 20s timeout — Cloudflare Workers must respond within this
   } catch(e) {
     return { error: 'CF network error: ' + e.message };
   }
@@ -75,7 +91,7 @@ const GROQ_MODELS = [
 async function callGroqModel(prompt, maxTokens, model) {
   let res, data;
   try {
-    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    res = await fetchWithTimeout('https://api.groq.com/openai/v1/chat/completions', {
       method:  'POST',
       headers: {
         'Content-Type':  'application/json',
@@ -87,7 +103,7 @@ async function callGroqModel(prompt, maxTokens, model) {
         max_tokens:  Math.min(maxTokens, 8000),
         temperature: 0.7,
       }),
-    });
+    }, 30000); // 30s timeout for Groq
   } catch(e) { return { error: 'Groq network error: ' + e.message }; }
   try { data = await res.json(); } catch(e) {
     return { error: 'Groq invalid response (HTTP ' + res.status + ')' };
@@ -124,7 +140,7 @@ async function callGemini(prompt, maxTokens) {
   }
   let res, data;
   try {
-    res = await fetch(
+    res = await fetchWithTimeout(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method:  'POST',
@@ -136,7 +152,8 @@ async function callGemini(prompt, maxTokens) {
             temperature: 0.7,
           },
         }),
-      }
+      },
+      30000 // 30s timeout for Gemini
     );
   } catch(e) {
     return { error: 'Gemini network error: ' + e.message };
