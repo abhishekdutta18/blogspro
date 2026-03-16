@@ -196,7 +196,7 @@ function showSlashMenu() {
 
     if (cmd === "image") {
 
-      const url = prompt("Image URL");
+      const url = window.prompt("Image URL");
 
       if (url) insertImage(url);
 
@@ -204,11 +204,13 @@ function showSlashMenu() {
 
     if (cmd === "ai") {
 
-      const prompt = prompt("AI prompt");
+      // Bug fix: must use window.prompt — declaring `const prompt` in the same
+      // block shadows window.prompt and causes a TDZ ReferenceError.
+      const userPrompt = window.prompt("AI prompt");
 
-      if (!prompt) return;
+      if (!userPrompt) return;
 
-      const text = await callAI(prompt);
+      const text = await callAI(userPrompt);
 
       document.execCommand("insertText", false, text);
 
@@ -374,3 +376,50 @@ export function setEditorHTML(html) {
   editor.innerHTML = html;
 
 }
+
+
+/* =========================================
+   WORD COUNT  (Bug 3 fix — was missing)
+   Imported by ai-editor.js
+========================================= */
+
+export function updateWordCount() {
+  const ed = document.getElementById("editor");
+  const el = document.getElementById("wordCount");
+  if (!ed) return;
+  const count = (ed.textContent || "").trim().split(/\s+/).filter(Boolean).length;
+  if (el) el.textContent = count.toLocaleString() + " words";
+  // Also sync the v2 editor word-count badge if present
+  const v2el = document.getElementById("v2WordCount");
+  if (v2el) v2el.textContent = count.toLocaleString() + " words";
+}
+window.updateWordCount = updateWordCount;
+
+
+/* =========================================
+   CLEAR EDITOR  (Bug 3b — missing export
+   used by nav.js clearEditor import)
+========================================= */
+
+export function clearEditor() {
+  const ed = document.getElementById("editor");
+  if (ed) ed.innerHTML = "";
+  // Reset metadata fields
+  ["postTitle","postExcerpt","postSlug","postImage","postMeta","postTags"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  const cat = document.getElementById("postCategory");
+  if (cat) cat.selectedIndex = 0;
+  const heading = document.getElementById("editorHeading");
+  if (heading) heading.textContent = "New Post";
+  const saveStatus = document.getElementById("saveStatus");
+  if (saveStatus) saveStatus.textContent = "";
+  // Import state lazily to avoid circular deps
+  import("./state.js").then(({ state }) => {
+    state.editingPostId = null;
+    state.isPremium     = false;
+  });
+  updateWordCount();
+}
+window.clearEditor = clearEditor;
