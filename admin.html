@@ -444,25 +444,43 @@ function doLogout() {
     <div style="margin-top:1.2rem;background:var(--navy2);border:1px solid var(--border);border-radius:6px" id="v2ParticipationPanel">
       <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none" onclick="v2TogglePanel('v2PartBody',this)">
         <span style="font-size:0.82rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--cream)">🤖 AI Participation Status</span>
-        <span style="font-size:10px;color:var(--muted)">Active · Inactive models in your pipeline ▾</span>
+        <span style="font-size:10px;color:var(--muted)">Live models in your pipeline ▾</span>
       </div>
       <div style="padding:16px" id="v2PartBody">
-        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:12px;line-height:1.5">Models marked <span style="color:var(--green);font-weight:700">● Active</span> are integrated and participate in article generation. Models marked <span style="color:var(--muted);font-weight:700">○ Not Used</span> are not yet connected.</div>
-        <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Priority order — best quality first</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:12px;line-height:1.5">Models are tried in priority order. First available wins. <span style="color:var(--green);font-weight:700">● Active</span> = key configured. <span style="color:#fca5a5;font-weight:700">○ No Key</span> = add key to Firebase Remote Config.</div>
+
+        <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Text Generation — Priority Order</div>
         <div class="v2-ai-part-grid">
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌙 Kimi K2</div><div class="v2-ai-task">1T MoE — highest quality, Groq #1 pick</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🤖 GPT-OSS 120B</div><div class="v2-ai-task">OpenAI open-weight — Groq #2 pick</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🦙 Llama 4 Scout</div><div class="v2-ai-task">Meta Llama 4 — Groq #3 pick</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🐼 Qwen3 32B</div><div class="v2-ai-task">Alibaba — reasoning, multilingual</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🦙 Llama 3.3 70B</div><div class="v2-ai-task">Reliable fallback — proven quality</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌪 Mistral 24B</div><div class="v2-ai-task">Fast drafts and rewrites</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">✨ Gemini 2.5 Flash</div><div class="v2-ai-task">Google — fallback when Groq rate-limits</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">⚡ Cloudflare AI</div><div class="v2-ai-task">Primary worker — routes all models above</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">☁️ Cloudflare Images</div><div class="v2-ai-task">Image generation — primary provider</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🤗 HuggingFace</div><div class="v2-ai-task">Image gen — Flux Schnell fallback</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌸 Pollinations.ai</div><div class="v2-ai-task">Image gen — zero-setup fallback</div><span class="v2-ai-badge on">● Active</span></div>
-          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">💬 GPT-4o</div><div class="v2-ai-task">OpenAI — paid API, not integrated</div><span class="v2-ai-badge off">○ Not Used</span></div>
-          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">🔮 Claude (Anthropic)</div><div class="v2-ai-task">Paid API — requires separate key</div><span class="v2-ai-badge off">○ Not Used</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌙 Kimi K2 Instruct</div><div class="v2-ai-task">Moonshot AI 1T MoE · via Groq — #1 best quality</div><span class="v2-ai-badge on">● groq_key</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🐼 Qwen3 235B A22B</div><div class="v2-ai-task">Alibaba frontier reasoning · via OpenRouter — #2</div><span class="v2-ai-badge on">● openrouter_key</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🔍 DeepSeek V3</div><div class="v2-ai-task">DeepSeek long context + reasoning · via Together — #3</div><span class="v2-ai-badge on">● together_key</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🦙 Llama 3.3 70B</div><div class="v2-ai-task">Meta proven quality · via DeepInfra — #4 fallback</div><span class="v2-ai-badge on">● deepinfra_key</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">✨ Gemini 2.0 Flash</div><div class="v2-ai-task">Google fast multimodal · direct API — #5 fallback</div><span class="v2-ai-badge on">● gemini_key</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌀 Mistral Large</div><div class="v2-ai-task">Mistral AI instruction tuned · direct — #6 fallback</div><span class="v2-ai-badge on">● (mistral key)</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">💬 DeepSeek Chat</div><div class="v2-ai-task">DeepSeek direct API — #7 last resort</div><span class="v2-ai-badge on">● (deepseek key)</span></div>
+        </div>
+
+        <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;margin-top:14px">Image Generation — Priority Order</div>
+        <div class="v2-ai-part-grid">
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌸 Pollinations.ai</div><div class="v2-ai-task">Flux Schnell · free, no key needed — primary</div><span class="v2-ai-badge on">● no key needed</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🤗 HuggingFace</div><div class="v2-ai-task">Flux Schnell inference API — fallback</div><span class="v2-ai-badge on">● (hf key)</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">☁️ Cloudflare AI</div><div class="v2-ai-task">Workers AI image gen — last resort</div><span class="v2-ai-badge on">● cloudflare_key</span></div>
+        </div>
+
+        <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;margin-top:14px">Not Integrated — Paid APIs</div>
+        <div class="v2-ai-part-grid">
+          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">💠 GPT-4o / o3</div><div class="v2-ai-task">OpenAI — add openai_key to Remote Config</div><span class="v2-ai-badge off">○ No Key</span></div>
+          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">🔮 Claude 3.5 Sonnet</div><div class="v2-ai-task">Anthropic — add anthropic_key to Remote Config</div><span class="v2-ai-badge off">○ No Key</span></div>
+          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">🖼 DALL·E 3</div><div class="v2-ai-task">OpenAI images — requires openai_key</div><span class="v2-ai-badge off">○ No Key</span></div>
+        </div>
+
+        <div style="margin-top:12px;padding:10px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:4px;font-size:0.7rem;color:var(--muted);line-height:1.7">
+          <strong style="color:var(--gold)">Add keys in Firebase:</strong> Console → Remote Config → add
+          <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:2px">groq_key</code>
+          <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:2px">openrouter_key</code>
+          <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:2px">together_key</code>
+          <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:2px">deepinfra_key</code>
+          <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:2px">gemini_key</code> → Publish changes.
         </div>
       </div>
     </div>
