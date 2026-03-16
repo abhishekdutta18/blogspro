@@ -9,9 +9,6 @@ import {
 export { _db as db };
 
 // ── Cloudinary credentials ────────────────────────────────────
-export const CLOUDINARY_CLOUD_NAME   = 'blogspro';      // Replace with your actual cloud name
-export const CLOUDINARY_UPLOAD_PRESET = 'blogspro_unsigned'; // Replace with your upload preset
-
 export let AI_KEYS = {};
 
 export async function loadRemoteConfig() {
