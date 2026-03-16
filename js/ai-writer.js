@@ -6,6 +6,7 @@ import { callAI }    from './ai-core.js';
 import { state }     from './state.js';
 import { updateWordCount } from './editor.js';
 import { openAIDrawer }    from './ai-drawer.js';
+import { startTimer, stopTimer, hideTimer, timerLog, showRoadmap, setRoadmapStep, hideRoadmap } from './timer.js';
 
 function closeAIModal() { document.getElementById('aiModal')?.classList.remove('open'); }
 
@@ -36,6 +37,9 @@ export async function generateAIPost() {
   document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Working…</span>';
   document.getElementById('aiModalActions').style.display = 'none';
   document.getElementById('aiModal').classList.add('open');
+  showRoadmap();
+  setRoadmapStep('outline', 'active');
+  startTimer('outline');
 
   const outResult = await callAI(
     `Create a concise article outline (5-7 bullet points) for:\nTopic: "${topic}"\nCategory: ${document.getElementById('postCategory').value}. Tone: ${document.getElementById('aiTone').value}.\nReturn ONLY plain text bullet points.`,
@@ -43,6 +47,9 @@ export async function generateAIPost() {
   );
 
   if (outResult.error) {
+    setRoadmapStep('outline', 'error');
+    hideTimer();
+    hideRoadmap();
     closeAIModal();
     document.getElementById('aiStatus').textContent = '✕ ' + outResult.error;
     showToast('AI Error: ' + outResult.error,'error');
@@ -53,6 +60,8 @@ export async function generateAIPost() {
     return;
   }
 
+  stopTimer();
+  setRoadmapStep('outline', 'done');
   state.pendingOutline = outResult.text;
   document.getElementById('aiModalTitle').textContent   = '✦ Review Outline';
   document.getElementById('aiModalSub').textContent     = 'Click "Write Full Article" to generate, or Cancel.';
@@ -80,6 +89,9 @@ export async function confirmOutline() {
   document.getElementById('aiModalSub').textContent   = 'Generating long-form content…';
   document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Writing full article…</span>';
   document.getElementById('aiModal').classList.add('open');
+  setRoadmapStep('outline', 'done');
+  setRoadmapStep('article', 'active');
+  startTimer('article');
 
   const artPrompt = `You are an expert fintech writer for BlogsPro (blogspro.in).\nWrite a comprehensive, long-form article about: "${topic}"\nCategory: ${category}. Tone: ${tone}.\nFollow this outline:\n${state.pendingOutline}\n\nRULES:\n- NEVER use <h1> tags\n- Start with a plain <p> introduction — NOT bold, NOT a heading\n- Use only: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>\n- Do NOT wrap entire paragraphs in <strong>\n- Write in depth — NO word limit\n- Return ONLY clean HTML. No JSON, no metadata, no markdown.`;
 
@@ -92,6 +104,9 @@ export async function confirmOutline() {
   allAttempts.push(...(artResult.attemptsDetail||[]));
 
   if (artResult.error) {
+    setRoadmapStep('article', 'error');
+    hideTimer();
+    hideRoadmap();
     closeAIModal();
     document.getElementById('aiStatus').textContent = '✕ Article failed: ' + artResult.error;
     showToast('Article generation failed.','error');
@@ -113,6 +128,10 @@ export async function confirmOutline() {
   openAIDrawer('edit');
 
   // ── Metadata ──────────────────────────────────
+  stopTimer();
+  setRoadmapStep('article', 'done');
+  setRoadmapStep('metadata', 'active');
+  startTimer('metadata');
   document.getElementById('aiModalTitle').textContent = '✦ Generating metadata…';
   document.getElementById('aiModalSub').textContent   = 'Title, summary, SEO, citations…';
   document.getElementById('aiModalContent').innerHTML = '<span style="animation:pulse 1s infinite;display:inline-block">Generating metadata…</span>';
@@ -171,6 +190,10 @@ IMPORTANT for citations: use REAL working URLs from rbi.org.in, sebi.gov.in, npc
   const metaFields = ['title','summary','tags','meta','citations'].filter(f=>checks[f]);
   addR(metaFields.length?'✓':'—', 'Metadata: '+(metaFields.join(', ')||'none'), '', metaFields.length>0);
 
+  setRoadmapStep('metadata', 'done');
+  setRoadmapStep('done', 'done');
+  hideTimer();
+  setTimeout(hideRoadmap, 1200);
   closeAIModal();
 
   // Show result in drawer
