@@ -55,7 +55,7 @@ export async function loadAll() {
   } catch(e) {
     console.error('loadAll error:', e);
     const tbody = document.getElementById('recentPostsBody');
-    if (tbody) tbody.innerHTML = `<tr><td colspan="5"><div class="table-empty" style="color:#fca5a5">
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6"><div class="table-empty" style="color:#fca5a5">
       ✕ ${e.message}<br><span style="font-size:0.75rem;color:var(--muted)">Check Firestore rules or index.</span>
     </div></td></tr>`;
     ['statTotal','statPublished','statDrafts','statSubs'].forEach(id => {

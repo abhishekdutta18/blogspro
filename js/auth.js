@@ -14,6 +14,7 @@ export function initAuth() {
   onAuthStateChanged(auth, async user => {
     if (!user) { window.location.href = 'login.html'; return; }
 
+    let isAdmin = false;
     try {
       const snap = await getDoc(doc(db, 'users', user.uid));
       const role  = snap.exists() ? snap.data().role : null;
@@ -23,15 +24,27 @@ export function initAuth() {
         window.location.href = 'login.html?error=unauthorized';
         return;
       }
+      isAdmin = true;
     } catch(e) {
-      // Only hard-redirect on actual auth/permission errors, not network blips
       if (e.code === 'permission-denied' || e.code === 'unauthenticated') {
         await signOut(auth);
         window.location.href = 'login.html?error=unauthorized';
         return;
       }
-      console.warn('Auth check non-fatal error:', e.message);
+      // Cannot confirm admin role — show error, do not load dashboard data
+      console.error('Auth role check failed:', e.message);
+      const tbody = document.getElementById('recentPostsBody');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="6"><div class="table-empty" style="color:#fca5a5">
+        ✕ Could not verify admin role. Please refresh or sign in again.<br>
+        <span style="font-size:0.75rem;color:var(--muted)">${e.message}</span>
+      </div></td></tr>`;
+      ['statTotal','statPublished','statDrafts','statSubs'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.textContent = '—';
+      });
+      return;
     }
+
+    if (!isAdmin) return;
 
     state.currentUser = user;
     const el = (id) => document.getElementById(id);
