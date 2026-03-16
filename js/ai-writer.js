@@ -129,31 +129,26 @@ export async function confirmOutline() {
       .filter(Boolean);
 
     const totalSections = sections.length;
-    let fullHTML = '';
-    let chunksFailed = 0;
+    const wordsPerSection = Math.ceil(wordTarget / totalSections);
+    const maxTokPerSection = Math.min(8000, wordsPerSection * 2);
+
+    // ── Parallel batch config ──────────────────
+    // Batch size: how many sections fire simultaneously
+    // 3 is safe for free tiers (avoids 429 rate-limits)
+    // Increase to 5 if on paid plans
+    const BATCH_SIZE = 3;
 
     document.getElementById('aiModalTitle').textContent = `✦ Writing ${wordTarget.toLocaleString()}-word article…`;
-    document.getElementById('aiModalSub').textContent   = `Building ${totalSections} sections. Keep tab open.`;
+    document.getElementById('aiModalSub').textContent   = `${totalSections} sections · ${BATCH_SIZE} at a time. Keep tab open.`;
 
-    const wordsPerSection = Math.ceil(wordTarget / totalSections);
+    // Result array preserves order regardless of which finishes first
+    const sectionResults = new Array(totalSections).fill(null);
+    let completedCount = 0;
+    let chunksFailed   = 0;
 
-    for (let i = 0; i < sections.length; i++) {
-      const section = sections[i];
-      const pct     = Math.round(((i) / totalSections) * 100);
-
-      document.getElementById('aiModalContent').innerHTML =
-        `<div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.5rem">
-          Section ${i+1} of ${totalSections} · ${pct}% complete
-        </div>
-        <div style="background:var(--navy3);border-radius:2px;height:3px;margin-bottom:0.8rem">
-          <div style="height:3px;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px;width:${pct}%;transition:width 0.5s"></div>
-        </div>
-        <span style="animation:pulse 1s infinite;display:inline-block">Writing: ${section}…</span>`;
-
-      timerLog(`[${i+1}/${totalSections}] ${section}`);
-
-      const isFirst = i === 0;
-      const sectionPrompt = `You are an expert fintech writer for BlogsPro.
+    function buildSectionPrompt(section, index) {
+      const isFirst = index === 0;
+      return `You are an expert fintech writer for BlogsPro.
 Article topic: "${topic}" | Category: ${category} | Tone: ${tone}
 Write the section titled: "${section}"
 ${isFirst ? 'This is the OPENING section — start with a compelling <p> introduction (no heading), then use <h2> for the section title.' : 'Use <h2> for the section title.'}
@@ -163,41 +158,88 @@ Rules:
 - NEVER use <h1> tags
 - Write in depth with examples, data, and analysis
 - Return ONLY clean HTML for this section. No JSON, no metadata.`;
+    }
 
-      let sResult = await callAI(sectionPrompt, false, modelArticle, Math.min(8000, wordsPerSection * 2));
-      if (sResult.error) {
-        await new Promise(r => setTimeout(r, 1500));
-        sResult = await callAI(sectionPrompt, false, 'auto', Math.min(8000, wordsPerSection * 2));
+    function cleanSectionHTML(text) {
+      return (text || '')
+        .replace(/```html?|```/gi, '')
+        .replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, '')
+        .replace(/<p><strong>([\s\S]*?)<\/strong><\/p>/g, '<p>$1</p>')
+        .trim();
+    }
+
+    function renderProgress() {
+      const pct = Math.round((completedCount / totalSections) * 100);
+      const activeBatch = sections
+        .slice(0, totalSections)
+        .filter((_, i) => sectionResults[i] === null && i < completedCount + BATCH_SIZE)
+        .slice(0, BATCH_SIZE)
+        .map((s, i) => `<div style="font-size:0.72rem;color:var(--gold)">⟳ ${s.substring(0,45)}${s.length>45?'…':''}</div>`)
+        .join('');
+
+      document.getElementById('aiModalContent').innerHTML =
+        `<div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.5rem">
+          ${completedCount} of ${totalSections} sections done · ${pct}% complete
+        </div>
+        <div style="background:var(--navy3);border-radius:2px;height:3px;margin-bottom:0.8rem">
+          <div style="height:3px;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px;width:${pct}%;transition:width 0.3s"></div>
+        </div>
+        <div style="margin-bottom:0.4rem;font-size:0.7rem;color:var(--muted)">Writing in parallel:</div>
+        ${activeBatch}`;
+    }
+
+    async function generateSection(index) {
+      const section = sections[index];
+      timerLog(`[${index+1}/${totalSections}] ${section}`);
+
+      let result = await callAI(buildSectionPrompt(section, index), false, modelArticle, maxTokPerSection);
+      if (result.error) {
+        await new Promise(r => setTimeout(r, 1000));
+        result = await callAI(buildSectionPrompt(section, index), false, 'auto', maxTokPerSection);
       }
 
-      if (sResult.error) {
-        chunksFailed++;
-        // Insert a retry placeholder for failed sections
-        const placeholder = `<div class="failed-section-block" data-section="${section}" data-topic="${topic}" data-category="${category}" data-tone="${tone}" data-words="${wordsPerSection}" data-model="${modelArticle}" style="border:1px dashed rgba(239,68,68,0.4);border-radius:4px;padding:1rem;margin:1rem 0">
+      if (result.error) {
+        sectionResults[index] = `<div class="failed-section-block" data-section="${section}" data-topic="${topic}" data-category="${category}" data-tone="${tone}" data-words="${wordsPerSection}" data-model="${modelArticle}" style="border:1px dashed rgba(239,68,68,0.4);border-radius:4px;padding:1rem;margin:1rem 0">
           <div class="failed-section-inner">
             <h2 style="color:#fca5a5">${section}</h2>
-            <div class="failed-text" style="font-size:0.8rem;color:#fca5a5"><span>⚠ This section failed to generate.</span></div>
+            <div class="failed-text" style="font-size:0.8rem;color:#fca5a5"><span>⚠ Section failed. ${result.error}</span></div>
             <button class="action-btn" onclick="retrySectionGen(this)" style="margin-top:0.5rem">🔄 Retry Now</button>
           </div>
         </div>`;
-        fullHTML += placeholder;
+        chunksFailed++;
       } else {
-        const clean = (sResult.text || '')
-          .replace(/```html?|```/gi, '')
-          .replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, '')
-          .replace(/<p><strong>([\s\S]*?)<\/strong><\/p>/g, '<p>$1</p>')
-          .trim();
-        fullHTML += clean + '\n';
+        sectionResults[index] = cleanSectionHTML(result.text);
+        allAttempts.push(...(result.attemptsDetail||[]));
       }
 
-      // Stream into editor live
-      editor.innerHTML = sanitize(fullHTML);
+      completedCount++;
+      renderProgress();
+
+      // Stream completed sections into editor in order
+      const orderedHTML = sectionResults
+        .filter(r => r !== null)
+        .join('\n');
+      editor.innerHTML = sanitize(orderedHTML);
       updateWordCount();
-      allAttempts.push(...(sResult.attemptsDetail||[]));
+    }
+
+    // ── Process in batches of BATCH_SIZE ──────
+    renderProgress();
+    for (let batchStart = 0; batchStart < totalSections; batchStart += BATCH_SIZE) {
+      const batchEnd     = Math.min(batchStart + BATCH_SIZE, totalSections);
+      const batchIndices = Array.from({length: batchEnd - batchStart}, (_, i) => batchStart + i);
+
+      // Fire all sections in this batch simultaneously
+      await Promise.all(batchIndices.map(i => generateSection(i)));
+
+      // Small pause between batches to respect rate limits
+      if (batchEnd < totalSections) {
+        await new Promise(r => setTimeout(r, 800));
+      }
     }
 
     addR(chunksFailed === 0 ? '✓' : '⚠',
-      `Article: ${totalSections} sections (${chunksFailed} failed)`,
+      `Article: ${totalSections} sections · ${BATCH_SIZE} parallel (${chunksFailed} failed)`,
       modelArticle, chunksFailed === 0);
 
   } else {
