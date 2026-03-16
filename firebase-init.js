@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════════
-// firebase-init.js — Re-exports from config.js
-// Use config.js as the single source of Firebase instances.
+// js/firebase-init.js — delegate to firebase.js
+// DO NOT reinitialise Firebase here — firebase.js
+// already owns the single app instance.
 // ═══════════════════════════════════════════════
-export { auth, db } from './config.js';
+export { auth, db, remoteConfig } from './firebase.js';
