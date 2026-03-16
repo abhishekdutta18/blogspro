@@ -237,3 +237,18 @@ Return ONLY JSON:
 
   el.style.display = "block";
 };
+
+
+// ═══════════════════════════════════════
+// POPULATE ANALYZE SELECT
+// Called by nav.js when switching to the SEO Tools view
+// ═══════════════════════════════════════
+export function populateAnalyzeSelect() {
+  const sel = document.getElementById('analyzePostSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Select a post —</option>' +
+    (state.allPosts || [])
+      .filter(p => p.published)
+      .map(p => `<option value="${p.id}">${p.title || '(Untitled)'}</option>`)
+      .join('');
+}
