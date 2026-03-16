@@ -1,15 +1,15 @@
 // ═══════════════════════════════════════
-// config.js — Global utilities + local DB
+// config.js — Final Utilities + Local DB
 // ═══════════════════════════════════════
 
 
-// Toast messages
+// Toast / notification
 export function showToast(message, type = "info") {
   console.log(`[${type}] ${message}`);
 }
 
 
-// Generate slug
+// Slug generator
 export function slugify(text) {
   if (!text) return "";
 
@@ -21,7 +21,7 @@ export function slugify(text) {
 }
 
 
-// Escape text
+// Escape plain text
 export function sanitize(text) {
   const div = document.createElement("div");
   div.textContent = text;
@@ -29,7 +29,18 @@ export function sanitize(text) {
 }
 
 
-// Clean editor HTML
+// Remove HTML tags completely
+export function stripTags(html) {
+  if (!html) return "";
+
+  const div = document.createElement("div");
+  div.innerHTML = html;
+
+  return div.textContent || div.innerText || "";
+}
+
+
+// Clean editor HTML safely
 export function cleanEditorHTML(html) {
 
   if (!html) return "";
@@ -37,10 +48,10 @@ export function cleanEditorHTML(html) {
   const div = document.createElement("div");
   div.innerHTML = html;
 
-  // remove scripts
+  // Remove script tags
   div.querySelectorAll("script").forEach(el => el.remove());
 
-  // remove inline JS events
+  // Remove inline JS events
   div.querySelectorAll("*").forEach(el => {
     [...el.attributes].forEach(attr => {
       if (attr.name.startsWith("on")) {
@@ -81,7 +92,7 @@ export function setBtnLoading(btnId, txtId, spinnerId, loading, label) {
 }
 
 
-// Parse AI JSON safely
+// Safe AI JSON parsing
 export function parseAIJson(text) {
 
   if (!text) return null;
@@ -96,7 +107,7 @@ export function parseAIJson(text) {
 
 
 // ═══════════════════════════════════════
-// Simple Local Database (fixes your error)
+// Simple Local Database (localStorage)
 // ═══════════════════════════════════════
 
 export const db = {
