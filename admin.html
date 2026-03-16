@@ -829,7 +829,7 @@
         </div>
         <div class="form-row">
           <label class="form-label">Keyword</label>
-          <input type="text" class="form-input" id="trafficKeyword" placeholder="e.g. UPI regulations India" style="font-size:0.85rem" />
+          <input type="text" class="form-input" id="trafficKeyword" placeholder="e.g. open banking global trends" style="font-size:0.85rem" />
         </div>
         <button onclick="predictTraffic()" id="btnTraffic" style="width:100%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;padding:0.75rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem">
           <span id="trafficBtnTxt">Predict Traffic</span>
@@ -921,7 +921,7 @@
     <div class="saas-panel gold-accent" style="margin-bottom:1.5rem">
       <h3 style="margin-bottom:1rem">✦ Generate Content Cluster</h3>
       <div style="display:flex;gap:0.6rem;margin-bottom:0.8rem">
-        <input type="text" class="form-input" id="clusterTopic" placeholder="Main topic e.g. Fintech Compliance India" style="font-size:0.85rem" />
+        <input type="text" class="form-input" id="clusterTopic" placeholder="Main topic e.g. global finance trends" style="font-size:0.85rem" />
         <select class="form-select" id="clusterCategory" style="font-size:0.85rem;max-width:160px">
           <option value="Fintech">Fintech</option>
           <option value="Compliance">Compliance</option>
@@ -1182,7 +1182,7 @@
     <div class="drawer-tab-pane active" id="dpane-write">
       <div class="form-row">
         <span class="drawer-section-label">Topic / Prompt</span>
-        <textarea class="form-textarea" id="aiPrompt" rows="4" placeholder="e.g. Deep dive into RBI's new UPI regulations for fintech companies in 2025…" style="resize:vertical;font-size:0.85rem"></textarea>
+        <textarea class="form-textarea" id="aiPrompt" rows="4" placeholder="e.g. The future of digital payments and open banking globally…" style="resize:vertical;font-size:0.85rem"></textarea>
       </div>
       <div class="drawer-two-col" style="margin-bottom:1rem">
         <div>
@@ -1196,14 +1196,29 @@
         </div>
         <div>
           <span class="drawer-section-label">AI Model</span>
-          <select class="form-select" id="modelArticle" style="font-size:0.82rem" onchange="document.getElementById('modelWarning').style.display=this.value==='openrouter'?'block':'none'">
-            <option value="auto" selected>Auto</option>
-            <option value="groq">Groq — Fast</option>
-            <option value="claude">Claude — Best</option>
+          <select class="form-select" id="modelArticle" style="font-size:0.82rem" onchange="onModelChange(this.value)">
+            <option value="auto" selected>Auto — Best Available</option>
+            <option value="deepseek">DeepSeek V3 — Best Quality ✦</option>
+            <option value="gemini-pro">Gemini 2.0 Flash — Fast + Smart</option>
+            <option value="qwen">Qwen 2.5 72B — Structured</option>
+            <option value="llama">Llama 3.3 70B — Balanced</option>
+            <option value="mixtral">Mistral Small — Lightweight</option>
+            <option value="claude">Claude 3 Haiku — Premium</option>
           </select>
         </div>
       </div>
-      <div id="modelWarning" style="display:none;margin-bottom:0.8rem;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:3px;padding:0.45rem 0.6rem;font-size:0.68rem;color:#fca5a5;line-height:1.5">⚠ OpenRouter free endpoints often down. Use Auto or Groq.</div>
+      <div id="modelWarning" style="margin-top:0.4rem;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.12);border-radius:3px;padding:0.4rem 0.6rem;font-size:0.67rem;color:var(--muted);line-height:1.5" id="modelInfo">⚡ Auto tries DeepSeek V3 → Gemini → Qwen → Llama in order.</div>
+
+        <div style="margin-top:0.8rem">
+          <span class="drawer-section-label">Target Length</span>
+          <div style="display:flex;gap:0.4rem">
+            <button onclick="setWordTarget(this,1500)" class="word-target-btn active" data-words="1500" style="flex:1;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.75rem;cursor:pointer;transition:all 0.15s">1500w</button>
+            <button onclick="setWordTarget(this,2500)" class="word-target-btn" data-words="2500" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.75rem;cursor:pointer;transition:all 0.15s">2500w</button>
+            <button onclick="setWordTarget(this,3500)" class="word-target-btn" data-words="3500" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.75rem;cursor:pointer;transition:all 0.15s">3500w</button>
+            <button onclick="setWordTarget(this,5000)" class="word-target-btn" data-words="5000" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.75rem;cursor:pointer;transition:all 0.15s">5000w</button>
+          </div>
+          <input type="hidden" id="wordTarget" value="1500">
+        </div>
 
       <!-- Result box (shown after generation) -->
       <div id="aiResultBox" style="display:none;margin-bottom:0.8rem;background:var(--navy);border:1px solid var(--border);border-radius:3px;overflow:hidden">
@@ -1253,7 +1268,7 @@
         <div id="qualityScoreResult" style="display:none;margin-bottom:0.6rem;border-top:1px solid var(--border);padding-top:0.6rem"></div>
         <span class="drawer-section-label">Custom Instruction</span>
         <div style="display:flex;gap:0.4rem;margin-bottom:0.4rem">
-          <input id="aiEditCustom" class="form-input" placeholder="e.g. Add a section on SEBI regulations" style="font-size:0.82rem;padding:0.5rem 0.7rem" />
+          <input id="aiEditCustom" class="form-input" placeholder="e.g. Add a section on global regulatory trends" style="font-size:0.82rem;padding:0.5rem 0.7rem" />
           <button onclick="aiEditCustom()" style="background:var(--gold);color:var(--navy);border:none;padding:0.5rem 0.8rem;border-radius:3px;font-family:var(--sans);font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap">Apply</button>
         </div>
         <div id="aiEditStatus" style="font-size:0.7rem;color:var(--muted);min-height:1rem"></div>
@@ -2288,6 +2303,35 @@ window.previewPost = () => {
   win.document.close();
 };
 
+// ── Model selector helper ─────────────────────
+const MODEL_DESCRIPTIONS = {
+  'auto':       '⚡ Auto — tries DeepSeek V3 → Gemini 2.0 → Qwen → Llama in order',
+  'deepseek':   '✦ DeepSeek V3 — best long-form quality, detailed analysis',
+  'gemini-pro': '✦ Gemini 2.0 Flash — fast generation, excellent structure',
+  'qwen':       '✦ Qwen 2.5 72B — strong at structured, data-heavy content',
+  'llama':      '✦ Llama 3.3 70B — balanced speed and quality',
+  'mixtral':    '✦ Mistral Small — lightweight, good for short articles',
+  'claude':     '✦ Claude 3 Haiku — premium quality (uses OpenRouter credits)',
+};
+
+window.onModelChange = (val) => {
+  const el = document.getElementById('modelInfo');
+  if (el) el.textContent = MODEL_DESCRIPTIONS[val] || MODEL_DESCRIPTIONS['auto'];
+};
+
+window.setWordTarget = (btn, words) => {
+  document.querySelectorAll('.word-target-btn').forEach(b => {
+    b.style.background = 'transparent';
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--muted)';
+  });
+  btn.style.background = 'rgba(201,168,76,0.1)';
+  btn.style.borderColor = 'rgba(201,168,76,0.3)';
+  btn.style.color = 'var(--gold)';
+  const input = document.getElementById('wordTarget');
+  if (input) input.value = words;
+};
+
 // ═══════════════════════════════════════════════
 // CORE AI CALL — via Cloudflare Worker proxy
 // ═══════════════════════════════════════════════
@@ -2355,14 +2399,42 @@ window.confirmOutline = async () => {
   document.getElementById('aiModalContent').innerHTML='<span style="animation:pulse 1s infinite;display:inline-block">Writing full article…</span>';
   document.getElementById('aiModal').classList.add('open');
 
-  const artPrompt = `You are an expert fintech writer for BlogsPro (blogspro.in).\nWrite a comprehensive, long-form article about: "${topic}"\nCategory: ${category}. Tone: ${tone}.\nFollow this outline:\n${pendingOutline}\n\nRULES:\n- NEVER use <h1> tags\n- Start with a plain <p> introduction paragraph — NOT bold, NOT a heading\n- Use only: <h2> <h3> <p> <strong> <em> <ul> <li> <blockquote>\n- Do NOT wrap entire paragraphs in <strong>\n- Write in depth — NO word limit. Cover every point with examples, data, analysis.\n- Return ONLY clean HTML. No JSON, no metadata, no markdown.`;
+  const wordTarget = document.getElementById('wordTarget')?.value || '2000';
+  const artPrompt = `You are an expert journalist and content strategist writing comprehensive, authoritative articles for BlogsPro (blogspro.in).
+
+ARTICLE TOPIC: "${topic}"
+CATEGORY: ${category}
+TONE: ${tone}
+OUTLINE TO FOLLOW:
+${pendingOutline}
+
+WORD COUNT REQUIREMENT: Write AT LEAST ${wordTarget} words. This is mandatory. Do not stop early. Each section must be thoroughly developed with:
+- Real-world examples and case studies relevant to the topic
+- Specific data points, statistics, and credible references
+- Expert analysis and strategic insights
+- Practical implications for practitioners
+
+CONTENT QUALITY RULES:
+- Start with a compelling <p> introduction (2-3 sentences hooking the reader)
+- Every <h2> section must have at least 3-4 substantial paragraphs
+- Include at least one <blockquote> with a key insight or data point
+- Add at least one <ul> or <ol> list with detailed items
+- Use <strong> only for genuinely important terms, never full sentences
+- End with a forward-looking conclusion section
+
+HTML FORMAT RULES:
+- NEVER use <h1> tags
+- Use ONLY: <h2> <h3> <p> <strong> <em> <ul> <li> <ol> <blockquote> <table> <tr> <td> <th>
+- Return ONLY clean HTML — no JSON, no markdown, no code fences, no metadata
+
+Write the full article now. Do not truncate. Do not summarise. Write every section in full.`;
 
   // Use high token limit for long-form articles
-  let artResult = await callAI(artPrompt, false, modelArticle, 4000);
+  let artResult = await callAI(artPrompt, false, modelArticle, 12000);
   if (artResult.error) {
     document.getElementById('aiModalContent').innerHTML='<span style="animation:pulse 1s infinite;display:inline-block">Retrying…</span>';
     await new Promise(r => setTimeout(r, 2000));
-    artResult = await callAI(artPrompt, false, 'auto', 4000);
+    artResult = await callAI(artPrompt, false, 'auto', 12000);
   }
   allAttempts.push(...(artResult.attemptsDetail||[]));
   if (artResult.error) {
@@ -2402,7 +2474,7 @@ IMPORTANT for citations: use REAL, WORKING URLs from authoritative sources like 
     // Wait 3s and retry once with a simpler prompt and different model
     document.getElementById('aiModalContent').innerHTML='<span style="animation:pulse 1s infinite;display:inline-block">Retrying metadata…</span>';
     await new Promise(r => setTimeout(r, 3000));
-    const simpleMetaPrompt = `Return ONLY this JSON for a fintech article about "${topic.substring(0,50)}":\n{"title":"${topic.substring(0,60)}","summary":"Brief 2-sentence article summary.","metaDescription":"SEO description.","tags":["fintech","finance","digital","growth","india"],"citations":[{"apa":"Reserve Bank of India. (2024). Annual Report. RBI.","url":"https://rbi.org.in"},{"apa":"SEBI. (2024). Annual Report. SEBI.","url":"https://sebi.gov.in"},{"apa":"NPCI. (2024). Annual Report. NPCI.","url":"https://npci.org.in"},{"apa":"World Bank. (2024). Global Findex Database. World Bank.","url":"https://worldbank.org"},{"apa":"McKinsey & Company. (2024). Global Fintech Report. McKinsey.","url":"https://mckinsey.com"}]}`;
+    const simpleMetaPrompt = `Return ONLY this JSON for a fintech article about "${topic.substring(0,50)}":\n{"title":"${topic.substring(0,60)}","summary":"Brief 2-sentence article summary.","metaDescription":"SEO description.","tags":["finance","strategy","insights","analysis","growth"],"citations":[{"apa":"World Bank. (2024). Global Finance Report. World Bank.","url":"https://worldbank.org"},{"apa":"IMF. (2024). World Economic Outlook. IMF.","url":"https://imf.org"},{"apa":"McKinsey & Company. (2024). Global Insights. McKinsey.","url":"https://mckinsey.com"},{"apa":"Harvard Business Review. (2024). Strategy Insights. HBR.","url":"https://hbr.org"},{"apa":"Deloitte. (2024). Industry Report. Deloitte.","url":"https://deloitte.com"}]}`;
     metaResult = await callAI(simpleMetaPrompt, true, 'groq');
   }
 
@@ -2703,7 +2775,7 @@ window.predictTraffic = async () => {
   const keyword=document.getElementById('trafficKeyword').value.trim();
   if (!keyword) { showToast('Enter a keyword.','error'); return; }
   setBtnLoading('btnTraffic','trafficBtnTxt','trafficSpinner',true,'Analyzing…');
-  const prompt=`Estimate Google search traffic for keyword: "${keyword}" in the fintech/finance niche in India.\nReturn ONLY JSON:\n{"monthly_searches":number,"difficulty":number_0_to_100,"expected_clicks":number,"competition":"low|medium|high","suggestions":["tip1","tip2"]}`;
+  const prompt=`Estimate Google search traffic for keyword: "${keyword}".\nReturn ONLY JSON:\n{"monthly_searches":number,"difficulty":number_0_to_100,"expected_clicks":number,"competition":"low|medium|high","suggestions":["tip1","tip2"]}`;
   const result=await callAI(prompt,true,'auto');
   setBtnLoading('btnTraffic','trafficBtnTxt','trafficSpinner',false,'Predict Traffic');
   let parsed=null;
@@ -2734,7 +2806,7 @@ window.findContentGap = async () => {
   const domain=document.getElementById('competitorDomain').value.trim();
   if (!domain) { showToast('Enter a competitor domain.','error'); return; }
   setBtnLoading('btnGap','gapBtnTxt','gapSpinner',true,'Analyzing…');
-  const prompt=`Find SEO content gaps. A fintech blog at blogspro.in vs competitor at ${domain}.\nSuggest 10 topics the competitor likely ranks for that we should write.\nReturn ONLY JSON:\n{"topics":[{"title":"","priority":"high|medium","reason":""}]}`;
+  const prompt=`Find SEO content gaps. BlogsPro (blogspro.in) vs competitor at ${domain}.\nSuggest 10 topics the competitor likely ranks for that we should write.\nReturn ONLY JSON:\n{"topics":[{"title":"","priority":"high|medium","reason":""}]}`;
   const result=await callAI(prompt,true,'auto');
   setBtnLoading('btnGap','gapBtnTxt','gapSpinner',false,'Analyze Gap');
   let parsed=null;
@@ -2752,7 +2824,7 @@ window.generateBacklinks = async () => {
   const topic=document.getElementById('backlinkTopic').value.trim();
   if (!topic) { showToast('Enter a topic.','error'); return; }
   setBtnLoading('btnBacklinks','blBtnTxt','blSpinner',true,'Finding…');
-  const prompt=`Find 8 backlink outreach opportunities for a fintech blog about: "${topic}".\nReturn ONLY JSON:\n{"sites":[{"name":"site name","domain":"domain.com","type":"guest post|link exchange|resource page|mention","pitch":"1-sentence pitch"}]}`;
+  const prompt=`Find 8 backlink outreach opportunities for a blog post about: "${topic}".\nReturn ONLY JSON:\n{"sites":[{"name":"site name","domain":"domain.com","type":"guest post|link exchange|resource page|mention","pitch":"1-sentence pitch"}]}`;
   const result=await callAI(prompt,true,'auto');
   setBtnLoading('btnBacklinks','blBtnTxt','blSpinner',false,'Find Opportunities');
   let parsed=null;
@@ -2773,7 +2845,7 @@ window.analyzePostSEO = async () => {
   const post=allPosts.find(p=>p.id===id);
   if (!post) { showToast('Post not found.','error'); return; }
   const text=(post.content||'').replace(/<[^>]+>/g,' ').trim().substring(0,1500);
-  const prompt=`Analyze this fintech blog post for SEO quality.\nTitle: "${post.title}"\nContent: "${text}"\nReturn ONLY JSON:\n{"seo_score":0-100,"strengths":["s1","s2"],"improvements":["i1","i2","i3","i4"]}`;
+  const prompt=`Analyze this blog post for SEO quality.\nTitle: "${post.title}"\nContent: "${text}"\nReturn ONLY JSON:\n{"seo_score":0-100,"strengths":["s1","s2"],"improvements":["i1","i2","i3","i4"]}`;
   const result=await callAI(prompt,true,'auto');
   setBtnLoading('btnAnalyze','analyzeBtnTxt','analyzeSpinner',false,'Analyze');
   let parsed=null;
@@ -2802,7 +2874,7 @@ window.generateTopicClusters = async () => {
   const category=document.getElementById('clusterCategory').value;
   if (!topic) { showToast('Enter a topic.','error'); return; }
   setBtnLoading('btnCluster','clusterBtnTxt','clusterSpinner',true,'Generating…');
-  const prompt=`Create a comprehensive SEO content cluster for a fintech blog.\nPillar Topic: "${topic}" (Category: ${category})\nReturn ONLY JSON:\n{"pillar":"pillar article title","pillar_desc":"brief description","clusters":[{"title":"cluster topic 1","angle":"search angle"},{"title":"cluster topic 2","angle":"search angle"},{"title":"cluster topic 3","angle":"search angle"},{"title":"cluster topic 4","angle":"search angle"},{"title":"cluster topic 5","angle":"search angle"},{"title":"cluster topic 6","angle":"search angle"},{"title":"cluster topic 7","angle":"search angle"},{"title":"cluster topic 8","angle":"search angle"}]}`;
+  const prompt=`Create a comprehensive SEO content cluster for BlogsPro blog.\nPillar Topic: "${topic}" (Category: ${category})\nReturn ONLY JSON:\n{"pillar":"pillar article title","pillar_desc":"brief description","clusters":[{"title":"cluster topic 1","angle":"search angle"},{"title":"cluster topic 2","angle":"search angle"},{"title":"cluster topic 3","angle":"search angle"},{"title":"cluster topic 4","angle":"search angle"},{"title":"cluster topic 5","angle":"search angle"},{"title":"cluster topic 6","angle":"search angle"},{"title":"cluster topic 7","angle":"search angle"},{"title":"cluster topic 8","angle":"search angle"}]}`;
   const result=await callAI(prompt,true,'auto');
   setBtnLoading('btnCluster','clusterBtnTxt','clusterSpinner',false,'Generate');
   let parsed=null;
@@ -2821,7 +2893,7 @@ window.generateTopicClusters = async () => {
 // ═══════════════════════════════════════════════
 window.generateContentCalendar = async () => {
   setBtnLoading('btnCalendar','calBtnTxt','calSpinner',true,'Generating…');
-  const prompt=`Create a 30-day content calendar for a fintech blog (blogspro.in) covering RBI, UPI, payments, compliance, digital banking.\nReturn ONLY JSON:\n{"week1":[{"day":1,"title":"","category":"","hook":""},{"day":2,"title":"","category":"","hook":""},{"day":4,"title":"","category":"","hook":""},{"day":6,"title":"","category":"","hook":""},{"day":8,"title":"","category":"","hook":""}],"week2":[{"day":9,"title":"","category":"","hook":""},{"day":11,"title":"","category":"","hook":""},{"day":13,"title":"","category":"","hook":""},{"day":15,"title":"","category":"","hook":""},{"day":17,"title":"","category":"","hook":""}],"week3":[{"day":18,"title":"","category":"","hook":""},{"day":20,"title":"","category":"","hook":""},{"day":22,"title":"","category":"","hook":""},{"day":24,"title":"","category":"","hook":""},{"day":25,"title":"","category":"","hook":""}],"week4":[{"day":26,"title":"","category":"","hook":""},{"day":27,"title":"","category":"","hook":""},{"day":28,"title":"","category":"","hook":""},{"day":29,"title":"","category":"","hook":""},{"day":30,"title":"","category":"","hook":""}]}`;
+  const prompt=`Create a 30-day content calendar for a blog (blogspro.in) covering ${category} topics.\nReturn ONLY JSON:\n{"week1":[{"day":1,"title":"","category":"","hook":""},{"day":2,"title":"","category":"","hook":""},{"day":4,"title":"","category":"","hook":""},{"day":6,"title":"","category":"","hook":""},{"day":8,"title":"","category":"","hook":""}],"week2":[{"day":9,"title":"","category":"","hook":""},{"day":11,"title":"","category":"","hook":""},{"day":13,"title":"","category":"","hook":""},{"day":15,"title":"","category":"","hook":""},{"day":17,"title":"","category":"","hook":""}],"week3":[{"day":18,"title":"","category":"","hook":""},{"day":20,"title":"","category":"","hook":""},{"day":22,"title":"","category":"","hook":""},{"day":24,"title":"","category":"","hook":""},{"day":25,"title":"","category":"","hook":""}],"week4":[{"day":26,"title":"","category":"","hook":""},{"day":27,"title":"","category":"","hook":""},{"day":28,"title":"","category":"","hook":""},{"day":29,"title":"","category":"","hook":""},{"day":30,"title":"","category":"","hook":""}]}`;
   const result=await callAI(prompt,true,'auto');
   setBtnLoading('btnCalendar','calBtnTxt','calSpinner',false,'Generate Calendar');
   let parsed=null;
@@ -2862,7 +2934,7 @@ window.optimizeHeadline = async () => {
   const count=parseInt(document.getElementById('headlineCount').value)||10;
   if (!topic) { showToast('Enter a topic.','error'); return; }
   setBtnLoading('btnHeadline','headlineBtnTxt','headlineSpinner',true,'Generating…');
-  const prompt=`Generate ${count} viral, high-CTR blog headlines for a fintech article about: "${topic}".\nEach headline should use different techniques (numbers, power words, urgency, questions, etc.).\nReturn ONLY JSON:\n{"headlines":[{"title":"headline","ctr_score":0-100,"technique":"what makes it work"}]}`;
+  const prompt=`Generate ${count} viral, high-CTR blog headlines about: "${topic}".\nEach headline should use different techniques (numbers, power words, urgency, questions, etc.).\nReturn ONLY JSON:\n{"headlines":[{"title":"headline","ctr_score":0-100,"technique":"what makes it work"}]}`;
   const result=await callAI(prompt,true,'auto');
   setBtnLoading('btnHeadline','headlineBtnTxt','headlineSpinner',false,'🔥 Generate Headlines');
   let parsed=null;
@@ -2899,7 +2971,7 @@ window.generateNewsletter = async () => {
   const subject=document.getElementById('nlSubject').value.trim()||'This Week in Fintech';
   document.getElementById('nlStatus').textContent='⏳ Writing newsletter…';
   const titles=posts.map(p=>p.title).join('\n');
-  const prompt=`Write a ${style} style newsletter email for a fintech blog in a ${tone} tone.\nSubject: "${subject}"\nLatest blog posts:\n${titles}\n\nReturn clean HTML email body (no <html> or <body> tags). Use inline styles. Dark-friendly colors. Include a brief intro, post summaries with fictional placeholder links, and a footer CTA.`;
+  const prompt=`Write a ${style} style newsletter email for a blog in a ${tone} tone.\nSubject: "${subject}"\nLatest blog posts:\n${titles}\n\nReturn clean HTML email body (no <html> or <body> tags). Use inline styles. Dark-friendly colors. Include a brief intro, post summaries with fictional placeholder links, and a footer CTA.`;
   const result=await callAI(prompt,true,'auto');
   setBtnLoading('btnNL','nlBtnTxt','nlSpinner',false,'✉ Generate Newsletter');
   if (result.error) { document.getElementById('nlStatus').textContent='✕ '+result.error; showToast(result.error,'error'); return; }
@@ -2948,14 +3020,14 @@ window.runAutoBlog = async () => {
     abLog(`Generating post ${i+1}/${count}…`, 'info');
     // Step 1: Pick topic
     const topicPrompt=topicSeed
-      ? `Generate a specific, SEO-friendly article title about "${topicSeed}" in the ${category} fintech niche. Return ONLY the title.`
-      : `Suggest one trending fintech article title for ${category}. Focus on India's RBI, UPI, payments, compliance, or digital banking in 2025. Return ONLY the title.`;
+      ? `Generate a specific, SEO-friendly article title about "${topicSeed}" in the ${category} category. Return ONLY the title.`
+      : `Suggest one compelling, well-researched article title for the ${category} category. Make it globally relevant and high-quality. Return ONLY the title.`;
     const topicResult=await callAI(topicPrompt,true,'auto');
     if (topicResult.error) { abLog(`Post ${i+1}: Topic generation failed — ${topicResult.error}`,'err'); continue; }
     const topic=topicResult.text.trim().replace(/^["']|["']$/g,'');
     abLog(`Topic: "${topic}"`, 'info');
     // Step 2: Write article
-    const articleResult=await callAI(`Write a comprehensive 800-1200 word fintech blog article.\nTitle: "${topic}"\nCategory: ${category}\nTone: professional\nReturn ONLY clean HTML using <h2><h3><p><strong><em><ul><li><blockquote> tags.`,true,'auto');
+    const articleResult=await callAI(`Write a comprehensive, well-researched blog article of at least 1500 words about the given topic.\nTitle: "${topic}"\nCategory: ${category}\nTone: professional\nReturn ONLY clean HTML using <h2><h3><p><strong><em><ul><li><blockquote> tags.`,true,'auto');
     if (articleResult.error) { abLog(`Post ${i+1}: Article generation failed — ${articleResult.error}`,'err'); continue; }
     // Step 3: Generate meta
     const metaResult=await callAI(`For article: "${topic}", return ONLY JSON:\n{"summary":"2-sentence summary","metaDescription":"SEO meta max 155 chars","tags":["tag1","tag2","tag3"],"slug":"url-slug"}`,true,'auto');
@@ -3189,7 +3261,7 @@ window.aitRunHeadlines = async () => {
   const topic = aitGetTopic();
   const count = document.getElementById('ait-hl-count').value || 8;
   aitLoading('hl', true);
-  const prompt = `Generate ${count} viral, high-CTR blog headlines for a fintech article about: "${topic}".\nUse different techniques: numbers, power words, urgency, questions.\nReturn ONLY JSON:\n{"headlines":[{"title":"","ctr_score":0-100,"technique":"what makes it work"}]}`;
+  const prompt = `Generate ${count} viral, high-CTR blog headlines about: "${topic}".\nUse different techniques: numbers, power words, urgency, questions.\nReturn ONLY JSON:\n{"headlines":[{"title":"","ctr_score":0-100,"technique":"what makes it work"}]}`;
   const result = await callAI(prompt, true, 'auto');
   aitLoading('hl', false);
   let parsed = null;
@@ -3216,7 +3288,7 @@ window.aitApplyHeadline = (title) => {
 window.aitRunTraffic = async () => {
   const kw = document.getElementById('ait-traffic-kw').value.trim() || aitGetTopic();
   aitLoading('traffic', true);
-  const prompt = `Estimate Google search traffic for keyword: "${kw}" in India fintech niche.\nReturn ONLY JSON:\n{"monthly_searches":number,"difficulty":0-100,"expected_clicks":number,"competition":"low|medium|high","verdict":"one sentence recommendation"}`;
+  const prompt = `Estimate Google search traffic for keyword: "${kw}".\nReturn ONLY JSON:\n{"monthly_searches":number,"difficulty":0-100,"expected_clicks":number,"competition":"low|medium|high","verdict":"one sentence recommendation"}`;
   const result = await callAI(prompt, true, 'auto');
   aitLoading('traffic', false);
   let parsed = null;
@@ -3371,7 +3443,7 @@ window.aitRunGap = async () => {
 window.aitRunBacklinks = async () => {
   const topic = aitGetTopic();
   aitLoading('links', true);
-  const prompt = `Find 6 backlink outreach opportunities for a fintech blog post about: "${topic}".\nReturn ONLY JSON:\n{"sites":[{"name":"site name","type":"guest post|resource page|mention","pitch":"one sentence pitch"}]}`;
+  const prompt = `Find 6 backlink outreach opportunities for a blog post about: "${topic}".\nReturn ONLY JSON:\n{"sites":[{"name":"site name","type":"guest post|resource page|mention","pitch":"one sentence pitch"}]}`;
   const result = await callAI(prompt, true, 'auto');
   aitLoading('links', false);
   let parsed = null;
@@ -3435,7 +3507,7 @@ window.aitRunAutoBlog = async () => {
     aitShowResult('auto', log);
   };
   for (let i = 0; i < count; i++) {
-    const topicR = await callAI(`Generate a specific trending fintech article title related to "${topic}" in ${category} for 2025 India market. Return ONLY the title.`, true, 'auto');
+    const topicR = await callAI(`Generate a specific trending fintech article title related to "${topic}" in ${category}. Make it compelling and globally relevant. Return ONLY the title.`, true, 'auto');
     if (topicR.error) { addLog(`Post ${i+1}: topic failed`, false); continue; }
     const t = topicR.text.trim().replace(/^["']|["']$/g, '');
     addLog(`Writing: "${t.substring(0,45)}…"`);
