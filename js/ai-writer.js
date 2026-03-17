@@ -136,7 +136,7 @@ window.generateAIPost = async function generateAIPost() {
 
   openModal(
     '✦ Generating Article…',
-    `"${topic.substring(0, 55)}" · ${(wordTarget / 1000).toFixed(0)}k words · ${numSections} sections`
+    `${category} · ${(wordTarget / 1000).toFixed(0)}k words`
   );
   showRoadmap();
 
@@ -227,7 +227,7 @@ CRITICAL: Return ONLY a valid JSON array of strings. Nothing else. No explanatio
         <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem">
           <span style="font-size:0.7rem;color:var(--muted)">Writing with</span>
           ${_providerBadge(model === 'auto' ? null : model)}
-          <span style="font-size:0.65rem;color:var(--muted);font-style:italic">${model === 'auto' ? '(auto — trying providers in order)' : ''}</span>
+
         </div>
         <div style="background:var(--navy2);border-radius:3px;height:4px;overflow:hidden">
           <div style="background:var(--gold);height:100%;width:${Math.round((i/sections.length)*100)}%;transition:width 0.5s"></div>

@@ -29,7 +29,7 @@ export async function loadRemoteConfig() {
       gemini:     getValue(remoteConfig, 'gemini_key').asString(),
     };
 
-    console.log('[remote-config] AI keys loaded');
+
 
   } catch (err) {
     console.warn('[remote-config] Failed to load remote config:', err);

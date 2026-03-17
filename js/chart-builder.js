@@ -39,7 +39,7 @@ Section: "${sectionTitle}"
 
 Pick the best chart type and generate REAL, SPECIFIC numeric data relevant to this section.
 
-CRITICAL: Return ONLY a raw JSON object. No markdown, no backticks, no explanation. Start with {
+CRITICAL: Return ONLY a raw JSON object. No markdown, no backticks, no explanation, no text before or after. Your entire response must start with { and end with }.
 
 REQUIRED FIELDS:
 - "name": A unique descriptive name for this chart (e.g. "Fig 1: UPI Transaction Volume 2020-2024")
@@ -92,10 +92,12 @@ Rules:
   // Validate numeric data is realistic (reject all-zero datasets)
   if (data.type !== 'stats' && data.type !== 'table') {
     const numVals = data.datasets[0].values.map(Number).filter(v => !isNaN(v));
-    const allZero = numVals.every(v => v === 0);
-    const allSame = numVals.length > 2 && new Set(numVals).size === 1;
-    if (allZero) return ''; // Reject placeholder data
-    if (allSame) return ''; // Reject suspiciously uniform data
+    if (numVals.length > 0) {
+      const allZero = numVals.every(v => v === 0);
+      const allSame = numVals.length > 2 && new Set(numVals).size === 1;
+      if (allZero) return '';
+      if (allSame) return '';
+    }
   }
 
   // Inject the chartId for referencing
@@ -144,7 +146,7 @@ function buildBarChart(data) {
         ${groupBars}
       </div>`;
     } else {
-      const val = values[i] || 0;
+      const val = Number(series.values[i]) || 0;
       const pct = Math.round((val / max) * 100);
       const color = THEME.palette[i % THEME.palette.length];
       return `<div style="margin-bottom:0.6rem">

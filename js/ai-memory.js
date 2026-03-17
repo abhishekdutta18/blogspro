@@ -18,6 +18,10 @@ const SUCCESS_THRESHOLD = 70;
 // Example: savePattern(prompt, result, qualityScore)
 export async function savePattern(prompt, result, score) {
   try {
+    // Cap at 500 documents to prevent unbounded Firestore growth
+    const countSnap = await getDocs(query(collection(db, MEMORY_COLLECTION), limit(500)));
+    if (countSnap.size >= 500) return; // silently skip if at limit
+
     await addDoc(collection(db, MEMORY_COLLECTION), {
       promptSnippet: prompt.substring(0, 200),
       success:       score > SUCCESS_THRESHOLD,

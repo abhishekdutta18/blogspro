@@ -28,10 +28,16 @@ export async function callAI(prompt, type = "text", _model = null, _maxTokens = 
   const actualType   = returnObject ? "text" : (type || "text");
 
   // ── Enhance prompt with past successful patterns ──────────
-  // Only for text/code calls — not image generation
-  const enhancedPrompt = (actualType !== 'image')
-    ? await enhancePrompt(prompt)
-    : prompt;
+  // Only for long-form generation (>200 chars), never for quick checks/scores
+  // Wrapped in try/catch — memory failure must never break AI calls
+  let enhancedPrompt = prompt;
+  if (actualType !== 'image' && prompt.length > 200) {
+    try {
+      enhancedPrompt = await enhancePrompt(prompt);
+    } catch(_) {
+      enhancedPrompt = prompt; // fall back to original prompt silently
+    }
+  }
 
   const cacheKey = actualType + ":" + enhancedPrompt;
   const cached   = cache.get(cacheKey);
@@ -54,7 +60,7 @@ export async function callAI(prompt, type = "text", _model = null, _maxTokens = 
     // Score heuristic: non-empty result with reasonable length = 80
     if (result.text && result.text.length > 50 && actualType !== 'image') {
       const score = result.text.length > 200 ? 85 : 72;
-      savePattern(prompt, result, score); // fire-and-forget, no await
+      try { savePattern(prompt, result, score); } catch(_) {} // fire-and-forget
     }
 
     return returnObject

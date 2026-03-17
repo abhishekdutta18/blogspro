@@ -478,3 +478,17 @@
       .cluster-items{grid-template-columns:1fr}
       .page-header h2{font-size:1.5rem}
     }
+
+    /* ── Additional mobile fixes (phones < 600px) ── */
+    @media(max-width:600px){
+      input,textarea,select{font-size:16px !important}
+      .v2-shell{grid-template-columns:1fr !important}
+      .v2-left,.v2-right{display:none !important}
+      .stats-row,.kpi-row{grid-template-columns:1fr 1fr !important}
+      table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+      .ai-modal,.modal-box{width:95vw !important;max-width:95vw !important}
+      .v2-toolbar{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap !important}
+      .roadmap-wrap{display:none !important}
+      .timer-widget{font-size:0.75rem !important}
+      .post-cards-grid{grid-template-columns:1fr !important}
+    }

@@ -98,6 +98,9 @@ export async function refactorRepo(instruction, {
   if (!instruction || instruction.trim().length < 5) {
     throw new Error('Instruction is too short. Describe what you want to change.');
   }
+  if (instruction.length > 500) {
+    throw new Error('Instruction too long (max 500 chars). Be concise.');
+  }
 
   showToast('Scanning repo…', 'info');
 

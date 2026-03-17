@@ -525,7 +525,6 @@
     appId:             "1:940428277283:web:d3bb414f0992718ca76396"
   };
 
-  const ADMIN_UID = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
 
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
@@ -549,7 +548,7 @@
   }
 
   // ── Auth nav ───────────────────────────────────
-  onAuthStateChanged(auth, user => {
+  onAuthStateChanged(auth, async user => {
     const slot       = document.getElementById('navAuthSlot');
     const footerLink = document.getElementById('footerAuthLink');
 
@@ -559,7 +558,10 @@
       return;
     }
 
-    if (user.uid === ADMIN_UID) {
+    const userSnap = await getDoc(doc(db, 'users', user.uid));
+    const role = userSnap.data()?.role;
+
+    if (role === 'admin') {
       slot.innerHTML = `
         <div class="nav-user" id="navUserBtn" onclick="toggleDropdown()">
           <div class="nav-avatar">
@@ -573,7 +575,7 @@
         </div>`;
       footerLink.textContent = 'Admin Dashboard'; footerLink.href = 'admin.html';
     } else {
-      const displayName = user.displayName || user.email?.split('@')[0] || 'User';
+      const displayName = esc(user.displayName || user.email?.split('@')[0] || 'User');
       slot.innerHTML = `
         <div class="nav-user" id="navUserBtn" onclick="toggleDropdown()">
           <div class="nav-avatar">
@@ -614,7 +616,7 @@
       console.error('Error loading posts:', err.code, err.message);
       document.getElementById('postsGrid').innerHTML = `
         <div style="grid-column:1/-1;padding:2rem;color:#fca5a5;font-size:0.9rem">
-          Error: ${err.code || err.message}
+          Error: ${esc(err.code || err.message)}
         </div>`;
     }
   }
