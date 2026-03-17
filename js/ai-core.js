@@ -1,6 +1,7 @@
 import { runTextAI }  from "./ai/text-engine.js";
 import { runCodeAI }  from "./ai/code-engine.js";
 import { runImageAI } from "./ai/image-engine.js";
+import { enhancePrompt, savePattern } from "./ai-memory.js";
 
 const cache    = new Map();
 const CACHE_TTL = 10 * 60 * 1000;
@@ -26,7 +27,13 @@ export async function callAI(prompt, type = "text", _model = null, _maxTokens = 
   const returnObject = (type === true || type === false);
   const actualType   = returnObject ? "text" : (type || "text");
 
-  const cacheKey = actualType + ":" + prompt;
+  // ── Enhance prompt with past successful patterns ──────────
+  // Only for text/code calls — not image generation
+  const enhancedPrompt = (actualType !== 'image')
+    ? await enhancePrompt(prompt)
+    : prompt;
+
+  const cacheKey = actualType + ":" + enhancedPrompt;
   const cached   = cache.get(cacheKey);
   if (cached && Date.now() - cached.time < CACHE_TTL) {
     const v = cached.value;
@@ -36,19 +43,25 @@ export async function callAI(prompt, type = "text", _model = null, _maxTokens = 
   try {
     let result;   // { text, provider }
 
-    if (actualType === "text")  result = await runTextAI(prompt);
-    else if (actualType === "code")  result = await runCodeAI(prompt);
+    if (actualType === "text")       result = await runTextAI(enhancedPrompt);
+    else if (actualType === "code")  result = await runCodeAI(enhancedPrompt);
     else if (actualType === "image") result = { text: await runImageAI(prompt), provider: 'image' };
-    else result = await runTextAI(prompt);
+    else result = await runTextAI(enhancedPrompt);
 
     cache.set(cacheKey, { value: result, time: Date.now() });
+
+    // ── Save pattern if result looks successful ───────────────
+    // Score heuristic: non-empty result with reasonable length = 80
+    if (result.text && result.text.length > 50 && actualType !== 'image') {
+      const score = result.text.length > 200 ? 85 : 72;
+      savePattern(prompt, result, score); // fire-and-forget, no await
+    }
 
     return returnObject
       ? { text: result.text || "", error: null, provider: result.provider || null }
       : result.text;
 
   } catch (err) {
-    console.error("[callAI] failed:", err.message);
     if (returnObject) return { text: "", error: err.message, provider: null };
     throw err;
   }
