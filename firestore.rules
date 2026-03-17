@@ -79,5 +79,11 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
+    // ── AI MEMORY (#18, #19, #28) ───────────────────────────────────────────
+    match /ai_memory/{docId} {
+      // Only admin can read and write AI memory patterns.
+      allow read, write: if isAdmin();
+    }
+
   }
 }

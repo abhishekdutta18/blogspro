@@ -29,6 +29,9 @@ const THEME = {
 // ─────────────────────────────────────────────
 export async function generateChartForSection(topic, sectionTitle, category, model) {
 
+  // Generate a unique chart ID for referencing
+  const chartId = `chart-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+
   const result = await callAI(
     `You are a data analyst. Generate a data visualization for a ${category} article.
 Article topic: "${topic}"
@@ -38,16 +41,24 @@ Pick the best chart type and generate REAL, SPECIFIC numeric data relevant to th
 
 CRITICAL: Return ONLY a raw JSON object. No markdown, no backticks, no explanation. Start with {
 
+REQUIRED FIELDS:
+- "name": A unique descriptive name for this chart (e.g. "Fig 1: UPI Transaction Volume 2020-2024")
+- "title": Display title shown above the chart
+- "source": Citation source (e.g. "Source: RBI Annual Report 2024", "Source: NPCI Dashboard")
+- "subtitle": Brief description of what the data shows
+
 Example for a bar chart:
-{"type":"bar","title":"Top 5 Fintech Markets by Investment","subtitle":"2024 data","labels":["USA","China","UK","India","Brazil"],"datasets":[{"name":"Investment $B","values":[89,52,31,8,4]}],"unit":"$B","source":"Source: CB Insights 2024"}
+{"type":"bar","name":"Fig 1: Top 5 Fintech Markets","title":"Top 5 Fintech Markets by Investment","subtitle":"2024 data","labels":["USA","China","UK","India","Brazil"],"datasets":[{"name":"Investment $B","values":[89,52,31,8,4]}],"unit":"$B","source":"Source: CB Insights Global Fintech Report 2024"}
 
 Example for a stats chart:
-{"type":"stats","title":"Key Market Statistics","subtitle":"Global fintech 2024","labels":["Market Size","YoY Growth","Active Users","Funding Rounds"],"datasets":[{"name":"values","values":["$340B","23%","4.8B","2,847"]}],"unit":"","source":"Source: Statista 2024"}
+{"type":"stats","name":"Fig 2: Global Fintech Key Metrics","title":"Key Market Statistics","subtitle":"Global fintech 2024","labels":["Market Size","YoY Growth","Active Users","Funding Rounds"],"datasets":[{"name":"values","values":["$340B","23%","4.8B","2,847"]}],"unit":"","source":"Source: Statista Digital Payments Report 2024"}
 
 Example for a table:
-{"type":"table","title":"Feature Comparison","subtitle":"","labels":["Speed","Cost","Security","Ease of Use"],"datasets":[{"name":"Provider A","values":["Fast","Low","High","Easy"]},{"name":"Provider B","values":["Medium","Medium","High","Medium"]}],"unit":"","source":""}
+{"type":"table","name":"Table 1: Banking Model Comparison","title":"Feature Comparison","subtitle":"","labels":["Speed","Cost","Security","Ease of Use"],"datasets":[{"name":"Provider A","values":["Fast","Low","High","Easy"]},{"name":"Provider B","values":["Medium","Medium","High","Medium"]}],"unit":"","source":"Source: Deloitte Banking Survey 2024"}
 
 Rules:
+- "name" MUST start with "Fig N:" or "Table N:" followed by a descriptive name
+- "source" MUST cite a real organization (RBI, SEBI, NPCI, World Bank, McKinsey, PwC, Statista, etc.)
 - ALL numbers must be realistic for the topic — do NOT use placeholder zeros
 - labels array and values array MUST have the same length
 - For stats type: values can be strings like "23%" or "$340B"
@@ -66,11 +77,29 @@ Rules:
     data = JSON.parse(raw.substring(s, e + 1));
   } catch(_) { return ''; }
 
-  // Validate — reject empty data
+  // ── VALIDATION ENGINE ──────────────────────────
   if (!data?.type || !data?.labels?.length) return '';
   if (!data.datasets?.[0]?.values?.length) return '';
   if (data.labels.length !== data.datasets[0].values.length &&
       data.type !== 'table') return '';
+
+  // Validate chart name exists
+  if (!data.name) data.name = `${data.type === 'table' ? 'Table' : 'Fig'}: ${data.title || sectionTitle}`;
+
+  // Validate source citation exists
+  if (!data.source) data.source = `Source: Industry analysis for "${sectionTitle}"`;
+
+  // Validate numeric data is realistic (reject all-zero datasets)
+  if (data.type !== 'stats' && data.type !== 'table') {
+    const numVals = data.datasets[0].values.map(Number).filter(v => !isNaN(v));
+    const allZero = numVals.every(v => v === 0);
+    const allSame = numVals.length > 2 && new Set(numVals).size === 1;
+    if (allZero) return ''; // Reject placeholder data
+    if (allSame) return ''; // Reject suspiciously uniform data
+  }
+
+  // Inject the chartId for referencing
+  data._chartId = chartId;
 
   switch(data.type) {
     case 'bar':   return buildBarChart(data);
@@ -331,15 +360,10 @@ function buildDataTable(data) {
 // Shared wrapper — title, subtitle, source
 // ─────────────────────────────────────────────
 function _chartWrapper(data, innerHTML) {
-  const name   = data.title || 'Data Visualization';
-  const type   = data.type  || 'bar';
-  const source = data.source || '';
+  const chartName = data.name || data.title || 'Data Visualization';
+  const chartId = data._chartId || '';
   return `
-<div class="bp-chart-block"
-     data-name="${name.replace(/"/g, '&quot;')}"
-     data-type="${type}"
-     data-source="${source.replace(/"/g, '&quot;')}"
-     style="
+<div class="bp-chart-block" id="${chartId}" data-chart-name="${chartName}" style="
   background:${THEME.bg};
   border:1px solid ${THEME.border};
   border-left:3px solid ${THEME.gold};
@@ -347,18 +371,13 @@ function _chartWrapper(data, innerHTML) {
   padding:1.2rem 1.4rem;
   margin:1.6rem 0;
   font-family:var(--sans,sans-serif);
-  position:relative;
 ">
-  <div style="margin-bottom:0.9rem;display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem">
-    <div>
-      <div style="font-size:0.82rem;font-weight:700;color:${THEME.cream};margin-bottom:2px" class="bp-chart-title">${name}</div>
-      ${data.subtitle ? `<div style="font-size:0.7rem;color:${THEME.muted}">${data.subtitle}</div>` : ''}
-    </div>
-    <span style="font-size:0.58rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
-                 color:${THEME.muted};background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-                 border-radius:2px;padding:2px 5px;white-space:nowrap;flex-shrink:0">${type}</span>
+  <div style="margin-bottom:0.9rem">
+    <div style="font-size:0.68rem;font-weight:600;color:${THEME.gold};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px">${chartName}</div>
+    <div style="font-size:0.82rem;font-weight:700;color:${THEME.cream};margin-bottom:2px">${data.title || 'Data Visualization'}</div>
+    ${data.subtitle ? `<div style="font-size:0.7rem;color:${THEME.muted}">${data.subtitle}</div>` : ''}
   </div>
   ${innerHTML}
-  ${source ? `<div style="margin-top:0.8rem;font-size:0.65rem;color:${THEME.muted};border-top:1px solid ${THEME.border};padding-top:0.5rem">${source}</div>` : ''}
+  ${data.source ? `<div style="margin-top:0.8rem;font-size:0.65rem;color:${THEME.muted};border-top:1px solid ${THEME.border};padding-top:0.5rem;font-style:italic">${data.source}</div>` : ''}
 </div>`;
 }

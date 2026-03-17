@@ -85,7 +85,12 @@ export function renderPostsTable(posts, tbodyId) {
     const title  = escHtml(p.title) || '(Untitled)';
     const cat    = escHtml(p.category) || '—';
     const date   = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) || '—';
-    const status = p.published ? '<span class="status-badge status-published">Published</span>' : '<span class="status-badge status-draft">Draft</span>';
+    // FEATURE 13: Stage-based status display
+    const stageColors = { writing: '#93c5fd', review: '#c9a84c', published: '#4ade80', archived: '#8896b3' };
+    const stageLabels = { writing: 'Writing', review: 'Review', published: 'Published', archived: 'Archived' };
+    const stage = p.stage || (p.published ? 'published' : 'writing');
+    const stageColor = stageColors[stage] || '#8896b3';
+    const status = `<span style="font-size:0.72rem;font-weight:600;color:${stageColor};text-transform:uppercase">${stageLabels[stage] || stage}</span>`;
     const v      = formatViews(p.views || 0);
     const views  = `<span style="font-size:0.82rem;color:var(--muted)">&#128065; ${v}</span>`;
     return `<tr>
@@ -96,6 +101,7 @@ export function renderPostsTable(posts, tbodyId) {
       <td>
         <button class="action-btn" onclick="editPost('${p.id}')">Edit</button>
         <button class="action-btn" onclick="togglePublish('${p.id}',${!!p.published})">${p.published?'Unpublish':'Publish'}</button>
+        ${stage !== 'archived' ? `<button class="action-btn" onclick="archivePost('${p.id}')">Archive</button>` : ''}
         <button class="action-btn delete" onclick="deletePost('${p.id}')">Delete</button>
       </td></tr>`;
   }).join('');
@@ -146,7 +152,9 @@ export async function savePost(publish) {
   // to prevent link nesting on every save
 
   saveStatus.textContent = 'Saving…';
-  const data = { title, excerpt, content, category:cat, slug, image, metaDesc, tags, readingTime:readMin, published:publish, premium:state.isPremium, updatedAt:serverTimestamp() };
+  // FEATURE 13: Determine post stage based on publish state
+  const stage = publish ? 'published' : (state.editingPostId ? 'review' : 'writing');
+  const data = { title, excerpt, content, category:cat, slug, image, metaDesc, tags, readingTime:readMin, published:publish, premium:state.isPremium, stage, updatedAt:serverTimestamp() };
   try {
     if (state.editingPostId) {
       await updateDoc(doc(db,'posts',state.editingPostId), data);
@@ -161,6 +169,15 @@ export async function savePost(publish) {
   } catch(e) { saveStatus.textContent = ''; showToast('Save failed: '+(e.code||e.message),'error'); }
 }
 window.savePost = savePost;
+
+// FEATURE 13: Archive/unarchive a post
+window.archivePost = async (id) => {
+  try {
+    await updateDoc(doc(db,'posts',id), { stage: 'archived', published: false });
+    showToast('Post archived.', 'success');
+    await loadAll();
+  } catch(e) { showToast('Archive failed: ' + e.message, 'error'); }
+};
 
 export async function editPost(id) {
   window.showView('editor');

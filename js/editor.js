@@ -1,11 +1,6 @@
 import { cleanEditorHTML } from "./config.js";
 import { callAI } from "./ai-core.js";
 
-
-const log = (...a) => { if (location.hostname === 'localhost') log(...a); };
-
-const log = (...a) => { if (location.hostname === 'localhost') log(...a); };
-
 let editor = null;
 
 let history = [];
@@ -24,7 +19,7 @@ export function initEditor() {
 
   editor.contentEditable = true;
 
-  log("[editor] initialized");
+  console.log("[editor] initialized");
 
   setupEvents();
 

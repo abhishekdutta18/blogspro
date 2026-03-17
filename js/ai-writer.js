@@ -8,7 +8,7 @@ import { updateWordCount }              from './editor.js';
 import { generateChartForSection }      from './chart-builder.js';
 import {
   startTimer, stopTimer, hideTimer, updateProgress,
-  timerLog, showRoadmap, setRoadmapStep, hideRoadmap
+  timerLog, showRoadmap, setRoadmapStep, hideRoadmap, addTimeReason
 } from './timer.js';
 
 let aiWriting  = false;
@@ -75,7 +75,11 @@ async function callWithRetry(prompt, model, maxRetries = 3) {
     const result = await callAI(prompt, true, model, 8000);
     if (!result.error && result.text?.trim().length > 100) return result;
     if (attempt < maxRetries) {
-      timerLog(`  ↺ Retry ${attempt}/${maxRetries - 1}…`);
+      const reason = result.error
+        ? `Retry ${attempt}: provider error — ${(result.error || '').substring(0, 50)}`
+        : `Retry ${attempt}: response too short (${result.text?.trim().length || 0} chars)`;
+      timerLog(`  ↺ ${reason}`);
+      addTimeReason(`⏳ +${Math.round(1.2 * attempt)}s — ${reason}`);
       await _sleep(1200 * attempt);
     }
   }
@@ -195,8 +199,9 @@ CRITICAL: Return ONLY a valid JSON array of strings. Nothing else. No explanatio
     }
 
     state.pendingOutline = sections.join('\n');
-    setRoadmapStep('outline', 'done');
-    timerLog(`✓ Outline: ${sections.length} sections`);
+    const outlineProvider = PROVIDER_META[outlineResult.provider]?.label || outlineResult.provider || 'auto';
+    setRoadmapStep('outline', 'done', outlineProvider);
+    timerLog(`✓ Outline: ${sections.length} sections (via ${outlineProvider})`);
 
     // ── STEP 2: Write sections one by one ────────
     setRoadmapStep('article', 'active');
@@ -352,7 +357,9 @@ ${LANG_RULE}`;
 
       // Update modal to show which AI actually handled this section
       if (!result.error && result.provider) {
-        timerLog(`  ✓ [${progress}] responded by ${PROVIDER_META[result.provider]?.label || result.provider}`);
+        const provLabel = PROVIDER_META[result.provider]?.label || result.provider;
+        timerLog(`  ✓ [${progress}] responded by ${provLabel}`);
+        setRoadmapStep('article', 'active', provLabel);
       }
 
       // Report real progress to timer
@@ -360,6 +367,7 @@ ${LANG_RULE}`;
 
       // Throttle between sections to avoid rate-limiting on large articles
       if (!_cancelled && i < sections.length - 1) {
+        if (wordTarget >= 10000) addTimeReason('⏳ Large article — throttling between sections');
         await _sleep(wordTarget >= 10000 ? 1000 : 400);
       }
     }
@@ -411,7 +419,8 @@ CRITICAL: Respond ONLY with a single valid JSON object. No markdown, no backtick
       timerLog(`⚠ Metadata AI error: ${metaResult.error}`);
     }
 
-    setRoadmapStep('metadata', 'done');
+    const metaProvider = PROVIDER_META[metaResult.provider]?.label || metaResult.provider || 'auto';
+    setRoadmapStep('metadata', 'done', metaProvider);
     setRoadmapStep('done', 'done');
     stopTimer();
 

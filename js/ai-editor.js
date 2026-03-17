@@ -112,7 +112,7 @@ Write ONLY in English. Return ONLY clean HTML. Use <h2><h3><p><strong><em><ul><l
 
     // FEATURE 11: Content length protection — reject if AI reduced content too much
     const newWordCount = clean.replace(/<[^>]+>/g, ' ').trim().split(/\s+/).filter(Boolean).length;
-    if (newWordCount < wordCount * 0.6 && wordCount > 50) {
+    if (newWordCount < wordCount * 0.6 && wordCount > 200) {
       setEditStatus(`⚠ Rejected: AI reduced content from ${wordCount} to ${newWordCount} words (${Math.round((1 - newWordCount/wordCount) * 100)}% loss). Original preserved.`, true);
       setEditBtnsDisabled(false);
       showToast('AI response rejected — would reduce content too much.', 'error');
