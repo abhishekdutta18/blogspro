@@ -11,7 +11,7 @@ export async function runTextAI(prompt) {
 
       const result = await callProvider(provider, prompt, "text");
 
-      return result;
+      return { text: result, provider: provider };
 
     }
     catch (err) {
