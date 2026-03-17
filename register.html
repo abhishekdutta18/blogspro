@@ -197,7 +197,7 @@
     appId: "1:940428277283:web:d3bb414f0992718ca76396"
   };
  
-  const ADMIN_UID = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
+  // FIX: No hardcoded ADMIN_UID — use Firestore role check
   const app    = initializeApp(firebaseConfig);
   const auth   = getAuth(app);
   const db     = getFirestore(app);
@@ -205,9 +205,19 @@
   const github = new GithubAuthProvider();
  
   let selectedRole = 'reader';
+
+  async function redirectByRole(user) {
+    try {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      const role = snap.exists() ? snap.data().role : null;
+      window.location.href = role === 'admin' ? 'admin.html' : 'account.html';
+    } catch(_) {
+      window.location.href = 'account.html';
+    }
+  }
  
   onAuthStateChanged(auth, user => {
-    if (user) window.location.href = user.uid === ADMIN_UID ? 'admin.html' : 'account.html';
+    if (user) redirectByRole(user);
   });
  
   window.selectRole = (role) => {
@@ -257,7 +267,7 @@
     try {
       const result = await signInWithPopup(auth, google);
       await createUserDoc(result.user);
-      window.location.href = result.user.uid === ADMIN_UID ? 'admin.html' : 'account.html';
+      window.location.href = 'account.html';
     } catch(e) {
       showError(friendlyError(e.code));
       setLoadingSocial('google', false);
@@ -269,7 +279,7 @@
     try {
       const result = await signInWithPopup(auth, github);
       await createUserDoc(result.user);
-      window.location.href = result.user.uid === ADMIN_UID ? 'admin.html' : 'account.html';
+      window.location.href = 'account.html';
     } catch(e) {
       showError(friendlyError(e.code));
       setLoadingSocial('github', false);

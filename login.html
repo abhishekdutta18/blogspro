@@ -283,7 +283,7 @@
   };
   // ─────────────────────────────────────────────
  
-  const ADMIN_UID = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
+  // FIX: No hardcoded ADMIN_UID — use Firestore role check like auth.js does
  
   const app    = initializeApp(firebaseConfig);
   const auth   = getAuth(app);
@@ -306,10 +306,18 @@
     if (e.code) showError(friendlyError(e.code));
   });
  
-  function redirectUser(user) {
-    if (user.uid === ADMIN_UID) {
-      window.location.href = 'admin.html';
-    } else {
+  async function redirectUser(user) {
+    try {
+      const { doc: docRef, getDoc: getDocSnap } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+      const snap = await getDocSnap(docRef(db, 'users', user.uid));
+      const role = snap.exists() ? snap.data().role : null;
+      if (role === 'admin') {
+        window.location.href = 'admin.html';
+      } else {
+        window.location.href = 'dashboard.html';
+      }
+    } catch(e) {
+      // If role check fails, default to dashboard
       window.location.href = 'dashboard.html';
     }
   }

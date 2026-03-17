@@ -215,8 +215,16 @@
         ADD_ATTR: ['target', 'rel'],
         ALLOWED_TAGS: ['h2','h3','h4','p','strong','em','ul','ol','li','blockquote',
                        'a','br','table','thead','tbody','tr','th','td','figure',
-                       'figcaption','img','div','span'],
-        ALLOWED_ATTR: ['href','src','alt','style','class','target','rel','width','height'],
+                       'figcaption','img','div','span',
+                       'svg','path','line','circle','polyline','rect','g','text','tspan',
+                       'defs','marker','ellipse'],
+        ALLOWED_ATTR: ['href','src','alt','style','class','target','rel','width','height',
+                       'viewBox','xmlns','d','fill','stroke','stroke-width','stroke-linecap',
+                       'stroke-linejoin','stroke-dasharray','stroke-opacity','fill-opacity',
+                       'cx','cy','r','x','y','x1','y1','x2','y2','rx','ry','points',
+                       'text-anchor','font-size','font-weight','opacity','transform',
+                       'dominant-baseline','marker-end','refX','refY','markerWidth',
+                       'markerHeight','orient','fill-rule'],
       };
       const clean = {
         title:      DOMPurify.sanitize(p.title      || ''),

@@ -20,7 +20,11 @@ service cloud.firestore {
                   || request.auth != null;
 
       // Only admin can create, update, or delete posts.
-      allow write: if isAdmin();
+      // Exception: anyone can increment ONLY the 'views' field (for view tracking).
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+                    || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])
+                        && request.resource.data.views == resource.data.views + 1);
     }
 
     // ── COMMENTS (subcollection of posts) ──────────────────────────────────

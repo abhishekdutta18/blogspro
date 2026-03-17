@@ -508,6 +508,7 @@
 </footer>
 
 <!-- FIREBASE -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
 <script type="module">
   import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, collection, doc, getDocs, getDoc, addDoc }
@@ -621,20 +622,28 @@
   function renderPosts(posts) {
     const grid = document.getElementById('postsGrid');
     if (!posts.length) { renderEmpty(); return; }
+    // Helper: sanitize text fields for safe HTML insertion
+    const esc = (s) => DOMPurify.sanitize(s || '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
     grid.innerHTML = posts.map((p, i) => {
+      const title    = esc(p.title);
+      const excerpt  = esc(p.excerpt);
+      const category = esc(p.category) || 'General';
+      const image    = DOMPurify.sanitize(p.image || '');
       const date = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
-      const readTime = Math.max(1, Math.ceil((p.content || '').split(' ').length / 200));
+      // FIX: Strip HTML tags before counting words for reading time
+      const plainText = (p.content || '').replace(/<[^>]+>/g, ' ').trim();
+      const readTime = Math.max(1, Math.ceil(plainText.split(/\s+/).filter(Boolean).length / 200));
       if (i === 0) {
-        const visual = p.image
-          ? `<div class="featured-visual featured-visual-img"><img src="${p.image}" alt="${p.title}" loading="lazy" /></div>`
+        const visual = image
+          ? `<div class="featured-visual featured-visual-img"><img src="${image}" alt="${title}" loading="lazy" /></div>`
           : '';
         return `
-          <div class="post-card featured${p.image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}')" style="animation-delay:${i*0.08}s">
+          <div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}')" style="animation-delay:${i*0.08}s">
             <div class="featured-body">
               <span class="featured-badge">Featured</span>
-              <span class="post-category">${p.category || 'General'}</span>
-              <h2 class="post-title">${p.title}</h2>
-              <p class="post-excerpt">${p.excerpt || ''}</p>
+              <span class="post-category">${category}</span>
+              <h2 class="post-title">${title}</h2>
+              <p class="post-excerpt">${excerpt}</p>
               <div class="post-meta">
                 <span class="post-date">${date}</span>
                 <div style="display:flex;align-items:center;gap:0.75rem">
@@ -648,9 +657,9 @@
       }
       return `
         <div class="post-card" onclick="openPost('${p.id}')" style="animation-delay:${i*0.08}s">
-          <span class="post-category">${p.category || 'General'}</span>
-          <h3 class="post-title">${p.title}</h3>
-          <p class="post-excerpt">${p.excerpt || ''}</p>
+          <span class="post-category">${category}</span>
+          <h3 class="post-title">${title}</h3>
+          <p class="post-excerpt">${excerpt}</p>
           <div class="post-meta">
             <span class="post-date">${date}</span>
             <div style="display:flex;align-items:center;gap:0.75rem">
