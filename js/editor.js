@@ -1,6 +1,11 @@
 import { cleanEditorHTML } from "./config.js";
 import { callAI } from "./ai-core.js";
 
+
+const log = (...a) => { if (location.hostname === 'localhost') log(...a); };
+
+const log = (...a) => { if (location.hostname === 'localhost') log(...a); };
+
 let editor = null;
 
 let history = [];
@@ -19,7 +24,7 @@ export function initEditor() {
 
   editor.contentEditable = true;
 
-  console.log("[editor] initialized");
+  log("[editor] initialized");
 
   setupEvents();
 
@@ -34,21 +39,33 @@ export function initEditor() {
 ========================================= */
 
 function setupEvents() {
-
   editor.addEventListener("input", () => { saveHistory(); updateWordCount(); });
-
   editor.addEventListener("paste", handlePaste);
-
   editor.addEventListener("click", handleClick);
-
   editor.addEventListener("keydown", handleSlashCommands);
-
   editor.addEventListener("drop", handleDrop);
-
   editor.addEventListener("dragover", e => e.preventDefault());
-
   document.addEventListener("keydown", handleShortcuts);
 
+  // FEATURE: Delete key removes selected image
+  editor.addEventListener("keydown", (e) => {
+    if ((e.key === "Delete" || e.key === "Backspace") && _selectedImg) {
+      e.preventDefault();
+      _selectedImg.remove();
+      _selectedImg = null;
+      removeImgToolbar();
+      saveHistory();
+      updateWordCount();
+    }
+  });
+
+  // Click outside editor closes image toolbar
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#editor") && !e.target.closest("#imgToolbar")) {
+      removeImgToolbar();
+      if (_selectedImg) { _selectedImg.style.outline = 'none'; _selectedImg = null; }
+    }
+  });
 }
 
 
@@ -235,147 +252,57 @@ function removeSlashMenu() {
    IMAGE CLICK
 ========================================= */
 
-let _selectedImg = null;
-
 function handleClick(e) {
   const img = e.target.closest("img");
   removeImgToolbar();
-
-  if (_selectedImg) {
-    _selectedImg.style.outline = '';
-    _selectedImg = null;
-  }
-
-  if (!img) return;
-
-  img.style.outline = '2px solid #c9a84c';
+  if (!img) { _selectedImg = null; return; }
   _selectedImg = img;
+  // Add visual selection indicator
+  editor.querySelectorAll('img').forEach(i => i.style.outline = 'none');
+  img.style.outline = '2px solid #c9a84c';
   showImageToolbar(img);
 }
 
-window.deleteSelectedImage = function() {
-  const ed = document.getElementById('editor');
-  if (!ed) return;
-
-  if (_selectedImg && ed.contains(_selectedImg)) {
-    const parent = _selectedImg.parentElement;
-    _selectedImg.remove();
-    if (parent && parent !== ed && parent.innerHTML.trim() === '') parent.remove();
-    _selectedImg = null;
-    removeImgToolbar();
-    window.updateWordCount?.();
-    return;
-  }
-
-  const sel = window.getSelection();
-  if (sel && sel.rangeCount) {
-    const range = sel.getRangeAt(0);
-    const container = range.commonAncestorContainer;
-    const img = container.nodeType === 1
-      ? container.querySelector('img')
-      : container.parentElement?.querySelector('img');
-    if (img && ed.contains(img)) {
-      img.remove();
-      window.updateWordCount?.();
-      return;
-    }
-  }
-
-  const imgs = ed.querySelectorAll('img');
-  if (imgs.length) {
-    if (confirm('No image selected — delete the last image in the editor?')) {
-      imgs[imgs.length - 1].remove();
-      window.updateWordCount?.();
-    }
-  }
-};
-
+// Track selected image for keyboard delete
+let _selectedImg = null;
 
 
 /* =========================================
-   IMAGE TOOLBAR
+   IMAGE TOOLBAR — Enhanced with styled buttons,
+   proper positioning, and keyboard Delete support
 ========================================= */
 
 function showImageToolbar(img) {
-  removeImgToolbar();
-
   const toolbar = document.createElement("div");
   toolbar.id = "imgToolbar";
-  Object.assign(toolbar.style, {
-    position: "fixed",
-    display: "flex",
-    gap: "4px",
-    alignItems: "center",
-    background: "#0d1520",
-    border: "1px solid rgba(255,255,255,0.12)",
-    padding: "4px 6px",
-    borderRadius: "6px",
-    zIndex: "10000",
-    boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
-    pointerEvents: "auto",
-  });
+  toolbar.style.cssText = 'position:absolute;background:#0f1628;border:1px solid rgba(201,168,76,0.3);padding:4px 6px;border-radius:6px;display:flex;gap:4px;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,0.5)';
 
   const rect = img.getBoundingClientRect();
-  toolbar.style.top  = Math.max(8, rect.top - 44) + "px";
-  toolbar.style.left = rect.left + "px";
+  toolbar.style.top = rect.top + window.scrollY - 38 + "px";
+  toolbar.style.left = rect.left + window.scrollX + "px";
 
-  const mkBtn = (label, color, action) => {
-    const b = document.createElement("button");
-    b.textContent = label;
-    b.title = label;
-    Object.assign(b.style, {
-      background: color === "red"
-        ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.06)",
-      border: color === "red"
-        ? "1px solid rgba(239,68,68,0.4)" : "1px solid rgba(255,255,255,0.1)",
-      color: color === "red" ? "#fca5a5" : "#e8e4d8",
-      padding: "3px 8px",
-      borderRadius: "3px",
-      fontFamily: "var(--sans, sans-serif)",
-      fontSize: "0.68rem",
-      cursor: "pointer",
-      whiteSpace: "nowrap",
-    });
-    b.onmouseenter = () => { b.style.opacity = "0.8"; };
-    b.onmouseleave = () => { b.style.opacity = "1"; };
-    b.onclick = (e) => { e.stopPropagation(); action(); };
-    return b;
-  };
-
-  const sep = () => {
-    const d = document.createElement("div");
-    Object.assign(d.style, { width: "1px", height: "16px", background: "rgba(255,255,255,0.1)", margin: "0 2px" });
-    return d;
-  };
+  const btnStyle = 'background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:#f5f0e8;padding:3px 8px;border-radius:3px;font-size:11px;cursor:pointer;font-family:var(--sans,sans-serif);transition:all 0.15s';
+  const delStyle = 'background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;padding:3px 8px;border-radius:3px;font-size:11px;cursor:pointer;font-family:var(--sans,sans-serif);transition:all 0.15s';
 
   toolbar.append(
-    mkBtn("◀ Left",  "",    () => { img.style.float = "left";  img.style.margin = "0 1rem 0.5rem 0"; }),
-    mkBtn("■ Center","",    () => { img.style.float = "none"; img.style.display = "block"; img.style.margin = "1rem auto"; }),
-    mkBtn("▶ Right", "",    () => { img.style.float = "right"; img.style.margin = "0 0 0.5rem 1rem"; }),
-    sep(),
-    mkBtn("⤢ Resize","",   () => { img.style.resize = "both"; img.style.overflow = "auto"; img.style.maxWidth = "100%"; }),
-    sep(),
-    mkBtn("🗑 Delete","red", () => {
-      // Also remove parent wrapper div if it's just wrapping this image
-      const parent = img.parentElement;
-      img.remove();
-      if (parent && parent !== editor &&
-          parent.tagName !== "DIV" || (parent.tagName === "DIV" && parent.children.length === 0)) {
-        try { parent.remove(); } catch (_) {}
-      }
-      removeImgToolbar();
-    })
+    _styledBtn("⬅ Left", btnStyle, () => { img.style.float = "left"; img.style.margin = "0 12px 8px 0"; }),
+    _styledBtn("⬌ Center", btnStyle, () => { img.style.display = "block"; img.style.margin = "10px auto"; img.style.float = "none"; }),
+    _styledBtn("Right ➡", btnStyle, () => { img.style.float = "right"; img.style.margin = "0 0 8px 12px"; }),
+    _styledBtn("⤢ Resize", btnStyle, () => enableResize(img)),
+    _styledBtn("✕ Delete", delStyle, () => { img.remove(); removeImgToolbar(); _selectedImg = null; saveHistory(); updateWordCount(); })
   );
 
   document.body.appendChild(toolbar);
+}
 
-  // Reposition if out of viewport horizontally
-  requestAnimationFrame(() => {
-    const tbRect = toolbar.getBoundingClientRect();
-    if (tbRect.right > window.innerWidth - 8) {
-      toolbar.style.left = Math.max(8, window.innerWidth - tbRect.width - 8) + "px";
-    }
-  });
+function _styledBtn(label, style, action) {
+  const btn = document.createElement("button");
+  btn.textContent = label;
+  btn.style.cssText = style;
+  btn.onmouseover = () => { btn.style.opacity = '0.8'; };
+  btn.onmouseout  = () => { btn.style.opacity = '1'; };
+  btn.onclick = action;
+  return btn;
 }
 
 
