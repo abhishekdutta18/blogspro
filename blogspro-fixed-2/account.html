@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account — BlogsPro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:   #080d1a; --navy2:  #0f1628; --navy3:  #1a2340;
+      --gold:   #c9a84c; --gold2:  #f0cc6e; --cream:  #f5f0e8;
+      --muted:  #8896b3; --border: rgba(201,168,76,0.2);
+      --green:  #22c55e; --red: #ef4444;
+      --serif:  'Cormorant Garamond', Georgia, serif;
+      --sans:   'DM Sans', sans-serif;
+    }
+    body { background: var(--navy); color: var(--cream); font-family: var(--sans); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+ 
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,13,26,0.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 68px;
+    }
+    .nav-brand { font-family: var(--serif); font-size: 1.5rem; font-weight: 700; background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-right { display: flex; align-items: center; gap: 1.5rem; }
+    .nav-link { font-size: 0.82rem; color: var(--muted); transition: color 0.2s; }
+    .nav-link:hover { color: var(--gold); }
+ 
+    /* LAYOUT */
+    .page { max-width: 900px; margin: 0 auto; padding: 3rem 2rem; }
+    .page-title { font-family: var(--serif); font-size: 2.2rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .page-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 3rem; }
+ 
+    .grid { display: grid; grid-template-columns: 280px 1fr; gap: 2rem; align-items: start; }
+ 
+    /* SIDEBAR CARD */
+    .profile-card {
+      background: var(--navy2); border: 1px solid var(--border);
+      padding: 2rem; text-align: center; position: sticky; top: 90px;
+    }
+    .avatar-wrap { position: relative; display: inline-block; margin-bottom: 1.2rem; }
+    .avatar {
+      width: 90px; height: 90px; border-radius: 50%;
+      border: 2px solid var(--border);
+      object-fit: cover; background: var(--navy3);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--serif); font-size: 2.2rem; font-weight: 700;
+      color: var(--gold); overflow: hidden;
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: none; }
+    .profile-name { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .profile-email { font-size: 0.8rem; color: var(--muted); margin-bottom: 1rem; word-break: break-all; }
+    .role-badge {
+      display: inline-block; padding: 0.3rem 0.8rem; border-radius: 2px;
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    }
+    .role-reader   { background: rgba(136,150,179,0.15); color: var(--muted); }
+    .role-editor   { background: rgba(37,99,235,0.15);   color: #93c5fd; }
+    .role-coauthor { background: rgba(201,168,76,0.15);  color: var(--gold); }
+    .role-admin    { background: rgba(201,168,76,0.3);   color: var(--gold2); }
+ 
+    .profile-bio { font-size: 0.82rem; color: var(--muted); margin-top: 1rem; line-height: 1.6; text-align: left; }
+ 
+    .btn-logout-sm {
+      width: 100%; margin-top: 1.5rem;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); padding: 0.6rem; border-radius: 3px;
+      font-family: var(--sans); font-size: 0.78rem; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-logout-sm:hover { border-color: var(--red); color: #fca5a5; }
+ 
+    /* PANELS */
+    .panels { display: flex; flex-direction: column; gap: 1.5rem; }
+    .panel { background: var(--navy2); border: 1px solid var(--border); overflow: hidden; }
+    .panel-header {
+      padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+    }
+    .panel-title { font-size: 0.88rem; font-weight: 600; display: flex; align-items: center; gap: 0.6rem; }
+    .panel-icon { color: var(--gold); font-size: 1rem; }
+    .panel-toggle { font-size: 0.75rem; color: var(--muted); transition: transform 0.2s; }
+    .panel-toggle.open { transform: rotate(180deg); }
+    .panel-body { padding: 1.5rem; display: none; }
+    .panel-body.open { display: block; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+ 
+    /* FORM */
+    .form-row { margin-bottom: 1.2rem; }
+    .form-label { display: block; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.4rem; }
+    .form-input, .form-textarea {
+      width: 100%; background: var(--navy); border: 1px solid var(--border);
+      color: var(--cream); padding: 0.8rem 1rem; border-radius: 3px;
+      font-family: var(--sans); font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-textarea:focus { border-color: var(--gold); }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-hint { font-size: 0.72rem; color: var(--muted); margin-top: 0.35rem; }
+ 
+    /* Photo URL preview */
+    .photo-preview { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+    .preview-img {
+      width: 52px; height: 52px; border-radius: 50%;
+      border: 1px solid var(--border); object-fit: cover;
+      background: var(--navy3); display: none;
+    }
+    .preview-placeholder {
+      width: 52px; height: 52px; border-radius: 50%;
+      border: 1px dashed var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; color: var(--muted);
+    }
+ 
+    /* Role selector */
+    .role-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 0.6rem; }
+    .role-opt {
+      border: 1px solid var(--border); padding: 0.85rem 0.5rem;
+      border-radius: 3px; cursor: pointer; text-align: center; transition: all 0.2s; background: var(--navy);
+    }
+    .role-opt:hover { border-color: var(--gold); }
+    .role-opt.selected { border-color: var(--gold); background: rgba(201,168,76,0.08); }
+    .role-opt-icon { font-size: 1.3rem; margin-bottom: 0.3rem; }
+    .role-opt-name { font-size: 0.75rem; font-weight: 600; }
+    .role-opt-desc { font-size: 0.62rem; color: var(--muted); margin-top: 0.15rem; line-height: 1.3; }
+ 
+    /* Buttons */
+    .btn-save {
+      background: var(--gold); color: var(--navy); border: none;
+      padding: 0.85rem 2rem; border-radius: 3px;
+      font-family: var(--sans); font-size: 0.88rem; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;
+    }
+    .btn-save:hover { background: var(--gold2); }
+    .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-danger {
+      background: transparent; border: 1px solid rgba(239,68,68,0.4);
+      color: #fca5a5; padding: 0.85rem 2rem; border-radius: 3px;
+      font-family: var(--sans); font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-danger:hover { background: rgba(239,68,68,0.1); }
+ 
+    .success-msg { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #86efac; padding: 0.75rem 1rem; border-radius: 3px; font-size: 0.85rem; margin-bottom: 1rem; display: none; }
+    .error-msg   { background: rgba(239,68,68,0.1);   border: 1px solid rgba(239,68,68,0.3);   color: #fca5a5; padding: 0.75rem 1rem; border-radius: 3px; font-size: 0.85rem; margin-bottom: 1rem; display: none; }
+ 
+    /* Loading skeleton */
+    .skeleton { background: linear-gradient(90deg, var(--navy2) 25%, var(--navy3) 50%, var(--navy2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 3px; }
+    @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+ 
+    .loading-ring { width: 15px; height: 15px; border: 2px solid rgba(8,13,26,0.3); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.6s linear infinite; display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+ 
+    @media(max-width:700px) { .grid { grid-template-columns: 1fr; } .profile-card { position: static; } }
+  </style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-DED9GTRR3E');
+  </script>
+</head>
+<body>
+ 
+<nav>
+  <a class="nav-brand" href="index.html">BlogsPro</a>
+  <div class="nav-right">
+    <a class="nav-link" href="index.html">← Blog</a>
+  </div>
+</nav>
+ 
+<div class="page">
+  <div class="page-title">My Account</div>
+  <div class="page-sub" id="pageSub">Loading your profile…</div>
+ 
+  <div class="grid">
+    <!-- Left: Profile summary -->
+    <div>
+      <div class="profile-card">
+        <div class="avatar-wrap">
+          <div class="avatar" id="avatarEl">
+            <img id="avatarImg" src="" alt="" />
+            <span id="avatarInitial">?</span>
+          </div>
+        </div>
+        <div class="profile-name" id="profileName">—</div>
+        <div class="profile-email" id="profileEmail">—</div>
+        <span class="role-badge" id="profileRole">—</span>
+        <p class="profile-bio" id="profileBio"></p>
+        <button class="btn-logout-sm" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
+ 
+    <!-- Right: Edit panels -->
+    <div class="panels">
+ 
+      <!-- Profile Info -->
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel('profile')">
+          <div class="panel-title"><span class="panel-icon">👤</span> Profile Information</div>
+          <span class="panel-toggle open" id="toggle-profile">▼</span>
+        </div>
+        <div class="panel-body open" id="body-profile">
+          <div class="success-msg" id="profileSuccess"></div>
+          <div class="error-msg"   id="profileError"></div>
+ 
+          <div class="photo-preview">
+            <div class="preview-placeholder" id="photoPlaceholder">🖼</div>
+            <img class="preview-img" id="photoPreview" src="" alt="" />
+            <div>
+              <div class="form-label" style="margin-bottom:0.2rem">Profile Photo URL</div>
+              <div class="form-hint">Paste a direct image link (jpg, png, etc.)</div>
+            </div>
+          </div>
+ 
+          <div class="form-row">
+            <label class="form-label">Photo URL</label>
+            <input class="form-input" id="inputPhotoURL" placeholder="https://example.com/photo.jpg"
+              oninput="previewPhoto(this.value)" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Full Name</label>
+            <input class="form-input" id="inputName" placeholder="Your name" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Bio</label>
+            <textarea class="form-textarea" id="inputBio" placeholder="A short bio about yourself…"></textarea>
+          </div>
+          <button class="btn-save" id="btnSaveProfile" onclick="saveProfile()">
+            <span>Save Profile</span>
+            <div class="loading-ring" id="profileRing"></div>
+          </button>
+        </div>
+      </div>
+ 
+      <!-- Email -->
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel('email')">
+          <div class="panel-title"><span class="panel-icon">✉️</span> Email Address</div>
+          <span class="panel-toggle" id="toggle-email">▼</span>
+        </div>
+        <div class="panel-body" id="body-email">
+          <div class="success-msg" id="emailSuccess"></div>
+          <div class="error-msg"   id="emailError"></div>
+          <div class="form-row">
+            <label class="form-label">New Email Address</label>
+            <input class="form-input" type="email" id="inputEmail" placeholder="new@email.com" />
+            <p class="form-hint">You'll need to re-authenticate if you haven't logged in recently.</p>
+          </div>
+          <button class="btn-save" id="btnSaveEmail" onclick="saveEmail()">
+            <span>Update Email</span>
+            <div class="loading-ring" id="emailRing"></div>
+          </button>
+        </div>
+      </div>
+ 
+      <!-- Password -->
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel('password')">
+          <div class="panel-title"><span class="panel-icon">🔒</span> Password</div>
+          <span class="panel-toggle" id="toggle-password">▼</span>
+        </div>
+        <div class="panel-body" id="body-password">
+          <div class="success-msg" id="passwordSuccess"></div>
+          <div class="error-msg"   id="passwordError"></div>
+          <div class="form-row">
+            <label class="form-label">New Password</label>
+            <input class="form-input" type="password" id="inputPass1" placeholder="Min. 6 characters" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Confirm New Password</label>
+            <input class="form-input" type="password" id="inputPass2" placeholder="Repeat password" />
+          </div>
+          <button class="btn-save" id="btnSavePass" onclick="savePassword()">
+            <span>Change Password</span>
+            <div class="loading-ring" id="passRing"></div>
+          </button>
+        </div>
+      </div>
+ 
+      <!-- Role (read-only — only admin can change roles) -->
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel('role')">
+          <div class="panel-title"><span class="panel-icon">🏷️</span> My Role</div>
+          <span class="panel-toggle" id="toggle-role">▼</span>
+        </div>
+        <div class="panel-body" id="body-role">
+          <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1.2rem">
+            Your current role on BlogsPro. To request a role change, contact the admin.
+          </p>
+          <div id="roleDisplay" style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--navy);border:1px solid var(--border);border-radius:3px">
+            <div style="font-size:2rem" id="roleIcon">👤</div>
+            <div>
+              <div style="font-size:0.88rem;font-weight:600;color:var(--cream)" id="roleDisplayName">Reader</div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-top:0.2rem" id="roleDisplayDesc">Read & save articles</div>
+            </div>
+            <span class="role-badge" id="roleDisplayBadge" style="margin-left:auto"></span>
+          </div>
+          <p style="font-size:0.72rem;color:var(--muted);margin-top:0.8rem">
+            🔒 Role changes can only be made by the admin.
+          </p>
+        </div>
+      </div>
+ 
+      <!-- Danger Zone -->
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel('danger')" style="border-color:rgba(239,68,68,0.2)">
+          <div class="panel-title"><span class="panel-icon" style="color:#ef4444">⚠️</span> Danger Zone</div>
+          <span class="panel-toggle" id="toggle-danger">▼</span>
+        </div>
+        <div class="panel-body" id="body-danger">
+          <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1.2rem">
+            Deleting your account is permanent and cannot be undone.
+          </p>
+          <button class="btn-danger" onclick="deleteAccount()">Delete My Account</button>
+        </div>
+      </div>
+ 
+    </div>
+  </div>
+</div>
+ 
+<script type="module">
+  import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth, onAuthStateChanged, signOut,
+    updateEmail, updatePassword, deleteUser
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import {
+    getFirestore, doc, getDoc, updateDoc, deleteDoc, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+ 
+  const firebaseConfig = {
+    apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
+    authDomain: "blogspro-ai.firebaseapp.com",
+    projectId: "blogspro-ai",
+    storageBucket: "blogspro-ai.firebasestorage.app",
+    messagingSenderId: "940428277283",
+    appId: "1:940428277283:web:d3bb414f0992718ca76396"
+  };
+ 
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+ 
+  let currentUser = null;
+  let userData    = {};
+ 
+  onAuthStateChanged(auth, async user => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    currentUser = user;
+    await loadProfile(user);
+  });
+ 
+  async function loadProfile(user) {
+    try {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (snap.exists()) {
+        userData = snap.data();
+      } else {
+        userData = { name: user.displayName || '', email: user.email || '', bio: '', photoURL: user.photoURL || '', role: 'reader' };
+      }
+ 
+      // Populate sidebar
+      document.getElementById('profileName').textContent  = userData.name  || user.displayName || 'No name';
+      document.getElementById('profileEmail').textContent = userData.email || user.email || '';
+      document.getElementById('pageSub').textContent      = `Manage your BlogsPro account`;
+      if (userData.bio) document.getElementById('profileBio').textContent = userData.bio;
+ 
+      // Avatar
+      const initial = (userData.name || user.email || '?')[0].toUpperCase();
+      document.getElementById('avatarInitial').textContent = initial;
+      if (userData.photoURL) {
+        const img = document.getElementById('avatarImg');
+        img.src = userData.photoURL;
+        img.style.display = 'block';
+        document.getElementById('avatarInitial').style.display = 'none';
+      }
+ 
+      // Role badge
+      setRoleBadge(userData.role || 'reader');
+ 
+      // Prefill form
+      document.getElementById('inputName').value     = userData.name     || '';
+      document.getElementById('inputBio').value      = userData.bio      || '';
+      document.getElementById('inputPhotoURL').value = userData.photoURL || '';
+      document.getElementById('inputEmail').value    = userData.email    || user.email || '';
+      if (userData.photoURL) previewPhoto(userData.photoURL);
+ 
+      // Role display (read-only)
+      const role = userData.role || 'reader';
+      const roleMap = {
+        reader:   { icon:'👤', name:'Reader',    desc:'Read & save articles',    cls:'role-reader' },
+        editor:   { icon:'✏️', name:'Editor',    desc:'Write, admin approves',   cls:'role-editor' },
+        coauthor: { icon:'🖊️', name:'Co-Author', desc:'Write & publish freely',  cls:'role-coauthor' },
+        admin:    { icon:'⚙️', name:'Admin',     desc:'Full access',             cls:'role-admin' },
+      };
+      const r = roleMap[role] || roleMap.reader;
+      document.getElementById('roleIcon').textContent        = r.icon;
+      document.getElementById('roleDisplayName').textContent = r.name;
+      document.getElementById('roleDisplayDesc').textContent = r.desc;
+      const badge = document.getElementById('roleDisplayBadge');
+      badge.textContent = r.name;
+      badge.className   = `role-badge ${r.cls}`;
+ 
+    } catch(err) { console.error(err); }
+  }
+ 
+  function setRoleBadge(role) {
+    const el = document.getElementById('profileRole');
+    const labels = { reader:'Reader', editor:'Editor', coauthor:'Co-Author', admin:'Admin' };
+    el.textContent = labels[role] || role;
+    el.className   = `role-badge role-${role}`;
+  }
+ 
+  // ── Profile ───────────────────────────────────
+  window.saveProfile = async () => {
+    const name     = document.getElementById('inputName').value.trim();
+    const bio      = document.getElementById('inputBio').value.trim();
+    const photoURL = document.getElementById('inputPhotoURL').value.trim();
+    if (!name) { showMsg('profileError','Name cannot be empty.'); return; }
+    setBtn('btnSaveProfile','profileRing', true);
+    hideMsg('profileError'); hideMsg('profileSuccess');
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), { name, bio, photoURL, updatedAt: serverTimestamp() });
+      userData = { ...userData, name, bio, photoURL };
+      document.getElementById('profileName').textContent = name;
+      if (bio) document.getElementById('profileBio').textContent = bio;
+      if (photoURL) {
+        document.getElementById('avatarImg').src = photoURL;
+        document.getElementById('avatarImg').style.display = 'block';
+        document.getElementById('avatarInitial').style.display = 'none';
+      }
+      showMsg('profileSuccess', '✓ Profile updated successfully.');
+    } catch(e) { showMsg('profileError', 'Failed to update profile.'); }
+    setBtn('btnSaveProfile','profileRing', false);
+  };
+ 
+  // ── Email ─────────────────────────────────────
+  window.saveEmail = async () => {
+    const email = document.getElementById('inputEmail').value.trim();
+    if (!email) { showMsg('emailError','Please enter an email address.'); return; }
+    setBtn('btnSaveEmail','emailRing', true);
+    hideMsg('emailError'); hideMsg('emailSuccess');
+    try {
+      await updateEmail(currentUser, email);
+      await updateDoc(doc(db, 'users', currentUser.uid), { email, updatedAt: serverTimestamp() });
+      document.getElementById('profileEmail').textContent = email;
+      showMsg('emailSuccess', '✓ Email updated successfully.');
+    } catch(e) {
+      const msgs = {
+        'auth/requires-recent-login': 'Please sign out and sign back in first, then try again.',
+        'auth/email-already-in-use':  'This email is already in use.',
+        'auth/invalid-email':         'Invalid email address.',
+      };
+      showMsg('emailError', msgs[e.code] || 'Failed to update email.');
+    }
+    setBtn('btnSaveEmail','emailRing', false);
+  };
+ 
+  // ── Password ──────────────────────────────────
+  window.savePassword = async () => {
+    const p1 = document.getElementById('inputPass1').value;
+    const p2 = document.getElementById('inputPass2').value;
+    if (p1.length < 6)  { showMsg('passwordError','Password must be at least 6 characters.'); return; }
+    if (p1 !== p2)      { showMsg('passwordError','Passwords do not match.'); return; }
+    setBtn('btnSavePass','passRing', true);
+    hideMsg('passwordError'); hideMsg('passwordSuccess');
+    try {
+      await updatePassword(currentUser, p1);
+      showMsg('passwordSuccess', '✓ Password changed successfully.');
+      document.getElementById('inputPass1').value = '';
+      document.getElementById('inputPass2').value = '';
+    } catch(e) {
+      const msgs = {
+        'auth/requires-recent-login': 'Please sign out and sign back in first.',
+        'auth/weak-password':         'Password is too weak.',
+      };
+      showMsg('passwordError', msgs[e.code] || 'Failed to change password.');
+    }
+    setBtn('btnSavePass','passRing', false);
+  };
+ 
+  // ── Delete account ────────────────────────────
+  window.deleteAccount = async () => {
+    if (!confirm('This will permanently delete your account and all your data. Are you sure?')) return;
+    if (!confirm('Last warning — this cannot be undone. Proceed?')) return;
+    try {
+      await deleteDoc(doc(db, 'users', currentUser.uid));
+      await deleteUser(currentUser);
+      window.location.href = 'index.html';
+    } catch(e) {
+      const msgs = { 'auth/requires-recent-login': 'Please sign out and sign back in first, then delete.' };
+      alert(msgs[e.code] || 'Failed to delete account. Please try again.');
+    }
+  };
+ 
+  // ── Photo preview ─────────────────────────────
+  window.previewPhoto = (url) => {
+    const img = document.getElementById('photoPreview');
+    const ph  = document.getElementById('photoPlaceholder');
+    if (url) {
+      img.src = url; img.style.display = 'block'; ph.style.display = 'none';
+    } else {
+      img.style.display = 'none'; ph.style.display = 'flex';
+    }
+  };
+ 
+  // ── Panel toggle ──────────────────────────────
+  window.togglePanel = (id) => {
+    const body   = document.getElementById(`body-${id}`);
+    const toggle = document.getElementById(`toggle-${id}`);
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    toggle.classList.toggle('open', !isOpen);
+  };
+ 
+  // ── Helpers ───────────────────────────────────
+  function setBtn(btnId, ringId, loading) {
+    document.getElementById(btnId).disabled = loading;
+    document.getElementById(ringId).style.display = loading ? 'block' : 'none';
+  }
+ 
+  function showMsg(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg; el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 5000);
+  }
+ 
+  function hideMsg(id) { document.getElementById(id).style.display = 'none'; }
+ 
+  window.doLogout = async () => {
+    await signOut(auth);
+    window.location.href = 'index.html';
+  };
+</script>
+</body>
+</html>
