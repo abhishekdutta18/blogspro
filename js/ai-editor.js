@@ -112,7 +112,7 @@ Write ONLY in English. Return ONLY clean HTML. Use <h2><h3><p><strong><em><ul><l
 
     // FEATURE 11: Content length protection — reject if AI reduced content too much
     const newWordCount = clean.replace(/<[^>]+>/g, ' ').trim().split(/\s+/).filter(Boolean).length;
-    if (newWordCount < wordCount * 0.6 && wordCount > 200) {
+    if (newWordCount < wordCount * 0.6 && wordCount > 50) {
       setEditStatus(`⚠ Rejected: AI reduced content from ${wordCount} to ${newWordCount} words (${Math.round((1 - newWordCount/wordCount) * 100)}% loss). Original preserved.`, true);
       setEditBtnsDisabled(false);
       showToast('AI response rejected — would reduce content too much.', 'error');
@@ -242,15 +242,45 @@ Rules:
   const existing = editor.querySelector('.bp-references-block');
   if (existing) existing.remove();
 
+  // ── F5: Validate reference URLs via Worker (/api/validate-url) ──────────
+  // Runs silently — invalid URLs get a warning badge, valid ones get a green tick
+  setEditStatus('⏳ Validating reference URLs…');
+  try {
+    const urls = refs.filter(r => r.url).map(r => r.url);
+    if (urls.length > 0) {
+      const valRes = await fetch('https://github-push.abhishek-dutta1996.workers.dev/api/validate-url', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ urls })
+      });
+      if (valRes.ok) {
+        const valData = await valRes.json();
+        const statusMap = {};
+        (valData.results || []).forEach(r => { statusMap[r.url] = r.valid; });
+        refs = refs.map(r => ({
+          ...r,
+          urlValid: r.url ? (statusMap[r.url] !== undefined ? statusMap[r.url] : null) : null
+        }));
+      }
+    }
+  } catch(_) {
+    // Validation failed silently — still show references without badges
+  }
+
   // Build APA reference list HTML
   const listItems = refs.map((r, i) => {
     const authors = r.authors || 'Unknown';
     const year    = r.year ? `(${r.year}).` : '';
     const title   = r.title ? `<em>${r.title}.</em>` : '';
     const source  = r.source ? `${r.source}.` : '';
+    const validBadge = r.urlValid === true
+      ? `<span style="color:#4ade80;font-size:0.7rem;margin-left:4px" title="URL verified">✓ verified</span>`
+      : r.urlValid === false
+        ? `<span style="color:#fca5a5;font-size:0.7rem;margin-left:4px" title="URL could not be verified">⚠ unverified</span>`
+        : '';
     const urlTag  = r.url
       ? `<a href="${r.url}" target="_blank" rel="noopener"
-           style="color:#c9a84c;word-break:break-all;font-size:0.8rem">${r.url}</a>`
+           style="color:#c9a84c;word-break:break-all;font-size:0.8rem">${r.url}</a>${validBadge}`
       : '';
     return `<li style="margin-bottom:0.75rem;line-height:1.6;font-size:0.85rem;color:#f5f0e8">
       ${authors} ${year} ${title} ${source} ${urlTag}
