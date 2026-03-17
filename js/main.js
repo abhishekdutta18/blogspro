@@ -80,3 +80,5 @@ editor?.addEventListener("click", (e) => {
   console.log("Image clicked", img);
 
 });
+
+import './post-audit.js';
