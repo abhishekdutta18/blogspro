@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── HELPER: admin check via Firestore role (no hardcoded UID) ───────────
+    function isAdmin() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ── POSTS ──────────────────────────────────────────────────────────────
+    match /posts/{postId} {
+      // List: only published + non-premium posts are visible to the public.
+      // Authenticated users (readers/admins) can query everything.
+      allow list: if (resource.data.published == true && resource.data.premium != true)
+                  || request.auth != null;
+
+      // Get (single doc): free posts open to all; premium requires sign-in.
+      allow get:  if resource.data.premium != true
+                  || request.auth != null;
+
+      // Only admin can create, update, or delete posts.
+      // Exception: anyone can increment ONLY the 'views' field (for view tracking).
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+                    || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])
+                        && request.resource.data.views == resource.data.views + 1);
+    }
+
+    // ── COMMENTS (subcollection of posts) ──────────────────────────────────
+    match /posts/{postId}/comments/{commentId} {
+      // Anyone can read comments.
+      allow read: if true;
+
+      // Any logged-in user can post a comment, with strict field validation.
+      // createdAt must be the server timestamp — prevents backdating/spoofing.
+      allow create: if request.auth != null
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 2
+                    && request.resource.data.text.size() < 1000
+                    && request.resource.data.authorUid == request.auth.uid
+                    && request.resource.data.createdAt == request.time;
+
+      // Only admin can delete comments.
+      allow delete: if isAdmin();
+
+      // Comments are immutable once posted.
+      allow update: if false;
+    }
+
+    // ── USERS ───────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      // Users can only read their own profile. Admins can read all profiles.
+      allow read: if request.auth.uid == userId || isAdmin();
+
+      // User can create their own document on registration.
+      allow create: if request.auth.uid == userId;
+
+      // User can update their own profile BUT cannot change their role.
+      // Admin can update any user document (including role changes).
+      allow update: if (request.auth.uid == userId
+                    && !('role' in request.resource.data.diff(resource.data).affectedKeys()))
+                    || isAdmin();
+
+      // User can delete their own account.
+      allow delete: if request.auth.uid == userId || isAdmin();
+    }
+
+    // ── SUBSCRIBERS (newsletter) ────────────────────────────────────────────
+    match /subscribers/{subId} {
+      // Anyone can subscribe (no login required).
+      // Email must pass a basic format check and have a reasonable length.
+      allow create: if request.resource.data.email is string
+                    && request.resource.data.email.matches('.*@.*\\..*')
+                    && request.resource.data.email.size() > 5
+                    && request.resource.data.email.size() < 255;
+
+      // Only admin can view, edit, or delete subscribers.
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ── AI MEMORY (#18, #19, #28) ───────────────────────────────────────────
+    match /ai_memory/{docId} {
+      // Only admin can read and write AI memory patterns.
+      allow read, write: if isAdmin();
+    }
+
+  }
+}

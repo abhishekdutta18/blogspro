@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+ 
+Sitemap: https://blogspro.in/sitemap.xml
+ 
+Disallow: /admin.html
+Disallow: /dashboard.html
+Disallow: /account.html
+ 
