@@ -109,6 +109,16 @@ Write ONLY in English. Return ONLY clean HTML. Use <h2><h3><p><strong><em><ul><l
     if (r.error) { setEditStatus('✕ ' + r.error, true); setEditBtnsDisabled(false); return; }
     const clean = (r.text || '').replace(/```html?|```/gi, '').trim();
     if (!clean) { setEditStatus('✕ Empty response.', true); setEditBtnsDisabled(false); return; }
+
+    // FEATURE 11: Content length protection — reject if AI reduced content too much
+    const newWordCount = clean.replace(/<[^>]+>/g, ' ').trim().split(/\s+/).filter(Boolean).length;
+    if (newWordCount < wordCount * 0.6 && wordCount > 50) {
+      setEditStatus(`⚠ Rejected: AI reduced content from ${wordCount} to ${newWordCount} words (${Math.round((1 - newWordCount/wordCount) * 100)}% loss). Original preserved.`, true);
+      setEditBtnsDisabled(false);
+      showToast('AI response rejected — would reduce content too much.', 'error');
+      return;
+    }
+
     editor.innerHTML = sanitize(clean);
   }
 
@@ -349,7 +359,13 @@ auto_fixes must be a subset of the exact strings listed above — only include f
 
   const fixBtns = autoFixes.length ? `
     <div style="margin-top:0.6rem;border-top:1px solid var(--border);padding-top:0.6rem">
-      <div style="font-size:0.68rem;color:var(--muted);margin-bottom:0.4rem">AUTO-FIX SUGGESTIONS</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
+        <div style="font-size:0.68rem;color:var(--muted)">AUTO-FIX SUGGESTIONS</div>
+        <button onclick="autoRunAllFixes(${JSON.stringify(autoFixes).replace(/"/g,'&quot;')})"
+          style="background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.25rem 0.6rem;border-radius:3px;font-family:var(--sans);font-size:0.65rem;font-weight:700;cursor:pointer">
+          ⚡ Run All Fixes
+        </button>
+      </div>
       ${autoFixes.map(fix => `
         <button onclick="applyQualityFix('${fix}')"
           style="display:block;width:100%;text-align:left;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);
@@ -382,6 +398,23 @@ auto_fixes must be a subset of the exact strings listed above — only include f
 }
 window.runArticleQualityScore = runArticleQualityScore;
 
+// FEATURE 10: Auto-run all quality fixes sequentially after scoring
+window.autoRunAllFixes = async (fixes) => {
+  if (!fixes?.length) return;
+  setEditStatus(`⏳ Auto-applying ${fixes.length} fix(es)…`);
+  for (let i = 0; i < fixes.length; i++) {
+    const fix = fixes[i];
+    const instruction = FIX_INSTRUCTIONS[fix];
+    if (!instruction) continue;
+    setEditStatus(`⏳ Fix ${i+1}/${fixes.length}: ${_fixLabel(fix)}…`);
+    await runAIEdit(instruction);
+    // Small delay between fixes
+    if (i < fixes.length - 1) await new Promise(r => setTimeout(r, 500));
+  }
+  setEditStatus(`✓ Applied ${fixes.length} fix(es)`);
+  showToast(`Applied ${fixes.length} auto-fixes!`, 'success');
+};
+
 // Maps fix key → human label
 function _fixLabel(fix) {
   const labels = {
@@ -394,13 +427,13 @@ function _fixLabel(fix) {
   return labels[fix] || fix;
 }
 
-// Maps fix key → AI instruction
+// FEATURE 11: FIX_INSTRUCTIONS now include content preservation rules
 const FIX_INSTRUCTIONS = {
-  add_statistics:   'Add specific statistics, percentages, and real data points throughout the article to support claims. Write ONLY in English.',
-  improve_headings: 'Rewrite all <h2> and <h3> headings to be more descriptive, SEO-friendly, and engaging. Write ONLY in English.',
-  expand_intro:     'Significantly expand the introduction — make it more compelling with a stronger hook, context, and preview of key insights. Write ONLY in English.',
-  add_examples:     'Add 2-3 real-world examples or case studies to support the key arguments in the article. Write ONLY in English.',
-  fix_tone:         'Improve writing tone and clarity — remove passive voice, jargon, and filler sentences. Write ONLY in English.',
+  add_statistics:   'Add specific statistics, percentages, and real data points throughout the article to support claims. CRITICAL: Do NOT remove or shorten any existing content. Only ADD new data points. Write ONLY in English.',
+  improve_headings: 'Rewrite all <h2> and <h3> headings to be more descriptive, SEO-friendly, and engaging. CRITICAL: Keep ALL paragraph content intact. Only change the heading text. Write ONLY in English.',
+  expand_intro:     'Significantly expand the introduction — make it more compelling with a stronger hook, context, and preview of key insights. CRITICAL: Keep all other sections untouched. Only expand the introduction. Write ONLY in English.',
+  add_examples:     'Add 2-3 real-world examples or case studies to support the key arguments in the article. CRITICAL: Do NOT remove or shorten any existing content. Only ADD examples. Write ONLY in English.',
+  fix_tone:         'Improve writing tone and clarity — remove passive voice, jargon, and filler sentences. CRITICAL: Do NOT reduce the word count significantly. Replace weak sentences with stronger ones of equal or greater length. Write ONLY in English.',
 };
 
 window.applyQualityFix = async (fix) => {
