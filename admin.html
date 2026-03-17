@@ -287,6 +287,8 @@ function doLogout() {
             <button onclick="fmtBlock('blockquote')">"</button>
             <button onclick="insertLink()">🔗</button>
             <div class="toolbar-sep"></div>
+            <button onclick="deleteSelectedImage()" title="Delete selected image" style="width:auto;padding:0 0.7rem;color:#fca5a5;border-color:rgba(239,68,68,0.3)">🗑 Img</button>
+            <div class="toolbar-sep"></div>
             <button onclick="openAIDrawer('write')" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border-radius:2px;font-weight:700;font-size:0.72rem">✦ AI Write</button>
             <button onclick="openAIDrawer('image')" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border-radius:2px;font-weight:700;font-size:0.72rem">🖼 AI Image</button>
           </div>
