@@ -73,7 +73,6 @@ function collect() {
   const text   = editor?.textContent || '';
   const words  = text.trim().split(/\s+/).filter(Boolean).length;
 
-  // Charts — check data-name attribute
   const chartNodes = [...(editor?.querySelectorAll('.bp-chart-block') || [])];
   const charts = chartNodes.map(n => ({
     el:       n,
@@ -84,7 +83,6 @@ function collect() {
     hasName:  !!(n.dataset.name || n.querySelector('.bp-chart-title')?.textContent?.trim()),
   }));
 
-  // Tables — check for caption or heading
   const tableNodes = [...(editor?.querySelectorAll('table') || [])];
   const tables = tableNodes.map(t => ({
     el:      t,
@@ -93,7 +91,6 @@ function collect() {
     hasData: t.querySelectorAll('td').length > 2,
   }));
 
-  // References
   const refBlock  = editor?.querySelector('.bp-references-block');
   const refLinks  = refBlock
     ? [...refBlock.querySelectorAll('a[href]')].map(a => ({ text: a.textContent.trim(), url: a.href }))
@@ -134,7 +131,6 @@ function checkStructure(p) {
   if (!p.hasRefBlock || p.refLinks.length < T.minRefs)
     add('refs', 'content', `References insufficient (${p.refLinks.length}/${T.minRefs})`);
 
-  // Chart checks
   if (p.charts.length < T.minCharts)
     add('no-charts', 'content', `No charts found (min ${T.minCharts})`);
   p.charts.forEach((c, i) => {
@@ -142,7 +138,6 @@ function checkStructure(p) {
     if (!c.hasData) add(`chart-nodata-${i}`, 'content', `Chart "${c.name || i + 1}" appears to have no data`, 'warning');
   });
 
-  // Table checks
   if (p.tables.length < T.minTables)
     add('no-tables', 'content', `No tables found (min ${T.minTables})`);
   p.tables.forEach((t, i) => {
@@ -164,7 +159,6 @@ async function checkQuality(p) {
   const issues = [];
   const add = (id, field, msg, sev = 'warning') => issues.push({ id, field, msg, sev });
 
-  // 2a. AI validates chart data content is realistic & contextual
   for (const [i, chart] of p.charts.entries()) {
     if (!chart.hasData) continue;
     const chartText = chart.el.textContent.trim().substring(0, 300);
@@ -184,7 +178,6 @@ async function checkQuality(p) {
     }
   }
 
-  // 2b. AI validates table data content
   for (const [i, table] of p.tables.entries()) {
     if (!table.hasData) continue;
     const tableText = table.el.textContent.trim().substring(0, 300);
@@ -204,7 +197,6 @@ async function checkQuality(p) {
     }
   }
 
-  // 2c. Reference URL reachability (HEAD fetch)
   for (const ref of p.refLinks.slice(0, 8)) {
     try {
       const ctrl = new AbortController();
@@ -216,7 +208,6 @@ async function checkQuality(p) {
     }
   }
 
-  // 2d. Reference contextual relevance via AI
   if (p.refLinks.length >= 2) {
     const urlList = p.refLinks.slice(0, 6).map((r, i) => `${i + 1}. ${r.url}`).join('\n');
     const r = await callAI(
@@ -235,12 +226,10 @@ async function checkQuality(p) {
     }
   }
 
-  // 2e. Cover image loads
   if (p.coverUrl) {
     const ok = await _imgLoads(p.coverUrl);
     if (!ok) add('cover-broken', 'cover', `Cover broken: ${p.coverUrl.slice(0, 55)}`);
     else {
-      // Check contextual via AI
       const r = await callAI(
         `Article: "${p.title}". Cover URL: ${p.coverUrl}\n` +
         `Is this cover photo URL contextually appropriate? Reply ONLY: {"ok":true/false,"reason":""}`, true);
@@ -254,7 +243,6 @@ async function checkQuality(p) {
     }
   }
 
-  // 2f. Inline images load
   for (const img of p.inlineImgs) {
     if (!img.src || img.src.startsWith('data:') || img.src.startsWith('blob:')) continue;
     const ok = await _imgLoads(img.src, 5000);
@@ -332,7 +320,6 @@ async function rectify(p, allIssues) {
       `Write a specific, descriptive 5-7 word name for this table. Return ONLY the name, no quotes.`, true);
     if (!r.error && r.text) {
       const name = r.text.trim();
-      // Add or update caption
       let caption = table.el.querySelector('caption');
       if (!caption) {
         caption = document.createElement('caption');
@@ -340,7 +327,6 @@ async function rectify(p, allIssues) {
       }
       caption.textContent = name;
       caption.style.cssText = 'text-align:left;font-size:0.78rem;font-weight:700;color:#c9a84c;padding:0 0 0.4rem;caption-side:top';
-      // Also set on parent bp-chart-block if present
       const wrapper = table.el.closest('.bp-chart-block');
       if (wrapper) wrapper.setAttribute('data-name', name);
       log('content', `Table ${idx + 1} named`, '(unnamed)', name);
@@ -427,6 +413,8 @@ async function rectify(p, allIssues) {
     try {
       editor.querySelector('.bp-references-block')?.remove();
       await window.aiEditAction?.('references');
+      // FIX: wait for DOM to settle after async reference insertion
+      await new Promise(r => setTimeout(r, 800));
       log('content', 'References regenerated', `${p.refLinks.length} old refs`, 'fresh APA block');
     } catch (e) { _log('⚠ Refs failed: ' + e.message); }
   }
@@ -434,7 +422,12 @@ async function rectify(p, allIssues) {
   // ── Inline citations ───────────────────────────────────────────
   if (!p.hasCitations && editor && typeof window.insertInlineCitations === 'function') {
     _log('📌 Adding citations…');
-    try { await window.insertInlineCitations(); log('content', 'Inline citations added', '(none)', 'superscripts'); } catch {}
+    try {
+      await window.insertInlineCitations();
+      // FIX: wait for citation DOM update
+      await new Promise(r => setTimeout(r, 500));
+      log('content', 'Inline citations added', '(none)', 'superscripts');
+    } catch {}
   }
 
   // ── Remove broken inline images ────────────────────────────────
@@ -458,6 +451,10 @@ async function rectify(p, allIssues) {
     window.updateFeaturedPreview?.(finalUrl);
     log('cover', 'AI cover generated', p.coverUrl || '(none)', finalUrl);
   }
+
+  // FIX: Allow all async DOM updates (chart/table/refs/citations) to settle
+  // before returning so that the recheck collect() reads the correct state
+  await new Promise(r => setTimeout(r, 600));
 
   return corrections;
 }
@@ -513,7 +510,6 @@ async function pushCodeFix(fixes) {
     const commitMsg  = `fix(post-audit): ${fix.description.slice(0, 70)} [${fix.file}]`;
 
     try {
-      // Get SHA if file exists
       let sha = null;
       try {
         const r = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${targetPath}`, {
@@ -564,9 +560,14 @@ export async function runFullAudit(trigger = 'manual') {
     const corrections = allIssues.length ? await rectify(p1, allIssues) : [];
     _step('fix', 'pass', `${corrections.length} correction(s) applied`);
 
-    // Recheck
+    // FIX: Recheck MUST re-collect AND re-run checkStructure after all DOM
+    // changes from rectify() have settled. The original bug was that collect()
+    // returned stale data because async operations (refs, citations) hadn't
+    // finished updating the DOM yet. The 600ms settle wait in rectify() fixes
+    // this, but we also add a second settle here as a safety net.
     _step('recheck', 'running', 'Re-verifying…');
-    const p2        = collect();
+    await new Promise(r => setTimeout(r, 400));  // extra safety settle
+    const p2        = collect();                  // re-collect AFTER full DOM settle
     const remaining = checkStructure(p2);
     _step('recheck', remaining.length ? 'warn' : 'pass',
       remaining.length ? `${remaining.length} remain` : 'Clean');
@@ -576,7 +577,7 @@ export async function runFullAudit(trigger = 'manual') {
     const postId = await autoSave();
     _step('save', 'pass', `Saved · ${postId}`);
 
-    // Phase 5: push code fixes to GitHub (no consent needed)
+    // Phase 5: push code fixes to GitHub
     const codeFixPatches = corrections
       .filter(c => c.field === 'code')
       .map(c => ({ file: c.file, description: c.what, patch: c.newVal }));
@@ -637,7 +638,6 @@ function showGate({ trigger, allIssues, corrections, remaining, postId, p2 }) {
            ${remaining.map(i => `<div style="font-size:0.7rem;color:#fca5a5;padding:0.15rem 0">⚠ ${_cap(i.field)}: ${i.msg}</div>`).join('')}
          </div>` : '';
 
-    // Stats bar
     const statRow = [
       ['Words',   p2.words.toLocaleString(),   p2.words < T.minWords],
       ['Charts',  p2.charts.length,             p2.charts.length < T.minCharts],
@@ -652,7 +652,6 @@ function showGate({ trigger, allIssues, corrections, remaining, postId, p2 }) {
         <div style="font-size:0.6rem;color:#888780">${k}</div>
       </div>`).join('');
 
-    // Chart/table name summary
     const namedCharts = p2.charts.filter(c => c.hasName).length;
     const namedTables = p2.tables.filter(t => t.hasName).length;
     const nameRow = (p2.charts.length || p2.tables.length) ? `
