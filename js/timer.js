@@ -174,72 +174,193 @@ window.stopTimer  = stopTimer;
 window.hideTimer  = hideTimer;
 
 // ═══════════════════════════════════════════════
-// Roadmap — pipeline step indicators
 // ═══════════════════════════════════════════════
+// Roadmap — dynamic pipeline with live LLM names
+// ═══════════════════════════════════════════════
+
+// Real provider metadata (mirrors ai-core.js PROVIDER_META)
+const PROVIDER_DISPLAY = {
+  groq:        { label: 'Kimi K2',        color: '#f55036', icon: '🌙' },
+  openrouter:  { label: 'Qwen3 235B',     color: '#7c3aed', icon: '🐼' },
+  together:    { label: 'DeepSeek V3',    color: '#0ea5e9', icon: '🔍' },
+  deepinfra:   { label: 'Llama 3.3 70B', color: '#10b981', icon: '🦙' },
+  gemini:      { label: 'Gemini 2.0',     color: '#4285f4', icon: '✨' },
+  mistral:     { label: 'Mistral Large',  color: '#ff6b35', icon: '🌀' },
+  deepseek:    { label: 'DeepSeek Chat',  color: '#3b82f6', icon: '💬' },
+};
+
+// Ordered fallback chain — matches providers.js TEXT_PROVIDERS
+const PROVIDER_CHAIN = ['groq','openrouter','together','deepinfra','gemini','mistral','deepseek'];
+
 const ROADMAP_STEPS = [
-  { id: 'rms-outline',  label: 'Outline',  icon: '📋' },
-  { id: 'rms-article',  label: 'Article',  icon: '✍️'  },
-  { id: 'rms-metadata', label: 'Metadata', icon: '🏷'  },
-  { id: 'rms-done',     label: 'Done',     icon: '🚀'  },
+  { id: 'outline',  label: 'Outline',   icon: '📋', desc: 'Building structure' },
+  { id: 'article',  label: 'Article',   icon: '✍️',  desc: 'Writing sections'  },
+  { id: 'metadata', label: 'Metadata',  icon: '🏷',  desc: 'SEO fields'        },
+  { id: 'done',     label: 'Complete',  icon: '🚀',  desc: 'Finalising'        },
 ];
+
+// Track which provider responded for each step
+const _stepProviders = {};
+
+function _providerPill(provider) {
+  if (!provider) return '';
+  const p = PROVIDER_DISPLAY[provider];
+  if (!p) return `<span style="font-size:0.6rem;color:var(--muted)">${provider}</span>`;
+  return `<span style="
+    display:inline-flex;align-items:center;gap:3px;
+    font-size:0.6rem;font-weight:700;
+    color:${p.color};
+    background:${p.color}18;
+    border:1px solid ${p.color}44;
+    border-radius:3px;padding:1px 5px;
+    white-space:nowrap;margin-top:2px;
+    font-family:var(--mono,monospace)
+  ">${p.icon} ${p.label}</span>`;
+}
+
+function _buildProviderChain(activeProvider) {
+  return PROVIDER_CHAIN.map(id => {
+    const p   = PROVIDER_DISPLAY[id];
+    const act = id === activeProvider;
+    return `<div style="
+      display:flex;align-items:center;gap:4px;
+      opacity:${act ? '1' : '0.3'};
+      transition:opacity 0.3s;
+      " id="rmchain-${id}">
+      <span style="font-size:0.65rem">${p.icon}</span>
+      <span style="font-size:0.62rem;font-weight:${act ? '700' : '400'};
+                   color:${act ? p.color : 'var(--muted)'};">${p.label}</span>
+      ${act ? `<span style="font-size:0.55rem;color:${p.color}">●</span>` : ''}
+    </div>`;
+  }).join('');
+}
 
 function buildRoadmap() {
   const track = document.getElementById('aiRoadmapTrack');
-  if (!track || track.dataset.built) return;
-  track.dataset.built = '1';
+  if (!track) return;
+  // Always rebuild so provider info can update
   track.innerHTML = `
-    <div style="display:flex;align-items:center;width:100%;max-width:520px;margin:0 auto">
+    <div style="display:flex;align-items:flex-start;width:100%;gap:0;overflow-x:auto;padding-bottom:4px">
       ${ROADMAP_STEPS.map((s, i) => `
-        <div id="${s.id}" style="display:flex;flex-direction:column;align-items:center;flex:0 0 80px;opacity:0.35;transition:opacity 0.4s,transform 0.3s">
-          <div style="width:28px;height:28px;border-radius:50%;background:var(--navy3);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.8rem;z-index:1">${s.icon}</div>
-          <div style="font-size:9px;font-weight:700;color:var(--cream);margin-top:4px;white-space:nowrap">${s.label}</div>
-          <div id="${s.id}-badge" style="font-size:8px;margin-top:1px;color:var(--muted)">waiting</div>
-        </div>
-        ${i < ROADMAP_STEPS.length - 1 ? `<div style="flex:1;height:1.5px;background:var(--border);margin-bottom:20px;transition:background 0.4s;min-width:20px" id="${s.id}-line"></div>` : ''}
-      `).join('')}
+        <div style="display:flex;align-items:flex-start;flex:1;min-width:0">
+          <div id="rms-${s.id}" style="
+            display:flex;flex-direction:column;align-items:center;
+            min-width:64px;flex:0 0 64px;
+            opacity:0.3;transition:opacity 0.4s,transform 0.3s">
+            <div id="rms-${s.id}-circle" style="
+              width:32px;height:32px;border-radius:50%;
+              background:var(--navy2,#111c30);
+              border:1.5px solid var(--border);
+              display:flex;align-items:center;justify-content:center;
+              font-size:0.85rem;z-index:1;
+              transition:border-color 0.3s,background 0.3s">
+              ${s.icon}
+            </div>
+            <div style="font-size:0.65rem;font-weight:700;color:var(--cream);margin-top:4px;text-align:center">${s.label}</div>
+            <div id="rms-${s.id}-badge" style="font-size:0.58rem;color:var(--muted);margin-top:1px;text-align:center">waiting</div>
+            <div id="rms-${s.id}-provider" style="margin-top:2px"></div>
+          </div>
+          ${i < ROADMAP_STEPS.length - 1 ? `
+            <div style="flex:1;padding-top:15px;min-width:8px">
+              <div id="rms-${s.id}-line" style="height:1.5px;background:var(--border);transition:background 0.4s,width 0.6s ease;width:100%"></div>
+            </div>` : ''}
+        </div>`).join('')}
+    </div>
+    <div id="rms-provider-chain" style="
+      display:none;
+      flex-wrap:wrap;gap:0.35rem;
+      margin-top:0.6rem;
+      padding-top:0.5rem;
+      border-top:1px solid rgba(255,255,255,0.06)">
     </div>`;
+}
+
+// Update provider chain display (called when a section resolves)
+export function updateRoadmapProvider(stepId, provider) {
+  _stepProviders[stepId] = provider;
+
+  // Update the step's provider pill
+  const el = document.getElementById(`rms-${stepId}-provider`);
+  if (el) el.innerHTML = _providerPill(provider);
+
+  // Update the header badges
+  const badges = document.getElementById('aiRoadmapModelBadges');
+  if (badges) {
+    // Show all unique providers used so far
+    const unique = [...new Set(Object.values(_stepProviders))];
+    badges.innerHTML = unique.map(p => _providerPill(p)).join('');
+  }
+
+  // Show chain panel with active provider highlighted
+  const chain = document.getElementById('rms-provider-chain');
+  if (chain) {
+    chain.style.display = 'flex';
+    chain.innerHTML = `
+      <span style="font-size:0.6rem;font-weight:700;letter-spacing:0.08em;
+                   text-transform:uppercase;color:var(--muted);width:100%">
+        Active LLM
+      </span>` + _buildProviderChain(provider);
+  }
 }
 
 export function showRoadmap() {
   const el = document.getElementById('aiRoadmap');
-  if (el) {
-    el.style.display = 'block';
-    const header = el.querySelector('div:first-child');
-    if (header) header.style.padding = '0.35rem 0.75rem';
-    const track = document.getElementById('aiRoadmapTrack');
-    if (track) track.style.padding = '0.5rem 0.75rem';
-  }
+  if (el) el.style.display = 'block';
+
+  // Reset all step providers
+  Object.keys(_stepProviders).forEach(k => delete _stepProviders[k]);
+
   buildRoadmap();
+
+  // Reset all steps to waiting state
   ROADMAP_STEPS.forEach(s => {
-    const node = document.getElementById(s.id);
-    if (node) { node.style.opacity = '0.35'; node.style.transform = 'scale(1)'; }
-    const badge = document.getElementById(`${s.id}-badge`);
-    if (badge) { badge.textContent = 'waiting'; badge.style.color = 'var(--muted)'; }
-    const line = document.getElementById(`${s.id}-line`);
-    if (line) line.style.background = 'var(--border)';
+    const node    = document.getElementById(`rms-${s.id}`);
+    const badge   = document.getElementById(`rms-${s.id}-badge`);
+    const circle  = document.getElementById(`rms-${s.id}-circle`);
+    const provEl  = document.getElementById(`rms-${s.id}-provider`);
+    const line    = document.getElementById(`rms-${s.id}-line`);
+    if (node)   { node.style.opacity = '0.3'; node.style.transform = 'scale(1)'; }
+    if (badge)  { badge.textContent = 'waiting'; badge.style.color = 'var(--muted)'; }
+    if (circle) { circle.style.borderColor = 'var(--border)'; circle.style.background = 'var(--navy2,#111c30)'; }
+    if (provEl) { provEl.innerHTML = ''; }
+    if (line)   { line.style.background = 'var(--border)'; }
   });
+
+  // Clear header badges
+  const badges = document.getElementById('aiRoadmapModelBadges');
+  if (badges) badges.innerHTML = '';
 }
 
-export function setRoadmapStep(stepId, status) {
-  const node     = document.getElementById(`rms-${stepId}`);
-  const badge    = document.getElementById(`rms-${stepId}-badge`);
-  const prevId   = getPrevStepId(stepId);
+export function setRoadmapStep(stepId, status, provider) {
+  const node   = document.getElementById(`rms-${stepId}`);
+  const badge  = document.getElementById(`rms-${stepId}-badge`);
+  const circle = document.getElementById(`rms-${stepId}-circle`);
+  const prevId = getPrevStepId(stepId);
   const prevLine = prevId ? document.getElementById(`rms-${prevId}-line`) : null;
+
   if (!node) return;
+
   if (status === 'active') {
     node.style.opacity   = '1';
-    node.style.transform = 'scale(1.1)';
-    if (badge) { badge.textContent = '⏳ running'; badge.style.color = 'var(--gold)'; }
+    node.style.transform = 'scale(1.08)';
+    if (badge)  { badge.textContent = '⏳ running…'; badge.style.color = '#c9a84c'; }
+    if (circle) { circle.style.borderColor = '#c9a84c'; circle.style.background = 'rgba(201,168,76,0.08)'; }
+    if (prevLine) prevLine.style.background = '#4ade80';
+
   } else if (status === 'done') {
     node.style.opacity   = '1';
     node.style.transform = 'scale(1)';
-    if (badge) { badge.textContent = '✓ done'; badge.style.color = 'var(--green)'; }
-    if (prevLine) prevLine.style.background = 'var(--green)';
+    if (badge)  { badge.textContent = '✓ done'; badge.style.color = '#4ade80'; }
+    if (circle) { circle.style.borderColor = '#4ade80'; circle.style.background = 'rgba(74,222,128,0.08)'; }
+    if (prevLine) prevLine.style.background = '#4ade80';
     const myLine = document.getElementById(`rms-${stepId}-line`);
-    if (myLine) myLine.style.background = 'rgba(201,168,76,0.4)';
+    if (myLine) myLine.style.background = 'rgba(201,168,76,0.35)';
+    if (provider) updateRoadmapProvider(stepId, provider);
+
   } else if (status === 'error') {
-    if (badge) { badge.textContent = '✕ failed'; badge.style.color = '#fca5a5'; }
-    node.style.opacity = '0.7';
+    node.style.opacity = '0.8';
+    if (badge)  { badge.textContent = '✕ failed'; badge.style.color = '#fca5a5'; }
+    if (circle) { circle.style.borderColor = '#fca5a5'; }
   }
 }
 
@@ -249,11 +370,12 @@ export function hideRoadmap() {
 }
 
 function getPrevStepId(stepId) {
-  const ids = ROADMAP_STEPS.map(s => s.id.replace('rms-', ''));
+  const ids = ROADMAP_STEPS.map(s => s.id);
   const i   = ids.indexOf(stepId);
   return i > 0 ? ids[i - 1] : null;
 }
 
-window.showRoadmap    = showRoadmap;
-window.setRoadmapStep = setRoadmapStep;
-window.hideRoadmap    = hideRoadmap;
+window.showRoadmap          = showRoadmap;
+window.setRoadmapStep       = setRoadmapStep;
+window.hideRoadmap          = hideRoadmap;
+window.updateRoadmapProvider = updateRoadmapProvider;
