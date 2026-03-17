@@ -237,6 +237,15 @@
       <label>Branch</label>
       <input id="branch" value="main" />
     </div>
+    <div class="field" style="margin-top:4px;">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;">
+        <input type="checkbox" id="prMode" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;" />
+        <span>Deploy as Pull Request instead of pushing directly to main</span>
+      </label>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:4px;margin-left:26px;">
+        Creates a branch + PR — auto-merged by CI/CD if all checks pass
+      </div>
+    </div>
   </div>
 
   <button class="deploy-btn" id="deployBtn" onclick="deploy()" disabled>
@@ -495,7 +504,8 @@ async function deploy() {
   btn.textContent = '⏳ Deploying…';
 
   setProgress(10, 'Preparing payload…');
-  showStatus(`⏳ Pushing <strong>${PAYLOAD.files.length} files</strong> to <strong>${esc(owner)}/${esc(repo)}</strong> on branch <strong>${esc(branch)}</strong>…`, 'info');
+  const isPR = document.getElementById('prMode') ? document.getElementById('prMode').checked : false;
+  showStatus(`⏳ ${isPR ? 'Creating PR on' : 'Pushing to'} <strong>${esc(owner)}/${esc(repo)}</strong> branch <strong>${esc(branch)}</strong>…`, 'info');
 
   try {
     setProgress(40, `Sending ${PAYLOAD.files.length} files to Cloudflare Worker…`);
@@ -508,7 +518,8 @@ async function deploy() {
         repo,
         branch,
         message: PAYLOAD.message || `Deploy ${PAYLOAD.files.length} files`,
-        files: PAYLOAD.files
+        files: PAYLOAD.files,
+        pr: document.getElementById('prMode') ? document.getElementById('prMode').checked : false
       })
     });
 
@@ -584,6 +595,7 @@ async function checkStatus() {
     ).join('');
 
     const failedFiles  = (data.files || []).filter(f => !f.exists).map(f => f.path);
+    window._failedFiles = failedFiles; // stored safely for repushFailed()
     const fileRows = (data.files || []).map(f =>
       `<div style="display:flex;gap:8px;padding:3px 0;font-size:0.74rem;border-bottom:1px solid rgba(255,255,255,0.04)">
         <span style="color:${f.exists ? '#4ade80' : '#fca5a5'};min-width:14px">${f.exists ? '✓' : '✕'}</span>
@@ -605,7 +617,7 @@ async function checkStatus() {
       ${failedFiles.length > 0 ? `
         <div style="margin-top:12px;padding:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:4px;font-size:0.78rem;color:#fca5a5">
           ⚠ ${failedFiles.length} file(s) missing on GitHub.
-          <button id="repushBtn" onclick="repushFailed(${JSON.stringify(failedFiles)})"
+          <button id="repushBtn" onclick="repushFailed()"
             style="margin-left:10px;background:linear-gradient(135deg,#c9a84c,#f0cc6e);color:#080d1a;border:none;padding:4px 12px;border-radius:4px;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit">
             🔄 Re-push failed files
           </button>
@@ -622,6 +634,7 @@ async function checkStatus() {
 
 // ── Re-push only the files that are missing/failed on GitHub ──────────
 async function repushFailed(missingPaths) {
+  missingPaths = missingPaths || window._failedFiles || [];
   if (!PAYLOAD) {
     showStatus('❌ Upload the ZIP first so we know what content to re-push.', 'error');
     return;
@@ -678,6 +691,18 @@ async function repushFailed(missingPaths) {
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🔄 Re-push failed files'; }
   }
+}
+
+// PR mode toggle visual
+const prCheck = document.getElementById('prMode');
+const prSlider = document.getElementById('prSlider');
+if (prCheck && prSlider) {
+  prCheck.addEventListener('change', () => {
+    prSlider.style.background = prCheck.checked ? '#c9a84c' : '#2d3748';
+    if (prSlider.style) prSlider.innerHTML = prCheck.checked
+      ? '<span style="position:absolute;left:18px;top:2px;width:16px;height:16px;border-radius:50%;background:#080d1a;transition:0.2s;"></span>'
+      : '<span style="position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#080d1a;transition:0.2s;"></span>';
+  });
 }
 </script>
 </body>
