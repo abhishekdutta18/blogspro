@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BlogsPro — Deploy to GitHub</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #f0cc6e;
+    --bg: #080d1a;
+    --surface: #0f1628;
+    --surface2: #162035;
+    --border: rgba(201,168,76,0.25);
+    --text: #f5f0e8;
+    --muted: #8896b3;
+    --green: #4ade80;
+    --red: #fca5a5;
+    --blue: #93c5fd;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 680px;
+    box-shadow: 0 0 60px rgba(201,168,76,0.05);
+  }
+
+  .header { margin-bottom: 2rem; }
+  .header h1 { font-size: 1.55rem; color: var(--gold); font-weight: 700; margin-bottom: 0.3rem; }
+  .header p { color: var(--muted); font-size: 0.85rem; line-height: 1.5; }
+
+  /* ── Drop zone ── */
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    background: var(--bg);
+  }
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.04);
+  }
+  .dropzone .icon { font-size: 2.2rem; margin-bottom: 0.6rem; }
+  .dropzone .label { font-size: 0.95rem; color: var(--text); font-weight: 500; }
+  .dropzone .hint { font-size: 0.78rem; color: var(--muted); margin-top: 0.3rem; }
+
+  /* ── Loaded state ── */
+  .zip-loaded {
+    background: rgba(34,197,94,0.05);
+    border-color: rgba(34,197,94,0.35);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .zip-loaded .zip-icon { font-size: 1.6rem; }
+  .zip-loaded .zip-info { flex: 1; text-align: left; }
+  .zip-loaded .zip-name { font-size: 0.9rem; font-weight: 600; color: var(--green); }
+  .zip-loaded .zip-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  .zip-loaded .clear-btn {
+    background: none; border: 1px solid rgba(252,165,165,0.3); color: var(--red);
+    border-radius: 6px; padding: 0.3rem 0.7rem; font-size: 0.75rem; cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+  }
+  .zip-loaded .clear-btn:hover { background: rgba(252,165,165,0.1); }
+
+  /* ── Fields ── */
+  .fields { margin-top: 1.5rem; display: grid; gap: 1rem; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .field label {
+    display: block; font-size: 0.78rem; color: var(--muted);
+    margin-bottom: 0.35rem; font-weight: 500; letter-spacing: 0.02em;
+  }
+  .field input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.6rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    font-family: 'JetBrains Mono', monospace;
+    transition: border-color 0.15s;
+  }
+  .field input:focus { outline: none; border-color: var(--gold); }
+  .field input::placeholder { color: rgba(136,150,179,0.5); }
+
+  /* ── File list ── */
+  .file-list {
+    margin-top: 1.25rem;
+    background: var(--bg);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    overflow: hidden;
+    display: none;
+  }
+  .file-list.visible { display: block; }
+  .file-list-header {
+    padding: 0.6rem 0.9rem;
+    background: var(--surface2);
+    font-size: 0.75rem;
+    color: var(--muted);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .file-list-header .count { color: var(--gold); font-weight: 700; }
+  .file-list-body { max-height: 170px; overflow-y: auto; }
+  .file-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.76rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .file-item:last-child { border-bottom: none; }
+  .file-item .path { color: var(--text); font-family: 'JetBrains Mono', monospace; }
+  .file-item .size { color: var(--green); }
+
+  /* ── Deploy button ── */
+  .deploy-btn {
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 0.9rem;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border: none;
+    border-radius: 8px;
+    color: var(--bg);
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    letter-spacing: 0.01em;
+  }
+  .deploy-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+  .deploy-btn:active:not(:disabled) { transform: translateY(0); }
+  .deploy-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ── Status ── */
+  #status {
+    margin-top: 1rem;
+    padding: 0.9rem 1rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    display: none;
+  }
+  #status.success { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+  #status.error   { background: rgba(239,68,68,0.08);  border: 1px solid rgba(239,68,68,0.25);  color: var(--red); }
+  #status.info    { background: rgba(59,130,246,0.08);  border: 1px solid rgba(59,130,246,0.25);  color: var(--blue); }
+
+  #status a { color: var(--gold); }
+  #status code { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 3px; }
+
+  /* ── Progress bar ── */
+  .progress-wrap { margin-top: 1rem; display: none; }
+  .progress-wrap.visible { display: block; }
+  .progress-bar-bg { background: var(--surface2); border-radius: 99px; height: 6px; overflow: hidden; }
+  .progress-bar-fill {
+    height: 100%; border-radius: 99px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+    width: 0%; transition: width 0.4s ease;
+  }
+  .progress-label { font-size: 0.74rem; color: var(--muted); margin-top: 0.4rem; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>🚀 BlogsPro — Deploy to GitHub</h1>
+    <p>Upload your <code style="font-family:monospace;font-size:0.8rem;background:rgba(255,255,255,0.07);padding:1px 6px;border-radius:3px">blogspro-final-fixed.zip</code> and deploy all files directly to your GitHub repo via Cloudflare Worker.</p>
+  </div>
+
+  <!-- File input lives OUTSIDE the dropzone so it survives innerHTML swaps -->
+  <input type="file" id="zipInput" accept=".zip,.ZIP" style="display:none" />
+
+  <!-- Drop zone -->
+  <div class="dropzone" id="dropzone">
+    <div class="icon">📦</div>
+    <div class="label">Drop your ZIP here or click to browse</div>
+    <div class="hint">blogspro-final-fixed.zip · contains deploy-payload.json</div>
+  </div>
+
+  <!-- File list (shown after zip parsed) -->
+  <div class="file-list" id="fileList">
+    <div class="file-list-header">
+      <span class="count" id="fileCount">0</span> files ready to deploy
+    </div>
+    <div class="file-list-body" id="fileListBody"></div>
+  </div>
+
+  <!-- Fields -->
+  <div class="fields">
+    <div class="field">
+      <label>Cloudflare Worker URL</label>
+      <input id="workerUrl" value="https://github-push.abhishek-dutta1996.workers.dev/" />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>GitHub Owner (username)</label>
+        <input id="owner" value="abhishekdutta18" />
+      </div>
+      <div class="field">
+        <label>GitHub Repo Name</label>
+        <input id="repo" value="blogspro" />
+      </div>
+    </div>
+    <div class="field" style="max-width:200px">
+      <label>Branch</label>
+      <input id="branch" value="main" />
+    </div>
+  </div>
+
+  <button class="deploy-btn" id="deployBtn" onclick="deploy()" disabled>
+    📦 Upload a ZIP to begin
+  </button>
+
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">Preparing…</div>
+  </div>
+
+  <div id="status"></div>
+</div>
+
+<script>
+let PAYLOAD = null;
+let isDeploying = false;
+
+// ── Helpers ──
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.style.display = 'block';
+  el.className = type;
+  el.innerHTML = msg;
+}
+
+function setProgress(pct, label) {
+  const wrap = document.getElementById('progressWrap');
+  if (pct === null) {
+    // Hide progress bar entirely
+    wrap.classList.remove('visible');
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('progressLabel').textContent = '';
+    return;
+  }
+  wrap.classList.add('visible');
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = label;
+}
+
+// ── Dropzone wiring ──
+// Keep the file input OUTSIDE the dropzone content so it survives innerHTML swaps
+const dz = document.getElementById('dropzone');
+const fileInput = document.getElementById('zipInput');
+
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', e => {
+  // Only remove if leaving the dropzone itself, not a child
+  if (!dz.contains(e.relatedTarget)) dz.classList.remove('drag-over');
+});
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && (file.name.endsWith('.zip') || file.type === 'application/zip' || file.type === 'application/x-zip-compressed')) {
+    processZip(file);
+  } else {
+    showStatus('Please drop a <strong>.zip</strong> file.', 'error');
+  }
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) processZip(fileInput.files[0]);
+  // Reset input so re-selecting the same file triggers change again
+  fileInput.value = '';
+});
+
+// ── Parse ZIP ──
+async function processZip(file) {
+  showStatus('⏳ Reading ZIP…', 'info');
+  try {
+    const zip = await JSZip.loadAsync(file);
+
+    // ── Step 1: Try to find deploy-payload.json (preferred — has exact paths) ──
+    let payloadEntry = null;
+    const allEntries = [];
+    zip.forEach((relativePath, entry) => {
+      if (!entry.dir) {
+        if (relativePath.endsWith('deploy-payload.json')) payloadEntry = entry;
+        allEntries.push({ relativePath, entry });
+      }
+    });
+
+    if (payloadEntry) {
+      // ── Mode A: deploy-payload.json found — use its paths exactly ──────────
+      const text = await payloadEntry.async('string');
+      let parsed;
+      try { parsed = JSON.parse(text); }
+      catch { throw new Error('deploy-payload.json contains invalid JSON.'); }
+
+      if (!parsed.files || !Array.isArray(parsed.files) || parsed.files.length === 0) {
+        throw new Error('deploy-payload.json has no files array.');
+      }
+      for (const f of parsed.files) {
+        if (typeof f.path !== 'string' || typeof f.content !== 'string') {
+          throw new Error('deploy-payload.json has malformed file entries (missing path or content).');
+        }
+      }
+      PAYLOAD = parsed;
+
+    } else {
+      // ── Mode B: no deploy-payload.json — discover paths from ZIP structure ──
+      // Strips any top-level folder prefix (e.g. "blogspro/" → "")
+      // Skips binary files, hidden files, and non-deployable assets
+      const SKIP_EXTENSIONS = /\.(ico|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot|pdf|zip|map)$/i;
+      const SKIP_PATHS      = /(\.git|\.DS_Store|node_modules|__MACOSX|\.gitignore|README)/i;
+      const DEPLOYABLE      = /\.(html|js|css|json|txt|rules|yml|yaml|xml|md)$/i;
+
+      // Find the common prefix to strip (e.g. all files start with "blogspro/")
+      const paths = allEntries.map(e => e.relativePath);
+      const prefix = paths.length > 1
+        ? paths.reduce((a, b) => {
+            let i = 0;
+            while (i < a.length && a[i] === b[i]) i++;
+            return a.substring(0, i);
+          })
+        : '';
+      // Only strip prefix if it ends with / (it's a folder prefix)
+      const stripPrefix = prefix.includes('/') ? prefix.substring(0, prefix.lastIndexOf('/') + 1) : '';
+
+      const discoveredFiles = [];
+      for (const { relativePath, entry } of allEntries) {
+        if (SKIP_EXTENSIONS.test(relativePath)) continue;
+        if (SKIP_PATHS.test(relativePath)) continue;
+        if (!DEPLOYABLE.test(relativePath)) continue;
+        if (relativePath.endsWith('deploy-payload.json')) continue;
+
+        const content = await entry.async('string');
+        if (!content || content.trim().length === 0) continue;
+
+        // Strip common folder prefix to get the repo-relative path
+        const repoPath = stripPrefix ? relativePath.replace(stripPrefix, '') : relativePath;
+        if (!repoPath) continue;
+
+        discoveredFiles.push({ path: repoPath, content });
+      }
+
+      if (discoveredFiles.length === 0) {
+        throw new Error('No deployable files found in ZIP. Expected .html, .js, .css, .json, or .rules files.');
+      }
+
+      PAYLOAD = {
+        files: discoveredFiles,
+        message: `Deploy ${discoveredFiles.length} files from ZIP (path discovery mode)`,
+        _discoveryMode: true
+      };
+    }
+
+    // ── Show loaded state inside dropzone ──
+    // Bug fix: do NOT put the file input inside innerHTML — it's already outside in the DOM
+    dz.classList.add('zip-loaded');
+    // Remove hover/pointer styles since it's now showing loaded state
+    dz.style.cursor = 'default';
+    dz.innerHTML = `
+      <div class="zip-icon">✅</div>
+      <div class="zip-info">
+        <div class="zip-name">${esc(file.name)}</div>
+        <div class="zip-meta">${PAYLOAD.files.length} files loaded &middot; ${(file.size / 1024).toFixed(0)} KB${PAYLOAD._discoveryMode ? ' &middot; <span style="color:var(--gold)">path discovery</span>' : ''}</div>
+      </div>
+      <button class="clear-btn" onclick="clearZip(event)">✕ Clear</button>
+    `;
+
+    // ── Render file list ──
+    const listBody = document.getElementById('fileListBody');
+    listBody.innerHTML = PAYLOAD.files.map(f =>
+      `<div class="file-item">
+        <span class="path">📄 ${esc(f.path)}</span>
+        <span class="size">${(f.content.length / 1024).toFixed(1)} KB</span>
+      </div>`
+    ).join('');
+    document.getElementById('fileCount').textContent = PAYLOAD.files.length;
+    document.getElementById('fileList').classList.add('visible');
+
+    // ── Enable deploy button ──
+    const btn = document.getElementById('deployBtn');
+    btn.disabled = false;
+    btn.textContent = `🚀 Deploy ${PAYLOAD.files.length} Files to GitHub`;
+
+    // Clear any previous status
+    document.getElementById('status').style.display = 'none';
+    setProgress(null); // hide progress bar
+
+  } catch (err) {
+    showStatus('❌ ' + esc(err.message), 'error');
+  }
+}
+
+// ── Clear ZIP — restore dropzone WITHOUT page reload ──
+function clearZip(e) {
+  e.stopPropagation();
+  if (isDeploying) return; // don't clear mid-deploy
+  PAYLOAD = null;
+
+  // Restore dropzone to original state
+  dz.classList.remove('zip-loaded');
+  dz.style.cursor = '';
+  dz.innerHTML = `
+    <div class="icon">📦</div>
+    <div class="label">Drop your ZIP here or click to browse</div>
+    <div class="hint">blogspro-final-fixed.zip · contains deploy-payload.json</div>
+  `;
+  // Re-attach click handler so clicking the restored dropzone opens file picker
+  dz.addEventListener('click', openFilePicker);
+
+  // Hide file list
+  document.getElementById('fileList').classList.remove('visible');
+  document.getElementById('fileListBody').innerHTML = '';
+  document.getElementById('fileCount').textContent = '0';
+
+  // Reset deploy button
+  const btn = document.getElementById('deployBtn');
+  btn.disabled = true;
+  btn.textContent = '📦 Upload a ZIP to begin';
+
+  // Hide status and progress
+  document.getElementById('status').style.display = 'none';
+  setProgress(null);
+}
+
+function openFilePicker() {
+  fileInput.click();
+}
+// Initial click-to-browse binding on the dropzone
+dz.addEventListener('click', openFilePicker);
+
+// ── Deploy ──
+async function deploy() {
+  if (!PAYLOAD) { showStatus('Please upload a ZIP first.', 'error'); return; }
+  if (isDeploying) return;
+
+  const workerUrl = document.getElementById('workerUrl').value.trim();
+  const owner     = document.getElementById('owner').value.trim();
+  const repo      = document.getElementById('repo').value.trim();
+  const branch    = document.getElementById('branch').value.trim() || 'main';
+
+  // Validate fields
+  if (!workerUrl || !owner || !repo) {
+    showStatus('❌ Please fill in all fields (Worker URL, Owner, Repo).', 'error');
+    return;
+  }
+  if (!workerUrl.startsWith('https://') && !workerUrl.startsWith('http://')) {
+    showStatus('❌ Worker URL must start with https://', 'error');
+    return;
+  }
+
+  isDeploying = true;
+  const btn = document.getElementById('deployBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Deploying…';
+
+  setProgress(10, 'Preparing payload…');
+  showStatus(`⏳ Pushing <strong>${PAYLOAD.files.length} files</strong> to <strong>${esc(owner)}/${esc(repo)}</strong> on branch <strong>${esc(branch)}</strong>…`, 'info');
+
+  try {
+    setProgress(40, `Sending ${PAYLOAD.files.length} files to Cloudflare Worker…`);
+
+    const res = await fetch(workerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        owner,
+        repo,
+        branch,
+        message: PAYLOAD.message || `Deploy ${PAYLOAD.files.length} files`,
+        files: PAYLOAD.files
+      })
+    });
+
+    setProgress(80, 'Waiting for GitHub response…');
+
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error(`Worker returned non-JSON response (HTTP ${res.status}). Check your Worker URL.`);
+    }
+
+    if (!res.ok) {
+      throw new Error(data.error || data.message || `HTTP ${res.status}`);
+    }
+
+    setProgress(100, 'Done!');
+    showStatus(`✅ <strong>Deployed successfully!</strong><br><br>
+      ${data.pr     ? `<a href="${esc(data.pr)}"  target="_blank" rel="noopener">🔀 View Pull Request →</a><br>` : ''}
+      ${data.commit ? `Commit: <code>${esc(data.commit)}</code><br>` : ''}
+      ${data.url    ? `<a href="${esc(data.url)}" target="_blank" rel="noopener">🔗 View on GitHub →</a><br>` : ''}
+      <br>Your site will update at <a href="https://blogspro.in" target="_blank" rel="noopener">blogspro.in</a> within 1–2 minutes.`, 'success');
+
+  } catch (err) {
+    setProgress(null); // hide progress bar on error — not confusing 0% bar
+    showStatus(`❌ <strong>Deploy failed:</strong> ${esc(err.message)}<br><br>
+      <div style="font-size:0.75rem;margin-top:0.5rem;opacity:0.8">
+        Check that:<br>
+        &bull; Your Cloudflare Worker is running<br>
+        &bull; The GitHub PAT in the worker has repo write access<br>
+        &bull; Owner / repo name is correct
+      </div>`, 'error');
+  } finally {
+    isDeploying = false;
+    btn.disabled = false;
+    btn.textContent = PAYLOAD ? `🚀 Deploy ${PAYLOAD.files.length} Files to GitHub` : '📦 Upload a ZIP to begin';
+  }
+}
+
+async function checkStatus() {
+  const workerUrl = document.getElementById('workerUrl').value.trim();
+  const owner     = document.getElementById('owner').value.trim();
+  const repo      = document.getElementById('repo').value.trim();
+  const branch    = document.getElementById('branch').value.trim() || 'main';
+
+  if (!workerUrl || !owner || !repo) {
+    showStatus('Please fill in Worker URL, Owner, and Repo fields first.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('statusBtn');
+  btn.textContent = '⏳ Checking…';
+  btn.disabled = true;
+
+  const filePaths = PAYLOAD ? PAYLOAD.files.map(f => f.path) : [];
+
+  try {
+    const res = await fetch(workerUrl.replace(/\/$/, '') + '/api/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ owner, repo, branch, files: filePaths.slice(0, 10) })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+
+    const b = data.branch;
+    const commitRows = (data.recentCommits || []).map(c =>
+      `<div style="display:flex;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.74rem">
+        <code style="color:var(--gold);min-width:52px">${c.sha}</code>
+        <span style="flex:1;color:#c8d3e8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.message)}</span>
+        <span style="color:var(--muted);white-space:nowrap">${c.date ? new Date(c.date).toLocaleDateString() : ''}</span>
+      </div>`
+    ).join('');
+
+    const failedFiles  = (data.files || []).filter(f => !f.exists).map(f => f.path);
+    const fileRows = (data.files || []).map(f =>
+      `<div style="display:flex;gap:8px;padding:3px 0;font-size:0.74rem;border-bottom:1px solid rgba(255,255,255,0.04)">
+        <span style="color:${f.exists ? '#4ade80' : '#fca5a5'};min-width:14px">${f.exists ? '✓' : '✕'}</span>
+        <code style="flex:1;color:#c8d3e8">${esc(f.path)}</code>
+        <code style="color:var(--gold);min-width:52px">${f.sha || '—'}</code>
+        <span style="color:var(--muted);white-space:nowrap;font-size:0.68rem">${f.lastCommit?.date ? new Date(f.lastCommit.date).toLocaleDateString() : ''}</span>
+      </div>`
+    ).join('');
+
+    showStatus(`
+      <strong>📡 Live Status: ${esc(data.repo || '')} / ${esc(b?.name || branch)}</strong><br><br>
+      <div style="margin-bottom:8px;font-size:0.78rem">
+        Latest: <code>${esc(b?.latestSha || '—')}</code>
+        <span style="color:var(--muted);margin-left:6px">${esc(b?.latestMessage || '')}</span>
+        <span style="color:var(--muted);margin-left:8px;font-size:0.7rem">${b?.latestDate ? new Date(b.latestDate).toLocaleDateString() : ''}</span>
+      </div>
+      ${commitRows ? `<div style="margin-bottom:10px"><div style="font-size:0.68rem;color:var(--muted);margin-bottom:4px;letter-spacing:0.08em">RECENT COMMITS</div>${commitRows}</div>` : ''}
+      ${fileRows ? `<div><div style="font-size:0.68rem;color:var(--muted);margin-bottom:4px;letter-spacing:0.08em">FILE STATUS</div>${fileRows}</div>` : ''}
+      ${failedFiles.length > 0 ? `
+        <div style="margin-top:12px;padding:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:4px;font-size:0.78rem;color:#fca5a5">
+          ⚠ ${failedFiles.length} file(s) missing on GitHub.
+          <button id="repushBtn" onclick="repushFailed(${JSON.stringify(failedFiles)})"
+            style="margin-left:10px;background:linear-gradient(135deg,#c9a84c,#f0cc6e);color:#080d1a;border:none;padding:4px 12px;border-radius:4px;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit">
+            🔄 Re-push failed files
+          </button>
+        </div>` : ''}
+    `, 'info');
+
+  } catch(err) {
+    showStatus('❌ Status check failed: ' + esc(err.message), 'error');
+  } finally {
+    btn.textContent = '🔍 Check deploy status';
+    btn.disabled = false;
+  }
+}
+
+// ── Re-push only the files that are missing/failed on GitHub ──────────
+async function repushFailed(missingPaths) {
+  if (!PAYLOAD) {
+    showStatus('❌ Upload the ZIP first so we know what content to re-push.', 'error');
+    return;
+  }
+
+  const workerUrl = document.getElementById('workerUrl').value.trim();
+  const owner     = document.getElementById('owner').value.trim();
+  const repo      = document.getElementById('repo').value.trim();
+  const branch    = document.getElementById('branch').value.trim() || 'main';
+
+  const btn = document.getElementById('repushBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Re-pushing…'; }
+
+  setProgress(10, 'Preparing failed files…');
+
+  // Filter payload to only the failed files
+  const filesToRepush = PAYLOAD.files.filter(f => missingPaths.includes(f.path));
+  if (!filesToRepush.length) {
+    showStatus('No matching files found in the ZIP for re-push.', 'error');
+    setProgress(null);
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Re-push failed files'; }
+    return;
+  }
+
+  showStatus(`⏳ Re-pushing ${filesToRepush.length} failed file(s)…`, 'info');
+  setProgress(40, `Sending ${filesToRepush.length} file(s) to Worker…`);
+
+  try {
+    const res = await fetch(workerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        owner, repo, branch,
+        message: '🔄 Auto re-push: fixing failed files',
+        files: filesToRepush
+      })
+    });
+
+    setProgress(85, 'Waiting for GitHub…');
+    const data = await res.json();
+    setProgress(100, 'Done!');
+
+    if (data.success) {
+      showStatus(`✅ Re-push successful! ${data.pushed} file(s) fixed.<br>
+        <small style="color:var(--muted)">Run status check again to confirm.</small>`, 'success');
+    } else {
+      const failList = (data.results || []).filter(r => !r.ok)
+        .map(r => `<div style="font-size:0.75rem">✕ ${esc(r.path)} — ${esc(r.message)}</div>`).join('');
+      showStatus(`⚠ Re-push partial: ${data.pushed} pushed, ${data.failed} still failed.<br>${failList}`, 'error');
+    }
+  } catch(err) {
+    setProgress(null);
+    showStatus('❌ Re-push failed: ' + esc(err.message), 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Re-push failed files'; }
+  }
+}
+</script>
+</body>
+</html>
