@@ -79,14 +79,18 @@ export function renderPostsTable(posts, tbodyId) {
     tbody.innerHTML = '<tr><td colspan="6"><div class="table-empty">No posts yet.</div></td></tr>';
     return;
   }
+  // FIX: Escape post fields to prevent XSS in admin table
+  const escHtml = (s) => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   tbody.innerHTML = posts.map(p => {
+    const title  = escHtml(p.title) || '(Untitled)';
+    const cat    = escHtml(p.category) || '—';
     const date   = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) || '—';
     const status = p.published ? '<span class="status-badge status-published">Published</span>' : '<span class="status-badge status-draft">Draft</span>';
     const v      = formatViews(p.views || 0);
     const views  = `<span style="font-size:0.82rem;color:var(--muted)">&#128065; ${v}</span>`;
     return `<tr>
-      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>${p.title||'(Untitled)'}</strong></td>
-      <td>${p.category||'—'}</td><td>${status}</td>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>${title}</strong></td>
+      <td>${cat}</td><td>${status}</td>
       <td>${views}</td>
       <td style="color:var(--muted);white-space:nowrap">${date}</td>
       <td>
@@ -138,7 +142,8 @@ export async function savePost(publish) {
     editor.innerHTML = sanitize(content);
   }
 
-  content = await buildInternalLinks(content);
+  // Internal links are now button-triggered only (via runInternalLinking)
+  // to prevent link nesting on every save
 
   saveStatus.textContent = 'Saving…';
   const data = { title, excerpt, content, category:cat, slug, image, metaDesc, tags, readingTime:readMin, published:publish, premium:state.isPremium, updatedAt:serverTimestamp() };

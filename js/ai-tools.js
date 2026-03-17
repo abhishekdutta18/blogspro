@@ -298,6 +298,8 @@ window.aitRunAutoBlog = async () => {
     if (topicR.error) { addLog(`Post ${i + 1}: topic failed — ${topicR.error}`, false); continue; }
 
     const t = topicR.text.trim().replace(/^["']|["']$/g, '');
+    // FIX: Validate title is not empty/too short
+    if (!t || t.length < 10) { addLog(`Post ${i + 1}: title too short or empty, skipping`, false); continue; }
     addLog(`Writing: "${t.substring(0, 45)}…"`);
 
     const artR = await callAI(
@@ -308,6 +310,8 @@ Requirements: Use <h2><h3><p><strong><ul><li> tags. Start with <h2>. No <h1>, no
       true, 'auto', 4000
     );
     if (artR.error) { addLog(`"${t.substring(0, 30)}" — write failed`, false); continue; }
+    // FIX: Validate content is not empty/too short
+    if (!artR.text || artR.text.trim().length < 200) { addLog(`"${t.substring(0, 30)}" — content too short, skipping`, false); continue; }
 
     const metaR = await callAI(
       `For article: "${t}" — return ONLY JSON in English:\n{"summary":"2-sentence excerpt","tags":["t1","t2","t3"],"slug":"url-slug"}`,

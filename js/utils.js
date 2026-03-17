@@ -38,6 +38,8 @@ export function slugify(text) {
     .replace(/--+/g, '-')
     .replace(/^-+|-+$/g, '');
 }
+// Expose on window for inline onclick handlers in admin.html
+window.slugify = slugify;
 
 
 // ── stripTags ─────────────────────────────────

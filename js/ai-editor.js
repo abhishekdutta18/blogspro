@@ -42,6 +42,9 @@ async function runAIEdit(instruction) {
   const model    = document.getElementById('modelArticle')?.value || 'auto';
   if (!currentText?.trim()) { setEditStatus('No article content.', true); return; }
 
+  // FIX: Back up content before any destructive AI edit
+  state.lastSavedContent = currentHTML;
+
   setEditBtnsDisabled(true);
   const wordCount = currentText.trim().split(/\s+/).filter(Boolean).length;
   const isLong    = wordCount > 800;
@@ -126,18 +129,39 @@ const EDIT_INSTRUCTIONS = {
   graph:          'Add a styled HTML data table in a relevant section using inline CSS (dark background #0f1628, gold #c9a84c borders, cream #f5f0e8 text) showing key statistics. Write ONLY in English.',
 };
 
+// Destructive actions that replace the entire article need confirmation
+const DESTRUCTIVE_ACTIONS = ['regenerate', 'expand', 'shorten', 'professional', 'conversational', 'authoritative'];
+
 window.aiEditAction = async (action) => {
   if (action === 'references') { await insertReferencesBlock(); return; }
   if (!EDIT_INSTRUCTIONS[action]) return;
-  if (action === 'regenerate' && !confirm('Regenerate the entire article?')) return;
+  if (DESTRUCTIVE_ACTIONS.includes(action)) {
+    if (!confirm(`This will rewrite the entire article (${action}). Your current content will be backed up. Continue?`)) return;
+  }
   await runAIEdit(EDIT_INSTRUCTIONS[action]);
 };
 
 window.aiEditCustom = async () => {
   const instruction = document.getElementById('aiEditCustom')?.value.trim();
   if (!instruction) { setEditStatus('Please enter an instruction.', true); return; }
+  if (!confirm('This will apply AI edits to your article. Continue?')) return;
   await runAIEdit(instruction);
   document.getElementById('aiEditCustom').value = '';
+};
+
+// Revert to last saved content before AI edit
+window.revertAIEdit = () => {
+  if (!state.lastSavedContent) {
+    showToast('No backup content available.', 'error');
+    return;
+  }
+  const editor = getEditor();
+  if (editor) {
+    editor.innerHTML = state.lastSavedContent;
+    updateWordCount();
+    showToast('Reverted to pre-edit content.', 'success');
+    setEditStatus('↩ Reverted to backup');
+  }
 };
 
 
@@ -447,12 +471,25 @@ export async function buildInternalLinks(content) {
   for (const post of s.allPosts.slice(0,10)) {
     if (!post.title || !post.slug) continue;
     if (post.title.toLowerCase() === currentTitle) continue;
+    // Skip if this post is already linked somewhere in the content
+    if (linked.includes(`id=${post.id}`) || linked.includes(post.slug)) continue;
     const words = post.title.split(' ').slice(0,3).join(' ');
     if (words.length < 5) continue;
     const escaped = words.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    // FIX: Use a function replacer that checks if the match is inside an <a> tag
+    // by scanning backwards from the match position for unclosed <a> tags
     const re = new RegExp(`(?<!<[^>]*)(${escaped})(?![^<]*>)`, 'i');
-    if (re.test(linked)) {
-      linked = linked.replace(re, `<a href="/post.html?id=${post.id}" style="color:var(--gold);text-decoration:underline">$1</a>`);
+    const match = re.exec(linked);
+    if (match) {
+      const before = linked.substring(0, match.index);
+      // Count open vs close <a> tags before this position
+      const openAs  = (before.match(/<a[\s>]/gi) || []).length;
+      const closeAs = (before.match(/<\/a>/gi) || []).length;
+      // If we're inside an unclosed <a> tag, skip this match
+      if (openAs > closeAs) continue;
+      linked = linked.substring(0, match.index)
+        + `<a href="/post.html?id=${post.id}" style="color:var(--gold);text-decoration:underline">${match[1]}</a>`
+        + linked.substring(match.index + match[0].length);
     }
   }
   return linked;

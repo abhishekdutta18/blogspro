@@ -437,3 +437,150 @@ export function clearEditor() {
   updateWordCount();
 }
 window.clearEditor = clearEditor;
+
+
+/* =========================================
+   FMT / FMTBLOCK — Editor formatting toolbar
+   These were missing entirely — every toolbar
+   button (Bold, Italic, H2, etc.) was broken.
+========================================= */
+
+window.fmt = function(command) {
+  document.execCommand(command, false, null);
+  saveHistory();
+  updateWordCount();
+};
+
+window.fmtBlock = function(tag) {
+  document.execCommand('formatBlock', false, tag);
+  saveHistory();
+  updateWordCount();
+};
+
+
+/* =========================================
+   INSERT LINK — Link toolbar button
+========================================= */
+
+window.insertLink = function() {
+  const url = window.prompt('Enter URL:');
+  if (url) {
+    document.execCommand('createLink', false, url);
+    saveHistory();
+  }
+};
+
+
+/* =========================================
+   TOGGLE PREMIUM — Premium content switch
+========================================= */
+
+window.togglePremium = function() {
+  import('./state.js').then(({ state }) => {
+    state.isPremium = !state.isPremium;
+    const sw = document.getElementById('premiumSwitch');
+    if (sw) sw.classList.toggle('on', state.isPremium);
+  });
+};
+
+
+/* =========================================
+   CLEAR FEATURED IMAGE — X button on preview
+========================================= */
+
+window.clearFeaturedImage = function() {
+  const input = document.getElementById('postImage');
+  if (input) input.value = '';
+  const preview = document.getElementById('featuredPreview');
+  if (preview) preview.style.display = 'none';
+  const img = preview?.querySelector('img');
+  if (img) img.src = '';
+};
+
+
+/* =========================================
+   GENERATE FEATURED IMAGE — AI Gen button
+   Uses Pollinations (free, no key needed)
+========================================= */
+
+window.generateFeaturedImage = async function() {
+  const topic = document.getElementById('v2TopicPrompt')?.value.trim()
+             || document.getElementById('aiPrompt')?.value.trim()
+             || document.getElementById('postTitle')?.value.trim() || '';
+  if (!topic) {
+    import('./config.js').then(({ showToast }) => showToast('Enter a topic or title first.', 'error'));
+    return;
+  }
+  const style = 'professional, high quality, blog featured image';
+  const prompt = encodeURIComponent(`${topic}, ${style}`);
+  const seed = Math.floor(Math.random() * 999999);
+  const url = `https://image.pollinations.ai/prompt/${prompt}?width=1280&height=720&seed=${seed}&nologo=true&enhance=true`;
+
+  const input = document.getElementById('postImage');
+  if (input) input.value = url;
+  if (typeof window.updateFeaturedPreview === 'function') window.updateFeaturedPreview(url);
+  import('./config.js').then(({ showToast }) => showToast('Featured image generated!', 'success'));
+};
+
+
+/* =========================================
+   CONFIRM OUTLINE — Modal confirm button
+   Triggers the article writer after outline review
+========================================= */
+
+window.confirmOutline = function() {
+  const modal = document.getElementById('aiModal');
+  if (modal) modal.classList.remove('open');
+  if (typeof window.generateAIPost === 'function') {
+    window.generateAIPost();
+  }
+};
+
+
+/* =========================================
+   INSERT/SET IMAGE FROM MODAL
+========================================= */
+
+window.insertImageFromModal = function() {
+  import('./state.js').then(({ state }) => {
+    const url = state.currentModalImgUrl;
+    if (!url) return;
+    const ed = document.getElementById('editor');
+    if (ed) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.maxWidth = '100%';
+      img.style.margin = '10px 0';
+      ed.appendChild(img);
+    }
+    const modal = document.getElementById('imgModal');
+    if (modal) modal.style.display = 'none';
+    import('./config.js').then(({ showToast }) => showToast('Image inserted!', 'success'));
+  });
+};
+
+window.setFeaturedFromModal = function() {
+  import('./state.js').then(({ state }) => {
+    const url = state.currentModalImgUrl;
+    if (!url) return;
+    const input = document.getElementById('postImage');
+    if (input) input.value = url;
+    if (typeof window.updateFeaturedPreview === 'function') window.updateFeaturedPreview(url);
+    const modal = document.getElementById('imgModal');
+    if (modal) modal.style.display = 'none';
+    import('./config.js').then(({ showToast }) => showToast('Set as featured image!', 'success'));
+  });
+};
+
+
+/* =========================================
+   RUN AUTO BLOG — Standalone button alias
+   admin.html calls runAutoBlog() but the
+   function is named aitRunAutoBlog in ai-tools.js
+========================================= */
+
+window.runAutoBlog = function() {
+  if (typeof window.aitRunAutoBlog === 'function') {
+    window.aitRunAutoBlog();
+  }
+};

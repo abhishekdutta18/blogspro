@@ -22,9 +22,11 @@ function renderSubs(subs) {
   const tbody = document.getElementById('subsTableBody');
   if (!tbody) return;
   if (!subs.length) { tbody.innerHTML=`<tr><td colspan="4"><div class="table-empty">No subscribers yet.</div></td></tr>`; return; }
+  // FIX: Escape email to prevent XSS (anyone can subscribe with malicious input)
+  const escHtml = (s) => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   tbody.innerHTML = subs.map((s,i) => {
     const date = s.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})||'—';
-    return `<tr><td style="color:var(--muted);font-size:0.82rem">${i+1}</td><td><strong>${s.email||'—'}</strong></td>
+    return `<tr><td style="color:var(--muted);font-size:0.82rem">${i+1}</td><td><strong>${escHtml(s.email)||'—'}</strong></td>
       <td style="color:var(--muted);font-size:0.83rem;white-space:nowrap">${date}</td>
       <td><button class="action-btn delete" onclick="deleteSub('${s.id}')">Remove</button></td></tr>`;
   }).join('');

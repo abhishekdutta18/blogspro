@@ -89,8 +89,9 @@ Rules:
 function buildBarChart(data) {
   const series   = data.datasets?.[0];
   if (!series?.values?.length) return '';
-  const values   = series.values.map(Number).filter(v => !isNaN(v));
-  const max      = Math.max(...values) || 1;
+  // FIX: Calculate max across ALL datasets, not just the first
+  const allValues = data.datasets.flatMap(ds => ds.values.map(Number).filter(v => !isNaN(v)));
+  const max      = Math.max(...allValues) || 1;
   const unit     = data.unit || '';
   const multiSeries = data.datasets?.length > 1;
 
