@@ -1,13 +1,18 @@
 import { CODE_PROVIDERS } from "./providers.js";
 import { callProvider } from "./router.js";
 
+
+const log = (...a) => { if (location.hostname === 'localhost') log(...a); };
+
+const log = (...a) => { if (location.hostname === 'localhost') log(...a); };
+
 export async function runCodeAI(prompt) {
 
   for (const provider of CODE_PROVIDERS) {
 
     try {
 
-      console.log("Trying code provider:", provider);
+      log("Trying code provider:", provider);
 
       const result = await callProvider(provider, prompt, "code");
 
