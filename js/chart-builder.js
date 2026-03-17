@@ -331,8 +331,15 @@ function buildDataTable(data) {
 // Shared wrapper — title, subtitle, source
 // ─────────────────────────────────────────────
 function _chartWrapper(data, innerHTML) {
+  const name   = data.title || 'Data Visualization';
+  const type   = data.type  || 'bar';
+  const source = data.source || '';
   return `
-<div class="bp-chart-block" style="
+<div class="bp-chart-block"
+     data-name="${name.replace(/"/g, '&quot;')}"
+     data-type="${type}"
+     data-source="${source.replace(/"/g, '&quot;')}"
+     style="
   background:${THEME.bg};
   border:1px solid ${THEME.border};
   border-left:3px solid ${THEME.gold};
@@ -340,12 +347,18 @@ function _chartWrapper(data, innerHTML) {
   padding:1.2rem 1.4rem;
   margin:1.6rem 0;
   font-family:var(--sans,sans-serif);
+  position:relative;
 ">
-  <div style="margin-bottom:0.9rem">
-    <div style="font-size:0.82rem;font-weight:700;color:${THEME.cream};margin-bottom:2px">${data.title || 'Data Visualization'}</div>
-    ${data.subtitle ? `<div style="font-size:0.7rem;color:${THEME.muted}">${data.subtitle}</div>` : ''}
+  <div style="margin-bottom:0.9rem;display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem">
+    <div>
+      <div style="font-size:0.82rem;font-weight:700;color:${THEME.cream};margin-bottom:2px" class="bp-chart-title">${name}</div>
+      ${data.subtitle ? `<div style="font-size:0.7rem;color:${THEME.muted}">${data.subtitle}</div>` : ''}
+    </div>
+    <span style="font-size:0.58rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+                 color:${THEME.muted};background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+                 border-radius:2px;padding:2px 5px;white-space:nowrap;flex-shrink:0">${type}</span>
   </div>
   ${innerHTML}
-  ${data.source ? `<div style="margin-top:0.8rem;font-size:0.65rem;color:${THEME.muted};border-top:1px solid ${THEME.border};padding-top:0.5rem">${data.source}</div>` : ''}
+  ${source ? `<div style="margin-top:0.8rem;font-size:0.65rem;color:${THEME.muted};border-top:1px solid ${THEME.border};padding-top:0.5rem">${source}</div>` : ''}
 </div>`;
 }
