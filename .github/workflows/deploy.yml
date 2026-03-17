@@ -39,9 +39,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Auto-approve and merge PR
-        run: |
-          gh pr review ${{ github.event.pull_request.number }} --approve
-          gh pr merge ${{ github.event.pull_request.number }} --squash --admin
+      - name: Enable auto-merge
+        # Queues the PR to merge automatically once all checks pass.
+        # GITHUB_TOKEN can merge but cannot self-approve — approval step removed.
+        run: gh pr merge ${{ github.event.pull_request.number }} --squash --auto
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
