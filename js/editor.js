@@ -235,17 +235,60 @@ function removeSlashMenu() {
    IMAGE CLICK
 ========================================= */
 
+let _selectedImg = null;
+
 function handleClick(e) {
-
   const img = e.target.closest("img");
-
   removeImgToolbar();
+
+  if (_selectedImg) {
+    _selectedImg.style.outline = '';
+    _selectedImg = null;
+  }
 
   if (!img) return;
 
+  img.style.outline = '2px solid #c9a84c';
+  _selectedImg = img;
   showImageToolbar(img);
-
 }
+
+window.deleteSelectedImage = function() {
+  const ed = document.getElementById('editor');
+  if (!ed) return;
+
+  if (_selectedImg && ed.contains(_selectedImg)) {
+    const parent = _selectedImg.parentElement;
+    _selectedImg.remove();
+    if (parent && parent !== ed && parent.innerHTML.trim() === '') parent.remove();
+    _selectedImg = null;
+    removeImgToolbar();
+    window.updateWordCount?.();
+    return;
+  }
+
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount) {
+    const range = sel.getRangeAt(0);
+    const container = range.commonAncestorContainer;
+    const img = container.nodeType === 1
+      ? container.querySelector('img')
+      : container.parentElement?.querySelector('img');
+    if (img && ed.contains(img)) {
+      img.remove();
+      window.updateWordCount?.();
+      return;
+    }
+  }
+
+  const imgs = ed.querySelectorAll('img');
+  if (imgs.length) {
+    if (confirm('No image selected — delete the last image in the editor?')) {
+      imgs[imgs.length - 1].remove();
+      window.updateWordCount?.();
+    }
+  }
+};
 
 
 
@@ -254,42 +297,85 @@ function handleClick(e) {
 ========================================= */
 
 function showImageToolbar(img) {
+  removeImgToolbar();
 
   const toolbar = document.createElement("div");
-
   toolbar.id = "imgToolbar";
-
-  toolbar.style.position = "absolute";
-  toolbar.style.background = "#111";
-  toolbar.style.padding = "6px";
-  toolbar.style.borderRadius = "6px";
-  toolbar.style.display = "flex";
-  toolbar.style.gap = "6px";
-  toolbar.style.zIndex = "999";
+  Object.assign(toolbar.style, {
+    position: "fixed",
+    display: "flex",
+    gap: "4px",
+    alignItems: "center",
+    background: "#0d1520",
+    border: "1px solid rgba(255,255,255,0.12)",
+    padding: "4px 6px",
+    borderRadius: "6px",
+    zIndex: "10000",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+    pointerEvents: "auto",
+  });
 
   const rect = img.getBoundingClientRect();
-
-  toolbar.style.top = rect.top + window.scrollY - 40 + "px";
+  toolbar.style.top  = Math.max(8, rect.top - 44) + "px";
   toolbar.style.left = rect.left + "px";
 
+  const mkBtn = (label, color, action) => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.title = label;
+    Object.assign(b.style, {
+      background: color === "red"
+        ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.06)",
+      border: color === "red"
+        ? "1px solid rgba(239,68,68,0.4)" : "1px solid rgba(255,255,255,0.1)",
+      color: color === "red" ? "#fca5a5" : "#e8e4d8",
+      padding: "3px 8px",
+      borderRadius: "3px",
+      fontFamily: "var(--sans, sans-serif)",
+      fontSize: "0.68rem",
+      cursor: "pointer",
+      whiteSpace: "nowrap",
+    });
+    b.onmouseenter = () => { b.style.opacity = "0.8"; };
+    b.onmouseleave = () => { b.style.opacity = "1"; };
+    b.onclick = (e) => { e.stopPropagation(); action(); };
+    return b;
+  };
+
+  const sep = () => {
+    const d = document.createElement("div");
+    Object.assign(d.style, { width: "1px", height: "16px", background: "rgba(255,255,255,0.1)", margin: "0 2px" });
+    return d;
+  };
 
   toolbar.append(
-    createBtn("Left", () => img.style.float = "left"),
-    createBtn("Center", () => {
-      img.style.display = "block";
-      img.style.margin = "auto";
-      img.style.float = "none";
-    }),
-    createBtn("Right", () => img.style.float = "right"),
-    createBtn("Resize", () => enableResize(img)),
-    createBtn("Remove", () => {
+    mkBtn("◀ Left",  "",    () => { img.style.float = "left";  img.style.margin = "0 1rem 0.5rem 0"; }),
+    mkBtn("■ Center","",    () => { img.style.float = "none"; img.style.display = "block"; img.style.margin = "1rem auto"; }),
+    mkBtn("▶ Right", "",    () => { img.style.float = "right"; img.style.margin = "0 0 0.5rem 1rem"; }),
+    sep(),
+    mkBtn("⤢ Resize","",   () => { img.style.resize = "both"; img.style.overflow = "auto"; img.style.maxWidth = "100%"; }),
+    sep(),
+    mkBtn("🗑 Delete","red", () => {
+      // Also remove parent wrapper div if it's just wrapping this image
+      const parent = img.parentElement;
       img.remove();
+      if (parent && parent !== editor &&
+          parent.tagName !== "DIV" || (parent.tagName === "DIV" && parent.children.length === 0)) {
+        try { parent.remove(); } catch (_) {}
+      }
       removeImgToolbar();
     })
   );
 
   document.body.appendChild(toolbar);
 
+  // Reposition if out of viewport horizontally
+  requestAnimationFrame(() => {
+    const tbRect = toolbar.getBoundingClientRect();
+    if (tbRect.right > window.innerWidth - 8) {
+      toolbar.style.left = Math.max(8, window.innerWidth - tbRect.width - 8) + "px";
+    }
+  });
 }
 
 
