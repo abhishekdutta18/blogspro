@@ -113,6 +113,6 @@ jobs:
         # To update this workflow file itself, push directly to main — a workflow-only
         # PR cannot merge itself as the new definition isn't trusted until it's on main.
         run: |
-          gh pr merge ${{ github.event.pull_request.number }} --squash --merge
+          gh pr merge ${{ github.event.pull_request.number }} --squash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
