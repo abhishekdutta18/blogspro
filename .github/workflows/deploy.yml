@@ -50,6 +50,43 @@ jobs:
           done
           exit $failed
 
+      - name: Check robots.txt exists (lowercase)
+        run: |
+          echo "Checking robots.txt..."
+          if test -f robots.txt; then
+            echo "  ✓ robots.txt"
+          else
+            echo "  ✕ robots.txt missing (lowercase r required — Googlebot won't find Robots.txt)"
+            exit 1
+          fi
+          if test -f Robots.txt; then
+            echo "  ✕ Robots.txt (capital R) still exists — rename it to robots.txt"
+            exit 1
+          fi
+          echo "  ✓ no capital-R Robots.txt"
+
+      - name: Check CSS brace balance
+        run: |
+          echo "Checking CSS brace balance..."
+          opens=$(grep -o '{' css/admin.css | wc -l)
+          closes=$(grep -o '}' css/admin.css | wc -l)
+          if [ "$opens" -eq "$closes" ]; then
+            echo "  ✓ CSS braces balanced ($opens open, $closes close)"
+          else
+            echo "  ✕ Brace mismatch: $opens open vs $closes close"
+            exit 1
+          fi
+
+      - name: Check post-audit imported in main.js
+        run: |
+          echo "Checking post-audit import..."
+          if grep -q "post-audit" js/main.js; then
+            echo "  ✓ post-audit.js imported in main.js"
+          else
+            echo "  ✕ post-audit.js not imported in main.js"
+            exit 1
+          fi
+
 # ─────────────────────────────────────────────
 # Job 2 — Auto-merge (PRs only, after validate)
 # ─────────────────────────────────────────────
