@@ -189,7 +189,7 @@
     .drawer-tab-pane{display:none}
     .drawer-tab-pane.active{display:block}
     @keyframes spin{to{transform:rotate(360deg)}}
-    @keyframes roadmapPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.4); } 50% { box-shadow: 0 0 0 4px rgba(201,168,76,0); } }}
+    @keyframes roadmapPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.4); } 50% { box-shadow: 0 0 0 4px rgba(201,168,76,0); } }
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
     @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 
