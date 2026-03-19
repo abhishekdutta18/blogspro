@@ -19,17 +19,8 @@ import { initAutoBlog } from "./auto-blog.js";
 import { initAIImages } from "./ai-images.js";
 import './post-audit.js';
 
-// ── Sentry — loaded via window.Sentry injected by the CDN script tag
-//    in admin.html. We reference it safely here after boot. ────────────
-function initSentry() {
-  if (!window.Sentry) return;
-  window.Sentry.init({
-    dsn: "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336",
-    environment: window.location.hostname === "localhost" ? "development" : "production",
-    tracesSampleRate: 0.2,
-  });
-}
-initSentry();
+// ── Sentry is initialised in admin.html via Sentry.onLoad() — do NOT
+//    call Sentry.init() here. Just use window.Sentry when available. ──
 
 // ── Boot — B-01 fix: try/catch so any module failure shows a
 //    diagnostic screen instead of a blank white page ───────────────────
