@@ -7,6 +7,28 @@ import { doc, getDoc }                    from "https://www.gstatic.com/firebase
 import { state }                          from './state.js';
 import { loadAll }                        from './posts.js';
 
+// Sentry is loaded via admin.html CDN script + Sentry.onLoad().
+// It may not be ready when this module first executes, so we wrap
+// all Sentry calls in a helper that defers until onLoad fires. ─────────
+function sentryCaptureException(err) {
+  if (window.Sentry?.captureException) {
+    window.Sentry.captureException(err);
+  }
+}
+function sentrySetUser(user) {
+  if (window.Sentry?.setUser) {
+    window.Sentry.setUser(user);
+  } else {
+    // Sentry.onLoad hasn't fired yet — queue it
+    const orig = window.setSentryUser;
+    window.setSentryUser = function(u) {
+      if (orig) orig(u);
+      if (window.Sentry?.setUser) window.Sentry.setUser(u);
+    };
+    window.setSentryUser(user);
+  }
+}
+
 // No hardcoded UIDs or emails — admin status is determined
 // exclusively by role: "admin" in the user's Firestore document.
 export function initAuth() {
@@ -14,7 +36,7 @@ export function initAuth() {
     if (!user) { window.location.href = 'login.html'; return; }
 
     // Clear any previous Sentry user context on each auth state change
-    window.Sentry?.setUser(null);
+    sentrySetUser(null);
 
     let isAdmin = false;
     try {
@@ -27,7 +49,7 @@ export function initAuth() {
       }
       isAdmin = true;
     } catch(e) {
-      window.Sentry?.captureException(e);
+      sentryCaptureException(e);
       if (e.code === 'permission-denied' || e.code === 'unauthenticated') {
         await signOut(auth);
         window.location.href = 'login.html?error=unauthorized';
@@ -48,7 +70,7 @@ export function initAuth() {
     if (!isAdmin) return;
 
     // ── Tag all future Sentry errors with this logged-in user ────────
-    window.Sentry?.setUser({ email: user.email, id: user.uid });
+    sentrySetUser({ email: user.email, id: user.uid });
 
     state.currentUser = user;
     const el = (id) => document.getElementById(id);
@@ -62,7 +84,7 @@ export function initAuth() {
 export function initLogout() {
   const btn = document.querySelector('.btn-logout');
   if (btn) btn.addEventListener('click', async () => {
-    window.Sentry?.setUser(null); // clear user context on logout
+    sentrySetUser(null); // clear user context on logout
     await signOut(auth);
     window.location.href = 'login.html';
   });
