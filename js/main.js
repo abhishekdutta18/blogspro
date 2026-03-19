@@ -1,4 +1,3 @@
-import * as Sentry from "https://cdn.jsdelivr.net/npm/@sentry/browser@8/+esm";
 import { loadRemoteConfig } from "./config.js";
 import "./state.js";
 import { initAuth, initLogout } from "./auth.js";
@@ -20,16 +19,20 @@ import { initAutoBlog } from "./auto-blog.js";
 import { initAIImages } from "./ai-images.js";
 import './post-audit.js';
 
-// ── Sentry init — must run before boot() ──────────────────────────────
-Sentry.init({
-  dsn: "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336",
-  environment: window.location.hostname === "localhost" ? "development" : "production",
-  tracesSampleRate: 0.2,           // capture 20% of transactions for performance
-  replaysOnErrorSampleRate: 0.5,   // replay 50% of sessions that had an error
-});
+// ── Sentry — loaded via window.Sentry injected by the CDN script tag
+//    in admin.html. We reference it safely here after boot. ────────────
+function initSentry() {
+  if (!window.Sentry) return;
+  window.Sentry.init({
+    dsn: "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336",
+    environment: window.location.hostname === "localhost" ? "development" : "production",
+    tracesSampleRate: 0.2,
+  });
+}
+initSentry();
 
-// ── Boot — B-01 fix: wrap in try/catch so any module failure shows a
-//    diagnostic message instead of a blank white screen ─────────────────
+// ── Boot — B-01 fix: try/catch so any module failure shows a
+//    diagnostic screen instead of a blank white page ───────────────────
 async function boot() {
   try {
     await loadRemoteConfig();
@@ -42,7 +45,7 @@ async function boot() {
     initAutoBlog();
     initAIImages();
   } catch (err) {
-    Sentry.captureException(err);
+    window.Sentry?.captureException(err);
     document.body.innerHTML =
       '<div style="padding:2rem;color:#fca5a5;font-family:sans-serif">' +
       '<h2>BlogsPro failed to load</h2><p>' + err.message + '</p>' +
