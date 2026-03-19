@@ -15,6 +15,35 @@
   <meta name="twitter:description" id="twDesc"  content="" />
   <link rel="canonical"           id="canonLink" href="" />
   <script type="application/ld+json" id="ldJson"></script>
+  <!-- Sentry Error Tracking — catches all JS errors + unhandled promise rejections -->
+  <!-- REPLACE: change both https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336 to your DSN from sentry.io → Project → Settings → Client Keys -->
+  <script
+    src="https://js.sentry-cdn.com/c75786fd93da9331cedca5e3ec8bd9cd.min.js"
+    crossorigin="anonymous"
+  ></script>
+  <script>
+  Sentry.onLoad(function() {
+    Sentry.init({
+      dsn: "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336",
+      environment: window.location.hostname === "blogspro.in" ? "production" : "development",
+      release: "blogspro@2026-03-19",
+      sampleRate: 1.0,
+      tracesSampleRate: 0.1,
+      ignoreErrors: [
+        "ResizeObserver loop limit exceeded",
+        "ResizeObserver loop completed with undelivered notifications",
+        "Network request failed",
+        "Failed to fetch",
+        "Load failed",
+      ],
+    });
+    window.setSentryUser = function(u) { Sentry.setUser(u); };
+    window.trackEvent   = function(name, data) {
+      Sentry.addBreadcrumb({ message: name, data: data, level: "info" });
+    };
+  });
+  </script>
+
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DED9GTRR3E');</script>
