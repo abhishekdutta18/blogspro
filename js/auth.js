@@ -1,7 +1,6 @@
 // ═══════════════════════════════════════════════
 // auth.js — Auth guard & user session
 // ═══════════════════════════════════════════════
-import * as Sentry                        from "https://cdn.jsdelivr.net/npm/@sentry/browser@8/+esm";
 import { auth, db }                       from './config.js';
 import { onAuthStateChanged, signOut }    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc }                    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -15,7 +14,7 @@ export function initAuth() {
     if (!user) { window.location.href = 'login.html'; return; }
 
     // Clear any previous Sentry user context on each auth state change
-    Sentry.setUser(null);
+    window.Sentry?.setUser(null);
 
     let isAdmin = false;
     try {
@@ -28,13 +27,12 @@ export function initAuth() {
       }
       isAdmin = true;
     } catch(e) {
-      Sentry.captureException(e);
+      window.Sentry?.captureException(e);
       if (e.code === 'permission-denied' || e.code === 'unauthenticated') {
         await signOut(auth);
         window.location.href = 'login.html?error=unauthorized';
         return;
       }
-      // Cannot confirm admin role — show error, do not load dashboard data
       console.error('Auth role check failed:', e.message);
       const tbody = document.getElementById('recentPostsBody');
       if (tbody) tbody.innerHTML = `<tr><td colspan="6"><div class="table-empty" style="color:#fca5a5">
@@ -49,8 +47,8 @@ export function initAuth() {
 
     if (!isAdmin) return;
 
-    // ── Tag all future Sentry errors with this user ──────────────────
-    Sentry.setUser({ email: user.email, id: user.uid });
+    // ── Tag all future Sentry errors with this logged-in user ────────
+    window.Sentry?.setUser({ email: user.email, id: user.uid });
 
     state.currentUser = user;
     const el = (id) => document.getElementById(id);
@@ -64,7 +62,7 @@ export function initAuth() {
 export function initLogout() {
   const btn = document.querySelector('.btn-logout');
   if (btn) btn.addEventListener('click', async () => {
-    Sentry.setUser(null); // clear user context on logout
+    window.Sentry?.setUser(null); // clear user context on logout
     await signOut(auth);
     window.location.href = 'login.html';
   });
