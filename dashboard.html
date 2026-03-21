@@ -449,6 +449,15 @@
               <div id="roleBoxDesc" style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
             </div>
           </div>
+          <div style="margin-top:0.85rem;display:flex;gap:0.55rem;align-items:center;flex-wrap:wrap">
+            <select id="roleRequestSelect" class="form-input" style="max-width:200px">
+              <option value="reader">Reader</option>
+              <option value="editor">Editor</option>
+              <option value="coauthor">Co-Author</option>
+            </select>
+            <button class="btn-primary" onclick="requestRoleChange()" style="padding:0.55rem 0.9rem">Request Role Change</button>
+          </div>
+          <p id="roleRequestStatus" style="font-size:0.7rem;color:var(--muted);margin-top:0.5rem"></p>
           <p style="font-size:0.7rem;color:var(--muted);margin-top:0.6rem">🔒 Role changes can only be made by the admin.</p>
         </div>
       </div>
@@ -564,7 +573,45 @@
     document.getElementById('roleBoxIcon').textContent = ri.icon;
     document.getElementById('roleBoxName').textContent = ri.name;
     document.getElementById('roleBoxDesc').textContent = ri.desc;
+
+    const reqSelect = document.getElementById('roleRequestSelect');
+    const reqStatus = document.getElementById('roleRequestStatus');
+    const requestedRole = userData.requestedRole || role;
+    if (reqSelect) reqSelect.value = requestedRole;
+    if (reqStatus) {
+      if (requestedRole && requestedRole !== role) {
+        reqStatus.textContent = `Pending request: ${roleLabel(requestedRole)} (awaiting admin approval).`;
+      } else {
+        reqStatus.textContent = 'No pending role request.';
+      }
+    }
   }
+
+  window.requestRoleChange = async () => {
+    const nextRole = document.getElementById('roleRequestSelect')?.value || 'reader';
+    const currRole = userData.role || 'reader';
+
+    if (nextRole === currRole) {
+      showToast('You already have this role.', 'error');
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        requestedRole: nextRole,
+        roleRequestUpdatedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      userData = { ...userData, requestedRole: nextRole };
+      const reqStatus = document.getElementById('roleRequestStatus');
+      if (reqStatus) {
+        reqStatus.textContent = `Pending request: ${roleLabel(nextRole)} (awaiting admin approval).`;
+      }
+      showToast('Role change request sent to admin.', 'success');
+    } catch (e) {
+      showToast('Failed to send role request: ' + e.message, 'error');
+    }
+  };
  
   function buildActionGrid(role) {
     const grid = document.getElementById('actionGrid');

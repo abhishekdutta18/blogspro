@@ -849,7 +849,10 @@ function doLogout() {
 
   <!-- ══════════════ USERS ══════════════ -->
   <div class="view" id="view-users">
-    <div class="page-header"><div><h2>Users</h2><p>Manage all registered accounts</p></div></div>
+    <div class="page-header">
+      <div><h2>Users</h2><p>Manage all registered accounts</p></div>
+      <button class="btn-publish" style="padding:0.7rem 1.2rem;border-radius:3px" onclick="backfillUserCreatedAt()">🛠 Backfill Join Date</button>
+    </div>
     <div class="table-wrap">
       <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Change Role</th></tr></thead>
       <tbody id="usersTableBody"><tr><td colspan="5"><div class="table-empty">Loading…</div></td></tr></tbody></table>

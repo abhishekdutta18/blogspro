@@ -135,10 +135,19 @@ service cloud.firestore {
                         || canSelfAssignRequestedRole(request.resource.data.requestedRole))
                     && request.resource.data.createdAt == request.time;
 
-      // User can update their own profile BUT cannot change their role.
+      // User can update their own profile and request a role change by updating
+      // requestedRole, but can never self-change role/uid/createdAt.
       // Admin can update any user document (including role changes).
       allow update: if (request.auth.uid == userId
-                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'requestedRole']))
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                      'name', 'email', 'bio', 'photoURL',
+                      'requestedRole', 'updatedAt', 'roleRequestUpdatedAt'
+                    ])
+                    && request.resource.data.uid == resource.data.uid
+                    && request.resource.data.role == resource.data.role
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['requestedRole'])
+                        || canSelfAssignRequestedRole(request.resource.data.requestedRole)))
                     || isAdmin();
 
       // User can delete their own account.
