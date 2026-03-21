@@ -74,6 +74,9 @@ async function callWithRetry(prompt, model, maxRetries = 3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const result = await callAI(prompt, true, model, 8000);
     if (!result.error && result.text?.trim().length > 100) return result;
+    if (String(result.error || '').toLowerCase().includes('endpoint not configured')) {
+      return result;
+    }
     if (attempt < maxRetries) {
       const reason = result.error
         ? `Retry ${attempt}: provider error — ${(result.error || '').substring(0, 50)}`

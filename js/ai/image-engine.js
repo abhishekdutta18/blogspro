@@ -15,6 +15,9 @@ export async function runImageAI(prompt) {
 
     }
     catch (err) {
+      if (String(err?.message || "").toLowerCase().includes("endpoint not configured")) {
+        throw err;
+      }
 
       console.warn("Image provider failed:", provider);
 
