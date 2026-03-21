@@ -12,7 +12,7 @@
       --sidebar:240px;
     }
     html,body{height:100%}
-    body{background:var(--navy);color:var(--cream);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:flex}
+    body{background:var(--navy);color:var(--cream);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:flex;overflow-x:hidden}
     /* ₹ rupee + Indian currency/script glyphs — force Noto Sans fallback */
     body, #editor, .form-input, .form-textarea, td, th, p {
       font-family: 'DM Sans', 'Noto Sans', 'Segoe UI', Arial, sans-serif;
@@ -463,13 +463,25 @@
     .v2-ai-badge{font-size:8px;font-weight:700;padding:1px 6px;border-radius:2px;align-self:flex-start;text-transform:uppercase;letter-spacing:0.06em;margin-top:2px}
     .v2-ai-badge.on{background:rgba(34,197,94,0.1);color:var(--green)}
     .v2-ai-badge.off{background:rgba(136,150,179,0.1);color:var(--muted)}
-    @media(max-width:1100px){.v2-shell{grid-template-columns:200px 1fr 230px}.v2-gen-btn{font-size:11px;padding:9px}}
+    @media(max-width:1200px){
+      main{padding:2rem 1.4rem}
+      .stats-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .table-wrap{overflow-x:auto}
+      table{min-width:760px}
+    }
+
+    @media(max-width:1100px){
+      .v2-shell{grid-template-columns:200px 1fr 230px}
+      .v2-gen-btn{font-size:11px;padding:9px}
+      .editor-grid{grid-template-columns:1fr}
+      .editor-panel{padding:1.1rem}
+    }
     @media(max-width:900px){.v2-shell{grid-template-columns:1fr}.v2-left,.v2-right{display:none}}
 
     @media(max-width:900px){
       aside{transform:translateX(-100%)}
       aside.open{transform:translateX(0)}
-      main{margin-left:0;padding:4.5rem 1.2rem 1.5rem}
+      main{margin-left:0;padding:calc(52px + env(safe-area-inset-top, 0px) + 0.7rem) 0.85rem calc(1rem + env(safe-area-inset-bottom, 0px))}
       .editor-grid{grid-template-columns:1fr}
       #mobileTopBar{display:flex}
       #menuBtn{display:block}
@@ -480,4 +492,55 @@
       .saas-grid-3{grid-template-columns:1fr}
       .cluster-items{grid-template-columns:1fr}
       .page-header h2{font-size:1.5rem}
+      .page-header{margin-bottom:1.3rem}
+      .stats-row{grid-template-columns:1fr}
+      .table-wrap{overflow-x:auto;border-radius:4px}
+      table{min-width:640px}
+      th{padding:0.7rem 0.8rem;font-size:0.62rem}
+      td{padding:0.75rem 0.8rem;font-size:0.8rem}
+      #aiDrawer{width:min(92vw,360px)}
+      .ai-float-btn{right:0.75rem;bottom:calc(0.8rem + env(safe-area-inset-bottom, 0px));padding:0.68rem 0.95rem;font-size:0.8rem}
+      .modal-box{width:94%;padding:1rem}
+      .modal-content{max-height:52vh}
+      .publish-row{grid-template-columns:1fr}
+    }
+
+    @media(max-width:640px){
+      #mobileTopBar{height:50px;padding:0 0.7rem}
+      #mobileTopBarTitle{font-size:1rem}
+      .sidebar-brand{padding:1.1rem 1rem 1rem}
+      .sidebar-footer{padding:1rem}
+      .nav-item{padding:0.62rem 1rem}
+      .page-header{gap:0.55rem}
+      .page-header h2{font-size:1.35rem}
+      .page-header p{font-size:0.75rem}
+      .stat-card{padding:1.15rem 1rem}
+      .stat-card-value{font-size:2rem}
+      .table-header{padding:0.85rem}
+      .editor-panel{padding:0.85rem}
+      .form-input,.form-select,.form-textarea{padding:0.68rem 0.75rem;font-size:0.84rem}
+      .title-input{font-size:1.15rem}
+      .toolbar{padding:0.45rem;gap:2px}
+      .toolbar button{width:28px;height:26px;font-size:0.75rem}
+      #editor{min-height:320px;padding:0.85rem;font-size:0.88rem;line-height:1.62}
+      #editor p{font-size:0.88rem;line-height:1.62}
+      .v2-editor-topbar{padding:7px 9px}
+      .v2-post-title{font-size:1.28rem}
+      .v2-editor-scroll{padding:10px}
+      .img-preview-grid{grid-template-columns:1fr}
+      .img-style-grid{grid-template-columns:1fr}
+      .drawer-two-col{grid-template-columns:1fr}
+      #aiDrawer{width:100vw;max-width:100vw}
+      .ai-drawer-head,.ai-drawer-body,.ai-drawer-footer{padding-left:0.9rem;padding-right:0.9rem}
+    }
+
+    @media(max-width:420px){
+      .page-header h2{font-size:1.2rem}
+      .btn-publish,.btn-save-draft{padding:0.72rem;font-size:0.78rem}
+      .action-btn{font-size:0.68rem;padding:0.25rem 0.5rem;margin-right:0.2rem}
+      .table-wrap{border-left:none;border-right:none;border-radius:0}
+      table{min-width:560px}
+      .modal-title{font-size:1.1rem}
+      .modal-sub{font-size:0.74rem}
+      .ai-float-btn{font-size:0.75rem;padding:0.62rem 0.8rem}
     }
