@@ -558,6 +558,7 @@
   let allPosts   = [];
   let currentCat = 'all';
   let imagesEnabled = true;
+  const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
 
   document.getElementById('year').textContent = new Date().getFullYear();
 
@@ -663,8 +664,13 @@
       const title    = esc(p.title);
       const excerpt  = esc(p.excerpt);
       const category = esc(p.category) || 'General';
-      const rawImage = imagesEnabled ? DOMPurify.sanitize(p.image || '') : '';
-      const image    = /^https?:\/\//i.test(rawImage) ? rawImage : '';
+      const rawImage = imagesEnabled ? DOMPurify.sanitize(String(p.image || '').trim()) : '';
+      const image    = (
+        /^https?:\/\//i.test(rawImage) &&
+        rawImage !== 'null' &&
+        rawImage !== 'undefined' &&
+        rawImage !== '[object Object]'
+      ) ? rawImage : '';
       const date = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
       // FIX: Strip HTML tags before counting words for reading time
       const plainText = (p.content || '').replace(/<[^>]+>/g, ' ').trim();
@@ -739,6 +745,24 @@
 
   // ── Load About ─────────────────────────────────
   async function loadAbout() {
+    const applyAboutDefaults = () => {
+      document.getElementById('aboutDisplayName').textContent = 'BlogsPro';
+      document.getElementById('aboutDisplayName2').textContent = 'Sharp insights for fintech practitioners.';
+      document.getElementById('aboutDisplayTagline').textContent = 'Fintech Insights';
+      document.getElementById('aboutDisplayBio').textContent =
+        'We publish practical fintech analysis, execution playbooks, and market breakdowns for builders and operators.';
+      document.getElementById('aboutMissionWrap').style.display = 'none';
+      const socials = document.getElementById('aboutSocials');
+      if (socials) socials.innerHTML = '';
+      const avatarImg = document.getElementById('aboutAvatarImg');
+      const avatarInitial = document.getElementById('aboutAvatarInitial');
+      if (avatarImg) avatarImg.style.display = 'none';
+      if (avatarInitial) {
+        avatarInitial.textContent = 'B';
+        avatarInitial.style.display = 'flex';
+      }
+    };
+
     try {
       const snap = await getDoc(doc(db, 'site', 'about'));
       const skeleton = document.getElementById('aboutSkeleton');
@@ -801,6 +825,7 @@
 
     } catch(err) {
       console.warn('About section unavailable:', err.message);
+      applyAboutDefaults();
       const skeleton = document.getElementById('aboutSkeleton');
       const avatarCol = document.getElementById('aboutAvatarCol');
       const contentCol = document.getElementById('aboutContentCol');
@@ -811,16 +836,23 @@
   }
 
   async function loadSiteSettings() {
+    const localValue = localStorage.getItem(LOCAL_IMAGES_KEY);
+    if (localValue === 'true' || localValue === 'false') {
+      imagesEnabled = localValue === 'true';
+    }
     try {
       const snap = await getDoc(doc(db, 'site', 'settings'));
       if (snap.exists() && typeof snap.data().imagesEnabled === 'boolean') {
         imagesEnabled = snap.data().imagesEnabled;
+        localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));
       } else {
         imagesEnabled = true;
       }
     } catch (err) {
       console.warn('Site settings unavailable:', err.message);
-      imagesEnabled = true;
+      if (localValue !== 'true' && localValue !== 'false') {
+        imagesEnabled = true;
+      }
     }
   }
 

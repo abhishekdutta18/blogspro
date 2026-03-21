@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════
 import { cleanEditorHTML, sanitize, showToast } from "./config.js";
 import { callAI }  from './ai-core.js';
+import { workerFetch } from "./worker-endpoints.js";
 import { state }   from './state.js';
 import { updateWordCount } from './editor.js';
 
@@ -248,7 +249,7 @@ Rules:
   try {
     const urls = refs.filter(r => r.url).map(r => r.url);
     if (urls.length > 0) {
-      const valRes = await fetch('https://github-push.abhishek-dutta1996.workers.dev/api/validate-url', {
+      const valRes = await workerFetch('api/validate-url', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ urls })

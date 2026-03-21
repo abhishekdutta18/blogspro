@@ -86,6 +86,34 @@ async function callWithRetry(prompt, model, maxRetries = 3) {
   return { text: '', error: 'All retries failed', provider: null };
 }
 
+function buildFallbackSectionHtml({ title, topic, category, tone, wordsTarget, isIntro, isConclusion }) {
+  const safeTitle = _esc(title || "Section");
+  const safeTopic = _esc(topic || "the topic");
+  const safeCategory = _esc(category || "General");
+  const safeTone = _esc(tone || "professional");
+  const minWords = Math.max(180, Math.round((wordsTarget || 600) * 0.45));
+
+  const introLead = isIntro
+    ? `The ${safeCategory} landscape around ${safeTopic} keeps changing quickly, and decisions now depend on clear context, practical framing, and execution discipline.`
+    : `Within ${safeCategory}, ${safeTopic} needs a structured view that balances strategy, operations, and measurable outcomes.`;
+
+  const closeLead = isConclusion
+    ? `A practical conclusion for ${safeTopic} is to prioritize measurable execution over generic advice.`
+    : `This section focuses on concrete moves that can be applied immediately.`;
+
+  return `
+<h2>${safeTitle}</h2>
+<p>${introLead}</p>
+<p>${closeLead} Teams should define success metrics first, sequence work in small milestones, and maintain a regular review loop to reduce rework and improve consistency across releases.</p>
+<ul>
+  <li>Set one clear objective with a 30-day checkpoint and ownership.</li>
+  <li>Document assumptions, risks, and fallback paths before rollout.</li>
+  <li>Track outcomes weekly and refine based on evidence, not guesswork.</li>
+</ul>
+<blockquote>Fallback draft generated because AI providers were temporarily unavailable. Expand this section with your latest data before publishing.</blockquote>
+<p><em>Draft note: target this section at approximately ${minWords}+ words in ${safeTone} tone.</em></p>`.trim();
+}
+
 // ─────────────────────────────────────────────
 // Render a provider badge for the modal
 // ─────────────────────────────────────────────
@@ -302,21 +330,17 @@ ${LANG_RULE}`;
 
       if (result.error || !result.text?.trim()) {
         failedCount++;
+        timerLog(`  ⚠ [${progress}] AI unavailable — inserted fallback draft`);
         sectionHTMLs.push(
-          `<div class="failed-section-block"
-              data-section="${_esc(title)}" data-topic="${_esc(topic)}"
-              data-category="${_esc(category)}" data-tone="${_esc(tone)}"
-              data-words="${wordsPerSec}" data-model="${_esc(model)}">
-            <div style="background:rgba(239,68,68,0.06);border:1px dashed rgba(239,68,68,0.3);border-radius:4px;padding:1rem;margin:1rem 0">
-              <div style="color:#fca5a5;font-size:0.82rem;margin-bottom:0.5rem">
-                ⚠ Section failed: "<strong>${title}</strong>" — ${result.error || 'empty response'}
-              </div>
-              <button onclick="retrySectionGen(this)"
-                style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:0.3rem 0.8rem;border-radius:3px;font-size:0.75rem;cursor:pointer">
-                🔄 Retry this section
-              </button>
-            </div>
-          </div>`
+          buildFallbackSectionHtml({
+            title,
+            topic,
+            category,
+            tone,
+            wordsTarget: wordsPerSec,
+            isIntro: isFirst,
+            isConclusion: isLast,
+          })
         );
       } else {
         const clean = sanitize(_stripReasoning(result.text));

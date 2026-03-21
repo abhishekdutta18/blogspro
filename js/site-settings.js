@@ -4,6 +4,15 @@ import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/fi
 
 let imagesEnabled = true;
 let saving = false;
+const LOCAL_IMAGES_KEY = "bp_site_images_enabled";
+let usingLocalFallback = false;
+
+function readLocalImagesEnabled() {
+  const raw = localStorage.getItem(LOCAL_IMAGES_KEY);
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  return null;
+}
 
 function updateUi() {
   const sw = document.getElementById("siteImagesSwitch");
@@ -18,20 +27,30 @@ function updateUi() {
     : "OFF — images are hidden on public pages.";
   hint.textContent = saving
     ? "Saving setting…"
-    : "Turns post cover and inline content images on/off for public pages.";
+    : usingLocalFallback
+      ? "Using browser fallback mode. Firestore access is currently blocked."
+      : "Turns post cover and inline content images on/off for public pages.";
 }
 
 async function loadSetting() {
+  const localValue = readLocalImagesEnabled();
+  if (typeof localValue === "boolean") {
+    imagesEnabled = localValue;
+  }
+
   try {
     const snap = await getDoc(doc(db, "site", "settings"));
     if (snap.exists() && typeof snap.data().imagesEnabled === "boolean") {
       imagesEnabled = snap.data().imagesEnabled;
+      localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));
     } else {
       imagesEnabled = true;
     }
+    usingLocalFallback = false;
   } catch (err) {
     console.warn("site settings read failed:", err.message);
-    imagesEnabled = true;
+    if (typeof localValue !== "boolean") imagesEnabled = true;
+    usingLocalFallback = true;
   }
   updateUi();
 }
@@ -50,10 +69,16 @@ window.toggleSiteImages = async function toggleSiteImages() {
       },
       { merge: true }
     );
+    localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));
+    usingLocalFallback = false;
     showToast(`Website images turned ${imagesEnabled ? "ON" : "OFF"}.`, "success");
   } catch (err) {
-    imagesEnabled = !imagesEnabled;
-    showToast("Failed to update image setting: " + (err.code || err.message), "error");
+    localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));
+    usingLocalFallback = true;
+    showToast(
+      "Saved locally. Firestore update blocked: " + (err.code || err.message),
+      "error"
+    );
     console.error("site settings write failed:", err);
   } finally {
     saving = false;
