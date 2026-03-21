@@ -10,9 +10,15 @@ import {
 
 
 export let AI_KEYS = {};
+const USE_CLIENT_KEYS = window.__USE_CLIENT_AI_KEYS__ === true;
 
 
 export async function loadRemoteConfig() {
+  if (!USE_CLIENT_KEYS) {
+    AI_KEYS = {};
+    console.log('[remote-config] Worker mode enabled: client API keys disabled');
+    return;
+  }
   try {
     remoteConfig.settings = {
       minimumFetchIntervalMillis: 3600000  // 1 hour cache

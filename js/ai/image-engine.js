@@ -1,4 +1,5 @@
 import { IMAGE_PROVIDERS } from "./providers.js";
+import { workerFetch } from "../worker-endpoints.js";
 
 export async function runImageAI(prompt) {
 
@@ -28,7 +29,7 @@ export async function runImageAI(prompt) {
 
 async function callImageProvider(provider, prompt) {
 
-  const res = await fetch("/api/generate-image", {
+  const res = await workerFetch("api/generate-image", {
 
     method: "POST",
 
@@ -49,6 +50,6 @@ async function callImageProvider(provider, prompt) {
 
   const data = await res.json();
 
-  return data.image;
+  return data.image || data.url || data.result;
 
 }
