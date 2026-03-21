@@ -127,6 +127,7 @@ window.generateAIPost = async function generateAIPost() {
   _cancelled           = false;
   state.isGeneratingAI = true;
   _setBtnsDisabled(true);
+  _setGenerateUi(true, 'Preparing generation…');
 
   const editor = document.getElementById('editor');
   if (editor) editor.innerHTML = '';
@@ -460,6 +461,7 @@ CRITICAL: Respond ONLY with a single valid JSON object. No markdown, no backtick
     aiWriting            = false;
     state.isGeneratingAI = false;
     _setBtnsDisabled(false);
+    _setGenerateUi(false, 'Ready.');
   }
 };
 
@@ -467,6 +469,7 @@ function _cleanup() {
   aiWriting            = false;
   state.isGeneratingAI = false;
   _setBtnsDisabled(false);
+  _setGenerateUi(false, 'Cancelled.');
   closeModal();
 }
 
@@ -527,6 +530,20 @@ function _setBtnsDisabled(on) {
     const el = document.getElementById(id);
     if (el) { el.disabled = on; el.style.opacity = on ? '0.6' : '1'; }
   });
+}
+
+function _setGenerateUi(on, status = '') {
+  const aiTxt = document.getElementById('aiBtnText');
+  const aiSp  = document.getElementById('aiSpinner');
+  if (aiTxt) aiTxt.textContent = on ? 'Generating Article…' : '✦ Generate Article';
+  if (aiSp) aiSp.style.display = on ? 'inline-block' : 'none';
+
+  const v2Txt = document.getElementById('v2GenerateText');
+  const v2Sp  = document.getElementById('v2GenerateSpin');
+  const v2St  = document.getElementById('v2GenerateStatus');
+  if (v2Txt) v2Txt.textContent = on ? 'Generating…' : '✦ Generate Article';
+  if (v2Sp) v2Sp.style.display = on ? 'inline-block' : 'none';
+  if (v2St) v2St.textContent = status;
 }
 
 function _setField(id, value) {

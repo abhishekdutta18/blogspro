@@ -225,7 +225,13 @@ function doLogout() {
                   <span id="v2WCLabel" style="font-size:10px;font-weight:700;color:var(--muted);min-width:30px;text-align:right">—</span>
                 </div>
                 <div id="v2LongForm" style="display:none;margin-bottom:6px;padding:4px 6px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.25);border-radius:3px;font-size:9px;color:#c084fc;line-height:1.5">⚡ Long-form: built chunk by chunk. Keep tab open.</div>
-                <button class="v2-gen-btn" onclick="v2BeforeGenerate()">✦ Generate Article</button>
+                <button class="v2-gen-btn" id="v2GenerateBtn" onclick="v2BeforeGenerate()">
+                  <span id="v2GenerateText">✦ Generate Article</span>
+                  <span class="v2-gen-spin" id="v2GenerateSpin" style="display:none"></span>
+                </button>
+                <div id="v2GenerateStatus" style="font-size:0.68rem;color:var(--muted);margin-top:5px;min-height:0.9rem;line-height:1.5">
+                  Ready.
+                </div>
               </div>
             </div>
 
