@@ -13,6 +13,7 @@ import {
 
 let aiWriting  = false;
 let _cancelled = false;
+const JOB_KEY = "bp_ai_writer_job_v1";
 
 // ─────────────────────────────────────────────
 // Modal helpers
@@ -29,6 +30,36 @@ function closeModal() {
   document.getElementById('aiModal')?.classList.remove('open');
   hideTimer();
   hideRoadmap();
+}
+
+function saveJobState(payload) {
+  try {
+    localStorage.setItem(JOB_KEY, JSON.stringify({
+      ...payload,
+      updatedAt: Date.now(),
+    }));
+  } catch (_) {}
+}
+
+function loadJobState() {
+  try {
+    const raw = localStorage.getItem(JOB_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.running) return null;
+    const age = Date.now() - (parsed.updatedAt || 0);
+    if (age > 1000 * 60 * 60 * 24) {
+      localStorage.removeItem(JOB_KEY);
+      return null;
+    }
+    return parsed;
+  } catch (_) {
+    return null;
+  }
+}
+
+function clearJobState() {
+  try { localStorage.removeItem(JOB_KEY); } catch (_) {}
 }
 
 function _setModalText(title, sub) {
@@ -131,15 +162,16 @@ function _providerBadge(provider) {
 // ─────────────────────────────────────────────
 // window.generateAIPost — entry point
 // ─────────────────────────────────────────────
-window.generateAIPost = async function generateAIPost() {
+window.generateAIPost = async function generateAIPost(resume = null) {
   if (aiWriting) { showToast('Already generating — please wait.', 'info'); return; }
 
-  const topic      = document.getElementById('v2TopicPrompt')?.value.trim()
+  const topic      = resume?.topic
+                  || document.getElementById('v2TopicPrompt')?.value.trim()
                   || document.getElementById('aiPrompt')?.value.trim() || '';
-  const category   = document.getElementById('postCategory')?.value || 'Fintech';
-  const tone       = document.getElementById('aiTone')?.value || 'professional';
-  const model      = document.getElementById('modelArticle')?.value || 'auto';
-  const wordTarget = parseInt(document.getElementById('wordTarget')?.value) || 1200;
+  const category   = resume?.category || document.getElementById('postCategory')?.value || 'Fintech';
+  const tone       = resume?.tone || document.getElementById('aiTone')?.value || 'professional';
+  const model      = resume?.model || document.getElementById('modelArticle')?.value || 'auto';
+  const wordTarget = parseInt(resume?.wordTarget || document.getElementById('wordTarget')?.value) || 1200;
 
   if (!topic) {
     showToast('Enter a topic first.', 'error');
@@ -154,7 +186,7 @@ window.generateAIPost = async function generateAIPost() {
   _setGenerateUi(true, 'Preparing generation…');
 
   const editor = document.getElementById('editor');
-  if (editor) editor.innerHTML = '';
+  if (editor && !resume) editor.innerHTML = '';
 
   const numSections = sectionsNeeded(wordTarget);
   const wordsPerSec = Math.ceil(wordTarget / numSections);
@@ -172,8 +204,14 @@ window.generateAIPost = async function generateAIPost() {
     timerLog(`Building ${numSections}-section outline…`);
     _setModalContent('📋 Building outline…');
 
-    const outlineResult = await callWithRetry(
-      `You are a professional blog editor. Create a detailed outline.
+    let outlineResult = { provider: null, error: null, text: '' };
+    let sections = Array.isArray(resume?.sections) ? resume.sections : [];
+    let sectionHTMLs = Array.isArray(resume?.sectionHTMLs) ? resume.sectionHTMLs : [];
+    let startIndex = Number.isInteger(resume?.nextIndex) ? resume.nextIndex : 0;
+
+    if (!sections.length) {
+      outlineResult = await callWithRetry(
+        `You are a professional blog editor. Create a detailed outline.
 Article topic: "${topic}"
 Category: ${category} | Tone: ${tone} | Target: ${wordTarget} words
 
@@ -183,25 +221,25 @@ Each title should be specific and descriptive (not generic like "Section 1").
 
 CRITICAL: Return ONLY a valid JSON array of strings. Nothing else. No explanation, no markdown, no preamble.
 ["Introduction", "Section Title Two", ..., "Conclusion & Key Takeaways"]`,
-      model
-    );
+        model
+      );
 
-    if (_cancelled) return _cleanup();
+      if (_cancelled) return _cleanup();
 
-    let sections = [];
-    if (!outlineResult.error) {
-      try {
-        const raw = outlineResult.text || '';
-        const s   = raw.indexOf('[');
-        const e   = raw.lastIndexOf(']');
-        if (s !== -1 && e !== -1) sections = JSON.parse(raw.substring(s, e + 1));
-      } catch(_) {}
-    }
-    if (!Array.isArray(sections) || sections.length < 2) {
-      // Auto-generate fallback outline
-      sections = ['Introduction'];
-      for (let i = 1; i < numSections - 1; i++) sections.push(`Section ${i + 1}: ${topic}`);
-      sections.push('Conclusion & Key Takeaways');
+      if (!outlineResult.error) {
+        try {
+          const raw = outlineResult.text || '';
+          const s   = raw.indexOf('[');
+          const e   = raw.lastIndexOf(']');
+          if (s !== -1 && e !== -1) sections = JSON.parse(raw.substring(s, e + 1));
+        } catch(_) {}
+      }
+      if (!Array.isArray(sections) || sections.length < 2) {
+        // Auto-generate fallback outline
+        sections = ['Introduction'];
+        for (let i = 1; i < numSections - 1; i++) sections.push(`Section ${i + 1}: ${topic}`);
+        sections.push('Conclusion & Key Takeaways');
+      }
     }
 
     // Always ensure conclusion is last — AI sometimes puts it in the middle
@@ -224,16 +262,22 @@ CRITICAL: Return ONLY a valid JSON array of strings. Nothing else. No explanatio
     }
 
     state.pendingOutline = sections.join('\n');
-    const outlineProvider = PROVIDER_META[outlineResult.provider]?.label || outlineResult.provider || 'auto';
+    const outlineProvider = PROVIDER_META[outlineResult.provider]?.label || outlineResult.provider || (resume ? 'resume' : 'auto');
     setRoadmapStep('outline', 'done', outlineProvider);
     timerLog(`✓ Outline: ${sections.length} sections (via ${outlineProvider})`);
+    saveJobState({
+      running: true,
+      topic, category, tone, model, wordTarget,
+      sections,
+      sectionHTMLs,
+      nextIndex: startIndex,
+    });
 
     // ── STEP 2: Write sections one by one ────────
     setRoadmapStep('article', 'active');
-    const sectionHTMLs = [];
     let   failedCount  = 0;
 
-    for (let i = 0; i < sections.length; i++) {
+    for (let i = startIndex; i < sections.length; i++) {
       if (_cancelled) break;
 
       const title    = sections[i];
@@ -420,6 +464,13 @@ ${_sampleRecentSentences(sectionHTMLs).map(s => `- ${s}`).join("\n")}
         editor.innerHTML = sectionHTMLs.join('\n');
         updateWordCount();
       }
+      saveJobState({
+        running: true,
+        topic, category, tone, model, wordTarget,
+        sections,
+        sectionHTMLs,
+        nextIndex: i + 1,
+      });
 
       // Update modal to show which AI actually handled this section
       if (!result.error && result.provider) {
@@ -501,6 +552,7 @@ CRITICAL: Respond ONLY with a single valid JSON object. No markdown, no backtick
     setRoadmapStep('metadata', 'done', metaProvider);
     setRoadmapStep('done', 'done');
     stopTimer();
+    clearJobState();
 
     // ── Done ─────────────────────────────────────
     const finalWords = getWordCount();
@@ -548,6 +600,7 @@ function _cleanup() {
   _setBtnsDisabled(false);
   _setGenerateUi(false, 'Cancelled.');
   closeModal();
+  clearJobState();
 }
 
 // ─────────────────────────────────────────────
@@ -581,6 +634,26 @@ export function initAIWriter() {
       btn.innerText = 'Generate';
     }
   });
+
+  const pending = loadJobState();
+  if (pending && !aiWriting && Array.isArray(pending.sections) && pending.nextIndex < pending.sections.length) {
+    const editorEl = document.getElementById('editor');
+    if (editorEl && Array.isArray(pending.sectionHTMLs) && pending.sectionHTMLs.length) {
+      editorEl.innerHTML = pending.sectionHTMLs.join('\n');
+      updateWordCount();
+    }
+    const promptEl = document.getElementById('v2TopicPrompt') || document.getElementById('aiPrompt');
+    if (promptEl && pending.topic) promptEl.value = pending.topic;
+    const catEl = document.getElementById('postCategory');
+    if (catEl && pending.category) catEl.value = pending.category;
+    const wtEl = document.getElementById('wordTarget');
+    if (wtEl && pending.wordTarget) wtEl.value = pending.wordTarget;
+
+    showToast('Resuming article generation from last saved point…', 'info');
+    setTimeout(() => {
+      window.generateAIPost(pending).catch(() => {});
+    }, 500);
+  }
 }
 
 // ─────────────────────────────────────────────
