@@ -20,7 +20,9 @@ A full-featured, AI-powered blog platform built with **Vanilla HTML/CSS/JS**, **
 6. [AI Tools Reference](#ai-tools-reference)
 7. [Data Schema](#data-schema)
 8. [Known Issues & Fixes](#known-issues--fixes)
-9. [Environment Variables](#environment-variables)
+9. [Latest Security Hotfix (2026-03-21)](#latest-security-hotfix-2026-03-21)
+10. [Dual-Agent Workboard (Claude + Codex)](#dual-agent-workboard-claude--codex)
+11. [Environment Variables](#environment-variables)
 
 ---
 
@@ -432,6 +434,73 @@ All tools are in the **AI Tools** sidebar section of the admin panel.
   createdAt: timestamp
 }
 ```
+
+---
+
+## Latest Security Hotfix (2026-03-21)
+
+### Files changed
+
+- `firestore.rules`
+- `register.html`
+- `dashboard.html`
+- `index.html`
+- `account.html`
+- `deploy-worker.js` (CLI helper to push files via the same Cloudflare Worker used by `deploy.html`)
+
+### What was fixed
+
+1. **Blocked role escalation in Firestore**  
+   New users can no longer self-assign elevated access by writing `role: "admin"` into their own user document.
+
+2. **Contributor post flow aligned with rules**  
+   Rules now support admin-assigned contributors (`editor`, `coauthor`) creating/updating only their own posts, while protecting privileged fields.
+
+3. **Registration hardened**  
+   New accounts are always created as `reader`; any elevated role selection is stored as a `requestedRole` request for admin review.
+
+4. **Public/client queries aligned to secure rules**  
+   Public feed and user dashboard now query with filters (`published`, `authorUid`) instead of reading full collections and filtering client-side.
+
+5. **Account deletion order made safer**  
+   Account deletion now deletes Firebase Auth first, then attempts Firestore profile cleanup, avoiding half-deleted auth states.
+
+6. **Admin detection standardized**  
+   Home page admin/nav behavior now uses Firestore role checks instead of a hardcoded admin UID.
+
+### Deployment status
+
+- Firestore rules: published.
+- GitHub deploy commit for hotfix files: `9d48ea3` ("Deploy 5 files from ZIP (path discovery mode)").
+- GitHub deploy commit for deploy CLI tool: `db29511` ("Add CLI deploy script for Cloudflare worker push").
+
+---
+
+## Dual-Agent Workboard (Claude + Codex)
+
+This section is the source of truth for parallel bot work.  
+Before either bot edits code, update this table first.
+
+### Coordination rules
+
+1. Claim ownership before editing files.
+2. Do not edit files owned by the other bot unless owner is `UNCLAIMED`.
+3. On completion, set status to `DONE` and leave a one-line handoff note.
+4. If blocked, set status to `BLOCKED` with reason and expected next action.
+
+### Workboard
+
+| Area / Task | Owner | Status | Files | Last Update (IST) | Handoff Note |
+|---|---|---|---|---|---|
+| Security rules + auth hardening | Codex | DONE | `firestore.rules`, `register.html`, `index.html`, `dashboard.html`, `account.html` | 2026-03-21 | Hotfix shipped and live on GitHub. |
+| Deploy automation tooling | Codex | DONE | `deploy-worker.js`, `deploy.html` | 2026-03-21 | CLI deploy helper added; uses same Worker as deploy UI. |
+| Next feature / bugfix slot | UNCLAIMED | TODO | TBD | - | Claim before starting work. |
+
+### Quick handoff template
+
+Use this format when updating the table:
+
+`[BOT]=Claude|Codex  [STATUS]=TODO|IN_PROGRESS|BLOCKED|DONE  [FILES]=a,b,c  [NOTE]=one-line summary`
 
 ---
 
