@@ -92,6 +92,72 @@ function sectionsNeeded(wordTarget) {
   return Math.max(3, Math.ceil(wordTarget / wordsPerSection));
 }
 
+function _clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function heuristicSectionCount(topic, category, wordTarget) {
+  const t = String(topic || "").toLowerCase();
+  const c = String(category || "").toLowerCase();
+  const words = t.split(/\s+/).filter(Boolean).length;
+
+  // Base on target length
+  let n = Math.round((wordTarget || 1200) / 520);
+
+  // Topic breadth/complexity signals
+  const broadSignals = [
+    "vs", "versus", "comparison", "landscape", "ecosystem", "framework",
+    "roadmap", "strategy", "regulation", "compliance", "architecture",
+    "future", "trends", "market", "case study", "global", "india"
+  ];
+  const narrowSignals = ["definition", "what is", "overview", "basics", "intro"];
+  const broadHits = broadSignals.filter(s => t.includes(s)).length;
+  const narrowHits = narrowSignals.filter(s => t.includes(s)).length;
+
+  if (words >= 7) n += 1;
+  if (words >= 11) n += 1;
+  if (broadHits >= 2) n += 2;
+  else if (broadHits === 1) n += 1;
+  if (narrowHits >= 1) n -= 1;
+  if (c.includes("compliance") || c.includes("strategy")) n += 1;
+
+  return _clamp(n, 3, 16);
+}
+
+async function decideSectionCount(topic, category, wordTarget, model) {
+  const heuristic = heuristicSectionCount(topic, category, wordTarget);
+  try {
+    const result = await callAI(
+      `Decide how many sections are needed for a high-quality article.
+Topic: "${topic}"
+Category: "${category}"
+Target words: ${wordTarget}
+
+Rules:
+- Return ONLY valid JSON.
+- Section count must be between 3 and 16.
+- More complex/broad topics need more sections than narrow topics.
+- Include intro and conclusion inside this count.
+
+{"sections":8,"reason":"one short sentence"}`,
+      true,
+      model,
+      800
+    );
+
+    if (!result.error && result.text) {
+      const s = result.text.indexOf("{");
+      const e = result.text.lastIndexOf("}");
+      if (s !== -1 && e !== -1) {
+        const parsed = JSON.parse(result.text.substring(s, e + 1));
+        const n = Number(parsed.sections);
+        if (Number.isFinite(n)) return _clamp(Math.round(n), 3, 16);
+      }
+    }
+  } catch (_) {}
+  return heuristic;
+}
+
 function getWordCount() {
   return (document.getElementById('editor')?.textContent || '')
     .trim().split(/\s+/).filter(Boolean).length;
@@ -188,7 +254,9 @@ window.generateAIPost = async function generateAIPost(resume = null) {
   const editor = document.getElementById('editor');
   if (editor && !resume) editor.innerHTML = '';
 
-  const numSections = sectionsNeeded(wordTarget);
+  const numSections = Array.isArray(resume?.sections) && resume.sections.length
+    ? resume.sections.length
+    : await decideSectionCount(topic, category, wordTarget, model);
   const wordsPerSec = Math.ceil(wordTarget / numSections);
 
   openModal(
