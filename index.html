@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BlogsPro — Fintech | Compliance | Strategy</title>
   <meta name="description" content="Sharp insights on fintech, regulatory compliance, and growth strategy." />
-  <link rel="icon" type="image/png" href="favicon.png" />
-  <link rel="apple-touch-icon" href="favicon.png" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -560,6 +560,12 @@
   let imagesEnabled = true;
   const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
 
+  function isPermissionDenied(err) {
+    const code = String(err?.code || '').toLowerCase();
+    const msg = String(err?.message || '').toLowerCase();
+    return code.includes('permission-denied') || msg.includes('missing or insufficient permissions');
+  }
+
   document.getElementById('year').textContent = new Date().getFullYear();
 
   // ── Theme ──────────────────────────────────────
@@ -824,7 +830,11 @@
       if (contentCol)  contentCol.classList.remove('about-hidden');
 
     } catch(err) {
-      console.warn('About section unavailable:', err.message);
+      if (isPermissionDenied(err)) {
+        console.info('About section fallback active (permission blocked).');
+      } else {
+        console.warn('About section unavailable:', err.message);
+      }
       applyAboutDefaults();
       const skeleton = document.getElementById('aboutSkeleton');
       const avatarCol = document.getElementById('aboutAvatarCol');
@@ -849,7 +859,11 @@
         imagesEnabled = true;
       }
     } catch (err) {
-      console.warn('Site settings unavailable:', err.message);
+      if (isPermissionDenied(err)) {
+        console.info('Site settings fallback active (permission blocked).');
+      } else {
+        console.warn('Site settings unavailable:', err.message);
+      }
       if (localValue !== 'true' && localValue !== 'false') {
         imagesEnabled = true;
       }
