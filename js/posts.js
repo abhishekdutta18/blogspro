@@ -154,7 +154,9 @@ export async function savePost(publish) {
   saveStatus.textContent = 'Saving…';
   // FEATURE 13: Determine post stage based on publish state
   const stage = publish ? 'published' : (state.editingPostId ? 'review' : 'writing');
-  const data = { title, excerpt, content, category:cat, slug, image, metaDesc, tags, readingTime:readMin, published:publish, premium:state.isPremium, stage, updatedAt:serverTimestamp() };
+  const authorName = state.currentUser?.displayName || state.currentUser?.email?.split('@')[0] || 'Admin';
+  const authorUid  = state.currentUser?.uid || '';
+  const data = { title, excerpt, content, category:cat, slug, image, metaDesc, tags, readingTime:readMin, published:publish, premium:state.isPremium, stage, authorName, authorUid, updatedAt:serverTimestamp() };
   try {
     if (state.editingPostId) {
       await updateDoc(doc(db,'posts',state.editingPostId), data);

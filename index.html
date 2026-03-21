@@ -327,12 +327,25 @@
     .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
     .empty-state p { font-size: 1rem; }
 
+    /* ── SITEMAP ── */
+    .sitemap { background: var(--navy2); border-top: 1px solid var(--border); padding: 4rem 2rem 2rem; }
+    .sitemap-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1.5fr repeat(3, 1fr); gap: 3rem; }
+    .sitemap-brand { font-family: var(--serif); font-size: 1.8rem; font-weight: 700; background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.8rem; }
+    .sitemap-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.7; max-width: 28ch; }
+    .sitemap-col-title { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 1.2rem; }
+    .sitemap-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.7rem; }
+    .sitemap-col a { font-size: 0.85rem; color: var(--muted); transition: color 0.2s; display: flex; align-items: center; gap: 0.4rem; }
+    .sitemap-col a:hover { color: var(--cream); }
+    .sitemap-col a .sm-icon { font-size: 0.75rem; opacity: 0.6; }
+    @media (max-width: 768px) { .sitemap-inner { grid-template-columns: 1fr 1fr; gap: 2rem; } }
+    @media (max-width: 480px) { .sitemap-inner { grid-template-columns: 1fr; gap: 1.5rem; } }
+
     /* ── FOOTER ── */
-    footer { border-top: 1px solid var(--border); padding: 3rem 2rem; max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; }
-    .footer-brand { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .footer-copy { font-size: 0.8rem; color: var(--muted); }
+    footer { border-top: 1px solid var(--border); padding: 2rem 2rem; max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .footer-brand { font-family: var(--serif); font-size: 1.2rem; font-weight: 700; background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .footer-copy { font-size: 0.78rem; color: var(--muted); }
     .footer-links { display: flex; gap: 1.5rem; list-style: none; }
-    .footer-links a { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.2s; }
+    .footer-links a { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.2s; }
     .footer-links a:hover { color: var(--gold); }
 
     /* ── RESPONSIVE ── */
@@ -524,12 +537,46 @@
   </div>
 </section>
 
+<!-- SITEMAP -->
+<div class="sitemap">
+  <div class="sitemap-inner">
+    <div class="sitemap-col">
+      <div class="sitemap-brand">BlogsPro</div>
+      <p class="sitemap-desc">Sharp insights on fintech, regulatory compliance, and growth strategy for builders and operators.</p>
+    </div>
+    <div class="sitemap-col">
+      <div class="sitemap-col-title">Navigate</div>
+      <ul>
+        <li><a href="#"><span class="sm-icon">🏠</span> Home</a></li>
+        <li><a href="#articles"><span class="sm-icon">📰</span> Articles</a></li>
+        <li><a href="#about"><span class="sm-icon">ℹ️</span> About</a></li>
+        <li><a href="#newsletter"><span class="sm-icon">✉️</span> Newsletter</a></li>
+      </ul>
+    </div>
+    <div class="sitemap-col">
+      <div class="sitemap-col-title">Account</div>
+      <ul>
+        <li><a href="login.html" id="footerAuthLink"><span class="sm-icon">🔑</span> Login</a></li>
+        <li><a href="register.html"><span class="sm-icon">📝</span> Register</a></li>
+        <li><a href="dashboard.html"><span class="sm-icon">📊</span> Dashboard</a></li>
+      </ul>
+    </div>
+    <div class="sitemap-col">
+      <div class="sitemap-col-title">Connect</div>
+      <ul id="sitemapSocials">
+        <li><a href="mailto:contact@blogspro.in"><span class="sm-icon">✉</span> Email</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
 <!-- FOOTER -->
 <footer>
   <span class="footer-brand">BlogsPro</span>
   <span class="footer-copy">© <span id="year"></span> BlogsPro. All rights reserved.</span>
   <ul class="footer-links">
-    <li><a href="login.html" id="footerAuthLink">Login</a></li>
+    <li><a href="#">Privacy</a></li>
+    <li><a href="#">Terms</a></li>
   </ul>
 </footer>
 
@@ -677,7 +724,9 @@
         rawImage !== 'undefined' &&
         rawImage !== '[object Object]'
       ) ? rawImage : '';
-      const date = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
+      const dateStr = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
+      const authorName = esc(p.authorName || 'Staff Writer');
+      const authorDateStr = `${authorName} · ${dateStr}`;
       // FIX: Strip HTML tags before counting words for reading time
       const plainText = (p.content || '').replace(/<[^>]+>/g, ' ').trim();
       const readTime = Math.max(1, Math.ceil(plainText.split(/\s+/).filter(Boolean).length / 200));
@@ -693,7 +742,7 @@
               <h2 class="post-title">${title}</h2>
               <p class="post-excerpt">${excerpt}</p>
               <div class="post-meta">
-                <span class="post-date">${date}</span>
+                <span class="post-date">${authorDateStr}</span>
                 <div style="display:flex;align-items:center;gap:0.75rem">
                   <span class="post-read-time">${readTime} min read</span>
                   <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
@@ -709,7 +758,7 @@
           <h3 class="post-title">${title}</h3>
           <p class="post-excerpt">${excerpt}</p>
           <div class="post-meta">
-            <span class="post-date">${date}</span>
+            <span class="post-date">${authorDateStr}</span>
             <div style="display:flex;align-items:center;gap:0.75rem">
               <span class="post-read-time">${readTime} min read</span>
               <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
@@ -811,18 +860,30 @@
         document.getElementById('aboutMissionWrap').style.display = 'none';
       }
 
-      // Social links
+      // Social links — read from nested socials object (admin profile) with flat-field fallback
+      const s = data.socials || {};
       const socials = document.getElementById('aboutSocials');
       const links = [
-        { key: 'email',    label: '✉ Email',    href: data.email    ? `mailto:${data.email}` : null },
-        { key: 'twitter',  label: '𝕏 Twitter',  href: data.twitter  || null },
-        { key: 'linkedin', label: 'in LinkedIn', href: data.linkedin || null },
+        { key: 'email',    label: '✉ Email',    href: (data.email || s.email)    ? `mailto:${data.email || s.email}` : null },
+        { key: 'twitter',  label: '𝕏 Twitter',  href: s.x || data.twitter  || null },
+        { key: 'linkedin', label: 'in LinkedIn', href: s.linkedin || data.linkedin || null },
+        { key: 'youtube',  label: '▶ YouTube',  href: s.youtube  || null },
+        { key: 'github',   label: '⌂ GitHub',   href: s.github   || null },
         { key: 'website',  label: '↗ Website',  href: data.website  || null },
       ];
       socials.innerHTML = links
         .filter(l => l.href)
         .map(l => `<a class="about-social-link" href="${l.href}" target="_blank" rel="noopener">${l.label}</a>`)
         .join('');
+
+      // Populate sitemap social links too
+      const smSocials = document.getElementById('sitemapSocials');
+      if (smSocials) {
+        const smLinks = links.filter(l => l.href);
+        smSocials.innerHTML = smLinks
+          .map(l => `<li><a href="${l.href}" target="_blank" rel="noopener"><span class="sm-icon">${l.label.split(' ')[0]}</span> ${l.label.split(' ').slice(1).join(' ')}</a></li>`)
+          .join('') || '<li><a href="mailto:contact@blogspro.in"><span class="sm-icon">✉</span> Email</a></li>';  
+      }
 
       // Show real content, hide skeleton
       if (skeleton)    skeleton.style.display = 'none';

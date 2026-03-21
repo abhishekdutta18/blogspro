@@ -316,8 +316,12 @@ window.generateTopicClusters = async () => {
 };
 
 window.generateContentCalendar = async () => {
-  const category = document.getElementById('calCategory').value;
-  const topic    = document.getElementById('calTopic')?.value.trim()||'fintech';
+  const calCatEl = document.getElementById('calCategory');
+  const catFallback = document.getElementById('clusterCategory');
+  const category = calCatEl ? calCatEl.value : (catFallback ? catFallback.value : 'Fintech');
+
+  const topicEl = document.getElementById('calTopic') || document.getElementById('clusterTopic');
+  const topic = (topicEl && topicEl.value.trim()) ? topicEl.value.trim() : 'fintech';
   setBtnLoading('btnCalendar','calBtnTxt','calSpinner',true,'Generating…');
   const result = await callAI(
     `Create a 30-day content calendar for a fintech blog.\nCategory: ${category}. Topic seed: "${topic}".\nReturn ONLY JSON:\n{"week1":[{"day":1,"title":"","category":"","hook":""},{"day":3,"title":"","category":"","hook":""},{"day":5,"title":"","category":"","hook":""}],"week2":[{"day":8,"title":"","category":"","hook":""},{"day":10,"title":"","category":"","hook":""},{"day":12,"title":"","category":"","hook":""}],"week3":[{"day":15,"title":"","category":"","hook":""},{"day":17,"title":"","category":"","hook":""},{"day":19,"title":"","category":"","hook":""}],"week4":[{"day":22,"title":"","category":"","hook":""},{"day":24,"title":"","category":"","hook":""},{"day":26,"title":"","category":"","hook":""},{"day":28,"title":"","category":"","hook":""}]}`,

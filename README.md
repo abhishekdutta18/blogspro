@@ -58,10 +58,13 @@ A full-featured, AI-powered blog platform built with **Vanilla HTML/CSS/JS**, **
 
 ### Platform
 - Firebase Auth — email/password protected admin
-- Role-based Firestore rules (admin / reader)
+- Role-based Firestore rules (admin / editor / coauthor / reader)
+- **Role request approval** — users request role upgrades; admins approve or reject from Users table
 - Newsletter subscriber collection with email validation
 - Comments subcollection with server-timestamp enforcement
 - Admin stats dashboard
+- **Admin profile editor** — manage personal details and public blog About section
+- **Homepage sitemap** — organized link grid with Navigate, Account, and Connect columns
 - Responsive design (mobile + desktop)
 
 ---
@@ -111,7 +114,8 @@ blogspro/
 │   ├── subscribers.js       ← Newsletter subscriber management
 │   ├── nav.js               ← Sidebar navigation
 │   ├── views.js             ← View switching logic
-│   ├── main.js              ← Public blog feed renderer
+│   ├── main.js              ← Boot sequence and module init
+│   ├── profile.js           ← Admin profile management (personal + public About)
 │   ├── seo-page.js          ← SEO meta tag injection
 │   ├── images-upload.js     ← Cloudinary upload handler
 │   ├── newsletter.js        ← Newsletter signup flow
@@ -439,10 +443,33 @@ All tools are in the **AI Tools** sidebar section of the admin panel.
 
 ```
 {
-  email:       string,
-  displayName: string,
-  role:        "admin" | "reader",
-  createdAt:   timestamp
+  email:            string,
+  name:             string,
+  bio:              string,
+  avatarUrl:        string,
+  role:             "admin" | "editor" | "coauthor" | "reader",
+  requestedRole:    string (pending upgrade request, cleared on approve/reject),
+  createdAt:        timestamp,
+  updatedAt:        timestamp
+}
+```
+
+### `site/about` document
+
+```
+{
+  name:      string,
+  heading:   string,
+  tagline:   string,
+  bio:       string,
+  mission:   string,
+  avatarUrl: string,
+  socials: {
+    x:        string (URL),
+    linkedin: string (URL),
+    youtube:  string (URL),
+    github:   string (URL)
+  }
 }
 ```
 
@@ -493,6 +520,27 @@ All tools are in the **AI Tools** sidebar section of the admin panel.
 - Firestore rules: published.
 - GitHub deploy commit for hotfix files: `9d48ea3` ("Deploy 5 files from ZIP (path discovery mode)").
 - GitHub deploy commit for deploy CLI tool: `db29511` ("Add CLI deploy script for Cloudflare worker push").
+
+---
+
+## Feature Update (2026-03-22)
+
+### Files changed
+
+- `index.html` — Sitemap section, About social-links sync fix
+- `js/users.js` — Approve/Reject buttons, pending badge
+- `js/profile.js` — New admin profile management module
+- `js/main.js` — Profile module import
+- `js/nav.js` — Profile view hook
+- `admin.html` — My Profile view, sidebar link
+
+### What was added
+
+1. **Homepage sitemap** — 4-column link grid (BlogsPro, Navigate, Account, Connect) before the footer, visible to all visitors.
+2. **Admin profile editor** — "My Profile" section in admin sidebar with personal account and public blog About management.
+3. **About section sync** — Fixed field-name mismatch between admin profile saves (`socials.x`) and homepage reads (`data.twitter`). Both formats are supported with backward-compat fallback.
+4. **User role-request approval** — Approve/Reject buttons on pending role requests in the Users table. Pending count badge on Users nav item. Uses `deleteField()` for clean Firestore updates.
+5. **Author attribution** — Posts now store `authorName` and `authorUid` for proper attribution on the blog feed.
 
 ---
 

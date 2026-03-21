@@ -427,6 +427,7 @@ Requirements:
 - Use <h2>${title}</h2> for the main heading
 - Use <h3> for sub-points, <p> for paragraphs
 - Use <strong> for key terms, <ul><li> for lists, <blockquote> for quotes
+- DO NOT generate any HTML data tables, charts, or SVG manually. Only use text and basic formatting elements.
 - Include at least one specific statistic, case study, or real-world example
 - Every paragraph must be substantive — no filler sentences
 - Do NOT re-introduce the topic or repeat the article premise

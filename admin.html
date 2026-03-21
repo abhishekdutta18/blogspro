@@ -99,6 +99,9 @@ function doLogout() {
       <div class="user-avatar" id="userInitial">—</div>
       <div class="user-email" id="userEmail">—</div>
     </div>
+    <div class="nav-item" data-view="profile" style="padding:0.6rem 0;margin-bottom:0.4rem;border:none;background:transparent;justify-content:center;font-size:0.75rem;font-weight:600;letter-spacing:0.05em;color:var(--gold);border-radius:3px;border:1px solid rgba(201,168,76,0.15)" onmouseover="this.style.background='rgba(201,168,76,0.05)'" onmouseout="this.style.background='transparent'">
+      <span>👤</span> My Profile
+    </div>
     <button class="btn-logout" onclick="doLogout()">Sign Out</button>
   </div>
 </aside>
@@ -220,7 +223,7 @@ function doLogout() {
                   <span style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap">Custom</span>
                   <input type="number" id="v2WCInput" min="100" max="100000" step="100" placeholder="e.g. 3000"
                     oninput="v2ApplyCustomWC(this)"
-                    style="flex:1;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:4px 6px;border-radius:3px;font-size:11px;outline:none;-moz-appearance:textfield"
+                    style="flex:1;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:4px 6px;border-radius:3px;font-size:11px;outline:none;-moz-appearance:textfield;appearance:none"
                     onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'" />
                   <span id="v2WCLabel" style="font-size:10px;font-weight:700;color:var(--muted);min-width:30px;text-align:right">—</span>
                 </div>
@@ -881,14 +884,93 @@ function doLogout() {
     </div>
   </div>
 
+  <!-- ══════════════ MY PROFILE ══════════════ -->
+  <div class="view" id="view-profile">
+    <div class="page-header">
+      <div><h2>My Profile</h2><p>Manage your account and public blog details</p></div>
+    </div>
 
-<!-- ══════════════ AI WRITER DRAWER ══════════════ -->
+    <div class="saas-grid-2">
+      <!-- Left: Personal Account -->
+      <div class="saas-panel gold-accent">
+        <div class="saas-panel-header"><h3>Personal Account</h3></div>
+        <div class="form-row">
+          <label class="form-label">Display Name</label>
+          <input type="text" id="profName" class="form-input" placeholder="e.g. Abhishek Dutta" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Short Bio (Personal)</label>
+          <textarea id="profBio" class="form-textarea" rows="3" placeholder="A brief about yourself for post attribution…"></textarea>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Avatar URL</label>
+          <div style="display:flex;gap:0.5rem">
+            <input type="text" id="profAvatar" class="form-input" placeholder="https://…" />
+            <button class="btn-publish" style="background:var(--navy3);border:1px solid var(--border);color:var(--gold);padding:0 1rem" onclick="openAIDrawer('image')">✨</button>
+          </div>
+        </div>
+        <button class="btn-publish" style="width:100%;margin-top:0.5rem" onclick="savePersonalProfile()">Update Personal Details</button>
+      </div>
+
+      <!-- Right: Public Blog Author Info -->
+      <div class="saas-panel blue-accent">
+        <div class="saas-panel-header"><h3>Public Blog "About"</h3></div>
+        <div class="form-row">
+          <label class="form-label">Main Heading</label>
+          <input type="text" id="aboutHeading" class="form-input" placeholder="e.g. Fintech Insights for Practitioners" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Sub-Tagline</label>
+          <input type="text" id="aboutTagline" class="form-input" placeholder="e.g. Strategy, Compliance & Tech" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Detailed Bio (Public)</label>
+          <textarea id="aboutBio" class="form-textarea" rows="4" placeholder="This appears in the About section of your blog…"></textarea>
+        </div>
+        <button class="btn-publish" style="width:100%;margin-top:0.5rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff" onclick="savePublicAbout()">Update Blog About Section</button>
+      </div>
+    </div>
+
+    <div class="saas-panel purple-accent">
+      <div class="saas-panel-header"><h3>Social Links & Mission</h3></div>
+      <div class="saas-grid-2">
+        <div>
+          <div class="form-row">
+            <label class="form-label">Mission Statement</label>
+            <textarea id="aboutMission" class="form-textarea" rows="3" placeholder="e.g. Our mission is to democratize fintech knowledge…"></textarea>
+          </div>
+          <div class="form-row">
+            <label class="form-label">X (Twitter) URL</label>
+            <input type="text" id="socialX" class="form-input" placeholder="https://x.com/yourhandle" />
+          </div>
+        </div>
+        <div>
+          <div class="form-row">
+            <label class="form-label">LinkedIn URL</label>
+            <input type="text" id="socialLinkedIn" class="form-input" placeholder="https://linkedin.com/in/handle" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">YouTube URL</label>
+            <input type="text" id="socialYouTube" class="form-input" placeholder="https://youtube.com/@handle" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">GitHub URL</label>
+            <input type="text" id="socialGitHub" class="form-input" placeholder="https://github.com/handle" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <div id="aiDrawerOverlay" onclick="closeAIDrawer()"></div>
 <div id="aiDrawer">
   <!-- Drawer Header -->
   <div class="ai-drawer-head">
     <div>
-      <div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent">✦ AI Writer</div>
+      <div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;      background:linear-gradient(135deg,var(--gold),var(--gold2));
+      -webkit-background-clip:text;
+      background-clip:text;
+      -webkit-text-fill-color:transparent;">✦ AI Writer</div>
       <div style="font-size:0.68rem;color:var(--muted);margin-top:0.1rem">Generate · Edit · Optimize</div>
     </div>
     <button onclick="closeAIDrawer()" style="background:transparent;border:1px solid var(--border);color:var(--muted);width:28px;height:28px;border-radius:3px;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s" onmouseover="this.style.borderColor='var(--red)';this.style.color='#fca5a5'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">✕</button>
@@ -957,7 +1039,7 @@ function doLogout() {
               step="100"
               placeholder="e.g. 3000"
               oninput="applyCustomWordTarget(this)"
-              style="flex:1;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.35rem 0.55rem;border-radius:3px;font-family:var(--mono);font-size:0.78rem;outline:none;transition:border-color 0.15s;-moz-appearance:textfield"
+              style="flex:1;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.35rem 0.55rem;border-radius:3px;font-family:var(--mono);font-size:0.78rem;outline:none;transition:border-color 0.15s;-moz-appearance:textfield;appearance:textfield"
               onfocus="this.style.borderColor='var(--gold)'"
               onblur="this.style.borderColor='var(--border)'"
             />
@@ -1188,6 +1270,14 @@ function doLogout() {
 
 <div class="toast" id="toast"></div>
 
+<!-- Post Audit / Quality Engine Integration Flags -->
+<script>
+  window.__ENABLE_POST_AUDIT__ = true;
+  window.__POST_AUDIT_AUTORUN__ = true;
+  window.__POST_AUDIT_AUTO_RECTIFY__ = true;
+  window.__POST_AUDIT_AUTO_SAVE__ = true;
+  window.__POST_AUDIT_GITHUB_PUSH__ = false;
+</script>
 <script type="module" src="js/main.js"></script>
   <!-- Floating scroll buttons -->
   <div id="scrollFloats" style="position:fixed;bottom:80px;right:18px;display:flex;flex-direction:column;gap:6px;z-index:400;opacity:0;transition:opacity 0.3s;pointer-events:none">

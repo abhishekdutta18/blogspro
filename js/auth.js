@@ -30,7 +30,6 @@ function sentrySetUser(user) {
 }
 
 // No hardcoded UIDs or emails — admin status is determined
-// exclusively by role: "admin" in the user's Firestore document.
 export function initAuth() {
   onAuthStateChanged(auth, async user => {
     if (!user) { window.location.href = 'login.html'; return; }

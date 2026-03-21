@@ -490,8 +490,11 @@ async function autoSave() {
     updatedAt:   serverTimestamp(),
     auditedAt:   serverTimestamp(),
     auditPassed: true,
+    authorName:  state.currentUser?.displayName || state.currentUser?.email?.split('@')[0] || 'Admin',
+    authorUid:   state.currentUser?.uid || '',
   };
 
+  if (!data.slug) data.slug = slugify(data.title) || 'untitled-post';
   if (state.editingPostId) {
     await updateDoc(doc(db, 'posts', state.editingPostId), data);
   } else {
@@ -619,6 +622,7 @@ export async function runFullAudit(trigger = 'manual') {
   } catch (err) {
     console.error('[PostAudit]', err);
     showToast('Post audit error: ' + err.message, 'error');
+    _closeProgress();
   } finally {
     _running = false;
   }
