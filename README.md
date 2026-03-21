@@ -197,6 +197,26 @@ The Cloudflare Worker is the **primary AI backend**. It routes prompts to Llama 
 export const WORKER_URL = "https://your-worker.your-subdomain.workers.dev";
 ```
 
+#### Automated Worker Creation (Wrangler)
+
+You can automate Worker creation + secret upload from this repo:
+
+```bash
+CLOUDFLARE_API_TOKEN=your_token \
+CLOUDFLARE_ACCOUNT_ID=your_account_id \
+GITHUB_PAT=your_github_pat \
+node bootstrap-worker.js \
+  --name github-push \
+  --script ./worker.js \
+  --secret-env GITHUB_PAT:GITHUB_TOKEN \
+  --secret DEPLOY_TOKEN=change-me
+```
+
+Notes:
+- `bootstrap-worker.js` deploys the Worker and sets secrets using `wrangler@4`.
+- `--secret-env ENV:SECRET_NAME` maps a local env var to a Worker secret key.
+- Use `--dry-run` first to validate inputs without deploying.
+
 ---
 
 ### 3. AI Fallback Keys (Groq + Gemini)
