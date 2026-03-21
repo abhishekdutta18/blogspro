@@ -163,6 +163,8 @@ export async function savePost(publish) {
       const ref = await addDoc(collection(db,'posts'), data);
       state.editingPostId = ref.id;
     }
+    const topbarStateBadge = document.getElementById('topbarStateBadge');
+    if (topbarStateBadge) topbarStateBadge.textContent = publish ? 'Published' : 'Draft';
     saveStatus.textContent = publish ? '✓ Published' : '✓ Draft saved';
     showToast(publish ? 'Post published!' : 'Draft saved.', 'success');
     await loadAll();
@@ -183,6 +185,8 @@ export async function editPost(id) {
   window.showView('editor');
   state.editingPostId = id;
   document.getElementById('editorHeading').textContent = 'Edit Post';
+  const topbarTitle = document.getElementById('topbarTitle');
+  if (topbarTitle) topbarTitle.textContent = 'Edit Post';
   try {
     const snap = await getDoc(doc(db,'posts',id));
     if (!snap.exists()) return;
@@ -199,6 +203,11 @@ export async function editPost(id) {
     document.getElementById('postCategory').value = p.category||'Fintech';
     state.isPremium = p.premium === true;
     document.getElementById('premiumSwitch')?.classList.toggle('on', state.isPremium);
+    const topbarStateBadge = document.getElementById('topbarStateBadge');
+    if (topbarStateBadge) {
+      const stage = p.stage || (p.published ? 'published' : 'draft');
+      topbarStateBadge.textContent = stage === 'published' ? 'Published' : (stage === 'review' ? 'Review' : 'Draft');
+    }
     window.updateWordCount?.();
     window.openAIDrawer?.('edit');
   } catch(e) { showToast('Failed to load post.','error'); }

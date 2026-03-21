@@ -436,6 +436,10 @@ export function clearEditor() {
   if (cat) cat.selectedIndex = 0;
   const heading = document.getElementById("editorHeading");
   if (heading) heading.textContent = "New Post";
+  const topbarTitle = document.getElementById("topbarTitle");
+  if (topbarTitle) topbarTitle.textContent = "New Post";
+  const topbarStateBadge = document.getElementById("topbarStateBadge");
+  if (topbarStateBadge) topbarStateBadge.textContent = "Draft";
   const preview = document.getElementById("featuredPreview");
   const previewImg = document.getElementById("featuredPreviewImg");
   const previewLabel = document.getElementById("featuredPreviewLabel");

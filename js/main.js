@@ -18,7 +18,6 @@ import { initAIWriter } from "./ai-writer.js";
 import { initAutoBlog } from "./auto-blog.js";
 import { initAIImages } from "./ai-images.js";
 import { initSiteSettings } from "./site-settings.js";
-import './post-audit.js';
 
 // ── Sentry is initialised in admin.html via Sentry.onLoad() — do NOT
 //    call Sentry.init() here. Just use window.Sentry when available. ──
@@ -37,6 +36,11 @@ async function boot() {
     initAutoBlog();
     initAIImages();
     initSiteSettings();
+    if (window.__ENABLE_POST_AUDIT__ === true) {
+      import("./post-audit.js").catch(err => {
+        console.warn("[post-audit] optional module failed to load:", err.message);
+      });
+    }
   } catch (err) {
     window.Sentry?.captureException(err);
     document.body.innerHTML =
