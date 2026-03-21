@@ -41,6 +41,7 @@ async function runAIEdit(instruction) {
                 || 'fintech article';
   const category = document.getElementById('postCategory')?.value || 'General';
   const model    = document.getElementById('modelArticle')?.value || 'auto';
+  const relevanceRule = `CRITICAL RELEVANCE: Keep all edits strictly focused on "${topic}" in "${category}". Do not introduce unrelated domains or generic filler.`;
   if (!currentText?.trim()) { setEditStatus('No article content.', true); return; }
 
   // FIX: Back up content before any destructive AI edit
@@ -67,6 +68,7 @@ async function runAIEdit(instruction) {
           `Edit this section of a fintech article about "${topic}" (${category}).
 SECTION: ${chunks[i]}
 TASK: ${instruction}
+${relevanceRule}
 Write ONLY in English. Return ONLY clean HTML. Same length or longer.`,
           true, model, 8000
         );
@@ -84,6 +86,7 @@ Write ONLY in English. Return ONLY clean HTML. Same length or longer.`,
 Section ${i + 1} of ${sections.length}: "${secTitle}"
 SECTION HTML: ${sections[i]}
 TASK: ${instruction}
+${relevanceRule}
 Write ONLY in English. Return ONLY clean HTML for this section. Same or more words.`,
           true, model, 8000
         );
@@ -104,6 +107,7 @@ Write ONLY in English. Return ONLY clean HTML for this section. Same or more wor
 Word count: ${wordCount} words.
 ARTICLE: ${currentText}
 TASK: ${instruction}
+${relevanceRule}
 Write ONLY in English. Return ONLY clean HTML. Use <h2><h3><p><strong><em><ul><li><blockquote>. Never use <h1>. Never reduce word count.`,
       true, model, 8000
     );

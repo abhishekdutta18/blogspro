@@ -324,7 +324,26 @@ Requirements:
 - Do NOT re-introduce the topic or repeat the article premise
 ${LANG_RULE}`;
 
-      const result = await callWithRetry(prompt, model);
+      let result = await callWithRetry(prompt, model);
+
+      // Relevance guard: auto-retry once with stricter constraints if drifted off-topic.
+      if (!result.error && result.text?.trim()) {
+        const relevanceKeys = _topicKeywords(topic, category, title);
+        if (!_isRelevantToTopic(result.text, relevanceKeys)) {
+          timerLog(`  ↺ [${progress}] off-topic output detected — retrying with strict relevance`);
+          const focusedPrompt = `${prompt}
+
+CRITICAL RELEVANCE RULES:
+- This section MUST stay strictly about: "${topic}".
+- It MUST include at least 3 of these terms naturally: ${relevanceKeys.join(', ')}.
+- Do not switch to unrelated domains, countries, or topics.
+- Keep examples and data anchored to "${topic}" and "${category}".`;
+          const retry = await callWithRetry(focusedPrompt, model, 2);
+          if (!retry.error && retry.text?.trim()) {
+            result = retry;
+          }
+        }
+      }
 
       if (_cancelled) break;
 
@@ -432,13 +451,25 @@ CRITICAL: Respond ONLY with a single valid JSON object. No markdown, no backtick
         const e = raw.lastIndexOf('}');
         if (s !== -1 && e !== -1) {
           const meta = JSON.parse(raw.substring(s, e + 1));
+          const metaKeys = _topicKeywords(topic, category, topic);
+          const fallbackTitle = _buildFallbackTitle(topic, category);
+          const fallbackExcerpt = _buildFallbackExcerpt(topic, category);
+
+          const safeTitle = _isRelevantToTopic(meta.title || '', metaKeys) ? meta.title : fallbackTitle;
+          const safeExcerpt = _isRelevantToTopic(meta.excerpt || '', metaKeys) ? meta.excerpt : fallbackExcerpt;
+          const safeMetaDesc = _isRelevantToTopic(meta.metaDesc || '', metaKeys) ? meta.metaDesc : fallbackExcerpt.slice(0, 155);
+          const safeSlug = meta.slug || _slugify(topic);
+          const safeTags = Array.isArray(meta.tags) && meta.tags.length
+            ? meta.tags
+            : _topicKeywords(topic, category, '').slice(0, 5);
+
           // Force-set all fields — don't skip if already has a value
-          if (meta.title)    { const el = document.getElementById('postTitle');   if (el) el.value = meta.title; }
-          if (meta.excerpt)  { const el = document.getElementById('postExcerpt'); if (el) el.value = meta.excerpt; }
-          if (meta.slug)     { const el = document.getElementById('postSlug');    if (el) el.value = meta.slug; }
-          if (meta.metaDesc) { const el = document.getElementById('postMeta');    if (el) el.value = meta.metaDesc; }
-          if (meta.tags?.length) { const el = document.getElementById('postTags'); if (el) el.value = meta.tags.join(', '); }
-          timerLog(`✓ Metadata: "${(meta.title||'').substring(0,40)}"`);
+          if (safeTitle)    { const el = document.getElementById('postTitle');   if (el) el.value = safeTitle; }
+          if (safeExcerpt)  { const el = document.getElementById('postExcerpt'); if (el) el.value = safeExcerpt; }
+          if (safeSlug)     { const el = document.getElementById('postSlug');    if (el) el.value = safeSlug; }
+          if (safeMetaDesc) { const el = document.getElementById('postMeta');    if (el) el.value = safeMetaDesc; }
+          if (safeTags?.length) { const el = document.getElementById('postTags'); if (el) el.value = safeTags.join(', '); }
+          timerLog(`✓ Metadata: "${(safeTitle||'').substring(0,40)}"`);
         }
       } catch(parseErr) {
         timerLog(`⚠ Metadata parse failed: ${parseErr.message}`);
@@ -585,4 +616,53 @@ function _esc(str) {
 
 function _sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
+}
+
+function _topicKeywords(topic, category, sectionTitle = '') {
+  const stop = new Set([
+    'the','and','for','with','from','into','that','this','your','their','have','has','are','was','were','about','into',
+    'what','when','where','which','while','will','would','could','should','how','why','but','not','all','more','less',
+    'section','introduction','conclusion','key','takeaways','write','article','blog','guide'
+  ]);
+  const raw = `${topic} ${category} ${sectionTitle}`.toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .split(/\s+/)
+    .map(w => w.trim())
+    .filter(w => w.length >= 4 && !stop.has(w));
+  const uniq = [...new Set(raw)];
+  return uniq.slice(0, 8);
+}
+
+function _plainText(htmlOrText = '') {
+  return String(htmlOrText)
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function _isRelevantToTopic(htmlOrText, keywords = []) {
+  const text = _plainText(htmlOrText);
+  if (!text || keywords.length === 0) return false;
+  let hits = 0;
+  for (const kw of keywords) {
+    if (text.includes(kw.toLowerCase())) hits++;
+  }
+  const ratio = hits / keywords.length;
+  return hits >= Math.min(3, keywords.length) || ratio >= 0.45;
+}
+
+function _slugify(s = '') {
+  return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+}
+
+function _buildFallbackTitle(topic, category) {
+  const base = `${topic}`.trim();
+  if (!base) return `Practical ${category} Guide`;
+  const short = base.length > 54 ? `${base.slice(0, 51)}...` : base;
+  return `${short} | ${category} Guide`;
+}
+
+function _buildFallbackExcerpt(topic, category) {
+  return `A practical ${category.toLowerCase()} guide to ${topic}, with key insights, examples, and actionable takeaways.`;
 }
