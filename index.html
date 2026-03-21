@@ -302,6 +302,7 @@
     /* Skeleton for about */
     .about-skeleton { animation: shimmer 1.5s infinite; background: linear-gradient(90deg, var(--navy2) 25%, var(--navy3) 50%, var(--navy2) 75%); background-size: 200% 100%; border-radius: 4px; }
     .about-hidden { display: none !important; }
+    .about-skeleton-grid { grid-column:1/-1; display:grid; grid-template-columns:minmax(0,280px) minmax(0,1fr); gap:5rem; align-items:start; }
 
     /* ── NEWSLETTER ── */
     .newsletter { background: var(--navy2); border: 1px solid var(--border); padding: 4rem 3rem; text-align: center; position: relative; overflow: hidden; }
@@ -343,6 +344,7 @@
       .newsletter-form { flex-direction: column; }
       footer { flex-direction: column; text-align: center; }
       .about-inner { grid-template-columns: 1fr; gap: 2.5rem; }
+      .about-skeleton-grid { grid-template-columns: 1fr; gap: 1.8rem; }
       .about-avatar-col { flex-direction: row; text-align: left; align-items: flex-start; gap: 1.5rem; }
       .about-avatar-wrap { width: 80px; height: 80px; flex-shrink: 0; margin-bottom: 0; }
       .about-avatar-initial { font-size: 2rem; }
@@ -466,7 +468,7 @@
   <div class="about-inner" id="aboutInner">
 
     <!-- Skeleton while loading -->
-    <div id="aboutSkeleton" style="grid-column:1/-1;display:grid;grid-template-columns:280px 1fr;gap:5rem;align-items:start">
+    <div id="aboutSkeleton" class="about-skeleton-grid">
       <div style="display:flex;flex-direction:column;align-items:center;gap:1rem">
         <div class="about-skeleton" style="width:160px;height:160px;border-radius:50%"></div>
         <div class="about-skeleton" style="width:120px;height:1.2rem"></div>
@@ -661,14 +663,15 @@
       const title    = esc(p.title);
       const excerpt  = esc(p.excerpt);
       const category = esc(p.category) || 'General';
-      const image    = imagesEnabled ? DOMPurify.sanitize(p.image || '') : '';
+      const rawImage = imagesEnabled ? DOMPurify.sanitize(p.image || '') : '';
+      const image    = /^https?:\/\//i.test(rawImage) ? rawImage : '';
       const date = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
       // FIX: Strip HTML tags before counting words for reading time
       const plainText = (p.content || '').replace(/<[^>]+>/g, ' ').trim();
       const readTime = Math.max(1, Math.ceil(plainText.split(/\s+/).filter(Boolean).length / 200));
       if (i === 0) {
         const visual = image
-          ? `<div class="featured-visual featured-visual-img"><img src="${image}" alt="${title}" loading="lazy" /></div>`
+          ? `<div class="featured-visual featured-visual-img"><img src="${image}" alt="${title}" loading="lazy" onerror="this.closest('.featured-visual')?.remove(); this.closest('.post-card')?.classList.add('featured-no-img');" /></div>`
           : '';
         return `
           <div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}')" style="animation-delay:${i*0.08}s">
@@ -742,28 +745,28 @@
       const avatarCol = document.getElementById('aboutAvatarCol');
       const contentCol = document.getElementById('aboutContentCol');
 
-      if (!snap.exists()) {
-        // No about data yet — hide the whole section gracefully
-        document.getElementById('about').style.display = 'none';
-        return;
-      }
-
-      const data = snap.data();
+      const data = snap.exists() ? snap.data() : {};
 
       // Avatar
       const avatarImg = document.getElementById('aboutAvatarImg');
       const avatarInitial = document.getElementById('aboutAvatarInitial');
       if (data.avatarUrl) {
         avatarImg.src = data.avatarUrl;
+        avatarImg.onerror = () => {
+          avatarImg.style.display = 'none';
+          avatarInitial.style.display = 'flex';
+        };
         avatarImg.style.display = 'block';
         avatarInitial.style.display = 'none';
       } else {
         avatarInitial.textContent = (data.name || 'B')[0].toUpperCase();
+        avatarImg.style.display = 'none';
+        avatarInitial.style.display = 'flex';
       }
 
       // Name + tagline
       document.getElementById('aboutDisplayName').textContent  = data.name    || 'BlogsPro';
-      document.getElementById('aboutDisplayName2').textContent = data.name    || 'Sharp insights for fintech practitioners.';
+      document.getElementById('aboutDisplayName2').textContent = data.heading || data.tagline || 'Sharp insights for fintech practitioners.';
       document.getElementById('aboutDisplayTagline').textContent = data.tagline || '';
 
       // Bio
@@ -774,6 +777,8 @@
       if (data.mission) {
         document.getElementById('aboutDisplayMission').textContent = data.mission;
         document.getElementById('aboutMissionWrap').style.display = 'block';
+      } else {
+        document.getElementById('aboutMissionWrap').style.display = 'none';
       }
 
       // Social links
@@ -796,7 +801,12 @@
 
     } catch(err) {
       console.warn('About section unavailable:', err.message);
-      document.getElementById('about').style.display = 'none';
+      const skeleton = document.getElementById('aboutSkeleton');
+      const avatarCol = document.getElementById('aboutAvatarCol');
+      const contentCol = document.getElementById('aboutContentCol');
+      if (skeleton) skeleton.style.display = 'none';
+      if (avatarCol) avatarCol.classList.remove('about-hidden');
+      if (contentCol) contentCol.classList.remove('about-hidden');
     }
   }
 

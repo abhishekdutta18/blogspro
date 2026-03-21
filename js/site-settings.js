@@ -12,6 +12,7 @@ function updateUi() {
   if (!sw || !status || !hint) return;
 
   sw.classList.toggle("on", imagesEnabled);
+  sw.classList.toggle("disabled", saving);
   status.textContent = imagesEnabled
     ? "ON — images are visible on public pages."
     : "OFF — images are hidden on public pages.";
@@ -52,7 +53,7 @@ window.toggleSiteImages = async function toggleSiteImages() {
     showToast(`Website images turned ${imagesEnabled ? "ON" : "OFF"}.`, "success");
   } catch (err) {
     imagesEnabled = !imagesEnabled;
-    showToast("Failed to update image setting.", "error");
+    showToast("Failed to update image setting: " + (err.code || err.message), "error");
     console.error("site settings write failed:", err);
   } finally {
     saving = false;
@@ -64,4 +65,3 @@ export function initSiteSettings() {
   if (!document.getElementById("siteImagesSwitch")) return;
   loadSetting();
 }
-
