@@ -22,6 +22,51 @@ const THEME = {
   palette:  ['#c9a84c','#93c5fd','#4ade80','#c4b5fd','#fca5a5','#fdba74','#6ee7b7'],
 };
 
+function toNum(v) {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') {
+    const cleaned = v.replace(/,/g, '').match(/-?\d+(\.\d+)?/);
+    if (cleaned) return Number(cleaned[0]);
+  }
+  return Number(v);
+}
+
+function compactNum(n) {
+  if (!isFinite(n)) return String(n);
+  const abs = Math.abs(n);
+  if (abs >= 1e9) return `${(n / 1e9).toFixed(2).replace(/\.?0+$/, '')}B`;
+  if (abs >= 1e6) return `${(n / 1e6).toFixed(2).replace(/\.?0+$/, '')}M`;
+  if (abs >= 1e3) return `${(n / 1e3).toFixed(1).replace(/\.?0+$/, '')}k`;
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function formatValue(v, unit = '') {
+  const n = toNum(v);
+  if (!isFinite(n)) return String(v ?? '');
+  const u = String(unit || '').trim();
+  if (!u) return compactNum(n);
+
+  // Examples: "$B", "₹M" => "$12.5B", "₹3.2M"
+  const currencyScale = u.match(/^([$₹€£])\s*([a-zA-Z]+)$/);
+  if (currencyScale) {
+    const sym = currencyScale[1];
+    const scale = currencyScale[2];
+    return `${sym}${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}${scale}`;
+  }
+
+  // Examples: "$", "₹" => "$12.5M"
+  if (/^[$₹€£]$/.test(u)) return `${u}${compactNum(n)}`;
+  if (u === '%') return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
+
+  // Examples: "M", "B", "million", "billion", "crore"
+  if (/^(k|m|b|mn|bn|million|billion|thousand|lakh|crore)$/i.test(u)) {
+    return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}${u.length <= 2 ? u : ` ${u}`}`;
+  }
+
+  // Generic unit suffix
+  return `${compactNum(n)} ${u}`;
+}
+
 // ─────────────────────────────────────────────
 // Public API — called from ai-writer.js
 // topic: article topic, sectionTitle: current section
@@ -119,16 +164,17 @@ function buildBarChart(data) {
   const series   = data.datasets?.[0];
   if (!series?.values?.length) return '';
   // FIX: Calculate max across ALL datasets, not just the first
-  const allValues = data.datasets.flatMap(ds => ds.values.map(Number).filter(v => !isNaN(v)));
+  const allValues = data.datasets.flatMap(ds => ds.values.map(toNum).filter(v => !isNaN(v)));
   const max      = Math.max(...allValues) || 1;
   const unit     = data.unit || '';
   const multiSeries = data.datasets?.length > 1;
+  const baseValues = series.values.map(toNum).filter(v => !isNaN(v));
 
   const bars = data.labels.map((label, i) => {
     if (multiSeries) {
       // Grouped bars
       const groupBars = data.datasets.map((ds, di) => {
-        const val = Number(ds.values[i]) || 0;
+        const val = toNum(ds.values[i]) || 0;
         const pct = Math.round((val / max) * 100);
         const color = THEME.palette[di % THEME.palette.length];
         return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
@@ -136,7 +182,7 @@ function buildBarChart(data) {
           <div style="flex:1;background:rgba(255,255,255,0.05);border-radius:2px;height:14px;overflow:hidden">
             <div style="width:${pct}%;height:100%;background:${color};border-radius:2px;transition:width 0.8s ease;min-width:2px"></div>
           </div>
-          <span style="font-size:0.68rem;color:${color};font-weight:700;width:40px;flex-shrink:0">${unit}${val.toLocaleString()}</span>
+          <span style="font-size:0.68rem;color:${color};font-weight:700;min-width:56px;flex-shrink:0;text-align:right">${formatValue(val, unit)}</span>
         </div>`;
       }).join('');
       return `<div style="margin-bottom:0.9rem">
@@ -144,13 +190,13 @@ function buildBarChart(data) {
         ${groupBars}
       </div>`;
     } else {
-      const val = values[i] || 0;
+      const val = baseValues[i] || 0;
       const pct = Math.round((val / max) * 100);
       const color = THEME.palette[i % THEME.palette.length];
       return `<div style="margin-bottom:0.6rem">
         <div style="display:flex;justify-content:space-between;margin-bottom:3px">
           <span style="font-size:0.75rem;color:${THEME.cream}">${label}</span>
-          <span style="font-size:0.75rem;color:${color};font-weight:700">${unit}${val.toLocaleString()}</span>
+          <span style="font-size:0.75rem;color:${color};font-weight:700">${formatValue(val, unit)}</span>
         </div>
         <div style="background:rgba(255,255,255,0.05);border-radius:3px;height:16px;overflow:hidden">
           <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,${color},${color}cc);border-radius:3px;transition:width 0.8s ease;min-width:4px"></div>
@@ -179,7 +225,7 @@ function buildLineChart(data) {
   const iW = W - padL - padR;
   const iH = H - padT - padB;
 
-  const allVals = data.datasets.flatMap(ds => ds.values.map(Number).filter(v => !isNaN(v)));
+  const allVals = data.datasets.flatMap(ds => ds.values.map(toNum).filter(v => !isNaN(v)));
   const min = Math.min(...allVals, 0);
   const max = Math.max(...allVals, 1);
   const range = max - min || 1;
@@ -193,9 +239,9 @@ function buildLineChart(data) {
   const gridLines = Array.from({length: yTicks + 1}, (_, ti) => {
     const v = min + (range / yTicks) * ti;
     const y = yScale(v);
-    const label = v >= 1000 ? (v/1000).toFixed(1)+'k' : v.toFixed(v < 10 ? 1 : 0);
+    const label = formatValue(v, data.unit || '');
     return `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="${THEME.border}" stroke-width="1"/>
-            <text x="${padL - 4}" y="${y + 4}" text-anchor="end" font-size="9" fill="${THEME.muted}">${data.unit||''}${label}</text>`;
+            <text x="${padL - 4}" y="${y + 4}" text-anchor="end" font-size="9" fill="${THEME.muted}">${label}</text>`;
   }).join('');
 
   // X axis labels
@@ -207,7 +253,7 @@ function buildLineChart(data) {
 
   // Series lines + dots
   const seriesElements = data.datasets.map((ds, di) => {
-    const vals = ds.values.map(Number);
+    const vals = ds.values.map(toNum);
     const color = THEME.palette[di % THEME.palette.length];
     const pts = vals.map((v, i) => `${xScale(i)},${yScale(v)}`).join(' ');
     // Area fill
@@ -248,7 +294,7 @@ function buildLineChart(data) {
 function buildPieChart(data) {
   const series = data.datasets?.[0];
   if (!series?.values?.length) return '';
-  const vals  = series.values.map(Number).filter(v => !isNaN(v) && v > 0);
+  const vals  = series.values.map(toNum).filter(v => !isNaN(v) && v > 0);
   const total = vals.reduce((a, b) => a + b, 0) || 1;
   const CX = 90, CY = 90, R = 72, IR = 40; // donut
   let angle = -Math.PI / 2;
@@ -279,14 +325,14 @@ function buildPieChart(data) {
       <span style="width:12px;height:12px;border-radius:2px;background:${s.color};flex-shrink:0;display:inline-block"></span>
       <span style="font-size:0.75rem;color:${THEME.cream};flex:1">${s.label}</span>
       <span style="font-size:0.75rem;font-weight:700;color:${s.color}">${s.pct}%</span>
-      <span style="font-size:0.7rem;color:${THEME.muted}">${data.unit||''}${s.val.toLocaleString()}</span>
+      <span style="font-size:0.7rem;color:${THEME.muted}">${formatValue(s.val, data.unit || '')}</span>
     </div>`
   ).join('');
 
   const svg = `<svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg" style="width:180px;height:180px;flex-shrink:0">
     ${slices.map(s => s.path).join('')}
     <circle cx="${CX}" cy="${CY}" r="${IR - 3}" fill="${THEME.bg2}"/>
-    <text x="${CX}" y="${CY - 6}" text-anchor="middle" font-size="11" fill="${THEME.cream}" font-weight="700">${data.unit||''}${vals.reduce((a,b)=>a+b,0).toLocaleString()}</text>
+    <text x="${CX}" y="${CY - 6}" text-anchor="middle" font-size="11" fill="${THEME.cream}" font-weight="700">${formatValue(vals.reduce((a,b)=>a+b,0), data.unit || '')}</text>
     <text x="${CX}" y="${CY + 10}" text-anchor="middle" font-size="9" fill="${THEME.muted}">Total</text>
   </svg>`;
 
