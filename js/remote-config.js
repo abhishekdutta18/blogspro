@@ -10,11 +10,36 @@ import {
 
 
 export let AI_KEYS = {};
-const USE_CLIENT_KEYS = window.__USE_CLIENT_AI_KEYS__ === true;
+
+function hasUsableAiWorkerBase() {
+  const candidates = [
+    window.__AI_API_BASE__,
+    localStorage.getItem('bp_ai_api_base'),
+    window.__AI_WORKER_URL,
+    localStorage.getItem('bp_ai_worker_url'),
+  ]
+    .map(v => String(v || '').trim())
+    .filter(Boolean);
+
+  return candidates.some((base) => {
+    const lower = base.toLowerCase();
+    if (lower.includes('github-push.abhishek-dutta1996.workers.dev')) return false;
+    if (lower === window.location.origin.toLowerCase()) return false;
+    return true;
+  });
+}
+
+function shouldUseClientKeys() {
+  if (window.__USE_CLIENT_AI_KEYS__ === true) return true;
+  if (window.__USE_CLIENT_AI_KEYS__ === false) return false;
+  // Auto mode: enable client keys when no valid AI worker endpoint is configured.
+  return !hasUsableAiWorkerBase();
+}
 
 
 export async function loadRemoteConfig() {
-  if (!USE_CLIENT_KEYS) {
+  const useClientKeys = shouldUseClientKeys();
+  if (!useClientKeys) {
     AI_KEYS = {};
     console.log('[remote-config] Worker mode enabled: client API keys disabled');
     return;
@@ -35,7 +60,7 @@ export async function loadRemoteConfig() {
       gemini:     getValue(remoteConfig, 'gemini_key').asString(),
     };
 
-    console.log('[remote-config] AI keys loaded');
+    console.log('[remote-config] AI keys loaded (auto fallback mode)');
 
   } catch (err) {
     console.warn('[remote-config] Failed to load remote config:', err);
