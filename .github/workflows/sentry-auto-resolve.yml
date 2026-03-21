@@ -22,6 +22,6 @@ jobs:
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: 'abhishek-dutta'
-          SENTRY_PROJECT: 'blogspro'
+          SENTRY_PROJECT: 'javascript'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/auto-resolve-sentry.js

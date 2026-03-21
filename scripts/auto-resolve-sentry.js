@@ -6,7 +6,7 @@ const https = require('https');
 
 // NOTE: Ensure your organization slug and project slug match your Sentry dashboard URLs
 const SENTRY_ORG = process.env.SENTRY_ORG; 
-const SENTRY_PROJECT = process.env.SENTRY_PROJECT || 'blogspro';     
+const SENTRY_PROJECT = process.env.SENTRY_PROJECT || 'javascript';     
 const SENTRY_AUTH_TOKEN = process.env.SENTRY_AUTH_TOKEN;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO = process.env.GITHUB_REPOSITORY; // e.g. 'abhishekdutta18/blogspro'
