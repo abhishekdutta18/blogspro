@@ -1039,11 +1039,12 @@ function doLogout() {
         <span class="drawer-section-label" style="color:var(--blue2)">Image Provider</span>
         <select class="form-select" id="imgProvider" style="font-size:0.85rem" onchange="onImgProviderChange(this.value)">
           <option value="auto" selected>Auto — Best Available</option>
+          <option value="google">Google Imagen</option>
           <option value="cloudflare">Cloudflare Workers AI</option>
           <option value="huggingface">Hugging Face — Flux Schnell</option>
           <option value="pollinations">Pollinations.ai — Zero Setup</option>
         </select>
-        <div id="imgProviderInfo" style="margin-top:0.5rem;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:3px;padding:0.4rem 0.6rem;font-size:0.68rem;color:var(--blue2);line-height:1.5">⚡ Auto tries Cloudflare AI → HuggingFace → Pollinations.</div>
+        <div id="imgProviderInfo" style="margin-top:0.5rem;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:3px;padding:0.4rem 0.6rem;font-size:0.68rem;color:var(--blue2);line-height:1.5">⚡ Auto tries Google Imagen → Pollinations → Hugging Face → Cloudflare.</div>
       </div>
       <div class="form-row">
         <span class="drawer-section-label">Image Prompt</span>

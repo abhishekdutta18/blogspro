@@ -15,6 +15,7 @@ export const PROVIDER_META = {
   gemini:      { label: 'Gemini 2.0 Flash',      color: '#4285f4', icon: '✨', model: 'gemini-2.0-flash'         },
   mistral:     { label: 'Mistral Large',         color: '#ff6b35', icon: '🌀', model: 'mistral-large-latest'     },
   deepseek:    { label: 'DeepSeek Chat',         color: '#3b82f6', icon: '💬', model: 'deepseek-chat'            },
+  google:      { label: 'Google Imagen',         color: '#4285f4', icon: '🖼', model: 'imagen-3.0-generate-002'  },
   cloudflare:  { label: 'Cloudflare AI',         color: '#f6821f', icon: '☁️', model: 'workers-ai'               },
   pollinations:{ label: 'Pollinations',          color: '#ec4899', icon: '🌸', model: 'flux-schnell'             },
   huggingface: { label: 'HuggingFace',           color: '#fbbf24', icon: '🤗', model: 'flux-schnell'             },

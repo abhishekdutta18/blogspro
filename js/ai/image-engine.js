@@ -39,7 +39,9 @@ async function callImageProvider(provider, prompt) {
 
     body: JSON.stringify({
       provider,
-      prompt
+      prompt,
+      type: "image",
+      model: provider === "google" ? "imagen-3.0-generate-002" : undefined
     })
 
   });
