@@ -94,27 +94,20 @@ function buildFallbackSectionHtml({ title, topic, category, tone, wordsTarget, i
   const safeTopic = _esc(topic || "the topic");
   const safeCategory = _esc(category || "General");
   const safeTone = _esc(tone || "professional");
-  const minWords = Math.max(180, Math.round((wordsTarget || 600) * 0.45));
+  const minWords = Math.max(180, Math.round((wordsTarget || 600) * 0.5));
+  const lens = _sectionLens(title);
 
-  const introLead = isIntro
-    ? `The ${safeCategory} landscape around ${safeTopic} keeps changing quickly, and decisions now depend on clear context, practical framing, and execution discipline.`
-    : `Within ${safeCategory}, ${safeTopic} needs a structured view that balances strategy, operations, and measurable outcomes.`;
-
-  const closeLead = isConclusion
-    ? `A practical conclusion for ${safeTopic} is to prioritize measurable execution over generic advice.`
-    : `This section focuses on concrete moves that can be applied immediately.`;
+  const sectionPrompt = isIntro
+    ? `Set context for "${safeTopic}" in ${safeCategory} and define why this topic matters right now.`
+    : isConclusion
+      ? `Summarize the strongest takeaways for "${safeTopic}" and end with concrete next steps.`
+      : `Expand "${safeTitle}" with specific facts, examples, and practical implications.`;
 
   return `
 <h2>${safeTitle}</h2>
-<p>${introLead}</p>
-<p>${closeLead} Teams should define success metrics first, sequence work in small milestones, and maintain a regular review loop to reduce rework and improve consistency across releases.</p>
-<ul>
-  <li>Set one clear objective with a 30-day checkpoint and ownership.</li>
-  <li>Document assumptions, risks, and fallback paths before rollout.</li>
-  <li>Track outcomes weekly and refine based on evidence, not guesswork.</li>
-</ul>
-<blockquote>Fallback draft generated because AI providers were temporarily unavailable. Expand this section with your latest data before publishing.</blockquote>
-<p><em>Draft note: target this section at approximately ${minWords}+ words in ${safeTone} tone.</em></p>`.trim();
+<p><strong>Draft placeholder:</strong> AI generation was unavailable for this section.</p>
+<p>Focus area: ${lens}. Direction: ${sectionPrompt}</p>
+<p><em>Complete this section to approximately ${minWords}+ words in ${safeTone} tone, keeping examples tied to "${safeTopic}".</em></p>`.trim();
 }
 
 // ─────────────────────────────────────────────
@@ -687,6 +680,17 @@ function _buildFallbackTitle(topic, category) {
 
 function _buildFallbackExcerpt(topic, category) {
   return `A practical ${category.toLowerCase()} guide to ${topic}, with key insights, examples, and actionable takeaways.`;
+}
+
+function _sectionLens(title = "") {
+  const t = String(title).toLowerCase();
+  if (/intro|overview|context|background/.test(t)) return "Context and framing";
+  if (/trend|market|growth|forecast/.test(t)) return "Market movement and trajectory";
+  if (/risk|compliance|regulation|policy|audit/.test(t)) return "Risk, governance, and compliance";
+  if (/strategy|roadmap|plan|execution/.test(t)) return "Strategy and execution";
+  if (/case|example|study/.test(t)) return "Real-world examples and outcomes";
+  if (/conclusion|takeaway|summary|next/.test(t)) return "Synthesis and next steps";
+  return "Section-specific analysis";
 }
 
 function _ngrams(text, n = 4) {
