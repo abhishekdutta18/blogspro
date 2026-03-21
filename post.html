@@ -285,6 +285,14 @@
         "url":url
       });
 
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', 'page_view', {
+          page_title: clean.title,
+          page_location: url,
+          page_path: window.location.pathname + window.location.search
+        });
+      }
+
       const date      = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}) || '';
       const readTime  = Math.max(1, Math.ceil((clean.content||'').split(' ').length / 200));
       const isPremium = p.premium === true;
