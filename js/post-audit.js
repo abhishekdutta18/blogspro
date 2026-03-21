@@ -44,6 +44,12 @@ const T = {
 };
 
 let _running = false;
+const AUDIT_CFG = {
+  autorun: window.__POST_AUDIT_AUTORUN__ === true,
+  allowAutoRectify: window.__POST_AUDIT_AUTO_RECTIFY__ === true,
+  allowAutoSave: window.__POST_AUDIT_AUTO_SAVE__ === true,
+  allowGithubPush: window.__POST_AUDIT_GITHUB_PUSH__ === true,
+};
 
 // ─────────────────────────────────────────────────────────────────
 // HOOK INSTALLATION
@@ -59,6 +65,10 @@ function _wrap(name, after) {
 }
 
 function installHooks() {
+  if (!AUDIT_CFG.autorun) {
+    console.log('[PostAudit] autorun disabled (safe mode)');
+    return;
+  }
   _wrap('generateAIPost', () => runFullAudit('ai-writer'));
   _wrap('aitRunAutoBlog', () => runFullAudit('auto-blog'));
   console.log('[PostAudit] ✓ Hooks installed');
@@ -536,6 +546,8 @@ async function pushCodeFix(fixes) {
 // ─────────────────────────────────────────────────────────────────
 export async function runFullAudit(trigger = 'manual') {
   if (_running) return;
+  const editor = document.getElementById('editor');
+  if (!editor) return;
   _running = true;
   _showProgress();
 
@@ -556,9 +568,14 @@ export async function runFullAudit(trigger = 'manual') {
     const allIssues = [...struct, ...quality];
 
     // Phase 3
-    _step('fix', 'running', `Auto-rectifying ${allIssues.length} issue(s)…`);
-    const corrections = allIssues.length ? await rectify(p1, allIssues) : [];
-    _step('fix', 'pass', `${corrections.length} correction(s) applied`);
+    let corrections = [];
+    if (AUDIT_CFG.allowAutoRectify && allIssues.length) {
+      _step('fix', 'running', `Auto-rectifying ${allIssues.length} issue(s)…`);
+      corrections = await rectify(p1, allIssues);
+      _step('fix', 'pass', `${corrections.length} correction(s) applied`);
+    } else {
+      _step('fix', 'warn', 'Auto-rectify disabled (safe mode)');
+    }
 
     // FIX: Recheck MUST re-collect AND re-run checkStructure after all DOM
     // changes from rectify() have settled. The original bug was that collect()
@@ -573,19 +590,26 @@ export async function runFullAudit(trigger = 'manual') {
       remaining.length ? `${remaining.length} remain` : 'Clean');
 
     // Phase 4: auto-save
-    _step('save', 'running', 'Saving to Firestore…');
-    const postId = await autoSave();
-    _step('save', 'pass', `Saved · ${postId}`);
+    let postId = null;
+    if (AUDIT_CFG.allowAutoSave) {
+      _step('save', 'running', 'Saving to Firestore…');
+      postId = await autoSave();
+      _step('save', 'pass', `Saved · ${postId}`);
+    } else {
+      _step('save', 'warn', 'Auto-save disabled (safe mode)');
+    }
 
     // Phase 5: push code fixes to GitHub
     const codeFixPatches = corrections
       .filter(c => c.field === 'code')
       .map(c => ({ file: c.file, description: c.what, patch: c.newVal }));
-    if (codeFixPatches.length) {
+    if (AUDIT_CFG.allowGithubPush && codeFixPatches.length) {
       _step('github', 'running', 'Pushing code fixes to GitHub…');
       const pushed = await pushCodeFix(codeFixPatches);
       _step('github', pushed?.length ? 'pass' : 'warn',
         pushed?.length ? `${pushed.length} fix(es) pushed` : 'GitHub not configured');
+    } else {
+      _step('github', 'warn', 'GitHub auto-push disabled (safe mode)');
     }
 
     // Phase 6: admin gate
@@ -699,8 +723,10 @@ function showGate({ trigger, allIssues, corrections, remaining, postId, p2 }) {
           </div>
 
           <div style="padding:0.55rem 1.4rem;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(34,197,94,0.04)">
-            <div style="font-size:0.7rem;color:#4ade80">
-              ✓ Auto-saved as draft${postId ? ` · <code style="font-size:0.64rem">${postId}</code>` : ''}
+            <div style="font-size:0.7rem;color:${postId ? '#4ade80' : '#c9a84c'}">
+              ${postId
+                ? `✓ Auto-saved as draft · <code style="font-size:0.64rem">${postId}</code>`
+                : 'Auto-save is disabled in safe mode. Save manually when ready.'}
             </div>
           </div>
 
@@ -824,3 +850,4 @@ function _imgLoads(url, timeout = 8000) {
 
 // Init — delay so all window.* functions are registered first
 setTimeout(installHooks, 400);
+window.runPostAudit = () => runFullAudit('manual');
