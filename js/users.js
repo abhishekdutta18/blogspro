@@ -3,16 +3,21 @@
 // ═══════════════════════════════════════════════
 import { db }        from './config.js';
 import { showToast } from './config.js';
-import { collection, getDocs, updateDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 export async function loadUsers() {
   const tbody = document.getElementById('usersTableBody');
   if (!tbody) return;
   try {
-    const snap  = await getDocs(query(collection(db,'users'), orderBy('createdAt','desc')));
+    const snap  = await getDocs(collection(db,'users'));
     // Filter by role only — no hardcoded UIDs or emails
     const users = snap.docs.map(d=>({id:d.id,...d.data()}))
-      .filter(u => u.role !== 'admin');
+      .filter(u => u.role !== 'admin')
+      .sort((a, b) => {
+        const aMs = a.createdAt?.toDate?.()?.getTime?.() || 0;
+        const bMs = b.createdAt?.toDate?.()?.getTime?.() || 0;
+        return bMs - aMs;
+      });
     if (!users.length) { tbody.innerHTML=`<tr><td colspan="5"><div class="table-empty">No other users yet.</div></td></tr>`; return; }
     const roleColors = {reader:'color:#8896b3',editor:'color:#93c5fd',coauthor:'color:#c9a84c'};
     const roleLabels = {reader:'Reader',editor:'Editor',coauthor:'Co-Author'};
