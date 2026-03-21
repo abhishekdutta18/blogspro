@@ -61,9 +61,7 @@ overlay?.addEventListener("click", () => {
 });
 
 const menuBtn = document.getElementById("menuBtn");
-menuBtn?.addEventListener("click", () => {
-  window.toggleSidebar?.();
-});
+// Mobile menu uses inline onclick in admin.html bootstrap; avoid double-toggle.
 
 // ── Editor image click ────────────────────────────────────────────────
 const editor = document.getElementById("editor");
