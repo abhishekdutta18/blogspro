@@ -774,12 +774,13 @@
       // FIX: Strip HTML tags before counting words for reading time
       const plainText = (p.content || '').replace(/<[^>]+>/g, ' ').trim();
       const readTime = Math.max(1, Math.ceil(plainText.split(/\s+/).filter(Boolean).length / 200));
+        const slug = (p.title || p.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
       if (i === 0) {
         const visual = image
           ? `<div class="featured-visual featured-visual-img"><img src="${image}" alt="${title}" loading="lazy" onerror="this.closest('.featured-visual')?.remove(); this.closest('.post-card')?.classList.add('featured-no-img');" /></div>`
           : '';
         return `
-          <div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}')" style="animation-delay:${i*0.08}s">
+          <div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}', '${slug}')" style="animation-delay:${i*0.08}s">
             <div class="featured-body">
               <span class="featured-badge">Featured</span>
               <span class="post-category">${category}</span>
@@ -797,7 +798,7 @@
           </div>`;
       }
       return `
-        <div class="post-card" onclick="openPost('${p.id}')" style="animation-delay:${i*0.08}s">
+        <div class="post-card" onclick="openPost('${p.id}', '${slug}')" style="animation-delay:${i*0.08}s">
           <span class="post-category">${category}</span>
           <h3 class="post-title">${title}</h3>
           <p class="post-excerpt">${excerpt}</p>
@@ -820,7 +821,7 @@
       </div>`;
   }
 
-  window.openPost = async (id) => {
+  window.openPost = async (id, slug) => {
     // Increment view count (once per session per post)
     const key = `bp_viewed_${id}`;
     if (!sessionStorage.getItem(key)) {
