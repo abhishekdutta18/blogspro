@@ -69,6 +69,15 @@
     }
     .nav-links a:hover { color: var(--gold); }
 
+    /* ── HAMBURGER (mobile) ── */
+    .nav-hamburger {
+      display: none; background: transparent; border: 1px solid var(--border);
+      color: var(--muted); width: 36px; height: 36px; border-radius: 4px;
+      font-size: 1.2rem; cursor: pointer; align-items: center; justify-content: center;
+      transition: all 0.2s; flex-shrink: 0;
+    }
+    .nav-hamburger:hover { border-color: var(--gold); color: var(--gold); }
+
     .nav-cta {
       background: var(--gold); color: var(--navy) !important;
       padding: 0.45rem 1.1rem; border-radius: 3px;
@@ -350,7 +359,19 @@
 
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
-      .nav-links { display: none; }
+      .nav-hamburger { display: flex; }
+      .nav-links {
+        display: none; position: absolute; top: 68px; left: 0; right: 0;
+        background: rgba(8,13,26,0.97); backdrop-filter: blur(12px);
+        flex-direction: column; padding: 1rem 2rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        gap: 0.3rem;
+      }
+      .nav-links.mobile-open { display: flex; }
+      .nav-links li { list-style: none; }
+      .nav-links a { display: block; padding: 0.7rem 0; font-size: 0.95rem; }
+      .nav-links .nav-cta { display: inline-block; margin-top: 0.5rem; text-align: center; }
+      .nav-user { padding: 0.7rem 0; }
       .hero-stats { display: none; }
       .post-card.featured { grid-template-columns: 1fr; }
       .featured-visual { display: none; }
@@ -401,12 +422,14 @@
 <!-- NAV -->
 <nav>
   <a class="nav-brand" href="index.html">BlogsPro</a>
-  <ul class="nav-links">
+  <button class="nav-hamburger" id="navHamburger" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
+  <ul class="nav-links" id="navLinksMenu">
     <li><a href="#posts">Articles</a></li>
     <li><a href="#about">About</a></li>
     <li><button class="theme-btn-nav" id="themeBtn" onclick="toggleTheme()">☀️</button></li>
-    <li id="navAuthSlot">
+    <li id="navAuthSlot" style="display:flex;align-items:center;gap:0.5rem">
       <a href="login.html" class="nav-cta">Login</a>
+      <a href="register.html" class="nav-cta" style="background:transparent;border:1px solid var(--gold);color:var(--gold)!important;">Sign Up</a>
     </li>
   </ul>
 </nav>
@@ -627,13 +650,34 @@
     document.getElementById('themeBtn').textContent = '🌙';
   }
 
+  // ── Mobile nav hamburger ────────────────────────
+  window.toggleMobileNav = () => {
+    const menu = document.getElementById('navLinksMenu');
+    const btn  = document.getElementById('navHamburger');
+    if (!menu) return;
+    menu.classList.toggle('mobile-open');
+    btn.textContent = menu.classList.contains('mobile-open') ? '✕' : '☰';
+  };
+  // Close mobile nav when a link is tapped
+  document.querySelectorAll('#navLinksMenu a').forEach(a => {
+    a.addEventListener('click', () => {
+      const menu = document.getElementById('navLinksMenu');
+      const btn  = document.getElementById('navHamburger');
+      if (menu) menu.classList.remove('mobile-open');
+      if (btn) btn.textContent = '☰';
+    });
+  });
+
   // ── Auth nav ───────────────────────────────────
   onAuthStateChanged(auth, async user => {
     const slot       = document.getElementById('navAuthSlot');
     const footerLink = document.getElementById('footerAuthLink');
 
     if (!user) {
-      slot.innerHTML = `<a href="login.html" class="nav-cta">Login</a>`;
+      slot.innerHTML = `
+        <a href="login.html" class="nav-cta">Login</a>
+        <a href="register.html" class="nav-cta" style="background:transparent;border:1px solid var(--gold);color:var(--gold)!important;">Sign Up</a>
+      `;
       footerLink.textContent = 'Login'; footerLink.href = 'login.html';
       return;
     }
