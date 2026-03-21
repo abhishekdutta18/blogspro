@@ -28,7 +28,8 @@ async function fetchUnresolvedIssues() {
         if (res.statusCode === 200) {
           resolve(JSON.parse(data));
         } else {
-          reject(new Error(`Sentry API Error: ${res.statusCode} ${data}`));
+          console.error(`Sentry API Error Data: ${data}`);
+          reject(new Error(`Sentry API Error: ${res.statusCode}`));
         }
       });
     }).on('error', reject);
