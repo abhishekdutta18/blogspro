@@ -5,8 +5,8 @@
 const https = require('https');
 
 // NOTE: Ensure your organization slug and project slug match your Sentry dashboard URLs
-const SENTRY_ORG = 'your-sentry-org'; 
-const SENTRY_PROJECT = 'blogspro';     
+const SENTRY_ORG = process.env.SENTRY_ORG; 
+const SENTRY_PROJECT = process.env.SENTRY_PROJECT || 'blogspro';     
 const SENTRY_AUTH_TOKEN = process.env.SENTRY_AUTH_TOKEN;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO = process.env.GITHUB_REPOSITORY; // e.g. 'abhishekdutta18/blogspro'
@@ -77,8 +77,8 @@ async function createGitHubIssue(sentryIssue) {
 }
 
 async function main() {
-  if (!SENTRY_AUTH_TOKEN || !GITHUB_TOKEN || !REPO) {
-    console.error("CRITICAL: Missing required environment variables (SENTRY_AUTH_TOKEN, GITHUB_TOKEN, GITHUB_REPOSITORY)");
+  if (!SENTRY_AUTH_TOKEN || !GITHUB_TOKEN || !REPO || !SENTRY_ORG) {
+    console.error("CRITICAL: Missing required environment variables (SENTRY_AUTH_TOKEN, GITHUB_TOKEN, GITHUB_REPOSITORY, SENTRY_ORG)");
     process.exit(1);
   }
 
