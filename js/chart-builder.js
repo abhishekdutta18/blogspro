@@ -330,24 +330,27 @@ function buildDataTable(data) {
   if (!headers.length || !rows.length) return '';
 
   const thead = `<tr>
-    <th style="padding:0.5rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap"></th>
-    ${headers.map(h => `<th style="padding:0.5rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap">${h}</th>`).join('')}
+    <th style="padding:0.6rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;position:sticky;left:0;background:${THEME.bg2};z-index:2"></th>
+    ${headers.map(h => `<th style="padding:0.6rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;background:${THEME.bg2}">${h}</th>`).join('')}
   </tr>`;
 
   const tbody = rows.map((row, ri) => {
     const bg = ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.025)';
     const cells = (row.values || []).map(v =>
-      `<td style="padding:0.45rem 0.75rem;font-size:0.78rem;color:${THEME.cream};border-bottom:1px solid ${THEME.border}">${v}</td>`
+      `<td style="padding:0.55rem 0.75rem;font-size:0.78rem;color:${THEME.cream};border-bottom:1px solid ${THEME.border};vertical-align:top;white-space:normal;line-height:1.45">${v}</td>`
     ).join('');
     return `<tr style="background:${bg}">
-      <td style="padding:0.45rem 0.75rem;font-size:0.78rem;font-weight:600;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap">${row.name||''}</td>
+      <td style="padding:0.55rem 0.75rem;font-size:0.78rem;font-weight:600;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;position:sticky;left:0;background:${THEME.bg}">${row.name||''}</td>
       ${cells}
     </tr>`;
   }).join('');
 
   return _chartWrapper(data,
-    `<div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-family:var(--sans,sans-serif)">
+    `<div style="overflow-x:auto;border:1px solid ${THEME.border};border-radius:6px">
+      <table style="width:100%;min-width:680px;border-collapse:collapse;font-family:var(--sans,sans-serif);table-layout:auto">
+        <caption style="caption-side:top;text-align:left;padding:0.6rem 0.75rem;color:${THEME.muted};font-size:0.7rem;border-bottom:1px solid ${THEME.border}">
+          ${data.name || data.title || 'Comparison Table'}
+        </caption>
         <thead>${thead}</thead>
         <tbody>${tbody}</tbody>
       </table>

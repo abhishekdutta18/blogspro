@@ -348,9 +348,9 @@ window.generateContentCalendar = async () => {
 
 
 // ── Safe stubs for functions referenced in admin.html ─
-window.aitRunSEOInline    = () => window.toggleAIT?.('seo');
+window.aitRunSEOInline    = () => window.runSEOOptimizer?.();
 window.bulkFreshen        = () => showToast('Freshen: select posts in All Posts view.', 'info');
-window.insertCitations    = () => window.aiEditAction?.('references');
+window.insertCitations    = () => window.insertInlineCitations?.();
 window.repairBrokenImages = () => showToast('Image repair: coming soon.', 'info');
 window.sendNewsletter     = () => showToast('Connect your email provider to send.', 'info');
 window.setWordTarget      = (v) => { const wt = document.getElementById('wordTarget'); if (wt) wt.value = v; };

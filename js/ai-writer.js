@@ -262,6 +262,7 @@ CRITICAL: Return ONLY a valid JSON array of strings. Nothing else. No explanatio
 
       const LANG_RULE = `LANGUAGE: Write ONLY in English. Do NOT use any other language.
 OUTPUT: Start your response DIRECTLY with <h2>. Do NOT include any preamble, reasoning, explanation, thinking, or markdown. Output ONLY valid HTML.`;
+      const ACRONYM_RULE = `Acronym rule: on first mention, expand shortforms in brackets, e.g. "UPI (Unified Payments Interface)", "RBI (Reserve Bank of India)", "KYC (Know Your Customer)".`;
 
       // ── FIX: Pass outline + prior section context to prevent repetitive content ──
       const outlineContext = `\nFull article outline (${sections.length} sections):\n${sections.map((s,idx) => `${idx+1}. ${s}`).join('\n')}\nYou are writing section ${i+1} of ${sections.length}.`;
@@ -289,6 +290,7 @@ Requirements:
 - Briefly preview the key sections the reader will explore
 - Use <h2>${title}</h2> as the heading, followed by <p> paragraphs
 - Include real statistics or facts where possible
+${ACRONYM_RULE}
 ${LANG_RULE}`
 
         : isLast
@@ -300,6 +302,7 @@ Requirements:
 - Summarise the key insights from the article without repeating them word-for-word
 - Provide clear, actionable takeaways for the reader
 - End with a compelling call to action
+${ACRONYM_RULE}
 - Use <h2>${title}</h2> as heading, followed by <p> paragraphs
 ${LANG_RULE}`
 
@@ -315,6 +318,7 @@ Requirements:
 - Include at least one specific statistic, case study, or real-world example
 - Every paragraph must be substantive — no filler sentences
 - Do NOT re-introduce the topic or repeat the article premise
+${ACRONYM_RULE}
 ${LANG_RULE}`;
 
       let result = await callWithRetry(prompt, model);
@@ -380,7 +384,7 @@ ${_sampleRecentSentences(sectionHTMLs).map(s => `- ${s}`).join("\n")}
           })
         );
       } else {
-        const clean = sanitize(_dedupeParagraphs(_stripReasoning(result.text)));
+        const clean = sanitize(_expandCommonAcronyms(_dedupeParagraphs(_stripReasoning(result.text))));
 
         // ── Chart injection ──────────────────────
         // Inject a chart every 3rd body section (not intro/conclusion)
@@ -738,4 +742,27 @@ function _dedupeParagraphs(html = "") {
     }
   }
   return kept.length ? kept.join("\n") : html;
+}
+
+function _expandCommonAcronyms(html = "") {
+  const map = {
+    UPI: 'Unified Payments Interface',
+    RBI: 'Reserve Bank of India',
+    SEBI: 'Securities and Exchange Board of India',
+    KYC: 'Know Your Customer',
+    AML: 'Anti-Money Laundering',
+    API: 'Application Programming Interface',
+    BNPL: 'Buy Now, Pay Later',
+    NEFT: 'National Electronic Funds Transfer',
+    RTGS: 'Real Time Gross Settlement',
+    IMPS: 'Immediate Payment Service',
+  };
+  let out = String(html || '');
+  for (const [abbr, full] of Object.entries(map)) {
+    const re = new RegExp(`\\b${abbr}\\b`);
+    if (re.test(out) && !new RegExp(`${abbr}\\s*\\(`).test(out)) {
+      out = out.replace(re, `${abbr} (${full})`);
+    }
+  }
+  return out;
 }
