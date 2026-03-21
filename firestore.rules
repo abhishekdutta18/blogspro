@@ -164,5 +164,13 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // ── SITE SETTINGS / PUBLIC SITE META ─────────────────────────────────────
+    match /site/{docId} {
+      // Public pages can read site settings/meta (about, feature toggles).
+      allow read: if true;
+      // Only admin can update site-level settings.
+      allow write: if isAdmin();
+    }
+
   }
 }

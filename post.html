@@ -240,6 +240,7 @@
   const db   = getFirestore(app);
   const auth = getAuth(app);
   let currentUser = null;
+  let siteImagesEnabled = true;
 
   // FIX: Wait for auth state to resolve before loading post
   // This prevents the race condition where currentUser is null
@@ -286,6 +287,12 @@
         authorName: DOMPurify.sanitize(p.authorName || ''),
         category:   DOMPurify.sanitize(p.category   || 'General'),
       };
+
+      if (!siteImagesEnabled) {
+        clean.content = clean.content
+          .replace(/<img\b[^>]*>/gi, '')
+          .replace(/<figure\b[^>]*>\s*<\/figure>/gi, '');
+      }
 
       // SEO — use sanitized values
       const url  = `https://blogspro.in/post.html?id=${id}`;
@@ -548,6 +555,21 @@
   window.shareTwitter  = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(document.title)}&url=${encodeURIComponent(location.href)}`,'_blank');
   window.shareLinkedIn = () => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(location.href)}`,'_blank');
   window.copyLink      = async () => { await navigator.clipboard.writeText(location.href); alert('Link copied!'); };
+
+  async function loadSiteSettings() {
+    try {
+      const s = await getDoc(doc(db, 'site', 'settings'));
+      if (s.exists() && typeof s.data().imagesEnabled === 'boolean') {
+        siteImagesEnabled = s.data().imagesEnabled;
+      } else {
+        siteImagesEnabled = true;
+      }
+    } catch (_) {
+      siteImagesEnabled = true;
+    }
+  }
+
+  await loadSiteSettings();
 
   }); // end window.addEventListener('load', ...)
 </script>

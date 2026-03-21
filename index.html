@@ -584,6 +584,7 @@
 
   let allPosts   = [];
   let currentCat = 'all';
+  let imagesEnabled = true;
 
   document.getElementById('year').textContent = new Date().getFullYear();
 
@@ -689,7 +690,7 @@
       const title    = esc(p.title);
       const excerpt  = esc(p.excerpt);
       const category = esc(p.category) || 'General';
-      const image    = DOMPurify.sanitize(p.image || '');
+      const image    = imagesEnabled ? DOMPurify.sanitize(p.image || '') : '';
       const date = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
       // FIX: Strip HTML tags before counting words for reading time
       const plainText = (p.content || '').replace(/<[^>]+>/g, ' ').trim();
@@ -828,6 +829,20 @@
     }
   }
 
+  async function loadSiteSettings() {
+    try {
+      const snap = await getDoc(doc(db, 'site', 'settings'));
+      if (snap.exists() && typeof snap.data().imagesEnabled === 'boolean') {
+        imagesEnabled = snap.data().imagesEnabled;
+      } else {
+        imagesEnabled = true;
+      }
+    } catch (err) {
+      console.warn('Site settings unavailable:', err.message);
+      imagesEnabled = true;
+    }
+  }
+
   // ── Newsletter ─────────────────────────────────
   window.subscribeNewsletter = async (e) => {
     e.preventDefault();
@@ -859,8 +874,11 @@
     return String(n);
   }
 
-  loadPosts();
-  loadAbout();
+  (async () => {
+    await loadSiteSettings();
+    await loadPosts();
+    await loadAbout();
+  })();
 </script>
 </body>
 </html>

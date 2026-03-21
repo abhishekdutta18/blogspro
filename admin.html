@@ -118,6 +118,22 @@ function doLogout() {
       <div class="stat-card"><div class="stat-card-label">Drafts</div><div class="stat-card-value" id="statDrafts">—</div></div>
       <div class="stat-card"><div class="stat-card-label">Subscribers</div><div class="stat-card-value" id="statSubs">—</div><div class="stat-card-sub">Newsletter</div></div>
     </div>
+    <div class="stat-card" style="margin-bottom:1.2rem">
+      <div class="stat-card-label">Site Controls</div>
+      <div class="toggle-row" style="border-top:none;margin-top:0;padding-top:0.2rem">
+        <div>
+          <div style="font-size:0.92rem;font-weight:600;color:var(--cream)">Website Images</div>
+          <div id="siteImagesStatus" style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Loading setting…</div>
+        </div>
+        <div class="toggle-switch on" id="siteImagesSwitch" onclick="toggleSiteImages()">
+          <div class="toggle-track"></div>
+          <div class="toggle-dot"></div>
+        </div>
+      </div>
+      <div id="siteImagesHint" style="font-size:0.72rem;color:var(--muted);margin-top:0.7rem">
+        Turns post cover and inline content images on/off for public pages.
+      </div>
+    </div>
     <div class="table-wrap">
       <div class="table-header"><span class="table-title">Recent Posts</span></div>
       <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Views</th><th>Date</th><th>Actions</th></tr></thead>
