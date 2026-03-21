@@ -345,6 +345,28 @@ CRITICAL RELEVANCE RULES:
         }
       }
 
+      // Repetition guard: if section overlaps too much with prior sections,
+      // retry once with explicit anti-repeat constraints.
+      if (!result.error && result.text?.trim() && sectionHTMLs.length > 0) {
+        const priorText = _plainText(sectionHTMLs.join("\n"));
+        const overlap = _repetitionScore(result.text, priorText);
+        if (overlap > 0.26) {
+          timerLog(`  ↺ [${progress}] repetitive output (${Math.round(overlap * 100)}%) — retrying`);
+          const antiRepeatPrompt = `${prompt}
+
+CRITICAL ANTI-REPETITION RULES:
+- Do NOT reuse sentences from previous sections.
+- Use fresh examples, fresh statistics, and fresh subheadings.
+- Avoid repeating these recently used lines:
+${_sampleRecentSentences(sectionHTMLs).map(s => `- ${s}`).join("\n")}
+- Keep semantic overlap with prior sections below 20%.`;
+          const retry = await callWithRetry(antiRepeatPrompt, model, 2);
+          if (!retry.error && retry.text?.trim()) {
+            result = retry;
+          }
+        }
+      }
+
       if (_cancelled) break;
 
       // Show which AI responded in the modal
@@ -365,7 +387,7 @@ CRITICAL RELEVANCE RULES:
           })
         );
       } else {
-        const clean = sanitize(_stripReasoning(result.text));
+        const clean = sanitize(_dedupeParagraphs(_stripReasoning(result.text)));
 
         // ── Chart injection ──────────────────────
         // Inject a chart every 3rd body section (not intro/conclusion)
@@ -665,4 +687,51 @@ function _buildFallbackTitle(topic, category) {
 
 function _buildFallbackExcerpt(topic, category) {
   return `A practical ${category.toLowerCase()} guide to ${topic}, with key insights, examples, and actionable takeaways.`;
+}
+
+function _ngrams(text, n = 4) {
+  const toks = _plainText(text).split(/\s+/).filter(Boolean);
+  const out = new Set();
+  for (let i = 0; i <= toks.length - n; i++) {
+    out.add(toks.slice(i, i + n).join(" "));
+  }
+  return out;
+}
+
+function _repetitionScore(current, prior) {
+  const a = _ngrams(current, 4);
+  const b = _ngrams(prior, 4);
+  if (a.size === 0 || b.size === 0) return 0;
+  let overlap = 0;
+  for (const g of a) {
+    if (b.has(g)) overlap++;
+  }
+  return overlap / a.size;
+}
+
+function _sampleRecentSentences(sectionHtmls) {
+  const recent = sectionHtmls.slice(-2).join(" ");
+  const sentences = _plainText(recent)
+    .split(/[.!?]\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 30 && s.length < 150);
+  return sentences.slice(0, 4);
+}
+
+function _dedupeParagraphs(html = "") {
+  const parts = String(html).split(/(<\/p>)/i);
+  if (parts.length < 3) return html;
+  const seen = new Set();
+  const kept = [];
+  for (let i = 0; i < parts.length; i += 2) {
+    const para = (parts[i] || "").trim();
+    const end = parts[i + 1] || "";
+    if (!para) continue;
+    const key = _plainText(para).slice(0, 220);
+    if (key.length < 20 || !seen.has(key)) {
+      seen.add(key);
+      kept.push(para + end);
+    }
+  }
+  return kept.length ? kept.join("\n") : html;
 }
