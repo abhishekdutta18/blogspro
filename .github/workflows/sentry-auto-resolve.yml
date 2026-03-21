@@ -1,6 +1,9 @@
 name: "Sentry Error Auto-Resolver"
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     - cron: '0 * * * *' # Run at minute 0 of every hour
   workflow_dispatch: # Allow manual triggering from GitHub UI
