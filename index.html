@@ -564,7 +564,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
 <script type="module">
   import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, doc, getDocs, getDoc, addDoc }
+  import { getFirestore, collection, doc, getDocs, getDoc, query, where }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -577,8 +577,6 @@
     messagingSenderId: "940428277283",
     appId:             "1:940428277283:web:d3bb414f0992718ca76396"
   };
-
-  const ADMIN_UID = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
 
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
@@ -602,7 +600,7 @@
   }
 
   // ── Auth nav ───────────────────────────────────
-  onAuthStateChanged(auth, user => {
+  onAuthStateChanged(auth, async user => {
     const slot       = document.getElementById('navAuthSlot');
     const footerLink = document.getElementById('footerAuthLink');
 
@@ -612,7 +610,15 @@
       return;
     }
 
-    if (user.uid === ADMIN_UID) {
+    let isAdmin = false;
+    try {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      isAdmin = snap.exists() && snap.data().role === 'admin';
+    } catch (err) {
+      console.warn('Role check failed:', err);
+    }
+
+    if (isAdmin) {
       slot.innerHTML = `
         <div class="nav-user" id="navUserBtn" onclick="toggleDropdown()">
           <div class="nav-avatar">
@@ -649,10 +655,12 @@
   // ── Load posts ─────────────────────────────────
   async function loadPosts() {
     try {
-      const snap = await getDocs(collection(db, 'posts'));
+      const snap = await getDocs(query(
+        collection(db, 'posts'),
+        where('published', '==', true)
+      ));
       allPosts = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter(p => p.published === true)
         .sort((a,b) => {
           const aT = a.createdAt?.toDate?.()?.getTime() || 0;
           const bT = b.createdAt?.toDate?.()?.getTime() || 0;

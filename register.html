@@ -196,7 +196,7 @@
   </div>
  
   <div class="form-row">
-    <label>I want to join as</label>
+    <label>I want to apply as</label>
     <div class="role-grid">
       <label class="role-card selected" id="card-reader" onclick="selectRole('reader')">
         <div class="role-icon">👤</div>
@@ -206,13 +206,16 @@
       <label class="role-card" id="card-editor" onclick="selectRole('editor')">
         <div class="role-icon">✏️</div>
         <div class="role-name">Editor</div>
-        <div class="role-desc">Write, admin approves</div>
+        <div class="role-desc">Request write access</div>
       </label>
       <label class="role-card" id="card-coauthor" onclick="selectRole('coauthor')">
         <div class="role-icon">🖊️</div>
         <div class="role-name">Co-Author</div>
-        <div class="role-desc">Write & publish directly</div>
+        <div class="role-desc">Request publishing access</div>
       </label>
+    </div>
+    <div style="margin-top:0.55rem;font-size:0.74rem;color:var(--muted)">
+      New accounts start as Reader. Editor and Co-Author requests require admin approval.
     </div>
   </div>
  
@@ -289,7 +292,8 @@
         email:     user.email || '',
         bio:       '',
         photoURL:  user.photoURL || '',
-        role:      selectedRole,
+        role:      'reader',
+        requestedRole: selectedRole,
         createdAt: serverTimestamp()
       });
     }

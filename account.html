@@ -491,8 +491,12 @@
     if (!confirm('This will permanently delete your account and all your data. Are you sure?')) return;
     if (!confirm('Last warning — this cannot be undone. Proceed?')) return;
     try {
-      await deleteDoc(doc(db, 'users', currentUser.uid));
       await deleteUser(currentUser);
+      try {
+        await deleteDoc(doc(db, 'users', currentUser.uid));
+      } catch (cleanupError) {
+        console.warn('Account deleted but profile cleanup failed:', cleanupError);
+      }
       window.location.href = 'index.html';
     } catch(e) {
       const msgs = { 'auth/requires-recent-login': 'Please sign out and sign back in first, then delete.' };

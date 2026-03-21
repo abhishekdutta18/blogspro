@@ -2,27 +2,96 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── HELPER: admin check via Firestore role (no hardcoded UID) ───────────
+    // ── HELPERS ───────────────────────────────────────────────────────────────
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function currentUserRole() {
+      return signedIn()
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : null;
+    }
+
     function isAdmin() {
-      return request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return currentUserRole() == 'admin';
+    }
+
+    function isContributor() {
+      return currentUserRole() == 'editor' || currentUserRole() == 'coauthor';
+    }
+
+    function canSelfAssignRequestedRole(role) {
+      return role == 'reader' || role == 'editor' || role == 'coauthor';
+    }
+
+    function postFieldsAreSafe() {
+      return request.resource.data.keys().hasOnly([
+        'title', 'excerpt', 'content', 'category', 'slug',
+        'published', 'authorUid', 'authorName', 'authorEmail',
+        'createdAt', 'updatedAt', 'premium', 'views'
+      ]);
+    }
+
+    function contributorCanCreateOwnPost() {
+      return isContributor()
+        && postFieldsAreSafe()
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.content is string
+        && request.resource.data.content.size() > 0
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && (!request.resource.data.keys().hasAny(['premium']) || request.resource.data.premium == false)
+        && (!request.resource.data.keys().hasAny(['views']) || request.resource.data.views == 0)
+        && (
+          currentUserRole() == 'coauthor'
+            ? request.resource.data.published is bool
+            : request.resource.data.published == false
+        );
+    }
+
+    function contributorCanUpdateOwnPost() {
+      return isContributor()
+        && resource.data.authorUid == request.auth.uid
+        && postFieldsAreSafe()
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.content is string
+        && request.resource.data.content.size() > 0
+        && (!resource.data.keys().hasAny(['premium']) || request.resource.data.premium == resource.data.premium)
+        && (!resource.data.keys().hasAny(['views']) || request.resource.data.views == resource.data.views)
+        && (
+          currentUserRole() == 'coauthor'
+            ? request.resource.data.published is bool
+            : request.resource.data.published == false
+        );
     }
 
     // ── POSTS ──────────────────────────────────────────────────────────────
     match /posts/{postId} {
-      // List: only published + non-premium posts are visible to the public.
-      // Authenticated users (readers/admins) can query everything.
-      allow list: if (resource.data.published == true && resource.data.premium != true)
-                  || request.auth != null;
+      // Published posts are queryable in collection views. Drafts stay limited
+      // to admins and each author's own posts.
+      allow list: if resource.data.published == true
+                  || isAdmin()
+                  || (signedIn() && resource.data.authorUid == request.auth.uid);
 
       // Get (single doc): free posts open to all; premium requires sign-in.
-      allow get:  if resource.data.premium != true
-                  || request.auth != null;
+      allow get:  if (resource.data.published == true && (resource.data.premium != true || signedIn()))
+                  || isAdmin()
+                  || (signedIn() && resource.data.authorUid == request.auth.uid);
 
-      // Only admin can create, update, or delete posts.
+      // Admin can manage all posts. Admin-assigned contributors can create and
+      // update only their own posts, without touching premium/views metadata.
       // Exception: anyone can increment ONLY the 'views' field (for view tracking).
-      allow create, delete: if isAdmin();
+      allow create: if isAdmin() || contributorCanCreateOwnPost();
+      allow delete: if isAdmin();
       allow update: if isAdmin()
+                    || contributorCanUpdateOwnPost()
                     || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])
                         && request.resource.data.views == resource.data.views + 1);
     }
@@ -53,13 +122,23 @@ service cloud.firestore {
       // Users can only read their own profile. Admins can read all profiles.
       allow read: if request.auth.uid == userId || isAdmin();
 
-      // User can create their own document on registration.
-      allow create: if request.auth.uid == userId;
+      // User can create their own document on registration, but cannot self-assign
+      // elevated access. Any contributor role request is stored separately.
+      allow create: if request.auth.uid == userId
+                    && request.resource.data.keys().hasOnly([
+                      'uid', 'name', 'email', 'bio', 'photoURL',
+                      'role', 'requestedRole', 'createdAt'
+                    ])
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.role == 'reader'
+                    && (!request.resource.data.keys().hasAny(['requestedRole'])
+                        || canSelfAssignRequestedRole(request.resource.data.requestedRole))
+                    && request.resource.data.createdAt == request.time;
 
       // User can update their own profile BUT cannot change their role.
       // Admin can update any user document (including role changes).
       allow update: if (request.auth.uid == userId
-                    && !('role' in request.resource.data.diff(resource.data).affectedKeys()))
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'requestedRole']))
                     || isAdmin();
 
       // User can delete their own account.

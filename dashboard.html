@@ -466,7 +466,7 @@
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import {
     getFirestore, collection, doc, getDoc, getDocs,
-    addDoc, updateDoc, query, orderBy, where, serverTimestamp
+    addDoc, updateDoc, query, where, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
  
   const firebaseConfig = {
@@ -588,10 +588,12 @@
   // ── Recent posts ──────────────────────────────
   async function loadRecentPosts() {
     try {
-      const snap = await getDocs(collection(db, 'posts'));
+      const snap = await getDocs(query(
+        collection(db, 'posts'),
+        where('published', '==', true)
+      ));
       const posts = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter(p => p.published === true)
         .sort((a,b) => (b.createdAt?.toDate?.()?.getTime()||0) - (a.createdAt?.toDate?.()?.getTime()||0))
         .slice(0, 6);
  
@@ -615,10 +617,12 @@
   async function loadMyPosts() {
     const list = document.getElementById('myPostsList');
     try {
-      const snap  = await getDocs(collection(db, 'posts'));
+      const snap  = await getDocs(query(
+        collection(db, 'posts'),
+        where('authorUid', '==', currentUser.uid)
+      ));
       const mine  = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter(p => p.authorUid === currentUser.uid)
         .sort((a,b) => (b.createdAt?.toDate?.()?.getTime()||0) - (a.createdAt?.toDate?.()?.getTime()||0));
  
       if (!mine.length) {
@@ -711,6 +715,7 @@
       title, excerpt, content, category: cat,
       slug:      slugify(title),
       published: publish,
+      premium:   false,
       authorUid:   currentUser.uid,
       authorName:  userData.name || currentUser.displayName || '',
       authorEmail: currentUser.email || '',
@@ -723,6 +728,7 @@
         showMsg('writeSuccess', publish ? '✓ Post updated and published!' : '✓ Changes saved.');
       } else {
         data.createdAt = serverTimestamp();
+        data.views = 0;
         const ref = await addDoc(collection(db, 'posts'), data);
         editingId = ref.id;
         showMsg('writeSuccess',
