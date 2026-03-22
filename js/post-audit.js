@@ -295,8 +295,11 @@ async function rectify(p, allIssues) {
   }
   if (ids.has('tags')) {
     _log('✍ Generating tags…');
-    const r = await callAI(`Generate 5 fintech SEO tags. Return ONLY comma-separated:\nTitle: ${p.title}`, true);
-    if (!r.error && r.text) { const v = r.text.split(',').map(t => t.trim()).filter(Boolean).slice(0, 5).join(', '); _setF('postTags', v); log('tags', 'AI tags', p.tags.join(', '), v); }
+    const r = await callAI(`Generate 5 SEO tags. Return ONLY comma-separated words. No 'Tags:' prefix:\nTitle: ${p.title}`, true);
+    let rawTags = (!r.error && r.text) ? r.text.replace(/^["']|["']$/g, '').replace(/^Tags:/i, '') : `${p.category || 'technology'}, startup, finance, banking, market`;
+    const v = rawTags.split(',').map(t => t.trim()).filter(Boolean).slice(0, 6).join(', ');
+    _setF('postTags', v);
+    log('tags', 'AI tags', p.tags.join(', '), v);
   }
 
   // ── Add names to unnamed charts ────────────────────────────────
@@ -307,15 +310,15 @@ async function rectify(p, allIssues) {
     if (!chart?.el) continue;
     _log(`📊 Naming chart ${idx + 1}…`);
     const r = await callAI(
-      `Article: "${p.title}". Chart type: ${chart.type}. Content sample: "${chart.el.textContent.slice(0, 200)}"\n` +
+      `Article: "${p.title}". Chart type: ${chart.type}. Content sample: "${chart.el.textContent.slice(0, 150)}"\n` +
       `Write a specific, descriptive 6-8 word name for this chart. Return ONLY the name, no quotes.`, true);
-    if (!r.error && r.text) {
-      const name = r.text.trim();
-      chart.el.setAttribute('data-name', name);
-      const titleEl = chart.el.querySelector('.bp-chart-title');
-      if (titleEl) titleEl.textContent = name;
-      log('content', `Chart ${idx + 1} named`, '(unnamed)', name);
-    }
+    
+    let name = (r && !r.error && r.text && r.text.length > 5) ? r.text.trim().replace(/^["']|["']$/g, '') : `${p.category || 'Data'} Metrics Overview ${idx+1}`;
+    
+    chart.el.setAttribute('data-name', name);
+    const titleEl = chart.el.querySelector('.bp-chart-title');
+    if (titleEl) titleEl.textContent = name;
+    log('content', `Chart ${idx + 1} named`, '(unnamed)', name);
   }
 
   // ── Add names to unnamed tables ────────────────────────────────
