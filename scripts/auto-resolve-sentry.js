@@ -23,6 +23,22 @@ async function fetchUnresolvedIssues() {
   return await res.json();
 }
 
+async function checkExistingIssue(issueTitle) {
+  const url = `https://api.github.com/repos/${REPO}/issues?state=all&per_page=100`;
+  const res = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
+      'User-Agent': 'Sentry-Automation-Node',
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  });
+  
+  if (!res.ok) return false;
+  const issues = await res.json();
+  const targetTitle = `[Sentry Auto-Fix] ${issueTitle}`;
+  return issues.some(i => i.title === targetTitle);
+}
+
 async function createGitHubIssue(sentryIssue) {
   const url = `https://api.github.com/repos/${REPO}/issues`;
   const res = await fetch(url, {
@@ -67,9 +83,16 @@ async function main() {
     const issuesToProcess = issues.slice(0, 3);
     
     for (const issue of issuesToProcess) {
-      console.log(`Creating GitHub Issue for: ${issue.title}`);
+      console.log(`Processing Sentry Alert: ${issue.title}`);
+      
+      const exists = await checkExistingIssue(issue.title);
+      if (exists) {
+        console.log(`↳ Skipped: GitHub Issue already exists for "${issue.title}". Pending code resolution.`);
+        continue;
+      }
+      
       const ghIssue = await createGitHubIssue(issue);
-      console.log(`Successfully created GitHub Issue: ${ghIssue.html_url}`);
+      console.log(`↳ Successfully created tracking Issue: ${ghIssue.html_url}`);
       
       // Future Enhancement Phase 2:
       // Invoke `PUT /api/0/issues/{issue.id}/` to mark the issue as handled!
