@@ -39,6 +39,24 @@ async function checkExistingIssue(issueTitle) {
   return issues.some(i => i.title === targetTitle);
 }
 
+async function resolveSentryIssue(issueId) {
+  const url = `https://sentry.io/api/0/projects/${SENTRY_ORG}/${SENTRY_PROJECT}/issues/${issueId}/`;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${SENTRY_AUTH_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ status: 'resolved' })
+  });
+  
+  if (!res.ok) {
+    console.error(`Failed to resolve Sentry issue ${issueId}: ${await res.text()}`);
+    return false;
+  }
+  return true;
+}
+
 async function createGitHubIssue(sentryIssue) {
   const url = `https://api.github.com/repos/${REPO}/issues`;
   const res = await fetch(url, {
@@ -88,14 +106,16 @@ async function main() {
       const exists = await checkExistingIssue(issue.title);
       if (exists) {
         console.log(`↳ Skipped: GitHub Issue already exists for "${issue.title}". Pending code resolution.`);
+        console.log(`↳ Auto-closing stale Sentry ticket: ${issue.id}`);
+        await resolveSentryIssue(issue.id);
         continue;
       }
       
       const ghIssue = await createGitHubIssue(issue);
       console.log(`↳ Successfully created tracking Issue: ${ghIssue.html_url}`);
       
-      // Future Enhancement Phase 2:
-      // Invoke `PUT /api/0/issues/{issue.id}/` to mark the issue as handled!
+      console.log(`↳ Marking Sentry ticket as resolved...`);
+      await resolveSentryIssue(issue.id);
     }
     
     console.log("Automation pass complete.");
