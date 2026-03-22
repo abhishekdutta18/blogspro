@@ -1,0 +1,28 @@
+name: Deploy Sentry Webhook Worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'api/sentry-webhook.js'
+      - 'wrangler-sentry.toml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Cloudflare Network
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: deploy --config wrangler-sentry.toml
+          secrets: |
+            TELEGRAM_TOKEN
+            TELEGRAM_TO
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_TO: ${{ secrets.TELEGRAM_TO }}
