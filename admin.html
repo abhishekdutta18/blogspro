@@ -795,6 +795,51 @@ function doLogout() {
     </div>
   </div>
 
+  <!-- ══════════════ SUBSCRIBERS ══════════════ -->
+  <div class="view" id="view-subscribers">
+    <div class="page-header">
+      <div><h2>Subscribers</h2><p>Manage and view your newsletter subscriber list</p></div>
+    </div>
+    <div class="saas-grid-2">
+      <div>
+        <div class="saas-panel gold-accent">
+          <h3 style="margin-bottom:1rem">📊 Subscriber Statistics</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+            <div style="background:rgba(202,161,76,0.1);padding:1rem;border-radius:4px;text-align:center;border-left:3px solid var(--gold)">
+              <div style="font-size:2rem;font-weight:700;color:var(--gold);" id="totalSubscribers">—</div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-top:0.25rem">Total Subscribers</div>
+            </div>
+            <div style="background:rgba(76,175,80,0.1);padding:1rem;border-radius:4px;text-align:center;border-left:3px solid #4caf50">
+              <div style="font-size:2rem;font-weight:700;color:#4caf50;" id="activeSubscribers">—</div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-top:0.25rem">Active</div>
+            </div>
+          </div>
+          <button onclick="loadSubscriberAnalytics()" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;margin-bottom:0.8rem">🔄 Refresh Stats</button>
+          <div style="font-size:0.75rem;color:var(--muted);text-align:center">Last updated: <span id="statsLastUpdated">—</span></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <div class="saas-panel" style="background:rgba(76,175,80,0.05);border-color:rgba(76,175,80,0.2)">
+          <h4 style="color:#4caf50;margin-bottom:0.5rem">✓ Add Subscriber Manually</h4>
+          <div class="form-row">
+            <label class="form-label">Email Address</label>
+            <input type="email" class="form-input" id="addSubEmail" placeholder="subscriber@example.com" style="font-size:0.85rem" />
+          </div>
+          <button onclick="addSubscriberManual()" style="width:100%;background:#4caf50;color:white;border:none;padding:0.7rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;margin-top:0.5rem">Add Subscriber</button>
+          <div id="addSubStatus" style="font-size:0.7rem;color:var(--muted);margin-top:0.5rem;text-align:center;min-height:1rem"></div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:2rem">
+      <div class="saas-panel">
+        <h3 style="margin-bottom:1rem">✉ Subscriber List</h3>
+        <div style="max-height:600px;overflow-y:auto;border:1px solid var(--border);border-radius:3px" id="subscribersList">
+          <div style="padding:2rem;text-align:center;color:var(--muted)">Loading subscribers…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ══════════════ AUTO BLOG ══════════════ -->
   <div class="view" id="view-autoblog">
     <div class="page-header">

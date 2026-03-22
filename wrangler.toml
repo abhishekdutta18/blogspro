@@ -5,3 +5,8 @@ account_id = "b3f4edff1fdc616f329e7d7cb6698307"
 
 [vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
+
+# Secrets - must be set via: wrangler secret put
+# RESEND_API_KEY - Get from https://resend.com/api-keys
+# NEWSLETTER_SECRET - Arbitrary string to authenticate frontend requests (use: openssl rand -base64 32)
+

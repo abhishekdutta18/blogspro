@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newsletter Test - BlogsPro</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 500px;
+      width: 100%;
+      padding: 40px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      color: #555;
+      font-weight: 500;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 30px;
+    }
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 6px;
+      font-size: 14px;
+      display: none;
+    }
+    .status.loading {
+      display: block;
+      background: #e3f2fd;
+      color: #1976d2;
+      border: 1px solid #90caf9;
+    }
+    .status.success {
+      display: block;
+      background: #e8f5e9;
+      color: #388e3c;
+      border: 1px solid #81c784;
+    }
+    .status.error {
+      display: block;
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #ef5350;
+    }
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0,0,0,0.1);
+      border-top: 2px solid #1976d2;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .info-box {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>✉️ Newsletter Test</h1>
+  <p class="subtitle">Send test newsletter to all subscribers</p>
+
+  <div class="info-box">
+    ⚠️ <strong>Requirements:</strong>
+    <br>✓ At least 1 published blog post
+    <br>✓ Deployed Cloudflare Worker
+    <br>✓ Resend API key configured
+  </div>
+
+  <div class="form-group">
+    <label for="adminEmail">Admin Email</label>
+    <input type="email" id="adminEmail" placeholder="your@email.com" value="biltu@blogspro.in">
+    <small style="color: #999; display: block; margin-top: 5px;">Will be added to subscribers if not already present</small>
+  </div>
+
+  <div class="form-group">
+    <label for="subject">Newsletter Subject</label>
+    <input type="text" id="subject" placeholder="Test Newsletter - BlogsPro" value="Test Newsletter - BlogsPro">
+  </div>
+
+  <div class="form-group">
+    <label for="workerUrl">Worker URL</label>
+    <input type="url" id="workerUrl" placeholder="https://blogspro-newsletter.abhishek-dutta1996.workers.dev" value="https://blogspro-newsletter.abhishek-dutta1996.workers.dev">
+  </div>
+
+  <div class="form-group">
+    <label for="secret">Newsletter Secret</label>
+    <input type="password" id="secret" placeholder="biltu123" value="biltu123">
+  </div>
+
+  <div class="button-group">
+    <button class="btn-primary" onclick="runTest()">🚀 Run Full Test</button>
+    <button class="btn-secondary" onclick="checkSubscribers()">📋 Check Subscribers</button>
+  </div>
+
+  <div id="status" class="status"></div>
+</div>
+
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
+    authDomain: "blogspro-ai.firebaseapp.com",
+    projectId: "blogspro-ai",
+    storageBucket: "blogspro-ai.firebasestorage.app",
+    messagingSenderId: "940428277283",
+    appId: "1:940428277283:web:d3bb414f0992718ca76396",
+    measurementId: "G-N7TCB31MRD"
+  };
+
+  window.firebaseApp = null;
+  window.db = null;
+
+  async function initFirebase() {
+    if (window.firebaseApp) return true;
+    
+    try {
+      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+      const { getFirestore } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+      const { getAuth, signOut } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+      
+      window.firebaseApp = initializeApp(firebaseConfig);
+      window.db = getFirestore(window.firebaseApp);
+      window.auth = getAuth(window.firebaseApp);
+      
+      // Sign out to ensure we use the public subscription rule
+      await signOut(window.auth).catch(() => {});
+      
+      console.log('✅ Firebase initialized (unauthenticated)');
+      return true;
+    } catch (err) {
+      console.error('Firebase init error:', err);
+      throw new Error(`Firebase init failed: ${err.message}`);
+    }
+  }
+
+  async function addAdminToSubscribers(email) {
+    console.log(`📍 Adding subscriber: ${email}`);
+    
+    try {
+      const { collection, getDocs, addDoc, query, where } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+      const { serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+      const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+      
+      // Verify auth state
+      const auth = getAuth();
+      const user = auth.currentUser;
+      console.log('Current user:', user ? user.uid : 'NOT SIGNED IN');
+      
+      const q = query(collection(window.db, 'subscribers'), where('email', '==', email));
+      const existing = await getDocs(q);
+      
+      if (existing.size > 0) {
+        console.log('✅ Already subscribed');
+        return;
+      }
+      
+      console.log('Creating subscriber document with email:', email);
+      await addDoc(collection(window.db, 'subscribers'), {
+        email: email,
+        subscribedAt: serverTimestamp(),
+        status: 'active'
+      });
+      
+      console.log(`✅ Added subscriber: ${email}`);
+    } catch (err) {
+      console.error('Add subscriber error:', err);
+      console.error('Error details:', err.message, err.code);
+      throw new Error(`Failed to add subscriber: ${err.message}`);
+    }
+  }
+
+  async function generateNewsletter() {
+    console.log('📝 Generating newsletter from latest posts...');
+    
+    try {
+      const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+      
+      // Simple query - no ordering, no where clause (no index needed)
+      const snap = await getDocs(collection(window.db, 'posts'));
+      
+      // Sort and filter in JavaScript
+      const posts = snap.docs
+        .map(d => ({ ...d.data(), docId: d.id }))
+        .filter(p => p.published)
+        .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0))
+        .slice(0, 5);
+      
+      if (!posts.length) {
+        throw new Error('No published posts found');
+      }
+      
+      console.log(`📚 Found ${posts.length} posts`);
+      
+      // Create basic HTML email
+      const postsHtml = posts.map(p => `
+        <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee;">
+          <h3 style="color: #333; margin-bottom: 10px;">${p.title}</h3>
+          <p style="color: #666; line-height: 1.6;">${p.excerpt || 'New blog post'}</p>
+          <a href="https://blogspro.in/p/${p.slug}.html" style="color: #667eea; text-decoration: none; font-weight: 600;">Read More →</a>
+        </div>
+      `).join('');
+      
+      const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+          <h1 style="color: #111; margin-bottom: 20px;">📰 Latest from BlogsPro</h1>
+          <p style="color: #666; margin-bottom: 30px; line-height: 1.6;">
+            Check out our latest fintech insights and analysis.
+          </p>
+          ${postsHtml}
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #999; font-size: 12px;">
+            <p>You're receiving this because you subscribed to BlogsPro.</p>
+            <p><a href="https://blogspro.in" style="color: #667eea; text-decoration: none;">Visit Blog</a></p>
+          </div>
+        </div>
+      `;
+      
+      window.testNewsletterHtml = html;
+      console.log('✅ Newsletter generated');
+      return html;
+    } catch (err) {
+      console.error('Generate error:', err);
+      throw new Error(`Failed to generate newsletter: ${err.message}`);
+    }
+  }
+
+  async function sendNewsletter(workerUrl, subject, secret) {
+    console.log('📧 Sending newsletter...');
+    console.log('Worker URL:', workerUrl);
+    
+    if (!window.testNewsletterHtml) {
+      throw new Error('No newsletter HTML generated');
+    }
+    
+    try {
+      console.log('Sending POST to worker...');
+      const response = await fetch(workerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: subject,
+          html: window.testNewsletterHtml,
+          secret: secret
+        })
+      });
+      
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: response.statusText }));
+        console.error('Worker error response:', error);
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log(`✅ Newsletter sent to ${result.count} subscribers`);
+      return result;
+    } catch (err) {
+      console.error('Send error:', err);
+      console.error('Error message:', err.message);
+      throw new Error(`Failed to send: ${err.message}`);
+    }
+  }
+</script>
+
+<script>
+  function showStatus(message, type = 'loading') {
+    const status = document.getElementById('status');
+    status.className = `status ${type}`;
+    
+    if (type === 'loading') {
+      status.innerHTML = `<span class="spinner"></span>${message}`;
+    } else {
+      status.textContent = message;
+    }
+  }
+
+  async function runTest() {
+    const adminEmail = document.getElementById('adminEmail').value;
+    const subject = document.getElementById('subject').value;
+    const workerUrl = document.getElementById('workerUrl').value;
+    const secret = document.getElementById('secret').value;
+
+    if (!adminEmail || !subject || !workerUrl || !secret) {
+      showStatus('❌ Please fill all fields', 'error');
+      return;
+    }
+
+    const btn = event.target;
+    btn.disabled = true;
+
+    try {
+      showStatus('Step 1/4: Initializing Firebase...', 'loading');
+      await window.initFirebase();
+
+      showStatus('Step 2/4: Adding subscriber...', 'loading');
+      await window.addAdminToSubscribers(adminEmail);
+
+      showStatus('Step 3/4: Generating newsletter...', 'loading');
+      await window.generateNewsletter();
+
+      showStatus('Step 4/4: Sending to all subscribers...', 'loading');
+      const result = await window.sendNewsletter(workerUrl, subject, secret);
+
+      showStatus(`✅ Success! Newsletter sent to ${result.count} subscribers. Check your email!`, 'success');
+      console.log('Newsletter result:', result);
+    } catch (err) {
+      showStatus(`❌ ${err.message}`, 'error');
+      console.error('Test failed:', err);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function resetForm() {
+    document.getElementById('status').className = 'status';
+    document.getElementById('status').textContent = '';
+  }
+
+  async function checkSubscribers() {
+    console.log('Button clicked: checkSubscribers');
+    const status = document.getElementById('status');
+    status.className = 'status loading';
+    status.textContent = '⏳ Fetching subscribers...';
+
+    try {
+      console.log('Initializing Firebase...');
+      await window.initFirebase();
+      
+      console.log('Importing Firestore...');
+      const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+      
+      console.log('Querying subscribers collection...');
+      const snap = await getDocs(collection(window.db, 'subscribers'));
+      const subscribers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      console.log('Found subscribers:', subscribers);
+      
+      if (subscribers.length === 0) {
+        status.className = 'status error';
+        status.textContent = '❌ No subscribers found in Firestore. Try running the test first!';
+        return;
+      }
+      
+      const list = subscribers.map(s => s.email).join(', ');
+      status.className = 'status success';
+      status.textContent = `✅ Found ${subscribers.length} subscribers: ${list}`;
+      console.log('Success - Subscribers:', subscribers);
+    } catch (err) {
+      console.error('checkSubscribers error:', err);
+      status.className = 'status error';
+      status.textContent = `❌ Error: ${err.message}`;
+    }
+  }
+
+  // Export for global access
+  window.runTest = runTest;
+  window.resetForm = resetForm;
+  window.checkSubscribers = checkSubscribers;
+</script>
+
+</body>
+</html>

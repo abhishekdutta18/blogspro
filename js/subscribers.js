@@ -7,6 +7,17 @@ import { state }     from './state.js';
 import { collection, getDocs, deleteDoc, doc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 export async function loadSubscribers() {
+  // Try loading analytics dashboard first (new SaaS view)
+  if (window.initSubscriberRealtimeUpdates) {
+    try {
+      window.initSubscriberRealtimeUpdates();
+      return;
+    } catch (e) {
+      console.error('Analytics init failed, falling back to table view:', e);
+    }
+  }
+
+  // Fallback: Load table view (legacy)
   const tbody = document.getElementById('subsTableBody');
   if (!tbody) return;
   try {

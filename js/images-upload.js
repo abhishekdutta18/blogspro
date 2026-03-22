@@ -1,37 +1,12 @@
 // ═══════════════════════════════════════════════
-// images-upload.js — Cloudinary upload & featured image
+// images-upload.js — Multi-cloud upload (GCS + Cloudinary)
 // ═══════════════════════════════════════════════
-import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET, showToast } from './config.js';
-import { state } from './state.js';
+import { uploadToStorage as cloudStorageUpload } from './cloud-storage.js';
+import { showToast } from './config.js';
 
+// Re-export unified storage upload function
 export async function uploadToStorage(file, folder = 'content', onProgress = null) {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-  formData.append('folder', `blogspro/${folder}`);
-  formData.append('context', `uploaded_by=${state.currentUser?.email||'admin'}`);
-
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`);
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded/e.total)*100));
-    };
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          data.secure_url ? resolve(data.secure_url) : reject(new Error('Cloudinary: no URL'));
-        } catch(e) { reject(new Error('Cloudinary: invalid response')); }
-      } else {
-        let msg = `HTTP ${xhr.status}`;
-        try { msg = JSON.parse(xhr.responseText)?.error?.message || msg; } catch(_) {}
-        reject(new Error('Cloudinary: ' + msg));
-      }
-    };
-    xhr.onerror = () => reject(new Error('Cloudinary: network error'));
-    xhr.send(formData);
-  });
+  return cloudStorageUpload(file, folder, onProgress);
 }
 
 export async function blobUrlToFile(blobUrl, filename) {

@@ -356,7 +356,7 @@ window.aitRunSEOInline    = () => window.runSEOOptimizer?.();
 window.bulkFreshen        = () => showToast('Freshen: select posts in All Posts view.', 'info');
 window.insertCitations    = () => window.insertInlineCitations?.();
 window.repairBrokenImages = () => showToast('Image repair: coming soon.', 'info');
-window.sendNewsletter     = () => showToast('Connect your email provider to send.', 'info');
+// sendNewsletter is now defined in newsletter.js (after this file loads)
 window.setWordTarget      = (v) => { const wt = document.getElementById('wordTarget'); if (wt) wt.value = v; };
 
 
