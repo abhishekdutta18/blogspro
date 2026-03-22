@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'api/sentry-webhook.js'
-      - 'wrangler-sentry.toml'
+      - 'workers/sentry/index.js'
+      - 'workers/sentry/wrangler.toml'
   workflow_dispatch:
 
 jobs:
