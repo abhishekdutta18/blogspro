@@ -1,0 +1,23 @@
+name: Deploy SEO Worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'api/seo-worker.js'
+      - 'wrangler-seo.toml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Cloudflare Network
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          wranglerVersion: '3'
+          command: deploy --config wrangler-seo.toml
