@@ -170,9 +170,54 @@ export async function savePost(publish) {
     saveStatus.textContent = publish ? '✓ Published' : '✓ Draft saved';
     showToast(publish ? 'Post published!' : 'Draft saved.', 'success');
     await loadAll();
-  } catch(e) { saveStatus.textContent = ''; showToast('Save failed: '+(e.code||e.message),'error'); }
+    return state.editingPostId;
+  } catch(e) { saveStatus.textContent = ''; showToast('Save failed: '+(e.code||e.message),'error'); return null; }
 }
 window.savePost = savePost;
+
+window.savePostAndNotify = async function() {
+  const btn = event.currentTarget;
+  const originalText = btn.innerHTML;
+  btn.innerHTML = "⏳ Publishing...";
+  btn.disabled = true;
+
+  try {
+    const postId = await savePost(true);
+    if (!postId) {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      return;
+    }
+
+    btn.innerHTML = "📧 Notifying Subscribers...";
+    const title = document.getElementById('postTitle').value.trim() || 'New Article';
+    const excerpt = document.getElementById('postExcerpt').value.trim() || 'Check out our latest post on BlogsPro!';
+    let rawSlug = document.getElementById('postSlug').value.trim() || title;
+    const slug = rawSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || postId;
+    
+    // IMPORTANT: Admin must deploy the newsletter-worker and replace this URL
+    const workerUrl = "https://newsletter-worker.blogspro-in.workers.dev";
+    const secret = "replace_me_with_secure_secret";
+
+    const res = await fetch(workerUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postId, title, excerpt, slug, secret })
+    });
+
+    if (res.ok) {
+        import('./config.js').then(({ showToast }) => showToast('Blast Complete! Subscribers notified.', 'success'));
+    } else {
+        throw new Error('Newsletter API Failed: ' + await res.text());
+    }
+  } catch (err) {
+    console.error(err);
+    import('./config.js').then(({ showToast }) => showToast('Post published, but emails failed to send. Confirm worker URL and API Keys.', 'error'));
+  } finally {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+};
 
 // FEATURE 13: Archive/unarchive a post
 window.archivePost = async (id) => {
