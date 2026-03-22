@@ -1,3 +1,4 @@
 name = "blogspro-sentry-webhook"
 main = "index.js"
 compatibility_date = "2024-02-15"
+account_id = "b3f4edff1fdc616f329e7d7cb6698307"
