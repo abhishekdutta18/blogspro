@@ -16,12 +16,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy to Cloudflare Network
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: 'workers/sentry'
+          secrets: |
+            TELEGRAM_TOKEN
+            TELEGRAM_TO
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_TO: ${{ secrets.TELEGRAM_TO }}
-        run: |
-          npm install -g wrangler
-          echo "$TELEGRAM_TOKEN" | wrangler secret put TELEGRAM_TOKEN -c wrangler-sentry.toml
-          echo "$TELEGRAM_TO" | wrangler secret put TELEGRAM_TO -c wrangler-sentry.toml
-          wrangler deploy -c wrangler-sentry.toml
