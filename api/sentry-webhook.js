@@ -1,3 +1,4 @@
+// v1.1 - Forced redeployment
 export default {
   async fetch(request, env, ctx) {
     if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
