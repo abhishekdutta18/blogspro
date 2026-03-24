@@ -1,5 +1,5 @@
 import { IMAGE_PROVIDERS } from "./providers.js";
-import { workerFetch } from "../worker-endpoints.js";
+import { fetchWithTimeout } from "../config.js";
 
 export async function runImageAI(prompt) {
 
@@ -15,9 +15,6 @@ export async function runImageAI(prompt) {
 
     }
     catch (err) {
-      if (String(err?.message || "").toLowerCase().includes("endpoint not configured")) {
-        throw err;
-      }
 
       console.warn("Image provider failed:", provider);
 
@@ -32,7 +29,7 @@ export async function runImageAI(prompt) {
 
 async function callImageProvider(provider, prompt) {
 
-  const res = await workerFetch("api/generate-image", {
+  const res = await fetchWithTimeout("/api/generate-image", {
 
     method: "POST",
 
@@ -42,12 +39,10 @@ async function callImageProvider(provider, prompt) {
 
     body: JSON.stringify({
       provider,
-      prompt,
-      type: "image",
-      model: provider === "google" ? "imagen-3.0-generate-002" : undefined
+      prompt
     })
 
-  });
+  }, 60000);  // Images can take longer, 60s timeout
 
   if (!res.ok) {
     throw new Error(provider + " failed");
@@ -55,6 +50,6 @@ async function callImageProvider(provider, prompt) {
 
   const data = await res.json();
 
-  return data.image || data.url || data.result;
+  return data.image;
 
 }

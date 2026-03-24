@@ -1,126 +1,129 @@
 // ═══════════════════════════════════════════════
-// router.js — AI provider routing via Worker
-// API keys are handled server-side in the Worker.
+// router.js — AI provider routing
+// Updated March 2026 with latest models
 // ═══════════════════════════════════════════════
-import { workerFetch } from "../worker-endpoints.js";
-import { AI_KEYS } from "../config.js";
-
-const OPENAI_COMPAT = {
-  groq:       { url: "https://api.groq.com/openai/v1/chat/completions", model: "moonshotai/kimi-k2-instruct" },
-  openrouter: { url: "https://openrouter.ai/api/v1/chat/completions", model: "qwen/qwen3-235b-a22b" },
-  together:   { url: "https://api.together.xyz/v1/chat/completions", model: "deepseek-ai/DeepSeek-V3" },
-  deepinfra:  { url: "https://api.deepinfra.com/v1/openai/chat/completions", model: "meta-llama/Llama-3.3-70B-Instruct" },
-};
-
-async function callGeminiDirect(prompt) {
-  const key = String(AI_KEYS?.gemini || "").trim();
-  if (!key) throw new Error("gemini key not configured");
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 8192 },
-      }),
-    }
-  );
-
-  if (!res.ok) {
-    const err = await res.text().catch(() => "");
-    throw new Error(`gemini direct failed (${res.status}): ${err.substring(0, 140)}`);
-  }
-
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.map((p) => p?.text || "").join("").trim() || "";
-  if (!text) throw new Error("gemini returned empty response");
-  return text;
-}
-
-async function callOpenAiCompatDirect(provider, prompt) {
-  const cfg = OPENAI_COMPAT[provider];
-  if (!cfg) throw new Error(`${provider} direct mode not supported`);
-  const key = String(AI_KEYS?.[provider] || "").trim();
-  if (!key) throw new Error(`${provider} key not configured`);
-
-  const headers = {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${key}`,
-  };
-
-  if (provider === "openrouter") {
-    headers["HTTP-Referer"] = window.location.origin;
-    headers["X-Title"] = "BlogsPro";
-  }
-
-  const res = await fetch(cfg.url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      model: cfg.model,
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 4096,
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text().catch(() => "");
-    throw new Error(`${provider} direct failed (${res.status}): ${err.substring(0, 140)}`);
-  }
-
-  const data = await res.json();
-  const text =
-    data?.choices?.[0]?.message?.content ??
-    data?.choices?.[0]?.text ??
-    data?.text ??
-    data?.result ??
-    "";
-  if (!text) throw new Error(`${provider} returned empty response`);
-  return text;
-}
-
-async function callProviderDirect(provider, prompt) {
-  if (provider === "gemini") return callGeminiDirect(prompt);
-  if (OPENAI_COMPAT[provider]) return callOpenAiCompatDirect(provider, prompt);
-  // Providers without direct mappings fall back to Gemini if available.
-  return callGeminiDirect(prompt);
-}
+import { AI_KEYS } from "../remote-config.js";
+import { fetchWithTimeout } from "../config.js";
 
 export async function callProvider(provider, prompt, type = "text") {
-  try {
-    const res = await workerFetch("api/ai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, provider, type })
-    });
 
-    if (!res.ok) {
-      const err = await res.text().catch(() => "");
-      throw new Error(`${provider} failed (${res.status}): ${err.substring(0, 140)}`);
-    }
+  if (provider === "cloudflare")   return callCloudflare(prompt);
+  if (provider === "gemini")       return callGemini(prompt);
+  if (provider === "pollinations") return callPollinations(prompt);
 
-    const data = await res.json();
-    const text =
-      data?.text ??
-      data?.result ??
-      data?.content ??
-      data?.choices?.[0]?.message?.content ??
-      "";
-    if (!text) throw new Error(`${provider} returned empty response`);
-    return text;
-  } catch (err) {
-    const m = String(err?.message || "").toLowerCase();
-    if (
-      m.includes("endpoint not configured") ||
-      m.includes("(400)") ||
-      m.includes("(404)") ||
-      m.includes("(405)")
-    ) {
-      return await callProviderDirect(provider, prompt);
-    }
-    throw err;
+  const URLS = {
+    groq:       "https://api.groq.com/openai/v1/chat/completions",
+    openrouter: "https://openrouter.ai/api/v1/chat/completions",
+    together:   "https://api.together.xyz/v1/chat/completions",
+    deepinfra:  "https://api.deepinfra.com/v1/openai/chat/completions",
+    mistral:    "https://api.mistral.ai/v1/chat/completions",
+    deepseek:   "https://api.deepseek.com/chat/completions",
+    huggingface:"https://api-inference.huggingface.co/models/",
+  };
+
+  // Latest models as of March 2026
+  const TEXT_MODELS = {
+    groq:       "moonshotai/kimi-k2-instruct",     // Kimi K2 1T MoE — best
+    openrouter: "qwen/qwen3-235b-a22b",             // Qwen3 235B
+    together:   "deepseek-ai/DeepSeek-V3",          // DeepSeek V3
+    deepinfra:  "meta-llama/Llama-3.3-70B-Instruct",
+    mistral:    "mistral-large-latest",
+    deepseek:   "deepseek-chat",
+  };
+
+  const CODE_MODELS = {
+    groq:       "moonshotai/kimi-k2-instruct",
+    openrouter: "qwen/qwen2.5-coder-32b-instruct",
+    together:   "deepseek-ai/deepseek-coder-v2-instruct",
+    deepinfra:  "meta-llama/CodeLlama-70b-Instruct-hf",
+    mistral:    "codestral-latest",
+    deepseek:   "deepseek-coder",
+  };
+
+  const MODELS = type === "code" ? CODE_MODELS : TEXT_MODELS;
+
+  const url   = URLS[provider];
+  const key   = AI_KEYS[provider];
+  const model = MODELS[provider];
+
+  if (!url)   throw new Error("Unknown provider: " + provider);
+  if (!key)   throw new Error("No API key for: " + provider);
+  if (!model) throw new Error("No model for: " + provider);
+
+  const res = await fetchWithTimeout(url, {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + key,
+      "Content-Type":  "application/json",
+      // OpenRouter requires these headers
+      ...(provider === "openrouter" ? {
+        "HTTP-Referer": "https://blogspro.in",
+        "X-Title": "BlogsPro"
+      } : {})
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 8000,
+    })
+  }, 30000);
+
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    // Log full error to console, show user-friendly message
+    console.error(`${provider} API error (${res.status}):`, err);
+    throw new Error(`${provider} failed: please try again`);
   }
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content;
+}
+
+
+// ── Gemini 2.0 Flash ──────────────────────────
+async function callGemini(prompt) {
+  const key = AI_KEYS.gemini;
+  if (!key) throw new Error("No Gemini key");
+  const res = await fetchWithTimeout(
+    "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "gemini-2.0-flash",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 8000,
+      })
+    },
+    30000
+  );
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    console.error('Gemini API error:', err);
+    throw new Error(`gemini failed: please try again`);
+  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content;
+}
+
+
+// ── Cloudflare Workers AI ─────────────────────
+async function callCloudflare(prompt) {
+  const res = await fetchWithTimeout("/api/ai", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt })
+  }, 30000);
+  if (!res.ok) throw new Error("cloudflare failed: please try again");
+  const data = await res.json();
+  return data.result;
+}
+
+
+// ── Pollinations (free image text-to-img) ─────
+async function callPollinations(prompt) {
+  // Text completion via pollinations
+  const res = await fetchWithTimeout("https://text.pollinations.ai/" + encodeURIComponent(prompt), {}, 30000);
+  if (!res.ok) throw new Error("pollinations failed: please try again");
+  return await res.text();
 }
