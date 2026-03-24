@@ -130,6 +130,17 @@ async function handleCommand(message, env) {
   const text = message.text.trim().toLowerCase();
 
   if (text === '/status' || text.startsWith('/status@')) {
+    // Validate Sentry credentials before attempting fetch
+    if (!env.SENTRY_ORG || !env.SENTRY_PROJECT || !env.SENTRY_AUTH_TOKEN) {
+      await sendTelegramMessage(
+        chatId,
+        '⚠️ <b>Sentry Configuration Error</b>\nMissing Sentry credentials (SENTRY_ORG, SENTRY_PROJECT, or SENTRY_AUTH_TOKEN).\nPlease configure the worker environment variables.',
+        null,
+        env
+      );
+      return new Response('OK');
+    }
+
     const issues = await fetchUnresolvedSentryIssues(env);
 
     if (issues === null) {
