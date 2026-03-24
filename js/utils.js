@@ -16,15 +16,62 @@ export function cleanEditorHTML(html) {
 
 
 // ── sanitize ─────────────────────────────────
-// Strips dangerous tags and event handlers from HTML.
+// Sanitizes HTML using DOMPurify to remove XSS risks.
+// Requires DOMPurify to be loaded globally.
 export function sanitize(html) {
   if (!html) return '';
+  // Use DOMPurify if available (loaded in admin.html), fall back to regex for other pages
+  if (typeof DOMPurify !== 'undefined') {
+    return DOMPurify.sanitize(html, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'pre', 'code', 'div', 'span'], ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class'] });
+  }
+  // Fallback for pages without DOMPurify
   html = html.replace(/<(script|style|iframe|object|embed|form)[^>]*>[\s\S]*?<\/\1>/gi, '');
   html = html.replace(/<(script|style|iframe|object|embed|form)[^>]*/gi, '');
   html = html.replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '');
   html = html.replace(/\s+on\w+\s*=\s*[^\s>]*/gi, '');
   html = html.replace(/(href|src)\s*=\s*["']\s*javascript:[^"']*/gi, '$1="#"');
   return html;
+}
+
+
+// ── validateImageUrl ──────────────────────
+// Validates image URL for safety (protocol, domain).
+export function validateImageUrl(url) {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    // Only allow https protocol
+    if (u.protocol !== 'https:') return null;
+    // Whitelist safe image domains
+    const safeDomains = ['cloudinary.com', 'pollinations.ai', 'images.unsplash.com', 'images.pexels.com'];
+    const hostname = u.hostname.toLowerCase();
+    if (!safeDomains.some(domain => hostname.endsWith(domain))) {
+      // Allow data URLs for local/generated images
+      if (!url.startsWith('data:image/')) return null;
+    }
+    return url;
+  } catch (_) {
+    return null;
+  }
+}
+
+
+// ── fetchWithTimeout ──────────────────────
+// Wrapper for fetch with configurable timeout.
+export async function fetchWithTimeout(url, options = {}, timeout = 30000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error(`Request timeout after ${timeout}ms`);
+    }
+    throw err;
+  }
 }
 
 
@@ -107,5 +154,41 @@ export function parseAIJson(text) {
     return JSON.parse(text.substring(s, e + 1));
   } catch (_) {
     return null;
+  }
+}
+
+
+// ── RateLimiter ────────────────────────────────
+// Prevents API calls from being made too frequently.
+// Usage: const limiter = new RateLimiter(2000); // 1 call per 2s
+//        if (!limiter.canRequest()) return; // Check before calling API
+export class RateLimiter {
+  constructor(minIntervalMs = 2000) {
+    this.minIntervalMs = minIntervalMs;
+    this.lastRequestTime = 0;
+    this.isWaiting = false;
+  }
+
+  canRequest() {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    if (timeSinceLastRequest >= this.minIntervalMs) {
+      this.lastRequestTime = now;
+      this.isWaiting = false;
+      return true;
+    }
+    this.isWaiting = true;
+    return false;
+  }
+
+  getWaitTime() {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    return Math.max(0, this.minIntervalMs - timeSinceLastRequest);
+  }
+
+  reset() {
+    this.lastRequestTime = 0;
+    this.isWaiting = false;
   }
 }

@@ -2,7 +2,7 @@
 // posts.js — Post CRUD and dashboard data
 // ═══════════════════════════════════════════════
 import { db }            from './config.js';
-import { sanitize, showToast, slugify, stripTags } from './config.js';
+import { sanitize, showToast, slugify, stripTags, validateImageUrl } from './config.js';
 import { state }         from './state.js';
 import { buildInternalLinks } from './ai-editor.js';
 import { uploadToStorage, blobUrlToFile } from './images-upload.js';
@@ -108,6 +108,13 @@ export function renderPostsTable(posts, tbodyId) {
 }
 
 export async function savePost(publish) {
+  // Prevent concurrent saves (race condition fix)
+  if (state.isSaving) {
+    showToast('Save in progress, please wait…', 'info');
+    return;
+  }
+  state.isSaving = true;
+
   const title    = stripTags(document.getElementById('postTitle').value.trim());
   const excerpt  = document.getElementById('postExcerpt').value.trim();
   const cat      = document.getElementById('postCategory').value;
@@ -118,12 +125,24 @@ export async function savePost(publish) {
   const editor   = document.getElementById('editor');
   const readMin  = Math.max(1, Math.ceil((editor.textContent||'').split(/\s+/).filter(Boolean).length/200));
 
-  if (!title) { showToast('Please add a title.','error'); return; }
+  if (!title) { showToast('Please add a title.','error'); state.isSaving = false; return; }
 
   const saveStatus = document.getElementById('saveStatus');
   saveStatus.textContent = 'Checking images…';
   let image   = document.getElementById('postImage').value.trim();
   let content = editor.innerHTML;
+
+  // Validate image URL for safety
+  if (image && !image.startsWith('blob:')) {
+    const validatedUrl = validateImageUrl(image);
+    if (!validatedUrl) {
+      showToast('Invalid image URL (must be HTTPS from safe domains).', 'error');
+      saveStatus.textContent = '';
+      state.isSaving = false;
+      return;
+    }
+    image = validatedUrl;
+  }
 
   if (image.startsWith('blob:')) {
     try {
@@ -131,7 +150,7 @@ export async function savePost(publish) {
       const file = await blobUrlToFile(image, 'featured-image.jpg');
       image = await uploadToStorage(file, 'featured', pct => { saveStatus.textContent = `⏳ Uploading featured ${pct}%`; });
       document.getElementById('postImage').value = image;
-    } catch(e) { showToast('Featured upload failed: ' + e.message,'error'); saveStatus.textContent=''; return; }
+    } catch(e) { showToast('Featured upload failed: ' + e.message,'error'); saveStatus.textContent=''; state.isSaving = false; return; }
   }
 
   const blobMatches = [...content.matchAll(/src="(blob:[^"]+)"/g)];
@@ -166,7 +185,12 @@ export async function savePost(publish) {
     saveStatus.textContent = publish ? '✓ Published' : '✓ Draft saved';
     showToast(publish ? 'Post published!' : 'Draft saved.', 'success');
     await loadAll();
-  } catch(e) { saveStatus.textContent = ''; showToast('Save failed: '+(e.code||e.message),'error'); }
+  } catch(e) {
+    saveStatus.textContent = '';
+    showToast('Save failed: '+(e.code||e.message),'error');
+  } finally {
+    state.isSaving = false;
+  }
 }
 window.savePost = savePost;
 
@@ -191,8 +215,10 @@ export async function editPost(id) {
     document.getElementById('postTitle').value    = stripTags(p.title||'');
     document.getElementById('postExcerpt').value  = p.excerpt||'';
     document.getElementById('postSlug').value     = p.slug||'';
-    document.getElementById('postImage').value    = p.image||'';
-    if (p.image) window.updateFeaturedPreview?.(p.image);
+    // Validate image URL for safety
+    const validatedImage = p.image ? validateImageUrl(p.image) : '';
+    document.getElementById('postImage').value    = validatedImage || '';
+    if (validatedImage) window.updateFeaturedPreview?.(validatedImage);
     document.getElementById('postMeta').value     = p.metaDesc||'';
     document.getElementById('postTags').value     = (p.tags||[]).join(', ');
     editor.innerHTML = sanitize(p.content||'');

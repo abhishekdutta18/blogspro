@@ -14,6 +14,8 @@ export async function uploadToStorage(file, folder = 'content', onProgress = nul
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`);
+    // Set 60-second timeout for uploads (images can be large)
+    xhr.timeout = 60000;
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded/e.total)*100));
     };
@@ -30,6 +32,7 @@ export async function uploadToStorage(file, folder = 'content', onProgress = nul
       }
     };
     xhr.onerror = () => reject(new Error('Cloudinary: network error'));
+    xhr.ontimeout = () => reject(new Error('Cloudinary: upload timeout'));
     xhr.send(formData);
   });
 }

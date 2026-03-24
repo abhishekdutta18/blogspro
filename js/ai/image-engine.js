@@ -1,4 +1,5 @@
 import { IMAGE_PROVIDERS } from "./providers.js";
+import { fetchWithTimeout } from "../config.js";
 
 export async function runImageAI(prompt) {
 
@@ -28,7 +29,7 @@ export async function runImageAI(prompt) {
 
 async function callImageProvider(provider, prompt) {
 
-  const res = await fetch("/api/generate-image", {
+  const res = await fetchWithTimeout("/api/generate-image", {
 
     method: "POST",
 
@@ -41,7 +42,7 @@ async function callImageProvider(provider, prompt) {
       prompt
     })
 
-  });
+  }, 60000);  // Images can take longer, 60s timeout
 
   if (!res.ok) {
     throw new Error(provider + " failed");

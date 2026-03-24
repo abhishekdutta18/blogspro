@@ -5,6 +5,9 @@ import { db }        from './config.js';
 import { showToast } from './config.js';
 import { collection, getDocs, updateDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// Track ongoing role changes to prevent race conditions
+const updatingUsers = new Set();
+
 export async function loadUsers() {
   const tbody = document.getElementById('usersTableBody');
   if (!tbody) return;
@@ -23,16 +26,39 @@ export async function loadUsers() {
         <td style="color:var(--muted);font-size:0.85rem">${u.email||'—'}</td>
         <td><span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;${roleColors[u.role]||'color:#8896b3'}">${roleLabels[u.role]||u.role||'Reader'}</span></td>
         <td style="color:var(--muted);font-size:0.83rem;white-space:nowrap">${date}</td>
-        <td><select onchange="changeUserRole('${u.id}',this.value)" style="background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.3rem 0.5rem;border-radius:2px;font-family:var(--sans);font-size:0.78rem;cursor:pointer;outline:none">
+        <td><select class="user-role-select" data-user-id="${u.id}" style="background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.3rem 0.5rem;border-radius:2px;font-family:var(--sans);font-size:0.78rem;cursor:pointer;outline:none">
           <option value="reader" ${u.role==='reader'?'selected':''}>Reader</option>
           <option value="editor" ${u.role==='editor'?'selected':''}>Editor</option>
           <option value="coauthor" ${u.role==='coauthor'?'selected':''}>Co-Author</option>
         </select></td></tr>`;
     }).join('');
+    // Attach event listeners to role selects
+    tbody.querySelectorAll('.user-role-select').forEach(select => {
+      select.addEventListener('change', async (e) => {
+        const uid = e.target.dataset.userId;
+        const newRole = e.target.value;
+        await changeUserRole(uid, newRole);
+      });
+    });
   } catch(e) { tbody.innerHTML=`<tr><td colspan="5"><div class="table-empty">Failed to load users.</div></td></tr>`; }
 }
 
-window.changeUserRole = async (uid, role) => {
-  try { await updateDoc(doc(db,'users',uid),{role}); showToast(`Role updated to ${role}.`,'success'); loadUsers(); }
-  catch(e) { showToast('Failed: '+e.message,'error'); }
-};
+async function changeUserRole(uid, role) {
+  // Prevent concurrent updates to the same user
+  if (updatingUsers.has(uid)) {
+    showToast('Update in progress, please wait…', 'info');
+    return;
+  }
+  updatingUsers.add(uid);
+  try {
+    await updateDoc(doc(db,'users',uid),{role});
+    showToast(`Role updated to ${role}.`,'success');
+    await loadUsers();
+  } catch(e) {
+    showToast('Failed: '+e.message,'error');
+  } finally {
+    updatingUsers.delete(uid);
+  }
+}
+
+window.changeUserRole = changeUserRole;

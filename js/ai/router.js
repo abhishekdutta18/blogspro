@@ -3,6 +3,7 @@
 // Updated March 2026 with latest models
 // ═══════════════════════════════════════════════
 import { AI_KEYS } from "../remote-config.js";
+import { fetchWithTimeout } from "../config.js";
 
 export async function callProvider(provider, prompt, type = "text") {
 
@@ -49,7 +50,7 @@ export async function callProvider(provider, prompt, type = "text") {
   if (!key)   throw new Error("No API key for: " + provider);
   if (!model) throw new Error("No model for: " + provider);
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "POST",
     headers: {
       "Authorization": "Bearer " + key,
@@ -65,11 +66,13 @@ export async function callProvider(provider, prompt, type = "text") {
       messages: [{ role: "user", content: prompt }],
       max_tokens: 8000,
     })
-  });
+  }, 30000);
 
   if (!res.ok) {
     const err = await res.text().catch(() => "");
-    throw new Error(`${provider} failed (${res.status}): ${err.substring(0, 120)}`);
+    // Log full error to console, show user-friendly message
+    console.error(`${provider} API error (${res.status}):`, err);
+    throw new Error(`${provider} failed: please try again`);
   }
 
   const data = await res.json();
@@ -81,7 +84,7 @@ export async function callProvider(provider, prompt, type = "text") {
 async function callGemini(prompt) {
   const key = AI_KEYS.gemini;
   if (!key) throw new Error("No Gemini key");
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
     {
       method: "POST",
@@ -91,9 +94,14 @@ async function callGemini(prompt) {
         messages: [{ role: "user", content: prompt }],
         max_tokens: 8000,
       })
-    }
+    },
+    30000
   );
-  if (!res.ok) throw new Error(`gemini failed (${res.status})`);
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    console.error('Gemini API error:', err);
+    throw new Error(`gemini failed: please try again`);
+  }
   const data = await res.json();
   return data.choices?.[0]?.message?.content;
 }
@@ -101,12 +109,12 @@ async function callGemini(prompt) {
 
 // ── Cloudflare Workers AI ─────────────────────
 async function callCloudflare(prompt) {
-  const res = await fetch("/api/ai", {
+  const res = await fetchWithTimeout("/api/ai", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt })
-  });
-  if (!res.ok) throw new Error("cloudflare failed (" + res.status + ")");
+  }, 30000);
+  if (!res.ok) throw new Error("cloudflare failed: please try again");
   const data = await res.json();
   return data.result;
 }
@@ -115,7 +123,7 @@ async function callCloudflare(prompt) {
 // ── Pollinations (free image text-to-img) ─────
 async function callPollinations(prompt) {
   // Text completion via pollinations
-  const res = await fetch("https://text.pollinations.ai/" + encodeURIComponent(prompt));
-  if (!res.ok) throw new Error("pollinations failed (" + res.status + ")");
+  const res = await fetchWithTimeout("https://text.pollinations.ai/" + encodeURIComponent(prompt), {}, 30000);
+  if (!res.ok) throw new Error("pollinations failed: please try again");
   return await res.text();
 }

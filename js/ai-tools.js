@@ -73,6 +73,19 @@ function aitOpenCluster(title) {
 }
 window.aitOpenCluster = aitOpenCluster; // expose globally for onclick handlers
 
+// ── Event delegation for AI tool clicks ─────────
+// Instead of inline onclick handlers, we use event delegation on result containers
+function attachAIToolListeners(containerId, handler) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.addEventListener('click', (e) => {
+    const item = e.target.closest('.ait-result-item[data-value]');
+    if (!item) return;
+    const value = item.dataset.value;
+    if (value) handler(value);
+  });
+}
+
 
 // ── 2. Headline AI ────────────────────────────
 window.aitRunHeadlines = async () => {
@@ -89,13 +102,24 @@ window.aitRunHeadlines = async () => {
   if (parsed?.headlines?.length) {
     const sorted = [...parsed.headlines].sort((a, b) => b.score - a.score);
     aitShowResult('hl', sorted.map(h => `
-      <div class="ait-result-item" style="cursor:pointer" onclick="
-        document.getElementById('postTitle').value=${JSON.stringify(h.title)};
-        document.getElementById('postSlug').value=slugify(${JSON.stringify(h.title)});
-        showToast('Headline applied!','success')">
+      <div class="ait-result-item" style="cursor:pointer" data-value="${sanitize(h.title)}">
         <div style="font-size:0.75rem;font-weight:700;color:var(--gold);flex-shrink:0;min-width:28px">${h.score}</div>
-        <div><div class="ait-ri-text">${h.title}</div><div class="ait-ri-sub">${h.type || ''}</div></div>
+        <div><div class="ait-ri-text">${sanitize(h.title)}</div><div class="ait-ri-sub">${sanitize(h.type || '')}</div></div>
       </div>`).join(''));
+    // Setup event delegation for headlines
+    const container = document.getElementById('res-hl');
+    if (container) {
+      container.replaceWith(container.cloneNode(true)); // Remove old listeners
+      const newContainer = document.getElementById('res-hl');
+      newContainer.addEventListener('click', (e) => {
+        const item = e.target.closest('.ait-result-item[data-value]');
+        if (!item) return;
+        const title = item.dataset.value;
+        document.getElementById('postTitle').value = title;
+        document.getElementById('postSlug').value = slugify(title);
+        showToast('Headline applied!', 'success');
+      });
+    }
   } else {
     aitShowResult('hl', `<div style="color:#fca5a5">✕ ${result.error || 'No headlines returned'}</div>`);
   }
@@ -147,9 +171,20 @@ window.aitRunClusters = async () => {
   const parsed = aitParse(result.text);
   if (parsed?.clusters?.length) {
     aitShowResult('cluster', parsed.clusters.map(c => `
-      <div class="ait-result-item" style="cursor:pointer" onclick="aitOpenCluster(${JSON.stringify(c.title || '')})">
-        <div><div class="ait-ri-text">${c.title}</div><div class="ait-ri-sub">${c.angle || ''}</div></div>
+      <div class="ait-result-item" style="cursor:pointer" data-value="${sanitize(c.title || '')}">
+        <div><div class="ait-ri-text">${sanitize(c.title)}</div><div class="ait-ri-sub">${sanitize(c.angle || '')}</div></div>
       </div>`).join(''));
+    // Setup event delegation for clusters
+    const container = document.getElementById('res-cluster');
+    if (container) {
+      container.replaceWith(container.cloneNode(true));
+      const newContainer = document.getElementById('res-cluster');
+      newContainer.addEventListener('click', (e) => {
+        const item = e.target.closest('.ait-result-item[data-value]');
+        if (!item) return;
+        aitOpenCluster(item.dataset.value);
+      });
+    }
   } else {
     aitShowResult('cluster', `<div style="color:#fca5a5">✕ ${result.error || 'Failed'}</div>`);
   }
@@ -170,10 +205,21 @@ window.aitRunCalendar = async () => {
   const parsed = aitParse(result.text);
   if (parsed?.posts?.length) {
     aitShowResult('cal', parsed.posts.map(p => `
-      <div class="ait-result-item" style="cursor:pointer" onclick="aitOpenCluster(${JSON.stringify(p.title || '')})">
+      <div class="ait-result-item" style="cursor:pointer" data-value="${sanitize(p.title || '')}">
         <div style="font-size:0.65rem;font-weight:700;color:var(--gold);flex-shrink:0;min-width:24px">D${p.day}</div>
-        <div><div class="ait-ri-text">${p.title}</div><div class="ait-ri-sub">${p.hook || ''}</div></div>
+        <div><div class="ait-ri-text">${sanitize(p.title)}</div><div class="ait-ri-sub">${sanitize(p.hook || '')}</div></div>
       </div>`).join(''));
+    // Setup event delegation for calendar
+    const container = document.getElementById('res-cal');
+    if (container) {
+      container.replaceWith(container.cloneNode(true));
+      const newContainer = document.getElementById('res-cal');
+      newContainer.addEventListener('click', (e) => {
+        const item = e.target.closest('.ait-result-item[data-value]');
+        if (!item) return;
+        aitOpenCluster(item.dataset.value);
+      });
+    }
   } else {
     aitShowResult('cal', `<div style="color:#fca5a5">✕ ${result.error || 'Failed'}</div>`);
   }
@@ -196,10 +242,21 @@ window.aitRunGap = async () => {
   if (parsed?.gaps?.length) {
     const pColor = { high: '#fca5a5', medium: 'var(--gold)', low: 'var(--muted)' };
     aitShowResult('gap', parsed.gaps.map(g => `
-      <div class="ait-result-item" style="cursor:pointer" onclick="aitOpenCluster(${JSON.stringify(g.title || '')})">
+      <div class="ait-result-item" style="cursor:pointer" data-value="${sanitize(g.title || '')}">
         <div style="font-size:0.62rem;font-weight:700;color:${pColor[g.priority] || 'var(--muted)'};flex-shrink:0;text-transform:uppercase;min-width:24px">${(g.priority || '').substring(0, 3)}</div>
-        <div><div class="ait-ri-text">${g.title}</div><div class="ait-ri-sub">${g.reason || ''}</div></div>
+        <div><div class="ait-ri-text">${sanitize(g.title)}</div><div class="ait-ri-sub">${sanitize(g.reason || '')}</div></div>
       </div>`).join(''));
+    // Setup event delegation for gaps
+    const container = document.getElementById('res-gap');
+    if (container) {
+      container.replaceWith(container.cloneNode(true));
+      const newContainer = document.getElementById('res-gap');
+      newContainer.addEventListener('click', (e) => {
+        const item = e.target.closest('.ait-result-item[data-value]');
+        if (!item) return;
+        aitOpenCluster(item.dataset.value);
+      });
+    }
   } else {
     aitShowResult('gap', `<div style="color:#fca5a5">✕ ${result.error || 'Failed'}</div>`);
   }
@@ -255,19 +312,33 @@ Format: First line must be "Subject: <subject line>". Then 3-4 short paragraphs.
   aitShowResult('nl', `
     ${subjLine ? `<div style="margin-bottom:0.5rem;padding:0.4rem 0.6rem;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:3px;font-size:0.72rem">
       <span style="color:var(--gold);font-weight:700">SUBJECT:</span>
-      <span style="color:var(--cream)"> ${subjLine.replace(/^subject:\s*/i, '')}</span>
+      <span style="color:var(--cream)"> ${sanitize(subjLine.replace(/^subject:\s*/i, ''))}</span>
     </div>` : ''}
-    <div style="font-size:0.75rem;color:var(--muted);white-space:pre-wrap;line-height:1.6">${body}</div>
+    <div style="font-size:0.75rem;color:var(--muted);white-space:pre-wrap;line-height:1.6">${sanitize(body)}</div>
     <div style="margin-top:0.6rem;display:flex;gap:0.4rem">
-      <button onclick="navigator.clipboard.writeText(${JSON.stringify(body)}).then(()=>showToast('Copied!','success'))"
+      <button id="ait-nl-copy-btn"
         style="flex:1;background:var(--navy2);border:1px solid var(--border);color:var(--muted);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer">
         📋 Copy
       </button>
-      <button onclick="window.showView('newsletter');showToast('Opened Newsletter','success')"
+      <button id="ait-nl-view-btn"
         style="flex:1;background:var(--navy2);border:1px solid var(--border);color:var(--muted);padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer">
         ✉ Full View →
       </button>
     </div>`);
+  // Attach event listeners to newsletter buttons
+  const copyBtn = document.getElementById('ait-nl-copy-btn');
+  const viewBtn = document.getElementById('ait-nl-view-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(body).then(() => showToast('Copied!', 'success')).catch(() => showToast('Copy failed', 'error'));
+    });
+  }
+  if (viewBtn) {
+    viewBtn.addEventListener('click', () => {
+      window.showView?.('newsletter');
+      showToast('Opened Newsletter', 'success');
+    });
+  }
   showToast('Newsletter generated!', 'success');
 };
 
