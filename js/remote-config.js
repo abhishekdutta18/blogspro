@@ -5,7 +5,8 @@
 import { remoteConfig } from './firebase.js';
 import {
   fetchAndActivate,
-  getValue
+  getValue,
+  ensureInitialized
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-remote-config.js';
 
 
@@ -45,6 +46,7 @@ export async function loadRemoteConfig() {
     return;
   }
   try {
+    await ensureInitialized(remoteConfig);
     remoteConfig.settings = {
       minimumFetchIntervalMillis: 3600000  // 1 hour cache
     };

@@ -31,9 +31,10 @@ export function showAIEditToolbar() {
 
 export function initDrawer() {
   // Expose to window for onclick handlers in HTML
-  window.openAIDrawer    = openAIDrawer;
-  window.closeAIDrawer   = closeAIDrawer;
-  window.switchDrawerTab = switchDrawerTab;
+  // Use underscore prefix to avoid race conditions with guard functions
+  window._openAIDrawer    = openAIDrawer;
+  window._closeAIDrawer   = closeAIDrawer;
+  window._switchDrawerTab = switchDrawerTab;
 
   // Overlay click closes drawer
   document.getElementById('aiDrawerOverlay')?.addEventListener('click', closeAIDrawer);

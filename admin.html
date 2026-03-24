@@ -56,6 +56,16 @@ function doLogout() {
   if (window._doLogout) window._doLogout();
   else window.location.href = 'login.html';
 }
+// Guard functions for AI drawer — will be overridden by ai-drawer.js after module load
+function openAIDrawer(tab) {
+  if (window._openAIDrawer) window._openAIDrawer(tab);
+}
+function closeAIDrawer() {
+  if (window._closeAIDrawer) window._closeAIDrawer();
+}
+function switchDrawerTab(tab) {
+  if (window._switchDrawerTab) window._switchDrawerTab(tab);
+}
 </script>
 
 <!-- Mobile top bar (hidden on desktop, shown on mobile) -->
