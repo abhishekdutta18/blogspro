@@ -8,6 +8,7 @@ import { loadSubscribers }         from './subscribers.js';
 import { populateAnalyzeSelect }   from './seo-page.js';
 import { clearEditor }             from './editor.js';
 import { closeAIDrawer }           from './ai-drawer.js';
+import { loadProfile }             from './profile.js';
 
 export function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -25,6 +26,7 @@ export function showView(name) {
   if (name === 'users')       loadUsers();
   if (name === 'subscribers') loadSubscribers();
   if (name === 'seotools')    populateAnalyzeSelect();
+  if (name === 'profile')     loadProfile();
 
   // Float button + drawer: only show on editor view
   const floatBtn = document.getElementById('aiFloatBtn');

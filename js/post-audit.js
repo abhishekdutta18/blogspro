@@ -44,6 +44,12 @@ const T = {
 };
 
 let _running = false;
+const AUDIT_CFG = {
+  autorun: window.__POST_AUDIT_AUTORUN__ === true,
+  allowAutoRectify: window.__POST_AUDIT_AUTO_RECTIFY__ === true,
+  allowAutoSave: window.__POST_AUDIT_AUTO_SAVE__ === true,
+  allowGithubPush: window.__POST_AUDIT_GITHUB_PUSH__ === true,
+};
 
 // ─────────────────────────────────────────────────────────────────
 // HOOK INSTALLATION
@@ -59,6 +65,10 @@ function _wrap(name, after) {
 }
 
 function installHooks() {
+  if (!AUDIT_CFG.autorun) {
+    console.log('[PostAudit] autorun disabled (safe mode)');
+    return;
+  }
   _wrap('generateAIPost', () => runFullAudit('ai-writer'));
   _wrap('aitRunAutoBlog', () => runFullAudit('auto-blog'));
   console.log('[PostAudit] ✓ Hooks installed');
@@ -285,8 +295,11 @@ async function rectify(p, allIssues) {
   }
   if (ids.has('tags')) {
     _log('✍ Generating tags…');
-    const r = await callAI(`Generate 5 fintech SEO tags. Return ONLY comma-separated:\nTitle: ${p.title}`, true);
-    if (!r.error && r.text) { const v = r.text.split(',').map(t => t.trim()).filter(Boolean).slice(0, 5).join(', '); _setF('postTags', v); log('tags', 'AI tags', p.tags.join(', '), v); }
+    const r = await callAI(`Generate 5 SEO tags. Return ONLY comma-separated words. No 'Tags:' prefix:\nTitle: ${p.title}`, true);
+    let rawTags = (!r.error && r.text) ? r.text.replace(/^["']|["']$/g, '').replace(/^Tags:/i, '') : `${p.category || 'technology'}, startup, finance, banking, market`;
+    const v = rawTags.split(',').map(t => t.trim()).filter(Boolean).slice(0, 6).join(', ');
+    _setF('postTags', v);
+    log('tags', 'AI tags', p.tags.join(', '), v);
   }
 
   // ── Add names to unnamed charts ────────────────────────────────
@@ -297,15 +310,15 @@ async function rectify(p, allIssues) {
     if (!chart?.el) continue;
     _log(`📊 Naming chart ${idx + 1}…`);
     const r = await callAI(
-      `Article: "${p.title}". Chart type: ${chart.type}. Content sample: "${chart.el.textContent.slice(0, 200)}"\n` +
+      `Article: "${p.title}". Chart type: ${chart.type}. Content sample: "${chart.el.textContent.slice(0, 150)}"\n` +
       `Write a specific, descriptive 6-8 word name for this chart. Return ONLY the name, no quotes.`, true);
-    if (!r.error && r.text) {
-      const name = r.text.trim();
-      chart.el.setAttribute('data-name', name);
-      const titleEl = chart.el.querySelector('.bp-chart-title');
-      if (titleEl) titleEl.textContent = name;
-      log('content', `Chart ${idx + 1} named`, '(unnamed)', name);
-    }
+    
+    let name = (r && !r.error && r.text && r.text.length > 5) ? r.text.trim().replace(/^["']|["']$/g, '') : `${p.category || 'Data'} Metrics Overview ${idx+1}`;
+    
+    chart.el.setAttribute('data-name', name);
+    const titleEl = chart.el.querySelector('.bp-chart-title');
+    if (titleEl) titleEl.textContent = name;
+    log('content', `Chart ${idx + 1} named`, '(unnamed)', name);
   }
 
   // ── Add names to unnamed tables ────────────────────────────────
@@ -480,8 +493,11 @@ async function autoSave() {
     updatedAt:   serverTimestamp(),
     auditedAt:   serverTimestamp(),
     auditPassed: true,
+    authorName:  state.currentUser?.displayName || state.currentUser?.email?.split('@')[0] || 'Admin',
+    authorUid:   state.currentUser?.uid || '',
   };
 
+  if (!data.slug) data.slug = slugify(data.title) || 'untitled-post';
   if (state.editingPostId) {
     await updateDoc(doc(db, 'posts', state.editingPostId), data);
   } else {
@@ -536,6 +552,8 @@ async function pushCodeFix(fixes) {
 // ─────────────────────────────────────────────────────────────────
 export async function runFullAudit(trigger = 'manual') {
   if (_running) return;
+  const editor = document.getElementById('editor');
+  if (!editor) return;
   _running = true;
   _showProgress();
 
@@ -556,9 +574,14 @@ export async function runFullAudit(trigger = 'manual') {
     const allIssues = [...struct, ...quality];
 
     // Phase 3
-    _step('fix', 'running', `Auto-rectifying ${allIssues.length} issue(s)…`);
-    const corrections = allIssues.length ? await rectify(p1, allIssues) : [];
-    _step('fix', 'pass', `${corrections.length} correction(s) applied`);
+    let corrections = [];
+    if (AUDIT_CFG.allowAutoRectify && allIssues.length) {
+      _step('fix', 'running', `Auto-rectifying ${allIssues.length} issue(s)…`);
+      corrections = await rectify(p1, allIssues);
+      _step('fix', 'pass', `${corrections.length} correction(s) applied`);
+    } else {
+      _step('fix', 'warn', 'Auto-rectify disabled (safe mode)');
+    }
 
     // FIX: Recheck MUST re-collect AND re-run checkStructure after all DOM
     // changes from rectify() have settled. The original bug was that collect()
@@ -573,19 +596,26 @@ export async function runFullAudit(trigger = 'manual') {
       remaining.length ? `${remaining.length} remain` : 'Clean');
 
     // Phase 4: auto-save
-    _step('save', 'running', 'Saving to Firestore…');
-    const postId = await autoSave();
-    _step('save', 'pass', `Saved · ${postId}`);
+    let postId = null;
+    if (AUDIT_CFG.allowAutoSave) {
+      _step('save', 'running', 'Saving to Firestore…');
+      postId = await autoSave();
+      _step('save', 'pass', `Saved · ${postId}`);
+    } else {
+      _step('save', 'warn', 'Auto-save disabled (safe mode)');
+    }
 
     // Phase 5: push code fixes to GitHub
     const codeFixPatches = corrections
       .filter(c => c.field === 'code')
       .map(c => ({ file: c.file, description: c.what, patch: c.newVal }));
-    if (codeFixPatches.length) {
+    if (AUDIT_CFG.allowGithubPush && codeFixPatches.length) {
       _step('github', 'running', 'Pushing code fixes to GitHub…');
       const pushed = await pushCodeFix(codeFixPatches);
       _step('github', pushed?.length ? 'pass' : 'warn',
         pushed?.length ? `${pushed.length} fix(es) pushed` : 'GitHub not configured');
+    } else {
+      _step('github', 'warn', 'GitHub auto-push disabled (safe mode)');
     }
 
     // Phase 6: admin gate
@@ -595,6 +625,7 @@ export async function runFullAudit(trigger = 'manual') {
   } catch (err) {
     console.error('[PostAudit]', err);
     showToast('Post audit error: ' + err.message, 'error');
+    _closeProgress();
   } finally {
     _running = false;
   }
@@ -699,8 +730,10 @@ function showGate({ trigger, allIssues, corrections, remaining, postId, p2 }) {
           </div>
 
           <div style="padding:0.55rem 1.4rem;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(34,197,94,0.04)">
-            <div style="font-size:0.7rem;color:#4ade80">
-              ✓ Auto-saved as draft${postId ? ` · <code style="font-size:0.64rem">${postId}</code>` : ''}
+            <div style="font-size:0.7rem;color:${postId ? '#4ade80' : '#c9a84c'}">
+              ${postId
+                ? `✓ Auto-saved as draft · <code style="font-size:0.64rem">${postId}</code>`
+                : 'Auto-save is disabled in safe mode. Save manually when ready.'}
             </div>
           </div>
 
@@ -824,3 +857,4 @@ function _imgLoads(url, timeout = 8000) {
 
 // Init — delay so all window.* functions are registered first
 setTimeout(installHooks, 400);
+window.runPostAudit = () => runFullAudit('manual');

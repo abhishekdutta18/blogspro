@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BlogsPro — Fintech | Compliance | Strategy</title>
   <meta name="description" content="Sharp insights on fintech, regulatory compliance, and growth strategy." />
-  <link rel="icon" type="image/png" href="favicon.png" />
-  <link rel="apple-touch-icon" href="favicon.png" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -68,6 +68,15 @@
       color: var(--muted); transition: color 0.2s;
     }
     .nav-links a:hover { color: var(--gold); }
+
+    /* ── HAMBURGER (mobile) ── */
+    .nav-hamburger {
+      display: none; background: transparent; border: 1px solid var(--border);
+      color: var(--muted); width: 36px; height: 36px; border-radius: 4px;
+      font-size: 1.2rem; cursor: pointer; align-items: center; justify-content: center;
+      transition: all 0.2s; flex-shrink: 0;
+    }
+    .nav-hamburger:hover { border-color: var(--gold); color: var(--gold); }
 
     .nav-cta {
       background: var(--gold); color: var(--navy) !important;
@@ -302,6 +311,7 @@
     /* Skeleton for about */
     .about-skeleton { animation: shimmer 1.5s infinite; background: linear-gradient(90deg, var(--navy2) 25%, var(--navy3) 50%, var(--navy2) 75%); background-size: 200% 100%; border-radius: 4px; }
     .about-hidden { display: none !important; }
+    .about-skeleton-grid { grid-column:1/-1; display:grid; grid-template-columns:minmax(0,280px) minmax(0,1fr); gap:5rem; align-items:start; }
 
     /* ── NEWSLETTER ── */
     .newsletter { background: var(--navy2); border: 1px solid var(--border); padding: 4rem 3rem; text-align: center; position: relative; overflow: hidden; }
@@ -326,58 +336,55 @@
     .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
     .empty-state p { font-size: 1rem; }
 
+    /* ── SITEMAP ── */
+    .sitemap { background: var(--navy2); border-top: 1px solid var(--border); padding: 4rem 2rem 2rem; }
+    .sitemap-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1.5fr repeat(3, 1fr); gap: 3rem; }
+    .sitemap-brand { font-family: var(--serif); font-size: 1.8rem; font-weight: 700; background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.8rem; }
+    .sitemap-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.7; max-width: 28ch; }
+    .sitemap-col-title { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 1.2rem; }
+    .sitemap-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.7rem; }
+    .sitemap-col a { font-size: 0.85rem; color: var(--muted); transition: color 0.2s; display: flex; align-items: center; gap: 0.4rem; }
+    .sitemap-col a:hover { color: var(--cream); }
+    .sitemap-col a .sm-icon { font-size: 0.75rem; opacity: 0.6; }
+    @media (max-width: 768px) { .sitemap-inner { grid-template-columns: 1fr 1fr; gap: 2rem; } }
+    @media (max-width: 480px) { .sitemap-inner { grid-template-columns: 1fr; gap: 1.5rem; } }
+
     /* ── FOOTER ── */
-    footer { border-top: 1px solid var(--border); padding: 3rem 2rem; max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; }
-    .footer-brand { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .footer-copy { font-size: 0.8rem; color: var(--muted); }
+    footer { border-top: 1px solid var(--border); padding: 2rem 2rem; max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .footer-brand { font-family: var(--serif); font-size: 1.2rem; font-weight: 700; background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .footer-copy { font-size: 0.78rem; color: var(--muted); }
     .footer-links { display: flex; gap: 1.5rem; list-style: none; }
-    .footer-links a { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.2s; }
+    .footer-links a { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.2s; }
     .footer-links a:hover { color: var(--gold); }
 
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
-      .nav-links { display: none; }
+      .nav-hamburger { display: flex; }
+      .nav-links {
+        display: none; position: absolute; top: 68px; left: 0; right: 0;
+        background: rgba(8,13,26,0.97); backdrop-filter: blur(12px);
+        flex-direction: column; padding: 1rem 2rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        gap: 0.3rem;
+      }
+      .nav-links.mobile-open { display: flex; }
+      .nav-links li { list-style: none; }
+      .nav-links a { display: block; padding: 0.7rem 0; font-size: 0.95rem; }
+      .nav-links .nav-cta { display: inline-block; margin-top: 0.5rem; text-align: center; }
+      .nav-user { padding: 0.7rem 0; }
       .hero-stats { display: none; }
       .post-card.featured { grid-template-columns: 1fr; }
       .featured-visual { display: none; }
       .newsletter-form { flex-direction: column; }
       footer { flex-direction: column; text-align: center; }
       .about-inner { grid-template-columns: 1fr; gap: 2.5rem; }
+      .about-skeleton-grid { grid-template-columns: 1fr; gap: 1.8rem; }
       .about-avatar-col { flex-direction: row; text-align: left; align-items: flex-start; gap: 1.5rem; }
       .about-avatar-wrap { width: 80px; height: 80px; flex-shrink: 0; margin-bottom: 0; }
       .about-avatar-initial { font-size: 2rem; }
       .about-socials { justify-content: flex-start; }
     }
   </style>
-  <!-- Sentry Error Tracking — catches all JS errors + unhandled promise rejections -->
-  <!-- REPLACE: change both https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336 to your DSN from sentry.io → Project → Settings → Client Keys -->
-  <script
-    src="https://js.sentry-cdn.com/c75786fd93da9331cedca5e3ec8bd9cd.min.js"
-    crossorigin="anonymous"
-  ></script>
-  <script>
-  Sentry.onLoad(function() {
-    Sentry.init({
-      dsn: "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336",
-      environment: window.location.hostname === "blogspro.in" ? "production" : "development",
-      release: "blogspro@2026-03-19",
-      sampleRate: 1.0,
-      tracesSampleRate: 0.1,
-      ignoreErrors: [
-        "ResizeObserver loop limit exceeded",
-        "ResizeObserver loop completed with undelivered notifications",
-        "Network request failed",
-        "Failed to fetch",
-        "Load failed",
-      ],
-    });
-    window.setSentryUser = function(u) { Sentry.setUser(u); };
-    window.trackEvent   = function(name, data) {
-      Sentry.addBreadcrumb({ message: name, data: data, level: "info" });
-    };
-  });
-  </script>
-
   <!-- Sentry Error Tracking v10.44.0 -->
   <script src="https://browser.sentry-cdn.com/10.44.0/bundle.min.js"
     integrity="sha384-sx+UyjbtMU5ociD00tpUP0LC8A78wmbbIzMUl3+Y35sUqIweqvkXE43dDRqQDEO8"
@@ -415,12 +422,14 @@
 <!-- NAV -->
 <nav>
   <a class="nav-brand" href="index.html">BlogsPro</a>
-  <ul class="nav-links">
+  <button class="nav-hamburger" id="navHamburger" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
+  <ul class="nav-links" id="navLinksMenu">
     <li><a href="#posts">Articles</a></li>
     <li><a href="#about">About</a></li>
     <li><button class="theme-btn-nav" id="themeBtn" onclick="toggleTheme()">☀️</button></li>
-    <li id="navAuthSlot">
+    <li id="navAuthSlot" style="display:flex;align-items:center;gap:0.5rem">
       <a href="login.html" class="nav-cta">Login</a>
+      <a href="register.html" class="nav-cta" style="background:transparent;border:1px solid var(--gold);color:var(--gold)!important;">Sign Up</a>
     </li>
   </ul>
 </nav>
@@ -495,7 +504,7 @@
   <div class="about-inner" id="aboutInner">
 
     <!-- Skeleton while loading -->
-    <div id="aboutSkeleton" style="grid-column:1/-1;display:grid;grid-template-columns:280px 1fr;gap:5rem;align-items:start">
+    <div id="aboutSkeleton" class="about-skeleton-grid">
       <div style="display:flex;flex-direction:column;align-items:center;gap:1rem">
         <div class="about-skeleton" style="width:160px;height:160px;border-radius:50%"></div>
         <div class="about-skeleton" style="width:120px;height:1.2rem"></div>
@@ -551,12 +560,46 @@
   </div>
 </section>
 
+<!-- SITEMAP -->
+<div class="sitemap">
+  <div class="sitemap-inner">
+    <div class="sitemap-col">
+      <div class="sitemap-brand">BlogsPro</div>
+      <p class="sitemap-desc">Sharp insights on fintech, regulatory compliance, and growth strategy for builders and operators.</p>
+    </div>
+    <div class="sitemap-col">
+      <div class="sitemap-col-title">Navigate</div>
+      <ul>
+        <li><a href="#"><span class="sm-icon">🏠</span> Home</a></li>
+        <li><a href="#articles"><span class="sm-icon">📰</span> Articles</a></li>
+        <li><a href="#about"><span class="sm-icon">ℹ️</span> About</a></li>
+        <li><a href="#newsletter"><span class="sm-icon">✉️</span> Newsletter</a></li>
+      </ul>
+    </div>
+    <div class="sitemap-col">
+      <div class="sitemap-col-title">Account</div>
+      <ul>
+        <li><a href="login.html" id="footerAuthLink"><span class="sm-icon">🔑</span> Login</a></li>
+        <li><a href="register.html"><span class="sm-icon">📝</span> Register</a></li>
+        <li><a href="dashboard.html"><span class="sm-icon">📊</span> Dashboard</a></li>
+      </ul>
+    </div>
+    <div class="sitemap-col">
+      <div class="sitemap-col-title">Connect</div>
+      <ul id="sitemapSocials">
+        <li><a href="mailto:contact@blogspro.in"><span class="sm-icon">✉</span> Email</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
 <!-- FOOTER -->
 <footer>
   <span class="footer-brand">BlogsPro</span>
   <span class="footer-copy">© <span id="year"></span> BlogsPro. All rights reserved.</span>
   <ul class="footer-links">
-    <li><a href="login.html" id="footerAuthLink">Login</a></li>
+    <li><a href="#">Privacy</a></li>
+    <li><a href="#">Terms</a></li>
   </ul>
 </footer>
 
@@ -564,7 +607,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
 <script type="module">
   import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, doc, getDocs, getDoc, addDoc }
+  import { getFirestore, collection, doc, getDocs, getDoc, query, where }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -578,14 +621,20 @@
     appId:             "1:940428277283:web:d3bb414f0992718ca76396"
   };
 
-  const ADMIN_UID = "8vHMaEO8oCSrUeICVrwPAUKy6Zf1";
-
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
   const auth = getAuth(app);
 
   let allPosts   = [];
   let currentCat = 'all';
+  let imagesEnabled = true;
+  const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
+
+  function isPermissionDenied(err) {
+    const code = String(err?.code || '').toLowerCase();
+    const msg = String(err?.message || '').toLowerCase();
+    return code.includes('permission-denied') || msg.includes('missing or insufficient permissions');
+  }
 
   document.getElementById('year').textContent = new Date().getFullYear();
 
@@ -601,18 +650,47 @@
     document.getElementById('themeBtn').textContent = '🌙';
   }
 
+  // ── Mobile nav hamburger ────────────────────────
+  window.toggleMobileNav = () => {
+    const menu = document.getElementById('navLinksMenu');
+    const btn  = document.getElementById('navHamburger');
+    if (!menu) return;
+    menu.classList.toggle('mobile-open');
+    btn.textContent = menu.classList.contains('mobile-open') ? '✕' : '☰';
+  };
+  // Close mobile nav when a link is tapped
+  document.querySelectorAll('#navLinksMenu a').forEach(a => {
+    a.addEventListener('click', () => {
+      const menu = document.getElementById('navLinksMenu');
+      const btn  = document.getElementById('navHamburger');
+      if (menu) menu.classList.remove('mobile-open');
+      if (btn) btn.textContent = '☰';
+    });
+  });
+
   // ── Auth nav ───────────────────────────────────
-  onAuthStateChanged(auth, user => {
+  onAuthStateChanged(auth, async user => {
     const slot       = document.getElementById('navAuthSlot');
     const footerLink = document.getElementById('footerAuthLink');
 
     if (!user) {
-      slot.innerHTML = `<a href="login.html" class="nav-cta">Login</a>`;
+      slot.innerHTML = `
+        <a href="login.html" class="nav-cta">Login</a>
+        <a href="register.html" class="nav-cta" style="background:transparent;border:1px solid var(--gold);color:var(--gold)!important;">Sign Up</a>
+      `;
       footerLink.textContent = 'Login'; footerLink.href = 'login.html';
       return;
     }
 
-    if (user.uid === ADMIN_UID) {
+    let isAdmin = false;
+    try {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      isAdmin = snap.exists() && snap.data().role === 'admin';
+    } catch (err) {
+      console.warn('Role check failed:', err);
+    }
+
+    if (isAdmin) {
       slot.innerHTML = `
         <div class="nav-user" id="navUserBtn" onclick="toggleDropdown()">
           <div class="nav-avatar">
@@ -649,10 +727,12 @@
   // ── Load posts ─────────────────────────────────
   async function loadPosts() {
     try {
-      const snap = await getDocs(collection(db, 'posts'));
+      const snap = await getDocs(query(
+        collection(db, 'posts'),
+        where('published', '==', true)
+      ));
       allPosts = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter(p => p.published === true)
         .sort((a,b) => {
           const aT = a.createdAt?.toDate?.()?.getTime() || 0;
           const bT = b.createdAt?.toDate?.()?.getTime() || 0;
@@ -681,24 +761,33 @@
       const title    = esc(p.title);
       const excerpt  = esc(p.excerpt);
       const category = esc(p.category) || 'General';
-      const image    = DOMPurify.sanitize(p.image || '');
-      const date = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
+      const rawImage = imagesEnabled ? DOMPurify.sanitize(String(p.image || '').trim()) : '';
+      const image    = (
+        /^https?:\/\//i.test(rawImage) &&
+        rawImage !== 'null' &&
+        rawImage !== 'undefined' &&
+        rawImage !== '[object Object]'
+      ) ? rawImage : '';
+      const dateStr = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
+      const authorName = esc(p.authorName || 'Staff Writer');
+      const authorDateStr = `${authorName} · ${dateStr}`;
       // FIX: Strip HTML tags before counting words for reading time
       const plainText = (p.content || '').replace(/<[^>]+>/g, ' ').trim();
       const readTime = Math.max(1, Math.ceil(plainText.split(/\s+/).filter(Boolean).length / 200));
+        const slug = (p.title || p.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
       if (i === 0) {
         const visual = image
-          ? `<div class="featured-visual featured-visual-img"><img src="${image}" alt="${title}" loading="lazy" /></div>`
+          ? `<div class="featured-visual featured-visual-img"><img src="${image}" alt="${title}" loading="lazy" onerror="this.closest('.featured-visual')?.remove(); this.closest('.post-card')?.classList.add('featured-no-img');" /></div>`
           : '';
         return `
-          <div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}')" style="animation-delay:${i*0.08}s">
+          <div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}', '${slug}')" style="animation-delay:${i*0.08}s">
             <div class="featured-body">
               <span class="featured-badge">Featured</span>
               <span class="post-category">${category}</span>
               <h2 class="post-title">${title}</h2>
               <p class="post-excerpt">${excerpt}</p>
               <div class="post-meta">
-                <span class="post-date">${date}</span>
+                <span class="post-date">${authorDateStr}</span>
                 <div style="display:flex;align-items:center;gap:0.75rem">
                   <span class="post-read-time">${readTime} min read</span>
                   <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
@@ -709,12 +798,12 @@
           </div>`;
       }
       return `
-        <div class="post-card" onclick="openPost('${p.id}')" style="animation-delay:${i*0.08}s">
+        <div class="post-card" onclick="openPost('${p.id}', '${slug}')" style="animation-delay:${i*0.08}s">
           <span class="post-category">${category}</span>
           <h3 class="post-title">${title}</h3>
           <p class="post-excerpt">${excerpt}</p>
           <div class="post-meta">
-            <span class="post-date">${date}</span>
+            <span class="post-date">${authorDateStr}</span>
             <div style="display:flex;align-items:center;gap:0.75rem">
               <span class="post-read-time">${readTime} min read</span>
               <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
@@ -732,7 +821,7 @@
       </div>`;
   }
 
-  window.openPost = async (id) => {
+  window.openPost = async (id, slug) => {
     // Increment view count (once per session per post)
     const key = `bp_viewed_${id}`;
     if (!sessionStorage.getItem(key)) {
@@ -756,34 +845,52 @@
 
   // ── Load About ─────────────────────────────────
   async function loadAbout() {
+    const applyAboutDefaults = () => {
+      document.getElementById('aboutDisplayName').textContent = 'BlogsPro';
+      document.getElementById('aboutDisplayName2').textContent = 'Sharp insights for fintech practitioners.';
+      document.getElementById('aboutDisplayTagline').textContent = 'Fintech Insights';
+      document.getElementById('aboutDisplayBio').textContent =
+        'We publish practical fintech analysis, execution playbooks, and market breakdowns for builders and operators.';
+      document.getElementById('aboutMissionWrap').style.display = 'none';
+      const socials = document.getElementById('aboutSocials');
+      if (socials) socials.innerHTML = '';
+      const avatarImg = document.getElementById('aboutAvatarImg');
+      const avatarInitial = document.getElementById('aboutAvatarInitial');
+      if (avatarImg) avatarImg.style.display = 'none';
+      if (avatarInitial) {
+        avatarInitial.textContent = 'B';
+        avatarInitial.style.display = 'flex';
+      }
+    };
+
     try {
       const snap = await getDoc(doc(db, 'site', 'about'));
       const skeleton = document.getElementById('aboutSkeleton');
       const avatarCol = document.getElementById('aboutAvatarCol');
       const contentCol = document.getElementById('aboutContentCol');
 
-      if (!snap.exists()) {
-        // No about data yet — hide the whole section gracefully
-        document.getElementById('about').style.display = 'none';
-        return;
-      }
-
-      const data = snap.data();
+      const data = snap.exists() ? snap.data() : {};
 
       // Avatar
       const avatarImg = document.getElementById('aboutAvatarImg');
       const avatarInitial = document.getElementById('aboutAvatarInitial');
       if (data.avatarUrl) {
         avatarImg.src = data.avatarUrl;
+        avatarImg.onerror = () => {
+          avatarImg.style.display = 'none';
+          avatarInitial.style.display = 'flex';
+        };
         avatarImg.style.display = 'block';
         avatarInitial.style.display = 'none';
       } else {
         avatarInitial.textContent = (data.name || 'B')[0].toUpperCase();
+        avatarImg.style.display = 'none';
+        avatarInitial.style.display = 'flex';
       }
 
       // Name + tagline
       document.getElementById('aboutDisplayName').textContent  = data.name    || 'BlogsPro';
-      document.getElementById('aboutDisplayName2').textContent = data.name    || 'Sharp insights for fintech practitioners.';
+      document.getElementById('aboutDisplayName2').textContent = data.heading || data.tagline || 'Sharp insights for fintech practitioners.';
       document.getElementById('aboutDisplayTagline').textContent = data.tagline || '';
 
       // Bio
@@ -794,14 +901,19 @@
       if (data.mission) {
         document.getElementById('aboutDisplayMission').textContent = data.mission;
         document.getElementById('aboutMissionWrap').style.display = 'block';
+      } else {
+        document.getElementById('aboutMissionWrap').style.display = 'none';
       }
 
-      // Social links
+      // Social links — read from nested socials object (admin profile) with flat-field fallback
+      const s = data.socials || {};
       const socials = document.getElementById('aboutSocials');
       const links = [
-        { key: 'email',    label: '✉ Email',    href: data.email    ? `mailto:${data.email}` : null },
-        { key: 'twitter',  label: '𝕏 Twitter',  href: data.twitter  || null },
-        { key: 'linkedin', label: 'in LinkedIn', href: data.linkedin || null },
+        { key: 'email',    label: '✉ Email',    href: (data.email || s.email)    ? `mailto:${data.email || s.email}` : null },
+        { key: 'twitter',  label: '𝕏 Twitter',  href: s.x || data.twitter  || null },
+        { key: 'linkedin', label: 'in LinkedIn', href: s.linkedin || data.linkedin || null },
+        { key: 'youtube',  label: '▶ YouTube',  href: s.youtube  || null },
+        { key: 'github',   label: '⌂ GitHub',   href: s.github   || null },
         { key: 'website',  label: '↗ Website',  href: data.website  || null },
       ];
       socials.innerHTML = links
@@ -809,14 +921,58 @@
         .map(l => `<a class="about-social-link" href="${l.href}" target="_blank" rel="noopener">${l.label}</a>`)
         .join('');
 
+      // Populate sitemap social links too
+      const smSocials = document.getElementById('sitemapSocials');
+      if (smSocials) {
+        const smLinks = links.filter(l => l.href);
+        smSocials.innerHTML = smLinks
+          .map(l => `<li><a href="${l.href}" target="_blank" rel="noopener"><span class="sm-icon">${l.label.split(' ')[0]}</span> ${l.label.split(' ').slice(1).join(' ')}</a></li>`)
+          .join('') || '<li><a href="mailto:contact@blogspro.in"><span class="sm-icon">✉</span> Email</a></li>';  
+      }
+
       // Show real content, hide skeleton
       if (skeleton)    skeleton.style.display = 'none';
       if (avatarCol)   avatarCol.classList.remove('about-hidden');
       if (contentCol)  contentCol.classList.remove('about-hidden');
 
     } catch(err) {
-      console.warn('About section unavailable:', err.message);
-      document.getElementById('about').style.display = 'none';
+      if (isPermissionDenied(err)) {
+        console.info('About section fallback active (permission blocked).');
+      } else {
+        console.warn('About section unavailable:', err.message);
+      }
+      applyAboutDefaults();
+      const skeleton = document.getElementById('aboutSkeleton');
+      const avatarCol = document.getElementById('aboutAvatarCol');
+      const contentCol = document.getElementById('aboutContentCol');
+      if (skeleton) skeleton.style.display = 'none';
+      if (avatarCol) avatarCol.classList.remove('about-hidden');
+      if (contentCol) contentCol.classList.remove('about-hidden');
+    }
+  }
+
+  async function loadSiteSettings() {
+    const localValue = localStorage.getItem(LOCAL_IMAGES_KEY);
+    if (localValue === 'true' || localValue === 'false') {
+      imagesEnabled = localValue === 'true';
+    }
+    try {
+      const snap = await getDoc(doc(db, 'site', 'settings'));
+      if (snap.exists() && typeof snap.data().imagesEnabled === 'boolean') {
+        imagesEnabled = snap.data().imagesEnabled;
+        localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));
+      } else {
+        imagesEnabled = true;
+      }
+    } catch (err) {
+      if (isPermissionDenied(err)) {
+        console.info('Site settings fallback active (permission blocked).');
+      } else {
+        console.warn('Site settings unavailable:', err.message);
+      }
+      if (localValue !== 'true' && localValue !== 'false') {
+        imagesEnabled = true;
+      }
     }
   }
 
@@ -851,8 +1007,11 @@
     return String(n);
   }
 
-  loadPosts();
-  loadAbout();
+  (async () => {
+    await loadSiteSettings();
+    await loadPosts();
+    await loadAbout();
+  })();
 </script>
 </body>
 </html>

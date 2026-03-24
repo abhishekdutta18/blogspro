@@ -13,6 +13,7 @@ import {
 
 let aiWriting  = false;
 let _cancelled = false;
+const JOB_KEY = "bp_ai_writer_job_v1";
 
 // ─────────────────────────────────────────────
 // Modal helpers
@@ -29,6 +30,36 @@ function closeModal() {
   document.getElementById('aiModal')?.classList.remove('open');
   hideTimer();
   hideRoadmap();
+}
+
+function saveJobState(payload) {
+  try {
+    localStorage.setItem(JOB_KEY, JSON.stringify({
+      ...payload,
+      updatedAt: Date.now(),
+    }));
+  } catch (_) {}
+}
+
+function loadJobState() {
+  try {
+    const raw = localStorage.getItem(JOB_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.running) return null;
+    const age = Date.now() - (parsed.updatedAt || 0);
+    if (age > 1000 * 60 * 60 * 24) {
+      localStorage.removeItem(JOB_KEY);
+      return null;
+    }
+    return parsed;
+  } catch (_) {
+    return null;
+  }
+}
+
+function clearJobState() {
+  try { localStorage.removeItem(JOB_KEY); } catch (_) {}
 }
 
 function _setModalText(title, sub) {
@@ -61,6 +92,72 @@ function sectionsNeeded(wordTarget) {
   return Math.max(3, Math.ceil(wordTarget / wordsPerSection));
 }
 
+function _clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function heuristicSectionCount(topic, category, wordTarget) {
+  const t = String(topic || "").toLowerCase();
+  const c = String(category || "").toLowerCase();
+  const words = t.split(/\s+/).filter(Boolean).length;
+
+  // Base on target length
+  let n = Math.round((wordTarget || 1200) / 520);
+
+  // Topic breadth/complexity signals
+  const broadSignals = [
+    "vs", "versus", "comparison", "landscape", "ecosystem", "framework",
+    "roadmap", "strategy", "regulation", "compliance", "architecture",
+    "future", "trends", "market", "case study", "global", "india"
+  ];
+  const narrowSignals = ["definition", "what is", "overview", "basics", "intro"];
+  const broadHits = broadSignals.filter(s => t.includes(s)).length;
+  const narrowHits = narrowSignals.filter(s => t.includes(s)).length;
+
+  if (words >= 7) n += 1;
+  if (words >= 11) n += 1;
+  if (broadHits >= 2) n += 2;
+  else if (broadHits === 1) n += 1;
+  if (narrowHits >= 1) n -= 1;
+  if (c.includes("compliance") || c.includes("strategy")) n += 1;
+
+  return _clamp(n, 3, 16);
+}
+
+async function decideSectionCount(topic, category, wordTarget, model) {
+  const heuristic = heuristicSectionCount(topic, category, wordTarget);
+  try {
+    const result = await callAI(
+      `Decide how many sections are needed for a high-quality article.
+Topic: "${topic}"
+Category: "${category}"
+Target words: ${wordTarget}
+
+Rules:
+- Return ONLY valid JSON.
+- Section count must be between 3 and 16.
+- More complex/broad topics need more sections than narrow topics.
+- Include intro and conclusion inside this count.
+
+{"sections":8,"reason":"one short sentence"}`,
+      true,
+      model,
+      800
+    );
+
+    if (!result.error && result.text) {
+      const s = result.text.indexOf("{");
+      const e = result.text.lastIndexOf("}");
+      if (s !== -1 && e !== -1) {
+        const parsed = JSON.parse(result.text.substring(s, e + 1));
+        const n = Number(parsed.sections);
+        if (Number.isFinite(n)) return _clamp(Math.round(n), 3, 16);
+      }
+    }
+  } catch (_) {}
+  return heuristic;
+}
+
 function getWordCount() {
   return (document.getElementById('editor')?.textContent || '')
     .trim().split(/\s+/).filter(Boolean).length;
@@ -74,6 +171,9 @@ async function callWithRetry(prompt, model, maxRetries = 3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const result = await callAI(prompt, true, model, 8000);
     if (!result.error && result.text?.trim().length > 100) return result;
+    if (String(result.error || '').toLowerCase().includes('endpoint not configured')) {
+      return result;
+    }
     if (attempt < maxRetries) {
       const reason = result.error
         ? `Retry ${attempt}: provider error — ${(result.error || '').substring(0, 50)}`
@@ -84,6 +184,27 @@ async function callWithRetry(prompt, model, maxRetries = 3) {
     }
   }
   return { text: '', error: 'All retries failed', provider: null };
+}
+
+function buildFallbackSectionHtml({ title, topic, category, tone, wordsTarget, isIntro, isConclusion }) {
+  const safeTitle = _esc(title || "Section");
+  const safeTopic = _esc(topic || "the topic");
+  const safeCategory = _esc(category || "General");
+  const safeTone = _esc(tone || "professional");
+  const minWords = Math.max(180, Math.round((wordsTarget || 600) * 0.5));
+  const lens = _sectionLens(title);
+
+  const sectionPrompt = isIntro
+    ? `Set context for "${safeTopic}" in ${safeCategory} and define why this topic matters right now.`
+    : isConclusion
+      ? `Summarize the strongest takeaways for "${safeTopic}" and end with concrete next steps.`
+      : `Expand "${safeTitle}" with specific facts, examples, and practical implications.`;
+
+  return `
+<h2>${safeTitle}</h2>
+<p><strong>Draft placeholder:</strong> AI generation was unavailable for this section.</p>
+<p>Focus area: ${lens}. Direction: ${sectionPrompt}</p>
+<p><em>Complete this section to approximately ${minWords}+ words in ${safeTone} tone, keeping examples tied to "${safeTopic}".</em></p>`.trim();
 }
 
 // ─────────────────────────────────────────────
@@ -107,15 +228,16 @@ function _providerBadge(provider) {
 // ─────────────────────────────────────────────
 // window.generateAIPost — entry point
 // ─────────────────────────────────────────────
-window.generateAIPost = async function generateAIPost() {
+window.generateAIPost = async function generateAIPost(resume = null) {
   if (aiWriting) { showToast('Already generating — please wait.', 'info'); return; }
 
-  const topic      = document.getElementById('v2TopicPrompt')?.value.trim()
+  const topic      = resume?.topic
+                  || document.getElementById('v2TopicPrompt')?.value.trim()
                   || document.getElementById('aiPrompt')?.value.trim() || '';
-  const category   = document.getElementById('postCategory')?.value || 'Fintech';
-  const tone       = document.getElementById('aiTone')?.value || 'professional';
-  const model      = document.getElementById('modelArticle')?.value || 'auto';
-  const wordTarget = parseInt(document.getElementById('wordTarget')?.value) || 1200;
+  const category   = resume?.category || document.getElementById('postCategory')?.value || 'Fintech';
+  const tone       = resume?.tone || document.getElementById('aiTone')?.value || 'professional';
+  const model      = resume?.model || document.getElementById('modelArticle')?.value || 'auto';
+  const wordTarget = parseInt(resume?.wordTarget || document.getElementById('wordTarget')?.value) || 1200;
 
   if (!topic) {
     showToast('Enter a topic first.', 'error');
@@ -127,11 +249,14 @@ window.generateAIPost = async function generateAIPost() {
   _cancelled           = false;
   state.isGeneratingAI = true;
   _setBtnsDisabled(true);
+  _setGenerateUi(true, 'Preparing generation…');
 
   const editor = document.getElementById('editor');
-  if (editor) editor.innerHTML = '';
+  if (editor && !resume) editor.innerHTML = '';
 
-  const numSections = sectionsNeeded(wordTarget);
+  const numSections = Array.isArray(resume?.sections) && resume.sections.length
+    ? resume.sections.length
+    : await decideSectionCount(topic, category, wordTarget, model);
   const wordsPerSec = Math.ceil(wordTarget / numSections);
 
   openModal(
@@ -147,8 +272,14 @@ window.generateAIPost = async function generateAIPost() {
     timerLog(`Building ${numSections}-section outline…`);
     _setModalContent('📋 Building outline…');
 
-    const outlineResult = await callWithRetry(
-      `You are a professional blog editor. Create a detailed outline.
+    let outlineResult = { provider: null, error: null, text: '' };
+    let sections = Array.isArray(resume?.sections) ? resume.sections : [];
+    let sectionHTMLs = Array.isArray(resume?.sectionHTMLs) ? resume.sectionHTMLs : [];
+    let startIndex = Number.isInteger(resume?.nextIndex) ? resume.nextIndex : 0;
+
+    if (!sections.length) {
+      outlineResult = await callWithRetry(
+        `You are a professional blog editor. Create a detailed outline.
 Article topic: "${topic}"
 Category: ${category} | Tone: ${tone} | Target: ${wordTarget} words
 
@@ -158,25 +289,25 @@ Each title should be specific and descriptive (not generic like "Section 1").
 
 CRITICAL: Return ONLY a valid JSON array of strings. Nothing else. No explanation, no markdown, no preamble.
 ["Introduction", "Section Title Two", ..., "Conclusion & Key Takeaways"]`,
-      model
-    );
+        model
+      );
 
-    if (_cancelled) return _cleanup();
+      if (_cancelled) return _cleanup();
 
-    let sections = [];
-    if (!outlineResult.error) {
-      try {
-        const raw = outlineResult.text || '';
-        const s   = raw.indexOf('[');
-        const e   = raw.lastIndexOf(']');
-        if (s !== -1 && e !== -1) sections = JSON.parse(raw.substring(s, e + 1));
-      } catch(_) {}
-    }
-    if (!Array.isArray(sections) || sections.length < 2) {
-      // Auto-generate fallback outline
-      sections = ['Introduction'];
-      for (let i = 1; i < numSections - 1; i++) sections.push(`Section ${i + 1}: ${topic}`);
-      sections.push('Conclusion & Key Takeaways');
+      if (!outlineResult.error) {
+        try {
+          const raw = outlineResult.text || '';
+          const s   = raw.indexOf('[');
+          const e   = raw.lastIndexOf(']');
+          if (s !== -1 && e !== -1) sections = JSON.parse(raw.substring(s, e + 1));
+        } catch(_) {}
+      }
+      if (!Array.isArray(sections) || sections.length < 2) {
+        // Auto-generate fallback outline
+        sections = ['Introduction'];
+        for (let i = 1; i < numSections - 1; i++) sections.push(`Section ${i + 1}: ${topic}`);
+        sections.push('Conclusion & Key Takeaways');
+      }
     }
 
     // Always ensure conclusion is last — AI sometimes puts it in the middle
@@ -199,16 +330,22 @@ CRITICAL: Return ONLY a valid JSON array of strings. Nothing else. No explanatio
     }
 
     state.pendingOutline = sections.join('\n');
-    const outlineProvider = PROVIDER_META[outlineResult.provider]?.label || outlineResult.provider || 'auto';
+    const outlineProvider = PROVIDER_META[outlineResult.provider]?.label || outlineResult.provider || (resume ? 'resume' : 'auto');
     setRoadmapStep('outline', 'done', outlineProvider);
     timerLog(`✓ Outline: ${sections.length} sections (via ${outlineProvider})`);
+    saveJobState({
+      running: true,
+      topic, category, tone, model, wordTarget,
+      sections,
+      sectionHTMLs,
+      nextIndex: startIndex,
+    });
 
     // ── STEP 2: Write sections one by one ────────
     setRoadmapStep('article', 'active');
-    const sectionHTMLs = [];
     let   failedCount  = 0;
 
-    for (let i = 0; i < sections.length; i++) {
+    for (let i = startIndex; i < sections.length; i++) {
       if (_cancelled) break;
 
       const title    = sections[i];
@@ -237,6 +374,7 @@ CRITICAL: Return ONLY a valid JSON array of strings. Nothing else. No explanatio
 
       const LANG_RULE = `LANGUAGE: Write ONLY in English. Do NOT use any other language.
 OUTPUT: Start your response DIRECTLY with <h2>. Do NOT include any preamble, reasoning, explanation, thinking, or markdown. Output ONLY valid HTML.`;
+      const ACRONYM_RULE = `Acronym rule: on first mention, expand shortforms in brackets, e.g. "UPI (Unified Payments Interface)", "RBI (Reserve Bank of India)", "KYC (Know Your Customer)".`;
 
       // ── FIX: Pass outline + prior section context to prevent repetitive content ──
       const outlineContext = `\nFull article outline (${sections.length} sections):\n${sections.map((s,idx) => `${idx+1}. ${s}`).join('\n')}\nYou are writing section ${i+1} of ${sections.length}.`;
@@ -264,6 +402,7 @@ Requirements:
 - Briefly preview the key sections the reader will explore
 - Use <h2>${title}</h2> as the heading, followed by <p> paragraphs
 - Include real statistics or facts where possible
+${ACRONYM_RULE}
 ${LANG_RULE}`
 
         : isLast
@@ -275,6 +414,7 @@ Requirements:
 - Summarise the key insights from the article without repeating them word-for-word
 - Provide clear, actionable takeaways for the reader
 - End with a compelling call to action
+${ACRONYM_RULE}
 - Use <h2>${title}</h2> as heading, followed by <p> paragraphs
 ${LANG_RULE}`
 
@@ -287,12 +427,55 @@ Requirements:
 - Use <h2>${title}</h2> for the main heading
 - Use <h3> for sub-points, <p> for paragraphs
 - Use <strong> for key terms, <ul><li> for lists, <blockquote> for quotes
+- DO NOT generate any HTML data tables, charts, or SVG manually. Only use text and basic formatting elements.
 - Include at least one specific statistic, case study, or real-world example
 - Every paragraph must be substantive — no filler sentences
 - Do NOT re-introduce the topic or repeat the article premise
+${ACRONYM_RULE}
 ${LANG_RULE}`;
 
-      const result = await callWithRetry(prompt, model);
+      let result = await callWithRetry(prompt, model);
+
+      // Relevance guard: auto-retry once with stricter constraints if drifted off-topic.
+      if (!result.error && result.text?.trim()) {
+        const relevanceKeys = _topicKeywords(topic, category, title);
+        if (!_isRelevantToTopic(result.text, relevanceKeys)) {
+          timerLog(`  ↺ [${progress}] off-topic output detected — retrying with strict relevance`);
+          const focusedPrompt = `${prompt}
+
+CRITICAL RELEVANCE RULES:
+- This section MUST stay strictly about: "${topic}".
+- It MUST include at least 3 of these terms naturally: ${relevanceKeys.join(', ')}.
+- Do not switch to unrelated domains, countries, or topics.
+- Keep examples and data anchored to "${topic}" and "${category}".`;
+          const retry = await callWithRetry(focusedPrompt, model, 2);
+          if (!retry.error && retry.text?.trim()) {
+            result = retry;
+          }
+        }
+      }
+
+      // Repetition guard: if section overlaps too much with prior sections,
+      // retry once with explicit anti-repeat constraints.
+      if (!result.error && result.text?.trim() && sectionHTMLs.length > 0) {
+        const priorText = _plainText(sectionHTMLs.join("\n"));
+        const overlap = _repetitionScore(result.text, priorText);
+        if (overlap > 0.26) {
+          timerLog(`  ↺ [${progress}] repetitive output (${Math.round(overlap * 100)}%) — retrying`);
+          const antiRepeatPrompt = `${prompt}
+
+CRITICAL ANTI-REPETITION RULES:
+- Do NOT reuse sentences from previous sections.
+- Use fresh examples, fresh statistics, and fresh subheadings.
+- Avoid repeating these recently used lines:
+${_sampleRecentSentences(sectionHTMLs).map(s => `- ${s}`).join("\n")}
+- Keep semantic overlap with prior sections below 20%.`;
+          const retry = await callWithRetry(antiRepeatPrompt, model, 2);
+          if (!retry.error && retry.text?.trim()) {
+            result = retry;
+          }
+        }
+      }
 
       if (_cancelled) break;
 
@@ -301,24 +484,20 @@ ${LANG_RULE}`;
 
       if (result.error || !result.text?.trim()) {
         failedCount++;
+        timerLog(`  ⚠ [${progress}] AI unavailable — inserted fallback draft`);
         sectionHTMLs.push(
-          `<div class="failed-section-block"
-              data-section="${_esc(title)}" data-topic="${_esc(topic)}"
-              data-category="${_esc(category)}" data-tone="${_esc(tone)}"
-              data-words="${wordsPerSec}" data-model="${_esc(model)}">
-            <div style="background:rgba(239,68,68,0.06);border:1px dashed rgba(239,68,68,0.3);border-radius:4px;padding:1rem;margin:1rem 0">
-              <div style="color:#fca5a5;font-size:0.82rem;margin-bottom:0.5rem">
-                ⚠ Section failed: "<strong>${title}</strong>" — ${result.error || 'empty response'}
-              </div>
-              <button onclick="retrySectionGen(this)"
-                style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:0.3rem 0.8rem;border-radius:3px;font-size:0.75rem;cursor:pointer">
-                🔄 Retry this section
-              </button>
-            </div>
-          </div>`
+          buildFallbackSectionHtml({
+            title,
+            topic,
+            category,
+            tone,
+            wordsTarget: wordsPerSec,
+            isIntro: isFirst,
+            isConclusion: isLast,
+          })
         );
       } else {
-        const clean = sanitize(_stripReasoning(result.text));
+        const clean = sanitize(_expandCommonAcronyms(_dedupeParagraphs(_stripReasoning(result.text))));
 
         // ── Chart injection ──────────────────────
         // Inject a chart every 3rd body section (not intro/conclusion)
@@ -354,6 +533,13 @@ ${LANG_RULE}`;
         editor.innerHTML = sectionHTMLs.join('\n');
         updateWordCount();
       }
+      saveJobState({
+        running: true,
+        topic, category, tone, model, wordTarget,
+        sections,
+        sectionHTMLs,
+        nextIndex: i + 1,
+      });
 
       // Update modal to show which AI actually handled this section
       if (!result.error && result.provider) {
@@ -404,13 +590,25 @@ CRITICAL: Respond ONLY with a single valid JSON object. No markdown, no backtick
         const e = raw.lastIndexOf('}');
         if (s !== -1 && e !== -1) {
           const meta = JSON.parse(raw.substring(s, e + 1));
+          const metaKeys = _topicKeywords(topic, category, topic);
+          const fallbackTitle = _buildFallbackTitle(topic, category);
+          const fallbackExcerpt = _buildFallbackExcerpt(topic, category);
+
+          const safeTitle = _isRelevantToTopic(meta.title || '', metaKeys) ? meta.title : fallbackTitle;
+          const safeExcerpt = _isRelevantToTopic(meta.excerpt || '', metaKeys) ? meta.excerpt : fallbackExcerpt;
+          const safeMetaDesc = _isRelevantToTopic(meta.metaDesc || '', metaKeys) ? meta.metaDesc : fallbackExcerpt.slice(0, 155);
+          const safeSlug = meta.slug || _slugify(topic);
+          const safeTags = Array.isArray(meta.tags) && meta.tags.length
+            ? meta.tags
+            : _topicKeywords(topic, category, '').slice(0, 5);
+
           // Force-set all fields — don't skip if already has a value
-          if (meta.title)    { const el = document.getElementById('postTitle');   if (el) el.value = meta.title; }
-          if (meta.excerpt)  { const el = document.getElementById('postExcerpt'); if (el) el.value = meta.excerpt; }
-          if (meta.slug)     { const el = document.getElementById('postSlug');    if (el) el.value = meta.slug; }
-          if (meta.metaDesc) { const el = document.getElementById('postMeta');    if (el) el.value = meta.metaDesc; }
-          if (meta.tags?.length) { const el = document.getElementById('postTags'); if (el) el.value = meta.tags.join(', '); }
-          timerLog(`✓ Metadata: "${(meta.title||'').substring(0,40)}"`);
+          if (safeTitle)    { const el = document.getElementById('postTitle');   if (el) el.value = safeTitle; }
+          if (safeExcerpt)  { const el = document.getElementById('postExcerpt'); if (el) el.value = safeExcerpt; }
+          if (safeSlug)     { const el = document.getElementById('postSlug');    if (el) el.value = safeSlug; }
+          if (safeMetaDesc) { const el = document.getElementById('postMeta');    if (el) el.value = safeMetaDesc; }
+          if (safeTags?.length) { const el = document.getElementById('postTags'); if (el) el.value = safeTags.join(', '); }
+          timerLog(`✓ Metadata: "${(safeTitle||'').substring(0,40)}"`);
         }
       } catch(parseErr) {
         timerLog(`⚠ Metadata parse failed: ${parseErr.message}`);
@@ -423,6 +621,7 @@ CRITICAL: Respond ONLY with a single valid JSON object. No markdown, no backtick
     setRoadmapStep('metadata', 'done', metaProvider);
     setRoadmapStep('done', 'done');
     stopTimer();
+    clearJobState();
 
     // ── Done ─────────────────────────────────────
     const finalWords = getWordCount();
@@ -460,6 +659,7 @@ CRITICAL: Respond ONLY with a single valid JSON object. No markdown, no backtick
     aiWriting            = false;
     state.isGeneratingAI = false;
     _setBtnsDisabled(false);
+    _setGenerateUi(false, 'Ready.');
   }
 };
 
@@ -467,7 +667,9 @@ function _cleanup() {
   aiWriting            = false;
   state.isGeneratingAI = false;
   _setBtnsDisabled(false);
+  _setGenerateUi(false, 'Cancelled.');
   closeModal();
+  clearJobState();
 }
 
 // ─────────────────────────────────────────────
@@ -501,6 +703,26 @@ export function initAIWriter() {
       btn.innerText = 'Generate';
     }
   });
+
+  const pending = loadJobState();
+  if (pending && !aiWriting && Array.isArray(pending.sections) && pending.nextIndex < pending.sections.length) {
+    const editorEl = document.getElementById('editor');
+    if (editorEl && Array.isArray(pending.sectionHTMLs) && pending.sectionHTMLs.length) {
+      editorEl.innerHTML = pending.sectionHTMLs.join('\n');
+      updateWordCount();
+    }
+    const promptEl = document.getElementById('v2TopicPrompt') || document.getElementById('aiPrompt');
+    if (promptEl && pending.topic) promptEl.value = pending.topic;
+    const catEl = document.getElementById('postCategory');
+    if (catEl && pending.category) catEl.value = pending.category;
+    const wtEl = document.getElementById('wordTarget');
+    if (wtEl && pending.wordTarget) wtEl.value = pending.wordTarget;
+
+    showToast('Resuming article generation from last saved point…', 'info');
+    setTimeout(() => {
+      window.generateAIPost(pending).catch(() => {});
+    }, 500);
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -529,6 +751,20 @@ function _setBtnsDisabled(on) {
   });
 }
 
+function _setGenerateUi(on, status = '') {
+  const aiTxt = document.getElementById('aiBtnText');
+  const aiSp  = document.getElementById('aiSpinner');
+  if (aiTxt) aiTxt.textContent = on ? 'Generating Article…' : '✦ Generate Article';
+  if (aiSp) aiSp.style.display = on ? 'inline-block' : 'none';
+
+  const v2Txt = document.getElementById('v2GenerateText');
+  const v2Sp  = document.getElementById('v2GenerateSpin');
+  const v2St  = document.getElementById('v2GenerateStatus');
+  if (v2Txt) v2Txt.textContent = on ? 'Generating…' : '✦ Generate Article';
+  if (v2Sp) v2Sp.style.display = on ? 'inline-block' : 'none';
+  if (v2St) v2St.textContent = status;
+}
+
 function _setField(id, value) {
   if (!value) return;
   const el = document.getElementById(id);
@@ -541,4 +777,134 @@ function _esc(str) {
 
 function _sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
+}
+
+function _topicKeywords(topic, category, sectionTitle = '') {
+  const stop = new Set([
+    'the','and','for','with','from','into','that','this','your','their','have','has','are','was','were','about','into',
+    'what','when','where','which','while','will','would','could','should','how','why','but','not','all','more','less',
+    'section','introduction','conclusion','key','takeaways','write','article','blog','guide'
+  ]);
+  const raw = `${topic} ${category} ${sectionTitle}`.toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .split(/\s+/)
+    .map(w => w.trim())
+    .filter(w => w.length >= 4 && !stop.has(w));
+  const uniq = [...new Set(raw)];
+  return uniq.slice(0, 8);
+}
+
+function _plainText(htmlOrText = '') {
+  return String(htmlOrText)
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function _isRelevantToTopic(htmlOrText, keywords = []) {
+  const text = _plainText(htmlOrText);
+  if (!text || keywords.length === 0) return false;
+  let hits = 0;
+  for (const kw of keywords) {
+    if (text.includes(kw.toLowerCase())) hits++;
+  }
+  const ratio = hits / keywords.length;
+  return hits >= Math.min(3, keywords.length) || ratio >= 0.45;
+}
+
+function _slugify(s = '') {
+  return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+}
+
+function _buildFallbackTitle(topic, category) {
+  const base = `${topic}`.trim();
+  if (!base) return `Practical ${category} Guide`;
+  const short = base.length > 54 ? `${base.slice(0, 51)}...` : base;
+  return `${short} | ${category} Guide`;
+}
+
+function _buildFallbackExcerpt(topic, category) {
+  return `A practical ${category.toLowerCase()} guide to ${topic}, with key insights, examples, and actionable takeaways.`;
+}
+
+function _sectionLens(title = "") {
+  const t = String(title).toLowerCase();
+  if (/intro|overview|context|background/.test(t)) return "Context and framing";
+  if (/trend|market|growth|forecast/.test(t)) return "Market movement and trajectory";
+  if (/risk|compliance|regulation|policy|audit/.test(t)) return "Risk, governance, and compliance";
+  if (/strategy|roadmap|plan|execution/.test(t)) return "Strategy and execution";
+  if (/case|example|study/.test(t)) return "Real-world examples and outcomes";
+  if (/conclusion|takeaway|summary|next/.test(t)) return "Synthesis and next steps";
+  return "Section-specific analysis";
+}
+
+function _ngrams(text, n = 4) {
+  const toks = _plainText(text).split(/\s+/).filter(Boolean);
+  const out = new Set();
+  for (let i = 0; i <= toks.length - n; i++) {
+    out.add(toks.slice(i, i + n).join(" "));
+  }
+  return out;
+}
+
+function _repetitionScore(current, prior) {
+  const a = _ngrams(current, 4);
+  const b = _ngrams(prior, 4);
+  if (a.size === 0 || b.size === 0) return 0;
+  let overlap = 0;
+  for (const g of a) {
+    if (b.has(g)) overlap++;
+  }
+  return overlap / a.size;
+}
+
+function _sampleRecentSentences(sectionHtmls) {
+  const recent = sectionHtmls.slice(-2).join(" ");
+  const sentences = _plainText(recent)
+    .split(/[.!?]\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 30 && s.length < 150);
+  return sentences.slice(0, 4);
+}
+
+function _dedupeParagraphs(html = "") {
+  const parts = String(html).split(/(<\/p>)/i);
+  if (parts.length < 3) return html;
+  const seen = new Set();
+  const kept = [];
+  for (let i = 0; i < parts.length; i += 2) {
+    const para = (parts[i] || "").trim();
+    const end = parts[i + 1] || "";
+    if (!para) continue;
+    const key = _plainText(para).slice(0, 220);
+    if (key.length < 20 || !seen.has(key)) {
+      seen.add(key);
+      kept.push(para + end);
+    }
+  }
+  return kept.length ? kept.join("\n") : html;
+}
+
+function _expandCommonAcronyms(html = "") {
+  const map = {
+    UPI: 'Unified Payments Interface',
+    RBI: 'Reserve Bank of India',
+    SEBI: 'Securities and Exchange Board of India',
+    KYC: 'Know Your Customer',
+    AML: 'Anti-Money Laundering',
+    API: 'Application Programming Interface',
+    BNPL: 'Buy Now, Pay Later',
+    NEFT: 'National Electronic Funds Transfer',
+    RTGS: 'Real Time Gross Settlement',
+    IMPS: 'Immediate Payment Service',
+  };
+  let out = String(html || '');
+  for (const [abbr, full] of Object.entries(map)) {
+    const re = new RegExp(`\\b${abbr}\\b`);
+    if (re.test(out) && !new RegExp(`${abbr}\\s*\\(`).test(out)) {
+      out = out.replace(re, `${abbr} (${full})`);
+    }
+  }
+  return out;
 }

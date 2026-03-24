@@ -18,7 +18,7 @@
  
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, getDocs }
+  import { getFirestore, collection, getDocs, query, where }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
  
   const firebaseConfig = {
@@ -32,20 +32,33 @@
  
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);
+
+  function escXml(v = '') {
+    return String(v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
  
   window.generate = async () => {
     document.getElementById('output').textContent = 'Generating…';
     try {
-      const snap  = await getDocs(collection(db, 'posts'));
+      // Important: must query only published posts so Firestore rules allow list reads.
+      const snap  = await getDocs(query(
+        collection(db, 'posts'),
+        where('published', '==', true)
+      ));
       const posts = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter(p => p.published);
+        .map(d => ({ id: d.id, ...d.data() }));
  
       const base  = 'https://blogspro.in';
       const today = new Date().toISOString().split('T')[0];
  
       const staticPages = [
-        { url: `${base}/index.html`,    priority: '1.0', freq: 'daily' },
+        { url: `${base}/`,              priority: '1.0', freq: 'daily' },
+        { url: `${base}/index.html`,    priority: '0.9', freq: 'daily' },
         { url: `${base}/login.html`,    priority: '0.3', freq: 'monthly' },
         { url: `${base}/register.html`, priority: '0.3', freq: 'monthly' },
       ];
@@ -62,7 +75,7 @@
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${allPages.map(p => `  <url>
-    <loc>${p.url}</loc>
+    <loc>${escXml(p.url)}</loc>
     ${p.lastmod ? `<lastmod>${p.lastmod}</lastmod>` : `<lastmod>${today}</lastmod>`}
     <changefreq>${p.freq}</changefreq>
     <priority>${p.priority}</priority>

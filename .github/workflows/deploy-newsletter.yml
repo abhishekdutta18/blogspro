@@ -1,0 +1,39 @@
+name: Deploy Newsletter Worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'api/newsletter-worker.js'
+      - 'wrangler.toml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Cloudflare Network
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          secrets: |
+            RESEND_API_KEY
+            NEWSLETTER_SECRET
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
+
+  notify-failure:
+    needs: deploy
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram Failure Alert
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: "🚨 [BlogsPro] Newsletter Worker Deployment Failed! Check GitHub Actions."

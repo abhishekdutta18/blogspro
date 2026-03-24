@@ -20,7 +20,9 @@ A full-featured, AI-powered blog platform built with **Vanilla HTML/CSS/JS**, **
 6. [AI Tools Reference](#ai-tools-reference)
 7. [Data Schema](#data-schema)
 8. [Known Issues & Fixes](#known-issues--fixes)
-9. [Environment Variables](#environment-variables)
+9. [Latest Security Hotfix (2026-03-21)](#latest-security-hotfix-2026-03-21)
+10. [Dual-Agent Workboard (Claude + Codex)](#dual-agent-workboard-claude--codex)
+11. [Environment Variables](#environment-variables)
 
 ---
 
@@ -56,10 +58,13 @@ A full-featured, AI-powered blog platform built with **Vanilla HTML/CSS/JS**, **
 
 ### Platform
 - Firebase Auth — email/password protected admin
-- Role-based Firestore rules (admin / reader)
+- Role-based Firestore rules (admin / editor / coauthor / reader)
+- **Role request approval** — users request role upgrades; admins approve or reject from Users table
 - Newsletter subscriber collection with email validation
 - Comments subcollection with server-timestamp enforcement
 - Admin stats dashboard
+- **Admin profile editor** — manage personal details and public blog About section
+- **Homepage sitemap** — organized link grid with Navigate, Account, and Connect columns
 - Responsive design (mobile + desktop)
 
 ---
@@ -109,7 +114,8 @@ blogspro/
 │   ├── subscribers.js       ← Newsletter subscriber management
 │   ├── nav.js               ← Sidebar navigation
 │   ├── views.js             ← View switching logic
-│   ├── main.js              ← Public blog feed renderer
+│   ├── main.js              ← Boot sequence and module init
+│   ├── profile.js           ← Admin profile management (personal + public About)
 │   ├── seo-page.js          ← SEO meta tag injection
 │   ├── images-upload.js     ← Cloudinary upload handler
 │   ├── newsletter.js        ← Newsletter signup flow
@@ -194,6 +200,26 @@ The Cloudflare Worker is the **primary AI backend**. It routes prompts to Llama 
 ```js
 export const WORKER_URL = "https://your-worker.your-subdomain.workers.dev";
 ```
+
+#### Automated Worker Creation (Wrangler)
+
+You can automate Worker creation + secret upload from this repo:
+
+```bash
+CLOUDFLARE_API_TOKEN=your_token \
+CLOUDFLARE_ACCOUNT_ID=your_account_id \
+GITHUB_PAT=your_github_pat \
+node bootstrap-worker.js \
+  --name github-push \
+  --script ./worker.js \
+  --secret-env GITHUB_PAT:GITHUB_TOKEN \
+  --secret DEPLOY_TOKEN=change-me
+```
+
+Notes:
+- `bootstrap-worker.js` deploys the Worker and sets secrets using `wrangler@4`.
+- `--secret-env ENV:SECRET_NAME` maps a local env var to a Worker secret key.
+- Use `--dry-run` first to validate inputs without deploying.
 
 ---
 
@@ -417,10 +443,33 @@ All tools are in the **AI Tools** sidebar section of the admin panel.
 
 ```
 {
-  email:       string,
-  displayName: string,
-  role:        "admin" | "reader",
-  createdAt:   timestamp
+  email:            string,
+  name:             string,
+  bio:              string,
+  avatarUrl:        string,
+  role:             "admin" | "editor" | "coauthor" | "reader",
+  requestedRole:    string (pending upgrade request, cleared on approve/reject),
+  createdAt:        timestamp,
+  updatedAt:        timestamp
+}
+```
+
+### `site/about` document
+
+```
+{
+  name:      string,
+  heading:   string,
+  tagline:   string,
+  bio:       string,
+  mission:   string,
+  avatarUrl: string,
+  socials: {
+    x:        string (URL),
+    linkedin: string (URL),
+    youtube:  string (URL),
+    github:   string (URL)
+  }
 }
 ```
 
@@ -432,6 +481,94 @@ All tools are in the **AI Tools** sidebar section of the admin panel.
   createdAt: timestamp
 }
 ```
+
+---
+
+## Latest Security Hotfix (2026-03-21)
+
+### Files changed
+
+- `firestore.rules`
+- `register.html`
+- `dashboard.html`
+- `index.html`
+- `account.html`
+- `deploy-worker.js` (CLI helper to push files via the same Cloudflare Worker used by `deploy.html`)
+
+### What was fixed
+
+1. **Blocked role escalation in Firestore**  
+   New users can no longer self-assign elevated access by writing `role: "admin"` into their own user document.
+
+2. **Contributor post flow aligned with rules**  
+   Rules now support admin-assigned contributors (`editor`, `coauthor`) creating/updating only their own posts, while protecting privileged fields.
+
+3. **Registration hardened**  
+   New accounts are always created as `reader`; any elevated role selection is stored as a `requestedRole` request for admin review.
+
+4. **Public/client queries aligned to secure rules**  
+   Public feed and user dashboard now query with filters (`published`, `authorUid`) instead of reading full collections and filtering client-side.
+
+5. **Account deletion order made safer**  
+   Account deletion now deletes Firebase Auth first, then attempts Firestore profile cleanup, avoiding half-deleted auth states.
+
+6. **Admin detection standardized**  
+   Home page admin/nav behavior now uses Firestore role checks instead of a hardcoded admin UID.
+
+### Deployment status
+
+- Firestore rules: published.
+- GitHub deploy commit for hotfix files: `9d48ea3` ("Deploy 5 files from ZIP (path discovery mode)").
+- GitHub deploy commit for deploy CLI tool: `db29511` ("Add CLI deploy script for Cloudflare worker push").
+
+---
+
+## Feature Update (2026-03-22)
+
+### Files changed
+
+- `index.html` — Sitemap section, About social-links sync fix
+- `js/users.js` — Approve/Reject buttons, pending badge
+- `js/profile.js` — New admin profile management module
+- `js/main.js` — Profile module import
+- `js/nav.js` — Profile view hook
+- `admin.html` — My Profile view, sidebar link
+
+### What was added
+
+1. **Homepage sitemap** — 4-column link grid (BlogsPro, Navigate, Account, Connect) before the footer, visible to all visitors.
+2. **Admin profile editor** — "My Profile" section in admin sidebar with personal account and public blog About management.
+3. **About section sync** — Fixed field-name mismatch between admin profile saves (`socials.x`) and homepage reads (`data.twitter`). Both formats are supported with backward-compat fallback.
+4. **User role-request approval** — Approve/Reject buttons on pending role requests in the Users table. Pending count badge on Users nav item. Uses `deleteField()` for clean Firestore updates.
+5. **Author attribution** — Posts now store `authorName` and `authorUid` for proper attribution on the blog feed.
+
+---
+
+## Dual-Agent Workboard (Claude + Codex)
+
+This section is the source of truth for parallel bot work.  
+Before either bot edits code, update this table first.
+
+### Coordination rules
+
+1. Claim ownership before editing files.
+2. Do not edit files owned by the other bot unless owner is `UNCLAIMED`.
+3. On completion, set status to `DONE` and leave a one-line handoff note.
+4. If blocked, set status to `BLOCKED` with reason and expected next action.
+
+### Workboard
+
+| Area / Task | Owner | Status | Files | Last Update (IST) | Handoff Note |
+|---|---|---|---|---|---|
+| Security rules + auth hardening | Codex | DONE | `firestore.rules`, `register.html`, `index.html`, `dashboard.html`, `account.html` | 2026-03-21 | Hotfix shipped and live on GitHub. |
+| Deploy automation tooling | Codex | DONE | `deploy-worker.js`, `deploy.html` | 2026-03-21 | CLI deploy helper added; uses same Worker as deploy UI. |
+| Next feature / bugfix slot | UNCLAIMED | TODO | TBD | - | Claim before starting work. |
+
+### Quick handoff template
+
+Use this format when updating the table:
+
+`[BOT]=Claude|Codex  [STATUS]=TODO|IN_PROGRESS|BLOCKED|DONE  [FILES]=a,b,c  [NOTE]=one-line summary`
 
 ---
 

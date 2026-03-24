@@ -22,6 +22,51 @@ const THEME = {
   palette:  ['#c9a84c','#93c5fd','#4ade80','#c4b5fd','#fca5a5','#fdba74','#6ee7b7'],
 };
 
+function toNum(v) {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') {
+    const cleaned = v.replace(/,/g, '').match(/-?\d+(\.\d+)?/);
+    if (cleaned) return Number(cleaned[0]);
+  }
+  return Number(v);
+}
+
+function compactNum(n) {
+  if (!isFinite(n)) return String(n);
+  const abs = Math.abs(n);
+  if (abs >= 1e9) return `${(n / 1e9).toFixed(2).replace(/\.?0+$/, '')}B`;
+  if (abs >= 1e6) return `${(n / 1e6).toFixed(2).replace(/\.?0+$/, '')}M`;
+  if (abs >= 1e3) return `${(n / 1e3).toFixed(1).replace(/\.?0+$/, '')}k`;
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function formatValue(v, unit = '') {
+  const n = toNum(v);
+  if (!isFinite(n)) return String(v ?? '');
+  const u = String(unit || '').trim();
+  if (!u) return compactNum(n);
+
+  // Examples: "$B", "₹M" => "$12.5B", "₹3.2M"
+  const currencyScale = u.match(/^([$₹€£])\s*([a-zA-Z]+)$/);
+  if (currencyScale) {
+    const sym = currencyScale[1];
+    const scale = currencyScale[2];
+    return `${sym}${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}${scale}`;
+  }
+
+  // Examples: "$", "₹" => "$12.5M"
+  if (/^[$₹€£]$/.test(u)) return `${u}${compactNum(n)}`;
+  if (u === '%') return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
+
+  // Examples: "M", "B", "million", "billion", "crore"
+  if (/^(k|m|b|mn|bn|million|billion|thousand|lakh|crore)$/i.test(u)) {
+    return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}${u.length <= 2 ? u : ` ${u}`}`;
+  }
+
+  // Generic unit suffix
+  return `${compactNum(n)} ${u}`;
+}
+
 // ─────────────────────────────────────────────
 // Public API — called from ai-writer.js
 // topic: article topic, sectionTitle: current section
@@ -42,22 +87,22 @@ Pick the best chart type and generate REAL, SPECIFIC numeric data relevant to th
 CRITICAL: Return ONLY a raw JSON object. No markdown, no backticks, no explanation. Start with {
 
 REQUIRED FIELDS:
-- "name": A unique descriptive name for this chart (e.g. "Fig 1: UPI Transaction Volume 2020-2024")
+- "name": A unique descriptive name for this chart (e.g. "UPI Transaction Volume 2020-2024"). DO NOT include prefixes like "Fig 1:" or "Table 1:".
 - "title": Display title shown above the chart
 - "source": Citation source (e.g. "Source: RBI Annual Report 2024", "Source: NPCI Dashboard")
 - "subtitle": Brief description of what the data shows
 
 Example for a bar chart:
-{"type":"bar","name":"Fig 1: Top 5 Fintech Markets","title":"Top 5 Fintech Markets by Investment","subtitle":"2024 data","labels":["USA","China","UK","India","Brazil"],"datasets":[{"name":"Investment $B","values":[89,52,31,8,4]}],"unit":"$B","source":"Source: CB Insights Global Fintech Report 2024"}
+{"type":"bar","name":"Top 5 Fintech Markets","title":"Top 5 Fintech Markets by Investment","subtitle":"2024 data","labels":["USA","China","UK","India","Brazil"],"datasets":[{"name":"Investment $B","values":[89,52,31,8,4]}],"unit":"$B","source":"Source: CB Insights Global Fintech Report 2024"}
 
 Example for a stats chart:
-{"type":"stats","name":"Fig 2: Global Fintech Key Metrics","title":"Key Market Statistics","subtitle":"Global fintech 2024","labels":["Market Size","YoY Growth","Active Users","Funding Rounds"],"datasets":[{"name":"values","values":["$340B","23%","4.8B","2,847"]}],"unit":"","source":"Source: Statista Digital Payments Report 2024"}
+{"type":"stats","name":"Global Fintech Key Metrics","title":"Key Market Statistics","subtitle":"Global fintech 2024","labels":["Market Size","YoY Growth","Active Users","Funding Rounds"],"datasets":[{"name":"values","values":["$340B","23%","4.8B","2,847"]}],"unit":"","source":"Source: Statista Digital Payments Report 2024"}
 
 Example for a table:
-{"type":"table","name":"Table 1: Banking Model Comparison","title":"Feature Comparison","subtitle":"","labels":["Speed","Cost","Security","Ease of Use"],"datasets":[{"name":"Provider A","values":["Fast","Low","High","Easy"]},{"name":"Provider B","values":["Medium","Medium","High","Medium"]}],"unit":"","source":"Source: Deloitte Banking Survey 2024"}
+{"type":"table","name":"Banking Model Comparison","title":"Feature Comparison","subtitle":"","labels":["Speed","Cost","Security","Ease of Use"],"datasets":[{"name":"Provider A","values":["Fast","Low","High","Easy"]},{"name":"Provider B","values":["Medium","Medium","High","Medium"]}],"unit":"","source":"Source: Deloitte Banking Survey 2024"}
 
 Rules:
-- "name" MUST start with "Fig N:" or "Table N:" followed by a descriptive name
+- "name" MUST NOT start with "Fig N:" or "Table N:". Just provide the descriptive name.
 - "source" MUST cite a real organization (RBI, SEBI, NPCI, World Bank, McKinsey, PwC, Statista, etc.)
 - ALL numbers must be realistic for the topic — do NOT use placeholder zeros
 - labels array and values array MUST have the same length
@@ -83,8 +128,9 @@ Rules:
   if (data.labels.length !== data.datasets[0].values.length &&
       data.type !== 'table') return '';
 
-  // Validate chart name exists
-  if (!data.name) data.name = `${data.type === 'table' ? 'Table' : 'Fig'}: ${data.title || sectionTitle}`;
+  // Validate chart name exists and strip problematic prefixes
+  if (!data.name) data.name = data.title || sectionTitle;
+  data.name = data.name.replace(/^(Fig(?:ure)?\s*\d*\s*[:\-.]?|Table\s*\d*\s*[:\-.]?)\s*/i, '');
 
   // Validate source citation exists
   if (!data.source) data.source = `Source: Industry analysis for "${sectionTitle}"`;
@@ -119,16 +165,17 @@ function buildBarChart(data) {
   const series   = data.datasets?.[0];
   if (!series?.values?.length) return '';
   // FIX: Calculate max across ALL datasets, not just the first
-  const allValues = data.datasets.flatMap(ds => ds.values.map(Number).filter(v => !isNaN(v)));
+  const allValues = data.datasets.flatMap(ds => ds.values.map(toNum).filter(v => !isNaN(v)));
   const max      = Math.max(...allValues) || 1;
   const unit     = data.unit || '';
   const multiSeries = data.datasets?.length > 1;
+  const baseValues = series.values.map(toNum).filter(v => !isNaN(v));
 
   const bars = data.labels.map((label, i) => {
     if (multiSeries) {
       // Grouped bars
       const groupBars = data.datasets.map((ds, di) => {
-        const val = Number(ds.values[i]) || 0;
+        const val = toNum(ds.values[i]) || 0;
         const pct = Math.round((val / max) * 100);
         const color = THEME.palette[di % THEME.palette.length];
         return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
@@ -136,7 +183,7 @@ function buildBarChart(data) {
           <div style="flex:1;background:rgba(255,255,255,0.05);border-radius:2px;height:14px;overflow:hidden">
             <div style="width:${pct}%;height:100%;background:${color};border-radius:2px;transition:width 0.8s ease;min-width:2px"></div>
           </div>
-          <span style="font-size:0.68rem;color:${color};font-weight:700;width:40px;flex-shrink:0">${unit}${val.toLocaleString()}</span>
+          <span style="font-size:0.68rem;color:${color};font-weight:700;min-width:56px;flex-shrink:0;text-align:right">${formatValue(val, unit)}</span>
         </div>`;
       }).join('');
       return `<div style="margin-bottom:0.9rem">
@@ -144,13 +191,13 @@ function buildBarChart(data) {
         ${groupBars}
       </div>`;
     } else {
-      const val = values[i] || 0;
+      const val = baseValues[i] || 0;
       const pct = Math.round((val / max) * 100);
       const color = THEME.palette[i % THEME.palette.length];
       return `<div style="margin-bottom:0.6rem">
         <div style="display:flex;justify-content:space-between;margin-bottom:3px">
           <span style="font-size:0.75rem;color:${THEME.cream}">${label}</span>
-          <span style="font-size:0.75rem;color:${color};font-weight:700">${unit}${val.toLocaleString()}</span>
+          <span style="font-size:0.75rem;color:${color};font-weight:700">${formatValue(val, unit)}</span>
         </div>
         <div style="background:rgba(255,255,255,0.05);border-radius:3px;height:16px;overflow:hidden">
           <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,${color},${color}cc);border-radius:3px;transition:width 0.8s ease;min-width:4px"></div>
@@ -179,7 +226,7 @@ function buildLineChart(data) {
   const iW = W - padL - padR;
   const iH = H - padT - padB;
 
-  const allVals = data.datasets.flatMap(ds => ds.values.map(Number).filter(v => !isNaN(v)));
+  const allVals = data.datasets.flatMap(ds => ds.values.map(toNum).filter(v => !isNaN(v)));
   const min = Math.min(...allVals, 0);
   const max = Math.max(...allVals, 1);
   const range = max - min || 1;
@@ -193,9 +240,9 @@ function buildLineChart(data) {
   const gridLines = Array.from({length: yTicks + 1}, (_, ti) => {
     const v = min + (range / yTicks) * ti;
     const y = yScale(v);
-    const label = v >= 1000 ? (v/1000).toFixed(1)+'k' : v.toFixed(v < 10 ? 1 : 0);
+    const label = formatValue(v, data.unit || '');
     return `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="${THEME.border}" stroke-width="1"/>
-            <text x="${padL - 4}" y="${y + 4}" text-anchor="end" font-size="9" fill="${THEME.muted}">${data.unit||''}${label}</text>`;
+            <text x="${padL - 4}" y="${y + 4}" text-anchor="end" font-size="9" fill="${THEME.muted}">${label}</text>`;
   }).join('');
 
   // X axis labels
@@ -207,7 +254,7 @@ function buildLineChart(data) {
 
   // Series lines + dots
   const seriesElements = data.datasets.map((ds, di) => {
-    const vals = ds.values.map(Number);
+    const vals = ds.values.map(toNum);
     const color = THEME.palette[di % THEME.palette.length];
     const pts = vals.map((v, i) => `${xScale(i)},${yScale(v)}`).join(' ');
     // Area fill
@@ -248,13 +295,14 @@ function buildLineChart(data) {
 function buildPieChart(data) {
   const series = data.datasets?.[0];
   if (!series?.values?.length) return '';
-  const vals  = series.values.map(Number).filter(v => !isNaN(v) && v > 0);
+  const vals  = series.values.map(toNum).filter(v => !isNaN(v) && v > 0);
   const total = vals.reduce((a, b) => a + b, 0) || 1;
   const CX = 90, CY = 90, R = 72, IR = 40; // donut
   let angle = -Math.PI / 2;
 
   const slices = vals.map((v, i) => {
-    const sweep = (v / total) * 2 * Math.PI;
+    let sweep = (v / total) * 2 * Math.PI;
+    if (sweep >= 2 * Math.PI) sweep -= 0.0001; // SVG arc cannot draw exactly 360 degrees
     const x1 = CX + R * Math.cos(angle);
     const y1 = CY + R * Math.sin(angle);
     angle += sweep;
@@ -279,14 +327,14 @@ function buildPieChart(data) {
       <span style="width:12px;height:12px;border-radius:2px;background:${s.color};flex-shrink:0;display:inline-block"></span>
       <span style="font-size:0.75rem;color:${THEME.cream};flex:1">${s.label}</span>
       <span style="font-size:0.75rem;font-weight:700;color:${s.color}">${s.pct}%</span>
-      <span style="font-size:0.7rem;color:${THEME.muted}">${data.unit||''}${s.val.toLocaleString()}</span>
+      <span style="font-size:0.7rem;color:${THEME.muted}">${formatValue(s.val, data.unit || '')}</span>
     </div>`
   ).join('');
 
   const svg = `<svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg" style="width:180px;height:180px;flex-shrink:0">
     ${slices.map(s => s.path).join('')}
     <circle cx="${CX}" cy="${CY}" r="${IR - 3}" fill="${THEME.bg2}"/>
-    <text x="${CX}" y="${CY - 6}" text-anchor="middle" font-size="11" fill="${THEME.cream}" font-weight="700">${data.unit||''}${vals.reduce((a,b)=>a+b,0).toLocaleString()}</text>
+    <text x="${CX}" y="${CY - 6}" text-anchor="middle" font-size="11" fill="${THEME.cream}" font-weight="700">${formatValue(vals.reduce((a,b)=>a+b,0), data.unit || '')}</text>
     <text x="${CX}" y="${CY + 10}" text-anchor="middle" font-size="9" fill="${THEME.muted}">Total</text>
   </svg>`;
 
@@ -329,26 +377,38 @@ function buildDataTable(data) {
   const rows    = data.datasets || [];
   if (!headers.length || !rows.length) return '';
 
-  const thead = `<tr>
-    <th style="padding:0.5rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap"></th>
-    ${headers.map(h => `<th style="padding:0.5rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap">${h}</th>`).join('')}
-  </tr>`;
+  const maxValues = Math.max(...rows.map(r => (r.values || []).length));
+  
+  let theadHtml = '';
+  if (headers.length === maxValues + 1) {
+    theadHtml = `<tr>
+      ${headers.map((h, i) => `<th style="${i===0 ? 'position:sticky;left:0;' : ''}padding:0.6rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;background:${THEME.bg2};${i===0?'z-index:2':''}">${h}</th>`).join('')}
+    </tr>`;
+  } else {
+    theadHtml = `<tr>
+      <th style="padding:0.6rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;position:sticky;left:0;background:${THEME.bg2};z-index:2">Feature</th>
+      ${headers.map(h => `<th style="padding:0.6rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;background:${THEME.bg2}">${h}</th>`).join('')}
+    </tr>`;
+  }
 
   const tbody = rows.map((row, ri) => {
     const bg = ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.025)';
     const cells = (row.values || []).map(v =>
-      `<td style="padding:0.45rem 0.75rem;font-size:0.78rem;color:${THEME.cream};border-bottom:1px solid ${THEME.border}">${v}</td>`
+      `<td style="padding:0.55rem 0.75rem;font-size:0.78rem;color:${THEME.cream};border-bottom:1px solid ${THEME.border};vertical-align:top;white-space:normal;line-height:1.45">${v}</td>`
     ).join('');
     return `<tr style="background:${bg}">
-      <td style="padding:0.45rem 0.75rem;font-size:0.78rem;font-weight:600;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap">${row.name||''}</td>
+      <td style="padding:0.55rem 0.75rem;font-size:0.78rem;font-weight:600;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;position:sticky;left:0;background:${THEME.bg}">${row.name||''}</td>
       ${cells}
     </tr>`;
   }).join('');
 
   return _chartWrapper(data,
-    `<div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-family:var(--sans,sans-serif)">
-        <thead>${thead}</thead>
+    `<div style="overflow-x:auto;border:1px solid ${THEME.border};border-radius:6px">
+      <table style="width:100%;min-width:680px;border-collapse:collapse;font-family:var(--sans,sans-serif);table-layout:auto">
+        <caption style="caption-side:top;text-align:left;padding:0.6rem 0.75rem;color:${THEME.muted};font-size:0.7rem;border-bottom:1px solid ${THEME.border}">
+          ${data.name || data.title || 'Comparison Table'}
+        </caption>
+        <thead>${theadHtml}</thead>
         <tbody>${tbody}</tbody>
       </table>
     </div>`

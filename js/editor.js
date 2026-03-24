@@ -1,5 +1,6 @@
 import { cleanEditorHTML } from "./config.js";
 import { callAI } from "./ai-core.js";
+import { state } from "./state.js";
 
 let editor = null;
 
@@ -435,13 +436,21 @@ export function clearEditor() {
   if (cat) cat.selectedIndex = 0;
   const heading = document.getElementById("editorHeading");
   if (heading) heading.textContent = "New Post";
+  const topbarTitle = document.getElementById("topbarTitle");
+  if (topbarTitle) topbarTitle.textContent = "New Post";
+  const topbarStateBadge = document.getElementById("topbarStateBadge");
+  if (topbarStateBadge) topbarStateBadge.textContent = "Draft";
+  const preview = document.getElementById("featuredPreview");
+  const previewImg = document.getElementById("featuredPreviewImg");
+  const previewLabel = document.getElementById("featuredPreviewLabel");
+  if (preview) preview.style.display = "none";
+  if (previewImg) previewImg.src = "";
+  if (previewLabel) previewLabel.textContent = "";
   const saveStatus = document.getElementById("saveStatus");
   if (saveStatus) saveStatus.textContent = "";
-  // Import state lazily to avoid circular deps
-  import("./state.js").then(({ state }) => {
-    state.editingPostId = null;
-    state.isPremium     = false;
-  });
+  state.editingPostId = null;
+  state.isPremium = false;
+  document.getElementById("premiumSwitch")?.classList.remove("on");
   updateWordCount();
 }
 window.clearEditor = clearEditor;

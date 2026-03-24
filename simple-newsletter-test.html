@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Newsletter Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 50px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 { color: #333; margin-bottom: 20px; }
+    button {
+      padding: 12px 24px;
+      margin-top: 20px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    button:hover { background: #5568d3; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    
+    .result {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 4px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .result.success {
+      background: #e8f5e9;
+      border: 1px solid #81c784;
+      color: #388e3c;
+    }
+    .result.error {
+      background: #ffebee;
+      border: 1px solid #ef5350;
+      color: #c62828;
+    }
+    .result.loading {
+      background: #e3f2fd;
+      border: 1px solid #90caf9;
+      color: #1976d2;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 10px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>📧 Newsletter Test Suite</h1>
+  
+  <button onclick="testFirebaseConnection()">1️⃣ Test Firebase Connection</button>
+  <button onclick="checkSubscribers()">2️⃣ Check Subscribers</button>
+  <button onclick="sendTestEmail()">3️⃣ Send Test Email</button>
+  <button onclick="clearResults()">🔄 Clear</button>
+
+  <div id="results" class="result"></div>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
+    authDomain: "blogspro-ai.firebaseapp.com",
+    projectId: "blogspro-ai",
+    storageBucket: "blogspro-ai.firebasestorage.app",
+    messagingSenderId: "940428277283",
+    appId: "1:940428277283:web:d3bb414f0992718ca76396",
+    measurementId: "G-N7TCB31MRD"
+  };
+
+  let db = null;
+
+  function showResult(message, type = 'loading') {
+    const results = document.getElementById('results');
+    results.className = `result show ${type}`;
+    results.innerHTML = message;
+  }
+
+  function clearResults() {
+    document.getElementById('results').className = 'result';
+  }
+
+  async function testFirebaseConnection() {
+    showResult('🔄 Testing Firebase connection...', 'loading');
+    
+    try {
+      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+      const { getFirestore } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+      
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      
+      showResult('✅ Firebase connected successfully!<br>Project: blogspro-ai', 'success');
+    } catch (err) {
+      showResult(`❌ Firebase connection failed:<br><pre>${err.message}</pre>`, 'error');
+    }
+  }
+
+  async function checkSubscribers() {
+    if (!db) {
+      showResult('❌ Firebase not initialized. Click "Test Firebase Connection" first.', 'error');
+      return;
+    }
+
+    showResult('🔄 Checking subscribers...', 'loading');
+    
+    try {
+      const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+      
+      const snap = await getDocs(collection(db, 'subscribers'));
+      const subscribers = snap.docs.map(d => ({ email: d.data().email, ...d.data() }));
+      
+      if (subscribers.length === 0) {
+        showResult('❌ No subscribers found in Firestore<br>Try running the full test first.', 'error');
+        return;
+      }
+      
+      const list = subscribers.map((s, i) => `${i + 1}. ${s.email}`).join('<br>');
+      showResult(`✅ Found ${subscribers.length} subscriber(s):<br><br>${list}`, 'success');
+    } catch (err) {
+      showResult(`❌ Error checking subscribers:<br><pre>${err.message}</pre>`, 'error');
+    }
+  }
+
+  async function sendTestEmail() {
+    showResult('🔄 Sending test email...', 'loading');
+    
+    try {
+      const workerUrl = 'https://blogspro-newsletter.abhishek-dutta1996.workers.dev';
+      
+      const response = await fetch(workerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: 'Test Newsletter from BlogsPro',
+          html: '<p>This is a test email from BlogsPro newsletter system.</p>',
+          secret: 'biltu123'
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Worker returned ${response.status}: ${error}`);
+      }
+
+      const result = await response.json();
+      showResult(`✅ Email sent successfully!<br>Recipients: ${result.count}<br><br><pre>${JSON.stringify(result, null, 2)}</pre>`, 'success');
+    } catch (err) {
+      showResult(`❌ Failed to send email:<br><pre>${err.message}</pre>`, 'error');
+    }
+  }
+</script>
+
+</body>
+</html>

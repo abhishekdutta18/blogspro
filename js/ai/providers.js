@@ -24,6 +24,7 @@ export const CODE_PROVIDERS = [
 ];
 
 export const IMAGE_PROVIDERS = [
+  "google",       // Google Imagen (worker-backed) — primary
   "pollinations", // Free, no key — primary
   "huggingface",  // Flux Schnell — fallback
   "cloudflare",   // Workers AI — last resort

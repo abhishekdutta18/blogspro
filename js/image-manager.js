@@ -9,11 +9,72 @@
 import { state }                  from './state.js';
 import { showToast }              from './config.js';
 import { uploadToStorage, blobUrlToFile } from './images-upload.js';
+import { workerFetch } from './worker-endpoints.js';
 
-const IMAGE_API_PROVIDERS = [
-  { name: 'pollinations', url: (prompt, w, h) =>
-      `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&enhance=true` },
-];
+const AUTO_IMAGE_PROVIDER_CHAIN = ['google', 'pollinations', 'huggingface', 'cloudflare'];
+
+function pollinationsUrl(prompt, w, h, seed = null) {
+  const base = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&nologo=true&enhance=true`;
+  return seed ? `${base}&seed=${seed}` : base;
+}
+
+function getSelectedImgProvider() {
+  return document.getElementById('imgProvider')?.value || 'auto';
+}
+
+window.onImgProviderChange = function(provider) {
+  const info = document.getElementById('imgProviderInfo');
+  if (!info) return;
+  if (provider === 'auto') {
+    info.textContent = 'Auto tries Google Imagen → Pollinations → Hugging Face → Cloudflare.';
+    return;
+  }
+  const names = {
+    google: 'Google Imagen',
+    pollinations: 'Pollinations.ai',
+    huggingface: 'Hugging Face',
+    cloudflare: 'Cloudflare Workers AI',
+  };
+  info.textContent = `Using ${names[provider] || provider} only.`;
+};
+
+async function requestImageFromWorker(provider, prompt, w, h) {
+  const res = await workerFetch('api/generate-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      provider,
+      prompt,
+      type: 'image',
+      width: w,
+      height: h,
+      model: provider === 'google' ? 'imagen-3.0-generate-002' : undefined
+    })
+  });
+  if (!res.ok) throw new Error(`${provider} failed (${res.status})`);
+  const data = await res.json();
+  const url = data?.image || data?.url || data?.result || data?.data?.url || '';
+  if (!url || !/^https?:\/\//i.test(url)) throw new Error(`${provider} returned invalid image URL`);
+  return url;
+}
+
+async function generateImageUrl(prompt, provider, w, h) {
+  const providers = provider === 'auto' ? AUTO_IMAGE_PROVIDER_CHAIN : [provider];
+  for (const p of providers) {
+    try {
+      if (p === 'pollinations') {
+        const seed = Math.floor(Math.random() * 999999);
+        return pollinationsUrl(prompt, w, h, seed);
+      }
+      return await requestImageFromWorker(p, prompt, w, h);
+    } catch (err) {
+      console.warn('Image provider failed:', p, err.message);
+    }
+  }
+  // Last-resort direct generation so UI still works even if worker is down.
+  const seed = Math.floor(Math.random() * 999999);
+  return pollinationsUrl(prompt, w, h, seed);
+}
 
 // ─────────────────────────────────────────────
 // Style / ratio / count selectors
@@ -66,6 +127,7 @@ window.generateImages = async function() {
   const w      = state.imgSelectedW     || 1280;
   const h      = state.imgSelectedH     || 720;
   const count  = state.imgSelectedCount || 2;
+  const provider = getSelectedImgProvider();
   const fullPrompt = `${prompt}, ${style}`;
 
   const btn    = document.getElementById('btnGenImg');
@@ -81,8 +143,7 @@ window.generateImages = async function() {
   for (let i = 0; i < count; i++) {
     const idx  = state.generatedImages.length;
     // Add a seed for variation
-    const seed = Math.floor(Math.random() * 999999);
-    const url  = `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=${w}&height=${h}&seed=${seed}&nologo=true&enhance=true`;
+    let url = '';
 
     // Placeholder card while loading
     const card = document.createElement('div');
@@ -105,6 +166,13 @@ window.generateImages = async function() {
     state.generatedImages.push(null); // reserve slot
 
     // Load image
+    try {
+      url = await generateImageUrl(fullPrompt, provider, w, h);
+    } catch (_) {
+      const seed = Math.floor(Math.random() * 999999);
+      url = pollinationsUrl(fullPrompt, w, h, seed);
+    }
+
     const img = new Image();
     img.onload = () => {
       state.generatedImages[idx] = url;

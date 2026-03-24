@@ -1,0 +1,38 @@
+name: Deploy Sentry Webhook Worker
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Deploy to Cloudflare Network
+        working-directory: workers/sentry
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: |
+          npx wrangler@3 deploy
+          echo "$TELEGRAM_BOT_TOKEN" | npx wrangler@3 secret put TELEGRAM_TOKEN
+          echo "$TELEGRAM_CHAT_ID"   | npx wrangler@3 secret put TELEGRAM_TO
+          echo "$SENTRY_AUTH_TOKEN"  | npx wrangler@3 secret put SENTRY_AUTH_TOKEN
+          echo "$SENTRY_ORG"         | npx wrangler@3 secret put SENTRY_ORG
+          echo "$SENTRY_PROJECT"     | npx wrangler@3 secret put SENTRY_PROJECT
+          # Register Telegram Bot webhook so button presses call back to our worker
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" \
+            -H "Content-Type: application/json" \
+            -d '{"url": "https://blogspro-sentry-webhook.abhishek-dutta1996.workers.dev/telegram", "allowed_updates": ["message", "callback_query"]}' | python3 -c "import sys,json; r=json.load(sys.stdin); print('Telegram webhook:', r.get('description', r))"

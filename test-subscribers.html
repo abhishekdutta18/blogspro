@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlogsPro - Test Subscribers</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', Arial, sans-serif;
+      background: linear-gradient(135deg, #080d1a 0%, #0f1628 100%);
+      color: #f5f0e8;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #0f1628;
+      border: 1px solid rgba(201, 168, 76, 0.2);
+      border-radius: 8px;
+      padding: 2rem;
+    }
+    h1 {
+      background: linear-gradient(135deg, #c9a84c, #f0cc6e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+    .section {
+      margin: 2rem 0;
+      padding: 1.5rem;
+      background: rgba(26, 35, 64, 0.5);
+      border-left: 3px solid #c9a84c;
+      border-radius: 4px;
+    }
+    button {
+      background: linear-gradient(135deg, #c9a84c, #f0cc6e);
+      color: #080d1a;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    input {
+      background: #080d1a;
+      border: 1px solid rgba(201, 168, 76, 0.2);
+      color: #f5f0e8;
+      padding: 0.75rem;
+      border-radius: 4px;
+      font-family: inherit;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 0.5rem;
+    }
+    .output {
+      background: #080d1a;
+      border: 1px solid rgba(201, 168, 76, 0.2);
+      border-radius: 4px;
+      padding: 1rem;
+      margin-top: 1rem;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: 'Monaco', monospace;
+      font-size: 0.85rem;
+    }
+    .success { color: #4caf50; }
+    .error { color: #ef4444; }
+    .info { color: #3b82f6; }
+    .stat {
+      display: inline-block;
+      background: rgba(201, 168, 76, 0.1);
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      margin-right: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: #f0cc6e; }
+    table {
+      width: 100%;
+      margin-top: 1rem;
+      border-collapse: collapse;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.75rem;
+      border-bottom: 1px solid rgba(201, 168, 76, 0.2);
+    }
+    th { background: rgba(201, 168, 76, 0.1); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📬 BlogsPro Subscribers Test</h1>
+    <p style="color: #8896b3; margin-bottom: 1.5rem;">Verify subscriber functionality and email configuration</p>
+
+    <!-- Firebase Status -->
+    <div class="section">
+      <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">🔥 Firebase Setup</h2>
+      <button onclick="testFirebase()">Test Firebase Connection</button>
+      <div class="output" id="firebaseOutput">Click button to test...</div>
+    </div>
+
+    <!-- Subscribers Stats -->
+    <div class="section">
+      <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">📊 Subscriber Statistics</h2>
+      <button onclick="loadStats()">Load Subscriber Stats</button>
+      <button onclick="refreshStats()">🔄 Refresh</button>
+      <div id="statsDisplay" style="margin-top: 1rem;"></div>
+      <div class="output" id="statsOutput">Click button to load...</div>
+    </div>
+
+    <!-- Add Subscriber -->
+    <div class="section">
+      <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">✉ Add Subscriber</h2>
+      <input type="email" id="subscriberEmail" placeholder="test@example.com" />
+      <br/>
+      <button onclick="addSubscriber()">Add Subscriber</button>
+      <button onclick="addMultiple()">Add 3 Test Subscribers</button>
+      <div class="output" id="addOutput">Results will appear here...</div>
+    </div>
+
+    <!-- List Subscribers -->
+    <div class="section">
+      <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">👥 Subscriber List</h2>
+      <button onclick="listSubscribers()">List All Subscribers</button>
+      <button onclick="deleteAllSubscribers()" style="background: #ef4444;">⚠️ Delete All</button>
+      <div class="output" id="listOutput">Click button to load...</div>
+    </div>
+
+    <!-- Database Info -->
+    <div class="section">
+      <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">ℹ️ Database Info</h2>
+      <div class="output" id="dbInfo">
+        <strong>Project ID:</strong> blogspro-ai<br/>
+        <strong>Collection:</strong> subscribers<br/>
+        <strong>Firestore Rules:</strong> allow create, read, update, delete: if true (testing)<br/>
+        <strong>Status:</strong> ✅ Permissive for testing
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+
+  <script>
+    // Define log function FIRST
+    function log(elementId, message, type = 'info') {
+      const outputEl = document.getElementById(elementId);
+      if (!outputEl) return;
+      const timestamp = new Date().toLocaleTimeString();
+      const colored = `<span class="${type}">[${timestamp}] ${message}</span>`;
+      outputEl.innerHTML += colored + '<br/>';
+      outputEl.scrollTop = outputEl.scrollHeight;
+    }
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDEA...",
+      authDomain: "blogspro-ai.firebaseapp.com",
+      projectId: "blogspro-ai",
+      storageBucket: "blogspro-ai.appspot.com",
+      messagingSenderId: "123...",
+      appId: "1:123...:web:abc..."
+    };
+
+    let db;
+
+    // Wait for Firebase to load
+    function initFirebase() {
+      if (!window.firebase || !window.firebase.firestore) {
+        setTimeout(initFirebase, 100);
+        return;
+      }
+
+      try {
+        const { initializeApp } = window.firebase;
+        const app = initializeApp(firebaseConfig);
+        db = window.firebase.firestore(app);
+        
+        log('firebaseOutput', '✅ Firebase initialized', 'success');
+      } catch (e) {
+        log('firebaseOutput', '❌ Firebase init failed: ' + e.message, 'error');
+      }
+    }
+
+    // Initialize on page load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initFirebase);
+    } else {
+      initFirebase();
+    }
+
+    async function testFirebase() {
+      const el = 'firebaseOutput';
+      document.getElementById(el).innerHTML = '';
+      log(el, '🔄 Testing Firebase connection...', 'info');
+      
+      if (!db) {
+        log(el, '❌ Firebase not initialized', 'error');
+        return;
+      }
+      
+      try {
+        const subscribersRef = window.firebase.firestore.collection(db, 'subscribers');
+        const snap = await window.firebase.firestore.getDocs(subscribersRef);
+        log(el, `✅ Connected to Firestore`, 'success');
+        log(el, `✅ Found ${snap.size} documents in subscribers collection`, 'success');
+        
+        snap.docs.forEach(docSnap => {
+          const data = docSnap.data();
+          log(el, `  - ${data.email} (added: ${new Date(data.subscribedAt?.toDate?.() || data.subscribedAt).toLocaleString()})`, 'info');
+        });
+      } catch (err) {
+        log(el, `❌ Connection failed: ${err.message}`, 'error');
+      }
+    }
+
+    async function loadStats() {
+      const el = 'statsOutput';
+      document.getElementById(el).innerHTML = '';
+      log(el, '📊 Fetching subscriber statistics...', 'info');
+      
+      if (!db) {
+        log(el, '❌ Firebase not initialized', 'error');
+        return;
+      }
+      
+      try {
+        const subscribersRef = window.firebase.firestore.collection(db, 'subscribers');
+        const snap = await window.firebase.firestore.getDocs(subscribersRef);
+        const total = snap.size;
+        const active = snap.docs.filter(d => d.data().status === 'active').length;
+        
+        log(el, `✅ Total Subscribers: ${total}`, 'success');
+        log(el, `✅ Active Subscribers: ${active}`, 'success');
+        
+        document.getElementById('statsDisplay').innerHTML = `
+          <div class="stat"><div class="stat-value">${total}</div>Total Subscribers</div>
+          <div class="stat"><div class="stat-value">${active || total}</div>Active</div>
+        `;
+      } catch (err) {
+        log(el, `❌ Failed to load stats: ${err.message}`, 'error');
+      }
+    }
+
+    async function addSubscriber() {
+      const email = document.getElementById('subscriberEmail').value?.trim();
+      const el = 'addOutput';
+      
+      if (!email) {
+        log(el, '❌ Please enter an email address', 'error');
+        return;
+      }
+      
+      if (!db) {
+        log(el, '❌ Firebase not initialized', 'error');
+        return;
+      }
+      
+      document.getElementById(el).innerHTML = '';
+      log(el, `📝 Adding ${email}...`, 'info');
+      
+      try {
+        const subscribersRef = window.firebase.firestore.collection(db, 'subscribers');
+        await window.firebase.firestore.addDoc(subscribersRef, {
+          email: email,
+          status: 'active',
+          subscribedAt: new Date(),
+          createdAt: new Date()
+        });
+        
+        log(el, `✅ Subscriber added successfully!`, 'success');
+        document.getElementById('subscriberEmail').value = '';
+        
+        setTimeout(() => loadStats(), 500);
+      } catch (err) {
+        log(el, `❌ Failed to add subscriber: ${err.message}`, 'error');
+      }
+    }
+
+    async function addMultiple() {
+      const el = 'addOutput';
+      
+      if (!db) {
+        log(el, '❌ Firebase not initialized', 'error');
+        return;
+      }
+      
+      document.getElementById(el).innerHTML = '';
+      
+      const emails = [
+        'subscriber1@test.com',
+        'subscriber2@test.com',
+        'subscriber3@test.com'
+      ];
+      
+      for (const email of emails) {
+        try {
+          log(el, `📝 Adding ${email}...`, 'info');
+          const subscribersRef = window.firebase.firestore.collection(db, 'subscribers');
+          await window.firebase.firestore.addDoc(subscribersRef, {
+            email: email,
+            status: 'active',
+            subscribedAt: new Date(),
+            createdAt: new Date()
+          });
+          log(el, `✅ Added ${email}`, 'success');
+          await new Promise(resolve => setTimeout(resolve, 300));
+        } catch (err) {
+          log(el, `❌ Failed to add ${email}: ${err.message}`, 'error');
+        }
+      }
+      
+      setTimeout(() => loadStats(), 500);
+    }
+
+    async function listSubscribers() {
+      const el = 'listOutput';
+      document.getElementById(el).innerHTML = '';
+      log(el, '👥 Fetching subscriber list...', 'info');
+      
+      if (!db) {
+        log(el, '❌ Firebase not initialized', 'error');
+        return;
+      }
+      
+      try {
+        const subscribersRef = window.firebase.firestore.collection(db, 'subscribers');
+        const snap = await window.firebase.firestore.getDocs(subscribersRef);
+        
+        if (snap.empty) {
+          log(el, '⚠️ No subscribers found', 'info');
+          return;
+        }
+        
+        const subscribers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        let html = '<table><thead><tr><th>#</th><th>Email</th><th>Status</th><th>Added</th></tr></thead><tbody>';
+        subscribers.forEach((s, i) => {
+          const date = new Date(s.subscribedAt?.toDate?.() || s.subscribedAt).toLocaleString();
+          html += `<tr><td>${i+1}</td><td>${s.email}</td><td>${s.status || 'active'}</td><td>${date}</td></tr>`;
+        });
+        html += '</tbody></table>';
+        
+        document.getElementById(el).innerHTML += html;
+        log(el, `✅ Loaded ${subscribers.length} subscriber(s)`, 'success');
+      } catch (err) {
+        log(el, `❌ Failed to list subscribers: ${err.message}`, 'error');
+      }
+    }
+
+    async function deleteAllSubscribers() {
+      if (!confirm('⚠️ Delete ALL subscribers? This cannot be undone!')) return;
+      
+      const el = 'listOutput';
+      
+      if (!db) {
+        log(el, '❌ Firebase not initialized', 'error');
+        return;
+      }
+      
+      document.getElementById(el).innerHTML = '';
+      log(el, '🗑️ Deleting all subscribers...', 'info');
+      
+      try {
+        const subscribersRef = window.firebase.firestore.collection(db, 'subscribers');
+        const snap = await window.firebase.firestore.getDocs(subscribersRef);
+        let deleted = 0;
+        
+        for (const docSnap of snap.docs) {
+          const docRef = window.firebase.firestore.doc(db, 'subscribers', docSnap.id);
+          await window.firebase.firestore.deleteDoc(docRef);
+          deleted++;
+          log(el, `✅ Deleted ${docSnap.data().email}`, 'success');
+        }
+        
+        log(el, `✅ Deleted ${deleted} subscriber(s)`, 'success');
+      } catch (err) {
+        log(el, `❌ Failed: ${err.message}`, 'error');
+      }
+    }
+
+    function refreshStats() {
+      loadStats();
+    }
+
+    // Initial log
+    log('firebaseOutput', '✅ Test page loaded - click buttons to test', 'success');
+  </script>
+</body>
+</html>

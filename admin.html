@@ -99,6 +99,9 @@ function doLogout() {
       <div class="user-avatar" id="userInitial">—</div>
       <div class="user-email" id="userEmail">—</div>
     </div>
+    <div class="nav-item" data-view="profile" style="padding:0.6rem 0;margin-bottom:0.4rem;border:none;background:transparent;justify-content:center;font-size:0.75rem;font-weight:600;letter-spacing:0.05em;color:var(--gold);border-radius:3px;border:1px solid rgba(201,168,76,0.15)" onmouseover="this.style.background='rgba(201,168,76,0.05)'" onmouseout="this.style.background='transparent'">
+      <span>👤</span> My Profile
+    </div>
     <button class="btn-logout" onclick="doLogout()">Sign Out</button>
   </div>
 </aside>
@@ -117,6 +120,22 @@ function doLogout() {
       <div class="stat-card"><div class="stat-card-label">Published</div><div class="stat-card-value" id="statPublished">—</div><div class="stat-card-sub">Live on blog</div></div>
       <div class="stat-card"><div class="stat-card-label">Drafts</div><div class="stat-card-value" id="statDrafts">—</div></div>
       <div class="stat-card"><div class="stat-card-label">Subscribers</div><div class="stat-card-value" id="statSubs">—</div><div class="stat-card-sub">Newsletter</div></div>
+    </div>
+    <div class="stat-card" style="margin-bottom:1.2rem">
+      <div class="stat-card-label">Site Controls</div>
+      <div class="toggle-row" style="border-top:none;margin-top:0;padding-top:0.2rem">
+        <div>
+          <div style="font-size:0.92rem;font-weight:600;color:var(--cream)">Website Images</div>
+          <div id="siteImagesStatus" style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Loading setting…</div>
+        </div>
+        <div class="toggle-switch on" id="siteImagesSwitch" onclick="toggleSiteImages()">
+          <div class="toggle-track"></div>
+          <div class="toggle-dot"></div>
+        </div>
+      </div>
+      <div id="siteImagesHint" style="font-size:0.72rem;color:var(--muted);margin-top:0.7rem">
+        Turns post cover and inline content images on/off for public pages.
+      </div>
     </div>
     <div class="table-wrap">
       <div class="table-header"><span class="table-title">Recent Posts</span></div>
@@ -204,12 +223,18 @@ function doLogout() {
                   <span style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap">Custom</span>
                   <input type="number" id="v2WCInput" min="100" max="100000" step="100" placeholder="e.g. 3000"
                     oninput="v2ApplyCustomWC(this)"
-                    style="flex:1;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:4px 6px;border-radius:3px;font-size:11px;outline:none;-moz-appearance:textfield"
+                    style="flex:1;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:4px 6px;border-radius:3px;font-size:11px;outline:none;-moz-appearance:textfield;appearance:none"
                     onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'" />
                   <span id="v2WCLabel" style="font-size:10px;font-weight:700;color:var(--muted);min-width:30px;text-align:right">—</span>
                 </div>
                 <div id="v2LongForm" style="display:none;margin-bottom:6px;padding:4px 6px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.25);border-radius:3px;font-size:9px;color:#c084fc;line-height:1.5">⚡ Long-form: built chunk by chunk. Keep tab open.</div>
-                <button class="v2-gen-btn" onclick="v2BeforeGenerate()">✦ Generate Article</button>
+                <button class="v2-gen-btn" id="v2GenerateBtn" onclick="v2BeforeGenerate()">
+                  <span id="v2GenerateText">✦ Generate Article</span>
+                  <span class="v2-gen-spin" id="v2GenerateSpin" style="display:none"></span>
+                </button>
+                <div id="v2GenerateStatus" style="font-size:0.68rem;color:var(--muted);margin-top:5px;min-height:0.9rem;line-height:1.5">
+                  Ready.
+                </div>
               </div>
             </div>
 
@@ -279,8 +304,8 @@ function doLogout() {
       <div class="v2-editor-main">
         <div class="v2-editor-topbar">
           <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:13px;font-weight:600;color:var(--cream)">New Post</span>
-            <span style="font-size:10px;color:var(--muted);background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:10px">Draft</span>
+            <span id="topbarTitle" style="font-size:13px;font-weight:600;color:var(--cream)">New Post</span>
+            <span id="topbarStateBadge" style="font-size:10px;color:var(--muted);background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:10px">Draft</span>
             <span style="font-size:10px;color:var(--muted)"><span id="wordCount">0</span> words</span>
             <span style="font-size:10px;color:var(--muted);background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:10px"><span id="readingTimeTop">0</span> min read</span>
           </div>
@@ -288,6 +313,7 @@ function doLogout() {
             <button class="v2-btn-top" onclick="previewPost()">👁 Preview</button>
             <button class="v2-btn-top" onclick="savePost(false)">Save Draft</button>
             <button class="v2-btn-pub" onclick="savePost(true)">Publish</button>
+            <button class="v2-btn-pub" onclick="savePostAndNotify()" style="background:#2563eb;color:#fff;border-color:#1e40af;margin-left:5px">🚀 Publish & Notify</button>
           </div>
         </div>
         <div class="v2-editor-scroll" id="v2EditorScrollArea">
@@ -769,6 +795,51 @@ function doLogout() {
     </div>
   </div>
 
+  <!-- ══════════════ SUBSCRIBERS ══════════════ -->
+  <div class="view" id="view-subscribers">
+    <div class="page-header">
+      <div><h2>Subscribers</h2><p>Manage and view your newsletter subscriber list</p></div>
+    </div>
+    <div class="saas-grid-2">
+      <div>
+        <div class="saas-panel gold-accent">
+          <h3 style="margin-bottom:1rem">📊 Subscriber Statistics</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+            <div style="background:rgba(202,161,76,0.1);padding:1rem;border-radius:4px;text-align:center;border-left:3px solid var(--gold)">
+              <div style="font-size:2rem;font-weight:700;color:var(--gold);" id="totalSubscribers">—</div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-top:0.25rem">Total Subscribers</div>
+            </div>
+            <div style="background:rgba(76,175,80,0.1);padding:1rem;border-radius:4px;text-align:center;border-left:3px solid #4caf50">
+              <div style="font-size:2rem;font-weight:700;color:#4caf50;" id="activeSubscribers">—</div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-top:0.25rem">Active</div>
+            </div>
+          </div>
+          <button onclick="loadSubscriberAnalytics()" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;margin-bottom:0.8rem">🔄 Refresh Stats</button>
+          <div style="font-size:0.75rem;color:var(--muted);text-align:center">Last updated: <span id="statsLastUpdated">—</span></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <div class="saas-panel" style="background:rgba(76,175,80,0.05);border-color:rgba(76,175,80,0.2)">
+          <h4 style="color:#4caf50;margin-bottom:0.5rem">✓ Add Subscriber Manually</h4>
+          <div class="form-row">
+            <label class="form-label">Email Address</label>
+            <input type="email" class="form-input" id="addSubEmail" placeholder="subscriber@example.com" style="font-size:0.85rem" />
+          </div>
+          <button onclick="addSubscriberManual()" style="width:100%;background:#4caf50;color:white;border:none;padding:0.7rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;margin-top:0.5rem">Add Subscriber</button>
+          <div id="addSubStatus" style="font-size:0.7rem;color:var(--muted);margin-top:0.5rem;text-align:center;min-height:1rem"></div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:2rem">
+      <div class="saas-panel">
+        <h3 style="margin-bottom:1rem">✉ Subscriber List</h3>
+        <div style="max-height:600px;overflow-y:auto;border:1px solid var(--border);border-radius:3px" id="subscribersList">
+          <div style="padding:2rem;text-align:center;color:var(--muted)">Loading subscribers…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ══════════════ AUTO BLOG ══════════════ -->
   <div class="view" id="view-autoblog">
     <div class="page-header">
@@ -833,7 +904,10 @@ function doLogout() {
 
   <!-- ══════════════ USERS ══════════════ -->
   <div class="view" id="view-users">
-    <div class="page-header"><div><h2>Users</h2><p>Manage all registered accounts</p></div></div>
+    <div class="page-header">
+      <div><h2>Users</h2><p>Manage all registered accounts</p></div>
+      <button class="btn-publish" style="padding:0.7rem 1.2rem;border-radius:3px" onclick="backfillUserCreatedAt()">🛠 Backfill Join Date</button>
+    </div>
     <div class="table-wrap">
       <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Change Role</th></tr></thead>
       <tbody id="usersTableBody"><tr><td colspan="5"><div class="table-empty">Loading…</div></td></tr></tbody></table>
@@ -856,14 +930,93 @@ function doLogout() {
     </div>
   </div>
 
+  <!-- ══════════════ MY PROFILE ══════════════ -->
+  <div class="view" id="view-profile">
+    <div class="page-header">
+      <div><h2>My Profile</h2><p>Manage your account and public blog details</p></div>
+    </div>
 
-<!-- ══════════════ AI WRITER DRAWER ══════════════ -->
+    <div class="saas-grid-2">
+      <!-- Left: Personal Account -->
+      <div class="saas-panel gold-accent">
+        <div class="saas-panel-header"><h3>Personal Account</h3></div>
+        <div class="form-row">
+          <label class="form-label">Display Name</label>
+          <input type="text" id="profName" class="form-input" placeholder="e.g. Abhishek Dutta" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Short Bio (Personal)</label>
+          <textarea id="profBio" class="form-textarea" rows="3" placeholder="A brief about yourself for post attribution…"></textarea>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Avatar URL</label>
+          <div style="display:flex;gap:0.5rem">
+            <input type="text" id="profAvatar" class="form-input" placeholder="https://…" />
+            <button class="btn-publish" style="background:var(--navy3);border:1px solid var(--border);color:var(--gold);padding:0 1rem" onclick="openAIDrawer('image')">✨</button>
+          </div>
+        </div>
+        <button class="btn-publish" style="width:100%;margin-top:0.5rem" onclick="savePersonalProfile()">Update Personal Details</button>
+      </div>
+
+      <!-- Right: Public Blog Author Info -->
+      <div class="saas-panel blue-accent">
+        <div class="saas-panel-header"><h3>Public Blog "About"</h3></div>
+        <div class="form-row">
+          <label class="form-label">Main Heading</label>
+          <input type="text" id="aboutHeading" class="form-input" placeholder="e.g. Fintech Insights for Practitioners" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Sub-Tagline</label>
+          <input type="text" id="aboutTagline" class="form-input" placeholder="e.g. Strategy, Compliance & Tech" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Detailed Bio (Public)</label>
+          <textarea id="aboutBio" class="form-textarea" rows="4" placeholder="This appears in the About section of your blog…"></textarea>
+        </div>
+        <button class="btn-publish" style="width:100%;margin-top:0.5rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff" onclick="savePublicAbout()">Update Blog About Section</button>
+      </div>
+    </div>
+
+    <div class="saas-panel purple-accent">
+      <div class="saas-panel-header"><h3>Social Links & Mission</h3></div>
+      <div class="saas-grid-2">
+        <div>
+          <div class="form-row">
+            <label class="form-label">Mission Statement</label>
+            <textarea id="aboutMission" class="form-textarea" rows="3" placeholder="e.g. Our mission is to democratize fintech knowledge…"></textarea>
+          </div>
+          <div class="form-row">
+            <label class="form-label">X (Twitter) URL</label>
+            <input type="text" id="socialX" class="form-input" placeholder="https://x.com/yourhandle" />
+          </div>
+        </div>
+        <div>
+          <div class="form-row">
+            <label class="form-label">LinkedIn URL</label>
+            <input type="text" id="socialLinkedIn" class="form-input" placeholder="https://linkedin.com/in/handle" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">YouTube URL</label>
+            <input type="text" id="socialYouTube" class="form-input" placeholder="https://youtube.com/@handle" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">GitHub URL</label>
+            <input type="text" id="socialGitHub" class="form-input" placeholder="https://github.com/handle" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <div id="aiDrawerOverlay" onclick="closeAIDrawer()"></div>
 <div id="aiDrawer">
   <!-- Drawer Header -->
   <div class="ai-drawer-head">
     <div>
-      <div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent">✦ AI Writer</div>
+      <div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;      background:linear-gradient(135deg,var(--gold),var(--gold2));
+      -webkit-background-clip:text;
+      background-clip:text;
+      -webkit-text-fill-color:transparent;">✦ AI Writer</div>
       <div style="font-size:0.68rem;color:var(--muted);margin-top:0.1rem">Generate · Edit · Optimize</div>
     </div>
     <button onclick="closeAIDrawer()" style="background:transparent;border:1px solid var(--border);color:var(--muted);width:28px;height:28px;border-radius:3px;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s" onmouseover="this.style.borderColor='var(--red)';this.style.color='#fca5a5'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">✕</button>
@@ -932,7 +1085,7 @@ function doLogout() {
               step="100"
               placeholder="e.g. 3000"
               oninput="applyCustomWordTarget(this)"
-              style="flex:1;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.35rem 0.55rem;border-radius:3px;font-family:var(--mono);font-size:0.78rem;outline:none;transition:border-color 0.15s;-moz-appearance:textfield"
+              style="flex:1;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.35rem 0.55rem;border-radius:3px;font-family:var(--mono);font-size:0.78rem;outline:none;transition:border-color 0.15s;-moz-appearance:textfield;appearance:textfield"
               onfocus="this.style.borderColor='var(--gold)'"
               onblur="this.style.borderColor='var(--border)'"
             />
@@ -1014,11 +1167,12 @@ function doLogout() {
         <span class="drawer-section-label" style="color:var(--blue2)">Image Provider</span>
         <select class="form-select" id="imgProvider" style="font-size:0.85rem" onchange="onImgProviderChange(this.value)">
           <option value="auto" selected>Auto — Best Available</option>
+          <option value="google">Google Imagen</option>
           <option value="cloudflare">Cloudflare Workers AI</option>
           <option value="huggingface">Hugging Face — Flux Schnell</option>
           <option value="pollinations">Pollinations.ai — Zero Setup</option>
         </select>
-        <div id="imgProviderInfo" style="margin-top:0.5rem;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:3px;padding:0.4rem 0.6rem;font-size:0.68rem;color:var(--blue2);line-height:1.5">⚡ Auto tries Cloudflare AI → HuggingFace → Pollinations.</div>
+        <div id="imgProviderInfo" style="margin-top:0.5rem;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:3px;padding:0.4rem 0.6rem;font-size:0.68rem;color:var(--blue2);line-height:1.5">⚡ Auto tries Google Imagen → Pollinations → Hugging Face → Cloudflare.</div>
       </div>
       <div class="form-row">
         <span class="drawer-section-label">Image Prompt</span>
@@ -1162,6 +1316,14 @@ function doLogout() {
 
 <div class="toast" id="toast"></div>
 
+<!-- Post Audit / Quality Engine Integration Flags -->
+<script>
+  window.__ENABLE_POST_AUDIT__ = true;
+  window.__POST_AUDIT_AUTORUN__ = true;
+  window.__POST_AUDIT_AUTO_RECTIFY__ = true;
+  window.__POST_AUDIT_AUTO_SAVE__ = true;
+  window.__POST_AUDIT_GITHUB_PUSH__ = false;
+</script>
 <script type="module" src="js/main.js"></script>
   <!-- Floating scroll buttons -->
   <div id="scrollFloats" style="position:fixed;bottom:80px;right:18px;display:flex;flex-direction:column;gap:6px;z-index:400;opacity:0;transition:opacity 0.3s;pointer-events:none">
