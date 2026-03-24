@@ -43,7 +43,15 @@ export function validateImageUrl(url) {
     // Only allow https protocol
     if (u.protocol !== 'https:') return null;
     // Whitelist safe image domains
-    const safeDomains = ['cloudinary.com', 'pollinations.ai', 'images.unsplash.com', 'images.pexels.com'];
+    const safeDomains = [
+      'cloudinary.com',
+      'pollinations.ai',
+      'images.unsplash.com',
+      'images.pexels.com',
+      'storage.googleapis.com',
+      'firebasestorage.googleapis.com',
+      'googleusercontent.com',
+    ];
     const hostname = u.hostname.toLowerCase();
     if (!safeDomains.some(domain => hostname.endsWith(domain))) {
       // Allow data URLs for local/generated images

@@ -10,10 +10,13 @@ import { updateWordCount } from './editor.js';
 function getEditor() { return document.getElementById('editor'); }
 
 function setEditStatus(msg, isError = false) {
-  const el = document.getElementById('aiEditStatus');
-  if (!el) return;
-  el.style.color = isError ? '#fca5a5' : 'var(--muted)';
-  el.innerHTML = msg; // use innerHTML so we can embed progress bar HTML
+  // Update both the v2 panel status and the drawer edit tab status
+  ['aiEditStatus', 'aiEditStatusDrawer'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.color = isError ? '#fca5a5' : 'var(--muted)';
+    el.innerHTML = msg;
+  });
 }
 
 // Renders an inline progress bar into the status area
@@ -29,7 +32,8 @@ function setEditProgress(current, total, label = '') {
 }
 
 function setEditBtnsDisabled(on) {
-  document.querySelectorAll('.ai-edit-btn').forEach(b => b.disabled = on);
+  // Disable both drawer buttons (.ai-edit-btn) and v2 panel buttons (.v2-tool-btn)
+  document.querySelectorAll('.ai-edit-btn, .v2-tool-btn').forEach(b => b.disabled = on);
 }
 
 function _deriveKeywordSeed(title, topic, category) {
@@ -233,12 +237,17 @@ async function insertReferencesBlock() {
     </div>`);
 
   const result = await callAI(
-    `You are a research librarian. Read this article and generate 6-8 real, verifiable APA-format references.
+    `You are a research librarian. Read this article carefully and generate 6-8 real, verifiable APA-format references that are DIRECTLY relevant to the specific topics, claims, and statistics mentioned in the article.
+
 Article title: "${title}"
-Article content (first 2000 chars): "${content.substring(0, 2000)}"
+Article topic: "${topic}"
+Article content (first 3000 chars): "${content.substring(0, 3000)}"
 
 Rules:
-- Use ONLY real, existing sources from these domains: rbi.org.in, sebi.gov.in, npci.org.in, worldbank.org, imf.org, bis.org, mckinsey.com, pwc.com, kpmg.com, deloitte.com, forbes.com, reuters.com, ft.com, economist.com
+- Each reference MUST directly support a specific claim or topic in this article
+- Prefer sources that match the exact subject matter (not generic fintech refs)
+- Use credible sources: government regulators, central banks, international orgs, top consultancies, financial news outlets, academic journals
+- Acceptable domains include (but not limited to): rbi.org.in, sebi.gov.in, npci.org.in, worldbank.org, imf.org, bis.org, mckinsey.com, pwc.com, kpmg.com, deloitte.com, bcg.com, bain.com, ey.com, accenture.com, forbes.com, reuters.com, ft.com, economist.com, bloomberg.com, wsj.com, hbr.org, ssrn.com, nature.com, jstor.org, nber.org, federalreserve.gov, ecb.europa.eu, fsb.org, oecd.org, bis.org
 - Write ONLY in English
 - Return ONLY valid JSON — no markdown, no explanation:
 {
@@ -246,7 +255,7 @@ Rules:
     {
       "authors": "Last, F. M., & Last, F. M.",
       "year": "2024",
-      "title": "Full article or report title",
+      "title": "Full article or report title directly relevant to the content",
       "source": "Journal or Website Name",
       "url": "https://real-url.com/path"
     }
@@ -272,11 +281,15 @@ Rules:
 
   if (!refs.length) {
     const year = String(new Date().getFullYear());
+    const kw0 = seed[0] || topic || 'digital finance';
+    const kw1 = seed[1] || topic || 'fintech';
+    const kw2 = seed[2] || 'financial regulation';
     refs = [
-      { authors: 'Reserve Bank of India', year, title: `Regulatory and payment system notes on ${seed[0] || 'digital finance'}`, source: 'RBI Publications', url: 'https://www.rbi.org.in/' },
-      { authors: 'National Payments Corporation of India', year, title: 'UPI and digital payments ecosystem updates', source: 'NPCI', url: 'https://www.npci.org.in/' },
-      { authors: 'World Bank', year, title: 'Financial inclusion and digital economy indicators', source: 'World Bank', url: 'https://www.worldbank.org/' },
-      { authors: 'Securities and Exchange Board of India', year, title: `Market and compliance updates relevant to ${seed[1] || 'fintech'}`, source: 'SEBI', url: 'https://www.sebi.gov.in/' },
+      { authors: 'Reserve Bank of India', year, title: `Policy framework and regulatory updates on ${kw0}`, source: 'RBI Publications', url: 'https://www.rbi.org.in/scripts/PublicationsView.aspx' },
+      { authors: 'International Monetary Fund', year, title: `Global financial stability and ${kw1} trends`, source: 'IMF Working Papers', url: 'https://www.imf.org/en/Publications/WP' },
+      { authors: 'McKinsey & Company', year, title: `${kw1.charAt(0).toUpperCase() + kw1.slice(1)}: growth, disruption, and strategic outlook`, source: 'McKinsey Global Institute', url: 'https://www.mckinsey.com/industries/financial-services' },
+      { authors: 'Bank for International Settlements', year, title: `${kw2.charAt(0).toUpperCase() + kw2.slice(1)} — supervisory and oversight considerations`, source: 'BIS Working Papers', url: 'https://www.bis.org/publ/work.htm' },
+      { authors: 'World Bank', year, title: `Financial inclusion, digital economy and ${kw0} indicators`, source: 'World Bank Open Data', url: 'https://data.worldbank.org/topic/financial-sector' },
     ];
   }
 
@@ -471,10 +484,12 @@ auto_fixes must be a subset of the exact strings listed above — only include f
       ${fixBtns}
     </div>`;
 
+  // Show full result in drawer's qualityScoreResult panel
   const el = document.getElementById('qualityScoreResult');
   if (el) { el.style.display = 'block'; el.innerHTML = resultHTML; }
-  const statusEl = document.getElementById('aiEditStatus');
-  if (statusEl) statusEl.innerHTML = `<span style="color:${color};font-weight:700">Score: ${p.score}/100 (${p.grade})</span>${resultHTML}`;
+  // Show compact summary in both status elements so it's visible regardless of drawer state
+  const compactSummary = `<span style="color:${color};font-weight:700">⭐ Score: ${p.score}/100 — Grade ${p.grade}</span>`;
+  setEditStatus(compactSummary);
   setEditBtnsDisabled(false);
   showToast(`Quality Score: ${p.score}/100 — Grade ${p.grade}`, p.score >= 70 ? 'success' : 'error');
 }
