@@ -321,6 +321,7 @@ function switchDrawerTab(tab) {
           </div>
           <div style="display:flex;gap:5px">
             <button class="v2-btn-top" onclick="previewPost()">👁 Preview</button>
+            <button class="v2-btn-top" id="btnRunAudit" onclick="triggerPostAudit()" title="Run Post Quality Audit — checks structure, content, refs, images and auto-fixes issues" style="border-color:rgba(201,168,76,0.4);color:var(--gold)">🛡 Audit</button>
             <button class="v2-btn-top" onclick="savePost(false)">Save Draft</button>
             <button class="v2-btn-pub" onclick="savePost(true)">Publish</button>
             <button class="v2-btn-pub" onclick="savePostAndNotify()" style="background:#2563eb;color:#fff;border-color:#1e40af;margin-left:5px">🚀 Publish & Notify</button>
@@ -397,6 +398,7 @@ function switchDrawerTab(tab) {
               <button class="btn-publish" onclick="savePost(true)" style="padding:7px;font-size:10px">Publish</button>
             </div>
             <button onclick="previewPost()" style="width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px;border-radius:3px;font-family:inherit;font-size:10px;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">👁 Preview Post</button>
+            <button onclick="triggerPostAudit()" style="width:100%;margin-top:5px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:5px;border-radius:3px;font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;transition:all 0.15s" onmouseover="this.style.background='rgba(201,168,76,0.12)'" onmouseout="this.style.background='rgba(201,168,76,0.06)'">🛡 Run Quality Audit</button>
             <p id="saveStatus" style="font-size:10px;color:var(--muted);text-align:center;min-height:1rem"></p>
             <p id="autoSaveMsg" style="font-size:9px;color:var(--muted);text-align:center;min-height:0.8rem"></p>
           </div>
