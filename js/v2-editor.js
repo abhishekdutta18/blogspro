@@ -224,3 +224,36 @@ window.runCitationEngine = async () => {
     await window.aiEditAction('references');
   }
 };
+
+// ── triggerPostAudit — manual audit button handler ─
+// Loads post-audit.js on demand (module is not bundled by default)
+// then calls runFullAudit('manual').
+window.triggerPostAudit = async () => {
+  const btn = document.getElementById('btnRunAudit');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading…'; }
+
+  // If already loaded from a previous click, call immediately
+  if (typeof window.runPostAudit === 'function') {
+    if (btn) { btn.disabled = false; btn.textContent = '🛡 Audit'; }
+    window.runPostAudit();
+    return;
+  }
+
+  try {
+    showToast('Loading audit engine…', 'info');
+    await import('./post-audit.js');
+    // post-audit.js sets window.runPostAudit on load (line 860)
+    // Allow 500ms for the module's setTimeout(installHooks, 400) to complete
+    await new Promise(r => setTimeout(r, 500));
+    if (typeof window.runPostAudit === 'function') {
+      window.runPostAudit();
+    } else {
+      showToast('Audit engine not available — check console.', 'error');
+    }
+  } catch (e) {
+    showToast('Audit engine failed to load: ' + e.message, 'error');
+    console.error('[triggerPostAudit]', e);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🛡 Audit'; }
+  }
+};

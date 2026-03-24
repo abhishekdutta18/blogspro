@@ -1,5 +1,6 @@
 import { callAI } from "./ai-core.js";
 import { generateImage } from "./services/ai-image-service.js";
+import { showToast, sanitize, validateImageUrl } from "./config.js";
 
 let generating = false;
 
@@ -17,7 +18,7 @@ export function initAutoBlog() {
     const topic = topicInput.value.trim();
 
     if (!topic) {
-      alert("Enter a topic first");
+      showToast("Enter a topic first", "error");
       return;
     }
 
@@ -54,7 +55,7 @@ Include headings and useful information.
     catch (err) {
 
       console.error("Auto Blog Error:", err);
-      alert("Auto blog generation failed");
+      showToast("Auto blog generation failed: " + err.message, "error");
 
     }
     finally {
@@ -83,10 +84,12 @@ function fillEditor(title, content, imageUrl) {
 
   if (!editor) return;
 
-  const html = `
-<img src="${imageUrl}" style="max-width:100%;margin-bottom:20px;">
-${content}
-`;
+  // Validate imageUrl before inserting and sanitize content to prevent XSS
+  const safeImageUrl = validateImageUrl(imageUrl) || '';
+  const safeContent  = sanitize(content || '');
+  const html = (safeImageUrl
+    ? `<img src="${safeImageUrl}" style="max-width:100%;margin-bottom:20px;">\n`
+    : '') + safeContent;
 
   if (editor.tagName === "TEXTAREA") {
     editor.value = html;

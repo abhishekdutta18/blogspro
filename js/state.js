@@ -23,6 +23,8 @@ export const state = {
   isGeneratingAI:      false,
   isGeneratingImages:  false,
   pendingWordTarget:    null,
+  isSaving:            false,
+  csrfToken:           '',
 };
 
 

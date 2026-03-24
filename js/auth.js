@@ -71,6 +71,9 @@ export function initAuth() {
     // ── Tag all future Sentry errors with this logged-in user ────────
     sentrySetUser({ email: user.email, id: user.uid });
 
+    // Generate a per-session CSRF token to protect state-changing operations
+    state.csrfToken = crypto.randomUUID();
+
     state.currentUser = user;
     const el = (id) => document.getElementById(id);
     if (el('userEmail'))   el('userEmail').textContent   = user.email;

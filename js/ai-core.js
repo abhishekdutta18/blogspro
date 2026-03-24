@@ -14,11 +14,11 @@ const imageLimiter = new RateLimiter(5000);  // 1 request per 5 seconds
 
 // Provider display metadata — label + color + model shown in the modal
 export const PROVIDER_META = {
-  groq:        { label: 'Kimi K2 (Groq)',       color: '#f55036', icon: '🌙', model: 'kimi-k2-instruct'        },
+  groq:        { label: 'Llama 3.3 70B (Groq)',  color: '#f55036', icon: '🦙', model: 'llama-3.3-70b-versatile'  },
   openrouter:  { label: 'Qwen3 235B',            color: '#7c3aed', icon: '🐼', model: 'qwen3-235b-a22b'          },
   together:    { label: 'DeepSeek V3',           color: '#0ea5e9', icon: '🔍', model: 'DeepSeek-V3'              },
   deepinfra:   { label: 'Llama 3.3 70B',         color: '#10b981', icon: '🦙', model: 'Llama-3.3-70B-Instruct'  },
-  gemini:      { label: 'Gemini 2.0 Flash',      color: '#4285f4', icon: '✨', model: 'gemini-2.0-flash'         },
+  gemini:      { label: 'Gemini 2.5 Flash',      color: '#4285f4', icon: '✨', model: 'gemini-2.5-flash'         },
   mistral:     { label: 'Mistral Large',         color: '#ff6b35', icon: '🌀', model: 'mistral-large-latest'     },
   deepseek:    { label: 'DeepSeek Chat',         color: '#3b82f6', icon: '💬', model: 'deepseek-chat'            },
   google:      { label: 'Google Imagen',         color: '#4285f4', icon: '🖼', model: 'imagen-3.0-generate-002'  },
