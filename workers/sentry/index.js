@@ -11,6 +11,29 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // ── Route: Register Telegram Webhook (GET /setup-webhook) ─────────────────
+    // Visit this URL once to tell Telegram where to send bot updates.
+    if (url.pathname === '/setup-webhook' && request.method === 'GET') {
+      if (!env.TELEGRAM_TOKEN) {
+        return new Response('❌ TELEGRAM_TOKEN env var not set', { status: 500 });
+      }
+      const workerBase = `${url.protocol}//${url.host}`;
+      const webhookUrl = `${workerBase}/telegram`;
+      const res = await fetch(
+        `https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/setWebhook`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: webhookUrl, allowed_updates: ['message', 'callback_query'] })
+        }
+      );
+      const data = await res.json();
+      if (data.ok) {
+        return new Response(`✅ Telegram webhook registered:\n${webhookUrl}\n\nNow /status and button presses will work.`);
+      }
+      return new Response(`❌ setWebhook failed: ${JSON.stringify(data)}`, { status: 500 });
+    }
+
     // ── Route: Telegram Bot updates (callback queries + commands) ──────────────
     if (url.pathname === '/telegram' && request.method === 'POST') {
       try {
@@ -93,6 +116,10 @@ async function handleCallbackQuery(callbackQuery, env) {
     } else {
       await answerCallbackQuery(callbackQuery.id, '❌ Failed to resolve. Check Sentry auth.', env);
     }
+  } else if (data === 'status_refresh') {
+    // Re-run /status inline when user taps 🔄 Refresh
+    await answerCallbackQuery(callbackQuery.id, '🔄 Refreshing…', env);
+    await handleCommand({ chat: { id: chatId }, text: '/status' }, env);
   }
 
   return new Response('OK');
@@ -115,6 +142,17 @@ async function handleCommand(message, env) {
     }
 
     const issues = await fetchUnresolvedSentryIssues(env);
+
+    if (issues === null) {
+      // null means fetch failed — error already logged; send user-visible message
+      await sendTelegramMessage(
+        chatId,
+        '❌ <b>Sentry fetch failed.</b>\nCheck that SENTRY_ORG, SENTRY_PROJECT, and SENTRY_AUTH_TOKEN are set correctly in the worker environment.',
+        null,
+        env
+      );
+      return new Response('OK');
+    }
 
     if (!Array.isArray(issues) || issues.length === 0) {
       await sendTelegramMessage(
@@ -250,7 +288,7 @@ async function fetchUnresolvedSentryIssues(env) {
       project: !!env.SENTRY_PROJECT,
       token: !!env.SENTRY_AUTH_TOKEN
     });
-    return [];
+    return null; // null = config error (distinct from [] = no issues)
   }
 
   const url = `https://sentry.io/api/0/projects/${env.SENTRY_ORG}/${env.SENTRY_PROJECT}/issues/?query=${encodeURIComponent('is:unresolved')}&limit=25`;
@@ -266,12 +304,12 @@ async function fetchUnresolvedSentryIssues(env) {
     if (!res.ok) {
       const errorText = await res.text();
       console.error(`Sentry API Error ${res.status}:`, errorText);
-      return [];
+      return null; // null = fetch error
     }
 
     return await res.json();
   } catch (err) {
     console.error('Failed to fetch Sentry issues:', err.message);
-    return [];
+    return null;
   }
 }
