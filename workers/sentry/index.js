@@ -35,6 +35,12 @@ export default {
     // ── Route: Sentry Webhook ─────────────────────────────────────────────────
     if (request.method === 'POST') {
       try {
+        // Validate Telegram configuration
+        if (!env.TELEGRAM_TOKEN || !env.TELEGRAM_TO) {
+          console.error('❌ Telegram credentials missing');
+          return new Response('Telegram not configured', { status: 500 });
+        }
+
         const payload = await request.json();
         const issue = payload?.data?.issue;
 
@@ -50,6 +56,7 @@ export default {
 
         return new Response('Alert forwarded successfully');
       } catch (e) {
+        console.error('Sentry webhook error:', e.message);
         return new Response('Failed to dispatch Telegram message', { status: 500 });
       }
     }
@@ -96,6 +103,17 @@ async function handleCommand(message, env) {
   const text = message.text.trim().toLowerCase();
 
   if (text === '/status' || text.startsWith('/status@')) {
+    // Validate Sentry credentials before attempting fetch
+    if (!env.SENTRY_ORG || !env.SENTRY_PROJECT || !env.SENTRY_AUTH_TOKEN) {
+      await sendTelegramMessage(
+        chatId,
+        '⚠️ <b>Sentry Configuration Error</b>\nMissing Sentry credentials (SENTRY_ORG, SENTRY_PROJECT, or SENTRY_AUTH_TOKEN).\nPlease configure the worker environment variables.',
+        null,
+        env
+      );
+      return new Response('OK');
+    }
+
     const issues = await fetchUnresolvedSentryIssues(env);
 
     if (!Array.isArray(issues) || issues.length === 0) {
@@ -225,13 +243,35 @@ async function resolveSentryIssue(issueId, env) {
 }
 
 async function fetchUnresolvedSentryIssues(env) {
+  // Validate environment variables
+  if (!env.SENTRY_ORG || !env.SENTRY_PROJECT || !env.SENTRY_AUTH_TOKEN) {
+    console.error('❌ Sentry credentials missing:', {
+      org: !!env.SENTRY_ORG,
+      project: !!env.SENTRY_PROJECT,
+      token: !!env.SENTRY_AUTH_TOKEN
+    });
+    return [];
+  }
+
   const url = `https://sentry.io/api/0/projects/${env.SENTRY_ORG}/${env.SENTRY_PROJECT}/issues/?query=${encodeURIComponent('is:unresolved')}&limit=25`;
-  const res = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${env.SENTRY_AUTH_TOKEN}`,
-      'Content-Type': 'application/json'
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${env.SENTRY_AUTH_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`Sentry API Error ${res.status}:`, errorText);
+      return [];
     }
-  });
-  if (!res.ok) return [];
-  return await res.json();
+
+    return await res.json();
+  } catch (err) {
+    console.error('Failed to fetch Sentry issues:', err.message);
+    return [];
+  }
 }
