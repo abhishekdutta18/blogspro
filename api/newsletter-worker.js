@@ -74,23 +74,24 @@ export default {
       const emails = data.documents.map(doc => doc.fields?.email?.stringValue).filter(Boolean);
       console.log(`Found ${emails.length} subscribers`);
 
-      // 2. Send emails via Resend API (batched - 50 per request)
-      const BATCH_SIZE = 50;
+      // 2. Send individual emails via Resend Batch API (100 per request)
+      // Using /emails/batch so each subscriber gets a private, individual email
+      const BATCH_SIZE = 100;
       let emailsSentCount = 0;
 
       for (let i = 0; i < emails.length; i += BATCH_SIZE) {
         const batch = emails.slice(i, i + BATCH_SIZE);
-        
+
         console.log(`Sending batch ${Math.floor(i / BATCH_SIZE) + 1} with ${batch.length} emails...`);
-        
-        const resendPayload = {
+
+        const resendPayload = batch.map(email => ({
           from: 'BlogsPro Newsletter <newsletter@mail.blogspro.in>',
-          to: batch,
+          to: [email],
           subject: subject,
           html: html
-        };
+        }));
 
-        const resendRes = await fetch('https://api.resend.com/emails', {
+        const resendRes = await fetch('https://api.resend.com/emails/batch', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${RESEND_API_KEY}`,
@@ -103,7 +104,6 @@ export default {
           const resendError = await resendRes.text();
           console.error(`Resend API error: ${resendRes.status}`);
           console.error(`Response: ${resendError}`);
-          console.error(`Status text: ${resendRes.statusText}`);
           throw new Error(`Resend API failed: ${resendRes.status} - ${resendError}`);
         }
 
