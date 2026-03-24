@@ -146,15 +146,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          for attempt in 1 2 3 4; do
-            if gh pr merge "$PR_NUMBER" --squash --auto; then
-              echo "✓ Auto-merge enabled on attempt $attempt"
-              exit 0
-            fi
-            echo "Attempt $attempt failed, retrying in $((attempt * 2))s…"
-            sleep $((attempt * 2))
-          done
-          echo "⚠ Auto-merge failed after 4 attempts — merge manually on GitHub"
+          gh pr merge "$PR_NUMBER" --squash --auto && exit 0
+          echo "Attempt 1 failed, retrying in 2s..."
+          sleep 2
+          gh pr merge "$PR_NUMBER" --squash --auto && exit 0
+          echo "Attempt 2 failed, retrying in 4s..."
+          sleep 4
+          gh pr merge "$PR_NUMBER" --squash --auto && exit 0
+          echo "Attempt 3 failed, retrying in 8s..."
+          sleep 8
+          gh pr merge "$PR_NUMBER" --squash --auto && exit 0
+          echo "WARNING: Auto-merge failed after 4 attempts - merge manually on GitHub"
           exit 0
 
   # ══════════════════════════════════════════════════════════════════════
