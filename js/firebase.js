@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp, getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -18,7 +18,14 @@ const firebaseConfig = {
 };
 
 
-export const app = initializeApp(firebaseConfig);
+// Avoid duplicate app initialization when module is imported multiple times
+let app;
+try {
+  app = getApp();
+} catch {
+  app = initializeApp(firebaseConfig);
+}
+export { app };
 
 export const auth = getAuth(app);
 
