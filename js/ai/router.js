@@ -23,7 +23,7 @@ export async function callProvider(provider, prompt, type = "text") {
 
   // Latest models as of March 2026
   const TEXT_MODELS = {
-    groq:       "moonshotai/kimi-k2-instruct",     // Kimi K2 1T MoE — best
+    groq:       "llama-3.3-70b-versatile",          // Llama 3.3 70B — best on Groq
     openrouter: "qwen/qwen3-235b-a22b",             // Qwen3 235B
     together:   "deepseek-ai/DeepSeek-V3",          // DeepSeek V3
     deepinfra:  "meta-llama/Llama-3.3-70B-Instruct",
@@ -32,7 +32,7 @@ export async function callProvider(provider, prompt, type = "text") {
   };
 
   const CODE_MODELS = {
-    groq:       "moonshotai/kimi-k2-instruct",
+    groq:       "llama-3.3-70b-versatile",
     openrouter: "qwen/qwen2.5-coder-32b-instruct",
     together:   "deepseek-ai/deepseek-coder-v2-instruct",
     deepinfra:  "meta-llama/CodeLlama-70b-Instruct-hf",
@@ -90,7 +90,7 @@ async function callGemini(prompt) {
       method: "POST",
       headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 8000,
       })

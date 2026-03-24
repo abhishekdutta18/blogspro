@@ -215,7 +215,19 @@ window.insertGeneratedImage = function(idx) {
   img.src   = url;
   img.style.cssText = 'max-width:100%;height:auto;margin:1rem 0;display:block;border-radius:4px';
   img.alt   = document.getElementById('imgPrompt')?.value.trim() || 'Generated image';
-  editor.appendChild(img);
+  // Insert at cursor position if editor is focused, else append to end
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0 && editor.contains(sel.anchorNode)) {
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(img);
+    range.setStartAfter(img);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    editor.appendChild(img);
+  }
   showToast('Image inserted!', 'success');
 };
 
@@ -230,10 +242,12 @@ window.openImgModal = function(idx) {
   const url = state.generatedImages[idx];
   if (!url) return;
   state.currentModalImgUrl = url;
-  const modal = document.getElementById('imgModal');
-  const img   = document.getElementById('imgModalImg');
-  if (img)   img.src = url;
-  if (modal) modal.classList.add('open');
+  const modal    = document.getElementById('imgModal');
+  const img      = document.getElementById('imgModalSrc');
+  const download = document.getElementById('imgModalDownload');
+  if (img)      img.src  = url;
+  if (download) download.href = url;
+  if (modal)    modal.classList.add('open');
 };
 
 window.closeImgModal = function(e) {
@@ -269,17 +283,18 @@ window.deleteImgCard = function(btn, idx) {
 // Featured image preview
 // ─────────────────────────────────────────────
 window.updateFeaturedPreview = function(url) {
-  const preview = document.getElementById('featuredPreview');
-  const wrap    = document.getElementById('featuredPreviewWrap');
-  if (!preview) return;
+  const wrap = document.getElementById('featuredPreview');
+  const img  = document.getElementById('featuredPreviewImg');
+  const lbl  = document.getElementById('featuredPreviewLabel');
+  if (!wrap) return;
   if (url) {
-    preview.src             = url;
-    preview.style.display   = 'block';
-    if (wrap) wrap.style.display = 'block';
+    if (img) { img.src = url; img.style.display = 'block'; }
+    wrap.style.display = 'block';
+    if (lbl) lbl.textContent = url.length > 60 ? url.slice(0, 57) + '…' : url;
   } else {
-    preview.src             = '';
-    preview.style.display   = 'none';
-    if (wrap) wrap.style.display = 'none';
+    if (img) { img.src = ''; img.style.display = 'none'; }
+    wrap.style.display = 'none';
+    if (lbl) lbl.textContent = '';
   }
 };
 
@@ -287,10 +302,10 @@ window.updateFeaturedPreview = function(url) {
 // ─────────────────────────────────────────────
 // Preview Post — opens post.html in new tab
 // ─────────────────────────────────────────────
-window.previewPost = async function() {
-  const { state: s } = await import('./state.js');
-  if (s.editingPostId) {
-    window.open(`/post.html?id=${s.editingPostId}`, '_blank');
+window.previewPost = function() {
+  // Use already-imported state (no async import — preserves user gesture for window.open)
+  if (state.editingPostId) {
+    window.open(`/post.html?id=${state.editingPostId}`, '_blank');
     return;
   }
   // Not saved yet — build a live preview blob
