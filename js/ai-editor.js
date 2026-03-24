@@ -94,8 +94,9 @@ async function runAIEdit(instruction) {
       // Chunk by characters
       const chunks    = [];
       const chunkSize = 3000;
-      for (let i = 0; i < currentText.length; i += chunkSize) {
-        chunks.push(currentText.substring(i, i + chunkSize));
+      // Use HTML so AI preserves heading/paragraph structure in each chunk
+      for (let i = 0; i < currentHTML.length; i += chunkSize) {
+        chunks.push(currentHTML.substring(i, i + chunkSize));
       }
       const results = [];
       for (let i = 0; i < chunks.length; i++) {
@@ -141,7 +142,8 @@ Write ONLY in English. Return ONLY clean HTML for this section. Same or more wor
     const r = await callAI(
       `Edit this fintech article about "${topic}" (${category}).
 Word count: ${wordCount} words.
-ARTICLE: ${currentText}
+ARTICLE HTML:
+${currentHTML.substring(0, 15000)}
 TASK: ${instruction}
 ${relevanceRule}
 Write ONLY in English. Return ONLY clean HTML. Use <h2><h3><p><strong><em><ul><li><blockquote>. Never use <h1>. Never reduce word count.`,
@@ -505,8 +507,8 @@ window.autoRunAllFixes = async (fixes) => {
     if (!instruction) continue;
     setEditStatus(`⏳ Fix ${i+1}/${fixes.length}: ${_fixLabel(fix)}…`);
     await runAIEdit(instruction);
-    // Small delay between fixes
-    if (i < fixes.length - 1) await new Promise(r => setTimeout(r, 500));
+    // Delay must exceed RateLimiter's 2000ms minimum to avoid rate-limit rejection
+    if (i < fixes.length - 1) await new Promise(r => setTimeout(r, 2500));
   }
   setEditStatus(`✓ Applied ${fixes.length} fix(es)`);
   showToast(`Applied ${fixes.length} auto-fixes!`, 'success');
