@@ -47,6 +47,16 @@ export default {
       return handleGithubWebhook(request, env);
     }
 
+    // Newsletter broadcast (POST /newsletter)
+    if (url.pathname === '/newsletter' && request.method === 'POST') {
+      return handleNewsletterRequest(request, env);
+    }
+
+    // New registration notify (POST /notify-registration)
+    if (url.pathname === '/notify-registration' && request.method === 'POST') {
+      return handleRegistrationNotify(request, env);
+    }
+
     // Sentry alert (POST /)
     if (request.method === 'POST') {
       return handleSentryWebhook(request, env);
@@ -54,9 +64,9 @@ export default {
 
     // Health check (GET /)
     return new Response(
-      'BlogsPro Bot — Active ✅\n' +
-      'Routes: /setup-webhook  /telegram  /github  POST /\n' +
-      'Commands: /status  /subscribers  /posts  /deploy  /resolve all  /help',
+      'BlogsPro Unified Bot — Active ✅\n' +
+      'Routes: /setup-webhook  /telegram  /github  /newsletter  /notify-registration  POST /\n' +
+      'Commands: /status  /subscribers  /posts  /deploy  /resolve all  /broadcast  /stats  /help',
       { headers: { 'Content-Type': 'text/plain' } }
     );
   },
@@ -146,10 +156,29 @@ async function handleCallbackQuery(cq, env) {
     }
   }
 
-  // 🔄 Refresh /status
+  // ✅ Status Refresh
   else if (data === 'status_refresh') {
     await answerCallbackQuery(cq.id, '🔄 Refreshing…', env);
     await handleCommand({ chat: { id: chatId }, text: '/status' }, env);
+  }
+
+  // ✅ Approve User Role
+  else if (data.startsWith('approve:')) {
+    const [_, uid, role] = data.split(':');
+    const ok = await updateUserRole(uid, role, env);
+    if (ok) {
+      await editTelegramMessage(chatId, msgId, origText + `\n\n✅ <b>Approved ${role.toUpperCase()} by ${escapeHtml(user)}</b>`, { inline_keyboard: [] }, env);
+      await answerCallbackQuery(cq.id, `✅ User approved as ${role}!`, env);
+    } else {
+      await answerCallbackQuery(cq.id, '❌ Approval failed. Check Firestore API Key.', env);
+    }
+  }
+
+  // ❌ Reject User Role
+  else if (data.startsWith('reject:')) {
+    const uid = data.split(':')[1];
+    await editTelegramMessage(chatId, msgId, origText + `\n\n❌ <b>Rejected by ${escapeHtml(user)}</b>`, { inline_keyboard: [] }, env);
+    await answerCallbackQuery(cq.id, '❌ Request rejected.', env);
   }
 
   return new Response('OK');
@@ -160,7 +189,28 @@ async function handleCallbackQuery(cq, env) {
 async function handleCommand(message, env) {
   const chatId = message.chat.id;
   const raw    = (message.text || '').trim();
-  const cmd    = raw.split('@')[0].toLowerCase(); // strip @botname suffix
+  const lower  = raw.toLowerCase();
+  const cmd    = lower.split('@')[0]; // strip @botname suffix
+
+  // ── Greetings / Feature List ("hi", "hello", "hola") ───────────────────────
+  if (['hi', 'hello', 'hola'].includes(cmd) || cmd === 'hi' || cmd === 'hello') {
+    await sendTelegramMessage(chatId,
+      `👋 <b>Welcome to BlogsPro!</b>\n\n` +
+      `Here are the features of our platform:\n\n` +
+      `🚀 <b>Fintech & Strategy Insights</b>\n` +
+      `🔍 <b>Advanced Search & Filtering</b>\n` +
+      `📧 <b>AI-Powered Newsletters</b>\n` +
+      `⚙️ <b>Admin Dashboard for Creators</b>\n` +
+      `🚨 <b>Real-time Sentry Error Monitoring</b>\n` +
+      `🤖 <b>AI-Driven Bug Auto-Resolution</b>\n` +
+      `📦 <b>GitHub Integrated CI/CD</b>\n` +
+      `🌙 <b>Dark/Light Mode Theme Toggle</b>\n\n` +
+      `<a href="https://blogspro.in">Visit blogspro.in →</a>\n\n` +
+      `Try /help to see all available bot commands.`,
+      null, env
+    );
+    return new Response('OK');
+  }
 
   // ── /status ──────────────────────────────────────────────────────────────
   if (cmd === '/status') {
@@ -262,18 +312,59 @@ async function handleCommand(message, env) {
     return new Response('OK');
   }
 
+  // ── /broadcast ───────────────────────────────────────────────────────────
+  if (cmd === '/broadcast') {
+    const text = raw.substring(10).trim();
+    if (!text) {
+      await sendTelegramMessage(chatId, '⚠️ <b>Usage:</b> <code>/broadcast Your message here</code>', null, env);
+      return new Response('OK');
+    }
+    const html = `<div style="font-family:sans-serif;line-height:1.6;color:#333">
+      <h2>Announcing BlogsPro Update</h2>
+      <p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>
+      <hr>
+      <p style="font-size:12px;color:#777">You are receiving this because you subscribed to BlogsPro. <a href="https://blogspro.in">Visit site</a></p>
+    </div>`;
+    await sendTelegramMessage(chatId, '⏳ <b>Broadcasting to all subscribers…</b>', null, env);
+    const result = await sendNewsletter('BlogsPro Update', html, env);
+    if (result.success) {
+      await sendTelegramMessage(chatId, `✅ <b>Broadcast Complete!</b> Sent to ${result.count} subscribers.`, null, env);
+    } else {
+      await sendTelegramMessage(chatId, `❌ <b>Broadcast Failed:</b> ${result.message || 'Check Resend API key'}`, null, env);
+    }
+    return new Response('OK');
+  }
+
+  // ── /stats ────────────────────────────────────────────────────────────────
+  if (cmd === '/stats') {
+    await sendTelegramMessage(chatId, '⏳ <b>Gathering system stats…</b>', null, env);
+    const [issues, subscribers] = await Promise.all([
+      fetchUnresolvedSentryIssues(env),
+      fetchSubscriberCount(env)
+    ]);
+    const msg = `📊 <b>BlogsPro System Stats</b>\n\n` +
+                `🔴 Sentry Issues: <b>${issues === null ? 'Error' : issues.length}</b>\n` +
+                `📧 Subscribers:   <b>${subscribers === null ? 'Error' : subscribers}</b>\n` +
+                `🌐 Site Status:    <b>Online ✅</b>\n\n` +
+                `<a href="https://blogspro.in">Visit blogspro.in →</a>`;
+    await sendTelegramMessage(chatId, msg, null, env);
+    return new Response('OK');
+  }
+
   // ── /help ─────────────────────────────────────────────────────────────────
   if (cmd === '/help' || cmd === '/start') {
     await sendTelegramMessage(chatId,
-      `🤖 <b>BlogsPro Bot</b>\n\n` +
+      `🤖 <b>BlogsPro Unified Bot</b>\n\n` +
       `/status         — Unresolved Sentry issues\n` +
-      `/subscribers    — Newsletter subscriber count\n` +
+      `/stats          — System health summary\n` +
+      `/subscribers    — Subscriber count\n` +
       `/posts          — Recent published posts\n` +
+      `/broadcast [txt]— Send email to all subscribers\n` +
       `/deploy         — Trigger site deploy\n` +
       `/resolve all    — Bulk resolve Sentry issues\n` +
       `/help           — This message\n\n` +
-      `Sentry alerts arrive automatically with <b>Resolve</b> buttons.\n` +
-      `GitHub events (push, PR, issues) also appear here.\n` +
+      `Sentry alerts and <b>Role Approvals</b> arrive automatically with buttons.\n` +
+      `GitHub events also appear here.\n` +
       `Daily summary sent at <b>09:00 UTC</b>.`,
       null, env
     );
@@ -386,6 +477,122 @@ async function handleGithubWebhook(request, env) {
     await sendTelegramMessage(env.TELEGRAM_TO, msg, null, env);
   }
   return new Response('OK');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// NEWSLETTER & REGISTRATION HANDLERS
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function handleNewsletterRequest(request, env) {
+  // CORS headers for frontend
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json'
+  };
+
+  try {
+    const body = await request.json();
+    const { postId, title, excerpt, slug, secret } = body;
+
+    if (secret !== env.NEWSLETTER_SECRET) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    }
+
+    const html = `<div style="font-family:serif;max-width:600px;margin:auto;padding:20px;background:#fdfcfb;border:1px solid #eee">
+      <h1 style="color:#080d1a">BlogsPro: New Article</h1>
+      <h2 style="color:#c9a84c">${escapeHtml(title)}</h2>
+      <p style="font-style:italic;color:#555">${escapeHtml(excerpt)}</p>
+      <a href="https://blogspro.in/post.html?slug=${encodeURIComponent(slug)}" style="display:inline-block;padding:12px 24px;background:#c9a84c;color:#080d1a;text-decoration:none;font-weight:bold;border-radius:2px">Read Full Article →</a>
+      <hr style="margin-top:30px;border:none;border-top:1px solid #eee">
+      <p style="font-size:12px;color:#888">You are receiving this because you subscribed to BlogsPro. <a href="https://blogspro.in">Unsubscribe</a></p>
+    </div>`;
+
+    const result = await sendNewsletter(title, html, env);
+    return new Response(JSON.stringify(result), { status: result.success ? 200 : 500, headers: corsHeaders });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+  }
+}
+
+async function handleRegistrationNotify(request, env) {
+  const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
+  try {
+    const { name, email, requestedRole, uid } = await request.json();
+    if (!requestedRole || requestedRole === 'reader') return new Response('OK', { headers: corsHeaders });
+
+    const msg = `👤 <b>New User Registration</b>\n\n` +
+                `<b>Name:</b> ${escapeHtml(name)}\n` +
+                `<b>Email:</b> ${escapeHtml(email)}\n` +
+                `<b>Requests Role:</b> <code>${requestedRole.toUpperCase()}</code>\n\n` +
+                `Approve this request via buttons below:`;
+
+    const keyboard = [[
+      { text: `✅ Approve ${requestedRole.toUpperCase()}`, callback_data: `approve:${uid}:${requestedRole}` },
+      { text: '❌ Reject', callback_data: `reject:${uid}` }
+    ]];
+
+    await sendTelegramMessage(env.TELEGRAM_TO, msg, { inline_keyboard: keyboard }, env);
+    return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+  }
+}
+
+async function sendNewsletter(subject, html, env) {
+  if (!env.RESEND_API_KEY) return { success: false, message: 'RESEND_API_KEY not configured' };
+  
+  const count = await fetchSubscriberCount(env);
+  if (count === 0) return { success: true, count: 0, message: 'No subscribers' };
+
+  // Fetch actual emails for batch
+  const emails = await fetchSubscriberEmails(env);
+  
+  const BATCH_SIZE = 100;
+  for (let i = 0; i < emails.length; i += BATCH_SIZE) {
+    const batch = emails.slice(i, i + BATCH_SIZE);
+    const resendPayload = batch.map(email => ({
+      from: 'BlogsPro <newsletter@mail.blogspro.in>',
+      to: [email],
+      subject: subject,
+      html: html
+    }));
+
+    await fetch('https://api.resend.com/emails/batch', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(resendPayload)
+    });
+  }
+
+  return { success: true, count: emails.length };
+}
+
+async function fetchSubscriberEmails(env) {
+  const project = env.FIREBASE_PROJECT;
+  const apiKey  = env.FIREBASE_API_KEY;
+  const url     = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/subscribers?key=${apiKey}&pageSize=1000`;
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.documents || []).map(d => d.fields?.email?.stringValue).filter(Boolean);
+}
+
+async function updateUserRole(uid, role, env) {
+  try {
+    const project = env.FIREBASE_PROJECT;
+    const apiKey  = env.FIREBASE_API_KEY;
+    const url     = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/users/${uid}?key=${apiKey}&updateMask.fieldPaths=role`;
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { role: { stringValue: role } } })
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

@@ -71,8 +71,8 @@ window.sendNewsletter = async () => {
   if (statusEl) statusEl.textContent = '⏳ Sending to all subscribers…';
 
   try {
-    // Call Cloudflare Worker endpoint
-    const workerEndpoint = 'https://blogspro-newsletter.abhishek-dutta1996.workers.dev';
+    // Call Unified BlogsPro Bot worker endpoint
+    const workerEndpoint = 'https://blogspro-sentry-webhook.abhishek-dutta1996.workers.dev/newsletter';
     const secret = 'biltu123';
     
     const response = await fetch(workerEndpoint, {

@@ -67,6 +67,10 @@ jobs:
           SENTRY_AUTH_TOKEN:      ${{ secrets.SENTRY_AUTH_TOKEN }}
           GITHUB_PAT:       ${{ secrets.GH_PAT }}
           WEBHOOK_SECRET:   ${{ secrets.WEBHOOK_SECRET }}
+          RESEND_API_KEY:   ${{ secrets.RESEND_API_KEY }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
+          NEWSLETTER_SECRET: "biltu123"
         run: |
           echo "$TELEGRAM_BOT_TOKEN" | npx wrangler@3 secret put TELEGRAM_TOKEN
           echo "$TELEGRAM_CHAT_ID"   | npx wrangler@3 secret put TELEGRAM_TO
@@ -75,6 +79,10 @@ jobs:
           echo "javascript"          | npx wrangler@3 secret put SENTRY_PROJECT
           [ -n "$GITHUB_PAT" ]     && echo "$GITHUB_PAT"     | npx wrangler@3 secret put GITHUB_PAT
           [ -n "$WEBHOOK_SECRET" ] && echo "$WEBHOOK_SECRET" | npx wrangler@3 secret put GITHUB_WEBHOOK_SECRET
+          [ -n "$RESEND_API_KEY" ] && echo "$RESEND_API_KEY" | npx wrangler@3 secret put RESEND_API_KEY
+          [ -n "$FIREBASE_API_KEY" ] && echo "$FIREBASE_API_KEY" | npx wrangler@3 secret put FIREBASE_API_KEY
+          [ -n "$FIREBASE_PROJECT" ] && echo "$FIREBASE_PROJECT" | npx wrangler@3 secret put FIREBASE_PROJECT
+          echo "$NEWSLETTER_SECRET" | npx wrangler@3 secret put NEWSLETTER_SECRET
 
       - name: Register Telegram webhook
         env:

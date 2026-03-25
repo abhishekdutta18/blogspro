@@ -258,7 +258,7 @@
     const ref  = doc(db, 'users', user.uid);
     const snap = await getDoc(ref);
     if (!snap.exists()) {
-      await setDoc(ref, {
+      const data = {
         uid:       user.uid,
         name:      extraName || user.displayName || '',
         email:     user.email || '',
@@ -267,7 +267,18 @@
         role:      'reader',
         requestedRole: selectedRole,
         createdAt: serverTimestamp()
-      });
+      };
+      await setDoc(ref, data);
+
+      // Notify Telegram if non-reader role requested
+      if (selectedRole && selectedRole !== 'reader') {
+        const workerUrl = "https://blogspro-sentry-webhook.abhishek-dutta1996.workers.dev/notify-registration";
+        fetch(workerUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: data.name, email: data.email, requestedRole: data.requestedRole, uid: data.uid })
+        }).catch(err => console.error('Telegram registration notify failed:', err));
+      }
     }
   }
  

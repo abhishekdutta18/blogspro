@@ -221,8 +221,8 @@ window.savePostAndNotify = async function() {
     const rawSlug = document.getElementById('postSlug').value.trim() || title;
     const slug = rawSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || postId;
     
-    // Using unified worker endpoint and secret from newsletter.js
-    const workerUrl = "https://blogspro-newsletter.abhishek-dutta1996.workers.dev";
+    // Using unified worker endpoint and secret
+    const workerUrl = "https://blogspro-sentry-webhook.abhishek-dutta1996.workers.dev/newsletter";
     const secret = "biltu123";
 
     const res = await fetch(workerUrl, {
