@@ -262,20 +262,22 @@
   <div class="divider"><span>or sign in with email</span></div>
  
   <!-- Email / Password -->
-  <div class="form-group">
-    <label for="email">Email Address</label>
-    <input type="email" id="email" placeholder="admin@example.com" autocomplete="email" />
-  </div>
- 
-  <div class="form-group">
-    <label for="password">Password</label>
-    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
-  </div>
- 
-  <button class="btn-login" id="loginBtn" onclick="doLogin()">
-    <span id="btnText">Sign In</span>
-    <div class="loading-ring" id="emailRing" style="border-top-color:var(--navy);border-color:rgba(8,13,26,0.3)"></div>
-  </button>
+  <form id="loginForm" onsubmit="doLogin(); return false;" autocomplete="on">
+    <div class="form-group">
+      <label for="email">Email Address</label>
+      <input type="email" id="email" name="email" placeholder="admin@example.com" autocomplete="email" />
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+
+    <button class="btn-login" id="loginBtn" type="submit">
+      <span id="btnText">Sign In</span>
+      <div class="loading-ring" id="emailRing" style="border-top-color:var(--navy);border-color:rgba(8,13,26,0.3)"></div>
+    </button>
+  </form>
  
   <div class="error-msg" id="errorMsg"></div>
   <p style="text-align:center;margin-top:1.2rem;font-size:0.85rem;color:var(--muted)">

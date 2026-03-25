@@ -1,0 +1,26 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build/Deploy Artifacts
+blogspro/
+blogspro-deploy.zip
+.sentry-logs.zip
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Node (in case it's added later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/tmp/
