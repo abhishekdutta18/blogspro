@@ -68,6 +68,12 @@ function closeAIDrawer() {
 function switchDrawerTab(tab) {
   if (window._switchDrawerTab) window._switchDrawerTab(tab);
 }
+// Guard for audit button — overridden by v2-editor.js after module load
+function triggerPostAudit() {
+  if (typeof window.triggerPostAudit === 'function' && window.triggerPostAudit !== triggerPostAudit) {
+    window.triggerPostAudit();
+  }
+}
 </script>
 
 <!-- Mobile top bar (hidden on desktop, shown on mobile) -->

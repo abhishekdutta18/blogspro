@@ -551,9 +551,15 @@ async function pushCodeFix(fixes) {
 // MAIN ORCHESTRATOR
 // ─────────────────────────────────────────────────────────────────
 export async function runFullAudit(trigger = 'manual') {
-  if (_running) return;
+  if (_running) {
+    showToast('Audit already in progress…', 'info');
+    return;
+  }
   const editor = document.getElementById('editor');
-  if (!editor) return;
+  if (!editor) {
+    showToast('No editor found — open a post first.', 'error');
+    return;
+  }
   _running = true;
   _showProgress();
 
@@ -857,4 +863,5 @@ function _imgLoads(url, timeout = 8000) {
 
 // Init — delay so all window.* functions are registered first
 setTimeout(installHooks, 400);
-window.runPostAudit = () => runFullAudit('manual');
+window.runPostAudit    = () => runFullAudit('manual');
+window.isAuditRunning  = () => _running;

@@ -230,23 +230,27 @@ window.runCitationEngine = async () => {
 // then calls runFullAudit('manual').
 window.triggerPostAudit = async () => {
   const btn = document.getElementById('btnRunAudit');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading…'; }
 
-  // If already loaded from a previous click, call immediately
+  // If already loaded, call immediately (module is eagerly loaded by main.js)
   if (typeof window.runPostAudit === 'function') {
-    if (btn) { btn.disabled = false; btn.textContent = '🛡 Audit'; }
-    window.runPostAudit();
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Auditing…'; }
+    try {
+      await window.runPostAudit();
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '🛡 Audit'; }
+    }
     return;
   }
 
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading…'; }
   try {
     showToast('Loading audit engine…', 'info');
     await import('./post-audit.js');
-    // post-audit.js sets window.runPostAudit on load (line 860)
+    // post-audit.js sets window.runPostAudit on load
     // Allow 500ms for the module's setTimeout(installHooks, 400) to complete
     await new Promise(r => setTimeout(r, 500));
     if (typeof window.runPostAudit === 'function') {
-      window.runPostAudit();
+      await window.runPostAudit();
     } else {
       showToast('Audit engine not available — check console.', 'error');
     }
