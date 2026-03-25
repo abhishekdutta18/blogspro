@@ -198,26 +198,30 @@
  
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
-  <!-- Sentry Error Tracking v10.44.0 -->
-  <script src="https://browser.sentry-cdn.com/10.44.0/bundle.min.js"
-    integrity="sha384-sx+UyjbtMU5ociD00tpUP0LC8A78wmbbIzMUl3+Y35sUqIweqvkXE43dDRqQDEO8"
-    crossorigin="anonymous"></script>
+  <!-- Sentry Error Tracking -->
+  <script src="https://browser.sentry-cdn.com/10.44.0/bundle.min.js" crossorigin="anonymous"></script>
   <script>
-  Sentry.init({
-    dsn: "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336",
-    environment: window.location.hostname === "blogspro.in" ? "production" : "development",
-    release: "blogspro@2026-03-19",
-    sampleRate: 1.0,
-    tracesSampleRate: 0.1,
-    ignoreErrors: [
-      "ResizeObserver loop limit exceeded",
-      "ResizeObserver loop completed with undelivered notifications",
-      "Network request failed",
-      "Failed to fetch",
-      "Load failed",
-    ],
-  });
-  window.setSentryUser = function(u) { Sentry.setUser(u); };
+    Sentry.init({
+      dsn: "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336",
+      environment: window.location.hostname === "blogspro.in" ? "production" : "development",
+      release: "blogspro@2026-03-25",
+      integrations: [ Sentry.consoleIntegration({ levels: ['error', 'warn'] }) ],
+      sampleRate: 1.0,
+      tracesSampleRate: 0.1,
+      maxBreadcrumbs: 30,
+      attachStacktrace: true,
+      ignoreErrors: [
+        "ResizeObserver loop limit exceeded",
+        "ResizeObserver loop completed with undelivered notifications",
+        "Network request failed",
+        "Failed to fetch"
+      ]
+    });
+    window.setSentryUser = function(u) { Sentry.setUser(u); };
+    window.trackEvent   = function(name, data) {
+      Sentry.addBreadcrumb({ message: name, data: data, level: "info" });
+    };
+  </script>
   window.trackEvent   = function(name, data) {
     Sentry.addBreadcrumb({ message: name, data: data, level: "info" });
   };
