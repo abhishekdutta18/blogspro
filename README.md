@@ -562,7 +562,11 @@ Before either bot edits code, update this table first.
 |---|---|---|---|---|---|
 | Security rules + auth hardening | Codex | DONE | `firestore.rules`, `register.html`, `index.html`, `dashboard.html`, `account.html` | 2026-03-21 | Hotfix shipped and live on GitHub. |
 | Deploy automation tooling | Codex | DONE | `deploy-worker.js`, `deploy.html` | 2026-03-21 | CLI deploy helper added; uses same Worker as deploy UI. |
-| Next feature / bugfix slot | UNCLAIMED | TODO | TBD | - | Claim before starting work. |
+| **SEO Architecture (CF Interceptor + SSG Build Engine)** | Antigravity | **DONE** | `api/seo-worker.js`, `scripts/build-static.js`, `scripts/generate-sitemap.js`, `.github/workflows/seo-build.yml` | 2026-03-24 | SSG engine running on 6hr cron; intercepts social scrapers via Cloudflare. |
+| **Interactive Sentry Bot (CF Worker + Telegram UI)** | Antigravity | **DONE** | `workers/sentry/index.js`, `.github/workflows/deploy-sentry.yml`, `scripts/auto-resolve-sentry.js` | 2026-03-24 | Added /status, inline Resolve buttons, and auto-issue-deduplication. |
+| **Serverless Newsletter Engine (CF Worker + Resend)** | Antigravity | **DONE** | `api/newsletter-worker.js`, `js/subscribers.js`, `admin.html` | 2026-03-23 | "Publish & Notify" trigger live; routes via Resend API to subscribers collection. |
+| **Admin UI: Profile, Sitemap & Role Approval** | Antigravity | **DONE** | `admin.html`, `js/profile.js`, `index.html`, `js/nav.js` | 2026-03-22 | Profile management and role approval buttons live. |
+| Next slot | UNCLAIMED | TODO | TBD | - | Claim before starting work. |
 
 ### Quick handoff template
 
