@@ -65,16 +65,16 @@ jobs:
           TELEGRAM_BOT_TOKEN:     ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:       ${{ secrets.TELEGRAM_CHAT_ID }}
           SENTRY_AUTH_TOKEN:      ${{ secrets.SENTRY_AUTH_TOKEN }}
-          GITHUB_PAT:             ${{ secrets.GH_PAT }}
-          GITHUB_WEBHOOK_SECRET:  ${{ secrets.GITHUB_WEBHOOK_SECRET }}
+          GITHUB_PAT:       ${{ secrets.GH_PAT }}
+          WEBHOOK_SECRET:   ${{ secrets.WEBHOOK_SECRET }}
         run: |
-          echo "$TELEGRAM_BOT_TOKEN"    | npx wrangler@3 secret put TELEGRAM_TOKEN
-          echo "$TELEGRAM_CHAT_ID"      | npx wrangler@3 secret put TELEGRAM_TO
-          echo "$SENTRY_AUTH_TOKEN"     | npx wrangler@3 secret put SENTRY_AUTH_TOKEN
-          echo "abhishek-dutta"         | npx wrangler@3 secret put SENTRY_ORG
-          echo "javascript"             | npx wrangler@3 secret put SENTRY_PROJECT
-          [ -n "$GITHUB_PAT" ]            && echo "$GITHUB_PAT"            | npx wrangler@3 secret put GITHUB_PAT
-          [ -n "$GITHUB_WEBHOOK_SECRET" ] && echo "$GITHUB_WEBHOOK_SECRET" | npx wrangler@3 secret put GITHUB_WEBHOOK_SECRET
+          echo "$TELEGRAM_BOT_TOKEN" | npx wrangler@3 secret put TELEGRAM_TOKEN
+          echo "$TELEGRAM_CHAT_ID"   | npx wrangler@3 secret put TELEGRAM_TO
+          echo "$SENTRY_AUTH_TOKEN"  | npx wrangler@3 secret put SENTRY_AUTH_TOKEN
+          echo "abhishek-dutta"      | npx wrangler@3 secret put SENTRY_ORG
+          echo "javascript"          | npx wrangler@3 secret put SENTRY_PROJECT
+          [ -n "$GITHUB_PAT" ]     && echo "$GITHUB_PAT"     | npx wrangler@3 secret put GITHUB_PAT
+          [ -n "$WEBHOOK_SECRET" ] && echo "$WEBHOOK_SECRET" | npx wrangler@3 secret put GITHUB_WEBHOOK_SECRET
 
       - name: Register Telegram webhook
         env:
@@ -85,13 +85,3 @@ jobs:
             -d '{"url":"https://blogspro-sentry-webhook.abhishek-dutta1996.workers.dev/telegram","allowed_updates":["message","callback_query"]}' \
           | python3 -c "import sys,json; r=json.load(sys.stdin); print('Telegram webhook:', r.get('description', r))"
 
-      - name: Print GitHub webhook setup instructions
-        run: |
-          echo "════════════════════════════════════════════════"
-          echo "  GitHub Webhook Setup (one-time, manual step):"
-          echo "  Repo → Settings → Webhooks → Add webhook"
-          echo "  URL: https://blogspro-sentry-webhook.abhishek-dutta1996.workers.dev/github"
-          echo "  Content type: application/json"
-          echo "  Secret: value of GITHUB_WEBHOOK_SECRET repo secret"
-          echo "  Events: Pushes, Pull requests, Issues, Workflow runs"
-          echo "════════════════════════════════════════════════"
