@@ -121,16 +121,8 @@ jobs:
 
           # Detect merged PR via GitHub API
           PR_JSON=$(gh api repos/${{ github.repository }}/commits/${COMMIT_SHA}/pulls 2>/dev/null || echo "[]")
-          PR_NUM=$(echo "$PR_JSON" | python3 -c "
-import sys, json
-prs = json.load(sys.stdin)
-print(prs[0]['number'] if prs else '')
-" 2>/dev/null || true)
-          PR_TITLE=$(echo "$PR_JSON" | python3 -c "
-import sys, json
-prs = json.load(sys.stdin)
-print(prs[0].get('title','') if prs else '')
-" 2>/dev/null || true)
+          PR_NUM=$(echo "$PR_JSON"   | jq -r '.[0].number // ""' 2>/dev/null || true)
+          PR_TITLE=$(echo "$PR_JSON" | jq -r '.[0].title  // ""' 2>/dev/null || true)
 
           if [ -n "$PR_NUM" ]; then
             MSG="🔀 PR %23${PR_NUM} Merged %26 Deployed%0A%0A"
