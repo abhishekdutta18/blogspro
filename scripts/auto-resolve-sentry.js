@@ -40,7 +40,7 @@ async function checkExistingIssue(issueTitle) {
 }
 
 async function resolveSentryIssue(issueId) {
-  const url = `https://sentry.io/api/0/projects/${SENTRY_ORG}/${SENTRY_PROJECT}/issues/${issueId}/`;
+  const url = `https://sentry.io/api/0/issues/${issueId}/`;
   const res = await fetch(url, {
     method: 'PUT',
     headers: {
