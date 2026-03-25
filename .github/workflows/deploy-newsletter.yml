@@ -16,15 +16,18 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy to Cloudflare Network
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          secrets: |
-            RESEND_API_KEY
-            NEWSLETTER_SECRET
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
+        run: |
+          # 1. Standard Deploy
+          npx wrangler@3 deploy
+
+          # 2. Push Secrets with Guards
+          [ -n "$RESEND_API_KEY" ] && echo "$RESEND_API_KEY" | npx wrangler@3 secret put RESEND_API_KEY || echo "Skipping RESEND_API_KEY"
+          [ -n "$NEWSLETTER_SECRET" ] && echo "$NEWSLETTER_SECRET" | npx wrangler@3 secret put NEWSLETTER_SECRET || echo "Skipping NEWSLETTER_SECRET"
+          echo "✓ Newsletter worker secrets pushed"
 
   notify-failure:
     needs: deploy

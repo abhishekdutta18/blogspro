@@ -113,31 +113,31 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
           COMMIT_SHA: ${{ github.sha }}
-          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Use local env vars to avoid YAML interpolation issues in shell
           SHORT_SHA="${COMMIT_SHA:0:7}"
           DEPLOY_TIME=$(date -u "+%d %b %Y %H:%M UTC")
 
-          # Detect merged PR via GitHub API
-          PR_JSON=$(gh api repos/${{ github.repository }}/commits/${COMMIT_SHA}/pulls 2>/dev/null || echo "[]")
-          PR_NUM=$(echo "$PR_JSON"   | jq -r '.[0].number // ""' 2>/dev/null || true)
-          PR_TITLE=$(echo "$PR_JSON" | jq -r '.[0].title  // ""' 2>/dev/null || true)
+          # Fetch PR info via GH CLI
+          PR_JSON=$(gh api "repos/${REPO}/commits/${COMMIT_SHA}/pulls" 2>/dev/null || echo "[]")
+          PR_NUM=$(echo "$PR_JSON" | jq -r '.[0].number // empty')
+          PR_TITLE=$(echo "$PR_JSON" | jq -r '.[0].title // empty')
 
           if [ -n "$PR_NUM" ]; then
-            MSG="🔀 PR %23${PR_NUM} Merged %26 Deployed%0A%0A"
-            MSG+="📋 ${PR_TITLE}%0A"
-            MSG+="📦 ${SHORT_SHA} · ${DEPLOY_TIME}%0A"
-            MSG+="🌐 https://blogspro.in"
+            MSG="🔀 PR #${PR_NUM} Merged & Deployed%0A%0A📋 ${PR_TITLE}%0A📦 ${SHORT_SHA} · ${DEPLOY_TIME}%0A🌐 https://blogspro.in"
           else
-            MSG="✅ BlogsPro Deployed%0A%0A"
-            MSG+="📦 ${SHORT_SHA} · ${DEPLOY_TIME}%0A"
-            MSG+="🌐 https://blogspro.in"
+            MSG="✅ BlogsPro Deployed%0A%0A📦 ${SHORT_SHA} · ${DEPLOY_TIME}%0A🌐 https://blogspro.in"
           fi
 
-          curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d "chat_id=${TELEGRAM_CHAT_ID}" \
-            -d "text=${MSG}" \
+          # Only send if secrets are present
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_CHAT_ID}" \
+              -d "parse_mode=HTML" \
+              -d "text=${MSG}"
+          fi
             -d "disable_web_page_preview=true"
           echo "✓ Telegram notification sent"
 

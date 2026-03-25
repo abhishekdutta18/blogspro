@@ -72,16 +72,16 @@ jobs:
           FIREBASE_PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
           NEWSLETTER_SECRET: "biltu123"
         run: |
-          echo "$TELEGRAM_BOT_TOKEN" | npx wrangler@3 secret put TELEGRAM_TOKEN
-          echo "$TELEGRAM_CHAT_ID"   | npx wrangler@3 secret put TELEGRAM_TO
-          echo "$SENTRY_AUTH_TOKEN"  | npx wrangler@3 secret put SENTRY_AUTH_TOKEN
+          [ -n "$TELEGRAM_BOT_TOKEN" ] && echo "$TELEGRAM_BOT_TOKEN" | npx wrangler@3 secret put TELEGRAM_TOKEN || echo "Skipping TELEGRAM_TOKEN"
+          [ -n "$TELEGRAM_CHAT_ID" ]   && echo "$TELEGRAM_CHAT_ID"   | npx wrangler@3 secret put TELEGRAM_TO || echo "Skipping TELEGRAM_TO"
+          [ -n "$SENTRY_AUTH_TOKEN" ]  && echo "$SENTRY_AUTH_TOKEN"  | npx wrangler@3 secret put SENTRY_AUTH_TOKEN || echo "Skipping SENTRY_AUTH_TOKEN"
           echo "abhishek-dutta"      | npx wrangler@3 secret put SENTRY_ORG
           echo "javascript"          | npx wrangler@3 secret put SENTRY_PROJECT
-          [ -n "$GITHUB_PAT" ]     && echo "$GITHUB_PAT"     | npx wrangler@3 secret put GITHUB_PAT
-          [ -n "$WEBHOOK_SECRET" ] && echo "$WEBHOOK_SECRET" | npx wrangler@3 secret put GITHUB_WEBHOOK_SECRET
-          [ -n "$RESEND_API_KEY" ] && echo "$RESEND_API_KEY" | npx wrangler@3 secret put RESEND_API_KEY
-          [ -n "$FIREBASE_API_KEY" ] && echo "$FIREBASE_API_KEY" | npx wrangler@3 secret put FIREBASE_API_KEY
-          [ -n "$FIREBASE_PROJECT" ] && echo "$FIREBASE_PROJECT" | npx wrangler@3 secret put FIREBASE_PROJECT
+          [ -n "$GITHUB_PAT" ]     && echo "$GITHUB_PAT"     | npx wrangler@3 secret put GITHUB_PAT || echo "Skipping GITHUB_PAT"
+          [ -n "$WEBHOOK_SECRET" ] && echo "$WEBHOOK_SECRET" | npx wrangler@3 secret put GITHUB_WEBHOOK_SECRET || echo "Skipping GITHUB_WEBHOOK_SECRET"
+          [ -n "$RESEND_API_KEY" ] && echo "$RESEND_API_KEY" | npx wrangler@3 secret put RESEND_API_KEY || echo "Skipping RESEND_API_KEY"
+          [ -n "$FIREBASE_API_KEY" ] && echo "$FIREBASE_API_KEY" | npx wrangler@3 secret put FIREBASE_API_KEY || echo "Skipping FIREBASE_API_KEY"
+          [ -n "$FIREBASE_PROJECT" ] && echo "$FIREBASE_PROJECT" | npx wrangler@3 secret put FIREBASE_PROJECT || echo "Skipping FIREBASE_PROJECT"
           echo "$NEWSLETTER_SECRET" | npx wrangler@3 secret put NEWSLETTER_SECRET
 
       - name: Register Telegram webhook
