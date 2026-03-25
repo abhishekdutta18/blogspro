@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'workers/sentry/**'
   workflow_dispatch:
 
 jobs:
@@ -16,23 +18,70 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Deploy to Cloudflare Network
+      - name: Create or find KV namespace
         working-directory: workers/sentry
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         run: |
-          npx wrangler@3 deploy
+          # Try creating the namespace (fails silently if already exists)
+          npx wrangler@3 kv namespace create KV 2>&1 || true
+
+          # List namespaces and find ours
+          KV_JSON=$(npx wrangler@3 kv namespace list 2>/dev/null || echo "[]")
+          KV_ID=$(echo "$KV_JSON" | python3 -c "
+          import sys, json, re
+          text = sys.stdin.read()
+          m = re.search(r'\[.*\]', text, re.DOTALL)
+          if m:
+              for ns in json.loads(m.group()):
+                  if 'blogspro-sentry-webhook-KV' in ns.get('title', ''):
+                      print(ns['id'])
+                      break
+          " 2>/dev/null)
+
+          if [ -n "$KV_ID" ]; then
+            sed -i "s/KV_NAMESPACE_ID/$KV_ID/g" wrangler.toml
+            echo "✓ KV namespace ID: $KV_ID"
+          else
+            echo "⚠ KV namespace not found — removing binding to allow deploy"
+            python3 -c "
+          import re
+          c = open('wrangler.toml').read()
+          c = re.sub(r'\n\[\[kv_namespaces\]\]\nbinding = .KV.\nid = .KV_NAMESPACE_ID.\n', '\n', c)
+          open('wrangler.toml', 'w').write(c)
+          "
+          fi
+
+      - name: Deploy to Cloudflare
+        working-directory: workers/sentry
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler@3 deploy
+
+      - name: Push worker secrets
+        working-directory: workers/sentry
+        env:
+          CLOUDFLARE_API_TOKEN:   ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TELEGRAM_BOT_TOKEN:     ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:       ${{ secrets.TELEGRAM_CHAT_ID }}
+          SENTRY_AUTH_TOKEN:      ${{ secrets.SENTRY_AUTH_TOKEN }}
+          GITHUB_PAT:       ${{ secrets.GH_PAT }}
+          WEBHOOK_SECRET:   ${{ secrets.WEBHOOK_SECRET }}
+        run: |
           echo "$TELEGRAM_BOT_TOKEN" | npx wrangler@3 secret put TELEGRAM_TOKEN
           echo "$TELEGRAM_CHAT_ID"   | npx wrangler@3 secret put TELEGRAM_TO
           echo "$SENTRY_AUTH_TOKEN"  | npx wrangler@3 secret put SENTRY_AUTH_TOKEN
-          echo "$SENTRY_ORG"         | npx wrangler@3 secret put SENTRY_ORG
-          echo "$SENTRY_PROJECT"     | npx wrangler@3 secret put SENTRY_PROJECT
-          # Register Telegram Bot webhook so button presses call back to our worker
+          echo "abhishek-dutta"      | npx wrangler@3 secret put SENTRY_ORG
+          echo "javascript"          | npx wrangler@3 secret put SENTRY_PROJECT
+          [ -n "$GITHUB_PAT" ]     && echo "$GITHUB_PAT"     | npx wrangler@3 secret put GITHUB_PAT
+          [ -n "$WEBHOOK_SECRET" ] && echo "$WEBHOOK_SECRET" | npx wrangler@3 secret put GITHUB_WEBHOOK_SECRET
+
+      - name: Register Telegram webhook
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" \
             -H "Content-Type: application/json" \
-            -d '{"url": "https://blogspro-sentry-webhook.abhishek-dutta1996.workers.dev/telegram", "allowed_updates": ["message", "callback_query"]}' | python3 -c "import sys,json; r=json.load(sys.stdin); print('Telegram webhook:', r.get('description', r))"
+            -d '{"url":"https://blogspro-sentry-webhook.abhishek-dutta1996.workers.dev/telegram","allowed_updates":["message","callback_query"]}' \
+          | python3 -c "import sys,json; r=json.load(sys.stdin); print('Telegram webhook:', r.get('description', r))"
+

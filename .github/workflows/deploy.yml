@@ -85,42 +85,64 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Write deployment summary
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          COMMIT_AUTHOR: ${{ github.event.head_commit.author.name }}
+          REPO: ${{ github.repository }}
         run: |
-          COMMIT_SHA="${{ github.sha }}"
-          COMMIT_MSG="${{ github.event.head_commit.message }}"
-          COMMIT_AUTHOR="${{ github.event.head_commit.author.name }}"
-          DEPLOY_TIME=$(date -u "+%Y-%m-%d %H:%M UTC")
           SHORT_SHA="${COMMIT_SHA:0:7}"
-
-          cat >> $GITHUB_STEP_SUMMARY << EOF
+          DEPLOY_TIME=$(date -u "+%Y-%m-%d %H:%M UTC")
+          cat >> "$GITHUB_STEP_SUMMARY" << EOF
           ## ✅ BlogsPro is Live
 
           | | |
           |---|---|
           | **URL** | [https://blogspro.in](https://blogspro.in) |
-          | **Commit** | [\`$SHORT_SHA\`](https://github.com/${{ github.repository }}/commit/$COMMIT_SHA) |
-          | **Message** | $COMMIT_MSG |
-          | **Author** | $COMMIT_AUTHOR |
-          | **Deployed at** | $DEPLOY_TIME |
+          | **Commit** | [\`${SHORT_SHA}\`](https://github.com/${REPO}/commit/${COMMIT_SHA}) |
+          | **Message** | ${COMMIT_MSG} |
+          | **Author** | ${COMMIT_AUTHOR} |
+          | **Deployed at** | ${DEPLOY_TIME} |
           | **Status** | All checks passed ✓ |
 
-          [View live site →](https://blogspro.in) · [View commit →](https://github.com/${{ github.repository }}/commit/$COMMIT_SHA)
+          [View live site →](https://blogspro.in) · [View commit →](https://github.com/${REPO}/commit/${COMMIT_SHA})
           EOF
 
       - name: Telegram deployment notification
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          SHORT_SHA="${{ github.sha }}"
-          SHORT_SHA="${SHORT_SHA:0:7}"
-          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          SHORT_SHA="${COMMIT_SHA:0:7}"
           DEPLOY_TIME=$(date -u "+%d %b %Y %H:%M UTC")
-          MSG="✅ BlogsPro is Live%0A%0A"
-          MSG+="📦 Commit: ${SHORT_SHA}%0A"
-          MSG+="📝 ${COMMIT_MSG}%0A"
-          MSG+="🕐 ${DEPLOY_TIME}%0A%0A"
-          MSG+="🌐 https://blogspro.in"
+
+          # Detect merged PR via GitHub API
+          PR_JSON=$(gh api repos/${{ github.repository }}/commits/${COMMIT_SHA}/pulls 2>/dev/null || echo "[]")
+          PR_NUM=$(echo "$PR_JSON" | python3 -c "
+import sys, json
+prs = json.load(sys.stdin)
+print(prs[0]['number'] if prs else '')
+" 2>/dev/null || true)
+          PR_TITLE=$(echo "$PR_JSON" | python3 -c "
+import sys, json
+prs = json.load(sys.stdin)
+print(prs[0].get('title','') if prs else '')
+" 2>/dev/null || true)
+
+          if [ -n "$PR_NUM" ]; then
+            MSG="🔀 PR %23${PR_NUM} Merged %26 Deployed%0A%0A"
+            MSG+="📋 ${PR_TITLE}%0A"
+            MSG+="📦 ${SHORT_SHA} · ${DEPLOY_TIME}%0A"
+            MSG+="🌐 https://blogspro.in"
+          else
+            MSG="✅ BlogsPro Deployed%0A%0A"
+            MSG+="📦 ${SHORT_SHA} · ${DEPLOY_TIME}%0A"
+            MSG+="🌐 https://blogspro.in"
+          fi
+
           curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -d "chat_id=${TELEGRAM_CHAT_ID}" \
             -d "text=${MSG}" \
@@ -172,12 +194,17 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_AUTHOR: ${{ github.event.head_commit.author.name }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
         run: |
-          MSG="❌ *BlogsPro CI Failed*%0A%0A"
-          MSG+="📦 Commit: [\`${{ github.sha }}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})%0A"
-          MSG+="Author: ${{ github.event.head_commit.author.name }}%0A"
-          MSG+="🔴 The Static Validation job failed.%0A"
-          MSG+="[View execution details →](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+          MSG="❌ BlogsPro CI Failed%0A%0A"
+          MSG+="📦 Commit: ${SHORT_SHA}%0A"
+          MSG+="Author: ${COMMIT_AUTHOR}%0A"
+          MSG+="🔴 Static Validation failed.%0A"
+          MSG+="https://github.com/${REPO}/actions/runs/${RUN_ID}"
           
           curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -d "chat_id=${TELEGRAM_CHAT_ID}" \
