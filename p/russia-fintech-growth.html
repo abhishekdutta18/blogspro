@@ -39,10 +39,6 @@
       Sentry.addBreadcrumb({ message: name, data: data, level: "info" });
     };
   </script>
-  window.trackEvent   = function(name, data) {
-    Sentry.addBreadcrumb({ message: name, data: data, level: "info" });
-  };
-  </script>
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DED9GTRR3E');</script>
