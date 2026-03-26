@@ -12,7 +12,74 @@ export default {
       });
     }
 
-    // Only accept POST requests
+    // Handle GET for unsubscriptions
+    if (request.method === 'GET') {
+      const { searchParams } = new URL(request.url);
+      const email = searchParams.get('email');
+      const secret = searchParams.get('secret');
+
+      if (!email || secret !== env.NEWSLETTER_SECRET) {
+        return new Response('Invalid unsubscribe link.', { status: 400 });
+      }
+
+      try {
+        const PROJECT_ID = env.FIREBASE_PROJECT_ID || 'blogspro-ai';
+        // Find document ID for this email
+        const queryUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
+        const queryBody = {
+          structuredQuery: {
+            from: [{ collectionId: 'subscribers' }],
+            where: {
+              fieldFilter: {
+                field: { fieldPath: 'email' },
+                op: 'EQUAL',
+                value: { stringValue: email }
+              }
+            },
+            limit: 1
+          }
+        };
+
+        const listRes = await fetch(queryUrl, {
+          method: 'POST',
+          body: JSON.stringify(queryBody)
+        });
+        const results = await listRes.json();
+        
+        if (results && results[0] && results[0].document) {
+          const docPath = results[0].document.name;
+          const delRes = await fetch(`https://firestore.googleapis.com/v1/${docPath}`, { method: 'DELETE' });
+          if (!delRes.ok) throw new Error('Delete failed');
+        }
+
+        return new Response(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Unsubscribed — BlogsPro</title>
+            <style>
+              body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #080d1a; color: #f5f0e8; text-align: center; }
+              .card { background: #0f1628; padding: 3rem; border-radius: 8px; border: 1px solid rgba(201,168,76,0.2); max-width: 400px; }
+              h1 { color: #c9a84c; margin-bottom: 1rem; }
+              p { color: #8896b3; line-height: 1.6; }
+              a { color: #c9a84c; text-decoration: none; font-weight: bold; margin-top: 2rem; display: inline-block; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <h1>Unsubscribed</h1>
+              <p>You have been successfully removed from our list. You will no longer receive daily fintech briefings from ${email}.</p>
+              <a href="https://blogspro.in">Back to BlogsPro</a>
+            </div>
+          </body>
+          </html>
+        `, { headers: { 'Content-Type': 'text/html' } });
+      } catch (e) {
+        return new Response('Error processing unsubscription.', { status: 500 });
+      }
+    }
+
+    // Only accept POST requests for sending
     if (request.method !== 'POST') {
       return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { 
         status: 405,
@@ -22,7 +89,8 @@ export default {
 
     try {
       const body = await request.json();
-      const { subject, html, secret } = body;
+      const { subject, html, secret, from: fromName } = body;
+      const displayFromName = fromName || 'BlogsPro Newsletter';
 
       // Validate secret
       if (secret !== env.NEWSLETTER_SECRET) {
@@ -52,44 +120,52 @@ export default {
 
       const PROJECT_ID = env.FIREBASE_PROJECT_ID || 'blogspro-ai';
       
-      // 1. Fetch all subscribers from Firestore REST API
+      // 1. Fetch ALL subscribers from Firestore REST API (handling pagination)
       console.log('Fetching subscribers from Firestore...');
-      const firebaseUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/subscribers`;
-      const dbRes = await fetch(firebaseUrl);
-      
-      if (!dbRes.ok) {
-        const dbError = await dbRes.text();
-        throw new Error(`Failed to fetch subscribers: ${dbRes.status} - ${dbError}`);
-      }
+      let emails = [];
+      let pageToken = '';
+      const baseUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/subscribers`;
 
-      const data = await dbRes.json();
-      if (!data.documents || data.documents.length === 0) {
-        return new Response(JSON.stringify({ success: true, count: 0, message: 'No subscribers found' }), { 
-          status: 200,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-        });
-      }
+      do {
+        const url = pageToken ? `${baseUrl}?pageToken=${pageToken}` : baseUrl;
+        const dbRes = await fetch(url);
+        if (!dbRes.ok) {
+          const dbError = await dbRes.text();
+          throw new Error(`Failed to fetch subscribers: ${dbRes.status} - ${dbError}`);
+        }
+        const data = await dbRes.json();
+        if (data.documents) {
+          const batchEmails = data.documents.map(doc => doc.fields?.email?.stringValue).filter(Boolean);
+          emails = emails.concat(batchEmails);
+        }
+        pageToken = data.nextPageToken || '';
+      } while (pageToken);
 
-      // Collect email addresses
-      const emails = data.documents.map(doc => doc.fields?.email?.stringValue).filter(Boolean);
-      console.log(`Found ${emails.length} subscribers`);
+      console.log(`Found ${emails.length} total subscribers`);
 
       // 2. Send individual emails via Resend Batch API (100 per request)
       // Using /emails/batch so each subscriber gets a private, individual email
       const BATCH_SIZE = 100;
       let emailsSentCount = 0;
 
+      const workerUrl = new URL(request.url).origin;
+
       for (let i = 0; i < emails.length; i += BATCH_SIZE) {
         const batch = emails.slice(i, i + BATCH_SIZE);
 
         console.log(`Sending batch ${Math.floor(i / BATCH_SIZE) + 1} with ${batch.length} emails...`);
 
-        const resendPayload = batch.map(email => ({
-          from: 'BlogsPro Newsletter <newsletter@mail.blogspro.in>',
-          to: [email],
-          subject: subject,
-          html: html
-        }));
+        const resendPayload = batch.map(email => {
+          const unsubLink = `${workerUrl}/?email=${encodeURIComponent(email)}&secret=${encodeURIComponent(secret)}`;
+          const personalHtml = html.replace('{{UNSUBSCRIBE_LINK}}', unsubLink);
+
+          return {
+            from: `${displayFromName} <newsletter@mail.blogspro.in>`,
+            to: [email],
+            subject: subject,
+            html: personalHtml
+          };
+        });
 
         const resendRes = await fetch('https://api.resend.com/emails/batch', {
           method: 'POST',

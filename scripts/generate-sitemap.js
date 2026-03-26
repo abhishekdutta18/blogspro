@@ -40,7 +40,7 @@ async function generateSitemap() {
   </url>`;
     });
 
-    // Dynamic Pages (SSG slugs)
+    // Dynamic Pages (SSG slugs from Firestore)
     if (Array.isArray(data)) {
       for (const item of data) {
         if (!item.document) continue;
@@ -62,6 +62,28 @@ async function generateSitemap() {
   </url>`;
       }
     }
+
+    // Static Pages from the /p and /posts directories (automated AI briefings)
+    ['../p', '../posts'].forEach(relPath => {
+      const dir = path.join(__dirname, relPath);
+      if (fs.existsSync(dir)) {
+        const files = fs.readdirSync(dir).filter(f => f.endsWith('.html'));
+        files.forEach(file => {
+          const stats = fs.statSync(path.join(dir, file));
+          const lastMod = stats.mtime.toISOString().split('T')[0];
+          const loc = `${DOMAIN}/${relPath.split('/').pop()}/${file}`;
+          if (!urls.includes(loc)) {
+            urls += `
+  <url>
+    <loc>${loc}</loc>
+    <lastmod>${lastMod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+          }
+        });
+      }
+    });
 
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}

@@ -34,10 +34,30 @@ export async function loadAll() {
       snap = await getDocs(query(collection(db,'posts'), limit(50)));
     }
 
-    state.allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let staticPosts = [];
+    try {
+      const resp = await fetch('/posts/index.json');
+      if (resp.ok) {
+        const staticData = await resp.json();
+        staticPosts = staticData.map(p => ({
+          id: `static-${p.slug}`,
+          ...p,
+          published: true,
+          category: 'AI Briefing',
+          createdAt: { toMillis: () => new Date(p.date).getTime() },
+          isStatic: true
+        }));
+      }
+    } catch(e) { console.warn('Static index not found or empty.'); }
+
+    state.allPosts = [
+      ...snap.docs.map(d => ({ id: d.id, ...d.data() })),
+      ...staticPosts
+    ];
+
     state.allPosts.sort((a,b) => {
-      const ta = a.createdAt?.toMillis?.() || (a.createdAt?.seconds||0)*1000;
-      const tb = b.createdAt?.toMillis?.() || (b.createdAt?.seconds||0)*1000;
+      const ta = a.createdAt?.toMillis?.() || (a.createdAt?.seconds||0)*1000 || 0;
+      const tb = b.createdAt?.toMillis?.() || (b.createdAt?.seconds||0)*1000 || 0;
       return tb - ta;
     });
 
@@ -99,11 +119,15 @@ export function renderPostsTable(posts, tbodyId) {
       <td>${views}</td>
       <td style="color:var(--muted);white-space:nowrap">${date}</td>
       <td>
-        <button class="action-btn" onclick="editPost('${p.id}')">Edit</button>
-        <button class="action-btn" onclick="copyPostLink('${p.slug}')">Copy Link</button>
-        <button class="action-btn" onclick="togglePublish('${p.id}',${!!p.published})">${p.published?'Unpublish':'Publish'}</button>
-        ${stage !== 'archived' ? `<button class="action-btn" onclick="archivePost('${p.id}')">Archive</button>` : ''}
-        <button class="action-btn delete" onclick="deletePost('${p.id}')">Delete</button>
+        ${p.isStatic 
+          ? `<button class="action-btn" onclick="window.open('/posts/${p.fileName}', '_blank')">View</button>
+             <button class="action-btn" onclick="copyPostLink('${p.slug}', true)">Copy Link</button>`
+          : `<button class="action-btn" onclick="editPost('${p.id}')">Edit</button>
+             <button class="action-btn" onclick="copyPostLink('${p.slug}')">Copy Link</button>
+             <button class="action-btn" onclick="togglePublish('${p.id}',${!!p.published})">${p.published?'Unpublish':'Publish'}</button>
+             ${stage !== 'archived' ? `<button class="action-btn" onclick="archivePost('${p.id}')">Archive</button>` : ''}
+             <button class="action-btn delete" onclick="deletePost('${p.id}')">Delete</button>`
+        }
       </td></tr>`;
   }).join('');
 }
@@ -222,9 +246,9 @@ window.savePostAndNotify = async function() {
     const rawSlug = document.getElementById('postSlug').value.trim() || title;
     const slug = rawSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || postId;
     
-    // Using unified worker endpoint and secret
-    const workerUrl = "https://blogspro-sentry-webhook.abhishek-dutta1996.workers.dev/newsletter";
-    const secret = "biltu123";
+    // Using unified worker endpoint and secret from Remote Config
+    const workerUrl = state.NEWSLETTER_CONFIG?.workerUrl || "https://blogspro-sentry-webhook.abhishek-dutta1996.workers.dev/newsletter";
+    const secret = state.NEWSLETTER_CONFIG?.secret || "biltu123";
 
     const res = await fetch(workerUrl, {
       method: "POST",
@@ -303,13 +327,15 @@ window.deletePost = deletePost;
  * Copies a post link to clipboard with automated UTM injection.
  * @param {string} slug - The post slug.
  */
-export function copyPostLink(slug) {
+export function copyPostLink(slug, isStatic = false) {
   if (!slug) {
     showToast('Cannot copy link: Slug missing.', 'error');
     return;
   }
   
-  const baseUrl = `${window.location.origin}/p/${slug}.html`;
+  const baseUrl = isStatic 
+    ? `${window.location.origin}/posts/${slug}.html`
+    : `${window.location.origin}/p/${slug}.html`;
   const trackedUrl = injectUtm(baseUrl, 'admin', 'share', 'dashboard');
   
   navigator.clipboard.writeText(trackedUrl).then(() => {

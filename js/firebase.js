@@ -1,11 +1,7 @@
-import { initializeApp, getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
 import { getRemoteConfig } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-remote-config.js";
-
 
 const firebaseConfig = {
   apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
@@ -17,18 +13,10 @@ const firebaseConfig = {
   measurementId: "G-N7TCB31MRD"
 };
 
-
 // Avoid duplicate app initialization when module is imported multiple times
-let app;
-try {
-  app = getApp();
-} catch {
-  app = initializeApp(firebaseConfig);
-}
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export { app };
 
 export const auth = getAuth(app);
-
 export const db = getFirestore(app);
-
 export const remoteConfig = getRemoteConfig(app);

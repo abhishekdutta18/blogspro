@@ -62,6 +62,11 @@ export async function loadRemoteConfig() {
       gemini:     getValue(remoteConfig, 'gemini_key').asString(),
     };
 
+    NEWSLETTER_CONFIG = {
+      url:    getValue(remoteConfig, 'newsletter_worker_url').asString(),
+      secret: getValue(remoteConfig, 'newsletter_secret').asString(),
+    };
+
     console.log('[remote-config] AI keys loaded (auto fallback mode)');
 
   } catch (err) {

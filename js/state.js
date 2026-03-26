@@ -25,6 +25,7 @@ export const state = {
   pendingWordTarget:    null,
   isSaving:            false,
   csrfToken:           '',
+  subChart:            null,
 };
 
 

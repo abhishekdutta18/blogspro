@@ -213,9 +213,15 @@ window.handleGenerateClick = () => {
     console.error('generateAIPost not loaded yet — check ai-writer.js import in main.js');
   }
 };
-window.doLogout = async () => {
+window._doLogout = async () => {
   try { await signOut(auth); } catch(_) {}
   window.location.href = 'login.html';
+};
+// Legacy/Guard bridge
+window._applyCustomWordTarget = v2ApplyCustomWC;
+window._onModelChange = (val) => {
+  const m = document.getElementById('modelArticle');
+  if (m) m.value = val;
 };
 
 // ── runCitationEngine — referenced in admin.html ─
@@ -228,7 +234,7 @@ window.runCitationEngine = async () => {
 // ── triggerPostAudit — manual audit button handler ─
 // Loads post-audit.js on demand (module is not bundled by default)
 // then calls runFullAudit('manual').
-window._triggerPostAudit = async () => {
+window.triggerPostAudit = async () => {
   const btn = document.getElementById('btnRunAudit');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading…'; }
 

@@ -57,6 +57,7 @@
       letter-spacing: 0.02em;
       background: linear-gradient(135deg, var(--gold), var(--gold2));
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
@@ -159,7 +160,7 @@
     .hero h1 em {
       font-style: italic;
       background: linear-gradient(135deg, var(--gold), var(--gold2));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
     }
     .hero-sub { font-size: 1.1rem; color: var(--muted); max-width: 48ch; margin-bottom: 3rem; line-height: 1.7; }
     .hero-actions { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
@@ -207,7 +208,7 @@
     .post-category { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 1rem; }
     .post-title { font-family: var(--serif); font-size: 1.45rem; font-weight: 600; line-height: 1.3; margin-bottom: 0.8rem; transition: color 0.2s; }
     .post-card:hover .post-title { color: var(--gold2); }
-    .post-excerpt { font-size: 0.88rem; color: var(--muted); line-height: 1.65; margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .post-excerpt { font-size: 0.88rem; color: var(--muted); line-height: 1.65; margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
     .post-meta { display: flex; align-items: center; justify-content: space-between; padding-top: 1.2rem; border-top: 1px solid var(--border); }
     .post-date { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.04em; }
     .post-read-time { font-size: 0.72rem; color: var(--gold); letter-spacing: 0.06em; }
@@ -275,7 +276,6 @@
       transition: all 0.2s;
     }
     .about-social-link:hover { border-color: var(--gold); color: var(--gold); }
-    .about-content-col {}
     .about-label {
       font-size: 0.68rem; font-weight: 600;
       letter-spacing: 0.18em; text-transform: uppercase;
@@ -440,25 +440,30 @@
 
 <!-- TICKER -->
 <div class="ticker-bar">
-  <div class="ticker-inner" id="ticker">
-    <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Compliance</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Strategy</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Regulation</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Payments</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Risk</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Digital Banking</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Open Finance</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Compliance</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Strategy</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Regulation</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Payments</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Risk</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Digital Banking</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Open Finance</span><span class="ticker-sep">·</span>
+    <div class="ticker-inner" id="ticker">
+      <!-- Live data injected via script -->
+      <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
+      <span class="ticker-tag">Compliance</span><span class="ticker-sep">·</span>
+      <span class="ticker-tag">Strategy</span><span class="ticker-sep">·</span>
+    </div>
   </div>
-</div>
+  <script>
+    async function loadTicker() {
+      const ticker = document.getElementById('ticker');
+      try {
+        const res = await fetch('/posts/ticker.json');
+        if (res.ok) {
+          const events = await res.json();
+          if (events && events.length) {
+            const html = events.map(e => `<span class="ticker-tag">${e}</span><span class="ticker-sep">·</span>`).join('');
+            ticker.innerHTML = html + html + html; // Repeat for seamless loop
+            return;
+          }
+        }
+      } catch (e) { console.warn('Ticker data not available.'); }
+    }
+    loadTicker();
+  </script>
 
 <!-- POSTS -->
 <section id="posts">
@@ -703,9 +708,27 @@
         collection(db, 'posts'),
         where('published', '==', true)
       ));
-      allPosts = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .sort((a,b) => {
+      let staticPosts = [];
+      try {
+        const resp = await fetch('/posts/index.json');
+        if (resp.ok) {
+          const staticData = await resp.json();
+          staticPosts = staticData.map(p => ({
+            id: `static-${p.slug}`,
+            ...p,
+            published: true,
+            category: 'AI Briefing',
+            createdAt: { toDate: () => new Date(p.date) },
+            isStatic: true,
+            views: 0
+          }));
+        }
+      } catch(e) { console.warn('Static index not found.'); }
+
+      allPosts = [
+        ...snap.docs.map(d => ({ id: d.id, ...d.data() })),
+        ...staticPosts
+      ].sort((a,b) => {
           const aT = a.createdAt?.toDate?.()?.getTime() || 0;
           const bT = b.createdAt?.toDate?.()?.getTime() || 0;
           return bT - aT;
@@ -794,7 +817,10 @@
   }
 
   window.openPost = async (id, slug) => {
-    // Increment view count (once per session per post)
+    if (id.startsWith('static-')) {
+      window.location.href = `/posts/${id.replace('static-', '')}.html`;
+      return;
+    }
     const key = `bp_viewed_${id}`;
     if (!sessionStorage.getItem(key)) {
       sessionStorage.setItem(key, '1');
@@ -971,18 +997,27 @@
     btn.disabled = false; btnText.style.display = 'inline'; spinner.style.display = 'none';
   };
 
-  // Format views: 1200 → "1.2k"
-  function fmtViews(n) {
-    if (!n) return '0';
-    if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
-    if (n >= 1000)    return (n/1000).toFixed(1).replace(/\.0$/,'') + 'k';
-    return String(n);
+  }
+
+  // ── Ticker ─────────────────────────────────────
+  async function loadTicker() {
+    try {
+      const resp = await fetch('/posts/ticker.json');
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && data.length) {
+          const tickerEl = document.getElementById('ticker');
+          tickerEl.innerHTML = data.map(t => `<span class="ticker-tag">${t}</span><span class="ticker-sep">·</span>`).join('') + tickerEl.innerHTML;
+        }
+      }
+    } catch(e) { console.warn('Ticker data not found.'); }
   }
 
   (async () => {
     await loadSiteSettings();
     await loadPosts();
     await loadAbout();
+    await loadTicker();
   })();
 </script>
 </body>
