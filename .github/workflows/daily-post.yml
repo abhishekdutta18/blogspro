@@ -23,7 +23,7 @@ jobs:
           node-version: '18'
 
       - name: Install Scaffolding Dependencies
-        run: npm install fast-xml-parser rss-parser @google/genai
+        run: npm install fast-xml-parser rss-parser @google/genai node-fetch@2
 
       - name: Generate AI Briefing
         env:
