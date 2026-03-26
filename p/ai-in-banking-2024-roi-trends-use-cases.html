@@ -64,7 +64,10 @@
     #progress{position:fixed;top:0;left:0;z-index:200;height:3px;background:linear-gradient(90deg,var(--gold),var(--gold2));width:0%;transition:width .1s linear;}
     nav{position:sticky;top:0;z-index:100;background:rgba(8,13,26,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:68px;}
     body.light nav{background:rgba(248,245,239,0.92);}
-    .nav-brand{font-family:var(--serif);font-size:1.5rem;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .nav-brand{font-family:var(--serif);font-size:1.5rem;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--gold2));      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+}
     .nav-right{display:flex;align-items:center;gap:1rem;}
     .back-link{font-size:.82rem;color:var(--muted);transition:color .2s;}
     .back-link:hover{color:var(--gold);}
