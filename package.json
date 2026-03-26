@@ -8,7 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@google/genai": "^0.21.0",
+    "@google/genai": "^1.46.0",
     "fast-xml-parser": "^4.4.0",
     "rss-parser": "^3.13.0"
   }
