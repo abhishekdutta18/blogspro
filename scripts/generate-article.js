@@ -3,6 +3,7 @@ const path = require("path");
 const { XMLParser } = require("fast-xml-parser");
 const RSSParser = require("rss-parser");
 const { GoogleGenAI } = require("@google/genai");
+const fetch = require("node-fetch");
 
 // Layout Template
 function getTemplate(title, excerpt, content, date, social = {}) {
