@@ -5,8 +5,9 @@
  */
 (function() {
   const SENTRY_VERSION = "10.44.0";
-  const BUNDLE_URL = `https://browser.sentry-cdn.com/${SENTRY_VERSION}/bundle.tracing.replay.min.js`;
-  const CAPTURE_CONSOLE_URL = `https://browser.sentry-cdn.com/${SENTRY_VERSION}/captureconsole.min.js`;
+  const CACHE_BUST = Date.now(); // Cache-busting timestamp
+  const BUNDLE_URL = `https://browser.sentry-cdn.com/${SENTRY_VERSION}/bundle.tracing.replay.min.js?v=${CACHE_BUST}`;
+  const CAPTURE_CONSOLE_URL = `https://browser.sentry-cdn.com/${SENTRY_VERSION}/captureconsole.min.js?v=${CACHE_BUST}`;
 
   function initSentry() {
     if (typeof Sentry === 'undefined' || !Sentry.init) {
