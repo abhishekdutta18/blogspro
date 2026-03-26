@@ -30,6 +30,12 @@ export {
   RateLimiter,
 }                                    from './utils.js';
 
+// Analytics & UTMs
+export {
+  injectUtm,
+  trackEvent,
+}                                    from './analytics.js';
+
 // App constants
 export {
   CLOUDINARY_CLOUD_NAME,

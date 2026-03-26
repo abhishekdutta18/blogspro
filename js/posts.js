@@ -4,6 +4,7 @@
 import { db }            from './config.js';
 import { sanitize, showToast, slugify, stripTags, validateImageUrl } from './config.js';
 import { state }         from './state.js';
+import { injectUtm, trackEvent } from './config.js';
 import { buildInternalLinks } from './ai-editor.js';
 import { uploadToStorage, blobUrlToFile } from './images-upload.js';
 import {
@@ -100,6 +101,7 @@ export function renderPostsTable(posts, tbodyId) {
       <td style="color:var(--muted);white-space:nowrap">${date}</td>
       <td>
         <button class="action-btn" onclick="editPost('${p.id}')">Edit</button>
+        <button class="action-btn" onclick="copyPostLink('${p.slug}')">Copy Link</button>
         <button class="action-btn" onclick="togglePublish('${p.id}',${!!p.published})">${p.published?'Unpublish':'Publish'}</button>
         ${stage !== 'archived' ? `<button class="action-btn" onclick="archivePost('${p.id}')">Archive</button>` : ''}
         <button class="action-btn delete" onclick="deletePost('${p.id}')">Delete</button>
@@ -297,3 +299,25 @@ export async function deletePost(id) {
   catch(e) { showToast('Delete failed.','error'); }
 }
 window.deletePost = deletePost;
+
+/**
+ * Copies a post link to clipboard with automated UTM injection.
+ * @param {string} slug - The post slug.
+ */
+export function copyPostLink(slug) {
+  if (!slug) {
+    showToast('Cannot copy link: Slug missing.', 'error');
+    return;
+  }
+  
+  const baseUrl = `${window.location.origin}/p/${slug}.html`;
+  const trackedUrl = injectUtm(baseUrl, 'admin', 'share', 'dashboard');
+  
+  navigator.clipboard.writeText(trackedUrl).then(() => {
+    showToast('Link copied with UTM tracking!', 'success');
+    trackEvent('share_link_copied', { slug, utm_source: 'admin' });
+  }).catch(() => {
+    showToast('Failed to copy link.', 'error');
+  });
+}
+window.copyPostLink = copyPostLink;

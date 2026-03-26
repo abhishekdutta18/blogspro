@@ -126,9 +126,9 @@ jobs:
           PR_TITLE=$(echo "$PR_JSON" | jq -r '.[0].title // empty')
 
           if [ -n "$PR_NUM" ]; then
-            MSG="🔀 PR #${PR_NUM} Merged & Deployed%0A%0A📋 ${PR_TITLE}%0A📦 ${SHORT_SHA} · ${DEPLOY_TIME}%0A🌐 https://blogspro.in"
+            MSG="🔀 PR #${PR_NUM} Merged & Deployed%0A%0A📋 ${PR_TITLE}%0A📦 ${SHORT_SHA} · ${DEPLOY_TIME}%0A🌐 https://blogspro.in/?utm_source=telegram&utm_medium=ci&utm_campaign=deploy"
           else
-            MSG="✅ BlogsPro Deployed%0A%0A📦 ${SHORT_SHA} · ${DEPLOY_TIME}%0A🌐 https://blogspro.in"
+            MSG="✅ BlogsPro Deployed%0A%0A📦 ${SHORT_SHA} · ${DEPLOY_TIME}%0A🌐 https://blogspro.in/?utm_source=telegram&utm_medium=ci&utm_campaign=deploy"
           fi
 
           # Only send if secrets are present
