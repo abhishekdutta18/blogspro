@@ -15,30 +15,8 @@
   <meta name="twitter:description" id="twDesc"  content="" />
   <link rel="canonical"           id="canonLink" href="" />
   <script type="application/ld+json" id="ldJson"></script>
-  <!-- Sentry Error Tracking -->
-  <script src="https://browser.sentry-cdn.com/10.44.0/bundle.min.js" crossorigin="anonymous"></script>
-  <script>
-    Sentry.init({
-      dsn: "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336",
-      environment: window.location.hostname === "blogspro.in" ? "production" : "development",
-      release: "blogspro@2026-03-25",
-      integrations: [ Sentry.consoleIntegration({ levels: ['error', 'warn'] }) ],
-      sampleRate: 1.0,
-      tracesSampleRate: 0.1,
-      maxBreadcrumbs: 30,
-      attachStacktrace: true,
-      ignoreErrors: [
-        "ResizeObserver loop limit exceeded",
-        "ResizeObserver loop completed with undelivered notifications",
-        "Network request failed",
-        "Failed to fetch"
-      ]
-    });
-    window.setSentryUser = function(u) { Sentry.setUser(u); };
-    window.trackEvent   = function(name, data) {
-      Sentry.addBreadcrumb({ message: name, data: data, level: "info" });
-    };
-  </script>
+  <!-- Consolidated Sentry Configuration -->
+  <script src="../js/sentry-init.js"></script>
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DED9GTRR3E');</script>
@@ -207,14 +185,7 @@
     const { getAuth, onAuthStateChanged }
       = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
 
-  const firebaseConfig = {
-    apiKey:"AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
-    authDomain:"blogspro-ai.firebaseapp.com",
-    projectId:"blogspro-ai",
-    storageBucket:"blogspro-ai.firebasestorage.app",
-    messagingSenderId:"940428277283",
-    appId:"1:940428277283:web:d3bb414f0992718ca76396"
-  };
+  import { firebaseConfig } from "../js/firebase-config.js";
 
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);

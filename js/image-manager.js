@@ -215,12 +215,20 @@ window.insertGeneratedImage = function(idx) {
   img.src   = url;
   img.style.cssText = 'max-width:100%;height:auto;margin:1rem 0;display:block;border-radius:4px';
   img.alt   = document.getElementById('imgPrompt')?.value.trim() || 'Generated image';
+
+  // FIX: Ensure editor is focused before inserting to preserve selection
+  editor.focus();
+
   // Insert at cursor position if editor is focused, else append to end
   const sel = window.getSelection();
   if (sel && sel.rangeCount > 0 && editor.contains(sel.anchorNode)) {
     const range = sel.getRangeAt(0);
     range.deleteContents();
-    range.insertNode(img);
+    const frag = document.createDocumentFragment();
+    frag.appendChild(img);
+    // Add a space or newline after image for easier typing
+    frag.appendChild(document.createTextNode('\u00A0'));
+    range.insertNode(frag);
     range.setStartAfter(img);
     range.collapse(true);
     sel.removeAllRanges();
@@ -228,6 +236,7 @@ window.insertGeneratedImage = function(idx) {
   } else {
     editor.appendChild(img);
   }
+  if (typeof window.updateWordCount === 'function') window.updateWordCount();
   showToast('Image inserted!', 'success');
 };
 
@@ -303,40 +312,48 @@ window.updateFeaturedPreview = function(url) {
 // Preview Post — opens post.html in new tab
 // ─────────────────────────────────────────────
 window.previewPost = function() {
-  // Use already-imported state (no async import — preserves user gesture for window.open)
-  if (state.editingPostId) {
-    window.open(`/post.html?id=${state.editingPostId}`, '_blank');
-    return;
-  }
-  // Not saved yet — build a live preview blob
   const title   = document.getElementById('postTitle')?.value   || '(Draft)';
   const content = document.getElementById('editor')?.innerHTML  || '';
   const image   = document.getElementById('postImage')?.value   || '';
   const excerpt = document.getElementById('postExcerpt')?.value || '';
+
+  // FEATURE 10: Always use Live Blob Preview for instant feedback with premium dark theme
   const html = `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>${title}</title>
+<html lang="en"><head><meta charset="UTF-8"><title>Preview: ${title}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body{font-family:Georgia,serif;max-width:760px;margin:0 auto;padding:2rem;background:#f9f7f2;color:#1a1a1a;line-height:1.75}
-  h1{font-size:2rem;margin-bottom:0.5rem}
-  h2{font-size:1.4rem;margin-top:2rem;color:#2d2d2d}
-  h3{font-size:1.1rem;color:#444}
-  img{max-width:100%;border-radius:6px;margin:1rem 0}
-  blockquote{border-left:3px solid #c9a84c;margin:1rem 0;padding:0.5rem 1rem;background:#fffbe6}
-  a{color:#c9a84c}
-  .meta{color:#888;font-size:0.85rem;margin-bottom:1.5rem}
-  .featured{width:100%;max-height:400px;object-fit:cover;border-radius:8px;margin-bottom:1.5rem}
+  :root { --gold: #c9a84c; --navy: #080d1a; --border: rgba(255,255,255,0.1); }
+  body{font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:800px;margin:0 auto;padding:3rem 1.5rem;background:var(--navy);color:#f5f0e8;line-height:1.7}
+  h1{font-family:Georgia,serif;font-size:2.5rem;margin-bottom:0.5rem;color:#fff}
+  h2{font-family:Georgia,serif;font-size:1.8rem;margin-top:2.5rem;color:var(--gold);border-bottom:1px solid var(--border);padding-bottom:0.5rem}
+  h3{font-family:Georgia,serif;font-size:1.3rem;color:#fff;margin-top:1.5rem}
+  img{max-width:100%;border-radius:8px;margin:1.5rem 0;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+  blockquote{border-left:4px solid var(--gold);margin:1.5rem 0;padding:1rem 1.5rem;background:rgba(201,168,76,0.05);font-style:italic;color:#e2c97e}
+  a{color:var(--gold);text-decoration:underline}
+  table{width:100%;border-collapse:collapse;margin:1.5rem 0;background:rgba(255,255,255,0.03);border:1px solid var(--border)}
+  th,td{border:1px solid var(--border);padding:12px;text-align:left}
+  th{background:rgba(201,168,76,0.1);color:var(--gold);font-weight:700}
+  .meta{color:#8896b3;font-size:0.9rem;margin-bottom:2rem;text-transform:uppercase;letter-spacing:0.1em}
+  .featured{width:100%;max-height:450px;object-fit:cover;border-radius:10px;margin-bottom:2rem}
+  .excerpt{font-size:1.2rem;color:#c9d1d9;margin-bottom:2.5rem;line-height:1.6;font-style:italic;opacity:0.9}
+  .bp-references-block{margin-top:4rem;padding:2rem;background:rgba(0,0,0,0.2);border-radius:8px;border:1px solid var(--border);border-left:4px solid var(--gold)}
+  .bp-references-block h2{margin-top:0;border:none}
 </style></head><body>
+<div class="meta">BlogsPro Draft Preview</div>
 <h1>${title}</h1>
-<div class="meta">Draft Preview</div>
 ${image ? `<img class="featured" src="${image}" alt="${title}">` : ''}
-${excerpt ? `<p><em>${excerpt}</em></p>` : ''}
-${content}
+${excerpt ? `<div class="excerpt">${excerpt}</div>` : ''}
+<div class="content">${content}</div>
+<div style="margin-top:5rem;padding-top:2rem;border-top:1px solid var(--border);text-align:center;font-size:0.8rem;color:#8896b3">
+  End of Preview — This post is not yet published.
+</div>
 </body></html>`;
+
   const blob = new Blob([html], { type: 'text/html' });
   const url  = URL.createObjectURL(blob);
   const w    = window.open(url, '_blank');
-  if (w) setTimeout(() => URL.revokeObjectURL(url), 8000);
-  showToast('Preview opened in new tab!', 'success');
+  if (w) setTimeout(() => URL.revokeObjectURL(url), 15000);
+  showToast('Live preview generated!', 'success');
 };
 
 

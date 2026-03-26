@@ -9,15 +9,7 @@
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
     const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
     
-    const firebaseConfig = {
-      apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
-      authDomain: "blogspro-ai.firebaseapp.com",
-      projectId: "blogspro-ai",
-      storageBucket: "blogspro-ai.firebasestorage.app",
-      messagingSenderId: "940428277283",
-      appId: "1:940428277283:web:d3bb414f0992718ca76396",
-      measurementId: "G-N7TCB31MRD"
-    };
+    const { firebaseConfig } = await import('./js/firebase-config.js');
     
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);

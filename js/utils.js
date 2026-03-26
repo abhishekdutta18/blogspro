@@ -18,11 +18,34 @@ export function cleanEditorHTML(html) {
 // ── sanitize ─────────────────────────────────
 // Sanitizes HTML using DOMPurify to remove XSS risks.
 // Requires DOMPurify to be loaded globally.
+/**
+ * Custom Sentry event tracker for manual action logging
+ * @param {string} label - Human-readable name of the action (e.g., 'saved-post')
+ * @param {object} data - Optional metadata to include
+ */
+export function trackAction(label, data = {}) {
+  try {
+    if (window.Sentry) {
+      window.Sentry.addBreadcrumb({
+        category: 'ui.action',
+        message: label,
+        level: 'info',
+        data: { ...data, timestamp: new Date().toISOString() }
+      });
+      console.log(`[Sentry] Action tracked: ${label}`, data);
+    } else {
+      console.warn(`[Sentry] Mock-tracking (Sentry not loaded): ${label}`, data);
+    }
+  } catch (err) {
+    console.error('[Sentry] trackAction failed:', err);
+  }
+}
+
 export function sanitize(html) {
   if (!html) return '';
   // Use DOMPurify if available (loaded in admin.html), fall back to regex for other pages
   if (typeof DOMPurify !== 'undefined') {
-    return DOMPurify.sanitize(html, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'pre', 'code', 'div', 'span'], ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class'] });
+    return DOMPurify.sanitize(html, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'pre', 'code', 'div', 'span', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'style'] });
   }
   // Fallback for pages without DOMPurify
   html = html.replace(/<(script|style|iframe|object|embed|form)[^>]*>[\s\S]*?<\/\1>/gi, '');

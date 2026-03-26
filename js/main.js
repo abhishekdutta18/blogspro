@@ -71,3 +71,24 @@ editor?.addEventListener("click", (e) => {
   const img = e.target.closest("img");
   if (!img) return;
 });
+
+// ── Global Sentry Button Tracking ─────────────────────────────────────
+import { trackAction } from "./utils.js";
+
+document.addEventListener("click", (e) => {
+  const target = e.target.closest("button, [data-sentry-label], .v2-btn-top, .v2-btn-accent");
+  if (!target) return;
+
+  const label = target.getAttribute("data-sentry-label") || 
+                target.innerText.trim().slice(0, 30) || 
+                target.id || 
+                "unnamed-button";
+
+  const context = {
+    id: target.id,
+    classes: target.className,
+    tag: target.tagName.toLowerCase()
+  };
+
+  trackAction(`click:${label}`, context);
+}, true); // Use capture phase to ensure we catch it before other handlers might stop propagation

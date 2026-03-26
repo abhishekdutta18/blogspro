@@ -1,30 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Sentry Error Tracking -->
-  <script src="https://browser.sentry-cdn.com/10.44.0/bundle.min.js" crossorigin="anonymous"></script>
-  <script>
-    Sentry.init({
-      dsn: "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336",
-      environment: window.location.hostname === "blogspro.in" ? "production" : "development",
-      release: "blogspro@2026-03-25",
-      integrations: [ Sentry.consoleIntegration({ levels: ['error', 'warn'] }) ],
-      sampleRate: 1.0,
-      tracesSampleRate: 0.1,
-      maxBreadcrumbs: 30,
-      attachStacktrace: true,
-      ignoreErrors: [
-        "ResizeObserver loop limit exceeded",
-        "ResizeObserver loop completed with undelivered notifications",
-        "Network request failed",
-        "Failed to fetch"
-      ]
-    });
-    window.setSentryUser = function(u) { Sentry.setUser(u); };
-    window.trackEvent   = function(name, data) {
-      Sentry.addBreadcrumb({ message: name, data: data, level: "info" });
-    };
-  </script>
+  <!-- Consolidated Sentry Configuration -->
+  <script src="js/sentry-init.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Account — BlogsPro</title>
@@ -230,8 +208,9 @@
           <span class="panel-toggle open" id="toggle-profile">▼</span>
         </div>
         <div class="panel-body open" id="body-profile">
-          <div class="success-msg" id="profileSuccess"></div>
-          <div class="error-msg"   id="profileError"></div>
+          <form id="profileForm" method="POST" onsubmit="saveProfile(); return false;">
+            <div class="success-msg" id="profileSuccess"></div>
+            <div class="error-msg"   id="profileError"></div>
  
           <div class="photo-preview">
             <div class="preview-placeholder" id="photoPlaceholder">🖼</div>
@@ -255,10 +234,11 @@
             <label class="form-label">Bio</label>
             <textarea class="form-textarea" id="inputBio" placeholder="A short bio about yourself…"></textarea>
           </div>
-          <button class="btn-save" id="btnSaveProfile" onclick="saveProfile()">
-            <span>Save Profile</span>
-            <div class="loading-ring" id="profileRing"></div>
-          </button>
+            <button class="btn-save" id="btnSaveProfile" type="submit">
+              <span>Save Profile</span>
+              <div class="loading-ring" id="profileRing"></div>
+            </button>
+          </form>
         </div>
       </div>
  
@@ -269,17 +249,19 @@
           <span class="panel-toggle" id="toggle-email">▼</span>
         </div>
         <div class="panel-body" id="body-email">
-          <div class="success-msg" id="emailSuccess"></div>
-          <div class="error-msg"   id="emailError"></div>
+          <form id="emailForm" method="POST" onsubmit="saveEmail(); return false;">
+            <div class="success-msg" id="emailSuccess"></div>
+            <div class="error-msg"   id="emailError"></div>
           <div class="form-row">
             <label class="form-label">New Email Address</label>
             <input class="form-input" type="email" id="inputEmail" placeholder="new@email.com" />
             <p class="form-hint">You'll need to re-authenticate if you haven't logged in recently.</p>
           </div>
-          <button class="btn-save" id="btnSaveEmail" onclick="saveEmail()">
-            <span>Update Email</span>
-            <div class="loading-ring" id="emailRing"></div>
-          </button>
+            <button class="btn-save" id="btnSaveEmail" type="submit">
+              <span>Update Email</span>
+              <div class="loading-ring" id="emailRing"></div>
+            </button>
+          </form>
         </div>
       </div>
  
@@ -290,8 +272,9 @@
           <span class="panel-toggle" id="toggle-password">▼</span>
         </div>
         <div class="panel-body" id="body-password">
-          <div class="success-msg" id="passwordSuccess"></div>
-          <div class="error-msg"   id="passwordError"></div>
+          <form id="passwordForm" method="POST" onsubmit="savePassword(); return false;">
+            <div class="success-msg" id="passwordSuccess"></div>
+            <div class="error-msg"   id="passwordError"></div>
           <div class="form-row">
             <label class="form-label">New Password</label>
             <input class="form-input" type="password" id="inputPass1" placeholder="Min. 6 characters" />
@@ -300,10 +283,11 @@
             <label class="form-label">Confirm New Password</label>
             <input class="form-input" type="password" id="inputPass2" placeholder="Repeat password" />
           </div>
-          <button class="btn-save" id="btnSavePass" onclick="savePassword()">
-            <span>Change Password</span>
-            <div class="loading-ring" id="passRing"></div>
-          </button>
+            <button class="btn-save" id="btnSavePass" type="submit">
+              <span>Change Password</span>
+              <div class="loading-ring" id="passRing"></div>
+            </button>
+          </form>
         </div>
       </div>
  
@@ -358,15 +342,7 @@
   import {
     getFirestore, doc, getDoc, updateDoc, deleteDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
- 
-  const firebaseConfig = {
-    apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
-    authDomain: "blogspro-ai.firebaseapp.com",
-    projectId: "blogspro-ai",
-    storageBucket: "blogspro-ai.firebasestorage.app",
-    messagingSenderId: "940428277283",
-    appId: "1:940428277283:web:d3bb414f0992718ca76396"
-  };
+  import { firebaseConfig } from "./js/firebase-config.js";
  
   const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);

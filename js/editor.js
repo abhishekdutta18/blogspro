@@ -345,22 +345,56 @@ export function removeImgToolbar() {
 
 
 /* =========================================
-   INSERT IMAGE
+   INSERT IMAGE — Cursor-aware placement
 ========================================= */
 
 export function insertImage(url) {
+  if (!url) return;
+  const ed = document.getElementById("editor");
+  if (!ed) return;
 
   const img = document.createElement("img");
-
   img.src = url;
-
   img.style.maxWidth = "100%";
-
   img.style.margin = "10px 0";
+  img.style.display = "block"; // Ensures it starts on its own line
 
-  editor.appendChild(img);
+  const sel = window.getSelection();
+  if (sel.rangeCount) {
+    const range = sel.getRangeAt(0);
+    // Only insert at cursor if the selection is actually inside the editor
+    if (ed.contains(range.commonAncestorContainer)) {
+      range.deleteContents();
+      range.insertNode(img);
+      // Move cursor after the injected image
+      range.setStartAfter(img);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } else {
+      ed.focus();
+      ed.appendChild(img);
+    }
+  } else {
+    ed.appendChild(img);
+  }
 
+  saveHistory();
+  updateWordCount();
 }
+
+window.deleteSelectedImage = function() {
+  if (_selectedImg) {
+    _selectedImg.remove();
+    _selectedImg = null;
+    removeImgToolbar();
+    saveHistory();
+    updateWordCount();
+    import('./config.js').then(({ showToast }) => showToast('Image removed.', 'info'));
+  } else {
+    import('./config.js').then(({ showToast }) => showToast('Select an image first.', 'info'));
+  }
+};
 
 
 
