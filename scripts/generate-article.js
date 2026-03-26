@@ -195,32 +195,40 @@ async function fetchWSJRSS() {
 }
 
 async function fetchUpstoxData() {
-    console.log("🇮🇳 Fetching Upstox Live Market Data...");
+    console.log("🇮🇳 Fetching Upstox Live Market Data (Indices + Top 5)...");
     const token = process.env.UPSTOX_ACCESS_TOKEN;
     if (!token) {
         console.warn("⚠️ UPSTOX_ACCESS_TOKEN missing, skipping Upstox data.");
         return "Upstox: Not configured.";
     }
     try {
-        // Fetch NIFTY 50 and BANK NIFTY
-        const symbols = "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank";
+        // NIFTY 50, BANK NIFTY, RELIANCE, HDFCBANK, ICICIBANK, INFY, TCS
+        const symbols = [
+            "NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank",
+            "NSE_EQ|INE002A01018", // RELIANCE
+            "NSE_EQ|INE040A01034", // HDFCBANK
+            "NSE_EQ|INE090A01021", // ICICIBANK
+            "NSE_EQ|INE009A01021", // INFY
+            "NSE_EQ|INE467B01029"  // TCS
+        ].join(',');
+        
         const url = `https://api.upstox.com/v2/market-quote/quotes?symbol=${encodeURIComponent(symbols)}`;
         const res = await fetch(url, {
-            headers: {
-                "Accept": "application/json",
-                "Authorization": `Bearer ${token}`
-            }
+            headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` }
         });
         const data = await res.json();
         if (data.status === "success" && data.data) {
-            const nifty = data.data["NSE_INDEX:Nifty 50"]?.last_price || "N/A";
-            const banknifty = data.data["NSE_INDEX:Nifty Bank"]?.last_price || "N/A";
-            return `Upstox India: NIFTY 50 @ ${nifty} | BANK NIFTY @ ${banknifty}`;
+            const d = data.data;
+            const getLtp = (s) => d[s]?.last_price || "N/A";
+            return {
+                summary: `NIFTY: ${getLtp("NSE_INDEX:Nifty 50")} | BANK NIFTY: ${getLtp("NSE_INDEX:Nifty Bank")} | REL: ${getLtp("NSE_EQ:RELIANCE")} | HDFC: ${getLtp("NSE_EQ:HDFCBANK")}`,
+                raw: d
+            };
         }
-        return "Upstox: Data error.";
+        return { summary: "Upstox: Data error.", raw: {} };
     } catch (e) {
         console.error("Upstox fetch fail:", e.message);
-        return "Upstox: Unavailable.";
+        return { summary: "Upstox: Unavailable.", raw: {} };
     }
 }
 
@@ -351,23 +359,21 @@ NEWS: ${news}
 WSJ: ${wsj}
 RBI (INDIA): ${rbi}
 SEBI (INDIA): ${sebi}
-UPSTOX (LIVE): ${upstox}
+UPSTOX (LIVE): ${upstox.summary}
 `;
-
-        const postsDir = path.join(__dirname, "../posts");
-        if (!fs.existsSync(postsDir)) fs.mkdirSync(postsDir, { recursive: true });
-        fs.writeFileSync(path.join(postsDir, "ticker.json"), JSON.stringify(forex.raw));
 
         const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const system = "You are an elite Indo-Global Financial Analyst for blogspro.in. Synthesize Global Macro events with Indian Regulatory (RBI/SEBI) context. Write raw HTML briefings (no ```html).";
+        const system = `You are an elite Indo-Global Financial Analyst for blogspro.in. 
+        CRITICAL TASK: Correlate Global Macro (WSJ/Forex) with Indian Regulatory (RBI/SEBI) updates and their specific impact on NSE/BSE indices/stocks provided in Upstox data.
+        Write raw HTML briefings (no \`\`\`html). Use <h3> for section headers, <ul> for key takeaways, and ensure a "Market Outlook" section at the end.`;
         
-        const result = await model.generateContent(`${system}\n\nDATA: ${liveDataBlock}`);
+        const result = await model.generateContent(`${system}\n\nDATA: ${liveDataBlock}\n\nRAW_UPSTOX_JSON: ${JSON.stringify(upstox.raw)}`);
         let htmlSnippet = result.response.text();
 
         const audit = await auditBriefing(model, htmlSnippet, liveDataBlock);
         if (audit.startsWith("FAIL")) {
-            const fix = await model.generateContent(`${system}\n\nAudit failed: ${audit}. Rewrite: ${liveDataBlock}`);
+            const fix = await model.generateContent(`${system}\n\nAudit failed: ${audit}. Rewrite: ${liveDataBlock}\n\nRAW_UPSTOX_JSON: ${JSON.stringify(upstox.raw)}`);
             htmlSnippet = fix.response.text();
         }
 
@@ -393,7 +399,9 @@ UPSTOX (LIVE): ${upstox}
             slug: title.toLowerCase().replace(/ /g, '-'), 
             date: today, 
             fileName,
-            category: kit.category || "Macro"
+            category: kit.category || "Macro",
+            rbi: rbi.substring(0, 200), // Store snippets for frontend policy tracker
+            sebi: sebi.substring(0, 200)
         });
         fs.writeFileSync(indexPath, JSON.stringify(index.slice(0, 30), null, 2));
 

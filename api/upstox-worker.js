@@ -23,7 +23,12 @@ export default {
 
     // 2. Fetch Market Quotes
     if (url.pathname === "/quotes") {
-      const symbols = url.searchParams.get("symbols") || "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank";
+      const defaultSymbols = [
+        "NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank",
+        "NSE_EQ|RELIANCE", "NSE_EQ|HDFCBANK", "NSE_EQ|ICICIBANK", "NSE_EQ|INFY", "NSE_EQ|TCS"
+      ].join(',');
+      
+      const symbols = url.searchParams.get("symbols") || defaultSymbols;
       const upstoxUrl = `https://api.upstox.com/v2/market-quote/quotes?symbol=${encodeURIComponent(symbols)}`;
 
       try {

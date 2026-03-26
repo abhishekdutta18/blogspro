@@ -473,35 +473,36 @@
 <section class="reveal" id="tvHubContainer">
   <div class="section-header">
     <h2 class="section-title">Market <em>Intelligence</em></h2>
-  <div id="tvHubContent" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
-    <!-- Upstox Terminal (New) -->
-    <div class="glass-card terminal-card" style="padding: 1.5rem; border-left: 4px solid var(--gold);">
+  <div id="tvHubContent" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+    <!-- Upstox Terminal (Expanded) -->
+    <div class="glass-card terminal-card" style="padding: 1.25rem; border-left: 4px solid var(--gold);">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h3 style="font-family: var(--serif); font-size: 1.2rem; color: var(--gold);">BlogsPro Terminal</h3>
-        <span id="terminalStatus" style="font-size: 0.65rem; color: #4ade80; text-transform: uppercase; letter-spacing: 0.1em;">● Live</span>
+        <h3 style="font-family: var(--serif); font-size: 1.1rem; color: var(--gold);">Live Terminal</h3>
+        <span id="terminalStatus" style="font-size: 0.6rem; color: #4ade80; text-transform: uppercase;">● Active</span>
       </div>
-      <div id="upstoxTerminal" style="display: flex; flex-direction: column; gap: 1rem;">
-        <div class="terminal-item" style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 0.9rem; font-weight: 500;">NIFTY 50</span>
-          <div style="text-align: right;">
-            <div id="niftyLtp" style="font-size: 1.2rem; font-weight: 700; font-family: monospace;">—</div>
-            <div id="niftyChg" style="font-size: 0.75rem; color: var(--muted);">-- (--%)</div>
-          </div>
-        </div>
-        <div class="terminal-item" style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 0.9rem; font-weight: 500;">BANK NIFTY</span>
-          <div style="text-align: right;">
-            <div id="bankNiftyLtp" style="font-size: 1.2rem; font-weight: 700; font-family: monospace;">—</div>
-            <div id="bankNiftyChg" style="font-size: 0.75rem; color: var(--muted);">-- (--%)</div>
-          </div>
-        </div>
-      </div>
-      <div style="margin-top: 1.5rem; font-size: 0.65rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 0.8rem;">
-        Source: Upstox API • High Fidelity Indo-Global Data
+      <div id="upstoxTerminal" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div id="terminal-indices" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);"></div>
+        <div id="terminal-stocks" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
       </div>
     </div>
-    <!-- TradingView Heatmap (Pre-existing/Placeholder) -->
-    <div id="tvHeatmap" class="glass-card" style="min-height: 200px;"></div>
+
+    <!-- Policy Tracker (New) -->
+    <div class="glass-card" style="padding: 1.25rem; border-left: 4px solid #60a5fa;">
+      <h3 style="font-family: var(--serif); font-size: 1.1rem; color: #60a5fa; margin-bottom: 1rem;">Policy & Regulation</h3>
+      <div id="policyTracker" style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.85rem;">
+        <div class="policy-item">
+          <strong style="color:var(--gold); display:block; margin-bottom: 0.2rem;">RBI (Reserve Bank)</strong>
+          <p id="rbiSnippet" style="margin:0; color:var(--muted); line-height:1.4;">Fetching latest updates...</p>
+        </div>
+        <div class="policy-item">
+          <strong style="color:var(--gold); display:block; margin-bottom: 0.2rem;">SEBI (Markets Regulator)</strong>
+          <p id="sebiSnippet" style="margin:0; color:var(--muted); line-height:1.4;">Fetching latest updates...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Market Heatmap (Legacy) -->
+    <div id="tvHeatmap" class="glass-card" style="min-height: 250px;"></div>
   </div>
 
 <!-- POSTS -->
@@ -1099,6 +1100,9 @@
     window.loadPosts = loadPosts; // Expose globally for any inline calls
     await loadSiteSettings();
     await loadPosts();
+    if (state.allPosts && state.allPosts.length > 0) {
+      hydratePolicy(state.allPosts[0]);
+    }
     await loadAbout();
     // Intersection Observer for Reveal & Lazy-loading
     const observer = new IntersectionObserver((entries) => {
@@ -1180,50 +1184,71 @@
 
   // ── Upstox Live Terminal Polling ──
   async function pollUpstox() {
-    const niftyLtp = document.getElementById('niftyLtp');
-    const niftyChg = document.getElementById('niftyChg');
-    const bankNiftyLtp = document.getElementById('bankNiftyLtp');
-    const bankNiftyChg = document.getElementById('bankNiftyChg');
+    const indicesBox = document.getElementById('terminal-indices');
+    const stocksBox = document.getElementById('terminal-stocks');
     const status = document.getElementById('terminalStatus');
 
-    if (!niftyLtp || !bankNiftyLtp) return; // Guard against missing elements
+    if (!indicesBox || !stocksBox) return;
 
     try {
       const res = await fetch('https://blogspro-upstox.abhishek-dutta1996.workers.dev/quotes');
-      if (!res.ok) throw new Error('Proxy error');
       const data = await res.json();
       
       if (data.status === 'success' && data.data) {
-        const n = data.data['NSE_INDEX:Nifty 50'];
-        const b = data.data['NSE_INDEX:Nifty Bank'];
+        const d = data.data;
+        
+        // Indices
+        const nifty = d['NSE_INDEX:Nifty 50'];
+        const bank = d['NSE_INDEX:Nifty Bank'];
+        indicesBox.innerHTML = `
+          <div style="text-align:center">
+            <small style="display:block;color:var(--muted)">NIFTY 50</small>
+            <b style="font-family:monospace">${nifty?.last_price.toLocaleString('en-IN') || '—'}</b>
+          </div>
+          <div style="text-align:center">
+            <small style="display:block;color:var(--muted)">BANK NIFTY</small>
+            <b style="font-family:monospace">${bank?.last_price.toLocaleString('en-IN') || '—'}</b>
+          </div>
+        `;
 
-        if (n && niftyLtp && niftyChg) {
-          niftyLtp.textContent = n.last_price.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-          const chg = n.last_price - (n.average_price || n.last_price); 
-          niftyChg.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}`;
-          niftyChg.className = chg >= 0 ? 'price-up' : 'price-down';
-        }
-
-        if (b && bankNiftyLtp && bankNiftyChg) {
-          bankNiftyLtp.textContent = b.last_price.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-          const chg = b.last_price - (b.average_price || b.last_price);
-          bankNiftyChg.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}`;
-          bankNiftyChg.className = chg >= 0 ? 'price-up' : 'price-down';
-        }
+        // Stocks
+        const symbols = ["RELIANCE", "HDFCBANK", "ICICIBANK", "INFY", "TCS"];
+        stocksBox.innerHTML = symbols.map(s => {
+          const item = d[`NSE_EQ:${s}`];
+          if (!item) return '';
+          const chg = item.last_price - (item.average_price || item.last_price);
+          return `
+            <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
+              <span>${s}</span>
+              <span class="${chg >= 0 ? 'price-up' : 'price-down'}">
+                ${item.last_price.toLocaleString('en-IN')} 
+                <small>(${chg >= 0 ? '+' : ''}${chg.toFixed(1)})</small>
+              </span>
+            </div>
+          `;
+        }).join('');
         
         if (status) status.style.color = '#4ade80';
       }
     } catch (e) {
-      console.warn('Upstox polling failed:', e.message);
       if (status) status.style.color = '#f87171';
     }
+  }
+
+  // ── Policy Tracker Hydration ──
+  function hydratePolicy(latestPost) {
+    if (!latestPost) return;
+    const rbi = document.getElementById('rbiSnippet');
+    const sebi = document.getElementById('sebiSnippet');
+    if (rbi && latestPost.rbi) rbi.textContent = latestPost.rbi + '...';
+    if (sebi && latestPost.sebi) sebi.textContent = latestPost.sebi + '...';
   }
 
   let upstoxInterval;
   function startUpstoxPolling() {
     pollUpstox();
     if (upstoxInterval) clearInterval(upstoxInterval);
-    upstoxInterval = setInterval(pollUpstox, 20000); // Increased to 20s to be safer
+    upstoxInterval = setInterval(pollUpstox, 20000);
   }
 </script>
 </body>
