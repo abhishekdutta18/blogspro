@@ -64,7 +64,34 @@ export default {
       }
     }
 
-    // 3. Fallback: Symbol Search
+    // 3. Global Market Data (New)
+    if (url.pathname === "/global") {
+      const tickers = ["^GSPC", "^IXIC", "GC=F", "BZ=F"];
+      try {
+        const results = await Promise.all(tickers.map(ticker => 
+          fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`)
+            .then(r => r.json())
+        ));
+        
+        const summary = results.map(r => {
+          const meta = r.chart.result[0].meta;
+          return {
+            symbol: meta.symbol,
+            price: meta.regularMarketPrice,
+            prevClose: meta.chartPreviousClose,
+            change: ((meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose * 100).toFixed(2)
+          };
+        });
+
+        return new Response(JSON.stringify({ status: "success", data: summary }), {
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Access-Control-Allow-Origin": "*" } });
+      }
+    }
+
+    // 4. Fallback: Symbol Search
     if (url.pathname === "/search") {
       // Implement symbol search if needed
     }

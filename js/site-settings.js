@@ -24,6 +24,10 @@ function readLocalAudioEnabled() {
 }
 
 function updateUi() {
+  const sw = document.getElementById("siteImagesSwitch");
+  const status = document.getElementById("siteImagesStatus");
+  const hint = document.getElementById("siteImagesHint");
+  
   if (!sw || !status) return;
 
   sw.classList.toggle("on", imagesEnabled);
@@ -73,20 +77,6 @@ async function loadSetting() {
       if (typeof data.imagesEnabled === "boolean") {
         imagesEnabled = data.imagesEnabled;
         localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));
-            new TradingView.widget({
-            "autosize": true,
-            "symbol": "NIFTY", // Standard symbol for free widget
-            "interval": "D",
-            "timezone": "Etc/UTC",
-            "theme": "dark",
-            "style": "1",
-            "locale": "en",
-            "toolbar_bg": "#f1f3f6",
-            "enable_publishing": false,
-            "hide_side_toolbar": false,
-            "allow_symbol_change": true,
-            "container_id": "tradingview_adv"
-          });
       }
       if (typeof data.audioEnabled === "boolean") {
         audioEnabled = data.audioEnabled;

@@ -168,6 +168,20 @@ async function fetchNewsAPI() {
     } catch (err) { return "News: Unavailable."; }
 }
 
+async function fetchGlobalMarkets() {
+    console.log("🌎 Fetching Global Markets (Indices/Commodities)...");
+    try {
+        // Use our proxy worker to get global data
+        const res = await fetch("https://blogspro-upstox.abhishek-dutta1996.workers.dev/global");
+        const json = await res.json();
+        if (json.status === 'success') {
+            const summary = json.data.map(d => `${d.symbol}: ${d.price} (${d.change}%)`).join(' | ');
+            return { summary, raw: json.data };
+        }
+        return { summary: "Global Markets: Unavailable.", raw: [] };
+    } catch (e) { return { summary: "Global Markets: Unavailable.", raw: [] }; }
+}
+
 async function downloadRegFile(url, fileName) {
     try {
         const dest = path.join(__dirname, "../downloads", fileName);
@@ -381,21 +395,25 @@ function applyContextualLinks(content) {
 async function generateArticle() {
     console.log("🇮🇳 Starting Indo-Global Automated AI Pipeline...");
     try {
-        const [forex, news, wsj, rbi, sebi, upstox] = await Promise.all([
-            fetchForexFactory(), 
-            fetchNewsAPI(), 
-            fetchWSJRSS(),
+        const today = new Date().toISOString().split('T')[0];
+        const [forex, news, rbi, sebi, wsj, upstox, global, briefingKit] = await Promise.all([
+            fetchForexData(),
+            fetchNewsAPI(),
             fetchRBIData(),
             fetchSEBIData(),
-            fetchUpstoxData()
+            fetchWSJRSS(),
+            fetchUpstoxData(),
+            fetchGlobalMarkets(),
+            getBriefingKit(today)
         ]);
-        const liveDataBlock = `
+const liveDataBlock = `
 MARKET DATA (Indo-Global Context):
 FOREX: ${forex.text}
 NEWS: ${news}
 WSJ: ${wsj}
 RBI (INDIA): ${rbi.summary}
 SEBI (INDIA): ${sebi.summary}
+GLOBAL MARKETS: ${global.summary}
 UPSTOX (LIVE): ${upstox.summary}
 `;
 
@@ -417,7 +435,7 @@ UPSTOX (LIVE): ${upstox.summary}
         const contextHtml = applyContextualLinks(htmlSnippet);
         const social = await generateSocialKit(model, "Briefing", contextHtml);
         const engage = await generateEngagementKit(model, contextHtml);
-        const kit = { ...social, ...engage };
+        const finalKit = { ...social, ...engage };
 
         const titleMatch = contextHtml.match(/<h2[^>]*>(.*?)<\/h2>/i);
         const title = titleMatch ? titleMatch[1].trim() : `Briefing — ${new Date().toLocaleDateString()}`;
@@ -436,10 +454,11 @@ UPSTOX (LIVE): ${upstox.summary}
             slug: title.toLowerCase().replace(/ /g, '-'), 
             date: today, 
             fileName,
-            category: kit.category || "Macro",
+            category: briefingKit.category || "Macro",
             rbi: rbi.summary.substring(0, 200), 
             sebi: sebi.summary.substring(0, 200),
-            docs: [...rbi.docs, ...sebi.docs]
+            docs: [...rbi.docs, ...sebi.docs],
+            global: global.raw
         });
         fs.writeFileSync(indexPath, JSON.stringify(index.slice(0, 30), null, 2));
 

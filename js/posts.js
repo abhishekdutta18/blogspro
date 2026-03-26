@@ -28,7 +28,16 @@ export async function loadAll() {
   try {
     let snap;
     try {
-      snap = await getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(50)));
+      const timeout = new Promise(res => setTimeout(() => res('timeout'), 4000));
+      const fetchPromise = getDocs(query(collection(db,'posts'),orderBy('createdAt','desc'), limit(50)));
+      const result = await Promise.race([fetchPromise, timeout]);
+
+      if (result === 'timeout') {
+        console.warn('Dashboard posts fetch timed out.');
+        snap = { docs: [] }; // Set snap to an empty collection if timed out
+      } else {
+        snap = result;
+      }
     } catch(indexErr) {
       console.warn('Ordered query failed, falling back:', indexErr.message);
       snap = await getDocs(query(collection(db,'posts'), limit(50)));
@@ -66,9 +75,16 @@ export async function loadAll() {
     document.getElementById('statDrafts').textContent    = state.allPosts.filter(p=>!p.published).length;
 
     try {
-      const ss = await getDocs(query(collection(db,'subscribers'), limit(1000)));
-      document.getElementById('statSubs').textContent = ss.size;
-    } catch(_) { document.getElementById('statSubs').textContent = '—'; }
+      const subTimeout = new Promise(res => setTimeout(() => res('timeout'), 4000));
+      const subFetch = getDocs(collection(db, 'subscribers'));
+      const subResult = await Promise.race([subFetch, subTimeout]);
+      
+      if (subResult !== 'timeout') {
+         document.getElementById('statSubs').textContent = subResult.size;
+      } else {
+         document.getElementById('statSubs').textContent = '— (Timed out)';
+      }
+    } catch(_) { document.getElementById('statSubs').textContent = '— (Error)'; }
 
     renderPostsTable(state.allPosts.slice(0,8), 'recentPostsBody');
 
