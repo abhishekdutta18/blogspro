@@ -166,6 +166,21 @@ function onModelChange(val) {
         Global controls for website assets and AI voice summaries.
       </div>
     </div>
+
+    <!-- Financial Intelligence Status (New) -->
+    <div class="stat-card" style="margin-bottom:1.5rem; border-top: 2px solid var(--gold);">
+      <div class="saas-panel-header" style="padding-bottom:1rem">
+        <h3 style="color:var(--gold)">Financial Intelligence Hub</h3>
+        <div style="font-size:0.6rem; color:var(--muted); text-transform:uppercase">NSE • BSE • RBI • SEBI</div>
+      </div>
+      <div id="financialHealthStats" style="display:flex; flex-direction:column; gap:0.6rem; font-family:monospace; font-size:0.75rem;">
+        <div class="stat-mini">Loading health metrics...</div>
+      </div>
+      <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+        <button onclick="window.open('https://developer.upstox.com/dashboard','_blank')" class="v2-btn-top" style="flex:1; font-size:9px;">Update Access Token</button>
+        <button onclick="location.reload()" class="v2-btn-top" style="flex:1; font-size:9px;">Refresh Status</button>
+      </div>
+    </div>
     <div class="table-wrap">
       <div class="table-header"><span class="table-title">Recent Posts</span></div>
       <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Views</th><th>Date</th><th>Actions</th></tr></thead>

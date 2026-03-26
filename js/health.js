@@ -24,4 +24,42 @@ export function initHealthMonitor() {
         statusBadge.style.background = status === 'SUCCESS' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)';
         statusBadge.style.borderColor = status === 'SUCCESS' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)';
     });
+
+    // ── Financial Health Monitor ──
+    initFinancialHealth();
+}
+
+async function initFinancialHealth() {
+    const card = document.getElementById('financialHealthStats');
+    if (!card) return;
+
+    const refresh = async () => {
+        try {
+            const start = Date.now();
+            const res = await fetch('https://blogspro-upstox.abhishek-dutta1996.workers.dev/quotes');
+            const latency = Date.now() - start;
+            const data = await res.json();
+            
+            const isOk = data.status === 'success';
+            card.innerHTML = `
+                <div class="stat-mini">
+                    <span>Upstox API</span>
+                    <span style="color:${isOk ? 'var(--emerald)' : 'var(--red)'}">${isOk ? 'CONNECTED' : 'EXPIRED'}</span>
+                </div>
+                <div class="stat-mini">
+                    <span>Latency</span>
+                    <span>${latency}ms</span>
+                </div>
+                <div class="stat-mini">
+                    <span>Data Freshness</span>
+                    <span style="color:var(--gold)">LIVE</span>
+                </div>
+            `;
+        } catch (e) {
+            card.innerHTML = '<div style="color:var(--red);font-size:0.7rem">Financial Proxy Offline</div>';
+        }
+    };
+
+    refresh();
+    setInterval(refresh, 60000); // Check every minute in admin
 }
