@@ -168,22 +168,59 @@ async function fetchNewsAPI() {
     } catch (err) { return "News: Unavailable."; }
 }
 
+async function downloadRegFile(url, fileName) {
+    try {
+        const dest = path.join(__dirname, "../downloads", fileName);
+        if (fs.existsSync(dest)) return fileName; // Skip if exists
+        const res = await fetch(url);
+        const buffer = await res.buffer();
+        fs.writeFileSync(dest, buffer);
+        console.log(`✅ Downloaded: ${fileName}`);
+        return fileName;
+    } catch (e) {
+        console.warn(`❌ Download fail (${fileName}):`, e.message);
+        return null;
+    }
+}
+
 async function fetchRBIData() {
-    console.log("🇮🇳 Fetching RBI Press Releases...");
+    console.log("🇮🇳 Fetching RBI Press Releases & Docs...");
     try {
         const parser = new RSSParser();
         const feed = await parser.parseURL("https://www.rbi.org.in/pressreleases_rss.xml");
-        return `RBI Press Releases: ${feed.items.slice(0, 3).map(i => i.title).join(' | ')}`;
-    } catch (e) { return "RBI: Unavailable."; }
+        const items = feed.items.slice(0, 3);
+        const docs = [];
+        for (const item of items) {
+            // Basic scrape for PDF link (ID starts with APDF_)
+            const html = await fetch(item.link).then(r => r.text());
+            const pdfMatch = html.match(/href="([^"]+\.PDF)"/i);
+            if (pdfMatch) {
+                const pdfUrl = pdfMatch[1].startsWith('http') ? pdfMatch[1] : `https://www.rbi.org.in/${pdfMatch[1]}`;
+                const local = await downloadRegFile(pdfUrl, `rbi-${Date.now()}-${path.basename(pdfUrl)}`);
+                if (local) docs.push({ title: item.title, url: item.link, pdf: local });
+            }
+        }
+        return { summary: `RBI: ${items.map(i => i.title).join(' | ')}`, docs };
+    } catch (e) { return { summary: "RBI: Unavailable.", docs: [] }; }
 }
 
 async function fetchSEBIData() {
-    console.log("🇮🇳 Fetching SEBI Circulars...");
+    console.log("🇮🇳 Fetching SEBI Circulars & Docs...");
     try {
         const parser = new RSSParser();
-        const feed = await parser.parseURL("https://www.sebi.gov.in/sebi_rss.xml");
-        return `SEBI Updates: ${feed.items.slice(0, 3).map(i => i.title).join(' | ')}`;
-    } catch (e) { return "SEBI: Unavailable."; }
+        const feed = await parser.parseURL("https://www.sebi.gov.in/sebirss.xml");
+        const items = feed.items.slice(0, 3);
+        const docs = [];
+        for (const item of items) {
+            const html = await fetch(item.link).then(r => r.text());
+            const pdfMatch = html.match(/https:\/\/www\.sebi\.gov\.in\/sebi_data\/attachdocs\/[^"]+\.pdf/i);
+            if (pdfMatch) {
+                const local = await downloadRegFile(pdfMatch[0], `sebi-${Date.now()}-${path.basename(pdfMatch[0])}`);
+                if (local) docs.push({ title: item.title, url: item.link, pdf: local });
+            }
+        }
+        return { summary: `SEBI: ${items.map(i => i.title).join(' | ')}`, docs };
+    } catch (e) { return { summary: "SEBI: Unavailable.", docs: [] }; }
 }
 
 async function fetchWSJRSS() {
@@ -357,8 +394,8 @@ MARKET DATA (Indo-Global Context):
 FOREX: ${forex.text}
 NEWS: ${news}
 WSJ: ${wsj}
-RBI (INDIA): ${rbi}
-SEBI (INDIA): ${sebi}
+RBI (INDIA): ${rbi.summary}
+SEBI (INDIA): ${sebi.summary}
 UPSTOX (LIVE): ${upstox.summary}
 `;
 
@@ -400,8 +437,9 @@ UPSTOX (LIVE): ${upstox.summary}
             date: today, 
             fileName,
             category: kit.category || "Macro",
-            rbi: rbi.substring(0, 200), // Store snippets for frontend policy tracker
-            sebi: sebi.substring(0, 200)
+            rbi: rbi.summary.substring(0, 200), 
+            sebi: sebi.summary.substring(0, 200),
+            docs: [...rbi.docs, ...sebi.docs]
         });
         fs.writeFileSync(indexPath, JSON.stringify(index.slice(0, 30), null, 2));
 

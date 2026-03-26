@@ -24,10 +24,7 @@ function readLocalAudioEnabled() {
 }
 
 function updateUi() {
-  const sw = document.getElementById("siteImagesSwitch");
-  const status = document.getElementById("siteImagesStatus");
-  const hint = document.getElementById("siteImagesHint");
-  if (!sw || !status || !hint) return;
+  if (!sw || !status) return;
 
   sw.classList.toggle("on", imagesEnabled);
   sw.classList.toggle("disabled", saving);
@@ -45,11 +42,13 @@ function updateUi() {
       : "OFF — Audio briefings are hidden.";
   }
 
-  hint.textContent = saving
-    ? "Saving setting…"
-    : usingLocalFallback
-      ? "Using browser fallback mode. Firestore access is currently blocked."
-      : "Turns post cover and inline content images on/off for public pages.";
+  if (hint) {
+    hint.textContent = saving
+      ? "Saving setting…"
+      : usingLocalFallback
+        ? "Using browser fallback mode. Firestore access is currently blocked."
+        : "Turns post cover and inline content images on/off for public pages.";
+  }
 }
 
 async function loadSetting() {
@@ -74,6 +73,20 @@ async function loadSetting() {
       if (typeof data.imagesEnabled === "boolean") {
         imagesEnabled = data.imagesEnabled;
         localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));
+            new TradingView.widget({
+            "autosize": true,
+            "symbol": "NIFTY", // Standard symbol for free widget
+            "interval": "D",
+            "timezone": "Etc/UTC",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "toolbar_bg": "#f1f3f6",
+            "enable_publishing": false,
+            "hide_side_toolbar": false,
+            "allow_symbol_change": true,
+            "container_id": "tradingview_adv"
+          });
       }
       if (typeof data.audioEnabled === "boolean") {
         audioEnabled = data.audioEnabled;
