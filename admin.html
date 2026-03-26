@@ -34,7 +34,12 @@ function doLogout() {
 }
 // Guard functions for AI drawer — will be overridden by ai-drawer.js after module load
 function openAIDrawer(tab) {
-  if (window._openAIDrawer) window._openAIDrawer(tab);
+  if (window._openAIDrawer) {
+    window._openAIDrawer(tab);
+  } else {
+    console.warn('[BlogsPro] AI Drawer not yet initialized. Please wait.');
+    if (window.showToast) showToast('✦ Loading AI tools...', 'info');
+  }
 }
 function closeAIDrawer() {
   if (window._closeAIDrawer) window._closeAIDrawer();

@@ -234,7 +234,7 @@
   // FIX: Defer all Firebase loading until after page has painted.
   // This stops Firebase SDK from blocking FCP/LCP.
   window.addEventListener('load', async () => {
-    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
     const { getFirestore, doc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, orderBy, where, limit }
       = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
     const { getAuth, onAuthStateChanged }
@@ -242,7 +242,8 @@
 
     const { firebaseConfig } = await import("../js/firebase-config.js");
 
-  const app  = initializeApp(firebaseConfig);
+  // Avoid duplicate app initialization
+  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
   const db   = getFirestore(app);
   const auth = getAuth(app);
   let currentUser = null;
