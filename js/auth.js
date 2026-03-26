@@ -6,6 +6,7 @@ import { onAuthStateChanged, signOut }    from "https://www.gstatic.com/firebase
 import { doc, getDoc }                    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { state }                          from './state.js';
 import { loadAll }                        from './posts.js';
+import { identifyUser }                   from './analytics.js';
 
 // Sentry is loaded via admin.html CDN script + Sentry.onLoad().
 // It may not be ready when this module first executes, so we wrap
@@ -15,27 +16,12 @@ function sentryCaptureException(err) {
     window.Sentry.captureException(err);
   }
 }
-function sentrySetUser(user) {
-  if (window.Sentry?.setUser) {
-    window.Sentry.setUser(user);
-  } else {
-    // Sentry.onLoad hasn't fired yet — queue it
-    const orig = window.setSentryUser;
-    window.setSentryUser = function(u) {
-      if (orig) orig(u);
-      if (window.Sentry?.setUser) window.Sentry.setUser(u);
-    };
-    window.setSentryUser(user);
-  }
-}
+// IdentifyUser is now centralized in analytics.js
 
 // No hardcoded UIDs or emails — admin status is determined
 export function initAuth() {
   onAuthStateChanged(auth, async user => {
     if (!user) { window.location.href = 'login.html'; return; }
-
-    // Clear any previous Sentry user context on each auth state change
-    sentrySetUser(null);
 
     let isAdmin = false;
     try {
@@ -68,8 +54,8 @@ export function initAuth() {
 
     if (!isAdmin) return;
 
-    // ── Tag all future Sentry errors with this logged-in user ────────
-    sentrySetUser({ email: user.email, id: user.uid });
+    // ── Tag all future Sentry/Clarity errors/events with this logged-in user ──
+    identifyUser(user);
 
     // Generate a per-session CSRF token to protect state-changing operations
     state.csrfToken = crypto.randomUUID();
@@ -86,7 +72,7 @@ export function initAuth() {
 export function initLogout() {
   const btn = document.querySelector('.btn-logout');
   if (btn) btn.addEventListener('click', async () => {
-    sentrySetUser(null); // clear user context on logout
+    identifyUser(null); // clear user context on logout
     await signOut(auth);
     window.location.href = 'login.html';
   });

@@ -93,7 +93,12 @@
     }
     body.light nav { background: rgba(248,245,239,0.92); }
     body.light .hero::before { opacity: 0.4; }
-
+    .terminal-card {
+      background: rgba(8, 13, 26, 0.4) !important;
+    }
+    .price-up { color: #4ade80 !important; }
+    .price-down { color: #f87171 !important; }
+  </style>
     .theme-btn-nav {
       background: transparent; border: 1px solid var(--border); color: var(--muted);
       width: 32px; height: 32px; border-radius: 50%; font-size: 0.85rem;
@@ -413,6 +418,8 @@
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date()); gtag('config', 'G-DED9GTRR3E');
   </script>
+  <!-- Microsoft Clarity -->
+  <script src="js/clarity-init.js"></script>
 </head>
 <body>
 
@@ -458,10 +465,36 @@
 <section class="reveal" id="tvHubContainer">
   <div class="section-header">
     <h2 class="section-title">Market <em>Intelligence</em></h2>
-    <span class="section-link">Live Terminal</span>
+  <div id="tvHubContent" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
+    <!-- Upstox Terminal (New) -->
+    <div class="glass-card terminal-card" style="padding: 1.5rem; border-left: 4px solid var(--gold);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 style="font-family: var(--serif); font-size: 1.2rem; color: var(--gold);">BlogsPro Terminal</h3>
+        <span id="terminalStatus" style="font-size: 0.65rem; color: #4ade80; text-transform: uppercase; letter-spacing: 0.1em;">● Live</span>
+      </div>
+      <div id="upstoxTerminal" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="terminal-item" style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.9rem; font-weight: 500;">NIFTY 50</span>
+          <div style="text-align: right;">
+            <div id="niftyLtp" style="font-size: 1.2rem; font-weight: 700; font-family: monospace;">—</div>
+            <div id="niftyChg" style="font-size: 0.75rem; color: var(--muted);">-- (--%)</div>
+          </div>
+        </div>
+        <div class="terminal-item" style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.9rem; font-weight: 500;">BANK NIFTY</span>
+          <div style="text-align: right;">
+            <div id="bankNiftyLtp" style="font-size: 1.2rem; font-weight: 700; font-family: monospace;">—</div>
+            <div id="bankNiftyChg" style="font-size: 0.75rem; color: var(--muted);">-- (--%)</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 1.5rem; font-size: 0.65rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 0.8rem;">
+        Source: Upstox API • High Fidelity Indo-Global Data
+      </div>
+    </div>
+    <!-- TradingView Heatmap (Pre-existing/Placeholder) -->
+    <div id="tvHeatmap" class="glass-card" style="min-height: 200px;"></div>
   </div>
-  <!-- Content lazy-loaded via script -->
-</section>
 
 <!-- POSTS -->
   <section id="briefings">
@@ -606,6 +639,7 @@
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   import { firebaseConfig } from "./js/firebase-config.js";
+  import { identifyUser }   from "./js/analytics.js";
 
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
@@ -666,8 +700,11 @@
         <a href="register.html" class="nav-cta" style="background:transparent;border:1px solid var(--gold);color:var(--gold)!important;">Sign Up</a>
       `;
       footerLink.textContent = 'Login'; footerLink.href = 'login.html';
+      identifyUser(null);
       return;
     }
+
+    identifyUser(user);
 
     let isAdmin = false;
     try {
@@ -714,10 +751,21 @@
   // ── Load posts ─────────────────────────────────
   async function loadPosts() {
     try {
-      const snap = await getDocs(query(
+      // 4s timeout for Firestore fetch
+      const timeout = new Promise(res => setTimeout(() => res('timeout'), 4000));
+      const fetchPromise = getDocs(query(
         collection(db, 'posts'),
         where('published', '==', true)
       ));
+
+      const result = await Promise.race([fetchPromise, timeout]);
+      let docs = [];
+      if (result === 'timeout') {
+        console.warn('Firestore loadPosts timed out. Using static only.');
+      } else {
+        docs = result.docs;
+      }
+
       let staticPosts = [];
       try {
         const resp = await fetch('/posts/index.json');
@@ -736,7 +784,7 @@
       } catch(e) { console.warn('Static index not found.'); }
 
       allPosts = [
-        ...snap.docs.map(d => ({ id: d.id, ...d.data() })),
+        ...docs.map(d => ({ id: d.id, ...d.data() })),
         ...staticPosts
       ].sort((a,b) => {
           const aT = a.createdAt?.toDate?.()?.getTime() || 0;
@@ -969,8 +1017,22 @@
     if (localValue === 'true' || localValue === 'false') {
       imagesEnabled = localValue === 'true';
     }
+
+    // Defensive timeout (4s)
+    const timeout = new Promise(res => setTimeout(() => res('timeout'), 4000));
+
     try {
-      const snap = await getDoc(doc(db, 'site', 'settings'));
+      const result = await Promise.race([
+        getDoc(doc(db, 'site', 'settings')),
+        timeout
+      ]);
+
+      if (result === 'timeout') {
+         console.warn('Site settings fetch timed out. Using local/defaults.');
+         return;
+      }
+
+      const snap = result;
       if (snap.exists() && typeof snap.data().imagesEnabled === 'boolean') {
         imagesEnabled = snap.data().imagesEnabled;
         localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));

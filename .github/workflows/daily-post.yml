@@ -31,6 +31,7 @@ jobs:
           NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
           NEWSLETTER_WORKER_URL: ${{ secrets.NEWSLETTER_WORKER_URL }}
           NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
+          UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
         run: node scripts/generate-article.js
 
       - name: Update Sitemap

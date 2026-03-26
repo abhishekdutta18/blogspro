@@ -194,6 +194,36 @@ async function fetchWSJRSS() {
     } catch (err) { return "WSJ: Unavailable."; }
 }
 
+async function fetchUpstoxData() {
+    console.log("🇮🇳 Fetching Upstox Live Market Data...");
+    const token = process.env.UPSTOX_ACCESS_TOKEN;
+    if (!token) {
+        console.warn("⚠️ UPSTOX_ACCESS_TOKEN missing, skipping Upstox data.");
+        return "Upstox: Not configured.";
+    }
+    try {
+        // Fetch NIFTY 50 and BANK NIFTY
+        const symbols = "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank";
+        const url = `https://api.upstox.com/v2/market-quote/quotes?symbol=${encodeURIComponent(symbols)}`;
+        const res = await fetch(url, {
+            headers: {
+                "Accept": "application/json",
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        const data = await res.json();
+        if (data.status === "success" && data.data) {
+            const nifty = data.data["NSE_INDEX:Nifty 50"]?.last_price || "N/A";
+            const banknifty = data.data["NSE_INDEX:Nifty Bank"]?.last_price || "N/A";
+            return `Upstox India: NIFTY 50 @ ${nifty} | BANK NIFTY @ ${banknifty}`;
+        }
+        return "Upstox: Data error.";
+    } catch (e) {
+        console.error("Upstox fetch fail:", e.message);
+        return "Upstox: Unavailable.";
+    }
+}
+
 // QA & Kit Helpers
 async function auditBriefing(model, content, sourceData) {
     const prompt = `Fact-Check: SOURCE: ${sourceData} | CONTENT: ${content}. Return PASS or FAIL: [reason].`;
@@ -306,12 +336,13 @@ function applyContextualLinks(content) {
 async function generateArticle() {
     console.log("🇮🇳 Starting Indo-Global Automated AI Pipeline...");
     try {
-        const [forex, news, wsj, rbi, sebi] = await Promise.all([
+        const [forex, news, wsj, rbi, sebi, upstox] = await Promise.all([
             fetchForexFactory(), 
             fetchNewsAPI(), 
             fetchWSJRSS(),
             fetchRBIData(),
-            fetchSEBIData()
+            fetchSEBIData(),
+            fetchUpstoxData()
         ]);
         const liveDataBlock = `
 MARKET DATA (Indo-Global Context):
@@ -320,6 +351,7 @@ NEWS: ${news}
 WSJ: ${wsj}
 RBI (INDIA): ${rbi}
 SEBI (INDIA): ${sebi}
+UPSTOX (LIVE): ${upstox}
 `;
 
         const postsDir = path.join(__dirname, "../posts");

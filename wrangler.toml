@@ -10,3 +10,6 @@ FIREBASE_PROJECT_ID = "blogspro-ai"
 # RESEND_API_KEY - Get from https://resend.com/api-keys
 # NEWSLETTER_SECRET - Arbitrary string to authenticate frontend requests (use: openssl rand -base64 32)
 
+# blogspro-upstox configuration
+# Deploy with: wrangler deploy -c wrangler.upstox.toml (or separate file)
+# For now, adding as a secondary environment or separate config is preferred for multiple workers.
