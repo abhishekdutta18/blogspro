@@ -137,7 +137,8 @@ async function handleCallbackQuery(cq, env) {
       await editTelegramMessage(chatId, msgId, origText + `\n\n✅ <b>Resolved by ${escapeHtml(user)}</b>`, { inline_keyboard: [] }, env);
       await answerCallbackQuery(cq.id, '✅ Resolved in Sentry!', env);
     } else {
-      await answerCallbackQuery(cq.id, '❌ Failed. Check SENTRY_AUTH_TOKEN.', env);
+      await editTelegramMessage(chatId, msgId, origText + `\n\n❌ <b>Resolve failed for ${issueId}</b>`, { inline_keyboard: [] }, env);
+      await answerCallbackQuery(cq.id, '❌ Resolve failed. Check Sentry token.', env);
     }
   }
 
@@ -170,6 +171,7 @@ async function handleCallbackQuery(cq, env) {
       await editTelegramMessage(chatId, msgId, origText + `\n\n✅ <b>Approved ${role.toUpperCase()} by ${escapeHtml(user)}</b>`, { inline_keyboard: [] }, env);
       await answerCallbackQuery(cq.id, `✅ User approved as ${role}!`, env);
     } else {
+      await editTelegramMessage(chatId, msgId, origText + `\n\n❌ <b>Approval failed for ${uid}</b>`, { inline_keyboard: [] }, env);
       await answerCallbackQuery(cq.id, '❌ Approval failed. Check Firestore API Key.', env);
     }
   }
