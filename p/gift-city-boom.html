@@ -185,7 +185,7 @@
     const { getAuth, onAuthStateChanged }
       = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
 
-  import { firebaseConfig } from "../js/firebase-config.js";
+    const { firebaseConfig } = await import("./js/firebase-config.js");
 
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
