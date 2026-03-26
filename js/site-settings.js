@@ -59,6 +59,14 @@ async function loadSetting() {
   const localAudio = readLocalAudioEnabled();
   if (typeof localAudio === "boolean") audioEnabled = localAudio;
 
+  // Phase 12: UI Hardening — Prevent "Loading..." hang
+  const timeout = setTimeout(() => {
+    if (usingLocalFallback) return;
+    console.warn("loadSetting timed out, using local/defaults.");
+    usingLocalFallback = true;
+    updateUi();
+  }, 4000);
+
   try {
     const snap = await getDoc(doc(db, "site", "settings"));
     if (snap.exists()) {
@@ -81,8 +89,10 @@ async function loadSetting() {
     if (typeof localImages !== "boolean") imagesEnabled = true;
     if (typeof localAudio !== "boolean") audioEnabled = false;
     usingLocalFallback = true;
+  } finally {
+    clearTimeout(timeout);
+    updateUi();
   }
-  updateUi();
 }
 
 window.toggleSiteImages = async function toggleSiteImages() {

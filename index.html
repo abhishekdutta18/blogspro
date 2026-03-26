@@ -1093,12 +1093,13 @@
       script.onload = () => {
           new TradingView.widget({
             "autosize": true,
-            "symbol": "NSE:NIFTY",
+            "symbol": "NSE:NIFTY", // Standard for free widget
             "interval": "D",
             "timezone": "Etc/UTC",
             "theme": "dark",
             "style": "1",
             "locale": "en",
+            "toolbar_bg": "#f1f3f6",
             "enable_publishing": false,
             "hide_side_toolbar": false,
             "allow_symbol_change": true,
@@ -1112,7 +1113,7 @@
       hmScript.src = "https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js";
       hmScript.async = true;
       hmScript.innerHTML = JSON.stringify({
-        "exchanges": ["NSE"],
+        "exchanges": [],
         "dataSource": "SENSEX",
         "grouping": "sector",
         "blockSize": "market_cap",

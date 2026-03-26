@@ -46,7 +46,35 @@ export function trackEvent(eventName, params = {}) {
       level: 'info'
     });
   }
+
+  // 3. Forward to Microsoft Clarity
+  if (typeof window.clarity === 'function') {
+    window.clarity('event', eventName, params);
+  }
+}
+
+/**
+ * Identifies the user in both Sentry and Microsoft Clarity.
+ * @param {object} user - The Firebase user object or custom user data.
+ */
+export function identifyUser(user) {
+  if (!user) return;
+  const { uid, email, displayName } = user;
+
+  // Sentry
+  if (window.Sentry && typeof window.Sentry.setUser === 'function') {
+    window.Sentry.setUser({ id: uid, email, username: displayName });
+  }
+
+  // Clarity
+  if (typeof window.clarity === 'function') {
+    window.clarity('identify', email || uid, {
+      name: displayName || 'Anonymous',
+      id: uid,
+      email: email || 'none'
+    });
+  }
 }
 
 // Global exposure for non-module scripts
-window.analytics = { injectUtm, trackEvent };
+window.analytics = { injectUtm, trackEvent, identifyUser };
