@@ -146,8 +146,7 @@ async function fetchForexFactory() {
         const response = await fetch("https://nfs.forexfactory.com/ff_calendar_thisweek.xml");
         const xmlData = await response.text();
         const parser = new XMLParser();
-        const jsonObj = parser.parse(xmlData);
-        const events = jsonObj.weeklycalendar.event || [];
+        const jsonObj = parser.weeklycalendar.event || [];
         const highImpact = events.filter(e => e.impact === 'High');
         return { 
             text: `High Impact Forex: ${highImpact.slice(0, 10).map(e => `${e.event} (${e.country})`).join(', ')}`,
@@ -199,6 +198,34 @@ async function fetchWSJRSS() {
 async function auditBriefing(model, content, sourceData) {
     const prompt = `Fact-Check: SOURCE: ${sourceData} | CONTENT: ${content}. Return PASS or FAIL: [reason].`;
     const result = await model.generateContent(prompt);
+    return result.response.text();
+}
+
+async function generateArticleContentWithReliability(model, context) {
+    const prompt = `Persona: Indo-Global Financial Analyst.
+    Task: Write a "Daily Market Briefing" (HTML). 
+    Context: ${context}
+    Rules: HTML only, no <body>/<html> tags, use <section>, <h3>, <ul>. 
+    Tone: Institutional, sharp, forward-looking.`;
+    
+    // Phase 12: Reliability Router
+    let result;
+    let attempts = 0;
+    while (attempts < 3) {
+        try {
+            // Adjust temperature for retries
+            const generationConfig = attempts === 2 ? { temperature: 0.8 } : {}; // Slightly higher temp on final retry
+            result = await model.generateContent({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig });
+            break;
+        } catch (e) {
+            attempts++;
+            const retryMode = attempts === 1 ? "Standard Retry" : "Temp-Shift Retry";
+            console.warn(`Generation attempt ${attempts} failed (${retryMode})...`);
+            if (attempts === 3) throw e;
+            // Exponential backoff
+            await new Promise(r => setTimeout(r, 2000 * attempts));
+        }
+    }
     return result.response.text();
 }
 

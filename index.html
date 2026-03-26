@@ -214,6 +214,12 @@
     .post-date { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.04em; }
     .post-read-time { font-size: 0.72rem; color: var(--gold); letter-spacing: 0.06em; }
     .post-views { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 0.25rem; }
+    
+    /* ── COMPLEXITY BAR ── */
+    .complexity-wrap { margin-top: 1.5rem; }
+    .complexity-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; display: flex; justify-content: space-between; margin-bottom: 0.4rem; }
+    .complexity-bar { height: 3px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; position: relative; }
+    .complexity-fill { position: absolute; top: 0; left: 0; height: 100%; background: var(--gold); border-radius: 2px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
 
     /* ── FEATURED ── */
     .post-card.featured { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; padding: 3rem; }
@@ -444,78 +450,17 @@
 </div>
 
 <!-- TICKER TAPE (Professional TradingView Widget) -->
-<div class="ticker-bar">
-  <div class="tradingview-widget-container">
-    <div class="tradingview-widget-container__widget"></div>
-    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-    {
-      "symbols": [
-        {"proName": "FOREXCOM:SPX500", "title": "S&P 500"},
-        {"proName": "BITSTAMP:BTCUSD", "title": "Bitcoin"},
-        {"proName": "FX_IDC:INRUSD", "title": "INR/USD"},
-        {"proName": "BSE:SENSEX", "title": "SENSEX"},
-        {"proName": "NSE:NIFTY", "title": "NIFTY"}
-      ],
-      "showSymbolLogo": true,
-      "colorTheme": "dark",
-      "isTransparent": true,
-      "displayMode": "adaptive",
-      "locale": "en"
-    }
-    </script>
-  </div>
+<div class="ticker-bar" id="tvTickerContainer">
+  <!-- Lazy loaded -->
 </div>
 
 <!-- TOP MARKET INTELLIGENCE HUB -->
-<section class="reveal">
+<section class="reveal" id="tvHubContainer">
   <div class="section-header">
     <h2 class="section-title">Market <em>Intelligence</em></h2>
     <span class="section-link">Live Terminal</span>
   </div>
-  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; min-height: 500px;">
-    <!-- Advanced Chart -->
-    <div class="glass-card" style="padding: 1rem; height: 100%;">
-      <div id="tradingview_adv" style="height: 100%;"></div>
-      <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-      <script type="text/javascript">
-        new TradingView.widget({
-          "autosize": true,
-          "symbol": "NSE:NIFTY",
-          "interval": "D",
-          "timezone": "Etc/UTC",
-          "theme": "dark",
-          "style": "1",
-          "locale": "en",
-          "enable_publishing": false,
-          "hide_side_toolbar": false,
-          "allow_symbol_change": true,
-          "container_id": "tradingview_adv"
-        });
-      </script>
-    </div>
-    <!-- Heatmap -->
-    <div class="glass-card" style="padding: 1rem; overflow: hidden;">
-      <div class="tradingview-widget-container">
-        <div class="tradingview-widget-container__widget"></div>
-        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js" async>
-        {
-          "exchanges": ["NSE"],
-          "dataSource": "SENSEX",
-          "grouping": "sector",
-          "blockSize": "market_cap",
-          "blockColor": "change",
-          "locale": "en",
-          "symbolUrl": "",
-          "colorTheme": "dark",
-          "hasTopBar": false,
-          "isTransparent": true,
-          "width": "100%",
-          "height": "100%"
-        }
-        </script>
-      </div>
-    </div>
-  </div>
+  <!-- Content lazy-loaded via script -->
 </section>
 
 <!-- POSTS -->
@@ -862,6 +807,10 @@
           <span class="post-category">${category}</span>
           <h3 class="post-title">${title}</h3>
           <p class="post-excerpt">${excerpt}</p>
+          <div class="complexity-wrap">
+            <div class="complexity-label"><span>Tactical Depth</span><span>${p.complexity || 5}/10</span></div>
+            <div class="complexity-bar"><div class="complexity-fill" style="width:${(p.complexity || 5) * 10}%"></div></div>
+          </div>
           <div class="post-meta">
             <span class="post-date">${authorDateStr}</span>
             <div style="display:flex;align-items:center;gap:0.75rem">
@@ -1080,12 +1029,103 @@
     await loadSiteSettings();
     await loadPosts();
     await loadAbout();
-    // Intersection Observer for Reveal
+    // Intersection Observer for Reveal & Lazy-loading
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
+      entries.forEach(entry => { 
+        if (entry.isIntersecting) {
+            entry.target.classList.add('active');
+            if (entry.target.id === 'tvTickerContainer') initTVTicker();
+            if (entry.target.id === 'tvHubContainer') initTVHub();
+        }
+      });
     }, { threshold: 0.1 });
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    const tvTicker = document.getElementById('tvTickerContainer');
+    if (tvTicker) observer.observe(tvTicker);
+    const tvHub = document.getElementById('tvHubContainer');
+    if (tvHub) observer.observe(tvHub);
   })();
+
+  function initTVTicker() {
+      const container = document.getElementById('tvTickerContainer');
+      if (container.dataset.loaded) return;
+      container.innerHTML = `
+        <div class="tradingview-widget-container">
+          <div class="tradingview-widget-container__widget"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+          {
+            "symbols": [
+              {"proName": "FOREXCOM:SPX500", "title": "S&P 500"},
+              {"proName": "BITSTAMP:BTCUSD", "title": "Bitcoin"},
+              {"proName": "FX_IDC:INRUSD", "title": "INR/USD"},
+              {"proName": "BSE:SENSEX", "title": "SENSEX"},
+              {"proName": "NSE:NIFTY", "title": "NIFTY"}
+            ],
+            "showSymbolLogo": true,
+            "colorTheme": "dark",
+            "isTransparent": true,
+            "displayMode": "adaptive",
+            "locale": "en"
+          }
+          <\/script>
+        </div>`;
+      container.dataset.loaded = "true";
+  }
+
+  function initTVHub() {
+      const container = document.getElementById('tvHubContainer');
+      if (!container || container.dataset.loaded) return;
+      container.innerHTML = `
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; min-height: 500px;">
+          <div class="glass-card" style="padding: 1rem; height: 100%;">
+            <div id="tradingview_adv" style="height: 100%;"></div>
+          </div>
+          <div class="glass-card" style="padding: 1rem; overflow: hidden;">
+            <div id="tv-heatmap-wrap"></div>
+          </div>
+        </div>`;
+      
+      // Load TV Library then init
+      const script = document.createElement('script');
+      script.src = "https://s3.tradingview.com/tv.js";
+      script.onload = () => {
+          new TradingView.widget({
+            "autosize": true,
+            "symbol": "NSE:NIFTY",
+            "interval": "D",
+            "timezone": "Etc/UTC",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "enable_publishing": false,
+            "hide_side_toolbar": false,
+            "allow_symbol_change": true,
+            "container_id": "tradingview_adv"
+          });
+      };
+      document.head.appendChild(script);
+
+      // Load Heatmap
+      const hmScript = document.createElement('script');
+      hmScript.src = "https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js";
+      hmScript.async = true;
+      hmScript.innerHTML = JSON.stringify({
+        "exchanges": ["NSE"],
+        "dataSource": "SENSEX",
+        "grouping": "sector",
+        "blockSize": "market_cap",
+        "blockColor": "change",
+        "locale": "en",
+        "symbolUrl": "",
+        "colorTheme": "dark",
+        "hasTopBar": false,
+        "isTransparent": true,
+        "width": "100%",
+        "height": "100%"
+      });
+      document.getElementById('tv-heatmap-wrap').appendChild(hmScript);
+      container.dataset.loaded = "true";
+  }
 </script>
 </body>
 </html>

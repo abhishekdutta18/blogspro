@@ -2,12 +2,30 @@ const { XMLParser } = require("fast-xml-parser");
 const Parser = require("rss-parser");
 
 // Node 18+ has global fetch, but we'll use a wrapper for safety/logging
+// Simple deduplication helper (title similarity)
+const seenTitles = new Set();
+function isDuplicate(title) {
+    const slug = (title || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (seenTitles.has(slug)) return true;
+    seenTitles.add(slug);
+    return false;
+}
+
+// Simple sentiment score (0-10) based on keywords
+function getSentiment(text) {
+    const pos = ["growth", "surge", "approval", "success", "profit", "bullish", "innovation", "partnership", "rbi approval", "sebi"];
+    const neg = ["crash", "drop", "failure", "scam", "fraud", "penalty", "loss", "bearish", "hacked"];
+    let score = 5;
+    const lower = text.toLowerCase();
+    pos.forEach(w => { if (lower.includes(w)) score += 1; });
+    neg.forEach(w => { if (lower.includes(w)) score -= 1; });
+    return Math.max(1, Math.min(10, score));
+}
+
 async function safeFetch(url, options = {}) {
     try {
         const response = await fetch(url, options);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status} at ${url}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status} at ${url}`);
         return response;
     } catch (error) {
         console.error(`Fetch error for ${url}:`, error.message);
@@ -66,9 +84,16 @@ async function fetchNewsAPI(query = "fintech OR finance") {
     const data = await response.json();
     if (!data.articles || data.articles.length === 0) return "NEWS API: No articles found.\n";
 
-    let context = "LATEST NEWS HEADLINES:\n";
-    data.articles.forEach((article, i) => {
-        context += `${i + 1}. Source: ${article.source.name}\n   Title: ${article.title}\n   Snippet: ${article.description || "N/A"}\n`;
+    // Sort by sentiment and deduplicate
+    const processed = data.articles
+        .filter(a => !isDuplicate(a.title))
+        .map(a => ({ ...a, sentiment: getSentiment(`${a.title} ${a.description}`) }))
+        .sort((a, b) => b.sentiment - a.sentiment)
+        .slice(0, 5);
+
+    let context = "LATEST NEWS HEADLINES (SCORED BY SENTIMENT):\n";
+    processed.forEach((article, i) => {
+        context += `${i + 1}. Source: ${article.source.name} [Sentiment: ${article.sentiment}/10]\n   Title: ${article.title}\n   Snippet: ${article.description || "N/A"}\n`;
     });
     return context;
 }
@@ -84,9 +109,12 @@ async function fetchRSS(url, sourceName = "RSS Feed") {
     try {
         const feed = await parser.parseURL(url);
         let context = `PREMIUM NEWSPAPER HEADLINES (${sourceName}):\n`;
-        feed.items.slice(0, 3).forEach((item, i) => {
-            context += `${i + 1}. Title: ${item.title}\n   Snippet: ${(item.contentSnippet || "").substring(0, 200)}...\n`;
-        });
+        feed.items
+            .filter(item => !isDuplicate(item.title))
+            .slice(0, 3)
+            .forEach((item, i) => {
+                context += `${i + 1}. Title: ${item.title}\n   Snippet: ${(item.contentSnippet || "").substring(0, 200)}...\n`;
+            });
         return context;
     } catch (error) {
         console.error(`RSS Error (${sourceName}):`, error.message);
