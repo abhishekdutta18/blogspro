@@ -51,32 +51,34 @@ export async function loadRemoteConfig() {
       minimumFetchIntervalMillis: 3600000  // 1 hour cache
     };
 
-    // Phase 12: Boot Hardening — 5s timeout for remote config
-    const fetchTimer = setTimeout(() => {
-        console.warn('[remote-config] Fetch timed out. Proceeding with defaults.');
-    }, 5000);
-
+    // Phase 12: Boot Hardening — 5s strict timeout for remote config
+    const timeout = new Promise(res => setTimeout(() => res('timeout'), 5000));
     try {
-        await fetchAndActivate(remoteConfig);
-    } finally {
-        clearTimeout(fetchTimer);
+        const result = await Promise.race([fetchAndActivate(remoteConfig), timeout]);
+        if (result === 'timeout') {
+            console.warn('[remote-config] strict fetch timeout exceeded.');
+        } else {
+            console.log('[remote-config] activated successfully.');
+        }
+    } catch (e) {
+        console.warn('[remote-config] activation error:', e.message);
     }
 
     AI_KEYS = {
-      cloudflare: getValue(remoteConfig, 'cloudflare_key').asString(),
-      groq:       getValue(remoteConfig, 'groq_key').asString(),
-      openrouter: getValue(remoteConfig, 'openrouter_key').asString(),
-      together:   getValue(remoteConfig, 'together_key').asString(),
-      deepinfra:  getValue(remoteConfig, 'deepinfra_key').asString(),
-      gemini:     getValue(remoteConfig, 'gemini_key').asString(),
+      cloudflare: (remoteConfig && getValue(remoteConfig, 'cloudflare_key').asString()) || '',
+      groq:       (remoteConfig && getValue(remoteConfig, 'groq_key').asString()) || '',
+      openrouter: (remoteConfig && getValue(remoteConfig, 'openrouter_key').asString()) || '',
+      together:   (remoteConfig && getValue(remoteConfig, 'together_key').asString()) || '',
+      deepinfra:  (remoteConfig && getValue(remoteConfig, 'deepinfra_key').asString()) || '',
+      gemini:     (remoteConfig && getValue(remoteConfig, 'gemini_key').asString()) || '',
     };
 
-    NEWSLETTER_CONFIG = {
-      url:    getValue(remoteConfig, 'newsletter_worker_url').asString(),
-      secret: getValue(remoteConfig, 'newsletter_secret').asString(),
+    window.NEWSLETTER_CONFIG = {
+      url:    (remoteConfig && getValue(remoteConfig, 'newsletter_worker_url').asString()) || '',
+      secret: (remoteConfig && getValue(remoteConfig, 'newsletter_secret').asString()) || '',
     };
 
-    console.log('[remote-config] AI keys loaded (auto fallback mode)');
+    console.log('[remote-config] configuration initialized (safe mode)');
 
   } catch (err) {
     console.warn('[remote-config] Failed to load remote config:', err);
