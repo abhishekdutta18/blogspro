@@ -11,13 +11,17 @@ async function buildStaticPosts() {
   }
 
   const templatePath = path.join(__dirname, '../post.html');
+  if (!fs.existsSync(templatePath)) {
+    console.error("Template post.html not found!");
+    process.exit(1);
+  }
   let template = fs.readFileSync(templatePath, 'utf8');
 
   // Fix relative paths for files served from /p/ folder
+  // Handles href="css/...", src="js/...", import("./js/...") etc.
   template = template
-    .replace(/href="css\//g, 'href="../css/')
-    .replace(/src="js\//g, 'src="../js/')
-    .replace(/href="assets\//g, 'href="../assets/')
+    .replace(/(href|src)="(?!\/\/|http)(?!.\/)([^"]+)"/g, '$1="../$2"')
+    .replace(/import\("\.\/js\//g, 'import("../js/')
     .replace(/href="index\.html/g, 'href="../index.html')
     .replace(/href="login\.html/g, 'href="../login.html')
     .replace(/href="register\.html/g, 'href="../register.html')
@@ -61,35 +65,56 @@ async function buildStaticPosts() {
       const banner = fields.coverImage?.stringValue || 'https://blogspro.in/og-default.jpg';
       let content = fields.content?.stringValue || '';
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || docId;
+      const category = fields.category?.stringValue || 'General';
+      const author = fields.authorName?.stringValue || 'BlogsPro';
+      const dateIso = doc.createTime || new Date().toISOString();
+      const url = `https://blogspro.in/p/${slug}.html`;
 
-      // 1. Hydrate SEO Tags
-      let html = template
-        .replace(/<title>.*?<\/title>/gi, `<title>${title} — BlogsPro</title>`)
-        .replace(/<meta name="description".*?>/gi, `<meta name="description" content="${excerpt}">`);
+      // 1. Hydrate Meta Tags (Markers)
+      const metaTags = `
+  <title>${title} — BlogsPro</title>
+  <meta name="description" content="${excerpt}">
+  <meta property="og:title" content="${title} — BlogsPro">
+  <meta property="og:description" content="${excerpt}">
+  <meta property="og:image" content="${banner}">
+  <meta property="og:url" content="${url}">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${title} — BlogsPro">
+  <meta name="twitter:description" content="${excerpt}">
+  <meta name="twitter:image" content="${banner}">
+  <link rel="canonical" href="${url}">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "${title}",
+    "description": "${excerpt}",
+    "image": "${banner}",
+    "author": { "@type": "Person", "name": "${author}" },
+    "publisher": { "@type": "Organization", "name": "BlogsPro", "url": "https://blogspro.in" },
+    "datePublished": "${dateIso}",
+    "url": "${url}"
+  }
+  </script>`;
 
-      const ogTags = `
-        <!-- SSG Injected -->
-        <meta property="og:title" content="${title} — BlogsPro">
-        <meta property="og:description" content="${excerpt}">
-        <meta property="og:image" content="${banner}">
-        <meta property="og:url" content="https://blogspro.in/p/${slug}.html">
-        <meta property="og:type" content="article">
-        <meta name="twitter:card" content="summary_large_image">
-      `;
-      html = html.replace('</head>', `${ogTags}\n</head>`);
+      let html = template.replace(/<!-- SSG_META_START -->[\s\S]*?<!-- SSG_META_END -->/, `<!-- SSG_META_START -->${metaTags}\n  <!-- SSG_META_END -->`);
 
-      // 2. Inject raw content for Web Crawlers (Optional, but best for SEO)
+      // 2. Inject Static Content (Markers)
       const articleHtml = `
         <div class="article-meta-top">
-          <span class="article-cat">${fields.category?.stringValue || 'General'}</span>
+          <span class="article-cat">${category}</span>
+          <span class="article-date">${new Date(dateIso).toLocaleDateString('en-IN', {day:'numeric', month:'long', year:'numeric'})}</span>
         </div>
         <h1 class="article-title">${title}</h1>
-        <img src="${banner}" class="article-cover" alt="Cover">
-        <div class="article-body">${content}</div>
+        ${excerpt ? `<p class="article-excerpt">${excerpt}</p>` : ''}
+        ${banner ? `<img src="${banner}" class="article-cover" alt="${title}" style="width:100%; border-radius:8px; margin-bottom:2rem;">` : ''}
+        <div class="article-content">${content}</div>
       `;
-      html = html.replace('<div id="articleWrap"></div>', `<div id="articleWrap">${articleHtml}</div>`);
+      
+      html = html.replace(/<!-- SSG_CONTENT_START -->[\s\S]*?<!-- SSG_CONTENT_END -->/, `<!-- SSG_CONTENT_START -->${articleHtml}\n  <!-- SSG_CONTENT_END -->`);
 
-      // 3. Trick the SPA into running natively (keeps comments & auth live!)
+      // 3. Force the SPA to load this exact post (Hydration fix)
       html = html.replace("const id = new URLSearchParams(location.search).get('id');", `const id = "${docId}";`);
 
       const outPath = path.join(outDir, `${slug}.html`);

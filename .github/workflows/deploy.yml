@@ -174,7 +174,41 @@ jobs:
           exit 0
 
   # ══════════════════════════════════════════════════════════════════════
-  # JOB 4: notify-failure — runs ONLY if validate fails
+  # JOB 5: seo-build — generates static posts and sitemap
+  # ══════════════════════════════════════════════════════════════════════
+  seo-build:
+    name: SEO Build & Hydrate
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Static Posts
+        run: node scripts/build-static.js
+
+      - name: Generate Sitemap
+        run: node scripts/generate-sitemap.js
+
+      - name: Commit & Push Changes
+        run: |
+          git config --global user.name "BlogsPro Bot"
+          git config --global user.email "bot@blogspro.in"
+          git add p/
+          git add sitemap.xml
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: hydrate static posts and sitemap [skip ci]" && git push origin main)
+
+  # ══════════════════════════════════════════════════════════════════════
+  # JOB 6: notify-failure — runs ONLY if validate fails
   # ══════════════════════════════════════════════════════════════════════
   notify-failure:
     name: Failure Notification
