@@ -4,10 +4,12 @@
  * If the Sentry SDK is not already loaded, this script will fetch it automatically.
  */
 (function() {
-  const SENTRY_SDK_URL = "https://browser.sentry-cdn.com/10.44.0/bundle.min.js";
+  const SENTRY_VERSION = "10.44.0";
+  const BUNDLE_URL = `https://browser.sentry-cdn.com/${SENTRY_VERSION}/bundle.tracing.replay.min.js`;
+  const CAPTURE_CONSOLE_URL = `https://browser.sentry-cdn.com/${SENTRY_VERSION}/captureconsole.min.js`;
 
   function initSentry() {
-    if (typeof Sentry === 'undefined') {
+    if (typeof Sentry === 'undefined' || !Sentry.init) {
       console.error('[Sentry] SDK failed to load. Tracking unavailable.');
       return;
     }
@@ -22,26 +24,26 @@
       environment: window.location.hostname === "blogspro.in" ? "production" : "development",
       release: "blogspro@2026-03-26",
       
-      // ── PERFORMANCE (ALL FEATURES) ──────────────────────────────────
-      tracesSampleRate: 1.0,    // Capture 100% of transactions
-      profilesSampleRate: 1.0,  // Capture 100% of profiles
+      tracesSampleRate: 1.0,
+      profilesSampleRate: 1.0,
 
-      // ── ERRORS & SESSIONS ───────────────────────────────────────────
-      sampleRate: 1.0,          // Capture 100% of errors
+      sampleRate: 1.0,
       attachStacktrace: true,
       autoSessionTracking: true,
 
-      // ── REPLAYS (ALL FEATURES) ─────────────────────────────────────
-      replaysSessionSampleRate: 1.0, // Capture 100% of sessions
-      replaysOnErrorSampleRate: 1.0, // Sample 100% of errors into replays
+      replaysSessionSampleRate: 1.0,
+      replaysOnErrorSampleRate: 1.0,
 
       integrations: [
         Sentry.browserTracingIntegration(),
         Sentry.replayIntegration({
-          maskAllText: false,     // Allow text masking to be more informative
+          maskAllText: false,
           blockAllMedia: false,
         }),
-        Sentry.captureConsoleIntegration({ levels: ['error'] }),
+        // Only add captureConsoleIntegration if it was loaded successfully
+        ...(typeof Sentry.captureConsoleIntegration === 'function' 
+          ? [Sentry.captureConsoleIntegration({ levels: ['error'] })] 
+          : []),
         Sentry.httpContextIntegration(),
       ],
 
@@ -53,23 +55,33 @@
       ]
     });
 
-    // Global Helpers preserved for backward compatibility
     window.setSentryUser = function(u) { Sentry.setUser(u); };
     window.trackEvent   = function(name, data) {
       Sentry.addBreadcrumb({ message: name, data: data, level: "info" });
     };
     
-    console.log('[Sentry] Unified configuration initialized (100% sampling)');
+    console.log('[Sentry] Unified configuration initialized (Full Bundle + 100% sampling)');
   }
 
-  // Check if SDK is already loaded
+  function loadScript(url) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = url;
+      script.crossOrigin = "anonymous";
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  // Load bundles and initialize
   if (typeof Sentry === 'undefined') {
-    const script = document.createElement('script');
-    script.src = SENTRY_SDK_URL;
-    script.crossOrigin = "anonymous";
-    script.onload = initSentry;
-    script.onerror = () => console.error('[Sentry] Failed to load SDK script.');
-    document.head.appendChild(script);
+    Promise.all([
+      loadScript(BUNDLE_URL),
+      loadScript(CAPTURE_CONSOLE_URL)
+    ]).then(initSentry).catch(err => {
+      console.error('[Sentry] Failed to load one or more SDK bundles:', err);
+    });
   } else {
     initSentry();
   }
