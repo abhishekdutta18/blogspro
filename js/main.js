@@ -18,6 +18,7 @@ import { initAIWriter } from "./ai-writer.js";
 import { initAutoBlog } from "./auto-blog.js";
 import { initAIImages } from "./ai-images.js";
 import { initSiteSettings } from "./site-settings.js";
+import { initHealthMonitor } from "./health.js";
 import { initProfile } from "./profile.js";
 
 // ── Sentry is initialised in admin.html via Sentry.onLoad() — do NOT
@@ -37,6 +38,7 @@ async function boot() {
     initAutoBlog();
     initAIImages();
     initSiteSettings();
+    initHealthMonitor();
     initProfile();
     if (window.__ENABLE_POST_AUDIT__ === true) {
       import("./post-audit.js").catch(err => {

@@ -131,7 +131,13 @@ function onModelChange(val) {
       <div class="stat-card"><div class="stat-card-label">Subscribers</div><div class="stat-card-value" id="statSubs">—</div><div class="stat-card-sub">Newsletter</div></div>
     </div>
     <div class="stat-card" style="margin-bottom:1.2rem">
-      <div class="stat-card-label">Site Controls</div>
+      <div class="saas-panel-header" style="padding-bottom:0">
+        <h3>Site Controls</h3>
+        <div id="pipelineStatus" style="font-size:0.65rem; color:var(--emerald); background:rgba(16,185,129,0.1); padding:0.2rem 0.5rem; border-radius:10px; border:1px solid rgba(16,185,129,0.3); display:flex; align-items:center; gap:0.3rem;">
+          <div style="width:6px;height:6px;background:var(--emerald);border-radius:50%;box-shadow:0 0 5px var(--emerald)"></div>
+          Pipeline Active: OK
+        </div>
+      </div>
       <div class="toggle-row" style="border-top:none;margin-top:0;padding-top:0.2rem">
         <div>
           <div style="font-size:0.92rem;font-weight:600;color:var(--cream)">Website Images</div>
@@ -142,8 +148,20 @@ function onModelChange(val) {
           <div class="toggle-dot"></div>
         </div>
       </div>
+      
+      <div class="toggle-row" style="margin-top:0.5rem">
+        <div>
+          <div style="font-size:0.92rem;font-weight:600;color:var(--cream)">AI Audio Briefings</div>
+          <div id="siteAudioStatus" style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Loading setting…</div>
+        </div>
+        <div class="toggle-switch" id="siteAudioSwitch" onclick="toggleSiteAudio()">
+          <div class="toggle-track"></div>
+          <div class="toggle-dot"></div>
+        </div>
+      </div>
+
       <div id="siteImagesHint" style="font-size:0.72rem;color:var(--muted);margin-top:0.7rem">
-        Turns post cover and inline content images on/off for public pages.
+        Global controls for website assets and AI voice summaries.
       </div>
     </div>
     <div class="table-wrap">

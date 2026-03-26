@@ -53,12 +53,15 @@ async function generateSitemap() {
         const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || docId;
         const lastMod = fields.updatedAt?.timestampValue || fields.createdAt?.timestampValue || new Date().toISOString();
 
+        const dateObj = new Date(lastMod);
+        const isRecent = (new Date() - dateObj) < (24 * 60 * 60 * 1000);
+
         urls += `
   <url>
     <loc>${DOMAIN}/p/${slug}.html</loc>
     <lastmod>${lastMod.split('T')[0]}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <changefreq>${isRecent ? 'hourly' : 'weekly'}</changefreq>
+    <priority>${isRecent ? '1.0' : '0.7'}</priority>
   </url>`;
       }
     }

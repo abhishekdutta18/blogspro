@@ -135,8 +135,11 @@ export default {
         }
         const data = await dbRes.json();
         if (data.documents) {
-          const batchEmails = data.documents.map(doc => doc.fields?.email?.stringValue).filter(Boolean);
-          emails = emails.concat(batchEmails);
+          const batchSubs = data.documents.map(doc => ({
+            email: doc.fields?.email?.stringValue,
+            name: doc.fields?.name?.stringValue || doc.fields?.displayName?.stringValue || 'Reader'
+          })).filter(s => s.email);
+          emails = emails.concat(batchSubs);
         }
         pageToken = data.nextPageToken || '';
       } while (pageToken);
@@ -155,13 +158,15 @@ export default {
 
         console.log(`Sending batch ${Math.floor(i / BATCH_SIZE) + 1} with ${batch.length} emails...`);
 
-        const resendPayload = batch.map(email => {
-          const unsubLink = `${workerUrl}/?email=${encodeURIComponent(email)}&secret=${encodeURIComponent(secret)}`;
-          const personalHtml = html.replace('{{UNSUBSCRIBE_LINK}}', unsubLink);
+        const resendPayload = batch.map(sub => {
+          const unsubLink = `${workerUrl}/?email=${encodeURIComponent(sub.email)}&secret=${encodeURIComponent(secret)}`;
+          const personalHtml = html
+            .replace('{{UNSUBSCRIBE_LINK}}', unsubLink)
+            .replace(/{{NAME}}/g, sub.name);
 
           return {
             from: `${displayFromName} <newsletter@mail.blogspro.in>`,
-            to: [email],
+            to: [sub.email],
             subject: subject,
             html: personalHtml
           };

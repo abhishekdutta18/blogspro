@@ -118,7 +118,15 @@ async function buildStaticPosts() {
       html = html.replace("const id = new URLSearchParams(location.search).get('id');", `const id = "${docId}";`);
 
       const outPath = path.join(outDir, `${slug}.html`);
-      fs.writeFileSync(outPath, html);
+      
+      // Phase 6: Quick Minification (Basic RegEx)
+      const minifiedHtml = html
+        .replace(/>\s+</g, '><')          // Remove spaces between tags
+        .replace(/\s{2,}/g, ' ')          // Collapse multiple spaces
+        .replace(/\/\*[\s\S]*?\*\//g, '') // Remove CSS comments
+        .replace(/<!--(?![\s\S]*?SSG_)[\s\S]*?-->/g, ''); // Remove non-SSG comments
+
+      fs.writeFileSync(outPath, minifiedHtml);
       console.log(`✓ Generated: p/${slug}.html`);
       count++;
     }
