@@ -228,7 +228,7 @@ window.runCitationEngine = async () => {
 // ── triggerPostAudit — manual audit button handler ─
 // Loads post-audit.js on demand (module is not bundled by default)
 // then calls runFullAudit('manual').
-window.triggerPostAudit = async () => {
+window._triggerPostAudit = async () => {
   const btn = document.getElementById('btnRunAudit');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading…'; }
 

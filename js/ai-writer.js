@@ -663,6 +663,67 @@ CRITICAL: Respond ONLY with a single valid JSON object. No markdown, no backtick
   }
 };
 
+// ── UI Handlers for admin.html ────────────────
+window._setWordTarget = (btn, val) => {
+  document.querySelectorAll('.word-target-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = 'transparent';
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--muted)';
+  });
+  btn.classList.add('active');
+  btn.style.background = 'rgba(201,168,76,0.1)';
+  btn.style.borderColor = 'rgba(201,168,76,0.3)';
+  btn.style.color = 'var(--gold)';
+  
+  const input = document.getElementById('wordTarget');
+  if (input) input.value = val;
+  
+  const longNotice = document.getElementById('longFormNotice');
+  if (longNotice) longNotice.style.display = (val >= 20000) ? 'block' : 'none';
+  
+  const customInput = document.getElementById('wordTargetCustom');
+  if (customInput) customInput.value = '';
+  const customLabel = document.getElementById('wordTargetCustomLabel');
+  if (customLabel) customLabel.textContent = '—';
+};
+
+window._applyCustomWordTarget = (input) => {
+  const val = parseInt(input.value);
+  if (!val || val < 100) return;
+  
+  document.querySelectorAll('.word-target-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = 'transparent';
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--muted)';
+  });
+  
+  const targetInput = document.getElementById('wordTarget');
+  if (targetInput) targetInput.value = val;
+  
+  const customLabel = document.getElementById('wordTargetCustomLabel');
+  if (customLabel) customLabel.textContent = (val / 1000).toFixed(1) + 'k';
+  
+  const longNotice = document.getElementById('longFormNotice');
+  if (longNotice) longNotice.style.display = (val >= 20000) ? 'block' : 'none';
+};
+
+window._onModelChange = (val) => {
+  const info = document.getElementById('modelWarning');
+  if (!info) return;
+  if (val === 'auto') {
+    info.textContent = '⚡ Auto tries DeepSeek V3 → Gemini → Qwen → Llama in order.';
+    info.style.color = 'var(--muted)';
+  } else if (val === 'auto-free') {
+    info.textContent = '✦ Uses best available free models via OpenRouter (No credits needed).';
+    info.style.color = 'var(--gold)';
+  } else {
+    info.textContent = `🚀 Using ${val.charAt(0).toUpperCase() + val.slice(1)} specifically.`;
+    info.style.color = 'var(--cream)';
+  }
+};
+
 function _cleanup() {
   aiWriting            = false;
   state.isGeneratingAI = false;

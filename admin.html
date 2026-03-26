@@ -45,6 +45,21 @@ function closeAIDrawer() {
 function switchDrawerTab(tab) {
   if (window._switchDrawerTab) window._switchDrawerTab(tab);
 }
+
+// ── Sentry Highlights Fix: Proxy functions for deferred modules ──
+function triggerPostAudit() {
+  if (window._triggerPostAudit) window._triggerPostAudit();
+  else if (window.showToast) showToast('🛡 Booting BlogsPro AI... please wait.');
+  else console.warn('[BlogsPro] AI Audit module not yet loaded.');
+}
+function applyCustomWordTarget() {
+  if (window._applyCustomWordTarget) window._applyCustomWordTarget();
+  else if (window.showToast) showToast('✍️ Loading AI Customizer...');
+}
+function onModelChange(val) {
+  if (window._onModelChange) window._onModelChange(val);
+  // No toast for select change as it might be annoying, but prevents ReferenceError
+}
 </script>
 
 <!-- Mobile top bar (hidden on desktop, shown on mobile) -->
