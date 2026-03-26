@@ -616,13 +616,14 @@
   let imagesEnabled = true;
   const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
 
+  // ── Utils ──────────────────────────────────────
+  const fmtViews = (n = 0) => n >= 1000 ? (n/1000).toFixed(1) + 'k' : n;
+
   function isPermissionDenied(err) {
     const code = String(err?.code || '').toLowerCase();
     const msg = String(err?.message || '').toLowerCase();
     return code.includes('permission-denied') || msg.includes('missing or insufficient permissions');
   }
-
-  document.getElementById('year').textContent = new Date().getFullYear();
 
   // ── Theme ──────────────────────────────────────
   window.toggleTheme = () => {
@@ -1055,11 +1056,11 @@
           <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
           {
             "symbols": [
-              {"proName": "FOREXCOM:SPX500", "title": "S&P 500"},
-              {"proName": "BITSTAMP:BTCUSD", "title": "Bitcoin"},
-              {"proName": "FX_IDC:INRUSD", "title": "INR/USD"},
-              {"proName": "BSE:SENSEX", "title": "SENSEX"},
-              {"proName": "NSE:NIFTY", "title": "NIFTY"}
+              {"proName": "INDEX:SPX", "title": "S&P 500"},
+              {"proName": "CRYPTOCAP:BTC", "title": "Bitcoin"},
+              {"proName": "FX:USDINR", "title": "USD/INR"},
+              {"symbol": "BSE:SENSEX", "title": "SENSEX"},
+              {"symbol": "NSE:NIFTY", "title": "NIFTY"}
             ],
             "showSymbolLogo": true,
             "colorTheme": "dark",
