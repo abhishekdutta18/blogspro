@@ -51,7 +51,16 @@ export async function loadRemoteConfig() {
       minimumFetchIntervalMillis: 3600000  // 1 hour cache
     };
 
-    await fetchAndActivate(remoteConfig);
+    // Phase 12: Boot Hardening — 5s timeout for remote config
+    const fetchTimer = setTimeout(() => {
+        console.warn('[remote-config] Fetch timed out. Proceeding with defaults.');
+    }, 5000);
+
+    try {
+        await fetchAndActivate(remoteConfig);
+    } finally {
+        clearTimeout(fetchTimer);
+    }
 
     AI_KEYS = {
       cloudflare: getValue(remoteConfig, 'cloudflare_key').asString(),

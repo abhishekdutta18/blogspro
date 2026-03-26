@@ -617,7 +617,7 @@
   const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
 
   // ── Utils ──────────────────────────────────────
-  const fmtViews = (n = 0) => n >= 1000 ? (n/1000).toFixed(1) + 'k' : n;
+  window.fmtViews = (n = 0) => n >= 1000 ? (n/1000).toFixed(1) + 'k' : n;
 
   function isPermissionDenied(err) {
     const code = String(err?.code || '').toLowerCase();
@@ -1027,6 +1027,7 @@
   }
 
   (async () => {
+    window.loadPosts = loadPosts; // Expose globally for any inline calls
     await loadSiteSettings();
     await loadPosts();
     await loadAbout();
