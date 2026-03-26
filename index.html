@@ -152,39 +152,28 @@
       display: flex; align-items: center; gap: 0.75rem;
     }
     .hero-label::before { content: ''; display: block; width: 2rem; height: 1px; background: var(--gold); }
-    .hero h1 {
-      font-family: var(--serif); font-size: clamp(3.2rem, 7vw, 6.5rem);
-      font-weight: 700; line-height: 1.05; letter-spacing: -0.01em;
-      max-width: 14ch; margin-bottom: 1.8rem;
+    /* ── GLASSMORPHISM 2.0 ── */
+    .glass-card {
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(201,168,76,0.15);
+      border-radius: 8px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .hero h1 em {
-      font-style: italic;
-      background: linear-gradient(135deg, var(--gold), var(--gold2));
-      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    .glass-card:hover {
+      background: rgba(201,168,76,0.05);
+      border-color: var(--gold);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 20px rgba(201,168,76,0.1);
     }
-    .hero-sub { font-size: 1.1rem; color: var(--muted); max-width: 48ch; margin-bottom: 3rem; line-height: 1.7; }
-    .hero-actions { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
-    .btn-primary {
-      background: var(--gold); color: var(--navy);
-      padding: 0.85rem 2rem; border-radius: 3px;
-      font-weight: 600; font-size: 0.9rem; letter-spacing: 0.04em;
-      transition: all 0.2s; border: none; cursor: pointer;
-    }
-    .btn-primary:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(201,168,76,0.3); }
-    .hero-scroll { color: var(--muted); font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; transition: color 0.2s; }
-    .hero-scroll:hover { color: var(--gold); }
-    .hero-stats { position: absolute; bottom: 3rem; right: 0; display: flex; gap: 3rem; }
-    .stat-item { text-align: right; }
-    .stat-value { font-family: var(--serif); font-size: 2.5rem; font-weight: 700; color: var(--cream); line-height: 1; }
-    .stat-label { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.25rem; }
+
+    /* ── REVEAL ANIMATIONS ── */
+    .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
+    .reveal.active { opacity: 1; transform: translateY(0); }
 
     /* ── TICKER ── */
-    .ticker-bar { background: var(--navy3); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); overflow: hidden; padding: 0.7rem 0; }
-    .ticker-inner { display: flex; gap: 4rem; animation: ticker 28s linear infinite; white-space: nowrap; }
-    .ticker-inner:hover { animation-play-state: paused; }
-    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-    .ticker-tag { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
-    .ticker-sep { color: var(--muted); }
+    .ticker-bar { background: var(--navy3); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); overflow: hidden; }
 
     /* ── SECTION ── */
     section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
@@ -199,12 +188,24 @@
     .filter-btn:hover, .filter-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
 
     /* ── GRID ── */
-    .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 2px; }
-    .post-card { background: var(--navy2); padding: 2rem; border: 1px solid transparent; transition: all 0.3s; cursor: pointer; position: relative; overflow: hidden; animation: fadeUp 0.5s ease both; }
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-    .post-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 0; background: linear-gradient(180deg, var(--gold), transparent); transition: height 0.3s; }
-    .post-card:hover { border-color: var(--border); background: #131d38; }
-    .post-card:hover::before { height: 100%; }
+    /* ── GRID ── */
+    .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
+    .post-card { 
+      background: var(--navy2); 
+      padding: 2.2rem; 
+      border: 1px solid var(--border); 
+      border-radius: 8px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+      cursor: pointer; 
+      position: relative; 
+      overflow: hidden; 
+    }
+    .post-card:hover { 
+      border-color: var(--gold); 
+      background: rgba(201,168,76,0.04); 
+      transform: translateY(-6px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
     .post-category { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 1rem; }
     .post-title { font-family: var(--serif); font-size: 1.45rem; font-weight: 600; line-height: 1.3; margin-bottom: 0.8rem; transition: color 0.2s; }
     .post-card:hover .post-title { color: var(--gold2); }
@@ -357,6 +358,17 @@
     .footer-links a { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.2s; }
     .footer-links a:hover { color: var(--gold); }
 
+    /* ── SEARCH & FILTERS ── */
+    .search-container { margin-bottom: 3rem; display: flex; flex-direction: column; gap: 1.5rem; }
+    .search-input-wrap { position: relative; max-width: 500px; }
+    .search-input { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 4px; padding: 0.8rem 1.2rem 0.8rem 2.8rem; color: var(--cream); font-family: var(--sans); font-size: 0.95rem; transition: all 0.2s; }
+    .search-input:focus { border-color: var(--gold); background: rgba(201,168,76,0.05); outline: none; box-shadow: 0 0 15px rgba(201,168,76,0.1); }
+    .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 1rem; pointer-events: none; }
+    .filter-chips { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .filter-chip { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; cursor: pointer; transition: all 0.2s; }
+    .filter-chip:hover { border-color: var(--gold); color: var(--gold); }
+    .filter-chip.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
       .nav-hamburger { display: flex; }
@@ -427,55 +439,107 @@
       <div class="stat-value" id="postCount">—</div>
       <div class="stat-label">Articles</div>
     </div>
-    <div class="stat-item">
-      <div class="stat-value">3</div>
-      <div class="stat-label">Topics</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-value" id="totalViewCount">—</div>
-      <div class="stat-label">Total Views</div>
     </div>
   </div>
 </div>
 
-<!-- TICKER -->
+<!-- TICKER TAPE (Professional TradingView Widget) -->
 <div class="ticker-bar">
-    <div class="ticker-inner" id="ticker">
-      <!-- Live data injected via script -->
-      <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
-      <span class="ticker-tag">Compliance</span><span class="ticker-sep">·</span>
-      <span class="ticker-tag">Strategy</span><span class="ticker-sep">·</span>
+  <div class="tradingview-widget-container">
+    <div class="tradingview-widget-container__widget"></div>
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+    {
+      "symbols": [
+        {"proName": "FOREXCOM:SPX500", "title": "S&P 500"},
+        {"proName": "BITSTAMP:BTCUSD", "title": "Bitcoin"},
+        {"proName": "FX_IDC:INRUSD", "title": "INR/USD"},
+        {"proName": "BSE:SENSEX", "title": "SENSEX"},
+        {"proName": "NSE:NIFTY", "title": "NIFTY"}
+      ],
+      "showSymbolLogo": true,
+      "colorTheme": "dark",
+      "isTransparent": true,
+      "displayMode": "adaptive",
+      "locale": "en"
+    }
+    </script>
+  </div>
+</div>
+
+<!-- TOP MARKET INTELLIGENCE HUB -->
+<section class="reveal">
+  <div class="section-header">
+    <h2 class="section-title">Market <em>Intelligence</em></h2>
+    <span class="section-link">Live Terminal</span>
+  </div>
+  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; min-height: 500px;">
+    <!-- Advanced Chart -->
+    <div class="glass-card" style="padding: 1rem; height: 100%;">
+      <div id="tradingview_adv" style="height: 100%;"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+      <script type="text/javascript">
+        new TradingView.widget({
+          "autosize": true,
+          "symbol": "NSE:NIFTY",
+          "interval": "D",
+          "timezone": "Etc/UTC",
+          "theme": "dark",
+          "style": "1",
+          "locale": "en",
+          "enable_publishing": false,
+          "hide_side_toolbar": false,
+          "allow_symbol_change": true,
+          "container_id": "tradingview_adv"
+        });
+      </script>
+    </div>
+    <!-- Heatmap -->
+    <div class="glass-card" style="padding: 1rem; overflow: hidden;">
+      <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container__widget"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js" async>
+        {
+          "exchanges": ["NSE"],
+          "dataSource": "SENSEX",
+          "grouping": "sector",
+          "blockSize": "market_cap",
+          "blockColor": "change",
+          "locale": "en",
+          "symbolUrl": "",
+          "colorTheme": "dark",
+          "hasTopBar": false,
+          "isTransparent": true,
+          "width": "100%",
+          "height": "100%"
+        }
+        </script>
+      </div>
     </div>
   </div>
-  <script>
-    async function loadTicker() {
-      const ticker = document.getElementById('ticker');
-      try {
-        const res = await fetch('/posts/ticker.json');
-        if (res.ok) {
-          const events = await res.json();
-          if (events && events.length) {
-            const html = events.map(e => `<span class="ticker-tag">${e}</span><span class="ticker-sep">·</span>`).join('');
-            ticker.innerHTML = html + html + html; // Repeat for seamless loop
-            return;
-          }
-        }
-      } catch (e) { console.warn('Ticker data not available.'); }
-    }
-    loadTicker();
-  </script>
+</section>
 
 <!-- POSTS -->
-<section id="posts">
-  <div class="section-header">
-    <h2 class="section-title">Latest Articles</h2>
-  </div>
-  <div class="filters">
-    <button class="filter-btn active" data-cat="all">All</button>
-    <button class="filter-btn" data-cat="Fintech">Fintech</button>
-    <button class="filter-btn" data-cat="Compliance">Compliance</button>
-    <button class="filter-btn" data-cat="Strategy">Strategy</button>
-  </div>
+  <section id="briefings">
+    <div class="section-header">
+      <h2 class="section-title">Latest <em>Briefings</em></h2>
+      <a href="/posts" class="section-link">View Archive <span>&rarr;</span></a>
+    </div>
+
+    <!-- Phase 10: Search & Filters -->
+    <div class="search-container">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="postSearch" class="search-input" placeholder="Search briefings by keyword..." oninput="handleSearch(this.value)">
+      </div>
+      <div class="filter-chips" id="filterChips">
+        <button class="filter-chip active" onclick="filterByCategory('All')">All</button>
+        <button class="filter-chip" onclick="filterByCategory('Macro')">Macro</button>
+        <button class="filter-chip" onclick="filterByCategory('Policy')">Policy</button>
+        <button class="filter-chip" onclick="filterByCategory('Equity')">Equity</button>
+        <button class="filter-chip" onclick="filterByCategory('Tech')">Tech</button>
+        <button class="filter-chip" onclick="filterByCategory('Crypto')">Crypto</button>
+      </div>
+    </div>
   <div class="posts-grid" id="postsGrid">
     <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
     <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
@@ -603,7 +667,7 @@
   const auth = getAuth(app);
 
   let allPosts   = [];
-  let currentCat = 'all';
+  let filteredPosts = []; // Added for filtering
   let imagesEnabled = true;
   const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
 
@@ -717,7 +781,7 @@
             id: `static-${p.slug}`,
             ...p,
             published: true,
-            category: 'AI Briefing',
+            category: p.category || 'AI Briefing',
             createdAt: { toDate: () => new Date(p.date) },
             isStatic: true,
             views: 0
@@ -734,10 +798,11 @@
           return bT - aT;
         });
       document.getElementById('postCount').textContent = allPosts.length;
+      filteredPosts = [...allPosts];
       const totalViews = allPosts.reduce((sum, p) => sum + (p.views || 0), 0);
       const tvEl = document.getElementById('totalViewCount');
       if (tvEl) tvEl.textContent = fmtViews(totalViews);
-      renderPosts(allPosts);
+      renderPosts(filteredPosts);
     } catch(err) {
       console.error('Error loading posts:', err.code, err.message);
       document.getElementById('postsGrid').innerHTML = `
@@ -752,7 +817,7 @@
     if (!posts.length) { renderEmpty(); return; }
     // Helper: sanitize text fields for safe HTML insertion
     const esc = (s) => DOMPurify.sanitize(s || '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
-    grid.innerHTML = posts.map((p, i) => {
+    const html = posts.map((p, i) => {
       const title    = esc(p.title);
       const excerpt  = esc(p.excerpt);
       const category = esc(p.category) || 'General';
@@ -997,8 +1062,6 @@
     btn.disabled = false; btnText.style.display = 'inline'; spinner.style.display = 'none';
   };
 
-  }
-
   // ── Ticker ─────────────────────────────────────
   async function loadTicker() {
     try {
@@ -1017,7 +1080,11 @@
     await loadSiteSettings();
     await loadPosts();
     await loadAbout();
-    await loadTicker();
+    // Intersection Observer for Reveal
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
   })();
 </script>
 </body>

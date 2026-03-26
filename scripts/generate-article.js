@@ -89,6 +89,10 @@ function getTemplate(title, excerpt, content, date, social = {}) {
     <article class="article-container">
         <nav class="breadcrumb">
             <a href="/">Home</a> <span>/</span> <a href="/posts">Briefings</a> <span>/</span> <label>${title.substring(0, 30)}...</label>
+            <div style="margin-left:auto; display:flex; gap:1rem; align-items:center;">
+                <span style="font-size:0.7rem; color:var(--muted); text-transform:uppercase;">Complexity: <b style="color:var(--gold)">${social.complexityScore || 5}/10</b></span>
+                <button onclick="window.print()" class="share-btn" style="padding:0.3rem 0.6rem; font-size:0.7rem;">PDF</button>
+            </div>
         </nav>
         <header>
             <span class="meta">AI Briefing • ${date}</span>
@@ -206,12 +210,13 @@ async function generateSocialKit(model, title, content) {
 }
 
 async function generateEngagementKit(model, content) {
-    const prompt = `Generate Engagement Kit (JSON): {audioScript, pollQuestion, pollOptions, category}. 
+    const prompt = `Generate Engagement Kit (JSON): {audioScript, pollQuestion, pollOptions, category, complexityScore}. 
     Values for category MUST be one of: Macro, Policy, Equity, Tech, Crypto.
+    Values for complexityScore MUST be a number 1-10 (1=Beginner, 10=Expert).
     Content: ${content.substring(0, 500)}`;
     const result = await model.generateContent(prompt);
     try { return JSON.parse(result.response.text().replace(/```json|```/gi, '').trim()); }
-    catch (e) { return { audioScript: "Summary...", pollQuestion: "Take?", pollOptions: ["Yes", "No"], category: "Macro" }; }
+    catch (e) { return { audioScript: "Summary...", pollQuestion: "Take?", pollOptions: ["Yes", "No"], category: "Macro", complexityScore: 5 }; }
 }
 
 // Observability Helpers
