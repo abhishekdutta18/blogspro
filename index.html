@@ -819,7 +819,6 @@
     // Helper: sanitize text fields for safe HTML insertion
     const esc = (s) => DOMPurify.sanitize(s || '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
     grid.innerHTML = posts.map((p, i) => {
-      // (map logic remains same)
       const title    = esc(p.title);
       const excerpt  = esc(p.excerpt);
       const category = esc(p.category) || 'General';
