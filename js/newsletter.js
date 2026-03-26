@@ -1,7 +1,8 @@
 // ═══════════════════════════════════════════════
 // newsletter.js — Newsletter generation and UTMs
 // ═══════════════════════════════════════════════
-import { db, sanitize, showToast, injectUtm, trackEvent } from './config.js';
+import { db, sanitize, showToast } from './config.js';
+import { injectUtm, trackEvent } from './analytics.js';
 import { state }     from './state.js';
 import { collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 

@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════
 // posts.js — Post CRUD and dashboard data
 // ═══════════════════════════════════════════════
-import { db, sanitize, showToast, slugify, stripTags, validateImageUrl, injectUtm, trackEvent } from './config.js';
+import { db, sanitize, showToast, slugify, stripTags, validateImageUrl } from './config.js';
 import { state } from './state.js';
+import { injectUtm, trackEvent } from './analytics.js';
 import { buildInternalLinks } from './ai-editor.js';
 import { uploadToStorage, blobUrlToFile } from './images-upload.js';
 import {
