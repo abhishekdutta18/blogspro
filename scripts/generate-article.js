@@ -142,6 +142,11 @@ function getTemplate(title, excerpt, content, date, social = {}) {
 }
 
 // Fetchers
+// Helpers
+async function getBriefingKit(today) {
+    return { category: "Macro & Strategy", topic: "Indo-Global Convergence" };
+}
+
 async function fetchForexFactory() {
     try {
         const response = await fetch("https://nfs.forexfactory.com/ff_calendar_thisweek.xml");
@@ -398,7 +403,7 @@ async function generateArticle() {
     try {
         const today = new Date().toISOString().split('T')[0];
         const [forex, news, rbi, sebi, wsj, upstox, global, briefingKit] = await Promise.all([
-            fetchForexData(),
+            fetchForexFactory(),
             fetchNewsAPI(),
             fetchRBIData(),
             fetchSEBIData(),
