@@ -9,18 +9,26 @@ jobs:
   monitor:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Verify Sentry Token
+        run: |
+          if [ -z "${{ secrets.SENTRY_AUTH_TOKEN }}" ]; then
+            echo "❌ Sentry Auth Token is missing. Please add SENTRY_AUTH_TOKEN to GitHub Secrets."
+            exit 1
+          fi
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
-      - name: Run Auto-Resolve Script
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Sentry Monitor
         env:
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_ORG: "blogspro-ai"
+          SENTRY_PROJECT: "blogspro-frontend"
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}

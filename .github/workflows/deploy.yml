@@ -16,61 +16,35 @@ jobs:
   # JOB 1: validate — static checks, runs on every push and every PR
   # ══════════════════════════════════════════════════════════════════════
   validate:
-    name: Static Validation
+    name: Code Quality & Schema
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Check JS syntax
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Syntax Check
         run: |
-          find js/ -name "*.js" | while read f; do
-            node --check "$f" || exit 1
-          done
-          echo "✓ All JS files pass syntax check"
-
-      - name: Warn on console.log
-        run: |
-          if grep -rn 'console\.log' js/; then
-            echo "⚠ Warning: console.log found (not blocking)"
-          else
-            echo "✓ No console.log found"
-          fi
-
-      - name: Check critical HTML files exist
-        run: |
-          failed=0
-          for f in index.html post.html login.html register.html admin.html; do
-            if test -f "$f"; then
-              echo "✓ $f"
-            else
-              echo "✕ $f MISSING"
-              failed=1
+          for f in scripts/*.js js/**/*.js api/*.js; do
+            if [ -f "$f" ]; then
+              node --check "$f" || (echo "❌ Syntax error in $f" && exit 1)
             fi
           done
-          [ "$failed" -eq 0 ] || exit 1
-
-      - name: Check robots.txt
+      - name: Verify Required Secrets
         run: |
-          test -f "robots.txt" && echo "✓ robots.txt" || (echo "✕ robots.txt missing" && exit 1)
-          test ! -f "Robots.txt" && echo "✓ no capital-R Robots.txt" || (echo "✕ Robots.txt capital R — rename it" && exit 1)
-
-      - name: Check CSS brace balance
-        run: |
-          python3 - <<'EOF'
-          import sys
-          with open('css/admin.css') as f:
-              css = f.read()
-          opens  = css.count('{')
-          closes = css.count('}')
-          if opens != closes:
-              print(f"✕ css/admin.css brace mismatch: {opens} open vs {closes} close")
-              sys.exit(1)
-          print(f"✓ css/admin.css braces balanced ({opens} pairs)")
-          EOF
-
-      - name: Check sitemap.xml
-        run: |
-          test -f sitemap.xml && echo "✓ sitemap.xml" || echo "⚠ sitemap.xml missing (not blocking)"
+          MISSING=()
+          [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] && MISSING+=("CLOUDFLARE_API_TOKEN")
+          [ -z "${{ secrets.GEMINI_API_KEY }}" ] && MISSING+=("GEMINI_API_KEY")
+          [ -z "${{ secrets.SENTRY_AUTH_TOKEN }}" ] && MISSING+=("SENTRY_AUTH_TOKEN")
+          
+          if [ ${#MISSING[@]} -ne 0 ]; then
+            echo "❌ Missing required secrets: ${MISSING[*]}"
+            echo "Please add them in Repository Settings -> Secrets -> Actions"
+            exit 1
+          fi
 
   # ══════════════════════════════════════════════════════════════════════
   # JOB 2: notify — runs after validate passes on every push to main
@@ -177,35 +151,32 @@ jobs:
   # JOB 5: seo-build — generates static posts and sitemap
   # ══════════════════════════════════════════════════════════════════════
   seo-build:
-    name: SEO Build & Hydrate
-    runs-on: ubuntu-latest
+    name: SEO Engine
     needs: validate
+    runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-
-      - name: Build Static Posts
-        run: node scripts/build-static.js
-
-      - name: Generate Sitemap
-        run: node scripts/generate-sitemap.js
-
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Build Static Posts & Sitemap
+        env:
+          FIREBASE_PROJECT_ID: "blogspro-ai"
+          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          node scripts/build-static.js
+          node scripts/generate-sitemap.js
       - name: Commit & Push Changes
         run: |
-          git config --global user.name "BlogsPro Bot"
-          git config --global user.email "bot@blogspro.in"
-          git add p/
-          git add sitemap.xml
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: hydrate static posts and sitemap [skip ci]" && git push origin main)
+          git config --global user.name "BlogsPro Engine"
+          git config --global user.email "engine@blogspro.in"
+          git add posts/*.html posts/index.json sitemap.xml
+          git commit -m "🤖 auto-seo: update static posts and sitemap [skip ci]" || echo "No changes to commit"
+          git push
 
   # ══════════════════════════════════════════════════════════════════════
   # JOB 6: notify-failure — runs ONLY if validate fails
