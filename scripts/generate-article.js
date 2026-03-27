@@ -358,7 +358,7 @@ async function logPipelineHealth(status, details = {}) {
 }
 
 async function sendNotification(message) {
-    if (process.env.NOTIFICATION_WEBHOOK) {
+    if (process.env.NOTIFICATION_WEBHOOK && process.env.NOTIFICATION_WEBHOOK.startsWith('http')) {
         try {
             await fetch(process.env.NOTIFICATION_WEBHOOK, {
                 method: 'POST',
@@ -422,7 +422,7 @@ UPSTOX (LIVE): ${upstox.summary}
 `;
 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
         const system = `You are an elite Indo-Global Financial Analyst for blogspro.in. 
         CRITICAL TASK: Correlate Global Macro (WSJ/Forex) with Indian Regulatory (RBI/SEBI) updates and their specific impact on NSE/BSE indices/stocks provided in Upstox data.
         Write raw HTML briefings (no \`\`\`html). Use <h3> for section headers, <ul> for key takeaways, and ensure a "Market Outlook" section at the end.`;
