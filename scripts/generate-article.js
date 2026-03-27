@@ -422,7 +422,7 @@ UPSTOX (LIVE): ${upstox.summary}
 `;
 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Keep 1.5 here for now, but 1.0 in the main content gen
         const htmlSnippet = await generateAIContent(liveDataBlock, upstox.raw);
         const contextHtml = applyContextualLinks(htmlSnippet);
         const social = await generateSocialKit(model, "Briefing", contextHtml);
@@ -484,9 +484,21 @@ async function generateAIContent(liveDataBlock, upstoxRaw) {
         try {
             console.log("🤖 Attempting Gemini 1.5 Flash...");
             const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-            const result = await model.generateContent(prompt);
-            return result.response.text();
+            // Try gemini-1.5-flash first, then try gemini-1.0-pro if it fails with 404
+            let model;
+            try {
+                model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const result = await model.generateContent(prompt);
+                return result.response.text();
+            } catch (innerError) {
+                if (innerError.message.includes("404")) {
+                    console.warn("⚠️ gemini-1.5-flash not found, attempting gemini-1.0-pro fallback...");
+                    model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
+                    const result = await model.generateContent(prompt);
+                    return result.response.text();
+                }
+                throw innerError;
+            }
         } catch (e) {
             console.warn("⚠️ Gemini failed, falling back to OpenRouter...", e.message);
         }
