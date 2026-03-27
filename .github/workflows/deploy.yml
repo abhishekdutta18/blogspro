@@ -161,6 +161,8 @@ jobs:
     name: SEO Engine
     needs: validate
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4

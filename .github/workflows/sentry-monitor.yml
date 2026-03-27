@@ -27,8 +27,8 @@ jobs:
 
       - name: Run Sentry Monitor
         env:
-          SENTRY_ORG: "blogspro-ai"
-          SENTRY_PROJECT: "blogspro-frontend"
+          SENTRY_ORG: "abhishek-dutta"
+          SENTRY_PROJECT: "javascript"
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}

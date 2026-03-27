@@ -422,7 +422,7 @@ UPSTOX (LIVE): ${upstox.summary}
 `;
 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const htmlSnippet = await generateAIContent(liveDataBlock, upstox.raw);
         const contextHtml = applyContextualLinks(htmlSnippet);
         const social = await generateSocialKit(model, "Briefing", contextHtml);
@@ -484,7 +484,7 @@ async function generateAIContent(liveDataBlock, upstoxRaw) {
         try {
             console.log("🤖 Attempting Gemini 1.5 Flash...");
             const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' });
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
             const result = await model.generateContent(prompt);
             return result.response.text();
         } catch (e) {
@@ -510,7 +510,11 @@ async function generateAIContent(liveDataBlock, upstoxRaw) {
                 })
             });
             const data = await res.json();
-            return data.choices[0].message.content;
+            if (data && data.choices && data.choices.length > 0 && data.choices[0].message) {
+                return data.choices[0].message.content;
+            } else {
+                console.error("❌ OpenRouter unexpected response format:", JSON.stringify(data));
+            }
         } catch (e) {
             console.error("❌ OpenRouter also failed:", e.message);
         }
