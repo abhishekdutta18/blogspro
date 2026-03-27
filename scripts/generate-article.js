@@ -400,6 +400,7 @@ async function generateArticle() {
     console.log("🇮🇳 Starting Indo-Global Automated AI Pipeline...");
     try {
         const today = new Date().toISOString().split('T')[0];
+        const postsDir = path.join(__dirname, "../posts");
         const [forex, news, rbi, sebi, wsj, upstox, global, briefingKit] = await Promise.all([
             fetchForexFactory(),
             fetchNewsAPI(),
