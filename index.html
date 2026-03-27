@@ -391,6 +391,98 @@
     .filter-chip.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
 
     /* ── RESPONSIVE ── */
+    /* ── HERO ELEMENTS ── */
+    .hero h1 {
+      font-family: var(--serif);
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 em { font-style: italic; color: var(--gold); }
+    .hero-sub {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 56ch;
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+    }
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+    .btn-primary {
+      background: var(--gold);
+      color: var(--navy);
+      padding: 0.75rem 1.75rem;
+      border-radius: 3px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      letter-spacing: 0.04em;
+      transition: background 0.2s, transform 0.15s;
+      display: inline-block;
+    }
+    .btn-primary:hover { background: var(--gold2); transform: translateY(-1px); }
+    .hero-scroll {
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      transition: color 0.2s;
+    }
+    .hero-scroll:hover { color: var(--gold); }
+    .hero-stats {
+      display: flex;
+      gap: 3rem;
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+    .stat-item { display: flex; flex-direction: column; gap: 0.25rem; }
+    .stat-value {
+      font-family: var(--serif);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--cream);
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── TERMINAL ── */
+    .terminal-wrap { min-height: 300px; }
+    .terminal-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .terminal-body {
+      flex: 1;
+      padding: 1rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      overflow-y: auto;
+      max-height: 400px;
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--emerald);
+      display: inline-block;
+      box-shadow: 0 0 6px var(--emerald);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
     @media (max-width: 768px) {
       .nav-hamburger { display: flex; }
       .nav-links {
@@ -474,6 +566,7 @@
 <section class="reveal" id="tvHubContainer">
   <div class="section-header">
     <h2 class="section-title">Market <em>Intelligence</em></h2>
+  </div>
   <div id="tvHubContent" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
     <!-- Terminal Widget -->
     <div class="glass-card terminal-wrap" style="grid-column: span 1; display: flex; flex-direction: column;">
@@ -662,7 +755,7 @@
 <script src="js/ui-utils.js"></script>
 <script type="module">
   import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, doc, getDocs, getDoc, query, where }
+  import { getFirestore, collection, doc, getDocs, getDoc, addDoc, query, where }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -927,6 +1020,35 @@
       renderPosts(currentCat === 'all' ? allPosts : allPosts.filter(p => p.category === currentCat));
     });
   });
+
+  // ── Search & Category Filter globals (called from inline onclick/oninput) ──
+  window.handleSearch = function(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      filteredPosts = currentCat === 'all' ? [...allPosts] : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat.toLowerCase());
+    } else {
+      filteredPosts = allPosts.filter(p => {
+        const inCat = currentCat === 'all' || (p.category || '').toLowerCase() === currentCat.toLowerCase();
+        const inText = (p.title || '').toLowerCase().includes(q) || (p.excerpt || '').toLowerCase().includes(q);
+        return inCat && inText;
+      });
+    }
+    renderPosts(filteredPosts);
+  };
+
+  window.filterByCategory = function(cat) {
+    currentCat = cat.toLowerCase();
+    document.querySelectorAll('.filter-chip').forEach(b => {
+      b.classList.toggle('active', b.textContent.trim().toLowerCase() === currentCat || (currentCat === 'all' && b.textContent.trim() === 'All'));
+    });
+    const searchVal = document.getElementById('postSearch')?.value?.trim().toLowerCase() || '';
+    if (searchVal) {
+      window.handleSearch(searchVal);
+    } else {
+      filteredPosts = currentCat === 'all' ? [...allPosts] : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat.toLowerCase());
+      renderPosts(filteredPosts);
+    }
+  };
 
   // ── Load About ─────────────────────────────────
   async function loadAbout() {
