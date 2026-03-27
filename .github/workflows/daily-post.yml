@@ -28,6 +28,7 @@ jobs:
       - name: Generate AI Briefing
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
           NEWS_API_KEY: ${{ secrets.API_KEY_NEWS }}
           NEWSLETTER_WORKER_URL: ${{ secrets.NEWSLETTER_WORKER_URL }}
           NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}

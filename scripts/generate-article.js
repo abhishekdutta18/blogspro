@@ -423,19 +423,7 @@ UPSTOX (LIVE): ${upstox.summary}
 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' });
-        const system = `You are an elite Indo-Global Financial Analyst for blogspro.in. 
-        CRITICAL TASK: Correlate Global Macro (WSJ/Forex) with Indian Regulatory (RBI/SEBI) updates and their specific impact on NSE/BSE indices/stocks provided in Upstox data.
-        Write raw HTML briefings (no \`\`\`html). Use <h3> for section headers, <ul> for key takeaways, and ensure a "Market Outlook" section at the end.`;
-        
-        const result = await model.generateContent(`${system}\n\nDATA: ${liveDataBlock}\n\nRAW_UPSTOX_JSON: ${JSON.stringify(upstox.raw)}`);
-        let htmlSnippet = result.response.text();
-
-        const audit = await auditBriefing(model, htmlSnippet, liveDataBlock);
-        if (audit.startsWith("FAIL")) {
-            const fix = await model.generateContent(`${system}\n\nAudit failed: ${audit}. Rewrite: ${liveDataBlock}\n\nRAW_UPSTOX_JSON: ${JSON.stringify(upstox.raw)}`);
-            htmlSnippet = fix.response.text();
-        }
-
+        const htmlSnippet = await generateAIContent(liveDataBlock, upstox.raw);
         const contextHtml = applyContextualLinks(htmlSnippet);
         const social = await generateSocialKit(model, "Briefing", contextHtml);
         const engage = await generateEngagementKit(model, contextHtml);
@@ -484,3 +472,49 @@ UPSTOX (LIVE): ${upstox.summary}
 }
 
 generateArticle();
+
+async function generateAIContent(liveDataBlock, upstoxRaw) {
+    const system = `You are an elite Indo-Global Financial Analyst for blogspro.in. 
+    CRITICAL TASK: Correlate Global Macro (WSJ/Forex) with Indian Regulatory (RBI/SEBI) updates and their specific impact on NSE/BSE indices/stocks provided in Upstox data.
+    Write raw HTML briefings (no \`\`\`html). Use <h3> for section headers, <ul> for key takeaways, and ensure a "Market Outlook" section at the end.`;
+    const prompt = `${system}\n\nDATA: ${liveDataBlock}\n\nRAW_UPSTOX_JSON: ${JSON.stringify(upstoxRaw)}`;
+
+    // Try Gemini First
+    if (process.env.GEMINI_API_KEY) {
+        try {
+            console.log("🤖 Attempting Gemini 1.5 Flash...");
+            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' });
+            const result = await model.generateContent(prompt);
+            return result.response.text();
+        } catch (e) {
+            console.warn("⚠️ Gemini failed, falling back to OpenRouter...", e.message);
+        }
+    }
+
+    // Fallback to OpenRouter (Llama 3 70B or similar)
+    if (process.env.OPENROUTER_KEY) {
+        try {
+            console.log("🤖 Attempting OpenRouter (meta-llama/llama-3-70b-instruct)...");
+            const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${process.env.OPENROUTER_KEY}`,
+                    "HTTP-Referer": "https://blogspro.in",
+                    "X-Title": "BlogsPro AI",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "meta-llama/llama-3-70b-instruct",
+                    messages: [{ role: "user", content: prompt }]
+                })
+            });
+            const data = await res.json();
+            return data.choices[0].message.content;
+        } catch (e) {
+            console.error("❌ OpenRouter also failed:", e.message);
+        }
+    }
+
+    throw new Error("All AI engines failed.");
+}
