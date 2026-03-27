@@ -252,41 +252,39 @@ async function fetchWSJRSS() {
 }
 
 async function fetchUpstoxData() {
-    console.log("🇮🇳 Fetching Upstox Live Market Data (Indices + Top 5)...");
-    const token = process.env.UPSTOX_ACCESS_TOKEN;
-    if (!token) {
-        console.warn("⚠️ UPSTOX_ACCESS_TOKEN missing, skipping Upstox data.");
-        return "Upstox: Not configured.";
-    }
+    console.log("🌐 Fetching Upstox Live & Historical Market Data via Cloudflare Worker...");
     try {
-        // NIFTY 50, BANK NIFTY, RELIANCE, HDFCBANK, ICICIBANK, INFY, TCS
-        const symbols = [
-            "NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank",
-            "NSE_EQ|INE002A01018", // RELIANCE
-            "NSE_EQ|INE040A01034", // HDFCBANK
-            "NSE_EQ|INE090A01021", // ICICIBANK
-            "NSE_EQ|INE009A01021", // INFY
-            "NSE_EQ|INE467B01029"  // TCS
-        ].join(',');
+        const [liveRes, histRes] = await Promise.all([
+            fetch("https://blogspro-upstox.abhishek-dutta1996.workers.dev/quotes"),
+            fetch("https://blogspro-upstox.abhishek-dutta1996.workers.dev/historical?instrumentKey=NSE_INDEX%7CNifty%2050&interval=day")
+        ]);
+
+        const liveData = await liveRes.json();
+        const histData = await histRes.json();
         
-        const url = `https://api.upstox.com/v2/market-quote/quotes?symbol=${encodeURIComponent(symbols)}`;
-        const res = await fetch(url, {
-            headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.status === "success" && data.data) {
-            const d = data.data;
+        let summary = "Upstox: Live data unavailable.";
+        let raw = {};
+
+        if (liveData.status === "success" && liveData.data) {
+            const d = liveData.data;
             const getLtp = (s) => d[s]?.last_price || "N/A";
-            return {
-                summary: `NIFTY: ${getLtp("NSE_INDEX:Nifty 50")} | BANK NIFTY: ${getLtp("NSE_INDEX:Nifty Bank")} | REL: ${getLtp("NSE_EQ:RELIANCE")} | HDFC: ${getLtp("NSE_EQ:HDFCBANK")}`,
-                raw: d
-            };
+            summary = `NIFTY: ${getLtp("NSE_INDEX:Nifty 50")} | BANK NIFTY: ${getLtp("NSE_INDEX:Nifty Bank")} | REL: ${getLtp("NSE_EQ:RELIANCE")} | HDFC: ${getLtp("NSE_EQ:HDFCBANK")}`;
+            raw = d;
         }
-        return { summary: "Upstox: Data error.", raw: {} };
+
+        if (histData.status === "success" && histData.data && histData.data.candles) {
+            const candles = histData.data.candles;
+            const lastClose = candles[0][4]; 
+            const prevClose = candles[1][4];
+            const trend = lastClose > prevClose ? "Bullish" : "Bearish";
+            summary += ` | NIFTY Trend: ${trend} (${((lastClose - prevClose)/prevClose * 100).toFixed(2)}%)`;
+        }
+
+        return { summary, raw };
     } catch (e) {
-        console.error("Upstox fetch fail:", e.message);
-        return { summary: "Upstox: Unavailable.", raw: {} };
+        console.error("❌ Upstox Worker fetch failed:", e.message);
     }
+    return { summary: "Upstox: Unavailable (Worker).", raw: {} };
 }
 
 // QA & Kit Helpers

@@ -462,7 +462,6 @@
       <div class="stat-value" id="postCount">—</div>
       <div class="stat-label">Articles</div>
     </div>
-    </div>
   </div>
 </div>
 
@@ -523,6 +522,7 @@
     <!-- Market Heatmap (Legacy) -->
     <div id="tvHeatmap" class="glass-card" style="min-height: 250px;"></div>
   </div>
+</section>
 
 <!-- POSTS -->
   <section id="briefings">
@@ -658,7 +658,8 @@
 </footer>
 
 <!-- FIREBASE -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+<script src="js/ui-utils.js"></script>
 <script type="module">
   import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, collection, doc, getDocs, getDoc, query, where }
@@ -674,7 +675,8 @@
   const auth = getAuth(app);
 
   let allPosts   = [];
-  let filteredPosts = []; // Added for filtering
+  let filteredPosts = []; 
+  let currentCat = 'all';
   let imagesEnabled = true;
   const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
 
@@ -686,16 +688,11 @@
     return code.includes('permission-denied') || msg.includes('missing or insufficient permissions');
   }
 
-  // ── Theme ──────────────────────────────────────
-  window.toggleTheme = () => {
-    document.body.classList.toggle('light');
-    const isLight = document.body.classList.contains('light');
-    document.getElementById('themeBtn').textContent = isLight ? '🌙' : '☀️';
-    localStorage.setItem('bpTheme', isLight ? 'light' : 'dark');
-  };
+  // Theme is now handled by js/ui-utils.js
   if (localStorage.getItem('bpTheme') === 'light') {
-    document.body.classList.add('light');
     document.getElementById('themeBtn').textContent = '🌙';
+  } else {
+    document.getElementById('themeBtn').textContent = '☀️';
   }
 
   // ── Mobile nav hamburger ────────────────────────
@@ -1119,8 +1116,8 @@
     window.loadPosts = loadPosts; // Expose globally for any inline calls
     await loadSiteSettings();
     await loadPosts();
-    if (state.allPosts && state.allPosts.length > 0) {
-      hydratePolicy(state.allPosts[0]);
+    if (allPosts && allPosts.length > 0) {
+      hydratePolicy(allPosts[0]);
     }
     await loadAbout();
     // Intersection Observer for Reveal & Lazy-loading

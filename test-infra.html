@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infra Audit — BlogsPro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #080d1a;
+            --card: #111827;
+            --gold: #c9a84c;
+            --green: #10b981;
+            --red: #ef4444;
+            --text: #f5f0e8;
+            --muted: #8896b3;
+            --font-sans: 'DM Sans', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 3rem;
+            border-bottom: 1px solid rgba(201, 168, 76, 0.2);
+            padding-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin: 0;
+            color: var(--gold);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--green);
+            border: 1px solid var(--green);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid rgba(201, 168, 76, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            border-color: rgba(201, 168, 76, 0.3);
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            margin-top: 0;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            background: var(--gold);
+            color: var(--bg);
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: opacity 0.2s;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .action-btn:hover {
+            opacity: 0.9;
+        }
+
+        .action-btn:disabled {
+            background: var(--muted);
+            cursor: not-allowed;
+        }
+
+        pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            overflow-x: auto;
+            max-height: 200px;
+            margin-top: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .workflow-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .workflow-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .workflow-item:last-child { border-bottom: none; }
+
+        .workflow-name { font-weight: 500; font-size: 0.9rem; }
+        .workflow-link { color: var(--gold); text-decoration: none; font-size: 0.8rem; }
+        .workflow-link:hover { text-decoration: underline; }
+
+        .tag {
+            font-size: 0.7rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            background: rgba(201, 168, 76, 0.1);
+            border: 1px solid rgba(201, 168, 76, 0.2);
+            color: var(--gold);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>Infra Audit</h1>
+                <p style="color: var(--muted); font-size: 0.9rem; margin-top: 0.25rem;">BlogsPro System Integrity & Connectivity Dashboard</p>
+            </div>
+            <div class="status-badge">System Operational</div>
+        </header>
+
+        <div class="grid">
+            <!-- Upstox Connectivity -->
+            <div class="card">
+                <h2>📡 Upstox Worker API</h2>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div class="workflow-item">
+                        <span class="workflow-name">Live Quotes</span>
+                        <span class="tag">UPSTOX_TOKEN_REQUIRED</span>
+                    </div>
+                    <div class="workflow-item">
+                        <span class="workflow-name">Historical OHLC</span>
+                        <span class="tag">TREND_ANALYSIS</span>
+                    </div>
+                </div>
+                <button id="testUpstox" class="action-btn">Run Connectivity Test</button>
+                <div id="upstoxResult" style="display: none;">
+                    <pre id="upstoxPre">Testing...</pre>
+                </div>
+            </div>
+
+            <!-- GitHub Actions Workflows -->
+            <div class="card">
+                <h2>🚀 GitHub Actions Status</h2>
+                <div class="workflow-list">
+                    <div class="workflow-item">
+                        <span class="workflow-name">BlogsPro CI (Deploy)</span>
+                        <a href="https://github.com/abhishekdutta18/blogspro/actions/workflows/deploy.yml" target="_blank" class="workflow-link">View Runs →</a>
+                    </div>
+                    <div class="workflow-item">
+                        <span class="workflow-name">Daily AI Article Gen</span>
+                        <a href="https://github.com/abhishekdutta18/blogspro/actions/workflows/daily-post.yml" target="_blank" class="workflow-link">View Runs →</a>
+                    </div>
+                    <div class="workflow-item">
+                        <span class="workflow-name">Sentry Self-Healing</span>
+                        <a href="https://github.com/abhishekdutta18/blogspro/actions/workflows/sentry-monitor.yml" target="_blank" class="workflow-link">View Runs →</a>
+                    </div>
+                    <div class="workflow-item" style="opacity: 0.5;">
+                        <span class="workflow-name">SEO Engine (Legacy)</span>
+                        <span class="tag">REMOVED</span>
+                    </div>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--muted); margin-top: 1rem;">Note: GitHub API status check requires auth. Click links to verify manually in your session.</p>
+            </div>
+
+            <!-- Environment Audit -->
+            <div class="card">
+                <h2>🛠️ Environment Audit</h2>
+                <div class="workflow-list">
+                    <div class="workflow-item">
+                        <span class="workflow-name">Cloudflare Secret</span>
+                        <span id="cfSecretStatus" class="tag">CHECKING...</span>
+                    </div>
+                    <div class="workflow-item">
+                        <span class="workflow-name">Worker Endpoint</span>
+                        <span class="tag">blogspro-upstox</span>
+                    </div>
+                </div>
+                <pre>Build Target: Production
+Protocol: HTTPS/WSS
+Region: Global (CF Edge)</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const UPSTOX_BASE = "https://blogspro-upstox.abhishek-dutta1996.workers.dev";
+        const testBtn = document.getElementById('testUpstox');
+        const resultDiv = document.getElementById('upstoxResult');
+        const resultPre = document.getElementById('upstoxPre');
+        const cfStatus = document.getElementById('cfSecretStatus');
+
+        testBtn.addEventListener('click', async () => {
+            testBtn.disabled = true;
+            testBtn.innerText = "Running Tests...";
+            resultDiv.style.display = 'block';
+            resultPre.innerText = "⏳ Pinging Live Quotes...\n⏳ Pinging Historical OHLC...";
+
+            try {
+                const [live, hist] = await Promise.all([
+                    fetch(`${UPSTOX_BASE}/quotes?symbols=NSE_INDEX%7CNifty%2050`),
+                    fetch(`${UPSTOX_BASE}/historical?instrumentKey=NSE_INDEX%7CNifty%2050&interval=day`)
+                ]);
+
+                const liveData = await live.json();
+                const histData = await hist.json();
+
+                let output = "✅ UPSTOX API TEST RESULTS:\n\n";
+                
+                if (liveData.status === "success") {
+                    const price = liveData.data["NSE_INDEX:Nifty 50"].last_price;
+                    output += `🔹 Live Quote (Nifty 50): ${price}\n`;
+                } else {
+                    output += `❌ Live Quote Failed: ${JSON.stringify(liveData)}\n`;
+                }
+
+                if (histData.status === "success") {
+                    const count = histData.data.candles.length;
+                    output += `🔹 Historical Data: Received ${count} candles\n`;
+                    output += `🔹 Last Candle: ${histData.data.candles[0][0]} | Close: ${histData.data.candles[0][4]}\n`;
+                    cfStatus.innerText = "ACTIVE";
+                    cfStatus.style.borderColor = "var(--green)";
+                    cfStatus.style.color = "var(--green)";
+                } else {
+                    output += `❌ Historical Data Failed: ${JSON.stringify(histData)}\n`;
+                }
+
+                resultPre.innerText = output;
+            } catch (err) {
+                resultPre.innerText = `❌ Error: ${err.message}`;
+                cfStatus.innerText = "ERROR";
+            } finally {
+                testBtn.disabled = false;
+                testBtn.innerText = "Run Connectivity Test";
+            }
+        });
+
+        // Auto-check health on load
+        window.addEventListener('load', async () => {
+            try {
+                const res = await fetch(`${UPSTOX_BASE}/health`);
+                const data = await res.json();
+                if (data.status === "ok") {
+                    cfStatus.innerText = "REACHABLE";
+                }
+            } catch (e) {
+                cfStatus.innerText = "OFFLINE";
+            }
+        });
+    </script>
+</body>
+</html>

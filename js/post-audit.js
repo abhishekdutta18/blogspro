@@ -630,6 +630,7 @@ export async function runFullAudit(trigger = 'manual') {
     _running = false;
   }
 }
+window.runFullAudit = runFullAudit;
 
 // ─────────────────────────────────────────────────────────────────
 // ADMIN GATE — review only, post already saved

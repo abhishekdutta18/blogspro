@@ -8,6 +8,18 @@ export default {
     const url = new URL(request.url);
     const authHeader = request.headers.get("Authorization");
 
+    // 0. Handle CORS Preflight
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Access-Control-Max-Age": "86400",
+        }
+      });
+    }
+
     // Simple security: check for a secret header or just allow CORS for blogspro.in
     const origin = request.headers.get("Origin");
     if (origin && !origin.includes("blogspro.in") && !origin.includes("localhost")) {
@@ -64,7 +76,52 @@ export default {
       }
     }
 
-    // 3. Global Market Data (New)
+    // 3. Fetch Historical Data (New)
+    if (url.pathname === "/historical") {
+        const instrumentKey = url.searchParams.get("instrumentKey") || "NSE_INDEX|Nifty 50";
+        const interval = url.searchParams.get("interval") || "day";
+        const now = new Date();
+        const toDate = url.searchParams.get("toDate") || now.toISOString().split('T')[0];
+        
+        // Default to last 30 days if fromDate is missing
+        const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
+        const fromDate = url.searchParams.get("fromDate") || thirtyDaysAgo.toISOString().split('T')[0];
+
+        const upstoxUrl = `https://api.upstox.com/v2/historical-candle/${encodeURIComponent(instrumentKey)}/${interval}/${toDate}/${fromDate}`;
+
+        try {
+            const response = await fetch(upstoxUrl, {
+                headers: {
+                    "Accept": "application/json",
+                    "Authorization": `Bearer ${env.UPSTOX_ACCESS_TOKEN}`
+                }
+            });
+
+            const data = await response.json();
+            
+            if (data.status === "error") {
+                return new Response(JSON.stringify(data), {
+                    status: 400,
+                    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+                });
+            }
+
+            return new Response(JSON.stringify(data), {
+                headers: { 
+                    "Content-Type": "application/json", 
+                    "Access-Control-Allow-Origin": "*",
+                    "Cache-Control": "public, max-age=3600" // Cache for 1 hour
+                }
+            });
+        } catch (err) {
+            return new Response(JSON.stringify({ error: err.message }), {
+                status: 500,
+                headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+            });
+        }
+    }
+
+    // 4. Global Market Data
     if (url.pathname === "/global") {
       const tickers = ["^GSPC", "^IXIC", "GC=F", "BZ=F"];
       try {

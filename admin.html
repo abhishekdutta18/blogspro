@@ -19,6 +19,8 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DED9GTRR3E');</script>
   <link rel="stylesheet" href="css/admin.css" />
+  <!-- Global UI Utilities -->
+  <script src="js/ui-utils.js"></script>
   <!-- Microsoft Clarity -->
   <script src="js/clarity-init.js"></script>
 </head>
@@ -55,9 +57,29 @@ function switchDrawerTab(tab) {
 
 // ── Sentry Highlights Fix: Proxy functions for deferred modules ──
 function triggerPostAudit() {
-  if (window.triggerPostAudit) window.triggerPostAudit();
-  else if (window.showToast) showToast('🛡 Booting BlogsPro AI... please wait.');
-  else console.warn('[BlogsPro] AI Audit module not yet loaded.');
+  if (window.runFullAudit) {
+    window.runFullAudit('manual');
+  } else if (window.showToast) {
+    showToast('🛡 Booting BlogsPro AI... please wait.');
+  } else {
+    console.warn('[BlogsPro] AI Audit module not yet loaded.');
+  }
+}
+
+function toggleSiteImages() {
+  if (window._toggleSiteImages) {
+    window._toggleSiteImages();
+  } else if (window.showToast) {
+    showToast('⚙ Loading site settings...');
+  }
+}
+
+function toggleSiteAudio() {
+  if (window._toggleSiteAudio) {
+    window._toggleSiteAudio();
+  } else if (window.showToast) {
+    showToast('⚙ Loading audio settings...');
+  }
 }
 function applyCustomWordTarget(el) {
   if (window._applyCustomWordTarget) window._applyCustomWordTarget(el);
@@ -110,8 +132,11 @@ function onModelChange(val) {
       <div class="user-avatar" id="userInitial">—</div>
       <div class="user-email" id="userEmail">—</div>
     </div>
-    <div class="nav-item" data-view="profile" style="padding:0.6rem 0;margin-bottom:0.4rem;border:none;background:transparent;justify-content:center;font-size:0.75rem;font-weight:600;letter-spacing:0.05em;color:var(--gold);border-radius:3px;border:1px solid rgba(201,168,76,0.15)" onmouseover="this.style.background='rgba(201,168,76,0.05)'" onmouseout="this.style.background='transparent'">
-      <span>👤</span> My Profile
+    <div style="display:grid; grid-template-columns:1fr 40px; gap:0.5rem; margin-bottom:0.4rem">
+      <div class="nav-item" data-view="profile" style="padding:0.6rem 0;border:none;background:transparent;justify-content:center;font-size:0.75rem;font-weight:600;letter-spacing:0.05em;color:var(--gold);border-radius:3px;border:1px solid rgba(201,168,76,0.15)" onmouseover="this.style.background='rgba(201,168,76,0.05)'" onmouseout="this.style.background='transparent'">
+        <span>👤</span> Profile
+      </div>
+      <button id="themeBtn" onclick="toggleTheme()" style="background:transparent; border:1px solid rgba(201,168,76,0.15); border-radius:3px; color:var(--muted); cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; transition:all 0.2s">☀️</button>
     </div>
     <button class="btn-logout" onclick="doLogout()">Sign Out</button>
   </div>

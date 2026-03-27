@@ -98,7 +98,7 @@ async function loadSetting() {
   }
 }
 
-window.toggleSiteImages = async function toggleSiteImages() {
+window._toggleSiteImages = async function toggleSiteImages() {
   if (saving) return;
   saving = true;
   imagesEnabled = !imagesEnabled;
@@ -129,7 +129,7 @@ window.toggleSiteImages = async function toggleSiteImages() {
   }
 };
 
-window.toggleSiteAudio = async function toggleSiteAudio() {
+window._toggleSiteAudio = async function toggleSiteAudio() {
   if (saving) return;
   saving = true;
   audioEnabled = !audioEnabled;
