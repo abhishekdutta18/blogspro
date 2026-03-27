@@ -153,12 +153,36 @@ async function fetchForexFactory() {
         const xmlData = await response.text();
         const parser = new XMLParser();
         const jsonObj = parser.weeklycalendar.event || [];
+        const events = Array.isArray(jsonObj) ? jsonObj : [jsonObj];
         const highImpact = events.filter(e => e.impact === 'High');
         return { 
-            text: `High Impact Forex: ${highImpact.slice(0, 10).map(e => `${e.event} (${e.country})`).join(', ')}`,
+            text: `High Impact Events: ${highImpact.slice(0, 10).map(e => `${e.event} (${e.country})`).join(', ')}`,
             raw: highImpact.slice(0, 8).map(e => `${e.country} ${e.event}`)
         };
-    } catch (err) { return { text: "Forex: Unavailable.", raw: [] }; }
+    } catch (err) { return { text: "Calendar: Unavailable.", raw: [] }; }
+}
+
+async function fetchTradingViewForex() {
+    console.log("🌎 Fetching TradingView Forex Data...");
+    try {
+        const symbols = ["FX:USDINR", "FX:EURUSD", "FX:GBPUSD", "FX:USDJPY", "OANDA:XAUUSD"];
+        const res = await fetch("https://scanner.tradingview.com/forex/scan", {
+            method: "POST",
+            body: JSON.stringify({
+                "symbols": { "tickers": symbols },
+                "columns": ["base_currency", "currency", "close", "change", "change_abs", "description"]
+            })
+        });
+        const json = await res.json();
+        if (json.data) {
+            const summary = json.data.map(item => {
+                const [base, cur, close, chg, abs, desc] = item.d;
+                return `${base}${cur}: ${close.toFixed(4)} (${chg.toFixed(2)}%)`;
+            }).join(' | ');
+            return { summary, raw: json.data };
+        }
+        return { summary: "Forex: Unavailable.", raw: [] };
+    } catch (e) { return { summary: "Forex: Unavailable.", raw: [] }; }
 }
 
 async function fetchNewsAPI() {
@@ -401,8 +425,9 @@ async function generateArticle() {
     try {
         const today = new Date().toISOString().split('T')[0];
         const postsDir = path.join(__dirname, "../posts");
-        const [forex, news, rbi, sebi, wsj, upstox, global, briefingKit] = await Promise.all([
+        const [factory, tvForex, news, rbi, sebi, wsj, upstox, global, briefingKit] = await Promise.all([
             fetchForexFactory(),
+            fetchTradingViewForex(),
             fetchNewsAPI(),
             fetchRBIData(),
             fetchSEBIData(),
@@ -413,7 +438,8 @@ async function generateArticle() {
         ]);
 const liveDataBlock = `
 MARKET DATA (Indo-Global Context):
-FOREX: ${forex.text}
+TRADINGVIEW FOREX: ${tvForex.summary}
+FOREX CALENDAR: ${factory.text}
 NEWS: ${news}
 WSJ: ${wsj}
 RBI (INDIA): ${rbi.summary}
