@@ -1234,6 +1234,8 @@
     } catch(e) { console.warn('Ticker data not found.'); }
   }
 
+  document.getElementById('year').textContent = new Date().getFullYear();
+
   (async () => {
     window.loadPosts = loadPosts; // Expose globally for any inline calls
     await loadSiteSettings();
