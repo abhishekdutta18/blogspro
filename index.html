@@ -424,6 +424,18 @@
     .sk-title { height: 1.8rem; width: 80%; margin-bottom: 1rem; }
     .sk-block { height: 4rem; margin-bottom: 0.5rem; }
 
+    /* ── LOAD MORE ── */
+    .load-more-wrap { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding-top: 1.5rem; }
+    .load-more-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      padding: 0.7rem 2rem; border-radius: 3px; font-family: var(--sans);
+      font-size: 0.82rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .load-more-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .load-more-btn:disabled { opacity: 0.4; cursor: default; }
+    .posts-counter { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; }
+
     /* ── EMPTY STATE ── */
     .empty-state { text-align: center; padding: 5rem 2rem; color: var(--muted); }
     .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
@@ -475,28 +487,10 @@
 
     /* ── HERO "EDGE" TREATMENT ── */
     .hero-edge {
-      color: var(--gold2);
-      font-weight: 700;
-      font-style: normal;
-      position: relative;
-      display: inline-block;
-      white-space: nowrap;
-      text-shadow: 0 0 32px rgba(240,204,110,0.35);
-    }
-    .hero-edge::after {
-      content: '';
-      position: absolute;
-      bottom: 0px;
-      left: 0;
-      width: 100%;
-      height: 2px;
-      background: linear-gradient(90deg, var(--gold), var(--gold2), var(--gold));
-      transform-origin: left center;
-      transform: scaleX(0);
-      animation: edgeLine 0.9s cubic-bezier(0.4, 0, 0.2, 1) 0.4s forwards;
-    }
-    @keyframes edgeLine {
-      to { transform: scaleX(1); }
+      color: var(--cream);
+      font-style: italic;
+      border-bottom: 1px solid rgba(201,168,76,0.4);
+      padding-bottom: 2px;
     }
     .hero-sub {
       font-size: 1.05rem;
@@ -548,6 +542,18 @@
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--muted);
+    }
+
+    /* ── TRADINGVIEW WIDGETS ── */
+    .tv-chart-wrap { height: 520px; overflow: hidden; }
+    .tv-cal-wrap   { height: 420px; overflow: hidden; }
+    .tv-chart-wrap .tradingview-widget-container,
+    .tv-cal-wrap   .tradingview-widget-container { height: 100%; }
+    .tv-chart-wrap .tradingview-widget-container__widget,
+    .tv-cal-wrap   .tradingview-widget-container__widget { height: 100%; }
+    @media (max-width: 768px) {
+      .tv-chart-wrap { height: 360px; }
+      .tv-cal-wrap   { height: 340px; }
     }
 
     /* ── TERMINAL ── */
@@ -771,9 +777,23 @@
       </div>
     </div>
 
-    <!-- Market Heatmap (Legacy) -->
-    <div id="tvHeatmap" class="glass-card" style="min-height: 250px;"></div>
+    <!-- Market Overview (Indices + Crypto tabs) -->
+    <div id="tvHeatmap" class="glass-card" style="min-height: 300px; overflow: hidden;"></div>
   </div>
+
+  <!-- Advanced Interactive Chart — full width -->
+  <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
+    <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Live Chart</span>
+    <span style="font-size:0.72rem;color:var(--muted);">NIFTY 50 — NSE</span>
+  </div>
+  <div id="tvAdvChart" class="glass-card tv-chart-wrap"></div>
+
+  <!-- Economic Calendar — full width -->
+  <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
+    <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Economic Calendar</span>
+    <span style="font-size:0.72rem;color:var(--muted);">India · USA · EU · UK</span>
+  </div>
+  <div id="tvEconCal" class="glass-card tv-cal-wrap"></div>
 </section>
 
 <!-- ══════════════ ABOUT SECTION ══════════════ -->
@@ -951,8 +971,6 @@
       return;
     }
 
-    identifyUser(user);
-
     let isAdmin = false;
     try {
       const snap = await getDoc(doc(db, 'users', user.uid));
@@ -960,6 +978,9 @@
     } catch (err) {
       console.warn('Role check failed:', err);
     }
+
+    // Identify with correct role so Clarity can segment admin vs reader sessions
+    identifyUser(user, isAdmin ? 'admin' : 'user');
 
     if (isAdmin) {
       slot.innerHTML = `
@@ -1068,69 +1089,102 @@
     }
   }
 
-  function renderPosts(posts) {
-    const grid = document.getElementById('postsGrid');
-    if (!posts.length) { renderEmpty(); return; }
-    // Helper: sanitize text fields for safe HTML insertion
+  const POSTS_PER_PAGE = 6;
+  let currentPage = 1;
+  let activePosts  = []; // the current filtered/searched list
+
+  function buildCard(p, i) {
     const esc = (s) => DOMPurify.sanitize(s || '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
-    grid.innerHTML = posts.map((p, i) => {
-      const title    = esc(p.title);
-      const excerpt  = esc(p.excerpt);
-      const category = esc(p.category) || 'General';
-      const rawImage = imagesEnabled ? DOMPurify.sanitize(String(p.image || '').trim()) : '';
-      const image    = (
-        /^https?:\/\//i.test(rawImage) &&
-        rawImage !== 'null' &&
-        rawImage !== 'undefined' &&
-        rawImage !== '[object Object]'
-      ) ? rawImage : '';
-      const dateStr = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
-      const authorName = esc(p.authorName || 'Staff Writer');
-      const authorDateStr = `${authorName} · ${dateStr}`;
-      // FIX: Strip HTML tags before counting words for reading time
-      const plainText = (p.content || '').replace(/<[^>]+>/g, ' ').trim();
-      const readTime = Math.max(1, Math.ceil(plainText.split(/\s+/).filter(Boolean).length / 200));
-        const slug = (p.title || p.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-      if (i === 0) {
-        const visual = image
-          ? `<div class="featured-visual featured-visual-img"><img src="${image}" alt="${title}" loading="lazy" onerror="this.closest('.featured-visual')?.remove(); this.closest('.post-card')?.classList.add('featured-no-img');" /></div>`
-          : '';
-        return `
-          <div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}', '${slug}')" style="animation-delay:${i*0.08}s">
-            <div class="featured-body">
-              <span class="featured-badge">Featured</span>
-              <span class="post-category">${category}</span>
-              <h2 class="post-title">${title}</h2>
-              <p class="post-excerpt">${excerpt}</p>
-              <div class="post-meta">
-                <span class="post-date">${authorDateStr}</span>
-                <div style="display:flex;align-items:center;gap:0.75rem">
-                  <span class="post-read-time">${readTime} min read</span>
-                  <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
-                </div>
+    const title    = esc(p.title);
+    const excerpt  = esc(p.excerpt);
+    const category = esc(p.category) || 'General';
+    const rawImage = imagesEnabled ? DOMPurify.sanitize(String(p.image || '').trim()) : '';
+    const image    = (
+      /^https?:\/\//i.test(rawImage) &&
+      rawImage !== 'null' && rawImage !== 'undefined' && rawImage !== '[object Object]'
+    ) ? rawImage : '';
+    const dateStr      = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
+    const authorName   = esc(p.authorName || 'Staff Writer');
+    const authorDateStr = `${authorName} · ${dateStr}`;
+    const plainText    = (p.content || '').replace(/<[^>]+>/g, ' ').trim();
+    const readTime     = Math.max(1, Math.ceil(plainText.split(/\s+/).filter(Boolean).length / 200));
+    const slug         = (p.title || p.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
+    if (i === 0) {
+      const visual = image
+        ? `<div class="featured-visual featured-visual-img"><img src="${image}" alt="${title}" loading="lazy" onerror="this.closest('.featured-visual')?.remove();this.closest('.post-card')?.classList.add('featured-no-img');" /></div>`
+        : '';
+      return `
+        <div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}','${slug}')" style="animation-delay:${i*0.08}s">
+          <div class="featured-body">
+            <span class="featured-badge">Featured</span>
+            <span class="post-category">${category}</span>
+            <h2 class="post-title">${title}</h2>
+            <p class="post-excerpt">${excerpt}</p>
+            <div class="post-meta">
+              <span class="post-date">${authorDateStr}</span>
+              <div style="display:flex;align-items:center;gap:0.75rem">
+                <span class="post-read-time">${readTime} min read</span>
+                <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
               </div>
             </div>
-            ${visual}
-          </div>`;
-      }
-      return `
-        <div class="post-card" onclick="openPost('${p.id}', '${slug}')" style="animation-delay:${i*0.08}s">
-          <span class="post-category">${category}</span>
-          <h3 class="post-title">${title}</h3>
-          <p class="post-excerpt">${excerpt}</p>
-          <div class="complexity-wrap">
-            <div class="complexity-label"><span>Tactical Depth</span><span>${p.complexity || 5}/10</span></div>
-            <div class="complexity-bar"><div class="complexity-fill" style="width:${(p.complexity || 5) * 10}%"></div></div>
           </div>
-          <div class="post-meta">
-            <span class="post-date">${authorDateStr}</span>
-            <div style="display:flex;align-items:center;gap:0.75rem">
-              <span class="post-read-time">${readTime} min read</span>
-              <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
-            </div>
-          </div>
+          ${visual}
         </div>`;
-    }).join('');
+    }
+    return `
+      <div class="post-card" onclick="openPost('${p.id}','${slug}')" style="animation-delay:${i*0.08}s">
+        <span class="post-category">${category}</span>
+        <h3 class="post-title">${title}</h3>
+        <p class="post-excerpt">${excerpt}</p>
+        <div class="complexity-wrap">
+          <div class="complexity-label"><span>Tactical Depth</span><span>${p.complexity || 5}/10</span></div>
+          <div class="complexity-bar"><div class="complexity-fill" style="width:${(p.complexity || 5) * 10}%"></div></div>
+        </div>
+        <div class="post-meta">
+          <span class="post-date">${authorDateStr}</span>
+          <div style="display:flex;align-items:center;gap:0.75rem">
+            <span class="post-read-time">${readTime} min read</span>
+            <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderPosts(posts) {
+    activePosts  = posts;
+    currentPage  = 1;
+    const grid   = document.getElementById('postsGrid');
+    if (!posts.length) { renderEmpty(); return; }
+    const visible = posts.slice(0, POSTS_PER_PAGE);
+    grid.innerHTML = visible.map((p, i) => buildCard(p, i)).join('');
+    renderLoadMore(grid, posts);
+  }
+
+  function renderLoadMore(grid, posts) {
+    // Remove existing Load More row
+    grid.querySelector('.load-more-wrap')?.remove();
+    const shown = currentPage * POSTS_PER_PAGE;
+    if (shown >= posts.length) return; // all shown
+
+    const wrap = document.createElement('div');
+    wrap.className = 'load-more-wrap';
+    wrap.innerHTML = `
+      <button class="load-more-btn" id="loadMoreBtn">Load More</button>
+      <span class="posts-counter">Showing ${shown} of ${posts.length} articles</span>`;
+    wrap.querySelector('#loadMoreBtn').addEventListener('click', () => {
+      currentPage++;
+      const nextBatch = posts.slice(shown, currentPage * POSTS_PER_PAGE);
+      // Remove the wrap before appending new cards
+      wrap.remove();
+      nextBatch.forEach((p, i) => {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = buildCard(p, shown + i);
+        grid.appendChild(tmp.firstElementChild);
+      });
+      renderLoadMore(grid, posts);
+    });
+    grid.appendChild(wrap);
   }
 
   function renderEmpty() {
@@ -1142,6 +1196,12 @@
   }
 
   window.openPost = async (id, slug) => {
+    // Clarity: tag this session as a post-reader and track the click
+    if (typeof window.clarity === 'function') {
+      window.clarity('set',   'last_post_slug', slug);
+      window.clarity('event', 'post_open');
+    }
+
     if (id.startsWith('static-')) {
       window.location.href = `/posts/${id.replace('static-', '')}.html`;
       return;
@@ -1173,6 +1233,10 @@
   };
 
   window.filterByCategory = function(cat) {
+    if (typeof window.clarity === 'function') {
+      window.clarity('set',   'active_filter', cat.toLowerCase());
+      window.clarity('event', 'filter_used');
+    }
     currentCat = cat.toLowerCase();
     document.querySelectorAll('.filter-chip').forEach(b => {
       b.classList.toggle('active', b.textContent.trim().toLowerCase() === currentCat || (currentCat === 'all' && b.textContent.trim() === 'All'));
@@ -1347,6 +1411,10 @@
     try {
       await addDoc(collection(db, 'subscribers'), { email, createdAt: new Date() });
       document.getElementById('emailInput').value = '';
+      if (typeof window.clarity === 'function') {
+        window.clarity('set',   'subscribed', 'true');
+        window.clarity('event', 'newsletter_subscribe');
+      }
       msg.style.cssText = 'display:block;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#86efac;margin-top:1.2rem;padding:0.85rem 1.2rem;border-radius:3px;font-size:0.88rem;font-weight:500';
       msg.textContent = "✓ You're on the list! We'll be in touch.";
     } catch(err) {
@@ -1454,86 +1522,184 @@
   }
 
   function initTVHub() {
-      const container = document.getElementById('tvHubContainer');
-      if (!container || container.dataset.loaded) return;
-      
-      const heatmap = document.getElementById('tvHeatmap');
-      if (heatmap) {
-        heatmap.innerHTML = `
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js" async>
-            {
-              "width": "100%",
-              "height": "100%",
-              "symbolsGroups": [
-                {
-                  "name": "Indices",
-                  "originalName": "Indices",
-                  "symbols": [
-                    { "name": "BSE:SENSEX", "displayName": "SENSEX" },
-                    { "name": "NSE:NIFTY", "displayName": "NIFTY" }
-                  ]
-                }
-              ],
-              "showSymbolLogo": true,
-              "isTransparent": true,
-              "colorTheme": "dark",
-              "locale": "en"
-            }
-            <\/script>
-          </div>`;
-      }
-      container.dataset.loaded = "true";
+    const container = document.getElementById('tvHubContainer');
+    if (!container || container.dataset.loaded) return;
+    container.dataset.loaded = "true";
+
+    // ── Market Overview: Indices + Crypto tabs ──────────────────────────────
+    const heatmap = document.getElementById('tvHeatmap');
+    if (heatmap) {
+      heatmap.innerHTML = `
+        <div class="tradingview-widget-container" style="height:100%">
+          <div class="tradingview-widget-container__widget" style="height:100%"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js" async>
+          {
+            "colorTheme": "dark",
+            "dateRange": "1M",
+            "showChart": true,
+            "locale": "en",
+            "isTransparent": true,
+            "showSymbolLogo": true,
+            "showFloatingTooltip": false,
+            "width": "100%",
+            "height": "100%",
+            "tabs": [
+              {
+                "title": "Indices",
+                "symbols": [
+                  {"s": "NSE:NIFTY",     "d": "NIFTY 50"},
+                  {"s": "NSE:BANKNIFTY", "d": "BANK NIFTY"},
+                  {"s": "BSE:SENSEX",    "d": "SENSEX"},
+                  {"s": "INDEX:SPX",     "d": "S&P 500"},
+                  {"s": "INDEX:NKY",     "d": "Nikkei 225"}
+                ],
+                "originalTitle": "Indices"
+              },
+              {
+                "title": "Crypto",
+                "symbols": [
+                  {"s": "CRYPTOCAP:BTC", "d": "Bitcoin"},
+                  {"s": "CRYPTOCAP:ETH", "d": "Ethereum"},
+                  {"s": "CRYPTOCAP:SOL", "d": "Solana"},
+                  {"s": "CRYPTOCAP:BNB", "d": "BNB"}
+                ],
+                "originalTitle": "Crypto"
+              },
+              {
+                "title": "Forex",
+                "symbols": [
+                  {"s": "FX:USDINR", "d": "USD/INR"},
+                  {"s": "FX:EURUSD", "d": "EUR/USD"},
+                  {"s": "FX:GBPUSD", "d": "GBP/USD"}
+                ],
+                "originalTitle": "Forex"
+              }
+            ]
+          }
+          <\/script>
+        </div>`;
+    }
+
+    // ── Advanced Interactive Chart (NIFTY 50) ───────────────────────────────
+    const advChart = document.getElementById('tvAdvChart');
+    if (advChart) {
+      advChart.innerHTML = `
+        <div class="tradingview-widget-container" style="height:100%">
+          <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px)"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+          {
+            "autosize": true,
+            "symbol": "NSE:NIFTY",
+            "interval": "D",
+            "timezone": "Asia/Kolkata",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "backgroundColor": "rgba(8,13,26,0)",
+            "gridColor": "rgba(201,168,76,0.06)",
+            "hide_top_toolbar": false,
+            "hide_legend": false,
+            "save_image": false,
+            "hide_volume": false,
+            "support_host": "https://www.tradingview.com"
+          }
+          <\/script>
+        </div>`;
+    }
+
+    // ── Economic Calendar ───────────────────────────────────────────────────
+    const econCal = document.getElementById('tvEconCal');
+    if (econCal) {
+      econCal.innerHTML = `
+        <div class="tradingview-widget-container" style="height:100%">
+          <div class="tradingview-widget-container__widget" style="height:100%"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+          {
+            "colorTheme": "dark",
+            "isTransparent": true,
+            "width": "100%",
+            "height": "100%",
+            "locale": "en",
+            "importanceFilter": "0,1",
+            "countryFilter": "in,us,eu,gb"
+          }
+          <\/script>
+        </div>`;
+    }
   }
 
   // ── Market Terminal Polling ──
+  let _pollFailures = 0;
+  const POLL_MAX_FAILURES = 3;
+  const UPSTOX_BASE = 'https://blogspro-upstox.abhishek-dutta1996.workers.dev';
+
   window.pollMarkets = async function() {
     const indicesBox = document.getElementById('terminal-indices');
-    const stocksBox = document.getElementById('terminal-stocks');
-    const view = document.getElementById('terminalView')?.value || 'india';
+    const stocksBox  = document.getElementById('terminal-stocks');
+    const view       = document.getElementById('terminalView')?.value || 'india';
 
     if (!indicesBox || !stocksBox) return;
 
+    // Stop polling after repeated failures — prevents console spam every 30s
+    if (_pollFailures >= POLL_MAX_FAILURES) {
+      clearInterval(marketPollInterval);
+      marketPollInterval = null;
+      const statusDot = document.getElementById('marketStatus');
+      if (statusDot) { statusDot.style.background = 'var(--red)'; statusDot.style.boxShadow = '0 0 6px var(--red)'; }
+      stocksBox.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);padding:0.5rem 0">Live data unavailable — market terminal offline.<br>Charts above are still active.</div>`;
+      return;
+    }
+
     try {
       if (view === 'india') {
-        const res = await fetch('https://blogspro-upstox.abhishek-dutta1996.workers.dev/quotes');
+        const res  = await fetch(`${UPSTOX_BASE}/quotes`);
         const data = await res.json();
-        
+
         if (data.status === 'success' && data.data) {
-          const d = data.data;
+          _pollFailures = 0; // reset on success
+          const d    = data.data;
           const nifty = d['NSE_INDEX|Nifty 50'];
-          const bank = d['NSE_INDEX|Nifty Bank'];
+          const bank  = d['NSE_INDEX|Nifty Bank'];
           indicesBox.style.display = 'grid';
           indicesBox.innerHTML = `
-            <div style="text-align:center"><small style="display:block;color:var(--muted)">NIFTY 50</small><b style="${nifty?.last_price >= nifty?.close ? 'color:var(--emerald)' : 'color:var(--red)'}">${nifty?.last_price?.toLocaleString('en-IN') || '—'}</b></div>
-            <div style="text-align:center"><small style="display:block;color:var(--muted)">BANK NIFTY</small><b style="${bank?.last_price >= bank?.close ? 'color:var(--emerald)' : 'color:var(--red)'}">${bank?.last_price?.toLocaleString('en-IN') || '—'}</b></div>
-          `;
-
+            <div style="text-align:center"><small style="display:block;color:var(--muted)">NIFTY 50</small>
+              <b style="color:${nifty?.last_price >= nifty?.close ? 'var(--emerald)' : 'var(--red)'}">${nifty?.last_price?.toLocaleString('en-IN') || '—'}</b></div>
+            <div style="text-align:center"><small style="display:block;color:var(--muted)">BANK NIFTY</small>
+              <b style="color:${bank?.last_price >= bank?.close ? 'var(--emerald)' : 'var(--red)'}">${bank?.last_price?.toLocaleString('en-IN') || '—'}</b></div>`;
           const symbols = ["RELIANCE", "HDFCBANK", "ICICIBANK", "INFY", "TCS"];
           stocksBox.innerHTML = symbols.map(s => {
             const item = d[`NSE_EQ|${s}`];
             if (!item) return '';
             const chg = (((item.last_price - item.close) / item.close) * 100).toFixed(2);
-            return `<div style="display:flex; justify-content:space-between; font-size:0.8rem;"><span>${s}</span><span style="color:${chg >= 0 ? 'var(--emerald)' : 'var(--red)'}">${item.last_price.toLocaleString('en-IN')} <small>(${chg}%)</small></span></div>`;
+            return `<div style="display:flex;justify-content:space-between;font-size:0.8rem">
+              <span>${s}</span>
+              <span style="color:${chg >= 0 ? 'var(--emerald)' : 'var(--red)'}">${item.last_price.toLocaleString('en-IN')} <small>(${chg}%)</small></span>
+            </div>`;
           }).join('');
+        } else {
+          _pollFailures++;
         }
       } else {
-        const res = await fetch('https://blogspro-upstox.abhishek-dutta1996.workers.dev/global');
+        const res  = await fetch(`${UPSTOX_BASE}/global`);
         const json = await res.json();
         if (json.status === 'success') {
+          _pollFailures = 0;
           indicesBox.style.display = 'none';
           stocksBox.innerHTML = json.data.map(d => {
             const name = d.symbol.replace('^', '').replace('=F', '');
-            return `<div style="display:flex; justify-content:space-between; font-size:0.8rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:0.4rem">
+            return `<div style="display:flex;justify-content:space-between;font-size:0.8rem;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:0.4rem">
               <span style="color:var(--gold)">${name}</span>
               <span style="color:${d.change >= 0 ? 'var(--emerald)' : 'var(--red)'}">${d.price.toLocaleString()} <small>(${d.change}%)</small></span>
             </div>`;
           }).join('');
+        } else {
+          _pollFailures++;
         }
       }
     } catch (e) {
-      console.warn("Market poll fail:", e);
+      _pollFailures++;
+      // Only warn once — not on every poll cycle
+      if (_pollFailures === 1) console.warn('[Terminal] Market feed unavailable:', e.message);
     }
   };
 

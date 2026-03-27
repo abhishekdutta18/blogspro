@@ -20,20 +20,31 @@
       return;
     }
 
+    // Known transient domains — CORS/network failures from these are expected
+    // and should not be sent to Sentry.
+    const NOISY_HOSTS = [
+      "blogspro-upstox",
+      "abhishek-dutta1996.workers.dev",
+      "ticker.json",
+      "tradingview.com",
+      "s3.tradingview.com",
+    ];
+
     Sentry.init({
       dsn: "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336",
       environment: window.location.hostname === "blogspro.in" ? "production" : "development",
       release: "blogspro@2026-03-26",
-      
-      tracesSampleRate: 1.0,
-      profilesSampleRate: 1.0,
+
+      // Reduced from 1.0 — capture 10% of traces in production to avoid quota burn
+      tracesSampleRate: window.location.hostname === "blogspro.in" ? 0.1 : 1.0,
+      profilesSampleRate: 0.1,
 
       sampleRate: 1.0,
       attachStacktrace: true,
       autoSessionTracking: true,
 
-      replaysSessionSampleRate: 1.0,
-      replaysOnErrorSampleRate: 1.0,
+      replaysSessionSampleRate: 0.05,   // 5% of sessions
+      replaysOnErrorSampleRate: 1.0,    // 100% of sessions with errors
 
       integrations: [
         Sentry.browserTracingIntegration(),
@@ -41,19 +52,31 @@
           maskAllText: false,
           blockAllMedia: false,
         }),
-        // Only add captureConsoleIntegration if it was loaded successfully
-        ...(typeof Sentry.captureConsoleIntegration === 'function' 
-          ? [Sentry.captureConsoleIntegration({ levels: ['error'] })] 
-          : []),
         Sentry.httpContextIntegration(),
+        // captureConsoleIntegration excluded — it was capturing every pollMarkets CORS failure
       ],
 
       ignoreErrors: [
         "ResizeObserver loop limit exceeded",
         "ResizeObserver loop completed with undelivered notifications",
         "Network request failed",
-        "Failed to fetch"
-      ]
+        /Failed to fetch/,
+        /NetworkError/,
+        /Load failed/,
+        /CORS/i,
+      ],
+
+      beforeSend(event, hint) {
+        // Drop events whose stack or request URL contains a known noisy host
+        const msg = (event.message || "") + JSON.stringify(hint?.originalException || "");
+        if (NOISY_HOSTS.some(h => msg.includes(h))) return null;
+
+        // Drop fetch/network errors that are just market-data polling failures
+        const err = hint?.originalException;
+        if (err instanceof TypeError && /fetch|network/i.test(err.message)) return null;
+
+        return event;
+      },
     });
 
     window.setSentryUser = function(u) { Sentry.setUser(u); };

@@ -54,25 +54,37 @@ export function trackEvent(eventName, params = {}) {
 }
 
 /**
- * Identifies the user in both Sentry and Microsoft Clarity.
- * @param {object} user - The Firebase user object or custom user data.
+ * Identifies the user in Sentry and Microsoft Clarity, and sets custom session tags.
+ * @param {object|null} user - Firebase user object, or null for signed-out.
+ * @param {'admin'|'user'|'guest'} role - User role for Clarity segmentation.
  */
-export function identifyUser(user) {
-  if (!user) return;
-  const { uid, email, displayName } = user;
-
+export function identifyUser(user, role = 'guest') {
   // Sentry
   if (window.Sentry && typeof window.Sentry.setUser === 'function') {
-    window.Sentry.setUser({ id: uid, email, username: displayName });
+    window.Sentry.setUser(user
+      ? { id: user.uid, email: user.email, username: user.displayName }
+      : null
+    );
   }
 
-  // Clarity
+  if (!user) {
+    if (typeof window.clarity === 'function') {
+      window.clarity('set', 'user_role',   'guest');
+      window.clarity('set', 'auth_status', 'signed_out');
+    }
+    return;
+  }
+
+  const { uid, email, displayName } = user;
+
   if (typeof window.clarity === 'function') {
-    window.clarity('identify', email || uid, {
-      name: displayName || 'Anonymous',
-      id: uid,
-      email: email || 'none'
-    });
+    // clarity('identify', customUserId) — links this session to a user in the dashboard
+    window.clarity('identify', uid);
+    // clarity('set', key, value) — custom tags visible in session filters
+    window.clarity('set', 'user_role',    role);
+    window.clarity('set', 'auth_status',  'signed_in');
+    window.clarity('set', 'user_email',   email       || 'none');
+    window.clarity('set', 'display_name', displayName || 'none');
   }
 }
 
