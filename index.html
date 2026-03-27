@@ -202,16 +202,46 @@
     .filter-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 0.45rem 1rem; border-radius: 2px; font-family: var(--sans); font-size: 0.78rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
     .filter-btn:hover, .filter-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
 
+    /* ── TOPIC TICKER ── */
+    .topic-ticker-bar {
+      background: var(--navy3);
+      border-bottom: 1px solid var(--border);
+      padding: 0.45rem 0;
+      overflow: hidden;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .topic-ticker-track {
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      animation: topicScroll 35s linear infinite;
+    }
+    .topic-ticker-track:hover { animation-play-state: paused; }
+    @keyframes topicScroll {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .ticker-tag {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      padding: 0 0.6rem;
+      transition: color 0.2s;
+      cursor: default;
+    }
+    .ticker-tag:hover { color: var(--gold); }
+    .ticker-sep { color: var(--border); padding: 0 0.1rem; font-size: 0.65rem; }
+
     /* ── POSTS SECTION PRIORITY ── */
-    #briefings {
-      padding-top: 2rem;
-      padding-bottom: 4rem;
-      position: relative;
+    .briefings-wrapper {
       border-top: 2px solid var(--gold);
       background: linear-gradient(180deg, rgba(201,168,76,0.04) 0%, transparent 120px);
     }
-    #briefings .section-header {
-      margin-bottom: 2rem;
+    #briefings {
+      padding-top: 2rem;
+      padding-bottom: 4rem;
     }
     #briefings .section-title {
       font-size: clamp(1.8rem, 4vw, 2.6rem);
@@ -237,6 +267,12 @@
       margin-left: 1rem;
       vertical-align: middle;
     }
+    /* ── POST CARD ENTER ANIMATION ── */
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .post-card { animation: cardIn 0.4s ease-out both; }
 
     /* ── GRID ── */
     .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
@@ -436,6 +472,32 @@
       margin-bottom: 1.5rem;
     }
     .hero h1 em { font-style: italic; color: var(--gold); }
+
+    /* ── HERO "EDGE" TREATMENT ── */
+    .hero-edge {
+      color: var(--gold2);
+      font-weight: 700;
+      font-style: normal;
+      position: relative;
+      display: inline-block;
+      white-space: nowrap;
+      text-shadow: 0 0 32px rgba(240,204,110,0.35);
+    }
+    .hero-edge::after {
+      content: '';
+      position: absolute;
+      bottom: 0px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--gold), var(--gold2), var(--gold));
+      transform-origin: left center;
+      transform: scaleX(0);
+      animation: edgeLine 0.9s cubic-bezier(0.4, 0, 0.2, 1) 0.4s forwards;
+    }
+    @keyframes edgeLine {
+      to { transform: scaleX(1); }
+    }
     .hero-sub {
       font-size: 1.05rem;
       color: var(--muted);
@@ -578,7 +640,7 @@
 <!-- HERO -->
 <div class="hero">
   <p class="hero-label">Fintech · Compliance · Strategy</p>
-  <h1>The edge is in the <em>details.</em></h1>
+  <h1>The <span class="hero-edge">edge</span> is in the <em>details.</em></h1>
   <p class="hero-sub">Sharp analysis on financial technology, regulatory compliance, and growth strategy for practitioners who move markets.</p>
   <div class="hero-actions">
     <a href="#briefings" class="btn-primary">Read Latest</a>
@@ -589,10 +651,42 @@
       <div class="stat-value" id="postCount">—</div>
       <div class="stat-label">Articles</div>
     </div>
+    <div class="stat-item">
+      <div class="stat-value" id="totalViewCount">—</div>
+      <div class="stat-label">Total Views</div>
+    </div>
+  </div>
+</div>
+
+<!-- TOPIC TICKER — scrolling strip of topic tags (populated by loadTicker) -->
+<div class="topic-ticker-bar" id="topicTickerBar">
+  <div class="topic-ticker-track" id="ticker">
+    <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Regulatory Compliance</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Market Analysis</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">RBI Policy</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">SEBI Updates</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Equity Research</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Digital Payments</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Crypto & Web3</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Growth Strategy</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Macro Trends</span><span class="ticker-sep">·</span>
+    <!-- duplicated for seamless loop -->
+    <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Regulatory Compliance</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Market Analysis</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">RBI Policy</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">SEBI Updates</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Equity Research</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Digital Payments</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Crypto & Web3</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Growth Strategy</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Macro Trends</span><span class="ticker-sep">·</span>
   </div>
 </div>
 
 <!-- POSTS — Primary content, shown immediately after hero -->
+<div class="briefings-wrapper">
 <section id="briefings">
   <div class="section-header">
     <h2 class="section-title">Latest <em>Briefings</em><span id="postsCount" style="display:none"></span></h2>
@@ -606,12 +700,12 @@
       <input type="text" id="postSearch" class="search-input" placeholder="Search briefings by keyword..." oninput="handleSearch(this.value)">
     </div>
     <div class="filter-chips" id="filterChips">
-      <button class="filter-chip active" onclick="filterByCategory('All')">All</button>
-      <button class="filter-chip" onclick="filterByCategory('Macro')">Macro</button>
-      <button class="filter-chip" onclick="filterByCategory('Policy')">Policy</button>
-      <button class="filter-chip" onclick="filterByCategory('Equity')">Equity</button>
-      <button class="filter-chip" onclick="filterByCategory('Tech')">Tech</button>
-      <button class="filter-chip" onclick="filterByCategory('Crypto')">Crypto</button>
+      <button class="filter-chip active" data-cat="all" onclick="filterByCategory('All')">All</button>
+      <button class="filter-chip" data-cat="macro" onclick="filterByCategory('Macro')">Macro</button>
+      <button class="filter-chip" data-cat="policy" onclick="filterByCategory('Policy')">Policy</button>
+      <button class="filter-chip" data-cat="equity" onclick="filterByCategory('Equity')">Equity</button>
+      <button class="filter-chip" data-cat="tech" onclick="filterByCategory('Tech')">Tech</button>
+      <button class="filter-chip" data-cat="crypto" onclick="filterByCategory('Crypto')">Crypto</button>
     </div>
   </div>
   <div class="posts-grid" id="postsGrid">
@@ -620,6 +714,7 @@
     <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
   </div>
 </section>
+</div><!-- /.briefings-wrapper -->
 
 <!-- TICKER TAPE (Professional TradingView Widget) -->
 <div class="ticker-bar" id="tvTickerContainer">
@@ -753,7 +848,7 @@
       <div class="sitemap-col-title">Navigate</div>
       <ul>
         <li><a href="#"><span class="sm-icon">🏠</span> Home</a></li>
-        <li><a href="#articles"><span class="sm-icon">📰</span> Articles</a></li>
+        <li><a href="#briefings"><span class="sm-icon">📰</span> Articles</a></li>
         <li><a href="#about"><span class="sm-icon">ℹ️</span> About</a></li>
         <li><a href="#newsletter"><span class="sm-icon">✉️</span> Newsletter</a></li>
       </ul>
@@ -935,9 +1030,17 @@
         }
       } catch(e) { console.warn('Static index not found.'); }
 
+      const firestorePosts = docs.map(d => ({ id: d.id, ...d.data() }));
+      const firestoreSlugs = new Set(firestorePosts.map(p =>
+        (p.title || p.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
+      ));
+      const dedupedStatic = staticPosts.filter(p => {
+        const slug = (p.title || p.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        return !firestoreSlugs.has(slug);
+      });
       allPosts = [
-        ...docs.map(d => ({ id: d.id, ...d.data() })),
-        ...staticPosts
+        ...firestorePosts,
+        ...dedupedStatic
       ].sort((a,b) => {
           const aT = a.createdAt?.toDate?.()?.getTime() || 0;
           const bT = b.createdAt?.toDate?.()?.getTime() || 0;
@@ -956,10 +1059,12 @@
       renderPosts(filteredPosts);
     } catch(err) {
       console.error('Error loading posts:', err.code, err.message);
-      document.getElementById('postsGrid').innerHTML = `
-        <div style="grid-column:1/-1;padding:2rem;color:#fca5a5;font-size:0.9rem">
-          Error: ${err.code || err.message}
-        </div>`;
+      const errDiv = document.createElement('div');
+      errDiv.style.cssText = 'grid-column:1/-1;padding:2rem;color:#fca5a5;font-size:0.9rem';
+      errDiv.textContent = 'Error: ' + (err.code || err.message);
+      const grid = document.getElementById('postsGrid');
+      grid.innerHTML = '';
+      grid.appendChild(errDiv);
     }
   }
 
@@ -1051,15 +1156,6 @@
     }
     window.location.href = `post.html?id=${id}`;
   };
-
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentCat = btn.dataset.cat;
-      renderPosts(currentCat === 'all' ? allPosts : allPosts.filter(p => p.category === currentCat));
-    });
-  });
 
   // ── Search & Category Filter globals (called from inline onclick/oninput) ──
   window.handleSearch = function(query) {
@@ -1260,35 +1356,67 @@
     btn.disabled = false; btnText.style.display = 'inline'; spinner.style.display = 'none';
   };
 
-  // ── Ticker ─────────────────────────────────────
+  // ── Filter chip event listeners (data-cat driven) ──────────────────────────
+  // Works alongside the inline onclick="filterByCategory()" on each chip.
+  // The data-cat attribute (added to each chip) drives category matching.
+  document.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCat = btn.dataset.cat || btn.textContent.trim().toLowerCase();
+      renderPosts(currentCat === 'all'
+        ? allPosts
+        : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat)
+      );
+    });
+  });
+
+  // ── Topic Ticker ────────────────────────────────────────────────────────────
+  // Fetches /posts/ticker.json (array of topic tag strings) and prepends them
+  // to the scrolling #ticker strip, replacing the static defaults if data found.
   async function loadTicker() {
     try {
       const resp = await fetch('/posts/ticker.json');
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data && data.length) {
-          const tickerEl = document.getElementById('ticker');
-          tickerEl.innerHTML = data.map(t => `<span class="ticker-tag">${t}</span><span class="ticker-sep">·</span>`).join('') + tickerEl.innerHTML;
-        }
-      }
-    } catch(e) { console.warn('Ticker data not found.'); }
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (!Array.isArray(data) || !data.length) return;
+      const ticker = document.getElementById('ticker');
+      if (!ticker) return;
+      // Sanitize each tag, then build two copies for seamless infinite scroll
+      const sanitized = data.map(t => DOMPurify.sanitize(String(t), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }));
+      const half = sanitized.map(t => `<span class="ticker-tag">${t}</span><span class="ticker-sep">·</span>`).join('');
+      ticker.innerHTML = half + half; // duplicate for seamless loop
+    } catch(e) {
+      console.warn('Ticker data not found — using static defaults.');
+    }
   }
 
+  let marketPollInterval = null;
+
   (async () => {
-    window.loadPosts = loadPosts; // Expose globally for any inline calls
+    window.loadPosts = loadPosts;
+    document.getElementById('year').textContent = new Date().getFullYear();
+    loadTicker(); // non-blocking, runs in parallel
     await loadSiteSettings();
     await loadPosts();
     if (allPosts && allPosts.length > 0) {
       hydratePolicy(allPosts[0]);
     }
     await loadAbout();
-    // Intersection Observer for Reveal & Lazy-loading
+    // Intersection Observer: reveal animations + lazy widget/market loading
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => { 
+      entries.forEach(entry => {
         if (entry.isIntersecting) {
-            entry.target.classList.add('active');
-            if (entry.target.id === 'tvTickerContainer') initTVTicker();
-            if (entry.target.id === 'tvHubContainer') initTVHub();
+          entry.target.classList.add('active');
+          if (entry.target.id === 'tvTickerContainer') initTVTicker();
+          if (entry.target.id === 'tvHubContainer') {
+            initTVHub();
+            // Start market polling only once the hub scrolls into view
+            if (!marketPollInterval) {
+              pollMarkets();
+              marketPollInterval = setInterval(pollMarkets, 30000);
+            }
+          }
         }
       });
     }, { threshold: 0.1 });
@@ -1408,9 +1536,6 @@
       console.warn("Market poll fail:", e);
     }
   };
-
-  setInterval(pollMarkets, 30000);
-  pollMarkets();
 
   // ── Policy Tracker Hydration ──
   function hydratePolicy(latestPost) {
