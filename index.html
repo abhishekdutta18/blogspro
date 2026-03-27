@@ -197,14 +197,8 @@
     .section-link { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); display: flex; align-items: center; gap: 0.4rem; transition: gap 0.2s; }
     .section-link:hover { gap: 0.7rem; }
 
-    /* ── FILTERS ── */
-    .filters { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2.5rem; }
-    .filter-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 0.45rem 1rem; border-radius: 2px; font-family: var(--sans); font-size: 0.78rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
-    .filter-btn:hover, .filter-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
-
     /* ── GRID ── */
-    /* ── GRID ── */
-    .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
+    .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 1.5rem; }
     .post-card { 
       background: var(--navy2); 
       padding: 2.2rem; 
@@ -390,7 +384,6 @@
     .filter-chip:hover { border-color: var(--gold); color: var(--gold); }
     .filter-chip.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
 
-    /* ── RESPONSIVE ── */
     /* ── HERO ELEMENTS ── */
     .hero h1 {
       font-family: var(--serif);
@@ -497,9 +490,12 @@
       .nav-links a { display: block; padding: 0.7rem 0; font-size: 0.95rem; }
       .nav-links .nav-cta { display: inline-block; margin-top: 0.5rem; text-align: center; }
       .nav-user { padding: 0.7rem 0; }
+      section { padding: 3rem 1.25rem; }
+      .hero { padding: 3rem 1.25rem 2.5rem; min-height: 70vh; }
       .hero-stats { display: none; }
       .post-card.featured { grid-template-columns: 1fr; }
       .featured-visual { display: none; }
+      .newsletter { padding: 2.5rem 1.5rem; }
       .newsletter-form { flex-direction: column; }
       footer { flex-direction: column; text-align: center; }
       .about-inner { grid-template-columns: 1fr; gap: 2.5rem; }
@@ -510,8 +506,7 @@
       .about-socials { justify-content: flex-start; }
     }
   </style>
-  <!-- Sentry Error Tracking -->
-  <!-- Consolidated Sentry Configuration -->
+  <!-- Sentry -->
   <script src="js/sentry-init-v2.js"></script>
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
@@ -570,7 +565,7 @@
   <div id="tvHubContent" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
     <!-- Terminal Widget -->
     <div class="glass-card terminal-wrap" style="grid-column: span 1; display: flex; flex-direction: column;">
-      <div class="terminal-header" style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+      <div class="terminal-header">
         <span style="font-family: monospace; font-size: 0.75rem; color: var(--gold);">BLOGSPRO TERMINAL v2.0</span>
         <div style="display:flex; gap:0.5rem; align-items:center">
           <span id="marketStatus" class="status-dot"></span>
@@ -580,7 +575,7 @@
           </select>
         </div>
       </div>
-      <div id="terminalBody" class="terminal-body" style="flex: 1; padding: 1rem; font-family: monospace; font-size: 0.85rem; overflow-y: auto; max-height: 400px;">
+      <div id="terminalBody" class="terminal-body">
         <div id="terminal-indices" style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem; border-bottom:1px solid var(--border); padding-bottom:0.75rem;">
           <!-- Nifty/BankNifty Hydrated here -->
         </div>
@@ -618,7 +613,7 @@
 </section>
 
 <!-- POSTS -->
-  <section id="briefings">
+<section id="briefings">
     <div class="section-header">
       <h2 class="section-title">Latest <em>Briefings</em></h2>
       <a href="/posts" class="section-link">View Archive <span>&rarr;</span></a>
