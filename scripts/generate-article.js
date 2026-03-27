@@ -442,8 +442,7 @@ UPSTOX (LIVE): ${upstox.summary}
         const title = titleMatch ? titleMatch[1].trim() : `Briefing — ${new Date().toLocaleDateString()}`;
         const excerpt = contextHtml.match(/<p[^>]*>(.*?)<\/p>/i)?.[1].substring(0, 160) || "Briefing out.";
 
-        const fullHtml = getTemplate(title, excerpt, contextHtml, new Date().toISOString().split('T')[0], kit);
-        const today = new Date().toISOString().split('T')[0];
+        const fullHtml = getTemplate(title, excerpt, contextHtml, today, social);
         const fileName = `post-${today}.html`;
         fs.writeFileSync(path.join(postsDir, fileName), fullHtml);
 
