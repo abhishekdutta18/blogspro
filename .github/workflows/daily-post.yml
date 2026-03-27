@@ -25,17 +25,14 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Generate AI Briefing
+      - name: Debug Gemini & Workers
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          NEWS_API_KEY: ${{ secrets.API_KEY_NEWS }}
           NEWSLETTER_WORKER_URL: ${{ secrets.NEWSLETTER_WORKER_URL }}
-          NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
           UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          NOTIFICATION_WEBHOOK: ${{ secrets.WEBHOOK_SECRET }}
-        run: node scripts/generate-article.js
+        run: |
+          node scripts/debug-gemini.js
+          curl -i https://blogspro-upstox.abhishek-dutta1996.workers.dev/health
 
       - name: Update Sitemap
         run: node scripts/generate-sitemap.js
