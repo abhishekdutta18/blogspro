@@ -422,7 +422,7 @@ UPSTOX (LIVE): ${upstox.summary}
 `;
 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
         const htmlSnippet = await generateAIContent(liveDataBlock, upstox.raw);
         const contextHtml = applyContextualLinks(htmlSnippet);
         const social = await generateSocialKit(model, "Briefing", contextHtml);
@@ -484,7 +484,7 @@ async function generateAIContent(liveDataBlock, upstoxRaw) {
         try {
             console.log("🤖 Attempting Gemini 1.5 Flash...");
             const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
             const result = await model.generateContent(prompt);
             return result.response.text();
         } catch (e) {
