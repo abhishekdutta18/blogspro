@@ -1,5 +1,32 @@
 [
   {
+    "title": "Briefing — 3/27/2026",
+    "slug": "briefing-—-3/27/2026",
+    "date": "2026-03-27",
+    "fileName": "post-2026-03-27.html",
+    "category": "Macro & Strategy",
+    "rbi": "RBI: Unavailable.",
+    "sebi": "SEBI: Order in the matter of Mr Yash Garg Proprietor of Yash Trading Academy | Commodity Derivatives Segment | Adjudication Order in respect of Rashmi Chandak in the matter of dealings in Illiquid Sto",
+    "docs": [
+      {
+        "title": "Order in the matter of Mr Yash Garg Proprietor of Yash Trading Academy",
+        "url": "https://www.sebi.gov.in/enforcement/orders/mar-2026/order-in-the-matter-of-mr-yash-garg-proprietor-of-yash-trading-academy_100663.html",
+        "pdf": "sebi-1774642330002-ORDER_1774618746.pdf"
+      },
+      {
+        "title": "Commodity Derivatives Segment",
+        "url": "https://www.sebi.gov.in/media-and-notifications/press-releases/mar-2026/commodity-derivatives-segment_100662.html",
+        "pdf": "sebi-1774642354639-1774619992149.pdf"
+      },
+      {
+        "title": "Adjudication Order in respect of Rashmi Chandak in the matter of dealings in Illiquid Stock Options on BSE",
+        "url": "https://www.sebi.gov.in/enforcement/orders/mar-2026/adjudication-order-in-respect-of-rashmi-chandak-in-the-matter-of-dealings-in-illiquid-stock-options-on-bse_100656.html",
+        "pdf": "sebi-1774642363675-ORDER_1774607943.pdf"
+      }
+    ],
+    "global": []
+  },
+  {
     "title": "Test Article: The Future of Fintech 2026",
     "slug": "test-article-the-future-of-fintech-2026",
     "date": "2026-03-26",
