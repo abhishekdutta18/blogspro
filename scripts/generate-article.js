@@ -422,9 +422,17 @@ UPSTOX (LIVE): ${upstox.summary}
 `;
 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        // Use Kimi if available, otherwise Gemini
+        // Use Groq first, then Kimi, then Gemini
         let model;
-        if (process.env.KIMI_API_KEY) {
+        if (process.env.GROQ_API_KEY) {
+            console.log("🤖 Groq detected, using for Social & Engagement Kits...");
+            model = {
+                generateContent: async (p) => {
+                    const res = await generateGroqContent(p);
+                    return { response: { text: () => res } };
+                }
+            };
+        } else if (process.env.KIMI_API_KEY) {
             console.log("🤖 Kimi detected, using for Social & Engagement Kits...");
             model = {
                 generateContent: async (p) => {
@@ -491,7 +499,17 @@ async function generateAIContent(liveDataBlock, upstoxRaw) {
     Write raw HTML briefings (no \`\`\`html). Use <h3> for section headers, <ul> for key takeaways, and ensure a "Market Outlook" section at the end.`;
     const prompt = `${system}\n\nDATA: ${liveDataBlock}\n\nRAW_UPSTOX_JSON: ${JSON.stringify(upstoxRaw)}`;
 
-    // Try Kimi First if available
+    // Try Groq First if available
+    if (process.env.GROQ_API_KEY) {
+        try {
+            console.log("🤖 Attempting Groq AI (llama-3.3-70b-versatile)...");
+            return await generateGroqContent(prompt);
+        } catch (e) {
+            console.warn("⚠️ Groq failed, falling back to Kimi/Gemini...", e.message);
+        }
+    }
+
+    // Try Kimi Second if available
     if (process.env.KIMI_API_KEY) {
         try {
             console.log("🤖 Attempting Kimi AI (moonshot-v1-8k)...");
@@ -500,8 +518,6 @@ async function generateAIContent(liveDataBlock, upstoxRaw) {
             console.warn("⚠️ Kimi failed, falling back to Gemini...", e.message);
         }
     }
-
-    // Try Gemini Second
     if (process.env.GEMINI_API_KEY) {
         try {
             console.log("🤖 Attempting Gemini 1.5 Flash...");
@@ -576,4 +592,25 @@ async function generateKimiContent(prompt) {
         return data.choices[0].message.content;
     }
     throw new Error(`Kimi API Error: ${JSON.stringify(data)}`);
+}
+
+async function generateGroqContent(prompt) {
+    if (!process.env.GROQ_API_KEY) throw new Error("GROQ_API_KEY missing.");
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.2
+        })
+    });
+    const data = await res.json();
+    if (data && data.choices && data.choices.length > 0) {
+        return data.choices[0].message.content;
+    }
+    throw new Error(`Groq API Error: ${JSON.stringify(data)}`);
 }
