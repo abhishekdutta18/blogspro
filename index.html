@@ -989,8 +989,6 @@
       return;
     }
 
-    identifyUser(user);
-
     let isAdmin = false;
     try {
       const snap = await getDoc(doc(db, 'users', user.uid));
@@ -998,6 +996,9 @@
     } catch (err) {
       console.warn('Role check failed:', err);
     }
+
+    // Identify with correct role so Clarity can segment admin vs reader sessions
+    identifyUser(user, isAdmin ? 'admin' : 'user');
 
     if (isAdmin) {
       slot.innerHTML = `
@@ -1213,6 +1214,12 @@
   }
 
   window.openPost = async (id, slug) => {
+    // Clarity: tag this session as a post-reader and track the click
+    if (typeof window.clarity === 'function') {
+      window.clarity('set',   'last_post_slug', slug);
+      window.clarity('event', 'post_open');
+    }
+
     if (id.startsWith('static-')) {
       window.location.href = `/posts/${id.replace('static-', '')}.html`;
       return;
@@ -1244,6 +1251,10 @@
   };
 
   window.filterByCategory = function(cat) {
+    if (typeof window.clarity === 'function') {
+      window.clarity('set',   'active_filter', cat.toLowerCase());
+      window.clarity('event', 'filter_used');
+    }
     currentCat = cat.toLowerCase();
     document.querySelectorAll('.filter-chip').forEach(b => {
       b.classList.toggle('active', b.textContent.trim().toLowerCase() === currentCat || (currentCat === 'all' && b.textContent.trim() === 'All'));
@@ -1418,6 +1429,10 @@
     try {
       await addDoc(collection(db, 'subscribers'), { email, createdAt: new Date() });
       document.getElementById('emailInput').value = '';
+      if (typeof window.clarity === 'function') {
+        window.clarity('set',   'subscribed', 'true');
+        window.clarity('event', 'newsletter_subscribe');
+      }
       msg.style.cssText = 'display:block;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#86efac;margin-top:1.2rem;padding:0.85rem 1.2rem;border-radius:3px;font-size:0.88rem;font-weight:500';
       msg.textContent = "✓ You're on the list! We'll be in touch.";
     } catch(err) {
