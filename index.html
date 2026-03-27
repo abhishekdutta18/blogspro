@@ -1344,7 +1344,7 @@
 
           const symbols = ["RELIANCE", "HDFCBANK", "ICICIBANK", "INFY", "TCS"];
           stocksBox.innerHTML = symbols.map(s => {
-            const item = d[`NSE_EQ:${s}`];
+            const item = d[`NSE_EQ|${s}`];
             if (!item) return '';
             const chg = (((item.last_price - item.close) / item.close) * 100).toFixed(2);
             return `<div style="display:flex; justify-content:space-between; font-size:0.8rem;"><span>${s}</span><span style="color:${chg >= 0 ? 'var(--emerald)' : 'var(--red)'}">${item.last_price.toLocaleString('en-IN')} <small>(${chg}%)</small></span></div>`;
