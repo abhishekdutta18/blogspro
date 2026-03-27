@@ -422,7 +422,19 @@ UPSTOX (LIVE): ${upstox.summary}
 `;
 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Keep 1.5 here for now, but 1.0 in the main content gen
+        // Use Kimi if available, otherwise Gemini
+        let model;
+        if (process.env.KIMI_API_KEY) {
+            console.log("🤖 Kimi detected, using for Social & Engagement Kits...");
+            model = {
+                generateContent: async (p) => {
+                    const res = await generateKimiContent(p);
+                    return { response: { text: () => res } };
+                }
+            };
+        } else {
+            model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        }
         const htmlSnippet = await generateAIContent(liveDataBlock, upstox.raw);
         const contextHtml = applyContextualLinks(htmlSnippet);
         const social = await generateSocialKit(model, "Briefing", contextHtml);
@@ -479,7 +491,17 @@ async function generateAIContent(liveDataBlock, upstoxRaw) {
     Write raw HTML briefings (no \`\`\`html). Use <h3> for section headers, <ul> for key takeaways, and ensure a "Market Outlook" section at the end.`;
     const prompt = `${system}\n\nDATA: ${liveDataBlock}\n\nRAW_UPSTOX_JSON: ${JSON.stringify(upstoxRaw)}`;
 
-    // Try Gemini First
+    // Try Kimi First if available
+    if (process.env.KIMI_API_KEY) {
+        try {
+            console.log("🤖 Attempting Kimi AI (moonshot-v1-8k)...");
+            return await generateKimiContent(prompt);
+        } catch (e) {
+            console.warn("⚠️ Kimi failed, falling back to Gemini...", e.message);
+        }
+    }
+
+    // Try Gemini Second
     if (process.env.GEMINI_API_KEY) {
         try {
             console.log("🤖 Attempting Gemini 1.5 Flash...");
@@ -533,4 +555,25 @@ async function generateAIContent(liveDataBlock, upstoxRaw) {
     }
 
     throw new Error("All AI engines failed.");
+}
+
+async function generateKimiContent(prompt) {
+    if (!process.env.KIMI_API_KEY) throw new Error("KIMI_API_KEY missing.");
+    const res = await fetch("https://api.moonshot.cn/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${process.env.KIMI_API_KEY}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            model: "moonshot-v1-8k",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.3
+        })
+    });
+    const data = await res.json();
+    if (data && data.choices && data.choices.length > 0) {
+        return data.choices[0].message.content;
+    }
+    throw new Error(`Kimi API Error: ${JSON.stringify(data)}`);
 }
