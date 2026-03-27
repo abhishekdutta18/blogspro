@@ -424,6 +424,18 @@
     .sk-title { height: 1.8rem; width: 80%; margin-bottom: 1rem; }
     .sk-block { height: 4rem; margin-bottom: 0.5rem; }
 
+    /* ── LOAD MORE ── */
+    .load-more-wrap { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding-top: 1.5rem; }
+    .load-more-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      padding: 0.7rem 2rem; border-radius: 3px; font-family: var(--sans);
+      font-size: 0.82rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .load-more-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .load-more-btn:disabled { opacity: 0.4; cursor: default; }
+    .posts-counter { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; }
+
     /* ── EMPTY STATE ── */
     .empty-state { text-align: center; padding: 5rem 2rem; color: var(--muted); }
     .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
@@ -1094,69 +1106,102 @@
     }
   }
 
-  function renderPosts(posts) {
-    const grid = document.getElementById('postsGrid');
-    if (!posts.length) { renderEmpty(); return; }
-    // Helper: sanitize text fields for safe HTML insertion
+  const POSTS_PER_PAGE = 6;
+  let currentPage = 1;
+  let activePosts  = []; // the current filtered/searched list
+
+  function buildCard(p, i) {
     const esc = (s) => DOMPurify.sanitize(s || '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
-    grid.innerHTML = posts.map((p, i) => {
-      const title    = esc(p.title);
-      const excerpt  = esc(p.excerpt);
-      const category = esc(p.category) || 'General';
-      const rawImage = imagesEnabled ? DOMPurify.sanitize(String(p.image || '').trim()) : '';
-      const image    = (
-        /^https?:\/\//i.test(rawImage) &&
-        rawImage !== 'null' &&
-        rawImage !== 'undefined' &&
-        rawImage !== '[object Object]'
-      ) ? rawImage : '';
-      const dateStr = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
-      const authorName = esc(p.authorName || 'Staff Writer');
-      const authorDateStr = `${authorName} · ${dateStr}`;
-      // FIX: Strip HTML tags before counting words for reading time
-      const plainText = (p.content || '').replace(/<[^>]+>/g, ' ').trim();
-      const readTime = Math.max(1, Math.ceil(plainText.split(/\s+/).filter(Boolean).length / 200));
-        const slug = (p.title || p.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-      if (i === 0) {
-        const visual = image
-          ? `<div class="featured-visual featured-visual-img"><img src="${image}" alt="${title}" loading="lazy" onerror="this.closest('.featured-visual')?.remove(); this.closest('.post-card')?.classList.add('featured-no-img');" /></div>`
-          : '';
-        return `
-          <div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}', '${slug}')" style="animation-delay:${i*0.08}s">
-            <div class="featured-body">
-              <span class="featured-badge">Featured</span>
-              <span class="post-category">${category}</span>
-              <h2 class="post-title">${title}</h2>
-              <p class="post-excerpt">${excerpt}</p>
-              <div class="post-meta">
-                <span class="post-date">${authorDateStr}</span>
-                <div style="display:flex;align-items:center;gap:0.75rem">
-                  <span class="post-read-time">${readTime} min read</span>
-                  <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
-                </div>
+    const title    = esc(p.title);
+    const excerpt  = esc(p.excerpt);
+    const category = esc(p.category) || 'General';
+    const rawImage = imagesEnabled ? DOMPurify.sanitize(String(p.image || '').trim()) : '';
+    const image    = (
+      /^https?:\/\//i.test(rawImage) &&
+      rawImage !== 'null' && rawImage !== 'undefined' && rawImage !== '[object Object]'
+    ) ? rawImage : '';
+    const dateStr      = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
+    const authorName   = esc(p.authorName || 'Staff Writer');
+    const authorDateStr = `${authorName} · ${dateStr}`;
+    const plainText    = (p.content || '').replace(/<[^>]+>/g, ' ').trim();
+    const readTime     = Math.max(1, Math.ceil(plainText.split(/\s+/).filter(Boolean).length / 200));
+    const slug         = (p.title || p.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
+    if (i === 0) {
+      const visual = image
+        ? `<div class="featured-visual featured-visual-img"><img src="${image}" alt="${title}" loading="lazy" onerror="this.closest('.featured-visual')?.remove();this.closest('.post-card')?.classList.add('featured-no-img');" /></div>`
+        : '';
+      return `
+        <div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}','${slug}')" style="animation-delay:${i*0.08}s">
+          <div class="featured-body">
+            <span class="featured-badge">Featured</span>
+            <span class="post-category">${category}</span>
+            <h2 class="post-title">${title}</h2>
+            <p class="post-excerpt">${excerpt}</p>
+            <div class="post-meta">
+              <span class="post-date">${authorDateStr}</span>
+              <div style="display:flex;align-items:center;gap:0.75rem">
+                <span class="post-read-time">${readTime} min read</span>
+                <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
               </div>
             </div>
-            ${visual}
-          </div>`;
-      }
-      return `
-        <div class="post-card" onclick="openPost('${p.id}', '${slug}')" style="animation-delay:${i*0.08}s">
-          <span class="post-category">${category}</span>
-          <h3 class="post-title">${title}</h3>
-          <p class="post-excerpt">${excerpt}</p>
-          <div class="complexity-wrap">
-            <div class="complexity-label"><span>Tactical Depth</span><span>${p.complexity || 5}/10</span></div>
-            <div class="complexity-bar"><div class="complexity-fill" style="width:${(p.complexity || 5) * 10}%"></div></div>
           </div>
-          <div class="post-meta">
-            <span class="post-date">${authorDateStr}</span>
-            <div style="display:flex;align-items:center;gap:0.75rem">
-              <span class="post-read-time">${readTime} min read</span>
-              <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
-            </div>
-          </div>
+          ${visual}
         </div>`;
-    }).join('');
+    }
+    return `
+      <div class="post-card" onclick="openPost('${p.id}','${slug}')" style="animation-delay:${i*0.08}s">
+        <span class="post-category">${category}</span>
+        <h3 class="post-title">${title}</h3>
+        <p class="post-excerpt">${excerpt}</p>
+        <div class="complexity-wrap">
+          <div class="complexity-label"><span>Tactical Depth</span><span>${p.complexity || 5}/10</span></div>
+          <div class="complexity-bar"><div class="complexity-fill" style="width:${(p.complexity || 5) * 10}%"></div></div>
+        </div>
+        <div class="post-meta">
+          <span class="post-date">${authorDateStr}</span>
+          <div style="display:flex;align-items:center;gap:0.75rem">
+            <span class="post-read-time">${readTime} min read</span>
+            <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderPosts(posts) {
+    activePosts  = posts;
+    currentPage  = 1;
+    const grid   = document.getElementById('postsGrid');
+    if (!posts.length) { renderEmpty(); return; }
+    const visible = posts.slice(0, POSTS_PER_PAGE);
+    grid.innerHTML = visible.map((p, i) => buildCard(p, i)).join('');
+    renderLoadMore(grid, posts);
+  }
+
+  function renderLoadMore(grid, posts) {
+    // Remove existing Load More row
+    grid.querySelector('.load-more-wrap')?.remove();
+    const shown = currentPage * POSTS_PER_PAGE;
+    if (shown >= posts.length) return; // all shown
+
+    const wrap = document.createElement('div');
+    wrap.className = 'load-more-wrap';
+    wrap.innerHTML = `
+      <button class="load-more-btn" id="loadMoreBtn">Load More</button>
+      <span class="posts-counter">Showing ${shown} of ${posts.length} articles</span>`;
+    wrap.querySelector('#loadMoreBtn').addEventListener('click', () => {
+      currentPage++;
+      const nextBatch = posts.slice(shown, currentPage * POSTS_PER_PAGE);
+      // Remove the wrap before appending new cards
+      wrap.remove();
+      nextBatch.forEach((p, i) => {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = buildCard(p, shown + i);
+        grid.appendChild(tmp.firstElementChild);
+      });
+      renderLoadMore(grid, posts);
+    });
+    grid.appendChild(wrap);
   }
 
   function renderEmpty() {
@@ -1587,52 +1632,77 @@
   }
 
   // ── Market Terminal Polling ──
+  let _pollFailures = 0;
+  const POLL_MAX_FAILURES = 3;
+  const UPSTOX_BASE = 'https://blogspro-upstox.abhishek-dutta1996.workers.dev';
+
   window.pollMarkets = async function() {
     const indicesBox = document.getElementById('terminal-indices');
-    const stocksBox = document.getElementById('terminal-stocks');
-    const view = document.getElementById('terminalView')?.value || 'india';
+    const stocksBox  = document.getElementById('terminal-stocks');
+    const view       = document.getElementById('terminalView')?.value || 'india';
 
     if (!indicesBox || !stocksBox) return;
 
+    // Stop polling after repeated failures — prevents console spam every 30s
+    if (_pollFailures >= POLL_MAX_FAILURES) {
+      clearInterval(marketPollInterval);
+      marketPollInterval = null;
+      const statusDot = document.getElementById('marketStatus');
+      if (statusDot) { statusDot.style.background = 'var(--red)'; statusDot.style.boxShadow = '0 0 6px var(--red)'; }
+      stocksBox.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);padding:0.5rem 0">Live data unavailable — market terminal offline.<br>Charts above are still active.</div>`;
+      return;
+    }
+
     try {
       if (view === 'india') {
-        const res = await fetch('https://blogspro-upstox.abhishek-dutta1996.workers.dev/quotes');
+        const res  = await fetch(`${UPSTOX_BASE}/quotes`);
         const data = await res.json();
-        
+
         if (data.status === 'success' && data.data) {
-          const d = data.data;
+          _pollFailures = 0; // reset on success
+          const d    = data.data;
           const nifty = d['NSE_INDEX|Nifty 50'];
-          const bank = d['NSE_INDEX|Nifty Bank'];
+          const bank  = d['NSE_INDEX|Nifty Bank'];
           indicesBox.style.display = 'grid';
           indicesBox.innerHTML = `
-            <div style="text-align:center"><small style="display:block;color:var(--muted)">NIFTY 50</small><b style="${nifty?.last_price >= nifty?.close ? 'color:var(--emerald)' : 'color:var(--red)'}">${nifty?.last_price?.toLocaleString('en-IN') || '—'}</b></div>
-            <div style="text-align:center"><small style="display:block;color:var(--muted)">BANK NIFTY</small><b style="${bank?.last_price >= bank?.close ? 'color:var(--emerald)' : 'color:var(--red)'}">${bank?.last_price?.toLocaleString('en-IN') || '—'}</b></div>
-          `;
-
+            <div style="text-align:center"><small style="display:block;color:var(--muted)">NIFTY 50</small>
+              <b style="color:${nifty?.last_price >= nifty?.close ? 'var(--emerald)' : 'var(--red)'}">${nifty?.last_price?.toLocaleString('en-IN') || '—'}</b></div>
+            <div style="text-align:center"><small style="display:block;color:var(--muted)">BANK NIFTY</small>
+              <b style="color:${bank?.last_price >= bank?.close ? 'var(--emerald)' : 'var(--red)'}">${bank?.last_price?.toLocaleString('en-IN') || '—'}</b></div>`;
           const symbols = ["RELIANCE", "HDFCBANK", "ICICIBANK", "INFY", "TCS"];
           stocksBox.innerHTML = symbols.map(s => {
             const item = d[`NSE_EQ|${s}`];
             if (!item) return '';
             const chg = (((item.last_price - item.close) / item.close) * 100).toFixed(2);
-            return `<div style="display:flex; justify-content:space-between; font-size:0.8rem;"><span>${s}</span><span style="color:${chg >= 0 ? 'var(--emerald)' : 'var(--red)'}">${item.last_price.toLocaleString('en-IN')} <small>(${chg}%)</small></span></div>`;
+            return `<div style="display:flex;justify-content:space-between;font-size:0.8rem">
+              <span>${s}</span>
+              <span style="color:${chg >= 0 ? 'var(--emerald)' : 'var(--red)'}">${item.last_price.toLocaleString('en-IN')} <small>(${chg}%)</small></span>
+            </div>`;
           }).join('');
+        } else {
+          _pollFailures++;
         }
       } else {
-        const res = await fetch('https://blogspro-upstox.abhishek-dutta1996.workers.dev/global');
+        const res  = await fetch(`${UPSTOX_BASE}/global`);
         const json = await res.json();
         if (json.status === 'success') {
+          _pollFailures = 0;
           indicesBox.style.display = 'none';
           stocksBox.innerHTML = json.data.map(d => {
             const name = d.symbol.replace('^', '').replace('=F', '');
-            return `<div style="display:flex; justify-content:space-between; font-size:0.8rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:0.4rem">
+            return `<div style="display:flex;justify-content:space-between;font-size:0.8rem;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:0.4rem">
               <span style="color:var(--gold)">${name}</span>
               <span style="color:${d.change >= 0 ? 'var(--emerald)' : 'var(--red)'}">${d.price.toLocaleString()} <small>(${d.change}%)</small></span>
             </div>`;
           }).join('');
+        } else {
+          _pollFailures++;
         }
       }
     } catch (e) {
-      console.warn("Market poll fail:", e);
+      _pollFailures++;
+      // Only warn once — not on every poll cycle
+      if (_pollFailures === 1) console.warn('[Terminal] Market feed unavailable:', e.message);
     }
   };
 
