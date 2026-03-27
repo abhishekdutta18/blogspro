@@ -255,8 +255,8 @@ async function fetchUpstoxData() {
     console.log("🌐 Fetching Upstox Live & Historical Market Data via Cloudflare Worker...");
     try {
         const [liveRes, histRes] = await Promise.all([
-            fetch("https://blogspro-upstox.abhishek-dutta1996.workers.dev/quotes"),
-            fetch("https://blogspro-upstox.abhishek-dutta1996.workers.dev/historical?instrumentKey=NSE_INDEX%7CNifty%2050&interval=day")
+            fetch("https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/quotes"),
+            fetch("https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/historical?instrumentKey=NSE_INDEX%7CNifty%2050&interval=day")
         ]);
 
         const liveData = await liveRes.json();
