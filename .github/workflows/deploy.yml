@@ -38,11 +38,13 @@ jobs:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
           SENTRY_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          NEWSLETTER_URL: ${{ secrets.NEWSLETTER_WORKER_URL }}
         run: |
           MISSING=()
           [ -z "$CF_TOKEN" ] && MISSING+=("CLOUDFLARE_API_TOKEN")
           [ -z "$GEMINI_KEY" ] && MISSING+=("GEMINI_API_KEY")
           [ -z "$SENTRY_TOKEN" ] && MISSING+=("SENTRY_AUTH_TOKEN")
+          [ -z "$NEWSLETTER_URL" ] && MISSING+=("NEWSLETTER_WORKER_URL")
           
           if [ ${#MISSING[@]} -ne 0 ]; then
             echo "❌ Missing required secrets: ${MISSING[*]}"
