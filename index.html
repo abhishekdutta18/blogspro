@@ -472,6 +472,32 @@
       margin-bottom: 1.5rem;
     }
     .hero h1 em { font-style: italic; color: var(--gold); }
+
+    /* ── HERO "EDGE" TREATMENT ── */
+    .hero-edge {
+      color: var(--gold2);
+      font-weight: 700;
+      font-style: normal;
+      position: relative;
+      display: inline-block;
+      white-space: nowrap;
+      text-shadow: 0 0 32px rgba(240,204,110,0.35);
+    }
+    .hero-edge::after {
+      content: '';
+      position: absolute;
+      bottom: 0px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--gold), var(--gold2), var(--gold));
+      transform-origin: left center;
+      transform: scaleX(0);
+      animation: edgeLine 0.9s cubic-bezier(0.4, 0, 0.2, 1) 0.4s forwards;
+    }
+    @keyframes edgeLine {
+      to { transform: scaleX(1); }
+    }
     .hero-sub {
       font-size: 1.05rem;
       color: var(--muted);
@@ -614,7 +640,7 @@
 <!-- HERO -->
 <div class="hero">
   <p class="hero-label">Fintech · Compliance · Strategy</p>
-  <h1>The edge is in the <em>details.</em></h1>
+  <h1>The <span class="hero-edge">edge</span> is in the <em>details.</em></h1>
   <p class="hero-sub">Sharp analysis on financial technology, regulatory compliance, and growth strategy for practitioners who move markets.</p>
   <div class="hero-actions">
     <a href="#briefings" class="btn-primary">Read Latest</a>
