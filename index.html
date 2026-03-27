@@ -199,6 +199,40 @@
 
     /* ── FILTERS ── */
     .filters { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2.5rem; }
+    .filter-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 0.45rem 1rem; border-radius: 2px; font-family: var(--sans); font-size: 0.78rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+    .filter-btn:hover, .filter-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
+
+    /* ── TOPIC TICKER ── */
+    .topic-ticker-bar {
+      background: var(--navy3);
+      border-bottom: 1px solid var(--border);
+      padding: 0.45rem 0;
+      overflow: hidden;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .topic-ticker-track {
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      animation: topicScroll 35s linear infinite;
+    }
+    .topic-ticker-track:hover { animation-play-state: paused; }
+    @keyframes topicScroll {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .ticker-tag {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      padding: 0 0.6rem;
+      transition: color 0.2s;
+      cursor: default;
+    }
+    .ticker-tag:hover { color: var(--gold); }
+    .ticker-sep { color: var(--border); padding: 0 0.1rem; font-size: 0.65rem; }
 
     /* ── POSTS SECTION PRIORITY ── */
     .briefings-wrapper {
@@ -594,6 +628,33 @@
   </div>
 </div>
 
+<!-- TOPIC TICKER — scrolling strip of topic tags (populated by loadTicker) -->
+<div class="topic-ticker-bar" id="topicTickerBar">
+  <div class="topic-ticker-track" id="ticker">
+    <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Regulatory Compliance</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Market Analysis</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">RBI Policy</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">SEBI Updates</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Equity Research</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Digital Payments</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Crypto & Web3</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Growth Strategy</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Macro Trends</span><span class="ticker-sep">·</span>
+    <!-- duplicated for seamless loop -->
+    <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Regulatory Compliance</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Market Analysis</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">RBI Policy</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">SEBI Updates</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Equity Research</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Digital Payments</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Crypto & Web3</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Growth Strategy</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Macro Trends</span><span class="ticker-sep">·</span>
+  </div>
+</div>
+
 <!-- POSTS — Primary content, shown immediately after hero -->
 <div class="briefings-wrapper">
 <section id="briefings">
@@ -609,12 +670,12 @@
       <input type="text" id="postSearch" class="search-input" placeholder="Search briefings by keyword..." oninput="handleSearch(this.value)">
     </div>
     <div class="filter-chips" id="filterChips">
-      <button class="filter-chip active" onclick="filterByCategory('All')">All</button>
-      <button class="filter-chip" onclick="filterByCategory('Macro')">Macro</button>
-      <button class="filter-chip" onclick="filterByCategory('Policy')">Policy</button>
-      <button class="filter-chip" onclick="filterByCategory('Equity')">Equity</button>
-      <button class="filter-chip" onclick="filterByCategory('Tech')">Tech</button>
-      <button class="filter-chip" onclick="filterByCategory('Crypto')">Crypto</button>
+      <button class="filter-chip active" data-cat="all" onclick="filterByCategory('All')">All</button>
+      <button class="filter-chip" data-cat="macro" onclick="filterByCategory('Macro')">Macro</button>
+      <button class="filter-chip" data-cat="policy" onclick="filterByCategory('Policy')">Policy</button>
+      <button class="filter-chip" data-cat="equity" onclick="filterByCategory('Equity')">Equity</button>
+      <button class="filter-chip" data-cat="tech" onclick="filterByCategory('Tech')">Tech</button>
+      <button class="filter-chip" data-cat="crypto" onclick="filterByCategory('Crypto')">Crypto</button>
     </div>
   </div>
   <div class="posts-grid" id="postsGrid">
@@ -1265,11 +1326,47 @@
     btn.disabled = false; btnText.style.display = 'inline'; spinner.style.display = 'none';
   };
 
+  // ── Filter chip event listeners (data-cat driven) ──────────────────────────
+  // Works alongside the inline onclick="filterByCategory()" on each chip.
+  // The data-cat attribute (added to each chip) drives category matching.
+  document.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCat = btn.dataset.cat || btn.textContent.trim().toLowerCase();
+      renderPosts(currentCat === 'all'
+        ? allPosts
+        : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat)
+      );
+    });
+  });
+
+  // ── Topic Ticker ────────────────────────────────────────────────────────────
+  // Fetches /posts/ticker.json (array of topic tag strings) and prepends them
+  // to the scrolling #ticker strip, replacing the static defaults if data found.
+  async function loadTicker() {
+    try {
+      const resp = await fetch('/posts/ticker.json');
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (!Array.isArray(data) || !data.length) return;
+      const ticker = document.getElementById('ticker');
+      if (!ticker) return;
+      // Sanitize each tag, then build two copies for seamless infinite scroll
+      const sanitized = data.map(t => DOMPurify.sanitize(String(t), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }));
+      const half = sanitized.map(t => `<span class="ticker-tag">${t}</span><span class="ticker-sep">·</span>`).join('');
+      ticker.innerHTML = half + half; // duplicate for seamless loop
+    } catch(e) {
+      console.warn('Ticker data not found — using static defaults.');
+    }
+  }
+
   let marketPollInterval = null;
 
   (async () => {
     window.loadPosts = loadPosts;
     document.getElementById('year').textContent = new Date().getFullYear();
+    loadTicker(); // non-blocking, runs in parallel
     await loadSiteSettings();
     await loadPosts();
     if (allPosts && allPosts.length > 0) {
