@@ -550,6 +550,18 @@
       color: var(--muted);
     }
 
+    /* ── TRADINGVIEW WIDGETS ── */
+    .tv-chart-wrap { height: 520px; overflow: hidden; }
+    .tv-cal-wrap   { height: 420px; overflow: hidden; }
+    .tv-chart-wrap .tradingview-widget-container,
+    .tv-cal-wrap   .tradingview-widget-container { height: 100%; }
+    .tv-chart-wrap .tradingview-widget-container__widget,
+    .tv-cal-wrap   .tradingview-widget-container__widget { height: 100%; }
+    @media (max-width: 768px) {
+      .tv-chart-wrap { height: 360px; }
+      .tv-cal-wrap   { height: 340px; }
+    }
+
     /* ── TERMINAL ── */
     .terminal-wrap { min-height: 300px; }
     .terminal-header {
@@ -771,9 +783,23 @@
       </div>
     </div>
 
-    <!-- Market Heatmap (Legacy) -->
-    <div id="tvHeatmap" class="glass-card" style="min-height: 250px;"></div>
+    <!-- Market Overview (Indices + Crypto tabs) -->
+    <div id="tvHeatmap" class="glass-card" style="min-height: 300px; overflow: hidden;"></div>
   </div>
+
+  <!-- Advanced Interactive Chart — full width -->
+  <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
+    <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Live Chart</span>
+    <span style="font-size:0.72rem;color:var(--muted);">NIFTY 50 — NSE</span>
+  </div>
+  <div id="tvAdvChart" class="glass-card tv-chart-wrap"></div>
+
+  <!-- Economic Calendar — full width -->
+  <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
+    <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Economic Calendar</span>
+    <span style="font-size:0.72rem;color:var(--muted);">India · USA · EU · UK</span>
+  </div>
+  <div id="tvEconCal" class="glass-card tv-cal-wrap"></div>
 </section>
 
 <!-- ══════════════ ABOUT SECTION ══════════════ -->
@@ -1454,37 +1480,110 @@
   }
 
   function initTVHub() {
-      const container = document.getElementById('tvHubContainer');
-      if (!container || container.dataset.loaded) return;
-      
-      const heatmap = document.getElementById('tvHeatmap');
-      if (heatmap) {
-        heatmap.innerHTML = `
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js" async>
-            {
-              "width": "100%",
-              "height": "100%",
-              "symbolsGroups": [
-                {
-                  "name": "Indices",
-                  "originalName": "Indices",
-                  "symbols": [
-                    { "name": "BSE:SENSEX", "displayName": "SENSEX" },
-                    { "name": "NSE:NIFTY", "displayName": "NIFTY" }
-                  ]
-                }
-              ],
-              "showSymbolLogo": true,
-              "isTransparent": true,
-              "colorTheme": "dark",
-              "locale": "en"
-            }
-            <\/script>
-          </div>`;
-      }
-      container.dataset.loaded = "true";
+    const container = document.getElementById('tvHubContainer');
+    if (!container || container.dataset.loaded) return;
+    container.dataset.loaded = "true";
+
+    // ── Market Overview: Indices + Crypto tabs ──────────────────────────────
+    const heatmap = document.getElementById('tvHeatmap');
+    if (heatmap) {
+      heatmap.innerHTML = `
+        <div class="tradingview-widget-container" style="height:100%">
+          <div class="tradingview-widget-container__widget" style="height:100%"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js" async>
+          {
+            "colorTheme": "dark",
+            "dateRange": "1M",
+            "showChart": true,
+            "locale": "en",
+            "isTransparent": true,
+            "showSymbolLogo": true,
+            "showFloatingTooltip": false,
+            "width": "100%",
+            "height": "100%",
+            "tabs": [
+              {
+                "title": "Indices",
+                "symbols": [
+                  {"s": "NSE:NIFTY",     "d": "NIFTY 50"},
+                  {"s": "NSE:BANKNIFTY", "d": "BANK NIFTY"},
+                  {"s": "BSE:SENSEX",    "d": "SENSEX"},
+                  {"s": "INDEX:SPX",     "d": "S&P 500"},
+                  {"s": "INDEX:NKY",     "d": "Nikkei 225"}
+                ],
+                "originalTitle": "Indices"
+              },
+              {
+                "title": "Crypto",
+                "symbols": [
+                  {"s": "CRYPTOCAP:BTC", "d": "Bitcoin"},
+                  {"s": "CRYPTOCAP:ETH", "d": "Ethereum"},
+                  {"s": "CRYPTOCAP:SOL", "d": "Solana"},
+                  {"s": "CRYPTOCAP:BNB", "d": "BNB"}
+                ],
+                "originalTitle": "Crypto"
+              },
+              {
+                "title": "Forex",
+                "symbols": [
+                  {"s": "FX:USDINR", "d": "USD/INR"},
+                  {"s": "FX:EURUSD", "d": "EUR/USD"},
+                  {"s": "FX:GBPUSD", "d": "GBP/USD"}
+                ],
+                "originalTitle": "Forex"
+              }
+            ]
+          }
+          <\/script>
+        </div>`;
+    }
+
+    // ── Advanced Interactive Chart (NIFTY 50) ───────────────────────────────
+    const advChart = document.getElementById('tvAdvChart');
+    if (advChart) {
+      advChart.innerHTML = `
+        <div class="tradingview-widget-container" style="height:100%">
+          <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px)"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+          {
+            "autosize": true,
+            "symbol": "NSE:NIFTY",
+            "interval": "D",
+            "timezone": "Asia/Kolkata",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "backgroundColor": "rgba(8,13,26,0)",
+            "gridColor": "rgba(201,168,76,0.06)",
+            "hide_top_toolbar": false,
+            "hide_legend": false,
+            "save_image": false,
+            "hide_volume": false,
+            "support_host": "https://www.tradingview.com"
+          }
+          <\/script>
+        </div>`;
+    }
+
+    // ── Economic Calendar ───────────────────────────────────────────────────
+    const econCal = document.getElementById('tvEconCal');
+    if (econCal) {
+      econCal.innerHTML = `
+        <div class="tradingview-widget-container" style="height:100%">
+          <div class="tradingview-widget-container__widget" style="height:100%"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+          {
+            "colorTheme": "dark",
+            "isTransparent": true,
+            "width": "100%",
+            "height": "100%",
+            "locale": "en",
+            "importanceFilter": "0,1",
+            "countryFilter": "in,us,eu,gb"
+          }
+          <\/script>
+        </div>`;
+    }
   }
 
   // ── Market Terminal Polling ──
