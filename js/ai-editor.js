@@ -681,3 +681,63 @@ window.expandShortforms = () => {
   setEditStatus('✓ Common shortforms expanded on first use');
   showToast('Shortforms expanded.', 'success');
 };
+
+// ── Auto Summary — fires automatically when conditions are met ─────────────
+// Triggers: (1) title blur with non-empty title + empty excerpt
+//           (2) editor idle 4s after typing enough content (>150 chars) + empty excerpt
+let _autoSummaryTimer = null;
+let _autoSummaryRunning = false;
+
+async function _runAutoSummary(source) {
+  if (_autoSummaryRunning) return;
+  const excerptEl = document.getElementById('postExcerpt');
+  if (!excerptEl || excerptEl.value.trim()) return; // already has excerpt
+
+  const title   = document.getElementById('postTitle')?.value.trim() || '';
+  const content = getEditor()?.textContent?.trim() || '';
+  if (!title && content.length < 80) return; // not enough to summarize
+
+  _autoSummaryRunning = true;
+  const statusEl = document.getElementById('summaryStatus');
+  const autoBtn  = document.querySelector('[onclick="generateSummary()"]');
+  if (statusEl) statusEl.textContent = `⏳ Auto-generating summary…`;
+  if (autoBtn)  { autoBtn.disabled = true; autoBtn.textContent = '…'; }
+
+  const result = await callAI(
+    `Write a 2-sentence compelling excerpt for this fintech article.\nTitle: "${title}"\nContent: "${content.substring(0, 1000)}"\nReturn ONLY the 2 sentences, no quotes.`,
+    true
+  );
+
+  if (!result.error && result.text?.trim()) {
+    excerptEl.value = result.text.trim();
+    if (statusEl) statusEl.textContent = '✓ Summary auto-generated';
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
+  } else {
+    if (statusEl) statusEl.textContent = '';
+  }
+
+  if (autoBtn) { autoBtn.disabled = false; autoBtn.textContent = '✦ Auto'; }
+  _autoSummaryRunning = false;
+}
+
+export function initAutoSummary() {
+  // Trigger 1: title blur
+  const titleEl = document.getElementById('postTitle');
+  if (titleEl) {
+    titleEl.addEventListener('blur', () => {
+      if (titleEl.value.trim()) _runAutoSummary('title-blur');
+    });
+  }
+
+  // Trigger 2: editor idle after typing (debounced 4s)
+  const editorEl = document.getElementById('editor');
+  if (editorEl) {
+    editorEl.addEventListener('input', () => {
+      clearTimeout(_autoSummaryTimer);
+      const len = editorEl.textContent?.length || 0;
+      if (len > 150) {
+        _autoSummaryTimer = setTimeout(() => _runAutoSummary('editor-idle'), 4000);
+      }
+    });
+  }
+}

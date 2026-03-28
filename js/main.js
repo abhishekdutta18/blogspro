@@ -10,7 +10,7 @@ import "./subscribers.js";
 import "./newsletter.js";
 import "./seo-page.js";
 import "./images-upload.js";
-import "./ai-editor.js";
+import { initAutoSummary } from "./ai-editor.js";
 import "./ai-tools.js";
 import "./v2-editor.js";
 import "./image-manager.js";
@@ -40,6 +40,7 @@ async function boot() {
     initSiteSettings();
     initHealthMonitor();
     initProfile();
+    initAutoSummary();
     if (window.__ENABLE_POST_AUDIT__ === true) {
       import("./post-audit.js").catch(err => {
         console.warn("[post-audit] optional module failed to load:", err.message);
