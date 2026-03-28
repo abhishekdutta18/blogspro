@@ -2,10 +2,10 @@ name: BlogsPro Unified Dispatch Engine
 
 on:
   schedule:
-    - cron: '0 * * * *'    # Every Hour (Hourly Pulse)
-    - cron: '30 08 * * *'  # 08:30 UTC Daily (Daily Briefing)
-    - cron: '0 09 * * 0'   # Sunday 09:00 UTC (Weekly Strategic)
-    - cron: '0 10 1 * *'   # 1st of Month 10:00 UTC (Monthly Outlook)
+    - cron: '0 * * * *'    # Every Hour (Hourly Pulse) - Consistent across timezones
+    - cron: '0 03 * * *'   # 08:30 AM IST Daily (Daily Briefing)
+    - cron: '30 04 * * 0'  # 10:00 AM IST Sunday (Weekly Strategic)
+    - cron: '30 05 1 * *'  # 11:00 AM IST 1st (Monthly Outlook)
   workflow_dispatch:
     inputs:
       frequency:
@@ -67,20 +67,20 @@ jobs:
             node scripts/generate-briefing.js --freq=hourly
           fi
 
-          # 2. Daily AI Briefing (Dispatch/Daily, or 08:30 schedule)
-          if [ "$FREQ" == "all" ] || [ "$FREQ" == "daily" ] || [ "$CRON" == "30 08 * * *" ]; then
+          # 2. Daily AI Briefing (Dispatch/Daily, or 08:30 AM IST schedule)
+          if [ "$FREQ" == "all" ] || [ "$FREQ" == "daily" ] || [ "$CRON" == "0 03 * * *" ]; then
             echo "📅 Dispatching Daily AI Briefing..."
             node scripts/generate-briefing.js --freq=daily
           fi
 
-          # 3. Weekly Strategic Article (Dispatch/Weekly, or Sunday schedule)
-          if [ "$FREQ" == "all" ] || [ "$FREQ" == "weekly" ] || [ "$CRON" == "0 09 * * 0" ]; then
+          # 3. Weekly Strategic Article (Dispatch/Weekly, or 10:00 AM IST schedule)
+          if [ "$FREQ" == "all" ] || [ "$FREQ" == "weekly" ] || [ "$CRON" == "30 04 * * 0" ]; then
             echo "📊 Dispatching Weekly Strategic Article..."
             node scripts/generate-article.js --freq=weekly
           fi
 
-          # 4. Monthly Macro Outlook (Dispatch/Monthly, or 1st schedule)
-          if [ "$FREQ" == "all" ] || [ "$FREQ" == "monthly" ] || [ "$CRON" == "0 10 1 * *" ]; then
+          # 4. Monthly Macro Outlook (Dispatch/Monthly, or 11:00 AM IST schedule)
+          if [ "$FREQ" == "all" ] || [ "$FREQ" == "monthly" ] || [ "$CRON" == "30 05 1 * *" ]; then
             echo "🌎 Dispatching Monthly Macro Outlook..."
             node scripts/generate-article.js --freq=monthly
           fi
