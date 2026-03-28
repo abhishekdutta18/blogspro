@@ -102,9 +102,8 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
         .gauge-wrap { position: relative; width: 160px; height: 85px; }
         .gauge-needle { position: absolute; bottom: 0; left: 50%; width: 5px; height: 75px; background: #fff; border-radius: 5px; transform-origin: bottom center; transform: translateX(-50%) rotate(${gaugeRotation}deg); transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); }
         
-        .chart-box { height: ${isHourly ? '320px' : '520px'}; border-radius: 12px; overflow: hidden; margin-top: 2rem; border: 1px solid rgba(255,255,255,0.1); }
-        
-        .social-bar { margin-top: 5rem; padding-top: 2rem; border-top: 1px solid rgba(201,168,76,0.2); display: flex; justify-content: space-between; align-items: center; }
+        /* Dashboard Components */
+        .command-center { position: relative; background: #000; border: 1px solid rgba(201,168,76,0.3); border-radius: 16px; padding: 2.5rem; margin: 3rem 0; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
         .cta-btn { background: var(--gold); color: var(--navy); padding: 1rem 2rem; border-radius: 8px; font-weight: 800; text-decoration: none; display: inline-block; transition: 0.3s; }
         .cta-btn:hover { background: var(--gold2); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(201,168,76,0.4); }
 
@@ -171,11 +170,6 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
                 </div>
             </div>
 
-            <div class="chart-box">
-                <iframe 
-                    src="https://www.investing.com/common/technical_chart.php?pair_id=${pairId}&height=${isHourly ? '320' : '520'}&width=800&interval=${isHourly ? '60' : 'daily'}&style=candle" 
-                    width="100%" height="100%" frameborder="0" allowtransparency="true" scrolling="no">
-                </iframe>
             </div>
         </section>
 
