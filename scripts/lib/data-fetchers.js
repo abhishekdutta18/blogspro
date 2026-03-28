@@ -17,7 +17,7 @@ function getMarketContext() {
     
     const isWeekend = (day === 0 || day === 6);
     const isMarketHours = !isWeekend && (hour > 9 || (hour === 9 && min >= 15)) && (hour < 15 || (hour === 15 && min <= 30));
-    const status = isWeekend ? "WEEKEND_CLOSED" : (isMarketHours ? "LIVE_TRADING" : "POST_MARKET_CLOSED");
+    const status = isWeekend ? "CLOSED (WEEKEND)" : (isMarketHours ? "LIVE (MARKET ACTIVE)" : "CLOSED (POST-MARKET)");
     
     return {
         timestamp: istTime.toISOString(),

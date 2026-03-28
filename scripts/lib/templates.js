@@ -237,6 +237,8 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
         .f-success { color: var(--nexus-success); font-weight: 600; }
         .f-warning { color: var(--nexus-warning); font-weight: 600; }
 
+        .table-container { overflow-x: auto; margin: 2rem 0; }
+
         @media (max-width: 1024px) {
             .sidebar { display: none; }
             .main-content { margin-left: 0; padding: 2rem; }
@@ -293,4 +295,79 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
 </html>`;
 }
 
-module.exports = { getBaseTemplate };
+function getEmailTemplate({ title, excerpt, content, dateLabel, priceInfo = { last: "N/A", high: "N/A", low: "N/A" } }) {
+    // 100% Email Safe Institutional Blueprint
+    return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>${title}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #050505; color: #D1D5DB; font-family: Arial, sans-serif;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #050505;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #121212; border: 1px solid #BFA100;">
+                    <!-- Branding -->
+                    <tr>
+                        <td style="padding: 20px 40px; border-bottom: 2px solid #BFA100; font-family: 'Courier New', Courier, monospace; font-weight: bold; color: #F8FAFC;">
+                            NEXUS <span style="color: #FFB800;">TERMINAL</span>
+                        </td>
+                    </tr>
+                    <!-- Status -->
+                    <tr>
+                        <td style="padding: 20px 40px 10px 40px;">
+                            <span style="font-family: 'Courier New', Courier, monospace; font-size: 10px; color: #BFA100; letter-spacing: 1px; text-transform: uppercase;">
+                                INSTITUTIONAL BRIEFING • ${dateLabel}
+                            </span>
+                        </td>
+                    </tr>
+                    <!-- Title -->
+                    <tr>
+                        <td style="padding: 0 40px 20px 40px;">
+                            <h1 style="color: #F8FAFC; font-size: 28px; line-height: 1.2; margin: 0;">${title}</h1>
+                        </td>
+                    </tr>
+                    <!-- Excerpt -->
+                    <tr>
+                        <td style="padding: 0 40px 20px 40px;">
+                            <div style="border-left: 4px solid #FFB800; padding-left: 15px; color: #9CA3AF; font-size: 16px; font-style: italic;">
+                                ${excerpt}
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 20px 40px; font-size: 14px; line-height: 1.8; color: #D1D5DB;">
+                            <div class="content-body">
+                                ${parseMD(content)}
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Market Pulse -->
+                    <tr>
+                        <td style="padding: 20px 40px; background-color: #000;">
+                            <table border="0" cellpadding="10" cellspacing="0" width="100%" style="border: 1px solid rgba(191,161,0,0.3);">
+                                <tr>
+                                    <td width="33%" style="color: #6B7280; font-size: 10px; color: #BFA100;">L: ${priceInfo.low}</td>
+                                    <td width="33%" align="center" style="color: #FFB800; font-size: 12px; font-weight: bold;">LAST: ${priceInfo.last}</td>
+                                    <td width="33%" align="right" style="color: #6B7280; font-size: 10px; color: #BFA100;">H: ${priceInfo.high}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td align="center" style="padding: 30px 40px; border-top: 1px solid rgba(191,161,0,0.1); font-size: 10px; color: #4B5563;">
+                            © ${new Date().getFullYear()} BLOGSPRO TERMINAL • ALL RIGHTS RESERVED • INSTITUTIONAL USE ONLY
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`;
+}
+
+module.exports = { getBaseTemplate, getEmailTemplate };

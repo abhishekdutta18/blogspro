@@ -93,6 +93,15 @@ async function generateBriefing() {
     const isDaily = frequency === 'daily';
     const isHourly = frequency === 'hourly';
 
+    const cleanAIResponse = (text) => {
+        return text
+            .replace(/```[a-z]*\n/gi, "") // Remove starting code blocks
+            .replace(/```/g, "")          // Remove ending code blocks
+            .replace(/^Here is the pulse.*:$/gi, "") // Remove AI conversational fluff
+            .replace(/^In this pulse.*:$/gi, "")
+            .trim();
+    };
+
     try {
         let content = "";
         let seoDescription = "";
@@ -101,18 +110,31 @@ async function generateBriefing() {
         if (isDaily) {
             console.log("📑 Generating Stage 1: Strategic Recap...");
             const stage1Prompt = `${prompt}\n\nSTRICT INSTRUCTION: Focus purely on RECAP of the last 24 hours. Be extremely verbose. Target 1,500 words. Do NOT include a conclusion yet.`;
-            const stage1 = await askAI(stage1Prompt);
+            let stage1Raw = await askAI(stage1Prompt);
             
             console.log("📑 Generating Stage 2: Predictive Alpha...");
             const stage2Prompt = `${prompt}\n\nSTRICT INSTRUCTION: Focus on PREDICTION and RISK for the next 48 hours. Connect the data points. Target 1,500 words. Include the final poll and interactive metrics.`;
-            const stage2 = await askAI(stage2Prompt);
+            let stage2Raw = await askAI(stage2Prompt);
             
-            content = `${stage1}\n<hr style="border:1px solid var(--gold); opacity:0.2; margin:4rem 0;">\n${stage2}`;
+            content = `${stage1Raw}\n<hr style="border:1px solid var(--gold); opacity:0.2; margin:4rem 0;">\n${stage2Raw}`;
         } else {
             console.log(`📑 Generating Pulse Analysis (${frequency})...`);
             const verbosePrompt = `${prompt}\n\nSTRICT INSTRUCTION: Provide absolute granular detail. Target ${isHourly ? '700' : '1500'} words of high-density analysis.`;
             content = await askAI(verbosePrompt);
         }
+
+        // Multi-Pass Pass 2: Sanitizer
+        console.log("🧹 Sanitizing Briefing Content...");
+        const sanitizerPrompt = `Clean this market briefing for institutional delivery.
+        - REMOVE all markdown backticks (\`\`\`).
+        - Fix mismatching tags and invalid HTML.
+        - Ensure metrics (SENTIMENT_SCORE, PRICE_INFO) are preserved at the bottom.
+        - Tone: Cold, Bloomberg-style institutional blocks.
+        
+        CONTENT:
+        ${content}`;
+        content = await askAI(sanitizerPrompt);
+        content = cleanAIResponse(content);
 
         // Pass 3: SEO Audit
         console.log("🔍 Running SEO Audit Pass...");
@@ -129,8 +151,9 @@ async function generateBriefing() {
         const sentimentMatch = content.match(/SENTIMENT_SCORE:\s*(\d+)/i);
         const sentimentScore = sentimentMatch ? parseInt(sentimentMatch[1]) : parseInt(sentiment.value);
 
-        const priceMatch = content.match(/PRICE_INFO:\s*\[(.*?),(.*?),(.*?)\]/i);
-        const priceInfo = priceMatch ? { last: priceMatch[1].trim(), high: priceMatch[2].trim(), low: priceMatch[3].trim() } : { last: "24,000", high: "24,150", low: "23,900" };
+        const priceMatch = content.match(/PRICE_INFO:\s*\[(.*?),(.*?),(.*?)\]/i) || content.match(/PRICE_INFO:\s*(.*?)(?=\n|$)/i);
+        const priceStr = priceMatch ? (priceMatch[1] || priceMatch[0]).replace(/PRICE_INFO:\s*/i, '') : "N/A";
+        const priceInfo = { last: priceStr.split(',')[0]?.trim() || "N/A", high: priceStr.split(',')[1]?.trim() || "N/A", low: priceStr.split(',')[2]?.trim() || "N/A" };
 
         const pollQuestionMatch = content.match(/question:\s*(.*?)(?=\n|$)/i);
         const pollOptionsMatch = content.match(/options:\s*(.*?)(?=\n|$)/i);
@@ -142,6 +165,8 @@ async function generateBriefing() {
 
         const datestr = new Date().toISOString().split('T')[0];
         const fileName = `pulse-${datestr}-${frequency}-${Date.now()}.html`;
+        
+        // Generate Web Version
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content, dateLabel, 
             finalKit, type: "briefing", freq: frequency, fileName, pairId, sentimentScore, priceInfo,
@@ -150,16 +175,22 @@ async function generateBriefing() {
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         
+        // Generate & Dispatch Email Version (Safe Template)
+        const emailHtml = require("./lib/templates.js").getEmailTemplate({
+            title, excerpt, content, dateLabel, priceInfo
+        });
+
         const indexPath = path.join(targetDir, "index.json");
         let index = fs.existsSync(indexPath) ? JSON.parse(fs.readFileSync(indexPath, "utf-8")) : [];
         index.unshift({ title, date: today, fileName, type: "briefing", frequency });
         fs.writeFileSync(indexPath, JSON.stringify(index.slice(0, 50), null, 2));
 
         if (process.env.NEWSLETTER_WORKER_URL && (isDaily || isHourly)) {
+            console.log("📨 Dispatching High-Fidelity Newsletter...");
             await fetchWithTimeout(process.env.NEWSLETTER_WORKER_URL, {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ subject: title, html: fullHtml, secret: process.env.NEWSLETTER_SECRET })
-            }).catch(() => {});
+                body: JSON.stringify({ subject: title, html: emailHtml, secret: process.env.NEWSLETTER_SECRET })
+            }).catch((err) => { console.error("Newsletter Fail:", err); });
         }
 
         console.log(`🏁 Intelligence Pulse Generated: ${fileName}`);
