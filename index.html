@@ -636,6 +636,12 @@
   <script src="js/clarity-init.js"></script>
 </head>
 <body>
+<script>
+  // Prevent browser from restoring a hash-based scroll position (e.g. #briefings)
+  // so the page always starts at the hero on load.
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  window.scrollTo(0, 0);
+</script>
 
 <!-- NAV -->
 <nav>
