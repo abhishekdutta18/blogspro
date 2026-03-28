@@ -1741,7 +1741,12 @@
 
     try {
       if (view === 'india') {
-        const res  = await fetch(`${UPSTOX_BASE}/quotes`);
+        // Fetch with timeout + CORS errors expected when token expires
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const res  = await fetch(`${UPSTOX_BASE}/quotes`, { signal: controller.signal });
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (data.status === 'success' && data.data) {
@@ -1769,7 +1774,11 @@
           _pollFailures++;
         }
       } else {
-        const res  = await fetch(`${UPSTOX_BASE}/global`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const res  = await fetch(`${UPSTOX_BASE}/global`, { signal: controller.signal });
+        clearTimeout(timeoutId);
         const json = await res.json();
         if (json.status === 'success') {
           _pollFailures = 0;
