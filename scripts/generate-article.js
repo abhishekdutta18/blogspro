@@ -38,7 +38,8 @@ async function generateArticle() {
     CRITICAL SEO & VISUAL INSTRUCTIONS:
     1. Start with exactly one <h2> tag containing a unique, structural title.
     2. Provide a 1-sentence analytical excerpt wrapped in a <details id="meta-excerpt" style="display:none"> tag.
-    3. MANDATORY: Include a Markdown data table titled "| Variable | Value | Status |" summarizing at least 5 data points.
+    3. MANDATORY: Include a Markdown data table titled "| Variable | Value | Change (%) |" summarizing 5 data points.
+    4. MANDATORY: End with exactly "SENTIMENT_SCORE: [0-100]" representing the strategic outlook.
     
     REGULATORY DATA: ${regulatoryContext}`;
 
@@ -54,11 +55,15 @@ async function generateArticle() {
         const title = titleMatch ? titleMatch[1].trim() : `Strategic Outlook — ${dateLabel}`;
         const excerpt = excerptMatch ? excerptMatch[1].trim() : "Strategic deep-dive for institutional and professional investors.";
         
-        const fileName = `article-${today}.html`;
+        const sentimentMatch = content.match(/SENTIMENT_SCORE:\s*(\d+)/i);
+        const sentimentScore = sentimentMatch ? parseInt(sentimentMatch[1]) : 50;
+
+        const datestr = new Date().toISOString().split('T')[0];
+        const fileName = `article-${datestr}.html`;
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content, dateLabel, 
             finalKit: { audioScript: "Listen to this week's strategic deep-dive..." }, 
-            type: "article", freq: frequency, fileName, symbol: tvSymbol
+            type: "article", freq: frequency, fileName, symbol: tvSymbol, sentimentScore
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         

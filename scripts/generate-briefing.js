@@ -43,7 +43,8 @@ async function generateBriefing() {
     CRITICAL SEO & VISUAL INSTRUCTIONS:
     1. Start with exactly one <h2> tag containing a unique, punchy title.
     2. Provide a 1-sentence analytical excerpt wrapped in a <details id="meta-excerpt" style="display:none"> tag.
-    3. MANDATORY: Include a Markdown data table titled "| Metric | Value | Reference |" summarizing at least 4 key stats from the context.
+    3. MANDATORY: Include a Markdown data table with columns "| Metric | Value | Change (%) |" summarizing at least 4 key stats.
+    4. MANDATORY: End with exactly "SENTIMENT_SCORE: [0-100]" representing the market mood.
     
     MARKET CONTEXT: ${marketContext}`;
 
@@ -60,11 +61,15 @@ async function generateBriefing() {
         const title = titleMatch ? titleMatch[1].trim() : `Briefing — ${dateLabel}`;
         const excerpt = excerptMatch ? excerptMatch[1].trim() : "Sharp Indo-Global market insights and regulatory updates.";
         
-        const fileName = `briefing-${today}.html`;
+        const sentimentMatch = content.match(/SENTIMENT_SCORE:\s*(\d+)/i);
+        const sentimentScore = sentimentMatch ? parseInt(sentimentMatch[1]) : 50;
+
+        const datestr = new Date().toISOString().split('T')[0];
+        const fileName = `briefing-${datestr}.html`;
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content, dateLabel, 
             finalKit: { audioScript: "Listen to today's sharp market pulse..." }, 
-            type: "briefing", freq: frequency, fileName, symbol: tvSymbol
+            type: "briefing", freq: frequency, fileName, symbol: tvSymbol, sentimentScore
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         

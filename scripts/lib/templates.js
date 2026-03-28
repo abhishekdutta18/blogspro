@@ -11,12 +11,17 @@ function parseMD(md) {
         .replace(/\n\n/gim, '</p><p>')
         .replace(/<li>/g, '<ul><li>').replace(/<\/li>/g, '</li></ul>').replace(/<\/ul><ul>/g, '');
 
-    // Advanced Table Parsing (Markdown -> HTML)
+    // Advanced Table Parsing (Markdown -> HTML) with Trend Icons
     const tableRegex = /\|(.+)\|\n\|([\s\-\|]+)\|\n((\|.+\|\n)+)/g;
     html = html.replace(tableRegex, (match, header, separator, body) => {
         const headers = header.split('|').map(h => h.trim()).filter(h => h).map(h => `<th>${h}</th>`).join('');
         const rows = body.trim().split('\n').map(row => {
-            const cols = row.split('|').map(c => c.trim()).filter(c => c).map(c => `<td>${c}</td>`).join('');
+            const cols = row.split('|').map(c => c.trim()).filter(c => c).map(c => {
+                let cell = c;
+                if (c.includes('+') || c.includes('▲')) cell = `<span style="color:#22c55e">▲ ${c.replace(/[\+\^▲]/g,'')}</span>`;
+                else if (c.includes('-') || c.includes('▼')) cell = `<span style="color:#ef4444">▼ ${c.replace(/[\-\▼]/g,'')}</span>`;
+                return `<td style="font-family: monospace;">${cell}</td>`;
+            }).join('');
             return `<tr>${cols}</tr>`;
         }).join('');
         return `<div class="table-container"><table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -24,7 +29,10 @@ function parseMD(md) {
     return html;
 }
 
-function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, freq, fileName, rel = "../../", symbol = "NSE:NIFTY" }) {
+function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, freq, fileName, rel = "../../", symbol = "NSE:NIFTY", sentimentScore = 50 }) {
+    const sentimentLabel = sentimentScore > 70 ? "EXTREME BULLISH" : (sentimentScore < 30 ? "EXTREME BEARISH" : (sentimentScore > 55 ? "BULLISH" : (sentimentScore < 45 ? "BEARISH" : "NEUTRAL")));
+    const sentimentColor = sentimentScore > 70 ? "#22c55e" : (sentimentScore < 30 ? "#ef4444" : "#eab308");
+    const gaugeRotation = (sentimentScore / 100) * 180 - 90; // Translate 0-100 to -90deg to 90deg
     const canonical = `https://blogspro.in/${type === 'post' ? 'posts/' : (type + 's/' + freq + '/')}${fileName || (type + '-' + new Date().toISOString().split('T')[0] + '.html')}`;
     
     return `<!DOCTYPE html>
@@ -82,10 +90,26 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
         .content td { padding: 1rem; border-bottom: 1px solid rgba(201,168,76,0.05); }
         .content tr:nth-child(even) { background: rgba(255,255,255,0.01); }
         .content tr:hover { background: rgba(201,168,76,0.05); }
-        .table-container { overflow-x: auto; margin: 2rem 0; border-radius: 8px; border: 1px solid rgba(201,168,76,0.1); }
-        .sentiment-gauge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; background: rgba(201,168,76,0.1); border-radius: 20px; font-size: 0.8rem; font-weight: 700; color: var(--gold); margin-bottom: 2rem; }
-        .chart-container { width: 100%; height: 400px; margin: 2.5rem 0; background: #131722; border-radius: 12px; border: 1px solid rgba(201,168,76,0.1); overflow: hidden; }
-        .audio-summary { margin: 3rem 0; padding: 2rem; background: rgba(201,168,76,0.05); border: 1px solid var(--gold); border-radius: 12px; }
+        .table-container { overflow-x: auto; margin: 2rem 0; border-radius: 12px; border: 1px solid rgba(201,168,76,0.15); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        
+        /* Premium Dashboard Components */
+        .command-center { position: relative; background: linear-gradient(145deg, rgba(201,168,76,0.08), rgba(8,13,26,0.5)); border: 1px solid rgba(201,168,76,0.2); border-radius: 16px; padding: 2.5rem; margin: 2rem 0 4rem; backdrop-filter: blur(20px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        .live-blinker { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.7rem; font-weight: 900; color: #ef4444; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 2rem; }
+        .live-blinker::before { content: ""; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; animation: blink 1s infinite; box-shadow: 0 0 10px #ef4444; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        .gauge-wrap { position: relative; width: 140px; height: 75px; flex-shrink: 0; }
+        .gauge-arc { width: 140px; height: 140px; border: 15px solid rgba(255,255,255,0.05); border-radius: 50%; border-bottom-color: transparent; border-left-color: transparent; transform: rotate(-45deg); position: absolute; }
+        .gauge-color { width: 140px; height: 140px; border: 15px solid transparent; border-radius: 50%; border-top-color: ${sentimentColor}; border-right-color: ${sentimentColor}; transform: rotate(-45deg); position: absolute; filter: drop-shadow(0 0 5px ${sentimentColor}); }
+        .gauge-needle { position: absolute; bottom: 0; left: 50%; width: 4px; height: 60px; background: var(--cream); border-radius: 4px; transform-origin: bottom center; transform: translateX(-50%) rotate(${gaugeRotation}deg); transition: 1s cubic-bezier(0.17, 0.67, 0.83, 0.67); }
+        .gauge-center { position: absolute; bottom: -5px; left: 50%; width: 14px; height: 14px; background: var(--gold); border-radius: 50%; transform: translateX(-50%); border: 2px solid var(--navy); }
+        .sentiment-label { text-align: center; margin-top: 0.5rem; font-size: 0.75rem; font-weight: 800; color: ${sentimentColor}; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
+
+        .dashboard-grid { display: grid; grid-template-columns: 140px 1fr; gap: 3rem; align-items: start; }
+        .chart-container { width: 100%; height: 420px; border-radius: 12px; border: 1px solid rgba(201,168,76,0.1); overflow: hidden; position: relative; }
+        .chart-container::after { content: "LIVE MARKET FEED"; position: absolute; bottom: 10px; right: 10px; font-size: 10px; color: var(--muted); font-weight: 900; opacity: 0.5; }
+
+        .audio-summary { margin: 3rem 0; padding: 2.5rem; background: linear-gradient(to right, rgba(201,168,76,0.08), transparent); border: 1px solid var(--gold); border-radius: 16px; }
         .audio-player { width: 100%; margin-top: 1rem; filter: sepia(20%) saturate(70%) grayscale(1) contrast(99%) invert(12%); }
         .share-btn { background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); color: var(--gold); padding: 0.6rem 1.2rem; border-radius: 4px; font-size: 0.85rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: 0.2s; }
         .share-btn:hover { background: var(--gold); color: var(--navy); }
@@ -98,52 +122,64 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
         <a href="${rel}index.html" style="color:var(--muted);text-decoration:none;font-size:0.8rem;">← Back</a>
     </nav>
     <article class="article-container">
+        <div class="live-blinker">Live Terminal Status: Optimal</div>
         <header>
-            <div class="sentiment-gauge">
-                <span>📈 MARKET SENTIMENT: BULLISH</span>
-            </div>
             <span class="meta">${type.toUpperCase()} • ${dateLabel}</span>
             <h1>${title}</h1>
-            <p style="font-size:1.2rem;color:var(--muted);font-style:italic;">${excerpt}</p>
+            <p style="font-size:1.3rem;color:var(--muted);font-style:italic;line-height:1.4">${excerpt}</p>
         </header>
 
-        <!-- TradingView Chart Widget -->
-        <div class="chart-container">
-            <div class="tradingview-widget-container" style="height:100%;width:100%">
-                <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
-                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
-                {
-                "symbols": [ [ "${symbol}|1D" ] ],
-                "chartOnly": false,
-                "width": "100%",
-                "height": "100%",
-                "locale": "en",
-                "colorTheme": "dark",
-                "autosize": true,
-                "showVolume": false,
-                "showMA": false,
-                "hideDateRanges": false,
-                "hideMarketStatus": false,
-                "hideSymbolLogo": false,
-                "scalePosition": "right",
-                "scaleMode": "Normal",
-                "fontFamily": "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
-                "fontSize": "10",
-                "noOverlays": false,
-                "valuesTracking": "1",
-                "changeMode": "price-and-percent",
-                "chartType": "area",
-                "maLineColor": "#2962FF",
-                "maLineWidth": 1,
-                "maLength": 9,
-                "headerFontSize": "medium",
-                "lineWidth": 2,
-                "lineType": 0,
-                "dateRanges": [ "1d", "1m", "3m", "12m", "all" ]
-                }
-                </script>
+        <section class="command-center">
+            <div class="dashboard-grid">
+                <div>
+                    <div class="gauge-wrap">
+                        <div class="gauge-arc"></div>
+                        <div class="gauge-color"></div>
+                        <div class="gauge-needle"></div>
+                        <div class="gauge-center"></div>
+                    </div>
+                    <div class="sentiment-label">${sentimentLabel}</div>
+                </div>
+                <div style="border-left: 1px solid rgba(201,168,76,0.15); padding-left: 2.5rem;">
+                    <div style="font-size: 0.75rem; color: var(--gold); font-weight: 800; margin-bottom: 0.5rem;">STRATEGIC INTEL</div>
+                    <div style="font-size: 0.95rem; color: var(--cream);">This report synthesizes real-time regulatory ingestion from SEBI/RBI with multi-asset global macro trends.</div>
+                </div>
             </div>
-        </div>
+            
+            <div class="chart-container" style="margin-top: 3rem;">
+                <div class="tradingview-widget-container" style="height:100%;width:100%">
+                    <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
+                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
+                    {
+                    "symbols": [ [ "${symbol}|1D" ] ],
+                    "chartOnly": false,
+                    "width": "100%",
+                    "height": "100%",
+                    "locale": "en",
+                    "colorTheme": "dark",
+                    "autosize": true,
+                    "showVolume": false,
+                    "showMA": false,
+                    "hideDateRanges": false,
+                    "hideMarketStatus": false,
+                    "hideSymbolLogo": false,
+                    "scalePosition": "right",
+                    "scaleMode": "Normal",
+                    "fontFamily": "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
+                    "fontSize": "10",
+                    "noOverlays": false,
+                    "valuesTracking": "1",
+                    "changeMode": "price-and-percent",
+                    "chartType": "area",
+                    "headerFontSize": "medium",
+                    "lineWidth": 2,
+                    "lineType": 0,
+                    "dateRanges": [ "1d", "1m", "3m", "12m", "all" ]
+                    }
+                    </script>
+                </div>
+            </div>
+        </section>
         ${finalKit?.audioScript ? `
         <div class="audio-summary">
             <h3 style="margin-top:0;color:var(--gold);">🔊 AI Audio Summary</h3>
