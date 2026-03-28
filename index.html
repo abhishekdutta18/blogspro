@@ -1342,10 +1342,9 @@
 
 <!-- FIREBASE -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <!-- Google Charts -->
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript">google.charts.load('current', { packages: ['corechart'] });</script>
 <script type="module">
   import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, collection, doc, getDocs, getDoc, query, where, addDoc }
@@ -2275,122 +2274,71 @@
       }
       return { history, forecastPoint };
     };
-    const niceNum = (range, round) => {
-      const r = Math.max(1e-12, Math.abs(range));
-      const exponent = Math.floor(Math.log10(r));
-      const fraction = r / Math.pow(10, exponent);
-      let niceFraction;
-      if (round) {
-        if (fraction < 1.5) niceFraction = 1;
-        else if (fraction < 3) niceFraction = 2;
-        else if (fraction < 7) niceFraction = 5;
-        else niceFraction = 10;
-      } else {
-        if (fraction <= 1) niceFraction = 1;
-        else if (fraction <= 2) niceFraction = 2;
-        else if (fraction <= 5) niceFraction = 5;
-        else niceFraction = 10;
-      }
-      return niceFraction * Math.pow(10, exponent);
-    };
-    const buildNiceScale = (lo, hi, maxTicks = 5) => {
-      let dMin = Number(lo);
-      let dMax = Number(hi);
-      if (!Number.isFinite(dMin) || !Number.isFinite(dMax)) return { min: 0, max: 1, step: 0.25 };
-      if (dMin === dMax) {
-        const bump = Math.max(1, Math.abs(dMin) * 0.05);
-        dMin -= bump;
-        dMax += bump;
-      }
-      const range = niceNum(dMax - dMin, false);
-      const step = niceNum(range / Math.max(2, maxTicks - 1), true);
-      const nMin = Math.floor(dMin / step) * step;
-      const nMax = Math.ceil(dMax / step) * step;
-      return { min: nMin, max: nMax, step };
-    };
-    const renderQoqChartJs = (history, forecastPoint) => {
-      if (!window.Chart) return false;
-      const seriesAll = forecastPoint ? [...history, forecastPoint] : history.slice();
-      const min = Math.min(...seriesAll.map((s) => s.value));
-      const max = Math.max(...seriesAll.map((s) => s.value));
-      const scale = buildNiceScale(min, max, 5);
-      const labels = seriesAll.map((s) => s.label);
-      const histData = history.map((s) => s.value);
-      const forecastData = forecastPoint ? [...Array(Math.max(0, history.length - 1)).fill(null), history[history.length - 1].value, forecastPoint.value] : [];
-      qoqBarsEl.innerHTML = '<div class="qoq-chart-wrap"><canvas id="indiaQoqCanvas"></canvas></div>';
+    const renderQoqGoogleChart = (history, forecastPoint) => {
+      if (!window.google || !window.google.visualization) return false;
+      qoqBarsEl.innerHTML = '<div id="indiaQoqGoogleChart" style="width:100%;height:190px"></div>';
       qoqBarsEl.style.height = '220px';
       qoqBarsEl.style.maxHeight = '220px';
-      const canvas = document.getElementById('indiaQoqCanvas');
-      if (!canvas) return false;
-      canvas.height = 190;
-      canvas.style.height = '190px';
-      if (indiaQoqChart) indiaQoqChart.destroy();
-      const DL = window.ChartDataLabels;
-      if (DL && window.Chart && !window.Chart.registry.plugins.get('datalabels')) {
-        window.Chart.register(DL);
-      }
-      indiaQoqChart = new Chart(canvas.getContext('2d'), {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: 'Historical',
-              data: histData,
-              borderColor: '#d8b95e',
-              backgroundColor: 'rgba(216,185,94,0.15)',
-              pointBackgroundColor: '#e9d08a',
-              pointBorderColor: '#080d1a',
-              tension: 0.2,
-              pointRadius: 3,
-              borderWidth: 2
-            },
-            ...(forecastPoint ? [{
-              label: 'Forecast',
-              data: forecastData,
-              borderColor: '#8fb5ff',
-              borderDash: [6, 5],
-              pointRadius: 3,
-              pointBackgroundColor: '#8fb5ff',
-              tension: 0
-            }] : [])
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            datalabels: {
-              color: '#e9d08a',
-              align: 'top',
-              anchor: 'end',
-              offset: 2,
-              clamp: true,
-              formatter: (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(2) : ''),
-              font: { size: 9, weight: '600' }
-            }
-          },
-          scales: {
-            x: {
-              title: { display: true, text: 'Quarter', color: '#c9d2ea', font: { size: 10, weight: '600' } },
-              ticks: { color: '#9aa4bd', maxRotation: 0, autoSkip: true },
-              grid: { color: 'rgba(136,150,179,0.12)' }
-            },
-            y: {
-              beginAtZero: false,
-              suggestedMin: scale.min,
-              suggestedMax: scale.max,
-              title: { display: true, text: 'Value', color: '#c9d2ea', font: { size: 10, weight: '600' } },
-              ticks: {
-                color: '#9aa4bd',
-                maxTicksLimit: 6
-              },
-              grid: { color: 'rgba(136,150,179,0.18)' }
-            }
-          }
-        }
+      const chartEl = document.getElementById('indiaQoqGoogleChart');
+      if (!chartEl) return false;
+      if (indiaQoqChart) indiaQoqChart.clearChart();
+
+      const hasForecast = !!forecastPoint;
+      const cols = [
+        { type: 'string', label: 'Quarter' },
+        { type: 'number', label: 'Historical' },
+        { type: 'string', role: 'annotation' },
+        ...(hasForecast ? [{ type: 'number', label: 'Forecast' }] : [])
+      ];
+      const rows = history.map((pt) => {
+        const row = [pt.label, pt.value, String(pt.value.toFixed(2))];
+        if (hasForecast) row.push(null);
+        return row;
       });
+      if (hasForecast) {
+        // bridge: last historical point duplicated onto forecast series so lines connect
+        const last = history[history.length - 1];
+        rows[rows.length - 1][rows[rows.length - 1].length - 1] = last.value;
+        rows.push([forecastPoint.label, null, null, forecastPoint.value]);
+      }
+      const dataTable = new google.visualization.DataTable();
+      cols.forEach((c) => dataTable.addColumn(c));
+      dataTable.addRows(rows);
+
+      const options = {
+        backgroundColor: 'transparent',
+        chartArea: { left: 48, top: 16, right: 12, bottom: 36, width: '100%', height: '75%' },
+        legend: { position: 'none' },
+        curveType: 'function',
+        lineWidth: 2,
+        series: {
+          0: { color: '#d8b95e', pointSize: 4, pointShape: 'circle' },
+          ...(hasForecast ? { 1: { color: '#8fb5ff', pointSize: 4, lineDashStyle: [6, 4] } } : {})
+        },
+        annotations: {
+          textStyle: { fontSize: 9, color: '#e9d08a', bold: true },
+          stem: { color: 'transparent', length: 4 }
+        },
+        hAxis: {
+          title: 'Quarter',
+          titleTextStyle: { color: '#c9d2ea', fontSize: 10, bold: true },
+          textStyle: { color: '#9aa4bd', fontSize: 10 },
+          gridlines: { color: 'rgba(136,150,179,0.12)' },
+          baselineColor: 'rgba(136,150,179,0.35)'
+        },
+        vAxis: {
+          title: 'Value',
+          titleTextStyle: { color: '#c9d2ea', fontSize: 10, bold: true },
+          textStyle: { color: '#9aa4bd', fontSize: 10 },
+          gridlines: { color: 'rgba(136,150,179,0.18)' },
+          baselineColor: 'rgba(136,150,179,0.35)',
+          viewWindowMode: 'pretty'
+        },
+        tooltip: { textStyle: { color: '#1a1a2e', fontSize: 11 } }
+      };
+
+      indiaQoqChart = new google.visualization.LineChart(chartEl);
+      indiaQoqChart.draw(dataTable, options);
       return true;
     };
     const renderQoq = (event) => {
@@ -2401,8 +2349,8 @@
         return;
       }
       qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
-      if (renderQoqChartJs(history, forecastPoint)) {
-        // Chart and note are already rendered by renderQoqChartJs.
+      if (renderQoqGoogleChart(history, forecastPoint)) {
+        // Chart rendered by renderQoqGoogleChart.
       } else {
         qoqBarsEl.innerHTML = '<div class="calendar-empty">Chart library unavailable. Please refresh.</div>';
       }
@@ -2972,6 +2920,7 @@
     const aboutOk = await loadAbout().catch(() => false);
     const forexOk = await loadForexFactoryData().catch(() => false);
     initForexCalendarControls();
+    await new Promise((res) => google.charts.setOnLoadCallback(res));
     const indiaOk = await loadIndiaCalendarData().catch(() => false);
     const marketOk = await loadUpstoxMarketData({ showLoading: true }).catch(() => false);
     const allOk = settingsOk && postsOk && aboutOk && forexOk && indiaOk && marketOk;
