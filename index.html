@@ -2137,10 +2137,14 @@
               grid: { color: 'rgba(136,150,179,0.12)' }
             },
             y: {
-              min: scale.min,
-              max: scale.max,
+              beginAtZero: false,
+              suggestedMin: scale.min,
+              suggestedMax: scale.max,
               title: { display: true, text: 'Value', color: '#c9d2ea', font: { size: 10, weight: '600' } },
-              ticks: { color: '#9aa4bd', stepSize: scale.step },
+              ticks: {
+                color: '#9aa4bd',
+                maxTicksLimit: 6
+              },
               grid: { color: 'rgba(136,150,179,0.18)' }
             }
           }
