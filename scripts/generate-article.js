@@ -1,8 +1,8 @@
 const fs = require("fs");
 const path = require("path");
-const { fetchRBIData, fetchSEBIData, fetchCCILData, fetchMacroPulse, fetchGlobalMarkets } = require("./lib/data-fetchers");
-const { askAI } = require("./lib/ai-service");
-const { getBaseTemplate } = require("./lib/templates");
+const { fetchRBIData, fetchSEBIData, fetchCCILData, fetchMacroPulse, fetchGlobalMarkets } = require(path.join(__dirname, "lib", "data-fetchers"));
+const { askAI } = require(path.join(__dirname, "lib", "ai-service"));
+const { getBaseTemplate } = require(path.join(__dirname, "lib", "templates"));
 const fetch = require("node-fetch");
 
 async function fetchWithTimeout(url, options = {}, timeout = 15000) {
