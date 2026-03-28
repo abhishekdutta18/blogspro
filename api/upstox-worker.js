@@ -93,6 +93,28 @@ export default {
         return jsonResponse(data, 200, { "Cache-Control": "public, max-age=3600" });
       }
 
+      if (url.pathname === "/ohlc") {
+        const defaultSymbols = "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank,NSE_INDEX|Nifty Midcap 50,NSE_EQ|RELIANCE,NSE_EQ|HDFCBANK,NSE_EQ|ICICIBANK,NSE_EQ|INFY,NSE_EQ|TCS";
+        const symbols  = url.searchParams.get("symbols") || defaultSymbols;
+        const interval = url.searchParams.get("interval") || "1d";
+
+        const response = await fetch(
+          `${UPSTOX_V3}/market-quote/ohlc?symbol=${encodeURIComponent(symbols)}&interval=${interval}`,
+          {
+            headers: {
+              "Accept": "application/json",
+              "Authorization": `Bearer ${token}`
+            }
+          }
+        );
+        const data = await response.json();
+
+        if (data.status === "error" || !response.ok) {
+          return jsonResponse(data, response.status || 400);
+        }
+        return jsonResponse(data, 200, { "Cache-Control": "public, max-age=15" });
+      }
+
       if (url.pathname === "/market-status") {
         const exchange = url.searchParams.get("exchange") || "NSE";
 

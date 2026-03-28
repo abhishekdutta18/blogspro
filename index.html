@@ -596,6 +596,27 @@
       50% { opacity: 0.4; }
     }
 
+    /* Live market quotes strip */
+    #marketQuotesStrip {
+      display: none;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.25rem;
+      padding: 0.75rem 0;
+      margin-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+    .mq-item {
+      display: flex;
+      align-items: baseline;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+    }
+    .mq-label  { color: var(--muted); font-weight: 500; letter-spacing: 0.04em; }
+    .mq-price  { color: var(--cream); font-family: monospace; }
+    .mq-change { font-family: monospace; font-weight: 600; }
+    .mq-change.up   { color: var(--emerald); }
+    .mq-change.down { color: var(--red); }
+
     @media (max-width: 768px) {
       .nav-hamburger { display: flex; }
       .nav-links {
@@ -691,6 +712,7 @@
     <h2 class="section-title" style="font-size: 1.5rem;">The Market <em>Pulse</em> <span class="status-dot"></span></h2>
     <span class="muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">Updated Hourly</span>
   </div>
+  <div id="marketQuotesStrip"></div>
   <div class="pulse-grid" id="pulseGrid">
     <!-- Hydrated by renderPulse -->
   </div>
@@ -914,8 +936,9 @@
   import { getAuth, onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-  import { firebaseConfig } from "./js/firebase-config.js";
-  import { identifyUser }   from "./js/analytics.js";
+  import { firebaseConfig }    from "./js/firebase-config.js";
+  import { identifyUser }      from "./js/analytics.js";
+  import { initMarketData }    from "./js/market-data.js";
 
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
@@ -1384,7 +1407,8 @@
     const yearEl = document.getElementById('year');
     if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-    loadTicker(); // non-blocking
+    loadTicker();       // non-blocking
+    initMarketData();   // non-blocking — market status dot + live quotes strip
     await loadSiteSettings();
     await loadTerminal();
 

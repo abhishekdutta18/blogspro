@@ -1,5 +1,6 @@
 // js/health.js
 import { db } from "./config.js";
+import { UPSTOX_WORKER_URL } from "./constants.js";
 import { doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 export function initHealthMonitor() {
@@ -36,7 +37,7 @@ async function initFinancialHealth() {
     const refresh = async () => {
         try {
             const start = Date.now();
-            const res = await fetch('https://blogspro-upstox.abhishek-dutta1996.workers.dev/quotes');
+            const res = await fetch(`${UPSTOX_WORKER_URL}/quotes`);
             const latency = Date.now() - start;
             const data = await res.json();
             
