@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategic Pulse — 28 March 2026 | Nexus Institutional Terminal</title>
+    <meta name="description" content="Institutional-grade synthesis of global macro and domestic sectoral rotation.">
+    <meta name="keywords" content="GIFT City, IFSCA, Mutual Fund Inflows, PE/VC Deal Tracking, Institutional Market Intelligence, BlogsPro">
+    
+    <!-- Nexus Core Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Google Charts SDK -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {'packages':['corechart', 'table']});
+    </script>
+    
+    <style>
+        :root {
+            --nexus-bg: #050505;
+            --nexus-sidebar: rgba(18, 18, 18, 0.98);
+            --nexus-glass: rgba(10, 10, 10, 0.9);
+            --nexus-accent: #BFA100; /* Bloomberg Gold */
+            --nexus-amber: #FFB800;  /* Data Amber */
+            --nexus-border: rgba(191, 161, 0, 0.15);
+            --nexus-text-h1: #F8FAFC;
+            --nexus-text-p: #D1D5DB;
+            --nexus-success: #4ADE80;
+            --nexus-warning: #F87171;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--nexus-bg);
+            color: var(--nexus-text-p);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Bloomberg Sidebar - High Density */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--nexus-sidebar);
+            border-right: 1px solid var(--nexus-border);
+            padding: 1rem;
+            position: fixed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--nexus-text-h1);
+            margin-bottom: 2rem;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--nexus-accent);
+        }
+        .logo span { color: var(--nexus-amber); margin-left: 0.4rem; }
+
+        .nav-group { margin-bottom: 1.5rem; }
+        .nav-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            color: var(--nexus-accent);
+            padding-left: 0.5rem;
+            opacity: 0.6;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.8rem;
+            border-radius: 4px;
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.1s;
+            margin-bottom: 0.2rem;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(191, 161, 0, 0.05);
+            color: var(--nexus-accent);
+            border-left: 2px solid var(--nexus-accent);
+        }
+
+        /* Terminal Body Architecture */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 3rem 4rem;
+            max-width: 1200px;
+        }
+
+        header { margin-bottom: 3rem; }
+        .status-tag {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(191, 161, 0, 0.1);
+            color: var(--nexus-accent);
+            padding: 0.2rem 0.6rem;
+            border-radius: 2px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            display: inline-block;
+            border: 1px solid var(--nexus-border);
+        }
+
+        h1 {
+            font-family: 'Inter', sans-serif;
+            font-size: 2.8rem;
+            color: var(--nexus-text-h1);
+            line-height: 1.1;
+            margin-bottom: 1rem;
+            letter-spacing: -1px;
+            font-weight: 800;
+        }
+
+        .excerpt {
+            font-size: 1.15rem;
+            color: var(--nexus-text-p);
+            max-width: 850px;
+            border-left: 4px solid var(--nexus-amber);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            opacity: 0.8;
+        }
+
+        /* Terminal Typography */
+        .manuscript-body h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            color: var(--nexus-accent);
+            margin: 3.5rem 0 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-top: 1px solid var(--nexus-border);
+            padding-top: 1.5rem;
+        }
+
+        .manuscript-body p {
+            font-size: 1.05rem;
+            margin-bottom: 1.5rem;
+            color: rgba(209, 213, 219, 0.85);
+        }
+
+        /* Bloomberg Table & Card Logic */
+        .card {
+            background: rgba(20, 20, 20, 0.5);
+            border: 1px solid var(--nexus-border);
+            border-left: 4px solid var(--nexus-accent);
+            padding: 1.5rem;
+            margin: 2.5rem 0;
+        }
+
+        .card-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--nexus-amber);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        th { text-align: left; padding: 0.8rem; border-bottom: 2px solid var(--nexus-accent); color: var(--nexus-accent); font-weight: 800; }
+        td { padding: 0.8rem; border-bottom: 1px solid var(--nexus-border); color: var(--nexus-amber); }
+
+        .f-success { color: var(--nexus-success); font-weight: 600; }
+        .f-warning { color: var(--nexus-warning); font-weight: 600; }
+
+        .table-container { overflow-x: auto; margin: 2rem 0; }
+
+        @media (max-width: 1024px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <a href="../../index.html" class="logo">NEXUS<span>TERMINAL</span></a>
+        
+        <div class="nav-group">
+            <div class="nav-label">Institutional Verticals</div>
+            <nav>
+                <a href="#macro" class="nav-item">Global Macro Drift</a>
+                <a href="#debt" class="nav-item">Debt & Sovereignty</a>
+                <a href="#digital" class="nav-item">Digital Rails</a>
+                <a href="#equities" class="nav-item">Equities & Alpha</a>
+                <a href="#reg" class="nav-item">Regulatory Ledger</a>
+                <a href="#fx" class="nav-item">FX & Cross-Border</a>
+                <a href="#commodity" class="nav-item">Commodity Pulse</a>
+                <a href="#em" class="nav-item">Emerging Markets</a>
+                <a href="#asset" class="nav-item">Asset Allocation</a>
+                <a href="#scribe" class="nav-item">Scribe Analytics</a>
+                <a href="#capital" class="nav-item">Capital Flows (PE/VC)</a>
+                <a href="#insurance" class="nav-item">Insurance & Risk</a>
+                <a href="#gift" class="nav-item">Offshore & GIFT City</a>
+            </nav>
+        </div>
+        
+        <div style="margin-top:auto; padding-top:2rem; border-top: 1px solid var(--nexus-border);">
+            <div style="font-size:0.6rem; color:rgba(255,255,255,0.2); text-transform:uppercase;">BlogsPro Intel Unit</div>
+            <div style="font-size:0.75rem; color:var(--nexus-accent); font-weight:600;">V6.30 Sovereign Pass</div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <div class="status-tag">Status: Institutional Manuscript • 28 March 2026</div>
+            <h1>Strategic Pulse — 28 March 2026</h1>
+            <div class="excerpt">Institutional-grade synthesis of global macro and domestic sectoral rotation.</div>
+        </header>
+
+        <div class="manuscript-body">
+            <strong>Weekend Wrap: Markets Closed, Sectoral Rotation, and Institutional Catalysts</strong></p><p>Markets are closed for the weekend, but sectoral rotation and institutional catalysts are driving the narrative, with a focus on midcap inflows, fintech/GenAI rounds, and health insurance segments.</p><p><strong>Weekend Recap</strong></p><p><strong>Session Transition</strong></p><p>Markets are closed for the weekend, with the DOW status marked as CLOSED (WEEKEND). The session transition is expected to be calm, with no intraday long/short trades suggested.</p><p><strong>Sectoral Rotation</strong></p><p>The sectoral rotation is driven by midcap inflows, with mutual funds witnessing record inflows of ₹35,000Cr+. This trend is expected to continue, with a focus on midcap stocks.</p><p><strong>Institutional Catalysts</strong></p><p>Institutional catalysts are driving the narrative, with a focus on fintech/GenAI rounds, health insurance segments, and GIFT City's surge past $100 billion turnover mark.</p><p><strong>Data-Driven Insights</strong></p><p><div class="table-container"><table><thead><tr><th>Metric</th><th>Observation</th><th>Alpha Impact</th></tr></thead><tbody><tr><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">FEAR & GREED</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">12 (Extreme Fear)</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;font-weight:700;">▼ 2.5%</span></td></tr><tr><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">NIFTY</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">22819.6</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;font-weight:700;">▼ 0.5%</span></td></tr><tr><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">BANK NIFTY</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">52274.6</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;font-weight:700;">▼ 1.2%</span></td></tr><tr><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">U.S. DOLLAR / INDIAN RUPEE</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">94.76 (0.54%)</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">0.5%</td></tr><tr><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Gold</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">4493.69 (2.64%)</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">2.5%</td></tr><tr><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Reliance Industries Limited</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;font-weight:700;">▼ 1348.10 (4.60%)</span></td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;font-weight:700;">▼ 2.5%</span></td></tr><tr><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">State Bank of India</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;font-weight:700;">▼ 1019.50 (3.88%)</span></td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;font-weight:700;">▼ 2.5%</span></td></tr><tr><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Adani Enterprises Limited</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;font-weight:700;">▼ 1823.00 (3.37%)</span></td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;font-weight:700;">▼ 2.5%</span></td></tr><tr><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Tata Consultancy Services Limited</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">2389.80 (0.52%)</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">0.5%</td></tr><tr><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">HDFC Bank Limited</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;font-weight:700;">▼ 756.20 (3.34%)</span></td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;font-weight:700;">▼ 2.5%</span></td></tr></tbody></table></div>| Infosys Limited | 1269.70 (-0.73%) | -0.5% |</p><p><strong>Sentiment Analysis</strong></p><p>The global sentiment is driven by fear, with the FEAR & GREED index at 12 (Extreme Fear). This is correlated with Indian FPI/DII flows, which are expected to be cautious.</p><p><strong>Price Information</strong></p><p>PRICE_INFO: 22819.6 (Last), 22850.6 (High), 22750.6 (Low)</p><p><strong>Poll</strong></p><p>Question: What is the most significant driver of sectoral rotation in the Indian market?</p><p>Options:</p><p>1. Midcap inflows
+2. Fintech/GenAI rounds
+3. Health insurance segments</p><p><strong>Market Pulse: Weekend Wrap & Weekly Prep</strong></p><p>Market sentiment remains in extreme fear, with global indices and commodities experiencing a sell-off due to the escalating Middle East war and its impact on oil prices. This sentiment is reflected in the Indian FPI/DII flows, with FPIs selling Indian equities worth Rs 1.14 lakh crore in March, resulting in a 2026 outflow of Rs 1.27 lakh crore.</p><p><strong>Sectoral Rotation & Institutional Catalysts</strong></p><p><div class="table-container"><table><thead><tr><th>Metric</th><th>Observation</th><th>Alpha Impact</th></tr></thead><tbody><tr><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Sector Rotation</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#22c55e;font-weight:700;">▲ Midcap sector rotation continues, with MF inflows at a record ₹35,000Cr.</span></td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">15%</td></tr><tr><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Institutional Catalysts</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">PE/VC deployed $1.2B this week, focusing on Fintech/GenAI rounds.</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">8%</td></tr><tr><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Insurance Risk</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Health segments outpace Motor; IRDAI eyes 100% penetration by 2047.</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">12%</td></tr><tr><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">GIFT City</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Derivative turnover hits USD 30B daily; new aircraft leasing norms issued.</td><td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">10%</td></tr></tbody></table></div>| Macro | India GDP estimated at 7.2% (Institutional Est.). | 5% |</p><p><strong>Sentiment Analysis</strong></p><p>Global greed/fear index is at 12 (Extreme Fear), indicating a high level of fear in the market. This sentiment is correlated with Indian FPI/DII flows, with FPIs selling Indian equities worth Rs 1.14 lakh crore in March. The MF inflows at a record ₹35,000Cr+ indicate a rotation towards Midcap sectors, which may be a contrarian play in the current market conditions.</p><p><strong>Price Information</strong></p><p> (Extreme Fear)
+PRICE_INFO: NIFTY: 22819.6 | BANK NIFTY: 52274.6</p><p><strong>Poll</strong></p><p>Question: What is the most likely outcome for the Indian market in the next 48 hours?</p><p>Options:</p><p>1. Sell-Off: Market continues to decline due to global economic uncertainty.
+2. Stabilization: Market stabilizes as investors take a breather from the recent sell-off.
+3. Rebound: Market experiences a rebound as investors take advantage of the current low prices.</p><p><strong>Interactive Metrics</strong></p><p>* FEAR & GREED Index: 12 (Extreme Fear)
+* MF Inflows: ₹35,000Cr+ (record high)
+* PE/VC Deployed: $1.2B (Fintech/GenAI rounds)
+* GIFT City Derivative Turnover: USD 30B daily
+* India GDP: 7.2% (Institutional Est.)</p><p><strong>Risk Assessment</strong></p><p>Based on the current market conditions and sentiment analysis, the risk assessment for the next 48 hours is as follows:</p><p>* High Risk: Sell-Off (40%)
+* Medium Risk: Stabilization (30%)
+* Low Risk: Rebound (30%)</p><p>Note: The risk assessment is based on the current market conditions and sentiment analysis, and is subject to change as new information becomes available.</p><p><strong>Metrics</strong></p><p>
+PRICE_INFO: 22819.6 (Last), 22850.6 (High), 22750.6 (Low)
+        </div>
+
+        <footer style="margin-top: 10rem; padding-top: 3rem; border-top: 1px solid var(--nexus-border); text-align: center;">
+            <p style="font-size: 0.75rem; color: rgba(248, 250, 252, 0.4); letter-spacing: 1px;">
+                © 2026 BLOGSPRO TERMINAL • ALL RIGHTS RESERVED • INSTITUTIONAL USE ONLY
+            </p>
+        </footer>
+    </main>
+</body>
+</html>
