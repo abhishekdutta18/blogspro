@@ -1051,7 +1051,7 @@
 <div class="feed-status-wrap calendar-page">
   <div class="feed-status">
     <div class="feed-status-head">
-      <div class="feed-status-label">India Economic Calendar</div>
+      <div class="feed-status-label">India Macro Events</div>
       <div class="feed-status-chip" id="indiaFeedChip">Syncing</div>
     </div>
     <div class="calendar-meta" id="indiaCalendarMeta">Source: Syncing · Updated: --</div>
@@ -1943,7 +1943,17 @@
           const ts = Number.isFinite(t) && t > 0 ? t : now + ((i + 1) * 6 * 3600 * 1000);
           return { ...e, __ts: ts, date: e.date || new Date(ts).toISOString() };
         });
-        indiaCalendarRaw = hydrated.slice().sort((a, b) => a.__ts - b.__ts);
+        const deduped = [];
+        const seen = new Set();
+        for (const ev of hydrated.slice().sort((a, b) => a.__ts - b.__ts)) {
+          const d = new Date(ev.__ts);
+          const ym = Number.isNaN(d.getTime()) ? 'na' : `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+          const key = `${normalizeEventTitle(ev.title)}|${ym}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          deduped.push(ev);
+        }
+        indiaCalendarRaw = deduped;
         chipEl.textContent = 'Live';
         metaEl.textContent = `Source: India Macro Feed · Events: ${indiaCalendarRaw.length} · Updated: ${nowStamp()}`;
         render();
