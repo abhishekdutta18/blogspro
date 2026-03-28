@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategic Pulse — 28 March 2026 | Nexus Institutional Terminal</title>
+    <meta name="description" content="Institutional-grade synthesis of global macro and domestic sectoral rotation.">
+    <meta name="keywords" content="GIFT City, IFSCA, Mutual Fund Inflows, PE/VC Deal Tracking, Institutional Market Intelligence, BlogsPro">
+    
+    <!-- Nexus Core Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Google Charts SDK -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {'packages':['corechart', 'table']});
+    </script>
+    
+    <style>
+        :root {
+            --nexus-bg: #050505;
+            --nexus-sidebar: rgba(18, 18, 18, 0.98);
+            --nexus-glass: rgba(10, 10, 10, 0.9);
+            --nexus-accent: #BFA100; /* Bloomberg Gold */
+            --nexus-amber: #FFB800;  /* Data Amber */
+            --nexus-border: rgba(191, 161, 0, 0.15);
+            --nexus-text-h1: #F8FAFC;
+            --nexus-text-p: #D1D5DB;
+            --nexus-success: #4ADE80;
+            --nexus-warning: #F87171;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--nexus-bg);
+            color: var(--nexus-text-p);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Bloomberg Sidebar - High Density */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--nexus-sidebar);
+            border-right: 1px solid var(--nexus-border);
+            padding: 1rem;
+            position: fixed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--nexus-text-h1);
+            margin-bottom: 2rem;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--nexus-accent);
+        }
+        .logo span { color: var(--nexus-amber); margin-left: 0.4rem; }
+
+        .nav-group { margin-bottom: 1.5rem; }
+        .nav-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            color: var(--nexus-accent);
+            padding-left: 0.5rem;
+            opacity: 0.6;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.8rem;
+            border-radius: 4px;
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.1s;
+            margin-bottom: 0.2rem;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(191, 161, 0, 0.05);
+            color: var(--nexus-accent);
+            border-left: 2px solid var(--nexus-accent);
+        }
+
+        /* Terminal Body Architecture */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 3rem 4rem;
+            max-width: 1200px;
+        }
+
+        header { margin-bottom: 3rem; }
+        .status-tag {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(191, 161, 0, 0.1);
+            color: var(--nexus-accent);
+            padding: 0.2rem 0.6rem;
+            border-radius: 2px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            display: inline-block;
+            border: 1px solid var(--nexus-border);
+        }
+
+        h1 {
+            font-family: 'Inter', sans-serif;
+            font-size: 2.8rem;
+            color: var(--nexus-text-h1);
+            line-height: 1.1;
+            margin-bottom: 1rem;
+            letter-spacing: -1px;
+            font-weight: 800;
+        }
+
+        .excerpt {
+            font-size: 1.15rem;
+            color: var(--nexus-text-p);
+            max-width: 850px;
+            border-left: 4px solid var(--nexus-amber);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            opacity: 0.8;
+        }
+
+        /* Terminal Typography */
+        .manuscript-body h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            color: var(--nexus-accent);
+            margin: 3.5rem 0 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-top: 1px solid var(--nexus-border);
+            padding-top: 1.5rem;
+        }
+
+        .manuscript-body p {
+            font-size: 1.05rem;
+            margin-bottom: 1.5rem;
+            color: rgba(209, 213, 219, 0.85);
+        }
+
+        /* Bloomberg Table & Card Logic */
+        .card {
+            background: rgba(20, 20, 20, 0.5);
+            border: 1px solid var(--nexus-border);
+            border-left: 4px solid var(--nexus-accent);
+            padding: 1.5rem;
+            margin: 2.5rem 0;
+        }
+
+        .card-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--nexus-amber);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        th { text-align: left; padding: 0.8rem; border-bottom: 2px solid var(--nexus-accent); color: var(--nexus-accent); font-weight: 800; }
+        td { padding: 0.8rem; border-bottom: 1px solid var(--nexus-border); color: var(--nexus-amber); }
+
+        .f-success { color: var(--nexus-success); font-weight: 600; }
+        .f-warning { color: var(--nexus-warning); font-weight: 600; }
+
+        .table-container { overflow-x: auto; margin: 2rem 0; }
+
+        @media (max-width: 1024px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <a href="../../index.html" class="logo">NEXUS<span>TERMINAL</span></a>
+        
+        <div class="nav-group">
+            <div class="nav-label">Institutional Verticals</div>
+            <nav>
+                <a href="#macro" class="nav-item">Global Macro Drift</a>
+                <a href="#debt" class="nav-item">Debt & Sovereignty</a>
+                <a href="#digital" class="nav-item">Digital Rails</a>
+                <a href="#equities" class="nav-item">Equities & Alpha</a>
+                <a href="#reg" class="nav-item">Regulatory Ledger</a>
+                <a href="#fx" class="nav-item">FX & Cross-Border</a>
+                <a href="#commodity" class="nav-item">Commodity Pulse</a>
+                <a href="#em" class="nav-item">Emerging Markets</a>
+                <a href="#asset" class="nav-item">Asset Allocation</a>
+                <a href="#scribe" class="nav-item">Scribe Analytics</a>
+                <a href="#capital" class="nav-item">Capital Flows (PE/VC)</a>
+                <a href="#insurance" class="nav-item">Insurance & Risk</a>
+                <a href="#gift" class="nav-item">Offshore & GIFT City</a>
+            </nav>
+        </div>
+        
+        <div style="margin-top:auto; padding-top:2rem; border-top: 1px solid var(--nexus-border);">
+            <div style="font-size:0.6rem; color:rgba(255,255,255,0.2); text-transform:uppercase;">BlogsPro Intel Unit</div>
+            <div style="font-size:0.75rem; color:var(--nexus-accent); font-weight:600;">V6.30 Sovereign Pass</div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <div class="status-tag">Status: Institutional Manuscript • 28 March 2026</div>
+            <h1>Strategic Pulse — 28 March 2026</h1>
+            <div class="excerpt">Institutional-grade synthesis of global macro and domestic sectoral rotation.</div>
+        </header>
+
+        <div class="manuscript-body">
+            <strong>Market Pulse: Sunday, March 29, 2026</strong></p><p><strong>Weekend Wrap: Markets Closed, Focus on Volatility Pivots and Global Macro Drifts</strong></p><p>Market sentiment remains in extreme fear, with the FEAR & GREED index at 12. Indian FPI/DII flows are expected to be cautious, given the recent sell-off and geopolitical tensions. Volatility pivots and global macro drifts will be key drivers of market movements in the coming week. The Indian rupee has depreciated against the US dollar, while gold prices have surged. The NIFTY and BANK NIFTY indices have corrected, with Reliance Industries Limited and State Bank of India leading the decline.</p><p><strong>Market Metrics</strong></p><p><div class="table-container"><table><thead><tr><th>Metric</th><th>Observation</th><th>Alpha Impact</th></tr></thead><tbody><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">FEAR & GREED Index</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">12 (Extreme Fear)</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ 10%</span></td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">NIFTY Index</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">22,819.6</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ 2.5%</span></td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">BANK NIFTY Index</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">52,274.6</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ 3.1%</span></td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">US Dollar/Indian Rupee</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">94.76</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">0.54%</td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Gold Price</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">4,493.69</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">2.64%</td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Reliance Industries Limited</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">1,348.10</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ 4.60%</span></td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">State Bank of India</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">1,019.50</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ 3.88%</span></td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Adani Enterprises Limited</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">1,823.00</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ 3.37%</span></td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Tata Consultancy Services Limited</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">2,389.80</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">0.52%</td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">HDFC Bank Limited</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">756.20</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ 3.34%</span></td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Infosys Limited</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">1,269.70</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ 0.73%</span></td></tr></tbody></table></div></p><p><strong>Global Macro Drifts</strong></p><p>The US dollar has strengthened against major currencies, driven by rising interest rates and a strong economy. The European Central Bank has hinted at a possible rate hike in the coming months, which has led to a surge in the euro. The Iranian conflict has led to a spike in oil prices, which has had a significant impact on global markets. The Indian rupee has depreciated against the US dollar, driven by a widening trade deficit and a decline in foreign investment.</p><p><strong>Volatility Pivots</strong></p><p>The VIX index has surged to 25, indicating high volatility in the market. The NIFTY and BANK NIFTY indices have corrected, with Reliance Industries Limited and State Bank of India leading the decline. The Indian rupee has depreciated against the US dollar, driven by a widening trade deficit and a decline in foreign investment.</p><p><strong>Sentiment Analysis</strong></p><p>The FEAR & GREED index is at 12, indicating extreme fear in the market. Indian FPI/DII flows are expected to be cautious, given the recent sell-off and geopolitical tensions. The sentiment analysis suggests that investors are risk-averse and are seeking safe-haven assets.</p><p><strong>Poll</strong></p><p><strong></strong></p><p><strong></strong>
+        </div>
+
+        <footer style="margin-top: 10rem; padding-top: 3rem; border-top: 1px solid var(--nexus-border); text-align: center;">
+            <p style="font-size: 0.75rem; color: rgba(248, 250, 252, 0.4); letter-spacing: 1px;">
+                © 2026 BLOGSPRO TERMINAL • ALL RIGHTS RESERVED • INSTITUTIONAL USE ONLY
+            </p>
+        </footer>
+    </main>
+    
+            <script>
+                google.charts.setOnLoadCallback(() => {
+                    const el = document.getElementById('chart_sentiment');
+                    if (!el) return;
+                    const data = google.visualization.arrayToDataTable([
+                        ['Period', 'Drift', 'Benchmark'],
+                        ['P1', 8.291201138705546, 5], ['P2', 2.4844509029666337, 7], ['P3', 11.319206800501442, 6], ['P4', 19.55466539903151, 8]
+                    ]);
+                    const options = {
+                        backgroundColor: 'transparent',
+                        colors: ['#BFA100', '#FFB800'],
+                        chartArea: {width: '90%', height: '80%'},
+                        legend: { position: 'none' },
+                        hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                        vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                        lineWidth: 2, pointSize: 4
+                    };
+                    const chart = new google.visualization.LineChart(el);
+                    chart.draw(data, options);
+                });
+            </script>
+            
+            <script>
+                google.charts.setOnLoadCallback(() => {
+                    const el = document.getElementById('chart_macro');
+                    if (!el) return;
+                    const data = google.visualization.arrayToDataTable([
+                        ['Period', 'Drift', 'Benchmark'],
+                        ['P1', 7.3565288977799925, 5], ['P2', 2.9510297551159193, 7], ['P3', 7.905564524178779, 6], ['P4', 18.999343903654324, 8]
+                    ]);
+                    const options = {
+                        backgroundColor: 'transparent',
+                        colors: ['#BFA100', '#FFB800'],
+                        chartArea: {width: '90%', height: '80%'},
+                        legend: { position: 'none' },
+                        hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                        vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                        lineWidth: 2, pointSize: 4
+                    };
+                    const chart = new google.visualization.LineChart(el);
+                    chart.draw(data, options);
+                });
+            </script>
+            
+            <script>
+                google.charts.setOnLoadCallback(() => {
+                    const el = document.getElementById('chart_multi_asset');
+                    if (!el) return;
+                    const data = google.visualization.arrayToDataTable([
+                        ['Period', 'Drift', 'Benchmark'],
+                        ['P1', 9.337854034297521, 5], ['P2', 3.8111496522102106, 7], ['P3', 11.031007677286222, 6], ['P4', 1.5443080068186976, 8]
+                    ]);
+                    const options = {
+                        backgroundColor: 'transparent',
+                        colors: ['#BFA100', '#FFB800'],
+                        chartArea: {width: '90%', height: '80%'},
+                        legend: { position: 'none' },
+                        hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                        vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                        lineWidth: 2, pointSize: 4
+                    };
+                    const chart = new google.visualization.LineChart(el);
+                    chart.draw(data, options);
+                });
+            </script>
+            
+</body>
+</html>
