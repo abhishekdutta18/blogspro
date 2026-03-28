@@ -52,7 +52,22 @@ export default {
         }
       } catch (_) {}
 
-      return jsonResponse({ status: 'error', source: 'none', message: 'Calendar feeds unavailable', events: [] }, 503);
+      const fallbackEvents = [
+        { title: 'FOMC Statement', country: 'USD', impact: 'High' },
+        { title: 'Non-Farm Employment Change', country: 'USD', impact: 'High' },
+        { title: 'CPI y/y', country: 'GBP', impact: 'High' },
+        { title: 'CPI y/y', country: 'AUD', impact: 'High' },
+        { title: 'ECB Main Refinancing Rate', country: 'EUR', impact: 'High' }
+      ];
+      return jsonResponse(
+        {
+          status: 'success',
+          source: 'static-fallback',
+          message: 'Live calendar feeds unavailable; showing fallback high-impact events.',
+          events: fallbackEvents
+        },
+        200
+      );
     }
 
     // CORS preflight
@@ -61,7 +76,7 @@ export default {
         status: 204,
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type',
         }
       });
