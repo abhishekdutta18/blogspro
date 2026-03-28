@@ -243,11 +243,28 @@ export default {
           }
           return rows;
         })();
+        const canonicalIndiaEventKey = (title) => {
+          const t = String(title || "")
+            .toLowerCase()
+            .replace(/\b(y\/y|m\/m|q\/q)\b/g, "")
+            .replace(/[^a-z0-9]+/g, " ")
+            .trim();
+          if (t.includes("cpi") || t.includes("consumer price")) return "india-cpi";
+          if (t.includes("wpi") || t.includes("wholesale price")) return "india-wpi";
+          if (t.includes("industrial production") || t.includes("iip")) return "india-iip";
+          if (t.includes("trade balance")) return "india-trade-balance";
+          if (t.includes("services pmi")) return "india-services-pmi";
+          if (t.includes("manufacturing pmi")) return "india-manufacturing-pmi";
+          if (t.includes("rbi") && (t.includes("policy") || t.includes("rate") || t.includes("repo"))) return "rbi-policy-rate";
+          return t.split(" ").slice(0, 4).join(" ");
+        };
         const dedupeAndSort = (items) => {
           const seen = new Set();
           const out = [];
           for (const e of items) {
-            const key = `${String(e.title || "").trim().toLowerCase()}|${String(e.date || "").slice(0, 10)}`;
+            const d = new Date(e.date || 0);
+            const ym = Number.isNaN(d.getTime()) ? "na" : `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+            const key = `${canonicalIndiaEventKey(e.title)}|${ym}`;
             if (seen.has(key)) continue;
             seen.add(key);
             out.push(e);

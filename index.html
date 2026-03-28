@@ -1728,6 +1728,17 @@
       .replace(/\b(y\/y|m\/m|q\/q)\b/g, '')
       .replace(/[^a-z0-9]+/g, ' ')
       .trim();
+    const canonicalIndiaEventKey = (title) => {
+      const t = normalizeEventTitle(title);
+      if (t.includes('cpi') || t.includes('consumer price')) return 'india-cpi';
+      if (t.includes('wpi') || t.includes('wholesale price')) return 'india-wpi';
+      if (t.includes('industrial production') || t.includes('iip')) return 'india-iip';
+      if (t.includes('trade balance')) return 'india-trade-balance';
+      if (t.includes('services pmi')) return 'india-services-pmi';
+      if (t.includes('manufacturing pmi')) return 'india-manufacturing-pmi';
+      if (t.includes('rbi') && (t.includes('policy') || t.includes('rate') || t.includes('repo'))) return 'rbi-policy-rate';
+      return t.split(' ').slice(0, 4).join(' ');
+    };
     const eventSeriesValue = (e) => {
       const a = numFrom(e.actual);
       if (Number.isFinite(a)) return a;
@@ -1745,12 +1756,12 @@
       return qStart + (91 * 24 * 3600 * 1000);
     };
     const buildQoqHistorySeries = (event, allEvents) => {
-      const titleKey = normalizeEventTitle(event.title);
+      const titleKey = canonicalIndiaEventKey(event.title);
       const nowTs = Date.now();
       const oneYearAgo = nowTs - (365 * 24 * 3600 * 1000);
       const related = allEvents
         .filter((e) => {
-          const t = normalizeEventTitle(e.title);
+          const t = canonicalIndiaEventKey(e.title);
           return t === titleKey || t.includes(titleKey) || titleKey.includes(t);
         })
         .map((e) => {
@@ -1948,7 +1959,7 @@
         for (const ev of hydrated.slice().sort((a, b) => a.__ts - b.__ts)) {
           const d = new Date(ev.__ts);
           const ym = Number.isNaN(d.getTime()) ? 'na' : `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-          const key = `${normalizeEventTitle(ev.title)}|${ym}`;
+          const key = `${canonicalIndiaEventKey(ev.title)}|${ym}`;
           if (seen.has(key)) continue;
           seen.add(key);
           deduped.push(ev);
