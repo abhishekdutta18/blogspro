@@ -590,82 +590,61 @@
       color: var(--muted);
     }
     .market-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 0.5rem;
+      display: block;
     }
     .market-segments {
-      display: flex;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      gap: 0.6rem;
-      padding-bottom: 0.2rem;
-      scrollbar-width: thin;
-    }
-    .market-segment {
-      flex: 0 0 min(340px, 82vw);
+      display: block;
       border: 1px solid rgba(136,150,179,0.2);
       border-radius: 4px;
-      padding: 0.55rem;
+      overflow: hidden;
+    }
+    .market-segment {
+      border-top: 1px solid rgba(136,150,179,0.2);
       background: rgba(15,22,40,0.62);
+    }
+    .market-segment:first-child {
+      border-top: none;
     }
     .market-segment-title {
       font-size: 0.62rem;
       text-transform: uppercase;
       letter-spacing: 0.09em;
       color: var(--gold);
-      margin-bottom: 0.45rem;
       font-weight: 600;
+      padding: 0.5rem 0.65rem;
+      border-bottom: 1px solid rgba(136,150,179,0.2);
+      background: rgba(8,13,26,0.65);
     }
-    .market-card {
-      border: 1px solid rgba(136,150,179,0.2);
-      border-radius: 4px;
-      padding: 0.55rem 0.6rem;
-      background: rgba(15,22,40,0.9);
+    .market-row {
       display: grid;
-      grid-template-columns: minmax(110px, 1.1fr) minmax(90px, 0.8fr) minmax(80px, 0.7fr) minmax(220px, 2.3fr);
-      gap: 0.45rem;
+      grid-template-columns: minmax(110px, 1.2fr) minmax(90px, 0.8fr) minmax(70px, 0.6fr);
       align-items: center;
+      gap: 0.4rem;
+      padding: 0.42rem 0.65rem;
+      border-bottom: 1px solid rgba(136,150,179,0.16);
     }
+    .market-row:last-child { border-bottom: none; }
     .market-symbol {
       font-size: 0.63rem;
       color: var(--muted);
-      letter-spacing: 0.09em;
-      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-transform: none;
     }
     .market-price {
-      font-size: 0.95rem;
+      font-size: 0.76rem;
       color: var(--cream);
       font-weight: 600;
+      text-align: right;
     }
     .market-change {
-      font-size: 0.68rem;
+      font-size: 0.64rem;
       font-weight: 600;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       text-align: right;
     }
     .market-change.up { color: #86efac; }
     .market-change.down { color: #fca5a5; }
-    .market-points {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.25rem 0.45rem;
-      align-items: center;
-    }
-    .market-point {
-      font-size: 0.56rem;
-      color: var(--muted);
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-    .market-point b {
-      color: var(--cream);
-      font-weight: 600;
-      letter-spacing: 0.01em;
-      margin-left: 0.2rem;
-    }
     .market-empty {
       font-size: 0.78rem;
       color: var(--muted);
@@ -684,14 +663,8 @@
     }
     .market-seg-skeleton .cal-skel { height: 10px; }
     @media (max-width: 760px) {
-      .market-card {
-        grid-template-columns: 1fr;
-      }
-      .market-change {
-        text-align: left;
-      }
-      .market-points {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      .market-row {
+        grid-template-columns: minmax(120px, 1.2fr) minmax(82px, 0.8fr) minmax(64px, 0.6fr);
       }
     }
 
@@ -1600,35 +1573,17 @@
       }
       return out;
     };
-    const enrichCard = (c) => {
-      const price = Number(c.price);
-      const change = Number(c.change || 0);
-      const prev = Number.isFinite(Number(c.prev)) ? Number(c.prev) : (Number.isFinite(price) ? (price / (1 + (change / 100 || 0))) : NaN);
-      const open = Number.isFinite(Number(c.open)) ? Number(c.open) : (Number.isFinite(prev) ? prev : price);
-      const high = Number.isFinite(Number(c.high)) ? Number(c.high) : (Number.isFinite(price) ? price * 1.006 : NaN);
-      const low = Number.isFinite(Number(c.low)) ? Number(c.low) : (Number.isFinite(price) ? price * 0.994 : NaN);
-      const volume = Number.isFinite(Number(c.volume)) ? Number(c.volume) : Number.isFinite(price) ? Math.round(Math.abs(price) * 1250) : NaN;
-      return { ...c, price, change, prev, open, high, low, volume };
-    };
     const renderCards = (el, items, segmentKey) => {
       items = padCards(items, segmentKey);
       el.innerHTML = items.map((raw) => {
-        const c = enrichCard(raw);
+        const c = raw;
         const isUp = Number(c.change) >= 0;
         const sign = isUp ? '+' : '';
         return `
-          <div class="market-card">
+          <div class="market-row">
             <div class="market-symbol">${String(c.symbol || '--').replace(/</g, '&lt;')}</div>
             <div class="market-price">${fmtNum(c.price)}</div>
             <div class="market-change ${isUp ? 'up' : 'down'}">${sign}${Number(c.change || 0).toFixed(2)}%</div>
-            <div class="market-points">
-              <div class="market-point">Open<b>${fmtNum(c.open)}</b></div>
-              <div class="market-point">High<b>${fmtNum(c.high)}</b></div>
-              <div class="market-point">Low<b>${fmtNum(c.low)}</b></div>
-              <div class="market-point">Prev<b>${fmtNum(c.prev)}</b></div>
-              <div class="market-point">Vol<b>${fmtNum(c.volume)}</b></div>
-              <div class="market-point">Last<b>${fmtNum(c.price)}</b></div>
-            </div>
           </div>
         `;
       }).join('');
