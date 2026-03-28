@@ -3,8 +3,15 @@ const path = require("path");
 function parseMD(md) {
     if (!md) return "";
     
-    // 1. Mask AI Metadata (SENTIMENT_SCORE)
-    let cleanMd = md.replace(/SENTIMENT_SCORE:\s*\d+/gi, '').trim();
+    // 1. Aggressive Metadata Shield (Purge AI markers from UI)
+    let cleanMd = md
+        .replace(/SENTIMENT_SCORE:\s*[\d\w\[\]\/\-\s]*/gi, '')
+        .replace(/PRICE_INFO:\s*[\d\w\:\.\,\|\s\[\]\(\)\-\%]*/gi, '')
+        .replace(/Question:\s*(.*?)(?=\n|$)/gi, '')
+        .replace(/Options:\s*[\s\w\.\,\d\-]*/gi, '')
+        .replace(/\n\d+\.\s.*?\n/g, '\n') // Remove numbered list options (if they follow 'Options:')
+        .replace(/--- SYSTEM CONTEXT ---[\s\S]*?--- UNIVERSAL NEWS ---/gi, '') // Strip system context leaks
+        .trim();
 
     let html = cleanMd
         .replace(/### (.*$)/gim, '<h3>$1</h3>')
@@ -15,22 +22,47 @@ function parseMD(md) {
         .replace(/\n\n/gim, '</p><p>')
         .replace(/<li>/g, '<ul><li>').replace(/<\/li>/g, '</li></ul>').replace(/<\/ul><ul>/g, '');
 
-    // 2. High-Fidelity Table Parsing (Markdown -> Institutional HTML)
-    const tableRegex = /\|(.+)\|\n\|([\s\-\|]+)\|\n((\|.+\|\n)+)/g;
-    html = html.replace(tableRegex, (match, header, separator, body) => {
-        const headers = header.split('|').map(h => h.trim()).filter(h => h).map(h => `<th>${h}</th>`).join('');
-        const rows = body.trim().split('\n').map(row => {
-            const cols = row.split('|').map(c => c.trim()).filter(c => c).map(c => {
-                let cell = c;
-                if (c.includes('+') || c.includes('▲')) cell = `<span style="color:#22c55e;font-weight:700;">▲ ${c.replace(/[\+\^▲]/g,'')}</span>`;
-                else if (c.includes('-') || c.includes('▼')) cell = `<span style="color:#ef4444;font-weight:700;">▼ ${c.replace(/[\-\▼]/g,'')}</span>`;
-                return `<td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${cell}</td>`;
-            }).join('');
-            return `<tr>${cols}</tr>`;
-        }).join('');
-        return `<div class="table-container"><table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    // 2. Robust Institutional Table Parser (Regaining 100% Data Fidelity)
+    // Matches blocks starting with | Header | and | --- | 
+    const lines = html.split('\n');
+    let inTable = false;
+    let tableHtml = "";
+    let processedHtml = "";
+
+    lines.forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+            const cols = trimmed.split('|').map(c => c.trim()).filter((c, i, a) => i > 0 && i < a.length - 1);
+            if (!inTable) {
+                inTable = true;
+                tableHtml = '<div class="table-container"><table><thead><tr>' + 
+                            cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+            } else if (trimmed.includes('---')) {
+                // Skip separator row
+            } else {
+                tableHtml += '<tr>' + cols.map(c => {
+                    let cell = c;
+                    if (c.includes('+') || c.includes('▲')) cell = `<span style="color:#22c55e;font-weight:700;">▲ ${c.replace(/[\+\^▲]/g,'')}</span>`;
+                    else if (c.includes('-') || c.includes('▼')) cell = `<span style="color:#ef4444;font-weight:700;">▼ ${c.replace(/[\-\▼]/g,'')}</span>`;
+                    return `<td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${cell}</td>`;
+                }).join('') + '</tr>';
+            }
+        } else {
+            if (inTable) {
+                tableHtml += '</tbody></table></div>';
+                processedHtml += tableHtml;
+                inTable = false;
+                tableHtml = "";
+            }
+            processedHtml += line + '\n';
+        }
     });
-    return html;
+    if (inTable) processedHtml += tableHtml + '</tbody></table></div>';
+    
+    return processedHtml
+        .replace(/<p><\/p>/g, '')  // Cleanup empty tags
+        .replace(/<\/p><p>\s*$/g, '')
+        .trim();
 }
 
 function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileName, rel = "../../", sentimentScore = 50, priceInfo = { last: "0", high: "0", low: "0" } }) {

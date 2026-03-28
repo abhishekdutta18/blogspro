@@ -68,8 +68,7 @@ async function generateArticle() {
         return text
             .replace(/```[a-z]*\n/gi, "") // Remove starting code blocks
             .replace(/```/g, "")          // Remove ending code blocks
-            .replace(/^Here is the chapter.*:$/gi, "") // Remove AI conversational fluff
-            .replace(/^In this chapter.*:$/gi, "")
+            .replace(/^(Here is|In this) (chapter|pulse|report).*:$/gim, "") // Remove AI conversational fluff
             .trim();
     };
 
