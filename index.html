@@ -682,43 +682,30 @@
       textEl.textContent = bodyText;
     };
 
-    const extractHighImpact = (xml) => {
-      const doc = new DOMParser().parseFromString(xml, 'application/xml');
-      const events = [...doc.querySelectorAll('event')].map((e) => ({
-        title: (e.querySelector('title')?.textContent || '').trim(),
-        country: (e.querySelector('country')?.textContent || '').trim(),
-        impact: (e.querySelector('impact')?.textContent || '').trim().toLowerCase(),
-      }));
-      return events
-        .filter((e) => e.title && e.country && e.impact.includes('high'))
-        .slice(0, 3);
-    };
+    const candidates = [
+      window.__UPSTOX_WORKER_URL,
+      localStorage.getItem('bp_upstox_worker_url'),
+      'https://blogspro-upstox.abhishek-dutta1996.workers.dev',
+      'https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev',
+    ].filter(Boolean);
 
-    try {
-      const ffRes = await withTimeout(fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.xml'), 10000, 'ForexFactory calendar');
-      if (!ffRes.ok) throw new Error(`ForexFactory HTTP ${ffRes.status}`);
-      const ffXml = await ffRes.text();
-      const topEvents = extractHighImpact(ffXml);
-      if (!topEvents.length) throw new Error('No high impact events in ForexFactory feed');
-      setState(null, 'Live', `ForexFactory: ${topEvents.map((e) => `${e.title} (${e.country})`).join(' • ')}`);
-      return true;
-    } catch (_) {
+    for (const base of [...new Set(candidates.map((u) => String(u).replace(/\/+$/, '')))]) {
       try {
-        const teRes = await withTimeout(fetch('https://api.tradingeconomics.com/calendar?c=guest:guest&f=json'), 10000, 'TradingEconomics fallback');
-        if (!teRes.ok) throw new Error(`TradingEconomics HTTP ${teRes.status}`);
-        const teJson = await teRes.json();
-        const topEvents = (Array.isArray(teJson) ? teJson : [])
-          .filter((e) => e && e.Event && e.Country && Number(e.Importance || 0) >= 2)
-          .slice(0, 3)
-          .map((e) => `${e.Event} (${e.Country})`);
-        if (!topEvents.length) throw new Error('No high impact fallback events');
-        setState('warn', 'Fallback', `TradingEconomics: ${topEvents.join(' • ')}`);
+        const res = await withTimeout(fetch(`${base}/calendar`), 12000, 'calendar worker');
+        if (!res.ok) continue;
+        const json = await res.json();
+        const events = (json?.events || []).slice(0, 3).map((e) => `${e.title} (${e.country})`);
+        if (!events.length) continue;
+        if (json.source === 'forexfactory') {
+          setState(null, 'Live', `ForexFactory: ${events.join(' • ')}`);
+        } else {
+          setState('warn', 'Fallback', `TradingEconomics: ${events.join(' • ')}`);
+        }
         return true;
-      } catch (_) {
-        setState('down', 'Down', 'Calendar feeds currently unavailable. Please check back shortly.');
-        return false;
-      }
+      } catch (_) {}
     }
+    setState('down', 'Down', 'Calendar feeds currently unavailable. Please check back shortly.');
+    return false;
   }
 
   function isPermissionDenied(err) {

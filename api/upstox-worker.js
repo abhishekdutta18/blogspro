@@ -109,6 +109,72 @@ export default {
         return jsonResponse({ status: "success", data: summary }, 200, { "Cache-Control": "public, max-age=60" });
       }
 
+      if (url.pathname === "/calendar") {
+        const extractHighImpact = (xml) => {
+          const events = [...xml.matchAll(/<event>([\s\S]*?)<\/event>/gi)].map((m) => {
+            const body = m[1] || "";
+            const pick = (tag) => {
+              const mm = body.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i"));
+              return (mm?.[1] || "").replace(/<!\[CDATA\[|\]\]>/g, "").trim();
+            };
+            return {
+              title: pick("title"),
+              country: pick("country"),
+              impact: pick("impact"),
+            };
+          });
+          return events
+            .filter((e) => e.title && e.country && String(e.impact || "").toLowerCase().includes("high"))
+            .slice(0, 10);
+        };
+
+        // Primary source: ForexFactory (faireconomy host)
+        try {
+          const ff = await fetch("https://nfs.faireconomy.media/ff_calendar_thisweek.xml", {
+            headers: {
+              "User-Agent": "BlogsProCalendarProxy/1.0",
+              "Accept": "application/xml,text/xml;q=0.9,*/*;q=0.8",
+              "Referer": "https://www.forexfactory.com/",
+            },
+          });
+          if (ff.ok) {
+            const xml = await ff.text();
+            const events = extractHighImpact(xml);
+            if (events.length) {
+              return jsonResponse(
+                { status: "success", source: "forexfactory", events },
+                200,
+                { "Cache-Control": "public, max-age=300" }
+              );
+            }
+          }
+        } catch (_) {}
+
+        // Fallback: TradingEconomics guest calendar
+        try {
+          const te = await fetch("https://api.tradingeconomics.com/calendar?c=guest:guest&f=json");
+          if (!te.ok) throw new Error(`TradingEconomics HTTP ${te.status}`);
+          const raw = await te.json();
+          const events = (Array.isArray(raw) ? raw : [])
+            .filter((e) => e && e.Event && e.Country && Number(e.Importance || 0) >= 2)
+            .slice(0, 10)
+            .map((e) => ({ title: e.Event, country: e.Country, impact: "High", date: e.Date }));
+          if (events.length) {
+            return jsonResponse(
+              { status: "success", source: "tradingeconomics", events },
+              200,
+              { "Cache-Control": "public, max-age=300" }
+            );
+          }
+        } catch (_) {}
+
+        return jsonResponse(
+          { status: "error", source: "none", message: "Calendar feeds unavailable", events: [] },
+          503,
+          { "Cache-Control": "no-store" }
+        );
+      }
+
       return jsonResponse({ error: "Not found" }, 404);
 
     } catch (err) {
