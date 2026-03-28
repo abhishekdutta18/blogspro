@@ -343,8 +343,8 @@
     }
     .qoq-bars {
       min-height: 0;
-      height: 128px;
-      max-height: 128px;
+      height: 220px;
+      max-height: 220px;
       overflow: hidden;
       border: 1px solid rgba(136,150,179,0.2);
       border-radius: 4px;
@@ -353,13 +353,13 @@
     }
     .qoq-chart-wrap {
       width: 100%;
-      height: 100px;
-      max-height: 100px;
+      height: 190px;
+      max-height: 190px;
     }
     .qoq-chart-wrap canvas {
       width: 100% !important;
-      height: 100px !important;
-      max-height: 100px !important;
+      height: 190px !important;
+      max-height: 190px !important;
       display: block;
     }
     .linechart-wrap {
@@ -1131,6 +1131,28 @@
           <div><b>Focus Pair:</b> --</div>
           <div><b>Risk Note:</b> Waiting for incoming events.</div>
         </div>
+        <div class="desk-charts">
+          <div class="desk-chart">
+            <div class="desk-chart-title">Country Event Mix</div>
+            <div class="prob-bars" id="forexCountryMixBars"></div>
+          </div>
+          <div class="desk-chart">
+            <div class="desk-chart-title">Surprise Dispersion</div>
+            <div class="sector-bars" id="forexSurpriseBars"></div>
+          </div>
+          <div class="desk-chart">
+            <div class="desk-chart-title">Session Risk Heat</div>
+            <div class="gauge-wrap">
+              <div class="gauge" id="forexSessionGauge"></div>
+              <div class="gauge-note" id="forexSessionGaugeNote">Awaiting event timings…</div>
+            </div>
+          </div>
+        </div>
+        <div class="desk-explain" id="forexDeskExplain">
+          <div><b>Country Event Mix:</b> concentration of this-week high-impact events by currency block.</div>
+          <div><b>Surprise Dispersion:</b> absolute Actual vs Forecast spread to highlight data shock potential.</div>
+          <div><b>Session Risk Heat:</b> risk split across Asia, Europe, and US release windows.</div>
+        </div>
       </div>
     </div>
     <div class="calendar-past-wrap">
@@ -1409,6 +1431,11 @@
     const analysisEl = document.getElementById('forexCalendarAnalysis');
     const summaryEl = document.getElementById('forexCalendarSummary');
     const snapshotEl = document.getElementById('forexCalendarSnapshot');
+    const countryMixBarsEl = document.getElementById('forexCountryMixBars');
+    const surpriseBarsEl = document.getElementById('forexSurpriseBars');
+    const sessionGaugeEl = document.getElementById('forexSessionGauge');
+    const sessionGaugeNoteEl = document.getElementById('forexSessionGaugeNote');
+    const deskExplainEl = document.getElementById('forexDeskExplain');
     const pastListEl = document.getElementById('forexCalendarPastList');
     const filterEl = document.getElementById('forexCalendarCountryFilter');
     const titleFilterEl = document.getElementById('forexCalendarTitleFilter');
@@ -1417,7 +1444,7 @@
     const limitEl = document.getElementById('forexCalendarLimit');
     const tzEl = document.getElementById('forexCalendarTimezone');
     const skeletonEl = document.getElementById('forexCalendarSkeleton');
-    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !pastListEl || !filterEl || !titleFilterEl || !impactEl || !sortEl || !limitEl || !tzEl || !skeletonEl) return false;
+    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !countryMixBarsEl || !surpriseBarsEl || !sessionGaugeEl || !sessionGaugeNoteEl || !deskExplainEl || !pastListEl || !filterEl || !titleFilterEl || !impactEl || !sortEl || !limitEl || !tzEl || !skeletonEl) return false;
 
     const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
     const fmtDate = (raw, mode = 'local') => {
@@ -1449,6 +1476,10 @@
       if (!top.length) return 'No high-impact events were identified in the current response.';
       const lead = top.map(([c, n]) => `${c} (${n})`).join(', ');
       return `Risk concentration is highest in ${lead}; expect volatility around release windows and plan tighter risk limits near those sessions.`;
+    };
+    const parseNum = (v) => {
+      const m = String(v ?? '').replace(/,/g, '').match(/-?\d+(\.\d+)?/);
+      return m ? Number(m[0]) : NaN;
     };
 
     const applyCalendarFilters = () => {
@@ -1492,6 +1523,61 @@
         <div><b>Volatility Bias:</b> ${topCountry ? `${topCountry[0]}-linked pairs` : 'Balanced / mixed'}</div>
         <div><b>Focus Pair:</b> ${topCountry?.[0] === 'USD' ? 'EURUSD / USDJPY' : topCountry?.[0] === 'GBP' ? 'GBPUSD / EURGBP' : topCountry?.[0] === 'AUD' ? 'AUDUSD / AUDJPY' : 'DXY + majors'}</div>
         <div><b>Risk Note:</b> Clustered high-impact prints can widen spreads around the minute of release.</div>
+      `;
+      const topCountries = Object.entries(byCountry).sort((a, b) => b[1] - a[1]).slice(0, 4);
+      const totalCountry = Math.max(1, topCountries.reduce((s, [, n]) => s + Number(n || 0), 0));
+      countryMixBarsEl.innerHTML = topCountries.map(([c, n]) => {
+        const pct = Math.round((Number(n || 0) / totalCountry) * 100);
+        return `
+          <div class="prob-row">
+            <div class="prob-label">${esc(c)}</div>
+            <div class="prob-bar"><span style="width:${pct}%"></span></div>
+            <div class="prob-value">${pct}%</div>
+          </div>
+        `;
+      }).join('') || '<div class="calendar-empty">No country mix available.</div>';
+
+      const surpriseRows = filtered
+        .map((e) => {
+          const a = parseNum(e.actual);
+          const f = parseNum(e.forecast);
+          if (!Number.isFinite(a) || !Number.isFinite(f)) return null;
+          return { title: String(e.title || 'Event'), s: Math.abs(a - f) };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.s - a.s)
+        .slice(0, 4);
+      const maxS = Math.max(0.01, ...surpriseRows.map((x) => x.s));
+      surpriseBarsEl.innerHTML = surpriseRows.map((r) => {
+        const pct = Math.max(8, Math.round((r.s / maxS) * 100));
+        return `
+          <div class="sector-row">
+            <div class="sector-name">${esc(r.title.slice(0, 28))}</div>
+            <div class="sector-bar"><span style="width:${pct}%"></span></div>
+            <div class="sector-val">${r.s.toFixed(2)}</div>
+          </div>
+        `;
+      }).join('') || '<div class="calendar-empty">Need Actual and Forecast values to compute surprises.</div>';
+
+      const sess = { asia: 0, europe: 0, us: 0 };
+      filtered.forEach((e) => {
+        const d = new Date(e.date || e.Date || e.datetime || 0);
+        if (!Number.isFinite(d.getTime())) return;
+        const h = d.getUTCHours();
+        if (h < 8) sess.asia += 1;
+        else if (h < 14) sess.europe += 1;
+        else sess.us += 1;
+      });
+      const peak = Object.entries(sess).sort((a, b) => b[1] - a[1])[0] || ['asia', 0];
+      const peakMap = { asia: 'Asia session', europe: 'Europe session', us: 'US session' };
+      const totalSess = Math.max(1, sess.asia + sess.europe + sess.us);
+      const heat = Math.round((Number(peak[1] || 0) / totalSess) * 100);
+      sessionGaugeEl.innerHTML = `<span style="width:${Math.max(5, heat)}%"></span>`;
+      sessionGaugeNoteEl.textContent = `${peakMap[peak[0]] || 'Session'} concentration: ${heat}% of tracked releases`;
+      deskExplainEl.innerHTML = `
+        <div><b>Country Event Mix:</b> ${topCountries.map(([c, n]) => `${c} (${n})`).join(', ') || 'No mix available'}.</div>
+        <div><b>Surprise Dispersion:</b> ${surpriseRows.length ? `${surpriseRows[0].title} leads with ${surpriseRows[0].s.toFixed(2)} spread.` : 'Awaiting actual-vs-forecast pairs.'}</div>
+        <div><b>Session Risk Heat:</b> Highest release clustering in ${peakMap[peak[0]] || 'session windows'}.</div>
       `;
       if (!events.length) {
         listEl.innerHTML = `<li class="calendar-empty">No events match current filters.</li>`;
@@ -1548,6 +1634,11 @@
         analysisEl.textContent = 'Analyst view: Macro board temporarily unavailable; keep risk lower around scheduled sessions.';
         summaryEl.textContent = 'Summary: no live data';
         snapshotEl.innerHTML = `<div><b>Window:</b> unavailable</div><div><b>Volatility Bias:</b> unknown</div><div><b>Focus Pair:</b> --</div><div><b>Risk Note:</b> Use defensive sizing until feed normalizes.</div>`;
+        countryMixBarsEl.innerHTML = '<div class="calendar-empty">Country mix unavailable.</div>';
+        surpriseBarsEl.innerHTML = '<div class="calendar-empty">Surprise data unavailable.</div>';
+        sessionGaugeEl.innerHTML = '<span style="width:0%"></span>';
+        sessionGaugeNoteEl.textContent = 'Session concentration unavailable.';
+        deskExplainEl.innerHTML = '<div><b>Desk Notes:</b> FX desk features will populate when calendar feed recovers.</div>';
         pastListEl.innerHTML = '<li class="calendar-empty">Past events unavailable.</li>';
         return;
       }
@@ -2210,12 +2301,12 @@
       const histData = history.map((s) => s.value);
       const forecastData = forecastPoint ? [...Array(Math.max(0, history.length - 1)).fill(null), history[history.length - 1].value, forecastPoint.value] : [];
       qoqBarsEl.innerHTML = '<div class="qoq-chart-wrap"><canvas id="indiaQoqCanvas"></canvas></div>';
-      qoqBarsEl.style.height = '128px';
-      qoqBarsEl.style.maxHeight = '128px';
+      qoqBarsEl.style.height = '220px';
+      qoqBarsEl.style.maxHeight = '220px';
       const canvas = document.getElementById('indiaQoqCanvas');
       if (!canvas) return false;
-      canvas.height = 100;
-      canvas.style.height = '100px';
+      canvas.height = 190;
+      canvas.style.height = '190px';
       if (indiaQoqChart) indiaQoqChart.destroy();
       const DL = window.ChartDataLabels;
       if (DL && window.Chart && !window.Chart.registry.plugins.get('datalabels')) {
