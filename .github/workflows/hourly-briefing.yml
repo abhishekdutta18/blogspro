@@ -30,6 +30,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
           NEWS_API_KEY: ${{ secrets.API_KEY_NEWS }}
+          NEWSLETTER_WORKER_URL: ${{ secrets.NEWSLETTER_WORKER_URL }}
+          NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
           UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
           KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
