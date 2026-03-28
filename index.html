@@ -997,17 +997,9 @@
 
     for (const base of [...new Set(candidates.map((u) => String(u).replace(/\/+$/, '')))]) {
       try {
-        const [qRes, gRes] = await Promise.allSettled([
-          withTimeout(fetch(`${base}/quotes`), 12000, 'upstox quotes'),
-          withTimeout(fetch(`${base}/global`), 12000, 'global quotes')
-        ]);
-
-        const qOk = qRes.status === 'fulfilled' && qRes.value?.ok;
-        const gOk = gRes.status === 'fulfilled' && gRes.value?.ok;
-        if (!qOk && !gOk) continue;
-
-        const qJson = qOk ? await qRes.value.json() : { data: {} };
-        const gJson = gOk ? await gRes.value.json() : { data: [] };
+        const qRes = await withTimeout(fetch(`${base}/quotes`), 12000, 'upstox quotes');
+        if (!qRes.ok) continue;
+        const qJson = await qRes.json();
 
         const localCards = [];
         const data = qJson?.data || {};
@@ -1020,13 +1012,7 @@
           localCards.push({ symbol, price: last, change: pct });
         }
 
-        const globalCards = (gJson?.data || []).map((x) => ({
-          symbol: x.symbol,
-          price: Number(x.price),
-          change: Number(x.change)
-        }));
-
-        const cards = [...localCards.slice(0, 6), ...globalCards.slice(0, 4)];
+        const cards = localCards.slice(0, 10);
         if (!cards.length) continue;
 
         gridEl.innerHTML = cards.map((c) => {
