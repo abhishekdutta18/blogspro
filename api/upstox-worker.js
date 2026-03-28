@@ -161,10 +161,12 @@ export default {
         const tickers = ["^GSPC", "^IXIC", "GC=F", "BZ=F"];
         const results = await Promise.all(tickers.map(async (ticker) => {
           try {
-            const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`);
+            const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`,
+              { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" } });
             const text = await r.text();
-            if (!r.ok) return null;
-            const parsed = JSON.parse(text);
+            if (!r.ok || !text.trim().startsWith('{')) return null;
+            let parsed;
+            try { parsed = JSON.parse(text); } catch (_) { return null; }
             const meta = parsed?.chart?.result?.[0]?.meta;
             if (!meta || !Number.isFinite(Number(meta.regularMarketPrice)) || !Number.isFinite(Number(meta.chartPreviousClose))) return null;
             return {
