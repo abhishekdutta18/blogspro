@@ -7,12 +7,12 @@ export async function initIntelHub() {
     if (!hubContainer) return;
 
     try {
-        // 1. Fetch Latest Briefing & Article Indexes
+        // 1. Fetch Latest Briefing & Article Indexes (Root-Relative Paths)
         const [dailyRes, hourlyRes, weeklyRes, monthlyRes] = await Promise.all([
-            fetch('briefings/daily/index.json').then(r => r.ok ? r.json() : []),
-            fetch('briefings/hourly/index.json').then(r => r.ok ? r.json() : []),
-            fetch('articles/weekly/index.json').then(r => r.ok ? r.json() : []),
-            fetch('articles/monthly/index.json').then(r => r.ok ? r.json() : [])
+            fetch('/briefings/daily/index.json').then(r => r.ok ? r.json() : []),
+            fetch('/briefings/hourly/index.json').then(r => r.ok ? r.json() : []),
+            fetch('/articles/weekly/index.json').then(r => r.ok ? r.json() : []),
+            fetch('/articles/monthly/index.json').then(r => r.ok ? r.json() : [])
         ]);
 
         const latestDaily = dailyRes[0];

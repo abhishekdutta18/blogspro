@@ -2592,7 +2592,7 @@
 
   // ── Auth nav ───────────────────────────────────
   onAuthStateChanged(auth, async user => {
-    initIntelHub();
+    initIntelHub(); // Re-sync hub state on auth change
     const slot       = document.getElementById('navAuthSlot');
     const footerLink = document.getElementById('footerAuthLink');
 
@@ -2936,6 +2936,7 @@
       allOk ? 'online' : 'degraded',
       allOk ? 'Integrations: Online' : 'Integrations: Degraded'
     );
+    initIntelHub(); // Global init for guests
     startMarketAutoRefresh();
   })();
 </script>
