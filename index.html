@@ -371,6 +371,14 @@
       stroke-linecap: round;
       stroke-linejoin: round;
     }
+    .line-path-forecast {
+      fill: none;
+      stroke: #8fb5ff;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 5 4;
+    }
     .line-point {
       fill: #e9d08a;
       stroke: #080d1a;
@@ -1724,64 +1732,90 @@
       if (Number.isFinite(p)) return p;
       return NaN;
     };
+    const nextQuarterTs = (ts) => {
+      const d = new Date(ts);
+      if (Number.isNaN(d.getTime())) return Date.now();
+      const qStartMonth = Math.floor(d.getMonth() / 3) * 3;
+      const qStart = new Date(d.getFullYear(), qStartMonth, 1).getTime();
+      return qStart + (91 * 24 * 3600 * 1000);
+    };
     const buildQoqHistorySeries = (event, allEvents) => {
       const titleKey = String(event.title || '').trim().toLowerCase();
+      const nowTs = Date.now();
+      const oneYearAgo = nowTs - (365 * 24 * 3600 * 1000);
       const related = allEvents
         .filter((e) => String(e.title || '').trim().toLowerCase() === titleKey)
         .map((e) => {
           const ts = new Date(e.date || e.Date || e.datetime || 0).getTime();
           return { ts, value: eventSeriesValue(e) };
         })
-        .filter((x) => Number.isFinite(x.ts) && Number.isFinite(x.value))
+        .filter((x) => Number.isFinite(x.ts) && Number.isFinite(x.value) && x.ts >= oneYearAgo && x.ts <= nowTs)
         .sort((a, b) => a.ts - b.ts);
 
       const byQuarter = new Map();
-      for (const row of related) {
-        byQuarter.set(quarterLabel(row.ts), row);
-      }
-      let points = Array.from(byQuarter.entries()).map(([label, row]) => ({ label, value: row.value, ts: row.ts }));
-      points.sort((a, b) => a.ts - b.ts);
+      for (const row of related) byQuarter.set(quarterLabel(row.ts), row);
+      let history = Array.from(byQuarter.entries()).map(([label, row]) => ({ label, value: row.value, ts: row.ts }));
+      history.sort((a, b) => a.ts - b.ts);
+      history = history.slice(-4);
 
-      if (points.length < 4) {
-        const currTs = new Date(event.date || Date.now()).getTime();
+      if (!history.length) {
+        const currTs = new Date(event.date || nowTs).getTime();
         const prev = numFrom(event.previous);
-        const fcst = numFrom(event.forecast);
         const act = numFrom(event.actual);
-        const fallback = [];
-        if (Number.isFinite(prev)) fallback.push({ ts: currTs - (91 * 24 * 3600 * 1000), value: prev, label: quarterLabel(currTs - (91 * 24 * 3600 * 1000)) });
-        if (Number.isFinite(fcst)) fallback.push({ ts: currTs - (10 * 24 * 3600 * 1000), value: fcst, label: quarterLabel(currTs) });
-        if (Number.isFinite(act)) fallback.push({ ts: currTs, value: act, label: quarterLabel(currTs) });
-        points = fallback;
+        if (Number.isFinite(prev)) {
+          history.push({ ts: currTs - (91 * 24 * 3600 * 1000), value: prev, label: quarterLabel(currTs - (91 * 24 * 3600 * 1000)) });
+        }
+        if (Number.isFinite(act)) {
+          history.push({ ts: currTs, value: act, label: quarterLabel(currTs) });
+        } else if (Number.isFinite(prev)) {
+          history.push({ ts: currTs, value: prev, label: quarterLabel(currTs) });
+        }
       }
-      return points.slice(-6);
+
+      const fcst = numFrom(event.forecast);
+      let forecastPoint = null;
+      if (Number.isFinite(fcst) && history.length) {
+        const baseTs = history[history.length - 1].ts;
+        const forecastTs = nextQuarterTs(baseTs);
+        forecastPoint = { label: `${quarterLabel(forecastTs)}F`, value: fcst, ts: forecastTs, forecast: true };
+      }
+      return { history, forecastPoint };
     };
-    const svgLineChart = (series) => {
+    const svgLineChart = (history, forecastPoint) => {
+      const seriesAll = forecastPoint ? [...history, forecastPoint] : history.slice();
       const w = 640; const h = 190;
       const pad = { l: 48, r: 12, t: 12, b: 34 };
       const innerW = w - pad.l - pad.r;
       const innerH = h - pad.t - pad.b;
-      const min = Math.min(...series.map((s) => s.value));
-      const max = Math.max(...series.map((s) => s.value));
+      const min = Math.min(...seriesAll.map((s) => s.value));
+      const max = Math.max(...seriesAll.map((s) => s.value));
       const span = Math.max(1e-6, max - min);
-      const yMin = min - (span * 0.1);
-      const yMax = max + (span * 0.1);
+      const padPct = Math.max(0.08, Math.min(0.25, 20 / Math.max(20, Math.abs(max))));
+      const yMin = min - (span * padPct);
+      const yMax = max + (span * padPct);
       const ySpan = Math.max(1e-6, yMax - yMin);
-      const x = (i) => pad.l + ((innerW * i) / Math.max(1, series.length - 1));
+      const x = (i) => pad.l + ((innerW * i) / Math.max(1, seriesAll.length - 1));
       const y = (v) => pad.t + (innerH * (1 - ((v - yMin) / ySpan)));
-      const pts = series.map((s, i) => `${x(i)},${y(s.value)}`).join(' ');
+      const histPts = history.map((s, i) => `${x(i)},${y(s.value)}`).join(' ');
       const ticks = [0, 1, 2, 3, 4].map((i) => {
         const v = yMin + ((ySpan * i) / 4);
         const py = y(v);
         return { v, py };
       });
+      let forecastPts = '';
+      if (forecastPoint && history.length) {
+        const li = history.length - 1;
+        forecastPts = `${x(li)},${y(history[li].value)} ${x(li + 1)},${y(forecastPoint.value)}`;
+      }
       return `
         <div class="linechart-wrap">
-          <svg class="linechart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="QoQ historical line chart">
+          <svg class="linechart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="12-month QoQ historical line chart">
             ${ticks.map((t) => `<line class="line-grid" x1="${pad.l}" y1="${t.py}" x2="${w - pad.r}" y2="${t.py}"></line>`).join('')}
             <line class="line-axis" x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${h - pad.b}"></line>
             <line class="line-axis" x1="${pad.l}" y1="${h - pad.b}" x2="${w - pad.r}" y2="${h - pad.b}"></line>
-            <polyline class="line-path" points="${pts}"></polyline>
-            ${series.map((s, i) => `
+            <polyline class="line-path" points="${histPts}"></polyline>
+            ${forecastPts ? `<polyline class="line-path-forecast" points="${forecastPts}"></polyline>` : ''}
+            ${seriesAll.map((s, i) => `
               <circle class="line-point" cx="${x(i)}" cy="${y(s.value)}" r="3"></circle>
               <text class="line-point-label" x="${x(i)}" y="${y(s.value) - 7}" text-anchor="middle">${fmtNum(s.value)}</text>
               <text class="line-x-label" x="${x(i)}" y="${h - 14}" text-anchor="middle">${esc(s.label)}</text>
@@ -1792,14 +1826,14 @@
       `;
     };
     const renderQoq = (event) => {
-      const series = buildQoqHistorySeries(event, indiaCalendarRaw);
-      if (!series.length) {
+      const { history, forecastPoint } = buildQoqHistorySeries(event, indiaCalendarRaw);
+      if (!history.length) {
         qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
         qoqBarsEl.innerHTML = '<div class="calendar-empty">No numeric values available for this event.</div>';
         return;
       }
       qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
-      qoqBarsEl.innerHTML = `${svgLineChart(series)}<div class="linechart-note">Quarterly line uses available historical and latest release values for this event.</div>`;
+      qoqBarsEl.innerHTML = `${svgLineChart(history, forecastPoint)}<div class="linechart-note">Historical line: last 12 months by quarter. Dotted extension: next-quarter forecast.</div>`;
     };
 
     const render = () => {
