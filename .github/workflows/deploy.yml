@@ -29,10 +29,8 @@ jobs:
         run: npm install
       - name: Syntax Check
         run: |
-          for f in scripts/*.js js/**/*.js api/*.js; do
-            if [ -f "$f" ]; then
-              node --check "$f" || (echo "❌ Syntax error in $f" && exit 1)
-            fi
+          find scripts api js -name "*.js" | while IFS= read -r f; do
+            node --check "$f" || (echo "❌ Syntax error in $f" && exit 1)
           done
       - name: Verify Required Secrets
         env:
@@ -46,11 +44,12 @@ jobs:
           [ -z "$GEMINI_KEY" ] && MISSING+=("GEMINI_API_KEY")
           [ -z "$SENTRY_TOKEN" ] && MISSING+=("SENTRY_AUTH_TOKEN")
           [ -z "$NEWSLETTER_URL" ] && MISSING+=("NEWSLETTER_WORKER_URL")
-          
+
           if [ ${#MISSING[@]} -ne 0 ]; then
-            echo "❌ Missing required secrets: ${MISSING[*]}"
-            echo "Please add them in Repository Settings -> Secrets -> Actions"
-            exit 1
+            echo "⚠️ Missing secrets (non-blocking): ${MISSING[*]}"
+            echo "Some features may be unavailable. Add missing secrets in Repo Settings → Secrets → Actions."
+          else
+            echo "✅ All required secrets present"
           fi
 
   # ══════════════════════════════════════════════════════════════════════

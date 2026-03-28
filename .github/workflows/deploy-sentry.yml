@@ -70,7 +70,7 @@ jobs:
           RESEND_API_KEY:   ${{ secrets.RESEND_API_KEY }}
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
           FIREBASE_PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
-          NEWSLETTER_SECRET: "biltu123"
+          NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
         run: |
           [ -n "$TELEGRAM_BOT_TOKEN" ] && echo "$TELEGRAM_BOT_TOKEN" | npx wrangler@3 secret put TELEGRAM_TOKEN || echo "Skipping TELEGRAM_TOKEN"
           [ -n "$TELEGRAM_CHAT_ID" ]   && echo "$TELEGRAM_CHAT_ID"   | npx wrangler@3 secret put TELEGRAM_TO || echo "Skipping TELEGRAM_TO"
