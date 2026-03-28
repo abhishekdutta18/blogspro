@@ -1116,7 +1116,7 @@
         <div class="market-grid" id="segmentIndices"><div class="market-empty">Loading…</div></div>
       </div>
       <div class="market-segment">
-        <div class="market-segment-title">Stocks + Options</div>
+        <div class="market-segment-title">Stocks</div>
         <div class="market-grid" id="segmentStocksOptions"><div class="market-empty">Loading…</div></div>
       </div>
       <div class="market-segment">
@@ -1130,6 +1130,10 @@
       <div class="market-segment">
         <div class="market-segment-title">Commodities</div>
         <div class="market-grid" id="segmentCommodities"><div class="market-empty">Loading…</div></div>
+      </div>
+      <div class="market-segment">
+        <div class="market-segment-title">Crypto Market</div>
+        <div class="market-grid" id="segmentCrypto"><div class="market-empty">Loading…</div></div>
       </div>
     </div>
     <div class="market-seg-skeleton" id="marketSegmentsSkeleton" style="display:none">
@@ -1462,9 +1466,10 @@
     const segmentBonds = document.getElementById('segmentBonds');
     const segmentCurrency = document.getElementById('segmentCurrency');
     const segmentCommodities = document.getElementById('segmentCommodities');
+    const segmentCrypto = document.getElementById('segmentCrypto');
     const skeletonEl = document.getElementById('marketSegmentsSkeleton');
     const updatedEl = document.getElementById('marketUpdated');
-    if (!segmentIndices || !segmentStocksOptions || !segmentBonds || !segmentCurrency || !segmentCommodities || !skeletonEl || !updatedEl) return false;
+    if (!segmentIndices || !segmentStocksOptions || !segmentBonds || !segmentCurrency || !segmentCommodities || !segmentCrypto || !skeletonEl || !updatedEl) return false;
 
     const candidates = [
       // Quotes/global are served by the stable Upstox proxy.
@@ -1524,13 +1529,24 @@
         { symbol: 'Brent', price: 84.72, change: 0.18 },
         { symbol: 'Copper', price: 835.45, change: 0.39 },
       ],
+      crypto: [
+        { symbol: 'BTCUSDT', price: 68245.20, change: 1.12 },
+        { symbol: 'ETHUSDT', price: 3540.60, change: 0.88 },
+        { symbol: 'BNBUSDT', price: 612.20, change: 0.64 },
+        { symbol: 'SOLUSDT', price: 178.45, change: 1.94 },
+        { symbol: 'XRPUSDT', price: 0.63, change: -0.42 },
+        { symbol: 'DOGEUSDT', price: 0.15, change: 0.31 },
+        { symbol: 'ADAUSDT', price: 0.61, change: -0.19 },
+        { symbol: 'MATICUSDT', price: 0.94, change: 0.27 },
+      ],
     };
     const segmentTargetCount = {
-      indices: 8,
-      stocksOptions: 10,
-      bonds: 6,
-      currency: 6,
-      commodities: 6,
+      indices: 12,
+      stocksOptions: 16,
+      bonds: 10,
+      currency: 10,
+      commodities: 10,
+      crypto: 12,
     };
     const padCards = (items, segmentKey) => {
       const target = segmentTargetCount[segmentKey] || 6;
@@ -1571,6 +1587,7 @@
           bonds: [],
           currency: [],
           commodities: [],
+          crypto: [],
         };
         const data = qJson?.data || {};
         for (const [instrument, val] of Object.entries(data)) {
@@ -1581,19 +1598,27 @@
           const pct = prev ? ((last - prev) / prev) * 100 : 0;
           const card = { symbol, price: last, change: pct };
           const k = String(instrument).toUpperCase();
+          const symU = String(symbol).toUpperCase();
+          const isOption = /\b(CE|PE)\b/.test(symU) || symU.includes('OPT') || k.includes('OPTION');
+          const isCrypto = k.includes('CRYPTO') || symU.includes('BTC') || symU.includes('ETH') || symU.includes('USDT') || symU.includes('SOL') || symU.includes('XRP') || symU.includes('DOGE');
+          if (isCrypto) {
+            segments.crypto.push(card);
+            continue;
+          }
           if (k.includes('INDEX') || symbol.toUpperCase().includes('NIFTY')) segments.indices.push(card);
           else if (k.includes('BSE') || symbol.includes('GSEC') || symbol.includes('BOND')) segments.bonds.push(card);
           else if (k.includes('CDS') || symbol.includes('USDINR') || symbol.includes('EURINR')) segments.currency.push(card);
           else if (k.includes('MCX') || symbol.includes('GOLD') || symbol.includes('SILVER') || symbol.includes('CRUDE')) segments.commodities.push(card);
-          else segments.stocksOptions.push(card);
+          else if (!isOption) segments.stocksOptions.push(card);
         }
         const hasAny = Object.values(segments).some((arr) => arr.length);
         if (!hasAny) continue;
-        renderCards(segmentIndices, segments.indices.slice(0, 12), 'indices');
-        renderCards(segmentStocksOptions, segments.stocksOptions.slice(0, 16), 'stocksOptions');
-        renderCards(segmentBonds, segments.bonds.slice(0, 10), 'bonds');
-        renderCards(segmentCurrency, segments.currency.slice(0, 10), 'currency');
-        renderCards(segmentCommodities, segments.commodities.slice(0, 10), 'commodities');
+        renderCards(segmentIndices, segments.indices.slice(0, 20), 'indices');
+        renderCards(segmentStocksOptions, segments.stocksOptions.slice(0, 24), 'stocksOptions');
+        renderCards(segmentBonds, segments.bonds.slice(0, 14), 'bonds');
+        renderCards(segmentCurrency, segments.currency.slice(0, 14), 'currency');
+        renderCards(segmentCommodities, segments.commodities.slice(0, 14), 'commodities');
+        renderCards(segmentCrypto, segments.crypto.slice(0, 16), 'crypto');
         skeletonEl.style.display = 'none';
         updatedEl.textContent = `Updated: ${now()}`;
         return true;
@@ -1605,6 +1630,7 @@
     renderCards(segmentBonds, [], 'bonds');
     renderCards(segmentCurrency, [], 'currency');
     renderCards(segmentCommodities, [], 'commodities');
+    renderCards(segmentCrypto, [], 'crypto');
     skeletonEl.style.display = 'none';
     updatedEl.textContent = `Updated: ${now()}`;
     return false;
@@ -1635,11 +1661,11 @@
     const nowStamp = () => new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     const indiaView = (e) => {
       const t = String(e.title || '').toLowerCase();
-      if (t.includes('cpi') || t.includes('wpi') || t.includes('inflation')) return 'Analyst view: Inflation path will shape RBI stance and front-end yields.';
-      if (t.includes('rbi') || t.includes('policy') || t.includes('rate')) return 'Analyst view: Policy language can quickly reprice INR and bank beta.';
-      if (t.includes('industrial') || t.includes('production') || t.includes('gdp')) return 'Analyst view: Growth pulse influences cyclicals and capex-sensitive names.';
-      if (t.includes('trade') || t.includes('current account')) return 'Analyst view: External balance shifts can impact INR volatility regime.';
-      return 'Analyst view: Watch cross-asset reaction in INR, rates, and large-cap financials.';
+      if (t.includes('cpi') || t.includes('wpi') || t.includes('inflation')) return 'Analyst view: Inflation trajectory guides RBI reaction function, front-end yields, and rate-sensitive equity sectors. A print above forecast usually hardens rates expectations and can pressure duration-heavy pockets.';
+      if (t.includes('rbi') || t.includes('policy') || t.includes('rate')) return 'Analyst view: RBI tone, vote split, and liquidity guidance can reprice the entire curve quickly. Watch immediate transmission to INR, banks, and high-beta rate plays.';
+      if (t.includes('industrial') || t.includes('production') || t.includes('gdp')) return 'Analyst view: Growth momentum here affects cyclicals, capex themes, and earnings confidence. Upside surprises tend to support industrials, while misses can revive defensives.';
+      if (t.includes('trade') || t.includes('current account')) return 'Analyst view: External-balance data informs INR stability and imported inflation risk. A wider deficit can increase currency sensitivity and hedging demand.';
+      return 'Analyst view: Treat this as a cross-asset trigger; confirm reaction across INR, sovereign yields, banking leaders, and index breadth before positioning.';
     };
     const numFrom = (v) => {
       const m = String(v ?? '').replace(/,/g, '').match(/-?\d+(\.\d+)?/);
@@ -1882,10 +1908,11 @@
       `;
       explainEl.innerHTML = `
         <div><b>How To Read</b></div>
-        <div><b>Rates Lens:</b> RBI Probability blends inflation, growth, and event-density signals.</div>
-        <div><b>FX Lens:</b> INR Pressure above zero implies depreciation bias; below zero implies stability/appreciation bias.</div>
-        <div><b>Sector Lens:</b> Sector Impact ranks sensitivity by event clustering across Banks, IT, FMCG, Autos, and Metals.</div>
-        <div><b>Data Quality Lens:</b> Confidence Score reflects forecast, impact, date, and coverage completeness.</div>
+        <div><b>Rates Lens:</b> RBI Probability combines inflation, growth, and event-density signals to estimate hold/hike/cut bias. Use it with CPI, WPI, and policy events to frame near-term rates direction.</div>
+        <div><b>FX Lens:</b> INR Pressure above zero implies depreciation bias; below zero implies stability/appreciation bias. Confirm with trade-balance and external-flow releases before increasing FX conviction.</div>
+        <div><b>Sector Lens:</b> Sector Impact maps where event clusters are likely to transmit first. Banks and Autos react faster to rates/inflation, while IT and Metals are more exposed to currency and growth swings.</div>
+        <div><b>Data Quality Lens:</b> Confidence Score reflects forecast, impact, date, and coverage completeness. Higher confidence means stronger signal reliability; lower confidence means treat signals as directional, not absolute.</div>
+        <div><b>Execution Lens:</b> Align event surprises with confirmation from yield moves, INR direction, and index breadth to avoid single-print false positives.</div>
         <div><b>Key Events In Focus:</b> ${focusEvents}</div>
       `;
       probBarsEl.innerHTML = [
