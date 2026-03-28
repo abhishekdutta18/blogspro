@@ -91,22 +91,29 @@ export default {
           ["^FCHI",    "GLOBAL_INDEX:CAC40",    "CAC 40"],
           ["^STOXX50E","GLOBAL_INDEX:EUROSTOXX","Euro Stoxx 50"],
           ["^BSESN",   "GLOBAL_INDEX:SENSEX",   "Sensex"],
-          // ── Commodities (USD) ───────────────────────────────────────────────
-          ["GC=F",  "MCX_FO:GOLD",       "Gold ($/oz)"],
-          ["SI=F",  "MCX_FO:SILVER",     "Silver ($/oz)"],
-          ["CL=F",  "MCX_FO:CRUDEOIL",  "WTI ($/bbl)"],
-          ["BZ=F",  "MCX_FO:BRENTOIL",  "Brent ($/bbl)"],
-          ["NG=F",  "MCX_FO:NATURALGAS","NatGas ($/mmBtu)"],
-          ["HG=F",  "MCX_FO:COPPER",    "Copper ($/lb)"],
-          ["PL=F",  "MCX_FO:PLATINUM",  "Platinum ($/oz)"],
-          ["PA=F",  "MCX_FO:PALLADIUM", "Palladium ($/oz)"],
-          ["ZC=F",  "MCX_FO:CORN",      "Corn ($/bu)"],
-          ["ZW=F",  "MCX_FO:WHEAT",     "Wheat ($/bu)"],
-          // ── Bond yields ─────────────────────────────────────────────────────
+          // ── Commodities (fetched in USD, converted to INR below) ───────────
+          ["GC=F",  "MCX_FO:MCX Gold",    "MCX Gold"],
+          ["SI=F",  "MCX_FO:MCX Silver",  "MCX Silver"],
+          ["CL=F",  "MCX_FO:Crude Oil",   "Crude Oil"],
+          ["BZ=F",  "MCX_FO:Brent Crude", "Brent Crude"],
+          ["NG=F",  "MCX_FO:Natural Gas", "Natural Gas"],
+          ["HG=F",  "MCX_FO:Copper",      "Copper"],
+          ["PL=F",  "MCX_FO:Platinum",    "Platinum"],
+          ["PA=F",  "MCX_FO:Palladium",   "Palladium"],
+          ["ZC=F",  "MCX_FO:Corn",        "Corn"],
+          ["ZW=F",  "MCX_FO:Wheat",       "Wheat"],
+          // ── Bond yields — US Treasuries ──────────────────────────────────────
           ["^TNX", "NSE_DEBT:US10Y",  "US 10Y Yield"],
           ["^FVX", "NSE_DEBT:US5Y",   "US 5Y Yield"],
           ["^TYX", "NSE_DEBT:US30Y",  "US 30Y Yield"],
           ["^IRX", "NSE_DEBT:US3M",   "US 3M T-Bill"],
+          // ── Bond yields — India (BHARAT Bond ETFs + G-Sec ETFs on NSE) ──────
+          ["EBBETF0430.NS", "NSE_DEBT:BBond2030",  "BBond Apr 2030"],
+          ["EBBETF0431.NS", "NSE_DEBT:BBond2031",  "BBond Apr 2031"],
+          ["EBBETF0433.NS", "NSE_DEBT:BBond2033",  "BBond Apr 2033"],
+          ["GSEC10YEAR.NS", "NSE_DEBT:GSec813Y",   "G-Sec 8-13Y"],
+          ["SDL26BEES.NS",  "NSE_DEBT:SDL2026",    "SDL Apr 2026"],
+          ["LIQUIDBEES.NS", "NSE_DEBT:LiquidBeES", "LiquidBeES"],
           // ── FX / Currency ───────────────────────────────────────────────────
           ["USDINR=X", "NSE_CDS:USDINR", "USDINR"],
           ["EURINR=X", "NSE_CDS:EURINR", "EURINR"],
@@ -168,6 +175,41 @@ export default {
           if (res.status === "fulfilled" && res.value) {
             const [instrKey, cardData] = res.value;
             merged[instrKey] = cardData;
+          }
+        }
+
+        // Convert commodity USD prices → INR using live USDINR rate
+        // Gold/Silver: COMEX $/troy-oz → MCX ₹ per respective unit
+        const usdinr = Number(merged["NSE_CDS:USDINR"]?.last_price);
+        if (Number.isFinite(usdinr) && usdinr > 0) {
+          const conversionMap = {
+            "MCX_FO:MCX Gold":    (p) => p * usdinr * 10 / 31.1035,    // $/oz → ₹/10g
+            "MCX_FO:MCX Silver":  (p) => p * usdinr * 1000 / 31.1035,  // $/oz → ₹/kg
+            "MCX_FO:Crude Oil":   (p) => p * usdinr,                    // $/bbl → ₹/bbl
+            "MCX_FO:Brent Crude": (p) => p * usdinr,
+            "MCX_FO:Natural Gas": (p) => p * usdinr,                    // $/mmBtu → ₹/mmBtu
+            "MCX_FO:Copper":      (p) => p * usdinr / 0.453592,         // $/lb → ₹/kg
+            "MCX_FO:Platinum":    (p) => p * usdinr,                    // $/oz → ₹/oz
+            "MCX_FO:Palladium":   (p) => p * usdinr,
+          };
+          for (const [key, fn] of Object.entries(conversionMap)) {
+            if (!merged[key]) continue;
+            const safeConv = (v) => { const n = Number(v); return Number.isFinite(n) ? fn(n) : v; };
+            const m = merged[key];
+            const newPrice = safeConv(m.last_price);
+            const newClose = safeConv(m.ohlc?.close);
+            merged[key] = {
+              ...m,
+              last_price: newPrice,
+              ohlc: {
+                open:  safeConv(m.ohlc?.open),
+                high:  safeConv(m.ohlc?.high),
+                low:   safeConv(m.ohlc?.low),
+                close: newClose,
+              },
+              net_change: newPrice - newClose,
+              _inr: true,
+            };
           }
         }
 

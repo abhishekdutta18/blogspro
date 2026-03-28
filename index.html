@@ -611,9 +611,15 @@
     }
     .market-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 0.45rem;
       padding: 0.5rem;
+    }
+    @media (max-width: 1400px) {
+      .market-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    @media (max-width: 1024px) {
+      .market-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     .market-segments {
       display: block;
@@ -760,6 +766,7 @@
         min-height: 84px;
       }
       .market-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .market-row { min-height: 84px; }
     }
 
     /* ── SECTION ── */
