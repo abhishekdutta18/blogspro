@@ -955,10 +955,11 @@
     };
 
     const candidates = [
+      // Primary calendar endpoint currently lives on the newsletter worker URL.
+      'https://blogspro-upstox.abhishek-dutta1996.workers.dev',
       window.__UPSTOX_WORKER_URL,
       localStorage.getItem('bp_upstox_worker_url'),
       'https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev',
-      'https://blogspro-upstox.abhishek-dutta1996.workers.dev',
     ].filter(Boolean);
 
     for (const base of [...new Set(candidates.map((u) => String(u).replace(/\/+$/, '')))]) {
@@ -1001,13 +1002,17 @@
 
     for (const base of [...new Set(candidates.map((u) => String(u).replace(/\/+$/, '')))]) {
       try {
-        const [qRes, gRes] = await Promise.all([
+        const [qRes, gRes] = await Promise.allSettled([
           withTimeout(fetch(`${base}/quotes`), 12000, 'upstox quotes'),
           withTimeout(fetch(`${base}/global`), 12000, 'global quotes')
         ]);
-        if (!qRes.ok || !gRes.ok) continue;
-        const qJson = await qRes.json();
-        const gJson = await gRes.json();
+
+        const qOk = qRes.status === 'fulfilled' && qRes.value?.ok;
+        const gOk = gRes.status === 'fulfilled' && gRes.value?.ok;
+        if (!qOk && !gOk) continue;
+
+        const qJson = qOk ? await qRes.value.json() : { data: {} };
+        const gJson = gOk ? await gRes.value.json() : { data: [] };
 
         const localCards = [];
         const data = qJson?.data || {};
