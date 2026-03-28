@@ -120,32 +120,7 @@ export default {
         }
         return rows;
       })();
-      const canonicalIndiaEventKey = (title) => {
-        const t = String(title || '')
-          .toLowerCase()
-          .replace(/\b(y\/y|m\/m|q\/q)\b/g, '')
-          .replace(/[^a-z0-9]+/g, ' ')
-          .trim();
-        if (t.includes('cpi') || t.includes('consumer price')) return 'india-cpi';
-        if (t.includes('wpi') || t.includes('wholesale price')) return 'india-wpi';
-        if (t.includes('industrial production') || t.includes('iip')) return 'india-iip';
-        if (t.includes('trade balance')) return 'india-trade-balance';
-        if (t.includes('services pmi')) return 'india-services-pmi';
-        if (t.includes('manufacturing pmi')) return 'india-manufacturing-pmi';
-        if (t.includes('rbi') && (t.includes('policy') || t.includes('rate') || t.includes('repo'))) return 'rbi-policy-rate';
-        return t.split(' ').slice(0, 4).join(' ');
-      };
-      const dedupeAndSort = (items) => {
-        const seen = new Set();
-        const out = [];
-        for (const e of items) {
-          const key = canonicalIndiaEventKey(e.title);
-          if (seen.has(key)) continue;
-          seen.add(key);
-          out.push(e);
-        }
-        return out.sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
-      };
+      const sortByDate = (items) => items.sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
       try {
         const teRes = await fetch('https://api.tradingeconomics.com/calendar?c=guest:guest&f=json');
         if (!teRes.ok) throw new Error(`TradingEconomics HTTP ${teRes.status}`);
@@ -161,7 +136,7 @@ export default {
             forecast: e.Forecast || '',
             previous: e.Previous || ''
           }));
-        const events = dedupeAndSort([...indiaHistoricalSeed, ...live]).slice(-180);
+        const events = sortByDate([...indiaHistoricalSeed, ...live]).slice(-300);
         if (events.length) return jsonResponse({ status: 'success', source: 'tradingeconomics-india', events }, 200);
       } catch (_) {}
 

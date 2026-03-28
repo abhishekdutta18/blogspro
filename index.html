@@ -1896,6 +1896,22 @@
         .slice(0, 6)
         .map((e) => esc(e.title))
         .join(' · ') || 'No event names available';
+      const eventDescriptionFor = (title) => {
+        const t = String(title || '').toLowerCase();
+        if (t.includes('cpi') || t.includes('inflation')) return 'Tracks retail inflation pressure and directly affects RBI policy expectations, short-end yields, and rate-sensitive sectors.';
+        if (t.includes('wpi')) return 'Measures producer-level price pressure and helps anticipate margin trends and pass-through risks across manufacturing-heavy sectors.';
+        if (t.includes('industrial') || t.includes('production') || t.includes('iip')) return 'Captures output momentum and informs growth-sensitive positioning across industrials, metals, and capex-linked names.';
+        if (t.includes('trade balance') || t.includes('current account')) return 'Signals external-balance stress and potential INR volatility via import bill dynamics and dollar demand.';
+        if (t.includes('services pmi') || t.includes('manufacturing pmi')) return 'Shows business activity breadth; sustained expansion supports earnings confidence and cyclical participation.';
+        if (t.includes('rbi') || t.includes('policy') || t.includes('repo') || t.includes('rate')) return 'Defines policy stance, liquidity conditions, and rate-path signaling that can reprice bonds, banks, and the INR quickly.';
+        if (t.includes('gdp')) return 'Broad growth anchor for earnings expectations, valuation multiples, and medium-term risk appetite.';
+        return 'Cross-asset macro trigger: validate with bond yields, INR trend, and sector breadth before scaling risk.';
+      };
+      const keyEventDetails = events
+        .filter((e) => String(e.title || '').trim().length > 0)
+        .slice(0, 5)
+        .map((e) => `<div><b>${esc(e.title)}:</b> ${eventDescriptionFor(e.title)}</div>`)
+        .join('') || '<div><b>Key Event Notes:</b> waiting for event descriptions.</div>';
       snapshotEl.innerHTML = `
         <div><b>Window:</b> ${events.length} India events tracked</div>
         <div><b>Policy Regime:</b> ${m.regimeTag}</div>
@@ -1915,6 +1931,8 @@
         <div><b>Data Quality Lens:</b> Confidence Score reflects forecast, impact, date, and coverage completeness. Higher confidence means stronger signal reliability; lower confidence means treat signals as directional, not absolute.</div>
         <div><b>Execution Lens:</b> Align event surprises with confirmation from yield moves, INR direction, and index breadth to avoid single-print false positives.</div>
         <div><b>Key Events In Focus:</b> ${focusEvents}</div>
+        <div><b>Key Event Breakdown</b></div>
+        ${keyEventDetails}
       `;
       probBarsEl.innerHTML = [
         { label: 'Hold', val: m.holdProb },
