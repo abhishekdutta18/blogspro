@@ -44,4 +44,5 @@ jobs:
           git config --global user.email "bot@blogspro.in"
           git add briefings/ index.html
           git commit -m "chore: automated hourly market pulse [skip ci]" || echo "No changes to commit"
+          git pull --rebase origin main
           git push

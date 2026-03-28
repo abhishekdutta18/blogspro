@@ -46,4 +46,5 @@ jobs:
           git config --global user.email "bot@blogspro.in"
           git add articles/ index.html sitemap.xml
           git commit -m "chore: automated monthly macro outlook [skip ci]" || echo "No changes to commit"
+          git pull --rebase origin main
           git push
