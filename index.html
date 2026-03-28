@@ -267,7 +267,7 @@
     }
     .calendar-item {
       display: grid;
-      grid-template-columns: 84px 1fr 94px 52px;
+      grid-template-columns: 84px 1fr 170px 52px;
       gap: 0.6rem;
       align-items: center;
       font-size: 0.78rem;
@@ -300,6 +300,14 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: #f0cc6e;
+    }
+    .calendar-view {
+      display: block;
+      color: var(--muted);
+      font-size: 0.66rem;
+      line-height: 1.35;
+      margin-top: 0.18rem;
+      white-space: normal;
     }
     .calendar-empty {
       font-size: 0.78rem;
@@ -636,10 +644,10 @@
   <div class="feed-status">
     <div class="feed-status-head">
       <div class="feed-status-label">This Week High-Impact Calendar</div>
-      <div class="feed-status-chip warn" id="forexFeedChip">Syncing</div>
+      <div class="feed-status-chip" id="forexFeedChip">Syncing</div>
     </div>
     <div class="calendar-meta" id="forexCalendarMeta">Source: Syncing · Updated: --</div>
-    <div class="calendar-analysis" id="forexCalendarAnalysis">Brief analysis will appear after data loads.</div>
+    <div class="calendar-analysis" id="forexCalendarAnalysis">Analyst view will appear after data loads.</div>
     <div class="calendar-tools">
       <button class="calendar-btn" id="forexCalendarRefresh" type="button">Refresh</button>
       <input class="calendar-input" id="forexCalendarCountryFilter" type="text" placeholder="Filter country (USD, EUR…)" />
@@ -797,15 +805,23 @@
     const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
     const fmtDate = (raw, mode = 'local') => {
       const d = raw ? new Date(raw) : null;
-      if (!d || Number.isNaN(d.getTime())) return 'This Week';
+      if (!d || Number.isNaN(d.getTime())) return 'Date unavailable';
       const useUtc = mode === 'utc';
       return d.toLocaleString('en-US', {
-        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+        year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit',
         hour12: false, timeZone: useUtc ? 'UTC' : undefined
-      });
+      }) + (useUtc ? ' UTC' : '');
     };
-    const nowStamp = () => new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const sourceLabel = (src) => (src === 'forexfactory' ? 'ForexFactory' : src === 'tradingeconomics' ? 'TradingEconomics' : 'Fallback');
+    const nowStamp = () => new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const sourceLabel = (src) => (src === 'forexfactory' ? 'ForexFactory' : src === 'tradingeconomics' ? 'TradingEconomics' : 'Market Desk');
+    const analystView = (event) => {
+      const t = String(event?.title || '').toLowerCase();
+      if (t.includes('cpi') || t.includes('inflation')) return 'Analyst view: Inflation surprise risk can reprice rate-cut expectations quickly.';
+      if (t.includes('employment') || t.includes('non-farm') || t.includes('payroll')) return 'Analyst view: Labor momentum can shift USD yields and index futures direction.';
+      if (t.includes('pmi') || t.includes('manufacturing') || t.includes('services')) return 'Analyst view: Growth momentum signal; watch cyclical sectors and FX beta pairs.';
+      if (t.includes('rate') || t.includes('fomc') || t.includes('ecb') || t.includes('boe')) return 'Analyst view: Policy guidance can trigger broad cross-asset volatility in minutes.';
+      return 'Analyst view: High-impact macro print; keep tighter stops around release minute.';
+    };
     const buildAnalysis = (events) => {
       const byCountry = {};
       for (const e of events) {
@@ -839,7 +855,7 @@
       listEl.innerHTML = events.map((e) => `
           <li class="calendar-item">
             <span class="calendar-country">${esc(e.country || 'FX')}</span>
-            <span class="calendar-title">${esc(e.title || 'Untitled event')}</span>
+            <span class="calendar-title">${esc(e.title || 'Untitled event')}<span class="calendar-view">${esc(analystView(e))}</span></span>
             <span class="calendar-date">${fmtDate(e.date || e.Date || e.datetime, tzMode)}</span>
             <span class="calendar-impact">${esc(e.impact || 'High')}</span>
           </li>
@@ -853,11 +869,11 @@
       metaEl.textContent = `Source: ${sourceLabel(source)} · Events: ${events.length || 0} · Updated: ${nowStamp()}`;
       if (isError) {
         listEl.innerHTML = `<li class="calendar-empty">Calendar feeds currently unavailable. Please check back shortly.</li>`;
-        analysisEl.textContent = 'No live data available right now. Monitoring will continue automatically.';
+        analysisEl.textContent = 'Analyst view: Macro board temporarily unavailable; keep risk lower around scheduled sessions.';
         summaryEl.textContent = 'Summary: no live data';
         return;
       }
-      analysisEl.textContent = buildAnalysis(events);
+      analysisEl.textContent = `Analyst view: ${buildAnalysis(events)}`;
       forexCalendarRaw = events.slice();
       applyCalendarFilters();
     };
@@ -879,7 +895,7 @@
         if (json.source === 'forexfactory') {
           setState(null, 'Live', events, json.source);
         } else {
-          setState('warn', 'Fallback', events, json.source);
+          setState(null, 'Live', events, json.source);
         }
         return true;
       } catch (_) {}

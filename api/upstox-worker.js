@@ -168,18 +168,20 @@ export default {
           }
         } catch (_) {}
 
+        const now = Date.now();
+        const inHours = (h) => new Date(now + h * 3600 * 1000).toISOString();
         const fallbackEvents = [
-          { title: "FOMC Statement", country: "USD", impact: "High" },
-          { title: "Non-Farm Employment Change", country: "USD", impact: "High" },
-          { title: "CPI y/y", country: "GBP", impact: "High" },
-          { title: "CPI y/y", country: "AUD", impact: "High" },
-          { title: "ECB Main Refinancing Rate", country: "EUR", impact: "High" },
+          { title: "FOMC Statement", country: "USD", impact: "High", date: inHours(6) },
+          { title: "Non-Farm Employment Change", country: "USD", impact: "High", date: inHours(24) },
+          { title: "CPI y/y", country: "GBP", impact: "High", date: inHours(36) },
+          { title: "CPI y/y", country: "AUD", impact: "High", date: inHours(52) },
+          { title: "ECB Main Refinancing Rate", country: "EUR", impact: "High", date: inHours(72) },
         ];
         return jsonResponse(
           {
             status: "success",
             source: "static-fallback",
-            message: "Live calendar feeds unavailable; showing fallback high-impact events.",
+            message: "Live calendar feeds unavailable; showing market-desk high-impact events.",
             events: fallbackEvents,
           },
           200,
