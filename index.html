@@ -1587,6 +1587,41 @@
       // Quotes/global are served by the stable Upstox proxy.
       'https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev'
     ];
+    const loadCryptoFromCoinGecko = async () => {
+      const ids = [
+        'bitcoin',
+        'ethereum',
+        'binancecoin',
+        'solana',
+        'ripple',
+        'dogecoin',
+        'cardano',
+        'matic-network'
+      ];
+      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd&include_24hr_change=true`;
+      const res = await withTimeout(fetch(`${url}&t=${Date.now()}`, { cache: 'no-store' }), 12000, 'coingecko crypto');
+      if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status}`);
+      const json = await res.json();
+      const map = [
+        ['bitcoin', 'BTCUSDT'],
+        ['ethereum', 'ETHUSDT'],
+        ['binancecoin', 'BNBUSDT'],
+        ['solana', 'SOLUSDT'],
+        ['ripple', 'XRPUSDT'],
+        ['dogecoin', 'DOGEUSDT'],
+        ['cardano', 'ADAUSDT'],
+        ['matic-network', 'MATICUSDT'],
+      ];
+      return map
+        .map(([id, sym]) => {
+          const row = json?.[id];
+          const price = Number(row?.usd);
+          const change = Number(row?.usd_24h_change);
+          if (!Number.isFinite(price)) return null;
+          return { symbol: sym, price, change: Number.isFinite(change) ? change : 0, source: 'coingecko' };
+        })
+        .filter(Boolean);
+    };
 
     const fmtNum = (n) => {
       const x = Number(n);
@@ -1833,6 +1868,10 @@
         }
         const hasAny = Object.values(segments).some((arr) => arr.length);
         if (!hasAny) continue;
+        try {
+          const cryptoRows = await loadCryptoFromCoinGecko();
+          if (cryptoRows.length) segments.crypto = cryptoRows;
+        } catch (_) {}
         renderCards(segmentIndices, segments.indices.slice(0, 20), 'indices');
         renderCards(segmentStocksOptions, segments.stocksOptions.slice(0, 24), 'stocksOptions');
         renderCards(segmentBonds, segments.bonds.slice(0, 14), 'bonds');
