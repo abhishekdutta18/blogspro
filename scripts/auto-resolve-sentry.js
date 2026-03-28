@@ -10,7 +10,7 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO = process.env.GITHUB_REPOSITORY; // e.g. 'abhishekdutta18/blogspro'
 
 async function fetchUnresolvedIssues() {
-  const url = `https://sentry.io/api/0/projects/${SENTRY_ORG}/${SENTRY_PROJECT}/issues/?query=${encodeURIComponent('is:unresolved')}`;
+  const url = `https://de.sentry.io/api/0/projects/${SENTRY_ORG}/${SENTRY_PROJECT}/issues/?query=${encodeURIComponent('is:unresolved')}`;
   const res = await fetch(url, {
     headers: {
       'Authorization': `Bearer ${SENTRY_AUTH_TOKEN}`,
@@ -43,7 +43,7 @@ async function checkExistingIssue(issueTitle) {
 }
 
 async function resolveSentryIssue(issueId) {
-  const url = `https://sentry.io/api/0/issues/${issueId}/`;
+  const url = `https://de.sentry.io/api/0/issues/${issueId}/`;
   const res = await fetch(url, {
     method: 'PUT',
     headers: {
