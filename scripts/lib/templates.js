@@ -57,13 +57,14 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
     
     <style>
         :root {
-            --nexus-bg: #0B0E11;
-            --nexus-sidebar: rgba(26, 29, 33, 0.95);
-            --nexus-glass: rgba(30, 31, 35, 0.7);
-            --nexus-accent: #00F2FF;
-            --nexus-border: rgba(255, 255, 255, 0.08);
+            --nexus-bg: #050505;
+            --nexus-sidebar: rgba(18, 18, 18, 0.98);
+            --nexus-glass: rgba(10, 10, 10, 0.9);
+            --nexus-accent: #BFA100; /* Bloomberg Gold */
+            --nexus-amber: #FFB800;  /* Data Amber */
+            --nexus-border: rgba(191, 161, 0, 0.15);
             --nexus-text-h1: #F8FAFC;
-            --nexus-text-p: #94A3B8;
+            --nexus-text-p: #D1D5DB;
             --nexus-success: #4ADE80;
             --nexus-warning: #F87171;
             --sidebar-width: 260px;
@@ -81,157 +82,157 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
             line-height: 1.6;
         }
 
-        /* Expert Sidebar - 13 Institutional Verticals */
+        /* Bloomberg Sidebar - High Density */
         .sidebar {
             width: var(--sidebar-width);
             background: var(--nexus-sidebar);
             border-right: 1px solid var(--nexus-border);
-            padding: 1.5rem 1rem;
+            padding: 1rem;
             position: fixed;
             height: 100vh;
             display: flex;
             flex-direction: column;
-            backdrop-filter: blur(20px);
             z-index: 100;
             overflow-y: auto;
         }
 
         .logo {
+            font-family: 'JetBrains Mono', monospace;
             font-weight: 700;
-            font-size: 1.2rem;
+            font-size: 1rem;
             color: var(--nexus-text-h1);
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
             letter-spacing: -0.5px;
             display: flex;
             align-items: center;
             text-decoration: none;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--nexus-accent);
         }
-        .logo span { color: var(--nexus-accent); margin-left: 0.4rem; }
+        .logo span { color: var(--nexus-amber); margin-left: 0.4rem; }
 
-        .nav-group { margin-bottom: 2rem; }
+        .nav-group { margin-bottom: 1.5rem; }
         .nav-label {
+            font-family: 'JetBrains Mono', monospace;
             font-size: 0.6rem;
             text-transform: uppercase;
             letter-spacing: 1.5px;
             font-weight: 700;
-            margin-bottom: 1rem;
-            color: rgba(255,255,255,0.3);
+            margin-bottom: 0.8rem;
+            color: var(--nexus-accent);
             padding-left: 0.5rem;
+            opacity: 0.6;
         }
 
         .nav-item {
             display: flex;
             align-items: center;
-            padding: 0.7rem 0.8rem;
-            border-radius: 8px;
-            color: var(--nexus-text-p);
+            padding: 0.5rem 0.8rem;
+            border-radius: 4px;
+            color: rgba(255,255,255,0.6);
             text-decoration: none;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            margin-bottom: 0.3rem;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.1s;
+            margin-bottom: 0.2rem;
+            border-left: 2px solid transparent;
         }
 
         .nav-item:hover {
-            background: rgba(0, 242, 255, 0.08);
+            background: rgba(191, 161, 0, 0.05);
             color: var(--nexus-accent);
-            transform: translateX(4px);
+            border-left: 2px solid var(--nexus-accent);
         }
 
-        /* Content Architecture */
+        /* Terminal Body Architecture */
         .main-content {
             margin-left: var(--sidebar-width);
             flex: 1;
-            padding: 4rem 5rem;
-            max-width: 1100px;
+            padding: 3rem 4rem;
+            max-width: 1200px;
         }
 
-        header { margin-bottom: 4rem; }
+        header { margin-bottom: 3rem; }
         .status-tag {
-            background: rgba(0, 242, 255, 0.1);
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(191, 161, 0, 0.1);
             color: var(--nexus-accent);
-            padding: 0.3rem 0.8rem;
-            border-radius: 4px;
-            font-size: 0.7rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 2px;
+            font-size: 0.65rem;
             font-weight: 700;
             text-transform: uppercase;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             display: inline-block;
-            border: 1px solid rgba(0, 242, 255, 0.2);
+            border: 1px solid var(--nexus-border);
         }
 
         h1 {
-            font-size: 3rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 2.8rem;
             color: var(--nexus-text-h1);
             line-height: 1.1;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             letter-spacing: -1px;
+            font-weight: 800;
         }
 
         .excerpt {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             color: var(--nexus-text-p);
-            max-width: 800px;
-            border-left: 3px solid var(--nexus-accent);
+            max-width: 850px;
+            border-left: 4px solid var(--nexus-amber);
             padding-left: 1.5rem;
-            margin: 2rem 0;
+            margin: 1.5rem 0;
+            opacity: 0.8;
         }
 
-        /* Manuscript Typography */
+        /* Terminal Typography */
         .manuscript-body h2 {
-            font-size: 1.8rem;
-            color: var(--nexus-text-h1);
-            margin: 4rem 0 1.5rem;
-            letter-spacing: -0.5px;
-            display: flex;
-            align-items: center;
-        }
-        .manuscript-body h2::before {
-            content: "";
-            width: 8px;
-            height: 8px;
-            background: var(--nexus-accent);
-            display: inline-block;
-            margin-right: 1rem;
-            border-radius: 50%;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            color: var(--nexus-accent);
+            margin: 3.5rem 0 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-top: 1px solid var(--nexus-border);
+            padding-top: 1.5rem;
         }
 
         .manuscript-body p {
-            font-size: 1.1rem;
-            margin-bottom: 1.8rem;
-            color: rgba(148, 163, 184, 0.9);
+            font-size: 1.05rem;
+            margin-bottom: 1.5rem;
+            color: rgba(209, 213, 219, 0.85);
         }
 
-        /* Data Visualization Containers */
+        /* Bloomberg Table & Card Logic */
         .card {
-            background: var(--nexus-glass);
+            background: rgba(20, 20, 20, 0.5);
             border: 1px solid var(--nexus-border);
-            border-radius: 16px;
-            padding: 2rem;
-            margin: 3rem 0;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border-left: 4px solid var(--nexus-accent);
+            padding: 1.5rem;
+            margin: 2.5rem 0;
         }
 
         .card-title {
-            font-size: 0.85rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
             font-weight: 700;
-            color: var(--nexus-accent);
+            color: var(--nexus-amber);
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid rgba(0, 242, 255, 0.2);
-            padding-bottom: 0.5rem;
+            letter-spacing: 1px;
+            margin-bottom: 1.5rem;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
         }
 
-        th { text-align: left; padding: 1rem; border-bottom: 1px solid var(--nexus-border); color: rgba(255,255,255,0.4); }
-        td { padding: 1.2rem 1rem; border-bottom: 1px solid var(--nexus-border); }
+        th { text-align: left; padding: 0.8rem; border-bottom: 2px solid var(--nexus-accent); color: var(--nexus-accent); font-weight: 800; }
+        td { padding: 0.8rem; border-bottom: 1px solid var(--nexus-border); color: var(--nexus-amber); }
 
         .f-success { color: var(--nexus-success); font-weight: 600; }
         .f-warning { color: var(--nexus-warning); font-weight: 600; }
