@@ -3,8 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const { 
     fetchRBIData, fetchSEBIData, fetchCCILData, fetchMacroPulse, 
-    fetchGlobalMarkets, fetchSentimentData, fetchInstitutionalNews,
-    fetchMultiAssetData
+    fetchSentimentData, fetchUniversalNews, getMarketContext,
+    fetchMultiAssetData, fetchMFData, fetchPEVCData, fetchInsuranceData, fetchGIFTCityData
 } = require("./lib/data-fetchers.js");
 const { askAI } = require("./lib/ai-service.js");
 const { getBaseTemplate } = require("./lib/templates.js");
@@ -33,84 +33,97 @@ async function generateArticle() {
 
     console.log(`🚀 Starting Global Strategic Article Engine (${frequency})...`);
     
-    const [rbi, sebi, ccil, macro, global, sentiment, instNews, markets] = await Promise.all([
+    const [rbi, sebi, ccil, macro, universal, sentiment, markets, mf, pevc, ins, gift] = await Promise.all([
         fetchRBIData(), fetchSEBIData(), fetchCCILData(), fetchMacroPulse(),
-        fetchGlobalMarkets(), fetchSentimentData(), fetchInstitutionalNews(), fetchMultiAssetData()
+        fetchUniversalNews(), fetchSentimentData(), fetchMultiAssetData(),
+        fetchMFData(), fetchPEVCData(), fetchInsuranceData(), fetchGIFTCityData()
     ]);
 
-    const mkt = require("./lib/data-fetchers.js").getMarketContext();
+    const mkt = getMarketContext();
 
-    const regulatoryContext = `
-    --- SYSTEM CONTEXT ---
-    TIME_IST: ${mkt.timestamp}
-    STATUS: ${mkt.status}
+    // 2. DATA SEGREGATION & VERTICAL MAPPING
+    const verticals = [
+        { id: "macro", name: "Global Macro Drift", keywords: ["DXY", "Fed", "Yield", "Oil", "Energy", "Geopolitical"], data: macro.summary },
+        { id: "debt", name: "Debt & Sovereignty", keywords: ["Bond", "G-Sec", "CCIL", "Yield", "Sovereign"], data: ccil.summary },
+        { id: "digital", name: "Digital Rails", keywords: ["UPI", "NPCI", "SWIFT", "CBDC", "Payments"], data: universal },
+        { id: "equities", name: "Equities & Alpha", keywords: ["NIFTY", "Equity", "IPO", "Index", "FPI"], data: markets.summary },
+        { id: "reg", name: "Regulatory Ledger", keywords: ["SEBI", "Circular", "Finance Ministry", "Notification"], data: sebi.summary },
+        { id: "fx", name: "FX & Cross-Border", keywords: ["USDINR", "Forex", "Remittance", "Hedging"], data: markets.summary },
+        { id: "commodity", name: "Commodity Pulse", keywords: ["Gold", "Silver", "Brent", "LME"], data: markets.summary },
+        { id: "em", name: "Emerging Markets", keywords: ["BRICS", "EEM", "Developing", "Frontier"], data: universal },
+        { id: "asset", name: "Asset Allocation", keywords: ["Rebalancing", "AUM", "Passive", "Active", "Risk"], data: mf.summary },
+        { id: "scribe", name: "Scribe Analytics", keywords: ["Inference", "Synthesis", "Narrative", "Model"], data: sentiment.summary },
+        { id: "capital", name: "Capital Flows (PE/VC)", keywords: ["Private Equity", "Venture Capital", "Startup", "Round"], data: pevc.summary },
+        { id: "insurance", name: "Insurance & Risk", keywords: ["IRDAI", "Life", "General", "Reinsurance"], data: ins.summary },
+        { id: "gift", name: "Offshore & GIFT City", keywords: ["IFSCA", "GIFT City", "IFSC", "Offshore"], data: gift.summary }
+    ];
+
+    const isMonthly = frequency === 'monthly';
+    const targetWords = isMonthly ? 50000 : 10000;
     
-    --- INSTITUTIONAL METRICS ---
-    RBI: ${rbi.summary}
-    SEBI: ${sebi.summary}
-    CCIL: ${ccil.summary}
-    MACRO: ${macro.summary}
-    GLOBAL: ${global.summary}
-    SENTIMENT: ${sentiment.summary}
-    SECTORAL: ${markets.summary}
-    
-    --- INSTITUTIONAL CIRCULARS ---
-    ${instNews}
-    `;
-
-    const prompt = `You are a Principal Policy & Strategy Architect for BlogsPro.
-    Write a high-fidelity ${frequency === 'weekly' ? 'Weekly Strategic Analysis' : 'Monthly Macro Roadmap'} (HTML).
-    
-    CORE OBJECTIVE:
-    Synthesize the latest regulatory circulars (RBI/SEBI) with global macro trends. 
-    Explain the "Big Picture" structural shifts for institutional and professional practitioners.
-    
-    TEMPORAL GUIDANCE:
-    - Today is ${mkt.day}. 
-    - ${mkt.isWeekend ? "Markets are CLOSED. Focus on retrospective performance and next-week positioning." : "Markets are ACTIVE. Focus on immediate pulse and trend continuation."}
-
-    CRITICAL VISUAL INSTRUCTIONS:
-    - Start with exactly one <h2> tag.
-    - Provide a 1-sentence analytical excerpt wrapped in <details id="meta-excerpt" style="display:none">.
-    - MANDATORY: Include a Markdown table with at least 5 rows: "| Variable | Current | Strategic Outlook | Risk |".
-    - ANALYSIS: Deep-dive into the interaction between regulatory shifts (Circulars) and market sentiment (${sentiment.label}).
-    - End with "SENTIMENT_SCORE: [0-100]" and "PRICE_INFO: [Last, High, Low]".
-    - Include a poll: "Question: [Text]" and "Options: [Opt1, Opt2, Opt3]".
-
-    DATASET: ${regulatoryContext}`;
-
-    // Dynamic Symbol Detection
-    let pairId = "179"; // Nifty 50
-    if (regulatoryContext.includes('G-Sec') || regulatoryContext.includes('Bond')) pairId = "160";
-    if (regulatoryContext.includes('Digital Rupee') || regulatoryContext.includes('Fintech')) pairId = "1057391";
+    let fullContent = "";
+    let lastSummary = "Institutional baseline established.";
 
     try {
-        const content = await askAI(prompt);
-        const titleMatch = content.match(/<h2[^>]*>(.*?)<\/h2>/i);
-        const excerptMatch = content.match(/<details id="meta-excerpt"[^>]*>(.*?)<\/details>/i);
-        
-        const title = titleMatch ? titleMatch[1].trim() : `Strategic Deep-Dive — ${dateLabel}`;
-        const excerpt = excerptMatch ? excerptMatch[1].trim() : "Institutional synthesis of regulatory policy and macro-economic drift.";
-        
-        const sentimentMatch = content.match(/SENTIMENT_SCORE:\s*(\d+)/i);
-        const sentimentScore = sentimentMatch ? parseInt(sentimentMatch[1]) : parseInt(sentiment.value);
+        console.log(`🏰 Starting Recursive Synthesis for ${frequency.toUpperCase()} tome...`);
 
-        const priceMatch = content.match(/PRICE_INFO:\s*\[(.*?),(.*?),(.*?)\]/i);
-        const priceInfo = priceMatch ? { last: priceMatch[1].trim(), high: priceMatch[2].trim(), low: priceMatch[3].trim() } : { last: "N/A", high: "N/A", low: "N/A" };
+        for (let i = 0; i < verticals.length; i++) {
+            const v = verticals[i];
+            console.log(`✍️ Scribing Vertical ${i+1}/${verticals.length}: ${v.name}...`);
 
-        const pollQuestionMatch = content.match(/question:\s*(.*?)(?=\n|$)/i);
-        const pollOptionsMatch = content.match(/options:\s*(.*?)(?=\n|$)/i);
-        const finalKit = {
-            audioScript: `BlogsPro ${frequency} Strategy. ${title}. ${excerpt}`,
-            pollQuestion: pollQuestionMatch ? pollQuestionMatch[1].trim() : "What is the priority for the next quarter?",
-            pollOptions: pollOptionsMatch ? pollOptionsMatch[1].split(',').map(o => o.trim()) : ["Monetary Tightening", "Liquidity Surplus", "Asset Quality"]
-        };
+            // Filter news for this specific vertical to ensure news-dependent logic
+            const verticalNews = universal.split('|')
+                .filter(news => v.keywords.some(k => news.toUpperCase().includes(k.toUpperCase())))
+                .slice(0, 8)
+                .join(' | ');
+
+            const scribePrompt = `You are an Institutional Expert in ${v.name} for BlogsPro Intelligence.
+            
+            CONTEXT:
+            - Module Specific Data: ${v.data}
+            - Institutional Baseline (RBI/SEBI/Macro): ${macro.summary} | ${rbi.summary} | ${sebi.summary}
+            - Vertical News: ${verticalNews || "No direct headlines; use macro drift context."}
+            - Narrative Continuity: ${lastSummary}
+            
+            STRICT INSTRUCTION:
+            1. Write a 3,500-4,000 word deep-dive chapter for the ${frequency} Strategic Manuscript.
+            2. Apply '3-Dimensional Synthesis': For every news item, analyze Recount, Risk, and Roadmap.
+            3. Target length for this section is approximately ${Math.floor(targetWords / verticals.length)} words. Be extremely detailed.
+            4. Formatting: Use <h2> for the main section title (Must be '${v.name}').
+            5. Use Google Charts placeholders: To include a chart, insert a DIV with class 'card' containing a card-title and an empty DIV with a unique ID (e.g., <div id="chart_${v.id}"></div>).
+            6. Focus ONLY on ${v.name} and its systemic implications.`;
+
+            const chapter = await askAI(scribePrompt);
+            fullContent += `\n<section id="${v.id}" class="institutional-section">\n${chapter}\n</section>\n`;
+            
+            // Extract a summary for the next pass
+            lastSummary = `Previous chapter concluded a deep dive into ${v.name}, highlighting key regulatory shifts and market exposure.`;
+        }
+
+        console.log("🔍 Running SEO Auditor...");
+        const metaRes = await askAI(`Analyze this institutional manuscript and return JSON only: {"description": "1-sentence strategic summary", "keywords": "5 finance keywords"}\n\nCONTENT: ${fullContent.substring(0, 3000)}`);
+        const meta = JSON.parse(metaRes.match(/\{.*?\}/s)?.[0] || '{"description": "Institutional Strategy", "keywords": "finance, rbi"}');
+
+        const titleMatch = fullContent.match(/<h2[^>]*>(.*?)<\/h2>/i) || fullContent.match(/<h3[^>]*>(.*?)<\/h3>/i);
+        const title = titleMatch ? titleMatch[1].trim() : `${frequency.toUpperCase()} Strategic Tome — ${dateLabel}`;
+        const excerpt = meta.description;
+        
+        const sentimentScore = parseInt(sentiment.value) || 50;
+        const priceInfo = { last: "N/A", high: "N/A", low: "N/A" };
+        let pairId = "179";
 
         const datestr = new Date().toISOString().split('T')[0];
         const fileName = `strategy-${datestr}-${frequency}-${Date.now()}.html`;
         const fullHtml = getBaseTemplate({ 
-            title, excerpt, content, dateLabel, 
-            finalKit, type: "article", freq: frequency, fileName, pairId, sentimentScore, priceInfo
+            title, excerpt, content: fullContent, dateLabel, 
+            finalKit: {
+                audioScript: `BlogsPro ${frequency} Strategy. ${title}. ${excerpt}`,
+                pollQuestion: "What is the primary volatility catalyst?",
+                pollOptions: ["Yield Curve", "FPI Flows", "Regulatory Shift"]
+            }, 
+            type: "article", freq: frequency, fileName, pairId, sentimentScore, priceInfo,
+            seoDescription: meta.description,
+            seoKeywords: meta.keywords
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         
@@ -119,7 +132,7 @@ async function generateArticle() {
         index.unshift({ title, date: today, fileName, type: "article", frequency });
         fs.writeFileSync(indexPath, JSON.stringify(index.slice(0, 50), null, 2));
 
-        if (process.env.NEWSLETTER_WORKER_URL && (frequency === 'weekly' || frequency === 'monthly')) {
+        if (process.env.NEWSLETTER_WORKER_URL && (isMonthly || frequency === 'weekly')) {
             await fetchWithTimeout(process.env.NEWSLETTER_WORKER_URL, {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ subject: title, html: fullHtml, secret: process.env.NEWSLETTER_SECRET })

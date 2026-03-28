@@ -33,10 +33,9 @@ async function generateBriefing() {
 
     console.log(`🚀 Starting Global Intelligence Engine (${frequency})...`);
     
-    const [calendar, markets, sentiment, inNews, glNews, instNews, upstox, global, macro] = await Promise.all([
+    const [calendar, markets, sentiment, universal, upstox, macro] = await Promise.all([
         fetchEconomicCalendar(), fetchMultiAssetData(), fetchSentimentData(),
-        fetchIndianNews(), fetchGlobalNews(), fetchInstitutionalNews(),
-        fetchUpstoxData(), fetchGlobalMarkets(), fetchMacroPulse()
+        fetchUniversalNews(), fetchUpstoxData(), fetchMacroPulse()
     ]);
 
     const mkt = require("./lib/data-fetchers.js").getMarketContext();
@@ -46,20 +45,16 @@ async function generateBriefing() {
     TIME_IST: ${mkt.timestamp}
     DAY: ${mkt.day}
     MARKET_STATUS: ${mkt.status}
-    NOTE: ${mkt.note}
     
     --- DATA FEEDS ---
     SENTIMENT: ${sentiment.summary}
-    UPSTOX (Last Close): ${upstox.summary}
-    GLOBAL_INDICES: ${global.summary}
-    CALENDAR: ${calendar.text}
-    MACRO: ${macro.summary}
+    UPSTOX: ${upstox.summary}
     MULTI_ASSET: ${markets.summary}
+    MACRO: ${macro.summary}
+    CALENDAR: ${calendar.text}
     
-    --- NEWS STREAMS ---
-    DOMESTIC: ${inNews}
-    GLOBAL: ${glNews}
-    INSTITUTIONAL: ${instNews}
+    --- UNIVERSAL NEWS (Yahoo Finance, Business Standard, Reuters, CNBC) ---
+    ${universal}
     `;
 
     const prompt = `You are a Lead Quant Strategist for BlogsPro Intelligence Terminal.
@@ -90,8 +85,36 @@ async function generateBriefing() {
     if (marketContext.includes('BTC')) pairId = "1057391";
     if (marketContext.includes('Bank Nifty')) pairId = "44301";
 
+    const isDaily = frequency === 'daily';
+    const isHourly = frequency === 'hourly';
+
     try {
-        const content = await askAI(prompt);
+        let content = "";
+        let seoDescription = "";
+        let seoKeywords = "";
+
+        if (isDaily) {
+            console.log("📑 Generating Stage 1: Strategic Recap...");
+            const stage1Prompt = `${prompt}\n\nSTRICT INSTRUCTION: Focus purely on RECAP of the last 24 hours. Be extremely verbose. Target 1,500 words. Do NOT include a conclusion yet.`;
+            const stage1 = await askAI(stage1Prompt);
+            
+            console.log("📑 Generating Stage 2: Predictive Alpha...");
+            const stage2Prompt = `${prompt}\n\nSTRICT INSTRUCTION: Focus on PREDICTION and RISK for the next 48 hours. Connect the data points. Target 1,500 words. Include the final poll and interactive metrics.`;
+            const stage2 = await askAI(stage2Prompt);
+            
+            content = `${stage1}\n<hr style="border:1px solid var(--gold); opacity:0.2; margin:4rem 0;">\n${stage2}`;
+        } else {
+            console.log(`📑 Generating Pulse Analysis (${frequency})...`);
+            const verbosePrompt = `${prompt}\n\nSTRICT INSTRUCTION: Provide absolute granular detail. Target ${isHourly ? '700' : '1500'} words of high-density analysis.`;
+            content = await askAI(verbosePrompt);
+        }
+
+        // Pass 3: SEO Audit
+        console.log("🔍 Running SEO Audit Pass...");
+        const seoPrompt = `Analyze this market report and return JSON only: {"description": "1-sentence summary", "keywords": "5-10 comma separated keywords"}\n\nREPORT: ${content.substring(0, 2000)}`;
+        const seoDataRaw = await askAI(seoPrompt);
+        const seoData = JSON.parse(seoDataRaw.match(/\{.*?\}/s)?.[0] || '{"description": "Institutional market pulse", "keywords": "fintech, strategy"}');
+
         const titleMatch = content.match(/<h2[^>]*>(.*?)<\/h2>/i);
         const excerptMatch = content.match(/<details id="meta-excerpt"[^>]*>(.*?)<\/details>/i);
         
@@ -116,7 +139,9 @@ async function generateBriefing() {
         const fileName = `pulse-${datestr}-${frequency}-${Date.now()}.html`;
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content, dateLabel, 
-            finalKit, type: "briefing", freq: frequency, fileName, pairId, sentimentScore, priceInfo
+            finalKit, type: "briefing", freq: frequency, fileName, pairId, sentimentScore, priceInfo,
+            seoDescription: seoData.description,
+            seoKeywords: seoData.keywords
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         
@@ -125,7 +150,7 @@ async function generateBriefing() {
         index.unshift({ title, date: today, fileName, type: "briefing", frequency });
         fs.writeFileSync(indexPath, JSON.stringify(index.slice(0, 50), null, 2));
 
-        if (process.env.NEWSLETTER_WORKER_URL && (frequency === 'daily' || frequency === 'hourly')) {
+        if (process.env.NEWSLETTER_WORKER_URL && (isDaily || isHourly)) {
             await fetchWithTimeout(process.env.NEWSLETTER_WORKER_URL, {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ subject: title, html: fullHtml, secret: process.env.NEWSLETTER_SECRET })

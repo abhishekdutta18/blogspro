@@ -33,162 +33,261 @@ function parseMD(md) {
     return html;
 }
 
-function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, freq, fileName, rel = "../../", pairId = "179", sentimentScore = 50, priceInfo = { last: "0", high: "0", low: "0" } }) {
-    const isHourly = freq === 'hourly';
-    const isDaily = freq === 'daily';
-    const isWeekly = freq === 'weekly';
-    const isMonthly = freq === 'monthly';
-
-    const sentimentLabel = sentimentScore > 75 ? "EXTREME BULLISH" : (sentimentScore < 25 ? "EXTREME BEARISH" : (sentimentScore > 55 ? "BULLISH" : (sentimentScore < 45 ? "BEARISH" : "NEUTRAL")));
-    const sentimentColor = sentimentScore > 75 ? "#22c55e" : (sentimentScore < 25 ? "#ef4444" : "#eab308");
-    const gaugeRotation = (sentimentScore / 100) * 180 - 90; 
-    
-    const lastNum = parseFloat(priceInfo.last.replace(/,/g,'')) || 100;
-    const lowNum = parseFloat(priceInfo.low.replace(/,/g,'')) || lastNum * 0.95;
-    const highNum = parseFloat(priceInfo.high.replace(/,/g,'')) || lastNum * 1.05;
-    const range = highNum - lowNum || 1;
-    const lastPos = ((lastNum - lowNum) / range) * 100;
-    const sparkPath = `M 0,50 Q 25,${100 - lastPos * 0.5} 50,50 T 100,${100 - lastPos}`;
-    const canonical = `https://blogspro.in/${type === 'post' ? 'posts/' : (type + 's/' + freq + '/')}${fileName || (type + '-' + new Date().toISOString().split('T')[0] + '.html')}`;
+function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileName, rel = "../../", sentimentScore = 50, priceInfo = { last: "0", high: "0", low: "0" } }) {
+    const seoDescription = excerpt || "BlogsPro Institutional Strategic Manuscript - 13-Vertical Recursive Market Synthesis.";
+    const seoKeywords = "GIFT City, IFSCA, Mutual Fund Inflows, PE/VC Deal Tracking, Institutional Market Intelligence, BlogsPro";
     
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} — BlogsPro ${freq.toUpperCase()}</title>
-    <meta name="description" content="${excerpt}">
-    <link rel="canonical" href="${canonical}">
+    <title>${title} | Nexus Institutional Terminal</title>
+    <meta name="description" content="${seoDescription}">
+    <meta name="keywords" content="${seoKeywords}">
+    
+    <!-- Nexus Core Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Google Charts SDK -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {'packages':['corechart', 'table']});
+    </script>
+    
     <style>
-        :root { 
-            --navy:#080d1a; --gold:#c9a84c; --gold2:#f0cc6e; --cream:#f5f0e8; --muted:#8896b3; 
-            --serif:'Cormorant Garamond',serif; --sans:'DM Sans',sans-serif; --mono:'Space Mono', monospace;
-            --accent: ${sentimentColor};
+        :root {
+            --nexus-bg: #0B0E11;
+            --nexus-sidebar: rgba(26, 29, 33, 0.95);
+            --nexus-glass: rgba(30, 31, 35, 0.7);
+            --nexus-accent: #00F2FF;
+            --nexus-border: rgba(255, 255, 255, 0.08);
+            --nexus-text-h1: #F8FAFC;
+            --nexus-text-p: #94A3B8;
+            --nexus-success: #4ADE80;
+            --nexus-warning: #F87171;
+            --sidebar-width: 260px;
         }
-        body { background: var(--navy); color: var(--cream); font-family: var(--sans); margin: 0; line-height: 1.6; transition: 0.3s ease; }
-        
-        /* Frequency Variants */
-        .variant-hourly { --bg-paper: rgba(255,255,255,0.03); --font-body: var(--mono); font-size: 0.9rem; }
-        .variant-daily { --bg-paper: linear-gradient(180deg, rgba(201,168,76,0.05) 0%, transparent 100%); }
-        .variant-weekly { --bg-paper: transparent; max-width: 900px !important; }
-        .variant-monthly { --bg-paper: rgba(201,168,76,0.08); background: #0c1221; }
 
-        nav { position: sticky; top: 0; background: rgba(8,13,26,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(201,168,76,0.2); padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; z-index: 100; }
-        .brand { font-family: var(--serif); font-size: 1.5rem; font-weight: 700; color: var(--gold); text-decoration: none; }
-        .article-container { max-width: 800px; margin: 0 auto; padding: 4rem 2rem; background: var(--bg-paper); border-radius: 0 0 24px 24px; }
-        
-        .meta { color: var(--gold); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1rem; display: block; letter-spacing: 0.2em; }
-        h1 { font-family: var(--serif); font-size: clamp(2.2rem, 6vw, 4rem); line-height: 1.1; margin-bottom: 1.5rem; letter-spacing: -0.02em; }
-        
-        .variant-hourly h1 { font-family: var(--mono); text-transform: uppercase; font-size: 2.2rem; }
-        .variant-monthly h1 { font-family: var(--serif); border-bottom: 2px solid var(--gold); padding-bottom: 1.5rem; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        .content h2 { font-family: var(--serif); color: var(--gold); font-size: 2.2rem; margin: 4rem 0 1.5rem; position: relative; }
-        .content h2::after { content: ""; position: absolute; left: 0; bottom: -8px; width: 60px; height: 4px; background: var(--accent); }
-        .content p { font-size: 1.15rem; opacity: 0.9; margin-bottom: 2rem; }
-        
-        /* Table Styles */
-        .table-container { overflow-x: auto; margin: 3rem 0; border-radius: 12px; border: 1px solid rgba(201,168,76,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.5); background: rgba(0,0,0,0.2); }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: rgba(201,168,76,0.1); color: var(--gold); padding: 1.2rem; text-align: left; font-size: 0.75rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
-        td { padding: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 1rem; }
-        
-        /* Terminal Components */
-        .command-center { position: relative; background: #000; border: 1px solid rgba(201,168,76,0.3); border-radius: 16px; padding: 2.5rem; margin: 3rem 0; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
-        .live-tag { display: inline-block; padding: 4px 12px; background: #ef4444; color: white; border-radius: 4px; font-size: 0.65rem; font-weight: 900; margin-bottom: 1.5rem; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        body {
+            background-color: var(--nexus-bg);
+            color: var(--nexus-text-p);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
 
-        .dashboard-grid { display: grid; grid-template-columns: 180px 1fr; gap: 3rem; align-items: center; }
-        .gauge-wrap { position: relative; width: 160px; height: 85px; }
-        .gauge-needle { position: absolute; bottom: 0; left: 50%; width: 5px; height: 75px; background: #fff; border-radius: 5px; transform-origin: bottom center; transform: translateX(-50%) rotate(${gaugeRotation}deg); transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); }
-        
-        /* Dashboard Components */
-        .command-center { position: relative; background: #000; border: 1px solid rgba(201,168,76,0.3); border-radius: 16px; padding: 2.5rem; margin: 3rem 0; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
-        .cta-btn { background: var(--gold); color: var(--navy); padding: 1rem 2rem; border-radius: 8px; font-weight: 800; text-decoration: none; display: inline-block; transition: 0.3s; }
-        .cta-btn:hover { background: var(--gold2); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(201,168,76,0.4); }
+        /* Expert Sidebar - 13 Institutional Verticals */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--nexus-sidebar);
+            border-right: 1px solid var(--nexus-border);
+            padding: 1.5rem 1rem;
+            position: fixed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(20px);
+            z-index: 100;
+            overflow-y: auto;
+        }
 
-        @media (max-width: 768px) {
-            .dashboard-grid { grid-template-columns: 1fr; text-align: center; }
-            .gauge-wrap { margin: 0 auto; }
-            .article-container { padding: 2rem 1rem; }
+        .logo {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--nexus-text-h1);
+            margin-bottom: 2.5rem;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+        .logo span { color: var(--nexus-accent); margin-left: 0.4rem; }
+
+        .nav-group { margin-bottom: 2rem; }
+        .nav-label {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: rgba(255,255,255,0.3);
+            padding-left: 0.5rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.7rem 0.8rem;
+            border-radius: 8px;
+            color: var(--nexus-text-p);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 0.3rem;
+        }
+
+        .nav-item:hover {
+            background: rgba(0, 242, 255, 0.08);
+            color: var(--nexus-accent);
+            transform: translateX(4px);
+        }
+
+        /* Content Architecture */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 4rem 5rem;
+            max-width: 1100px;
+        }
+
+        header { margin-bottom: 4rem; }
+        .status-tag {
+            background: rgba(0, 242, 255, 0.1);
+            color: var(--nexus-accent);
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+            border: 1px solid rgba(0, 242, 255, 0.2);
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: var(--nexus-text-h1);
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -1px;
+        }
+
+        .excerpt {
+            font-size: 1.25rem;
+            color: var(--nexus-text-p);
+            max-width: 800px;
+            border-left: 3px solid var(--nexus-accent);
+            padding-left: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        /* Manuscript Typography */
+        .manuscript-body h2 {
+            font-size: 1.8rem;
+            color: var(--nexus-text-h1);
+            margin: 4rem 0 1.5rem;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+        }
+        .manuscript-body h2::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            background: var(--nexus-accent);
+            display: inline-block;
+            margin-right: 1rem;
+            border-radius: 50%;
+        }
+
+        .manuscript-body p {
+            font-size: 1.1rem;
+            margin-bottom: 1.8rem;
+            color: rgba(148, 163, 184, 0.9);
+        }
+
+        /* Data Visualization Containers */
+        .card {
+            background: var(--nexus-glass);
+            border: 1px solid var(--nexus-border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 3rem 0;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--nexus-accent);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(0, 242, 255, 0.2);
+            padding-bottom: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        th { text-align: left; padding: 1rem; border-bottom: 1px solid var(--nexus-border); color: rgba(255,255,255,0.4); }
+        td { padding: 1.2rem 1rem; border-bottom: 1px solid var(--nexus-border); }
+
+        .f-success { color: var(--nexus-success); font-weight: 600; }
+        .f-warning { color: var(--nexus-warning); font-weight: 600; }
+
+        @media (max-width: 1024px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding: 2rem; }
         }
     </style>
 </head>
-<body class="variant-${freq}">
-    <nav>
-        <a href="${rel}index.html" class="brand">BlogsPro</a>
-        <div style="display:flex;gap:1.5rem;align-items:center;">
-            <span style="font-size:0.7rem;color:var(--gold);font-weight:900;">${freq.toUpperCase()} TERMINAL</span>
-            <a href="${rel}index.html" style="color:var(--muted);text-decoration:none;font-size:0.8rem;">← Home</a>
+<body>
+    <aside class="sidebar">
+        <a href="${rel}index.html" class="logo">NEXUS<span>TERMINAL</span></a>
+        
+        <div class="nav-group">
+            <div class="nav-label">Institutional Verticals</div>
+            <nav>
+                <a href="#macro" class="nav-item">Global Macro Drift</a>
+                <a href="#debt" class="nav-item">Debt & Sovereignty</a>
+                <a href="#digital" class="nav-item">Digital Rails</a>
+                <a href="#equities" class="nav-item">Equities & Alpha</a>
+                <a href="#reg" class="nav-item">Regulatory Ledger</a>
+                <a href="#fx" class="nav-item">FX & Cross-Border</a>
+                <a href="#commodity" class="nav-item">Commodity Pulse</a>
+                <a href="#em" class="nav-item">Emerging Markets</a>
+                <a href="#asset" class="nav-item">Asset Allocation</a>
+                <a href="#scribe" class="nav-item">Scribe Analytics</a>
+                <a href="#capital" class="nav-item">Capital Flows (PE/VC)</a>
+                <a href="#insurance" class="nav-item">Insurance & Risk</a>
+                <a href="#gift" class="nav-item">Offshore & GIFT City</a>
+            </nav>
         </div>
-    </nav>
+        
+        <div style="margin-top:auto; padding-top:2rem; border-top: 1px solid var(--nexus-border);">
+            <div style="font-size:0.6rem; color:rgba(255,255,255,0.2); text-transform:uppercase;">BlogsPro Intel Unit</div>
+            <div style="font-size:0.75rem; color:var(--nexus-accent); font-weight:600;">V6.30 Sovereign Pass</div>
+        </div>
+    </aside>
 
-    <article class="article-container">
+    <main class="main-content">
         <header>
-            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <span class="meta">${isHourly ? '⚡ Intraday' : (isMonthly ? '🏛️ Institutional' : '📉 Market')} • ${dateLabel}</span>
-                ${isHourly ? '<div class="live-tag">LIVE TERMINAL</div>' : ''}
-            </div>
+            <div class="status-tag">Status: Institutional Manuscript • ${dateLabel}</div>
             <h1>${title}</h1>
-            <p style="font-size:1.4rem; color:var(--muted); font-style: italic; line-height: 1.4; border-left: 4px solid var(--accent); padding-left: 1.5rem; margin: 2rem 0;">
-                ${excerpt}
-            </p>
+            <div class="excerpt">${excerpt}</div>
         </header>
 
-        <section class="command-center">
-            <div class="dashboard-grid">
-                <div>
-                    <div style="text-align:center; margin-bottom: 1rem; font-size: 0.7rem; font-weight: 900; color: var(--muted); letter-spacing: 0.2em;">SENTIMENT PULSE</div>
-                    <div class="gauge-wrap">
-                        <svg viewBox="0 0 200 100" style="width:100%; height:100%;">
-                            <path d="M 20 90 A 80 80 0 0 1 180 90" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="20" />
-                            <path d="M 20 90 A 80 80 0 0 1 180 90" fill="none" stroke="url(#sentiment-grad)" stroke-width="20" stroke-dasharray="251" stroke-dashoffset="${251 - (sentimentScore/100)*251}" />
-                            <defs>
-                                <linearGradient id="sentiment-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" style="stop-color:#ef4444" />
-                                    <stop offset="50%" style="stop-color:#eab308" />
-                                    <stop offset="100%" style="stop-color:#22c55e" />
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                        <div class="gauge-needle"></div>
-                    </div>
-                    <div style="text-align: center; margin-top: 1rem; font-size: 0.8rem; font-weight: 900; color: var(--accent);">${sentimentLabel}</div>
-                </div>
-                <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 2rem;">
-                    <div style="font-size: 0.7rem; color: var(--gold); font-weight: 900; margin-bottom: 0.5rem; letter-spacing: 0.1em;">TERMINAL ALPHA</div>
-                    <div style="font-size: 1rem; color: var(--cream); margin-bottom: 1.5rem;">${isHourly ? 'Intraday technicals synthesized from NSE/BSE and Crypto liquidity streams.' : 'Institutional outlook mapping regulatory shifts against global macro drifts.'}</div>
-                    
-                    <svg width="100%" height="40" viewBox="0 0 100 40" preserveAspectRatio="none">
-                        <path d="${sparkPath}" fill="none" stroke="var(--accent)" stroke-width="2" />
-                    </svg>
-                    <div style="display:flex; justify-content: space-between; font-size: 0.6rem; color: var(--muted); margin-top: 5px;">
-                        <span>L: ${priceInfo.low}</span>
-                        <span style="color:var(--accent)">LAST: ${priceInfo.last}</span>
-                        <span>H: ${priceInfo.high}</span>
-                    </div>
-                </div>
-            </div>
-        </section>
+        <div class="manuscript-body">
+            ${parseMD(content)}
+        </div>
 
-        <div class="content">${parseMD(content)}</div>
-
-        ${finalKit?.pollQuestion ? `
-        <section style="margin: 5rem 0; padding: 3rem; background: rgba(201,168,76,0.05); border: 1px solid var(--gold); border-radius: 16px;">
-            <h3 style="margin-top:0; color:var(--gold); font-family:var(--serif); font-size: 1.8rem;">🗳️ Strategic Poll</h3>
-            <p style="font-size:1.1rem; color:var(--muted); margin-bottom: 2rem;">${finalKit.pollQuestion}</p>
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                ${(finalKit.pollOptions || []).map(opt => `<button class="cta-btn" style="background:rgba(255,255,255,0.05); color:var(--gold); border: 1px solid var(--gold);" onclick="this.style.background='var(--gold)'; this.style.color='var(--navy)'; alert('Vote registered!')">${opt}</button>`).join('')}
-            </div>
-        </section>` : ''}
-
-        <footer class="social-bar">
-            <div>
-                <a href="#" class="cta-btn" onclick="navigator.share({title: '${title}', url: window.location.href})">📤 Share Report</a>
-            </div>
-            <div style="font-size: 0.7rem; color: var(--muted); letter-spacing: 0.1em;">© ${new Date().getFullYear()} BLOGSPRO INTELLIGENCE UNIT</div>
+        <footer style="margin-top: 10rem; padding-top: 3rem; border-top: 1px solid var(--nexus-border); text-align: center;">
+            <p style="font-size: 0.75rem; color: rgba(248, 250, 252, 0.4); letter-spacing: 1px;">
+                © ${new Date().getFullYear()} BLOGSPRO TERMINAL • ALL RIGHTS RESERVED • INSTITUTIONAL USE ONLY
+            </p>
         </footer>
-    </article>
+    </main>
 </body>
 </html>`;
 }
