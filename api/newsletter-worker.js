@@ -1,5 +1,60 @@
 export default {
   async fetch(request, env, ctx) {
+    const jsonResponse = (data, status = 200) =>
+      new Response(JSON.stringify(data), {
+        status,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      });
+
+    // Public calendar proxy for index UI (avoids browser CORS issues)
+    if (request.method === 'GET' && new URL(request.url).pathname === '/calendar') {
+      const extractHighImpact = (xml) => {
+        const events = [...xml.matchAll(/<event>([\s\S]*?)<\/event>/gi)].map((m) => {
+          const body = m[1] || '';
+          const pick = (tag) => {
+            const mm = body.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+            return (mm?.[1] || '').replace(/<!\[CDATA\[|\]\]>/g, '').trim();
+          };
+          return { title: pick('title'), country: pick('country'), impact: pick('impact') };
+        });
+        return events
+          .filter((e) => e.title && e.country && String(e.impact || '').toLowerCase().includes('high'))
+          .slice(0, 10);
+      };
+
+      try {
+        const ffRes = await fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.xml', {
+          headers: {
+            'User-Agent': 'BlogsProCalendarProxy/1.0',
+            'Accept': 'application/xml,text/xml;q=0.9,*/*;q=0.8',
+            'Referer': 'https://www.forexfactory.com/'
+          }
+        });
+        if (ffRes.ok) {
+          const xml = await ffRes.text();
+          const events = extractHighImpact(xml);
+          if (events.length) {
+            return jsonResponse({ status: 'success', source: 'forexfactory', events }, 200);
+          }
+        }
+      } catch (_) {}
+
+      try {
+        const teRes = await fetch('https://api.tradingeconomics.com/calendar?c=guest:guest&f=json');
+        if (!teRes.ok) throw new Error(`TradingEconomics HTTP ${teRes.status}`);
+        const raw = await teRes.json();
+        const events = (Array.isArray(raw) ? raw : [])
+          .filter((e) => e && e.Event && e.Country && Number(e.Importance || 0) >= 2)
+          .slice(0, 10)
+          .map((e) => ({ title: e.Event, country: e.Country, impact: 'High', date: e.Date }));
+        if (events.length) {
+          return jsonResponse({ status: 'success', source: 'tradingeconomics', events }, 200);
+        }
+      } catch (_) {}
+
+      return jsonResponse({ status: 'error', source: 'none', message: 'Calendar feeds unavailable', events: [] }, 503);
+    }
+
     // CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, {
