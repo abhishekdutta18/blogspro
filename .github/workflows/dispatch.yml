@@ -107,3 +107,36 @@ jobs:
           git commit -m "chore: automated dispatch update [skip ci]" || echo "No changes to commit"
           git pull --rebase origin main
           git push
+
+      - name: Social Notification Blast
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_TO: ${{ secrets.TELEGRAM_CHAT_ID }}
+        shell: bash
+        run: |
+          echo "⏳ Waiting 30s for GitHub Pages propagation..."
+          sleep 30
+          
+          FREQ="${{ github.event.inputs.frequency }}"
+          EVENT="${{ github.event_name }}"
+          CRON="${{ github.event.schedule }}"
+
+          # 1. Hourly
+          if [ "$FREQ" == "all" ] || [ "$FREQ" == "hourly" ] || [ "$CRON" == "0 * * * *" ]; then
+            node scripts/notify-telegram.js --freq=hourly
+          fi
+
+          # 2. Daily
+          if [ "$FREQ" == "all" ] || [ "$FREQ" == "daily" ] || [ "$CRON" == "0 03 * * *" ]; then
+            node scripts/notify-telegram.js --freq=daily
+          fi
+
+          # 3. Weekly
+          if [ "$FREQ" == "all" ] || [ "$FREQ" == "weekly" ] || [ "$CRON" == "30 04 * * 0" ]; then
+            node scripts/notify-telegram.js --freq=weekly
+          fi
+
+          # 4. Monthly
+          if [ "$FREQ" == "all" ] || [ "$FREQ" == "monthly" ] || [ "$CRON" == "30 05 1 * *" ]; then
+            node scripts/notify-telegram.js --freq=monthly
+          fi

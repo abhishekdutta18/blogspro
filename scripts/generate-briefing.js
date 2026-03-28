@@ -132,16 +132,6 @@ async function generateBriefing() {
             }).catch(() => {});
         }
 
-        if (process.env.TELEGRAM_TOKEN && process.env.TELEGRAM_TO) {
-            const tgTitle = `📑 *INTELLIGENCE PULSE: ${frequency.toUpperCase()}*`;
-            const tgText = `${tgTitle}\n\n*${title}*\n\n${excerpt}\n\n🔗 Terminal Report: https://blogspro.in/briefings/${frequency}/${fileName}`;
-            
-            await fetchWithTimeout(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ chat_id: process.env.TELEGRAM_TO, text: tgText, parse_mode: "Markdown" })
-            }).catch(() => {});
-        }
-
         console.log(`🏁 Intelligence Pulse Generated: ${fileName}`);
     } catch (e) {
         console.error("❌ Intelligence fail:", e);

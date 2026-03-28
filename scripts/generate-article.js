@@ -126,16 +126,6 @@ async function generateArticle() {
             }).catch(() => {});
         }
 
-        if (process.env.TELEGRAM_TOKEN && process.env.TELEGRAM_TO) {
-            const tgTitle = `📑 *STRATEGIC REPORT: ${frequency.toUpperCase()}*`;
-            const tgText = `${tgTitle}\n\n*${title}*\n\n${excerpt}\n\n🔗 Full Analysis: https://blogspro.in/articles/${frequency}/${fileName}`;
-            
-            await fetchWithTimeout(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ chat_id: process.env.TELEGRAM_TO, text: tgText, parse_mode: "Markdown" })
-            }).catch(() => {});
-        }
-
         console.log(`🏁 Strategic Article Generated: ${fileName}`);
     } catch (e) {
         console.error("❌ Strategic Article fail:", e);
