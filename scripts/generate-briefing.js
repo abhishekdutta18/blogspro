@@ -40,11 +40,17 @@ async function generateBriefing() {
     const prompt = `You are a Senior Fintech Market Analyst for BlogsPro. 
     Write a sharp, institutional-grade ${frequency} market pulse (HTML).
     
-    CRITICAL SEO INSTRUCTIONS:
-    1. Start with exactly one <h2> tag containing a unique, punchy, and keyword-rich title for this specific hour/day (e.g., "Nifty Tests 22K Support Amidst Global Tech Sell-off" instead of "Market Summary").
-    2. Provide a 1-sentence analytical excerpt (max 160 chars) at the very top, wrapped in a <details id="meta-excerpt" style="display:none"> tag.
+    CRITICAL SEO & VISUAL INSTRUCTIONS:
+    1. Start with exactly one <h2> tag containing a unique, punchy title.
+    2. Provide a 1-sentence analytical excerpt wrapped in a <details id="meta-excerpt" style="display:none"> tag.
+    3. MANDATORY: Include a Markdown data table titled "| Metric | Value | Reference |" summarizing at least 4 key stats from the context.
     
     MARKET CONTEXT: ${marketContext}`;
+
+    // Dynamic Symbol Detection
+    let tvSymbol = "NSE:NIFTY";
+    if (frequency === 'hourly' && marketContext.includes('USDINR')) tvSymbol = "FX_IDC:USDINR";
+    if (marketContext.includes('BTC') || marketContext.includes('Crypto')) tvSymbol = "BINANCE:BTCUSDT";
 
     try {
         const content = await askAI(prompt);
@@ -58,7 +64,7 @@ async function generateBriefing() {
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content, dateLabel, 
             finalKit: { audioScript: "Listen to today's sharp market pulse..." }, 
-            type: "briefing", freq: frequency, fileName
+            type: "briefing", freq: frequency, fileName, symbol: tvSymbol
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         

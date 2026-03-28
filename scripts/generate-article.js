@@ -35,11 +35,16 @@ async function generateArticle() {
     const prompt = `You are a Strategic Fintech & Policy Architect for BlogsPro. 
     Write a ${frequency === 'weekly' ? "Weekly Strategic deep-dive" : "Monthly Macro Outlook"} (HTML).
     
-    CRITICAL SEO INSTRUCTIONS:
-    1. Start with exactly one <h2> tag containing a unique, structural title (e.g., "RBI Digital Rupee Pivot: Analyzing the 2026 Sandbox Roadmap").
-    2. Provide a 1-sentence analytical excerpt (max 160 chars) at the very top, wrapped in a <details id="meta-excerpt" style="display:none"> tag.
+    CRITICAL SEO & VISUAL INSTRUCTIONS:
+    1. Start with exactly one <h2> tag containing a unique, structural title.
+    2. Provide a 1-sentence analytical excerpt wrapped in a <details id="meta-excerpt" style="display:none"> tag.
+    3. MANDATORY: Include a Markdown data table titled "| Variable | Value | Status |" summarizing at least 5 data points.
     
     REGULATORY DATA: ${regulatoryContext}`;
+
+    // Dynamic Symbol Detection
+    let tvSymbol = "NSE:NIFTY";
+    if (regulatoryContext.includes('G-Sec') || regulatoryContext.includes('Bond')) tvSymbol = "CCIL:IND10Y";
 
     try {
         const content = await askAI(prompt);
@@ -53,7 +58,7 @@ async function generateArticle() {
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content, dateLabel, 
             finalKit: { audioScript: "Listen to this week's strategic deep-dive..." }, 
-            type: "article", freq: frequency, fileName
+            type: "article", freq: frequency, fileName, symbol: tvSymbol
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         

@@ -2,7 +2,7 @@ const path = require("path");
 
 function parseMD(md) {
     if (!md) return "";
-    return md
+    let html = md
         .replace(/### (.*$)/gim, '<h3>$1</h3>')
         .replace(/## (.*$)/gim, '<h2>$1</h2>')
         .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
@@ -10,9 +10,21 @@ function parseMD(md) {
         .replace(/^\- (.*$)/gim, '<li>$1</li>')
         .replace(/\n\n/gim, '</p><p>')
         .replace(/<li>/g, '<ul><li>').replace(/<\/li>/g, '</li></ul>').replace(/<\/ul><ul>/g, '');
+
+    // Advanced Table Parsing (Markdown -> HTML)
+    const tableRegex = /\|(.+)\|\n\|([\s\-\|]+)\|\n((\|.+\|\n)+)/g;
+    html = html.replace(tableRegex, (match, header, separator, body) => {
+        const headers = header.split('|').map(h => h.trim()).filter(h => h).map(h => `<th>${h}</th>`).join('');
+        const rows = body.trim().split('\n').map(row => {
+            const cols = row.split('|').map(c => c.trim()).filter(c => c).map(c => `<td>${c}</td>`).join('');
+            return `<tr>${cols}</tr>`;
+        }).join('');
+        return `<div class="table-container"><table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    });
+    return html;
 }
 
-function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, freq, fileName, rel = "../../" }) {
+function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, freq, fileName, rel = "../../", symbol = "NSE:NIFTY" }) {
     const canonical = `https://blogspro.in/${type === 'post' ? 'posts/' : (type + 's/' + freq + '/')}${fileName || (type + '-' + new Date().toISOString().split('T')[0] + '.html')}`;
     
     return `<!DOCTYPE html>
@@ -65,9 +77,14 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
         h1 { font-family: var(--serif); font-size: clamp(2.2rem, 5vw, 3.8rem); line-height: 1.1; margin-bottom: 1.5rem; }
         .content h2 { font-family: var(--serif); color: var(--gold); font-size: 2rem; margin: 3.5rem 0 1.2rem; border-left: 4px solid var(--gold); padding-left: 1rem; }
         .content h3 { font-family: var(--serif); color: var(--gold2); font-size: 1.5rem; margin: 2.5rem 0 1rem; }
-        .content table { width: 100%; border-collapse: collapse; margin: 2rem 0; font-size: 0.95rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(201,168,76,0.1); }
-        .content th { background: rgba(201,168,76,0.1); color: var(--gold); text-align: left; padding: 0.8rem 1rem; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; border-bottom: 2px solid var(--gold); }
-        .content td { padding: 0.8rem 1rem; border-bottom: 1px solid rgba(201,168,76,0.05); }
+        .content table { width: 100%; border-collapse: collapse; margin: 2rem 0; font-size: 0.95rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(201,168,76,0.1); border-radius: 8px; overflow: hidden; }
+        .content th { background: rgba(201,168,76,0.1); color: var(--gold); text-align: left; padding: 1rem; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; border-bottom: 2px solid var(--gold); }
+        .content td { padding: 1rem; border-bottom: 1px solid rgba(201,168,76,0.05); }
+        .content tr:nth-child(even) { background: rgba(255,255,255,0.01); }
+        .content tr:hover { background: rgba(201,168,76,0.05); }
+        .table-container { overflow-x: auto; margin: 2rem 0; border-radius: 8px; border: 1px solid rgba(201,168,76,0.1); }
+        .sentiment-gauge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; background: rgba(201,168,76,0.1); border-radius: 20px; font-size: 0.8rem; font-weight: 700; color: var(--gold); margin-bottom: 2rem; }
+        .chart-container { width: 100%; height: 400px; margin: 2.5rem 0; background: #131722; border-radius: 12px; border: 1px solid rgba(201,168,76,0.1); overflow: hidden; }
         .audio-summary { margin: 3rem 0; padding: 2rem; background: rgba(201,168,76,0.05); border: 1px solid var(--gold); border-radius: 12px; }
         .audio-player { width: 100%; margin-top: 1rem; filter: sepia(20%) saturate(70%) grayscale(1) contrast(99%) invert(12%); }
         .share-btn { background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); color: var(--gold); padding: 0.6rem 1.2rem; border-radius: 4px; font-size: 0.85rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: 0.2s; }
@@ -82,10 +99,51 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
     </nav>
     <article class="article-container">
         <header>
+            <div class="sentiment-gauge">
+                <span>📈 MARKET SENTIMENT: BULLISH</span>
+            </div>
             <span class="meta">${type.toUpperCase()} • ${dateLabel}</span>
             <h1>${title}</h1>
             <p style="font-size:1.2rem;color:var(--muted);font-style:italic;">${excerpt}</p>
         </header>
+
+        <!-- TradingView Chart Widget -->
+        <div class="chart-container">
+            <div class="tradingview-widget-container" style="height:100%;width:100%">
+                <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
+                {
+                "symbols": [ [ "${symbol}|1D" ] ],
+                "chartOnly": false,
+                "width": "100%",
+                "height": "100%",
+                "locale": "en",
+                "colorTheme": "dark",
+                "autosize": true,
+                "showVolume": false,
+                "showMA": false,
+                "hideDateRanges": false,
+                "hideMarketStatus": false,
+                "hideSymbolLogo": false,
+                "scalePosition": "right",
+                "scaleMode": "Normal",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
+                "fontSize": "10",
+                "noOverlays": false,
+                "valuesTracking": "1",
+                "changeMode": "price-and-percent",
+                "chartType": "area",
+                "maLineColor": "#2962FF",
+                "maLineWidth": 1,
+                "maLength": 9,
+                "headerFontSize": "medium",
+                "lineWidth": 2,
+                "lineType": 0,
+                "dateRanges": [ "1d", "1m", "3m", "12m", "all" ]
+                }
+                </script>
+            </div>
+        </div>
         ${finalKit?.audioScript ? `
         <div class="audio-summary">
             <h3 style="margin-top:0;color:var(--gold);">🔊 AI Audio Summary</h3>
