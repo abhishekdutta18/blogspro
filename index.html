@@ -340,6 +340,9 @@
     }
     .qoq-bars {
       min-height: 0;
+      height: 128px;
+      max-height: 128px;
+      overflow: hidden;
       border: 1px solid rgba(136,150,179,0.2);
       border-radius: 4px;
       padding: 0.4rem;
@@ -347,13 +350,13 @@
     }
     .qoq-chart-wrap {
       width: 100%;
-      height: 110px;
-      max-height: 110px;
+      height: 100px;
+      max-height: 100px;
     }
     .qoq-chart-wrap canvas {
       width: 100% !important;
-      height: 110px !important;
-      max-height: 110px !important;
+      height: 100px !important;
+      max-height: 100px !important;
       display: block;
     }
     .linechart-wrap {
@@ -1937,8 +1940,12 @@
       const histData = history.map((s) => s.value);
       const forecastData = forecastPoint ? [...Array(Math.max(0, history.length - 1)).fill(null), history[history.length - 1].value, forecastPoint.value] : [];
       qoqBarsEl.innerHTML = '<div class="qoq-chart-wrap"><canvas id="indiaQoqCanvas"></canvas></div>';
+      qoqBarsEl.style.height = '128px';
+      qoqBarsEl.style.maxHeight = '128px';
       const canvas = document.getElementById('indiaQoqCanvas');
       if (!canvas) return false;
+      canvas.height = 100;
+      canvas.style.height = '100px';
       if (indiaQoqChart) indiaQoqChart.destroy();
       indiaQoqChart = new Chart(canvas.getContext('2d'), {
         type: 'line',
@@ -1982,10 +1989,6 @@
           }
         }
       });
-      const noteEl = document.createElement('div');
-      noteEl.className = 'linechart-note';
-      noteEl.textContent = 'Historical line: last 12 months by quarter. Dotted extension: next-quarter forecast.';
-      qoqBarsEl.appendChild(noteEl);
       return true;
     };
     const renderQoq = (event) => {
