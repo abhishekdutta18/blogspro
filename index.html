@@ -648,6 +648,30 @@
       text-transform: uppercase;
       font-weight: 600;
     }
+    .market-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.35rem;
+    }
+    .market-status {
+      font-size: 0.5rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid rgba(136,150,179,0.35);
+      border-radius: 999px;
+      padding: 0.08rem 0.35rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .market-status.live {
+      color: #86efac;
+      border-color: rgba(134,239,172,0.5);
+    }
+    .market-status.closed {
+      color: #fca5a5;
+      border-color: rgba(252,165,165,0.5);
+    }
     .market-code {
       font-size: 0.55rem;
       color: var(--muted);
@@ -1623,6 +1647,28 @@
         dedup.push(it);
       }
       items = padCards(dedup, segmentKey);
+      const isIndiaMarketHours = () => {
+        const d = new Date();
+        const parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Kolkata',
+          weekday: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }).formatToParts(d);
+        const wd = parts.find((p) => p.type === 'weekday')?.value || '';
+        const hh = Number(parts.find((p) => p.type === 'hour')?.value || '0');
+        const mm = Number(parts.find((p) => p.type === 'minute')?.value || '0');
+        const mins = hh * 60 + mm;
+        const isWeekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(wd);
+        return isWeekday && mins >= (9 * 60 + 15) && mins <= (15 * 60 + 30);
+      };
+      const tradingStatus = (c, key) => {
+        if (key === 'crypto') return { label: 'Live', cls: 'live' };
+        const vol = Number(c.volume);
+        if (Number.isFinite(vol) && vol > 0) return { label: 'Live', cls: 'live' };
+        return isIndiaMarketHours() ? { label: 'Live', cls: 'live' } : { label: 'Not Trading', cls: 'closed' };
+      };
       const detailText = (c, key) => {
         const open = Number.isFinite(Number(c.open)) ? Number(c.open) : NaN;
         const high = Number.isFinite(Number(c.high)) ? Number(c.high) : NaN;
@@ -1644,9 +1690,13 @@
         const sign = isUp ? '+' : '';
         const symbolText = String(c.symbol || '--').replace(/</g, '&lt;');
         const codeText = symbolText.replace(/[^A-Za-z0-9]/g, '').slice(0, 10) || '--';
+        const st = tradingStatus(c, segmentKey);
         return `
           <div class="market-row">
-            <div class="market-symbol">${symbolText}</div>
+            <div class="market-top">
+              <div class="market-symbol">${symbolText}</div>
+              <div class="market-status ${st.cls}">${st.label}</div>
+            </div>
             <div class="market-code">SYM ${codeText}</div>
             <div class="market-price">${fmtNum(c.price)}</div>
             <div class="market-change ${isUp ? 'up' : 'down'}">${sign}${Number(c.change || 0).toFixed(2)}%</div>
@@ -1672,8 +1722,12 @@
           crypto: [],
         };
         const data = qJson?.data || {};
+        const seenIngest = new Set();
         for (const [instrument, val] of Object.entries(data)) {
           const symbol = instrument.split(':')[1] || instrument.split('|')[1] || instrument;
+          const keySym = String(symbol || '').trim().toUpperCase();
+          if (!keySym || seenIngest.has(keySym)) continue;
+          seenIngest.add(keySym);
           const last = Number(val?.last_price ?? val?.ltp ?? val?.ohlc?.close);
           const prev = Number(val?.ohlc?.close ?? val?.prev_close_price ?? 0);
           if (!Number.isFinite(last)) continue;
