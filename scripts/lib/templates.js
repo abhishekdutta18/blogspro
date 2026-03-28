@@ -169,8 +169,6 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
                     </div>
                 </div>
             </div>
-
-            </div>
         </section>
 
         <div class="content">${parseMD(content)}</div>

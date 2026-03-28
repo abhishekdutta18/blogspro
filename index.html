@@ -2925,6 +2925,7 @@
   }
 
   (async () => {
+    initIntelHub(); // Priority init for guests
     await loadSiteSettings().catch(() => false);
     const postsOk = await loadPosts().catch(() => false);
     const aboutOk = await loadAbout().catch(() => false);
