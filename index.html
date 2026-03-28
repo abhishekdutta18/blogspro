@@ -339,35 +339,61 @@
       font-weight: 600;
     }
     .qoq-bars {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 0.45rem;
-      align-items: end;
-      min-height: 120px;
+      min-height: 220px;
       border: 1px solid rgba(136,150,179,0.2);
       border-radius: 4px;
       padding: 0.5rem;
       background: rgba(8,13,26,0.35);
     }
-    .qoq-col {
-      display: grid;
-      justify-items: center;
-      gap: 0.25rem;
-    }
-    .qoq-bar-wrap {
+    .linechart-wrap {
       width: 100%;
-      height: 72px;
       display: grid;
-      align-items: end;
+      gap: 0.35rem;
     }
-    .qoq-bar {
+    .linechart-svg {
       width: 100%;
-      border-radius: 4px 4px 2px 2px;
-      background: linear-gradient(180deg, var(--gold), #d8b95e);
-      min-height: 6px;
+      height: 190px;
+      display: block;
     }
-    .qoq-lbl { font-size: 0.58rem; color: var(--muted); letter-spacing: 0.05em; }
-    .qoq-val { font-size: 0.62rem; color: var(--cream); font-weight: 600; }
+    .line-axis {
+      stroke: rgba(136,150,179,0.35);
+      stroke-width: 1;
+    }
+    .line-grid {
+      stroke: rgba(136,150,179,0.18);
+      stroke-width: 1;
+      stroke-dasharray: 2 2;
+    }
+    .line-path {
+      fill: none;
+      stroke: var(--gold);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .line-point {
+      fill: #e9d08a;
+      stroke: #080d1a;
+      stroke-width: 1.25;
+    }
+    .line-point-label {
+      font-size: 10px;
+      fill: var(--cream);
+      font-weight: 600;
+    }
+    .line-tick-text {
+      font-size: 10px;
+      fill: var(--muted);
+    }
+    .line-x-label {
+      font-size: 10px;
+      fill: var(--muted);
+    }
+    .linechart-note {
+      font-size: 0.6rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
     .calendar-skeleton {
       list-style: none;
       margin: 0;
@@ -1061,9 +1087,9 @@
       </div>
     </div>
     <div class="india-qoq-panel">
-      <div class="india-qoq-title" id="indiaQoqTitle">India Event Value Chart</div>
+      <div class="india-qoq-title" id="indiaQoqTitle">India QoQ Historical Trend</div>
       <div class="qoq-bars" id="indiaQoqBars">
-        <div class="calendar-empty">Click an India event card to view value comparison.</div>
+        <div class="calendar-empty">Click an India event card to view QoQ line trend.</div>
       </div>
     </div>
   </div>
@@ -1683,35 +1709,97 @@
 
       return { holdProb, cutProb, hikeProb, inrPressure, confidence, topSector, topSurprises, sectorHits, weekdayHits, regimeTag, thresholdAlert, breadth };
     };
-    const buildEventValueSeries = (event) => {
-      const prev = numFrom(event.previous);
-      const fcst = numFrom(event.forecast);
-      const act = numFrom(event.actual);
-      const series = [];
-      if (Number.isFinite(prev)) series.push({ label: 'Previous', value: prev });
-      if (Number.isFinite(fcst)) series.push({ label: 'Forecast', value: fcst });
-      if (Number.isFinite(act)) series.push({ label: 'Actual', value: act });
-      if (Number.isFinite(act) && Number.isFinite(fcst)) {
-        series.push({ label: 'Surprise', value: act - fcst });
+    const quarterLabel = (ts) => {
+      const d = new Date(ts);
+      if (Number.isNaN(d.getTime())) return 'Q? ----';
+      const q = Math.floor(d.getMonth() / 3) + 1;
+      return `Q${q} ${d.getFullYear()}`;
+    };
+    const eventSeriesValue = (e) => {
+      const a = numFrom(e.actual);
+      if (Number.isFinite(a)) return a;
+      const f = numFrom(e.forecast);
+      if (Number.isFinite(f)) return f;
+      const p = numFrom(e.previous);
+      if (Number.isFinite(p)) return p;
+      return NaN;
+    };
+    const buildQoqHistorySeries = (event, allEvents) => {
+      const titleKey = String(event.title || '').trim().toLowerCase();
+      const related = allEvents
+        .filter((e) => String(e.title || '').trim().toLowerCase() === titleKey)
+        .map((e) => {
+          const ts = new Date(e.date || e.Date || e.datetime || 0).getTime();
+          return { ts, value: eventSeriesValue(e) };
+        })
+        .filter((x) => Number.isFinite(x.ts) && Number.isFinite(x.value))
+        .sort((a, b) => a.ts - b.ts);
+
+      const byQuarter = new Map();
+      for (const row of related) {
+        byQuarter.set(quarterLabel(row.ts), row);
       }
-      return series;
+      let points = Array.from(byQuarter.entries()).map(([label, row]) => ({ label, value: row.value, ts: row.ts }));
+      points.sort((a, b) => a.ts - b.ts);
+
+      if (points.length < 4) {
+        const currTs = new Date(event.date || Date.now()).getTime();
+        const prev = numFrom(event.previous);
+        const fcst = numFrom(event.forecast);
+        const act = numFrom(event.actual);
+        const fallback = [];
+        if (Number.isFinite(prev)) fallback.push({ ts: currTs - (91 * 24 * 3600 * 1000), value: prev, label: quarterLabel(currTs - (91 * 24 * 3600 * 1000)) });
+        if (Number.isFinite(fcst)) fallback.push({ ts: currTs - (10 * 24 * 3600 * 1000), value: fcst, label: quarterLabel(currTs) });
+        if (Number.isFinite(act)) fallback.push({ ts: currTs, value: act, label: quarterLabel(currTs) });
+        points = fallback;
+      }
+      return points.slice(-6);
+    };
+    const svgLineChart = (series) => {
+      const w = 640; const h = 190;
+      const pad = { l: 48, r: 12, t: 12, b: 34 };
+      const innerW = w - pad.l - pad.r;
+      const innerH = h - pad.t - pad.b;
+      const min = Math.min(...series.map((s) => s.value));
+      const max = Math.max(...series.map((s) => s.value));
+      const span = Math.max(1e-6, max - min);
+      const yMin = min - (span * 0.1);
+      const yMax = max + (span * 0.1);
+      const ySpan = Math.max(1e-6, yMax - yMin);
+      const x = (i) => pad.l + ((innerW * i) / Math.max(1, series.length - 1));
+      const y = (v) => pad.t + (innerH * (1 - ((v - yMin) / ySpan)));
+      const pts = series.map((s, i) => `${x(i)},${y(s.value)}`).join(' ');
+      const ticks = [0, 1, 2, 3, 4].map((i) => {
+        const v = yMin + ((ySpan * i) / 4);
+        const py = y(v);
+        return { v, py };
+      });
+      return `
+        <div class="linechart-wrap">
+          <svg class="linechart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="QoQ historical line chart">
+            ${ticks.map((t) => `<line class="line-grid" x1="${pad.l}" y1="${t.py}" x2="${w - pad.r}" y2="${t.py}"></line>`).join('')}
+            <line class="line-axis" x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${h - pad.b}"></line>
+            <line class="line-axis" x1="${pad.l}" y1="${h - pad.b}" x2="${w - pad.r}" y2="${h - pad.b}"></line>
+            <polyline class="line-path" points="${pts}"></polyline>
+            ${series.map((s, i) => `
+              <circle class="line-point" cx="${x(i)}" cy="${y(s.value)}" r="3"></circle>
+              <text class="line-point-label" x="${x(i)}" y="${y(s.value) - 7}" text-anchor="middle">${fmtNum(s.value)}</text>
+              <text class="line-x-label" x="${x(i)}" y="${h - 14}" text-anchor="middle">${esc(s.label)}</text>
+            `).join('')}
+            ${ticks.map((t) => `<text class="line-tick-text" x="${pad.l - 6}" y="${t.py + 3}" text-anchor="end">${fmtNum(t.v)}</text>`).join('')}
+          </svg>
+        </div>
+      `;
     };
     const renderQoq = (event) => {
-      const series = buildEventValueSeries(event);
+      const series = buildQoqHistorySeries(event, indiaCalendarRaw);
       if (!series.length) {
-        qoqTitleEl.textContent = `India Event Value Chart · ${event.title || 'Selected Event'}`;
+        qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
         qoqBarsEl.innerHTML = '<div class="calendar-empty">No numeric values available for this event.</div>';
         return;
       }
-      const maxAbs = Math.max(...series.map((s) => Math.abs(s.value)), 1);
-      qoqTitleEl.textContent = `India Event Value Chart · ${event.title || 'Selected Event'}`;
-      qoqBarsEl.innerHTML = series.map((s) => `
-        <div class="qoq-col">
-          <div class="qoq-val">${fmtNum(s.value)}</div>
-          <div class="qoq-bar-wrap"><div class="qoq-bar" style="height:${Math.max(6, Math.round((Math.abs(s.value) / maxAbs) * 72))}px;opacity:${s.value < 0 ? 0.7 : 1}"></div></div>
-          <div class="qoq-lbl">${s.label}</div>
-        </div>
-      `).join('');
+      qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
+      qoqBarsEl.innerHTML = `${svgLineChart(series)}<div class="linechart-note">Quarterly line uses available historical and latest release values for this event.</div>`;
     };
 
     const render = () => {
@@ -1832,8 +1920,8 @@
     gaugeNoteEl.textContent = 'Macro inputs unavailable';
     sectorBarsEl.innerHTML = '<div class="sector-row"><div class="sector-label">Banks</div><div class="sector-track"><div class="sector-fill" style="width:0%"></div></div></div>';
     explainEl.innerHTML = '<div><b>Desk Snapshot:</b> waiting for India macro feed to calculate detailed diagnostics.</div>';
-    qoqTitleEl.textContent = 'India Event Value Chart';
-    qoqBarsEl.innerHTML = '<div class="calendar-empty">Value chart unavailable until events load.</div>';
+    qoqTitleEl.textContent = 'India QoQ Historical Trend';
+    qoqBarsEl.innerHTML = '<div class="calendar-empty">QoQ line chart unavailable until events load.</div>';
     return false;
   }
 
