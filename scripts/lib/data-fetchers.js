@@ -18,18 +18,76 @@ async function fetchWithTimeout(url, options = {}, timeout = 10000) {
 }
 
 async function fetchEconomicCalendar() {
+    const urls = [
+        "https://nfs.faireconomy.media/ff_calendar_thisweek.xml",
+        "https://nfs.faireconomy.media/ff_calendar_thismonth.xml",
+        "https://nfs.forexfactory.com/ff_calendar_thisweek.xml"
+    ];
     try {
-        const response = await fetch("https://nfs.forexfactory.com/ff_calendar_thisweek.xml");
-        const xmlData = await response.text();
-        const parser = new XMLParser();
-        const jsonObj = parser.weeklycalendar.event || [];
-        const events = Array.isArray(jsonObj) ? jsonObj : [jsonObj];
-        const highImpact = events.filter(e => e.impact === 'High');
+        let xmlData = "";
+        let lastErr = null;
+        for (const url of urls) {
+            try {
+                const response = await fetchWithTimeout(url, {}, 12000);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                xmlData = await response.text();
+                if (xmlData && xmlData.includes("<event>")) break;
+            } catch (e) {
+                lastErr = e;
+            }
+        }
+
+        if (!xmlData) throw (lastErr || new Error("ForexFactory calendar unavailable"));
+
+        const parser = new XMLParser({ ignoreAttributes: false, trimValues: true });
+        const parsed = parser.parse(xmlData) || {};
+        const jsonObj =
+            parsed?.weeklyevents?.event ||
+            parsed?.weeklycalendar?.event ||
+            parsed?.economiccalendar?.event ||
+            [];
+        const events = Array.isArray(jsonObj) ? jsonObj : (jsonObj ? [jsonObj] : []);
+        const highImpact = events.filter(e => String(e?.impact || "").toLowerCase().includes("high"));
+
+        if (!highImpact.length) {
+            return { text: "High Impact Events: None detected from current feed.", raw: [] };
+        }
+
         return { 
-            text: `High Impact Events: ${highImpact.slice(0, 10).map(e => `${e.event} (${e.country})`).join(', ')}`,
+            text: `High Impact Events: ${highImpact.slice(0, 10).map(e => `${e.title || e.event || "Event"} (${e.country || "N/A"})`).join(', ')}`,
             raw: highImpact.slice(0, 10)
         };
-    } catch (err) { return { text: "Calendar: Unavailable.", raw: [] }; }
+    } catch (err) {
+        // Fallback: TradingEconomics guest calendar feed
+        // This keeps pipeline continuity when ForexFactory rate-limits (HTTP 429)
+        // or DNS for legacy hosts fails.
+        try {
+            const teRes = await fetchWithTimeout("https://api.tradingeconomics.com/calendar?c=guest:guest&f=json", {}, 12000);
+            if (!teRes.ok) throw new Error(`TradingEconomics HTTP ${teRes.status}`);
+            const teJson = await teRes.json();
+            const list = Array.isArray(teJson) ? teJson : [];
+            const normalized = list
+                .filter(i => i && i.Event && i.Country)
+                .map(i => ({
+                    title: i.Event,
+                    country: i.Country,
+                    impact: Number(i.Importance || 0) >= 2 ? "High" : "Medium",
+                    date: i.Date
+                }))
+                .filter(i => i.impact === "High")
+                .slice(0, 10);
+
+            if (!normalized.length) {
+                return { text: "Calendar: Unavailable.", raw: [] };
+            }
+            return {
+                text: `High Impact Events: ${normalized.map(e => `${e.title} (${e.country})`).join(', ')}`,
+                raw: normalized
+            };
+        } catch (_) {
+            return { text: "Calendar: Unavailable.", raw: [] };
+        }
+    }
 }
 
 async function fetchMultiAssetData() {
