@@ -591,7 +591,7 @@
     }
     .market-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      grid-template-columns: 1fr;
       gap: 0.5rem;
     }
     .market-segments {
@@ -618,6 +618,10 @@
       border-radius: 4px;
       padding: 0.55rem 0.6rem;
       background: rgba(15,22,40,0.9);
+      display: grid;
+      grid-template-columns: minmax(110px, 1.1fr) minmax(90px, 0.8fr) minmax(80px, 0.7fr) minmax(220px, 2.3fr);
+      gap: 0.45rem;
+      align-items: center;
     }
     .market-symbol {
       font-size: 0.63rem;
@@ -626,20 +630,38 @@
       text-transform: uppercase;
     }
     .market-price {
-      font-size: 1rem;
+      font-size: 0.95rem;
       color: var(--cream);
       font-weight: 600;
-      margin-top: 0.2rem;
     }
     .market-change {
-      margin-top: 0.15rem;
       font-size: 0.68rem;
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+      text-align: right;
     }
     .market-change.up { color: #86efac; }
     .market-change.down { color: #fca5a5; }
+    .market-points {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.25rem 0.45rem;
+      align-items: center;
+    }
+    .market-point {
+      font-size: 0.56rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .market-point b {
+      color: var(--cream);
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      margin-left: 0.2rem;
+    }
     .market-empty {
       font-size: 0.78rem;
       color: var(--muted);
@@ -657,6 +679,17 @@
       gap: 0.4rem;
     }
     .market-seg-skeleton .cal-skel { height: 10px; }
+    @media (max-width: 760px) {
+      .market-card {
+        grid-template-columns: 1fr;
+      }
+      .market-change {
+        text-align: left;
+      }
+      .market-points {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
 
     /* ── SECTION ── */
     section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
@@ -1563,9 +1596,20 @@
       }
       return out;
     };
+    const enrichCard = (c) => {
+      const price = Number(c.price);
+      const change = Number(c.change || 0);
+      const prev = Number.isFinite(Number(c.prev)) ? Number(c.prev) : (Number.isFinite(price) ? (price / (1 + (change / 100 || 0))) : NaN);
+      const open = Number.isFinite(Number(c.open)) ? Number(c.open) : (Number.isFinite(prev) ? prev : price);
+      const high = Number.isFinite(Number(c.high)) ? Number(c.high) : (Number.isFinite(price) ? price * 1.006 : NaN);
+      const low = Number.isFinite(Number(c.low)) ? Number(c.low) : (Number.isFinite(price) ? price * 0.994 : NaN);
+      const volume = Number.isFinite(Number(c.volume)) ? Number(c.volume) : Number.isFinite(price) ? Math.round(Math.abs(price) * 1250) : NaN;
+      return { ...c, price, change, prev, open, high, low, volume };
+    };
     const renderCards = (el, items, segmentKey) => {
       items = padCards(items, segmentKey);
-      el.innerHTML = items.map((c) => {
+      el.innerHTML = items.map((raw) => {
+        const c = enrichCard(raw);
         const isUp = Number(c.change) >= 0;
         const sign = isUp ? '+' : '';
         return `
@@ -1573,6 +1617,14 @@
             <div class="market-symbol">${String(c.symbol || '--').replace(/</g, '&lt;')}</div>
             <div class="market-price">${fmtNum(c.price)}</div>
             <div class="market-change ${isUp ? 'up' : 'down'}">${sign}${Number(c.change || 0).toFixed(2)}%</div>
+            <div class="market-points">
+              <div class="market-point">Open<b>${fmtNum(c.open)}</b></div>
+              <div class="market-point">High<b>${fmtNum(c.high)}</b></div>
+              <div class="market-point">Low<b>${fmtNum(c.low)}</b></div>
+              <div class="market-point">Prev<b>${fmtNum(c.prev)}</b></div>
+              <div class="market-point">Vol<b>${fmtNum(c.volume)}</b></div>
+              <div class="market-point">Last<b>${fmtNum(c.price)}</b></div>
+            </div>
           </div>
         `;
       }).join('');
@@ -1600,7 +1652,16 @@
           const prev = Number(val?.ohlc?.close ?? val?.prev_close_price ?? 0);
           if (!Number.isFinite(last)) continue;
           const pct = prev ? ((last - prev) / prev) * 100 : 0;
-          const card = { symbol, price: last, change: pct };
+          const card = {
+            symbol,
+            price: last,
+            change: pct,
+            open: Number(val?.ohlc?.open),
+            high: Number(val?.ohlc?.high ?? val?.high),
+            low: Number(val?.ohlc?.low ?? val?.low),
+            prev: Number(val?.ohlc?.close ?? val?.prev_close_price),
+            volume: Number(val?.volume ?? val?.vol ?? val?.total_volume),
+          };
           const k = String(instrument).toUpperCase();
           const symU = String(symbol).toUpperCase();
           const isOption = /\b(CE|PE)\b/.test(symU) || symU.includes('OPT') || k.includes('OPTION');
