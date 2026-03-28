@@ -33,6 +33,7 @@ jobs:
     needs: deploy
     if: failure()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Send Telegram Failure Alert
         env:

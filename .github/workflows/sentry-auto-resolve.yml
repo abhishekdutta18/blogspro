@@ -8,6 +8,7 @@ on:
 jobs:
   auto-resolve:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       issues: write
       contents: read
@@ -17,6 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
           
       - name: Pull Unresolved Sentry Issues
         env:
