@@ -302,15 +302,19 @@
       margin: 0;
       padding: 0;
       display: grid;
-      gap: 0.3rem;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.45rem;
     }
     .calendar-past-item {
+      background: rgba(15,22,40,0.85);
+      border: 1px solid rgba(136,150,179,0.18);
+      border-radius: 4px;
+      padding: 0.55rem;
+      display: grid;
+      gap: 0.3rem;
+      min-height: 90px;
       font-size: 0.7rem;
       color: var(--muted);
-      display: grid;
-      grid-template-columns: 84px 1fr 170px;
-      gap: 0.45rem;
-      align-items: center;
     }
     .cal-skel {
       height: 11px;
@@ -348,15 +352,21 @@
       flex-wrap: wrap;
     }
     .calendar-item {
+      background: rgba(15,22,40,0.95);
+      border: 1px solid rgba(136,150,179,0.22);
+      border-radius: 4px;
+      padding: 0.65rem;
       display: grid;
-      grid-template-columns: 84px 1fr 170px 52px;
-      gap: 0.6rem;
-      align-items: center;
+      gap: 0.4rem;
+      min-height: 122px;
       font-size: 0.78rem;
-      padding: 0.38rem 0;
-      border-top: 1px solid rgba(136,150,179,0.15);
     }
-    .calendar-item:first-child { border-top: 0; }
+    .calendar-item-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.4rem;
+    }
     .calendar-country {
       font-size: 0.66rem;
       letter-spacing: 0.11em;
@@ -366,18 +376,17 @@
     }
     .calendar-title {
       color: var(--cream);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: normal;
+      overflow: visible;
     }
     .calendar-date {
       font-size: 0.68rem;
       color: var(--muted);
       letter-spacing: 0.04em;
-      text-align: right;
+      text-align: left;
     }
     .calendar-impact {
-      text-align: right;
+      text-align: left;
       font-size: 0.62rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -703,7 +712,6 @@
       .feed-status-wrap { padding: 0.75rem 1rem 0; }
       .market-wrap { padding: 0.75rem 1rem 0; }
       .calendar-layout { grid-template-columns: 1fr; }
-      .calendar-item { grid-template-columns: 68px 1fr; }
       .calendar-date, .calendar-impact { text-align: left; }
     }
   </style>
@@ -1137,10 +1145,12 @@
       } else {
         listEl.innerHTML = events.map((e) => `
             <li class="calendar-item">
-              <span class="calendar-country">${esc(e.country || 'FX')}</span>
+              <div class="calendar-item-head">
+                <span class="calendar-country">${esc(e.country || 'FX')}</span>
+                <span class="calendar-impact">${esc(e.impact || 'High')}</span>
+              </div>
               <span class="calendar-title">${esc(e.title || 'Untitled event')}<span class="calendar-view">${esc(analystView(e))}</span></span>
               <span class="calendar-date">${fmtDate(e.date || e.Date || e.datetime, tzMode)}</span>
-              <span class="calendar-impact">${esc(e.impact || 'High')}</span>
             </li>
           `).join('');
       }
@@ -1149,8 +1159,11 @@
       } else {
         pastListEl.innerHTML = pastEvents.map((e) => `
           <li class="calendar-past-item">
-            <span class="calendar-country">${esc(e.country || 'FX')}</span>
-            <span>${esc(e.title || 'Untitled event')}</span>
+            <div class="calendar-item-head">
+              <span class="calendar-country">${esc(e.country || 'FX')}</span>
+              <span class="calendar-impact">${esc(e.impact || 'High')}</span>
+            </div>
+            <span class="calendar-title">${esc(e.title || 'Untitled event')}</span>
             <span class="calendar-date">${fmtDate(e.date || e.Date || e.datetime, tzMode)}</span>
           </li>
         `).join('');
