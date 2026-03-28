@@ -43,7 +43,11 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        shell: bash
+        run: |
+          node -v
+          npm -v
+          npm install
 
       - name: Execute Autonomous Briefings
         env:
@@ -58,7 +62,10 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_TO: ${{ secrets.TELEGRAM_CHAT_ID }}
           NOTIFICATION_WEBHOOK: ${{ secrets.WEBHOOK_SECRET }}
+        shell: bash
         run: |
+          echo "Current Directory: $(pwd)"
+          node -v
           FREQ="${{ github.event.inputs.frequency }}"
           EVENT="${{ github.event_name }}"
           CRON="${{ github.event.schedule }}"
@@ -88,9 +95,11 @@ jobs:
           fi
 
       - name: Update Sitemap
+        shell: bash
         run: node scripts/generate-sitemap.js
 
       - name: Commit and Push
+        shell: bash
         run: |
           git config --global user.name "BlogsPro Bot"
           git config --global user.email "bot@blogspro.in"
