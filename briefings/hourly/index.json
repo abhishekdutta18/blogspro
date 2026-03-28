@@ -1,5 +1,12 @@
 [
   {
+    "title": "Market Data Summary",
+    "date": "2026-03-28",
+    "fileName": "briefing-2026-03-28.html",
+    "type": "briefing",
+    "frequency": "hourly"
+  },
+  {
     "title": "Market Summary",
     "date": "2026-03-28",
     "fileName": "briefing-2026-03-28.html",
