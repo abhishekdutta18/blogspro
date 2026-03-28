@@ -4,21 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Market Turbulence: Navigating the Bearish Trend — BlogsPro BRIEFING</title>
-    <meta name="description" content="The current market sentiment is bearish, with the NIFTY trending downwards by 2.09%, indicating a potential correction in the market.">
+    <meta name="description" content="The current market sentiment is bearish, with the NIFTY trending downwards by 2.09%, indicating a potential correction in the market, and investors should exercise caution and consider diversifying their portfolios to mitigate risks.">
     <link rel="canonical" href="https://blogspro.in/briefings/hourly/briefing-2026-03-28.html">
     
     <!-- OpenGraph / Facebook -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://blogspro.in/briefings/hourly/briefing-2026-03-28.html">
     <meta property="og:title" content="Market Turbulence: Navigating the Bearish Trend — BlogsPro">
-    <meta property="og:description" content="The current market sentiment is bearish, with the NIFTY trending downwards by 2.09%, indicating a potential correction in the market.">
+    <meta property="og:description" content="The current market sentiment is bearish, with the NIFTY trending downwards by 2.09%, indicating a potential correction in the market, and investors should exercise caution and consider diversifying their portfolios to mitigate risks.">
     <meta property="og:image" content="https://blogspro.in/assets/og-preview.png">
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://blogspro.in/briefings/hourly/briefing-2026-03-28.html">
     <meta name="twitter:title" content="Market Turbulence: Navigating the Bearish Trend — BlogsPro">
-    <meta name="twitter:description" content="The current market sentiment is bearish, with the NIFTY trending downwards by 2.09%, indicating a potential correction in the market.">
+    <meta name="twitter:description" content="The current market sentiment is bearish, with the NIFTY trending downwards by 2.09%, indicating a potential correction in the market, and investors should exercise caution and consider diversifying their portfolios to mitigate risks.">
     <meta name="twitter:image" content="https://blogspro.in/assets/og-preview.png">
 
     <!-- JSON-LD Structured Data -->
@@ -27,9 +27,9 @@
       "@context": "https://schema.org",
       "@type": "BlogPosting",
       "headline": "Market Turbulence: Navigating the Bearish Trend",
-      "description": "The current market sentiment is bearish, with the NIFTY trending downwards by 2.09%, indicating a potential correction in the market.",
+      "description": "The current market sentiment is bearish, with the NIFTY trending downwards by 2.09%, indicating a potential correction in the market, and investors should exercise caution and consider diversifying their portfolios to mitigate risks.",
       "author": {"@type": "Organization", "name": "BlogsPro Intelligence"},
-      "datePublished": "2026-03-28T06:45:50.099Z",
+      "datePublished": "2026-03-28T06:56:17.429Z",
       "image": "https://blogspro.in/assets/og-preview.png",
       "publisher": {
         "@type": "Organization",
@@ -69,8 +69,8 @@
         .sentiment-label { text-align: center; margin-top: 0.5rem; font-size: 0.75rem; font-weight: 800; color: #eab308; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
 
         .dashboard-grid { display: grid; grid-template-columns: 140px 1fr; gap: 3rem; align-items: start; }
-        .chart-container { width: 100%; height: 420px; border-radius: 12px; border: 1px solid rgba(201,168,76,0.1); overflow: hidden; position: relative; }
-        .chart-container::after { content: "LIVE MARKET FEED"; position: absolute; bottom: 10px; right: 10px; font-size: 10px; color: var(--muted); font-weight: 900; opacity: 0.5; }
+        .chart-container { width: 100%; height: 480px; border-radius: 12px; border: 1px solid rgba(201,168,76,0.15); overflow: hidden; position: relative; background: #000; box-shadow: inset 0 0 40px rgba(0,0,0,0.5); }
+        .chart-container::after { content: "INSTITUTIONAL DATA FEED: INVESTING.COM"; position: absolute; bottom: 10px; right: 10px; font-size: 10px; color: var(--gold); font-weight: 900; opacity: 0.4; letter-spacing: 0.1em; }
 
         .audio-summary { margin: 3rem 0; padding: 2.5rem; background: linear-gradient(to right, rgba(201,168,76,0.08), transparent); border: 1px solid var(--gold); border-radius: 16px; }
         .audio-player { width: 100%; margin-top: 1rem; filter: sepia(20%) saturate(70%) grayscale(1) contrast(99%) invert(12%); }
@@ -89,7 +89,7 @@
         <header>
             <span class="meta">BRIEFING • 28 March 2026</span>
             <h1>Market Turbulence: Navigating the Bearish Trend</h1>
-            <p style="font-size:1.3rem;color:var(--muted);font-style:italic;line-height:1.4">The current market sentiment is bearish, with the NIFTY trending downwards by 2.09%, indicating a potential correction in the market.</p>
+            <p style="font-size:1.3rem;color:var(--muted);font-style:italic;line-height:1.4">The current market sentiment is bearish, with the NIFTY trending downwards by 2.09%, indicating a potential correction in the market, and investors should exercise caution and consider diversifying their portfolios to mitigate risks.</p>
         </header>
 
         <section class="command-center">
@@ -110,27 +110,16 @@
             </div>
             
             <div class="chart-container" style="margin-top: 3rem;">
-                <div class="tradingview-widget-container" style="height:100%;width:100%">
-                    <div id="tradingview_auto" style="height:100%;width:100%"></div>
-                    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-                    <script type="text/javascript">
-                    new TradingView.widget({
-                        "autosize": true,
-                        "symbol": "NSE:NIFTY",
-                        "interval": "D",
-                        "timezone": "Asia/Kolkata",
-                        "theme": "dark",
-                        "style": "2",
-                        "locale": "en",
-                        "toolbar_bg": "#f1f3f6",
-                        "enable_publishing": false,
-                        "hide_top_toolbar": true,
-                        "hide_legend": true,
-                        "save_image": false,
-                        "container_id": "tradingview_auto"
-                    });
-                    </script>
-                </div>
+                <iframe 
+                    src="https://www.investing.com/common/technical_chart.php?pair_id=179&height=480&width=800&interval=300&style=candle" 
+                    width="100%" 
+                    height="100%" 
+                    frameborder="0" 
+                    allowtransparency="true" 
+                    marginwidth="0" 
+                    marginheight="0" 
+                    scrolling="no">
+                </iframe>
             </div>
         </section>
         
@@ -143,8 +132,8 @@
             </audio>
         </div>
         <div class="content"><p><h2>Market Turbulence: Navigating the Bearish Trend</h2>
-<details id="meta-excerpt" style="display:none">The current market sentiment is bearish, with the NIFTY trending downwards by 2.09%, indicating a potential correction in the market.</details></p><p>The following table summarizes the key market statistics:
-<div class="table-container"><table><thead><tr><th>Metric</th><th>Value</th><th>Change (%)</th></tr></thead><tbody><tr><td style="font-family: monospace;">NIFTY</td><td style="font-family: monospace;">22819.6</td><td style="font-family: monospace;"><span style="color:#ef4444">▼ 2.09%</span></td></tr><tr><td style="font-family: monospace;">BANK NIFTY</td><td style="font-family: monospace;">52274.6</td><td style="font-family: monospace;">N/A</td></tr><tr><td style="font-family: monospace;">US Dollar vs Indian Rupee</td><td style="font-family: monospace;">95.74</td><td style="font-family: monospace;">0.78%</td></tr></tbody></table></div>| Reliance Industries Limited | 1348.10 | -4.60% |</p><p>The market is experiencing a downturn, with the NIFTY and major stocks such as Reliance Industries Limited and HDFC Bank Limited showing significant declines. The US Dollar vs Indian Rupee is showing a slight increase, while the Bitcoin and Ethereum prices are relatively stable. The current market conditions are influenced by global events, including the US-Iran war and Middle East tensions, which are affecting investor sentiment.</p><p>SENTIMENT_SCORE: 32</p></div>
+<details id="meta-excerpt" style="display:none">The current market sentiment is bearish, with the NIFTY trending downwards by 2.09%, indicating a potential correction in the market, and investors should exercise caution and consider diversifying their portfolios to mitigate risks.</details></p><p>The following table summarizes the key market statistics:
+<div class="table-container"><table><thead><tr><th>Metric</th><th>Value</th><th>Change (%)</th></tr></thead><tbody><tr><td style="font-family: monospace;">NIFTY</td><td style="font-family: monospace;">22819.6</td><td style="font-family: monospace;"><span style="color:#ef4444">▼ 2.09%</span></td></tr><tr><td style="font-family: monospace;">BANK NIFTY</td><td style="font-family: monospace;">52274.6</td><td style="font-family: monospace;">N/A</td></tr><tr><td style="font-family: monospace;">US Dollar vs Indian Rupee</td><td style="font-family: monospace;">95.74</td><td style="font-family: monospace;">0.78%</td></tr></tbody></table></div>| Bitcoin / TetherUS | 66391.72 | -0.02% |</p><p>SENTIMENT_SCORE: 32</p></div>
         <div class="footer-actions">
             <button class="share-btn" onclick="navigator.share({title: 'Market Turbulence: Navigating the Bearish Trend', url: window.location.href})">📤 Share Report</button>
             <a href="mailto:compliance@blogspro.in?subject=Report Abuse: briefing-2026-03-28.html" class="share-btn" style="opacity:0.6">🚩 Report Analysis</a>

@@ -29,7 +29,7 @@
       "headline": "Market Turbulence: Navigating the Bearish Trend",
       "description": "The current market sentiment is bearish, with the NIFTY trending downwards by 2.09%, indicating a potential correction in the market, and investors should exercise caution and consider diversifying their portfolios to mitigate risks.",
       "author": {"@type": "Organization", "name": "BlogsPro Intelligence"},
-      "datePublished": "2026-03-28T06:35:10.237Z",
+      "datePublished": "2026-03-28T06:56:21.513Z",
       "image": "https://blogspro.in/assets/og-preview.png",
       "publisher": {
         "@type": "Organization",
@@ -69,8 +69,8 @@
         .sentiment-label { text-align: center; margin-top: 0.5rem; font-size: 0.75rem; font-weight: 800; color: #eab308; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
 
         .dashboard-grid { display: grid; grid-template-columns: 140px 1fr; gap: 3rem; align-items: start; }
-        .chart-container { width: 100%; height: 420px; border-radius: 12px; border: 1px solid rgba(201,168,76,0.1); overflow: hidden; position: relative; }
-        .chart-container::after { content: "LIVE MARKET FEED"; position: absolute; bottom: 10px; right: 10px; font-size: 10px; color: var(--muted); font-weight: 900; opacity: 0.5; }
+        .chart-container { width: 100%; height: 480px; border-radius: 12px; border: 1px solid rgba(201,168,76,0.15); overflow: hidden; position: relative; background: #000; box-shadow: inset 0 0 40px rgba(0,0,0,0.5); }
+        .chart-container::after { content: "INSTITUTIONAL DATA FEED: INVESTING.COM"; position: absolute; bottom: 10px; right: 10px; font-size: 10px; color: var(--gold); font-weight: 900; opacity: 0.4; letter-spacing: 0.1em; }
 
         .audio-summary { margin: 3rem 0; padding: 2.5rem; background: linear-gradient(to right, rgba(201,168,76,0.08), transparent); border: 1px solid var(--gold); border-radius: 16px; }
         .audio-player { width: 100%; margin-top: 1rem; filter: sepia(20%) saturate(70%) grayscale(1) contrast(99%) invert(12%); }
@@ -110,37 +110,16 @@
             </div>
             
             <div class="chart-container" style="margin-top: 3rem;">
-                <div class="tradingview-widget-container" style="height:100%;width:100%">
-                    <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
-                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
-                    {
-                    "symbols": [ [ "NSE:NIFTY|1D" ] ],
-                    "chartOnly": false,
-                    "width": "100%",
-                    "height": "100%",
-                    "locale": "en",
-                    "colorTheme": "dark",
-                    "autosize": true,
-                    "showVolume": false,
-                    "showMA": false,
-                    "hideDateRanges": false,
-                    "hideMarketStatus": false,
-                    "hideSymbolLogo": false,
-                    "scalePosition": "right",
-                    "scaleMode": "Normal",
-                    "fontFamily": "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
-                    "fontSize": "10",
-                    "noOverlays": false,
-                    "valuesTracking": "1",
-                    "changeMode": "price-and-percent",
-                    "chartType": "area",
-                    "headerFontSize": "medium",
-                    "lineWidth": 2,
-                    "lineType": 0,
-                    "dateRanges": [ "1d", "1m", "3m", "12m", "all" ]
-                    }
-                    </script>
-                </div>
+                <iframe 
+                    src="https://www.investing.com/common/technical_chart.php?pair_id=179&height=480&width=800&interval=300&style=candle" 
+                    width="100%" 
+                    height="100%" 
+                    frameborder="0" 
+                    allowtransparency="true" 
+                    marginwidth="0" 
+                    marginheight="0" 
+                    scrolling="no">
+                </iframe>
             </div>
         </section>
         
@@ -154,7 +133,7 @@
         </div>
         <div class="content"><p><h2>Market Turbulence: Navigating the Bearish Trend</h2>
 <details id="meta-excerpt" style="display:none">The current market sentiment is bearish, with the NIFTY trending downwards by 2.09%, indicating a potential correction in the market, and investors should exercise caution and consider diversifying their portfolios to mitigate risks.</details></p><p>The following table summarizes the key market statistics:
-<div class="table-container"><table><thead><tr><th>Metric</th><th>Value</th><th>Change (%)</th></tr></thead><tbody><tr><td style="font-family: monospace;">NIFTY</td><td style="font-family: monospace;">22819.6</td><td style="font-family: monospace;"><span style="color:#ef4444">▼ 2.09%</span></td></tr><tr><td style="font-family: monospace;">BANK NIFTY</td><td style="font-family: monospace;">52274.6</td><td style="font-family: monospace;">N/A</td></tr><tr><td style="font-family: monospace;">US Dollar vs Indian Rupee</td><td style="font-family: monospace;">95.74</td><td style="font-family: monospace;">0.78%</td></tr></tbody></table></div>| Reliance Industries Limited | 1348.10 | -4.60% |</p><p>The market is experiencing a downturn, with the NIFTY and major stocks such as Reliance Industries Limited and HDFC Bank Limited showing significant declines. The US Dollar vs Indian Rupee is showing a slight increase, while the cryptocurrency market is relatively stable. The news of Treasury Yields at year's high and the impact of the US-Iran war on the market cap of major stocks are contributing to the bearish trend.
+<div class="table-container"><table><thead><tr><th>Metric</th><th>Value</th><th>Change (%)</th></tr></thead><tbody><tr><td style="font-family: monospace;">NIFTY</td><td style="font-family: monospace;">22819.6</td><td style="font-family: monospace;"><span style="color:#ef4444">▼ 2.09%</span></td></tr><tr><td style="font-family: monospace;">BANK NIFTY</td><td style="font-family: monospace;">52274.6</td><td style="font-family: monospace;">N/A</td></tr><tr><td style="font-family: monospace;">US Dollar vs Indian Rupee</td><td style="font-family: monospace;">95.74</td><td style="font-family: monospace;">0.78%</td></tr></tbody></table></div>| Reliance Industries Limited | 1348.10 | -4.60% |</p><p>The market is experiencing a downturn, with the NIFTY and major stocks such as Reliance Industries Limited and HDFC Bank Limited showing significant declines. The US Dollar vs Indian Rupee is showing a slight increase, while the cryptocurrency market is relatively stable. The news is filled with stories of market volatility, geopolitical tensions, and regulatory changes, making it essential for investors to stay informed and adapt to the changing market landscape.
 SENTIMENT_SCORE: 32</p></div>
         <div class="footer-actions">
             <button class="share-btn" onclick="navigator.share({title: 'Market Turbulence: Navigating the Bearish Trend', url: window.location.href})">📤 Share Report</button>
