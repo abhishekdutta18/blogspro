@@ -641,18 +641,39 @@
       gap: 0.22rem;
       min-height: 92px;
     }
+    .market-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.35rem;
+    }
+    .market-head-left {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      min-width: 0;
+    }
+    .market-logo {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1px solid rgba(136,150,179,0.35);
+      display: grid;
+      place-items: center;
+      font-size: 0.55rem;
+      color: var(--cream);
+      background: rgba(8,13,26,0.7);
+      flex-shrink: 0;
+    }
     .market-symbol {
       font-size: 0.63rem;
       color: var(--cream);
       letter-spacing: 0.05em;
       text-transform: uppercase;
       font-weight: 600;
-    }
-    .market-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.35rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .market-status {
       font-size: 0.5rem;
@@ -696,6 +717,15 @@
     .market-extra {
       font-size: 0.58rem;
       color: var(--muted);
+      letter-spacing: 0.03em;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .market-extra2 {
+      font-size: 0.55rem;
+      color: #8fa1c6;
       letter-spacing: 0.03em;
       text-align: left;
       white-space: nowrap;
@@ -1320,6 +1350,7 @@
   let indiaCalendarRaw = [];
   let indiaCalendarHistoryRaw = [];
   let indiaQoqChart = null;
+  let marketRefreshTimer = null;
   let imagesEnabled = true;
   const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
   const FIREBASE_TIMEOUT_MS = 12000;
@@ -1684,6 +1715,31 @@
           : `Vol ${Number.isFinite(vol) ? fmtNum(vol) : '--'}`;
         return core;
       };
+      const detailText2 = (c, key) => {
+        const prev = Number.isFinite(Number(c.prev)) ? Number(c.prev) : NaN;
+        const vol = Number.isFinite(Number(c.volume)) ? Number(c.volume) : NaN;
+        const high = Number.isFinite(Number(c.high)) ? Number(c.high) : NaN;
+        const low = Number.isFinite(Number(c.low)) ? Number(c.low) : NaN;
+        if (key === 'bonds') {
+          return Number.isFinite(prev) ? `Prev ${fmtNum(prev)} · Δ ${Number(c.change || 0).toFixed(2)}%` : `Δ ${Number(c.change || 0).toFixed(2)}%`;
+        }
+        if (Number.isFinite(high) && Number.isFinite(low)) return `Range ${fmtNum(low)} - ${fmtNum(high)}`;
+        return `Prev ${Number.isFinite(prev) ? fmtNum(prev) : '--'} · Vol ${Number.isFinite(vol) ? fmtNum(vol) : '--'}`;
+      };
+      const logoGlyph = (symbol, key) => {
+        const s = String(symbol || '').toUpperCase();
+        if (key === 'crypto') {
+          if (s.includes('BTC')) return 'B';
+          if (s.includes('ETH')) return 'E';
+          if (s.includes('SOL')) return 'S';
+          if (s.includes('XRP')) return 'X';
+        }
+        if (key === 'indices') return 'I';
+        if (key === 'bonds') return 'Y';
+        if (key === 'currency') return 'F';
+        if (key === 'commodities') return 'C';
+        return s.slice(0, 1) || 'M';
+      };
       el.innerHTML = items.map((raw) => {
         const c = raw;
         const isUp = Number(c.change) >= 0;
@@ -1694,13 +1750,17 @@
         return `
           <div class="market-row">
             <div class="market-top">
-              <div class="market-symbol">${symbolText}</div>
+              <div class="market-head-left">
+                <div class="market-logo">${logoGlyph(symbolText, segmentKey)}</div>
+                <div class="market-symbol">${symbolText}</div>
+              </div>
               <div class="market-status ${st.cls}">${st.label}</div>
             </div>
             <div class="market-code">SYM ${codeText}</div>
             <div class="market-price">${fmtNum(c.price)}</div>
             <div class="market-change ${isUp ? 'up' : 'down'}">${sign}${Number(c.change || 0).toFixed(2)}%</div>
             <div class="market-extra">${detailText(c, segmentKey)}</div>
+            <div class="market-extra2">${detailText2(c, segmentKey)}</div>
           </div>
         `;
       }).join('');
@@ -2642,6 +2702,12 @@
       allOk ? 'online' : 'degraded',
       allOk ? 'Integrations: Online' : 'Integrations: Degraded'
     );
+    if (!marketRefreshTimer) {
+      marketRefreshTimer = setInterval(() => {
+        if (document.hidden) return;
+        loadUpstoxMarketData().catch(() => false);
+      }, 30000);
+    }
   })();
 </script>
 </body>
