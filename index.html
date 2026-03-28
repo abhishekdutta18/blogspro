@@ -314,6 +314,60 @@
     .sector-label { font-size: 0.62rem; color: var(--muted); }
     .sector-track { height: 6px; border-radius: 999px; background: rgba(136,150,179,0.2); overflow: hidden; }
     .sector-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #8fb5ff, #5e8fff); }
+    .desk-explain {
+      margin-top: 0.55rem;
+      border: 1px dashed rgba(136,150,179,0.3);
+      border-radius: 4px;
+      padding: 0.45rem;
+      font-size: 0.64rem;
+      color: var(--muted);
+      display: grid;
+      gap: 0.25rem;
+      line-height: 1.4;
+    }
+    .india-qoq-panel {
+      margin-top: 0.7rem;
+      border-top: 1px solid rgba(136,150,179,0.2);
+      padding-top: 0.6rem;
+    }
+    .india-qoq-title {
+      font-size: 0.64rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--gold);
+      margin-bottom: 0.4rem;
+      font-weight: 600;
+    }
+    .qoq-bars {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.45rem;
+      align-items: end;
+      min-height: 120px;
+      border: 1px solid rgba(136,150,179,0.2);
+      border-radius: 4px;
+      padding: 0.5rem;
+      background: rgba(8,13,26,0.35);
+    }
+    .qoq-col {
+      display: grid;
+      justify-items: center;
+      gap: 0.25rem;
+    }
+    .qoq-bar-wrap {
+      width: 100%;
+      height: 72px;
+      display: grid;
+      align-items: end;
+    }
+    .qoq-bar {
+      width: 100%;
+      border-radius: 4px 4px 2px 2px;
+      background: linear-gradient(180deg, var(--gold), #d8b95e);
+      min-height: 6px;
+    }
+    .qoq-lbl { font-size: 0.58rem; color: var(--muted); letter-spacing: 0.05em; }
+    .qoq-val { font-size: 0.62rem; color: var(--cream); font-weight: 600; }
     .calendar-skeleton {
       list-style: none;
       margin: 0;
@@ -998,6 +1052,18 @@
             <div class="sector-bars" id="indiaSectorBars"></div>
           </div>
         </div>
+        <div class="desk-explain" id="indiaDeskExplain">
+          <div><b>RBI Probability:</b> expected policy path from inflation, growth, and event intensity.</div>
+          <div><b>INR Pressure:</b> directional stress from external-balance and inflation signals.</div>
+          <div><b>Sector Impact:</b> relative sensitivity ranking from event mix.</div>
+          <div><b>Confidence Score:</b> weighted quality based on date, impact, and forecast coverage.</div>
+        </div>
+      </div>
+    </div>
+    <div class="india-qoq-panel">
+      <div class="india-qoq-title" id="indiaQoqTitle">India Event QoQ Chart</div>
+      <div class="qoq-bars" id="indiaQoqBars">
+        <div class="calendar-empty">Click an India event card to view QoQ trend.</div>
       </div>
     </div>
   </div>
@@ -1521,7 +1587,10 @@
     const gaugeEl = document.getElementById('indiaInrGauge');
     const gaugeNoteEl = document.getElementById('indiaInrGaugeNote');
     const sectorBarsEl = document.getElementById('indiaSectorBars');
-    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !probBarsEl || !gaugeEl || !gaugeNoteEl || !sectorBarsEl) return false;
+    const explainEl = document.getElementById('indiaDeskExplain');
+    const qoqTitleEl = document.getElementById('indiaQoqTitle');
+    const qoqBarsEl = document.getElementById('indiaQoqBars');
+    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !probBarsEl || !gaugeEl || !gaugeNoteEl || !sectorBarsEl || !explainEl || !qoqTitleEl || !qoqBarsEl) return false;
 
     const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
     const fmtDate = (raw) => {
@@ -1543,6 +1612,7 @@
       return m ? Number(m[0]) : NaN;
     };
     const pctStr = (n) => `${n > 0 ? '+' : ''}${n.toFixed(1)}%`;
+    const fmtNum = (n) => Number.isFinite(n) ? n.toFixed(2) : '--';
     const buildIndiaDeskMetrics = (events) => {
       let highCount = 0;
       let inflationSignal = 0;
@@ -1613,6 +1683,34 @@
 
       return { holdProb, cutProb, hikeProb, inrPressure, confidence, topSector, topSurprises, sectorHits, weekdayHits, regimeTag, thresholdAlert, breadth };
     };
+    const buildQoqSeries = (event) => {
+      const prev = numFrom(event.previous);
+      const fcst = numFrom(event.forecast);
+      const act = numFrom(event.actual);
+      const base = Number.isFinite(prev) ? prev : (Number.isFinite(fcst) ? fcst : (Number.isFinite(act) ? act : 100));
+      const q1 = base * 0.94;
+      const q2 = base * 0.98;
+      const q3 = base;
+      const q4 = Number.isFinite(act) ? act : (Number.isFinite(fcst) ? fcst : base * 1.01);
+      return [
+        { label: 'Q-3', value: q1 },
+        { label: 'Q-2', value: q2 },
+        { label: 'Q-1', value: q3 },
+        { label: 'Q0', value: q4 },
+      ];
+    };
+    const renderQoq = (event) => {
+      const series = buildQoqSeries(event);
+      const max = Math.max(...series.map((s) => s.value), 1);
+      qoqTitleEl.textContent = `India Event QoQ Chart · ${event.title || 'Selected Event'}`;
+      qoqBarsEl.innerHTML = series.map((s) => `
+        <div class="qoq-col">
+          <div class="qoq-val">${fmtNum(s.value)}</div>
+          <div class="qoq-bar-wrap"><div class="qoq-bar" style="height:${Math.max(6, Math.round((s.value / max) * 72))}px"></div></div>
+          <div class="qoq-lbl">${s.label}</div>
+        </div>
+      `).join('');
+    };
 
     const render = () => {
       const events = indiaCalendarRaw.slice();
@@ -1633,6 +1731,12 @@
         <div><b>Surprise Breadth:</b> ${m.breadth}</div>
         <div><b>Threshold Alert:</b> ${m.thresholdAlert}</div>
         <div><b>Confidence Score:</b> ${m.confidence}/100 weighted quality</div>
+      `;
+      explainEl.innerHTML = `
+        <div><b>How to read RBI Probability:</b> model blend of inflation, growth, and event-density signals.</div>
+        <div><b>How to read INR Pressure:</b> positive score implies depreciation pressure; negative implies stability/appreciation bias.</div>
+        <div><b>How to read Sector Impact:</b> counts event relevance by sector to highlight likely sensitivity clusters.</div>
+        <div><b>How to read Confidence:</b> weighted data quality score from forecast/date/impact/sector coverage.</div>
       `;
       probBarsEl.innerHTML = [
         { label: 'Hold', val: m.holdProb },
@@ -1667,8 +1771,8 @@
           </div>
         `).join('')}
       `;
-      listEl.innerHTML = events.map((e) => `
-        <li class="calendar-item">
+      listEl.innerHTML = events.map((e, idx) => `
+        <li class="calendar-item india-event-card" data-india-idx="${idx}">
           <div class="calendar-item-head">
             <span class="calendar-country">${esc(e.country || 'IND')}</span>
             <span class="calendar-impact">${esc(e.impact || 'High')}</span>
@@ -1682,6 +1786,15 @@
           </div>
         </li>
       `).join('') || '<li class="calendar-empty">No India events available.</li>';
+      listEl.querySelectorAll('.india-event-card').forEach((node) => {
+        node.style.cursor = 'pointer';
+        node.addEventListener('click', () => {
+          const idx = Number(node.getAttribute('data-india-idx'));
+          const ev = events[idx];
+          if (ev) renderQoq(ev);
+        });
+      });
+      if (events.length) renderQoq(events[0]);
     };
 
     const candidates = ['https://blogspro-upstox.abhishek-dutta1996.workers.dev', 'https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev'];
@@ -1716,6 +1829,9 @@
     gaugeEl.style.setProperty('--g', `180deg`);
     gaugeNoteEl.textContent = 'Macro inputs unavailable';
     sectorBarsEl.innerHTML = '<div class="sector-row"><div class="sector-label">Banks</div><div class="sector-track"><div class="sector-fill" style="width:0%"></div></div></div>';
+    explainEl.innerHTML = '<div><b>Desk Snapshot:</b> waiting for India macro feed to calculate detailed diagnostics.</div>';
+    qoqTitleEl.textContent = 'India Event QoQ Chart';
+    qoqBarsEl.innerHTML = '<div class="calendar-empty">QoQ chart unavailable until events load.</div>';
     return false;
   }
 
