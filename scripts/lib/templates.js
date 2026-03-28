@@ -2,7 +2,11 @@ const path = require("path");
 
 function parseMD(md) {
     if (!md) return "";
-    let html = md
+    
+    // 1. Mask AI Metadata (SENTIMENT_SCORE)
+    let cleanMd = md.replace(/SENTIMENT_SCORE:\s*\d+/gi, '').trim();
+
+    let html = cleanMd
         .replace(/### (.*$)/gim, '<h3>$1</h3>')
         .replace(/## (.*$)/gim, '<h2>$1</h2>')
         .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
@@ -11,16 +15,16 @@ function parseMD(md) {
         .replace(/\n\n/gim, '</p><p>')
         .replace(/<li>/g, '<ul><li>').replace(/<\/li>/g, '</li></ul>').replace(/<\/ul><ul>/g, '');
 
-    // Advanced Table Parsing (Markdown -> HTML) with Trend Icons
+    // 2. High-Fidelity Table Parsing (Markdown -> Institutional HTML)
     const tableRegex = /\|(.+)\|\n\|([\s\-\|]+)\|\n((\|.+\|\n)+)/g;
     html = html.replace(tableRegex, (match, header, separator, body) => {
         const headers = header.split('|').map(h => h.trim()).filter(h => h).map(h => `<th>${h}</th>`).join('');
         const rows = body.trim().split('\n').map(row => {
             const cols = row.split('|').map(c => c.trim()).filter(c => c).map(c => {
                 let cell = c;
-                if (c.includes('+') || c.includes('▲')) cell = `<span style="color:#22c55e">▲ ${c.replace(/[\+\^▲]/g,'')}</span>`;
-                else if (c.includes('-') || c.includes('▼')) cell = `<span style="color:#ef4444">▼ ${c.replace(/[\-\▼]/g,'')}</span>`;
-                return `<td style="font-family: monospace;">${cell}</td>`;
+                if (c.includes('+') || c.includes('▲')) cell = `<span style="color:#22c55e;font-weight:700;">▲ ${c.replace(/[\+\^▲]/g,'')}</span>`;
+                else if (c.includes('-') || c.includes('▼')) cell = `<span style="color:#ef4444;font-weight:700;">▼ ${c.replace(/[\-\▼]/g,'')}</span>`;
+                return `<td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${cell}</td>`;
             }).join('');
             return `<tr>${cols}</tr>`;
         }).join('');
@@ -29,10 +33,18 @@ function parseMD(md) {
     return html;
 }
 
-function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, freq, fileName, rel = "../../", pairId = "179", sentimentScore = 50 }) {
-    const sentimentLabel = sentimentScore > 70 ? "EXTREME BULLISH" : (sentimentScore < 30 ? "EXTREME BEARISH" : (sentimentScore > 55 ? "BULLISH" : (sentimentScore < 45 ? "BEARISH" : "NEUTRAL")));
-    const sentimentColor = sentimentScore > 70 ? "#22c55e" : (sentimentScore < 30 ? "#ef4444" : "#eab308");
-    const gaugeRotation = (sentimentScore / 100) * 180 - 90; // Translate 0-100 to -90deg to 90deg
+function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, freq, fileName, rel = "../../", pairId = "179", sentimentScore = 50, priceInfo = { last: "0", high: "0", low: "0" } }) {
+    const sentimentLabel = sentimentScore > 75 ? "EXTREME BULLISH" : (sentimentScore < 25 ? "EXTREME BEARISH" : (sentimentScore > 55 ? "BULLISH" : (sentimentScore < 45 ? "BEARISH" : "NEUTRAL")));
+    const sentimentColor = sentimentScore > 75 ? "#22c55e" : (sentimentScore < 25 ? "#ef4444" : "#eab308");
+    const gaugeRotation = (sentimentScore / 100) * 180 - 90; 
+    
+    // DUAL CHART LOGIC: Static Sparkline Fallback
+    const lastNum = parseFloat(priceInfo.last.replace(/,/g,'')) || 100;
+    const lowNum = parseFloat(priceInfo.low.replace(/,/g,'')) || lastNum * 0.95;
+    const highNum = parseFloat(priceInfo.high.replace(/,/g,'')) || lastNum * 1.05;
+    const range = highNum - lowNum || 1;
+    const lastPos = ((lastNum - lowNum) / range) * 100;
+    const sparkPath = `M 0,50 Q 25,${100 - lastPos * 0.5} 50,50 T 100,${100 - lastPos}`;
     const canonical = `https://blogspro.in/${type === 'post' ? 'posts/' : (type + 's/' + freq + '/')}${fileName || (type + '-' + new Date().toISOString().split('T')[0] + '.html')}`;
     
     return `<!DOCTYPE html>
@@ -107,7 +119,18 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
 
         .dashboard-grid { display: grid; grid-template-columns: 140px 1fr; gap: 3rem; align-items: start; }
         .chart-container { width: 100%; height: 480px; border-radius: 12px; border: 1px solid rgba(201,168,76,0.15); overflow: hidden; position: relative; background: #000; box-shadow: inset 0 0 40px rgba(0,0,0,0.5); }
-        .chart-container::after { content: "INSTITUTIONAL DATA FEED: INVESTING.COM"; position: absolute; bottom: 10px; right: 10px; font-size: 10px; color: var(--gold); font-weight: 900; opacity: 0.4; letter-spacing: 0.1em; }
+        .chart-container::after { content: "INSTITUTIONAL TECHNICALS"; position: absolute; bottom: 10px; right: 10px; font-size: 10px; color: var(--gold); font-weight: 900; opacity: 0.4; letter-spacing: 0.1em; }
+
+        .static-sparkline { width: 100%; height: 60px; filter: drop-shadow(0 0 5px ${sentimentColor}); opacity: 0.6; pointer-events: none; }
+        
+        @media (max-width: 600px) {
+            .dashboard-grid { grid-template-columns: 1fr; gap: 2rem; }
+            .command-center { padding: 1.5rem; }
+            .chart-container { height: 320px; }
+            .article-container { padding: 2rem 1rem; }
+            nav { padding: 0 1rem; }
+            h1 { font-size: 2.2rem; }
+        }
 
         .audio-summary { margin: 3rem 0; padding: 2.5rem; background: linear-gradient(to right, rgba(201,168,76,0.08), transparent); border: 1px solid var(--gold); border-radius: 16px; }
         .audio-player { width: 100%; margin-top: 1rem; filter: sepia(20%) saturate(70%) grayscale(1) contrast(99%) invert(12%); }
@@ -142,7 +165,19 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
                 </div>
                 <div style="border-left: 1px solid rgba(201,168,76,0.15); padding-left: 2.5rem;">
                     <div style="font-size: 0.75rem; color: var(--gold); font-weight: 800; margin-bottom: 0.5rem;">STRATEGIC INTEL</div>
-                    <div style="font-size: 0.95rem; color: var(--cream);">This report synthesizes real-time regulatory ingestion from SEBI/RBI with multi-asset global macro trends.</div>
+                    <div style="font-size: 0.95rem; color: var(--cream);">Synthesizing real-time regulatory ingestion with multi-asset global macro trends.</div>
+                    
+                    <!-- Static Sparkline Reliability Layer -->
+                    <div style="margin-top: 1rem;">
+                        <svg class="static-sparkline" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <path d="${sparkPath}" fill="none" stroke="${sentimentColor}" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                        <div style="display:flex; justify-content: space-between; font-size: 0.65rem; color: var(--muted); margin-top: -10px;">
+                            <span>L: ${priceInfo.low}</span>
+                            <span>LAST: ${priceInfo.last}</span>
+                            <span>H: ${priceInfo.high}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -155,7 +190,8 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
                     allowtransparency="true" 
                     marginwidth="0" 
                     marginheight="0" 
-                    scrolling="no">
+                    scrolling="no"
+                    style="border-radius: 8px;">
                 </iframe>
             </div>
         </section>

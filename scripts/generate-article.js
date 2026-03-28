@@ -38,8 +38,9 @@ async function generateArticle() {
     CRITICAL SEO & VISUAL INSTRUCTIONS:
     1. Start with exactly one <h2> tag containing a unique, structural title.
     2. Provide a 1-sentence analytical excerpt wrapped in a <details id="meta-excerpt" style="display:none"> tag.
-    3. MANDATORY: Include a Markdown data table titled "| Variable | Value | Change (%) |" summarizing 5 data points.
-    4. MANDATORY: End with exactly "SENTIMENT_SCORE: [0-100]" representing the strategic outlook.
+    3. MANDATORY: Include a Markdown data table with columns "| Variable | Value | Change (%) |" summarizing 5 data points.
+    4. MANDATORY: End with exactly "SENTIMENT_SCORE: [0-100]" and "PRICE_INFO: [Last, High, Low]".
+    5. INTERACTIVE: Include a strategic "Market Poll" question and 3 analysis options.
     
     REGULATORY DATA: ${regulatoryContext}`;
 
@@ -59,12 +60,22 @@ async function generateArticle() {
         const sentimentMatch = content.match(/SENTIMENT_SCORE:\s*(\d+)/i);
         const sentimentScore = sentimentMatch ? parseInt(sentimentMatch[1]) : 50;
 
+        const priceMatch = content.match(/PRICE_INFO:\s*\[(.*?),(.*?),(.*?)\]/i);
+        const priceInfo = priceMatch ? { last: priceMatch[1].trim(), high: priceMatch[2].trim(), low: priceMatch[3].trim() } : { last: "N/A", high: "N/A", low: "N/A" };
+
+        const pollQuestionMatch = content.match(/poll question:\s*(.*?)(?=\n|$)/i);
+        const pollOptionsMatch = content.match(/options:\s*(.*?)(?=\n|$)/i);
+        const finalKit = {
+            audioScript: "Listen to this week's strategic deep-dive...",
+            pollQuestion: pollQuestionMatch ? pollQuestionMatch[1].trim() : "What is the most critical regulatory shift this week?",
+            pollOptions: pollOptionsMatch ? pollOptionsMatch[1].split(',').map(o => o.trim()) : ["Monetary Policy", "Digital Asset Sandbox", "Credit Growth"]
+        };
+
         const datestr = new Date().toISOString().split('T')[0];
         const fileName = `article-${datestr}.html`;
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content, dateLabel, 
-            finalKit: { audioScript: "Listen to this week's strategic deep-dive..." }, 
-            type: "article", freq: frequency, fileName, pairId, sentimentScore
+            finalKit, type: "article", freq: frequency, fileName, pairId, sentimentScore, priceInfo
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         

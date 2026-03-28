@@ -44,7 +44,8 @@ async function generateBriefing() {
     1. Start with exactly one <h2> tag containing a unique, punchy title.
     2. Provide a 1-sentence analytical excerpt wrapped in a <details id="meta-excerpt" style="display:none"> tag.
     3. MANDATORY: Include a Markdown data table with columns "| Metric | Value | Change (%) |" summarizing at least 4 key stats.
-    4. MANDATORY: End with exactly "SENTIMENT_SCORE: [0-100]" representing the market mood.
+    4. MANDATORY: End with exactly "SENTIMENT_SCORE: [0-100]" and "PRICE_INFO: [Last, High, Low]".
+    5. INTERACTIVE: Include a 1-sentence "What's your take?" poll question and 3 short options.
     
     MARKET CONTEXT: ${marketContext}`;
 
@@ -65,12 +66,22 @@ async function generateBriefing() {
         const sentimentMatch = content.match(/SENTIMENT_SCORE:\s*(\d+)/i);
         const sentimentScore = sentimentMatch ? parseInt(sentimentMatch[1]) : 50;
 
+        const priceMatch = content.match(/PRICE_INFO:\s*\[(.*?),(.*?),(.*?)\]/i);
+        const priceInfo = priceMatch ? { last: priceMatch[1].trim(), high: priceMatch[2].trim(), low: priceMatch[3].trim() } : { last: "24,000", high: "24,200", low: "23,800" };
+
+        const pollQuestionMatch = content.match(/poll question:\s*(.*?)(?=\n|$)/i);
+        const pollOptionsMatch = content.match(/options:\s*(.*?)(?=\n|$)/i);
+        const finalKit = {
+            audioScript: "Listen to today's sharp market pulse...",
+            pollQuestion: pollQuestionMatch ? pollQuestionMatch[1].trim() : "Where do you see the Nifty 50 heading tomorrow?",
+            pollOptions: pollOptionsMatch ? pollOptionsMatch[1].split(',').map(o => o.trim()) : ["Bullish Above 24k", "Rangebound", "Bearish Breakout"]
+        };
+
         const datestr = new Date().toISOString().split('T')[0];
-        const fileName = `briefing-${datestr}.html`;
+        const fileName = `briefing-${datestr}${frequency === 'hourly' ? '-' + Date.now() : ''}.html`;
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content, dateLabel, 
-            finalKit: { audioScript: "Listen to today's sharp market pulse..." }, 
-            type: "briefing", freq: frequency, fileName, pairId, sentimentScore
+            finalKit, type: "briefing", freq: frequency, fileName, pairId, sentimentScore, priceInfo
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         
