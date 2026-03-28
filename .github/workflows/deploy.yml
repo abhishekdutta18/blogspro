@@ -188,7 +188,15 @@ jobs:
           git config --global user.email "engine@blogspro.in"
           git add posts/*.html posts/index.json sitemap.xml
           git commit -m "🤖 auto-seo: update static posts and sitemap [skip ci]" || echo "No changes to commit"
-          git push
+          
+          # Retry loop for push (up to 3 attempts with rebase)
+          for i in {1..3}; do
+            git pull --rebase origin main
+            git push && exit 0
+            echo "⚠️ Push rejected (Attempt $i), retrying in 10s..."
+            sleep 10
+          done
+          echo "❌ Git Push failed after 3 attempts." && exit 1
 
   # ══════════════════════════════════════════════════════════════════════
   # JOB 6: notify-failure — runs ONLY if validate fails

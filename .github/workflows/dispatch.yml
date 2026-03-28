@@ -103,10 +103,17 @@ jobs:
         run: |
           git config --global user.name "BlogsPro Bot"
           git config --global user.email "bot@blogspro.in"
-          git add briefings/ articles/ index.html sitemap.xml robots.txt
+          git add briefings/ articles/ index.html sitemap.xml robots.txt js/
           git commit -m "chore: automated dispatch update [skip ci]" || echo "No changes to commit"
-          git pull --rebase origin main
-          git push
+          
+          # Retry loop for push (up to 3 attempts with rebase)
+          for i in {1..3}; do
+            git pull --rebase origin main
+            git push && exit 0
+            echo "⚠️ Push rejected (Attempt $i), retrying in 10s..."
+            sleep 10
+          done
+          echo "❌ Git Push failed after 3 attempts." && exit 1
 
       - name: Social Notification Blast
         env:
