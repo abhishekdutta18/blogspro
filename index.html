@@ -1268,6 +1268,7 @@
 <!-- FIREBASE -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script type="module">
   import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, collection, doc, getDocs, getDoc, query, where, addDoc }
@@ -1602,10 +1603,13 @@
       const target = segmentTargetCount[segmentKey] || 6;
       const fallback = fallbackBySegment[segmentKey] || [];
       const out = items.slice(0, target);
-      let i = 0;
-      while (out.length < target && fallback.length) {
-        out.push(fallback[i % fallback.length]);
-        i += 1;
+      const seen = new Set(out.map((x) => String(x?.symbol || '').toUpperCase()));
+      for (const f of fallback) {
+        if (out.length >= target) break;
+        const k = String(f?.symbol || '').toUpperCase();
+        if (!k || seen.has(k)) continue;
+        seen.add(k);
+        out.push(f);
       }
       return out;
     };
@@ -1966,6 +1970,10 @@
       canvas.height = 100;
       canvas.style.height = '100px';
       if (indiaQoqChart) indiaQoqChart.destroy();
+      const DL = window.ChartDataLabels;
+      if (DL && window.Chart && !window.Chart.registry.plugins.get('datalabels')) {
+        window.Chart.register(DL);
+      }
       indiaQoqChart = new Chart(canvas.getContext('2d'), {
         type: 'line',
         data: {
@@ -1996,12 +2004,28 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
+          plugins: {
+            legend: { display: false },
+            datalabels: {
+              color: '#e9d08a',
+              align: 'top',
+              anchor: 'end',
+              offset: 2,
+              clamp: true,
+              formatter: (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(2) : ''),
+              font: { size: 9, weight: '600' }
+            }
+          },
           scales: {
-            x: { ticks: { color: '#9aa4bd', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(136,150,179,0.12)' } },
+            x: {
+              title: { display: true, text: 'Quarter', color: '#c9d2ea', font: { size: 10, weight: '600' } },
+              ticks: { color: '#9aa4bd', maxRotation: 0, autoSkip: true },
+              grid: { color: 'rgba(136,150,179,0.12)' }
+            },
             y: {
               min: scale.min,
               max: scale.max,
+              title: { display: true, text: 'Value', color: '#c9d2ea', font: { size: 10, weight: '600' } },
               ticks: { color: '#9aa4bd', stepSize: scale.step },
               grid: { color: 'rgba(136,150,179,0.18)' }
             }
