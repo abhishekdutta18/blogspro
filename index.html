@@ -647,7 +647,7 @@
 <!-- NAV -->
 <nav>
   <a class="nav-brand" href="index.html">BlogsPro</a>
-  <button class="nav-hamburger" id="navHamburger" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
+  <button class="nav-hamburger" id="navHamburger" onclick="window.toggleMobileNav?.()" aria-label="Menu">☰</button>
   <ul class="nav-links" id="navLinksMenu">
     <li><a href="#briefings">Articles</a></li>
     <li><a href="#about">About</a></li>
@@ -701,22 +701,22 @@
 <section id="briefings">
   <div class="section-header">
     <h2 class="section-title">Latest <em>Briefings</em><span id="postsCount" style="display:none"></span></h2>
-    <a href="#briefings" class="section-link" onclick="filterByCategory('All')">Full Archive <span>&rarr;</span></a>
+    <a href="#briefings" class="section-link" onclick="window.filterByCategory?.('All')">Full Archive <span>&rarr;</span></a>
   </div>
 
   <!-- Search & Filters -->
   <div class="search-container">
     <div class="search-input-wrap">
       <span class="search-icon">🔍</span>
-      <input type="text" id="postSearch" class="search-input" placeholder="Search briefings by keyword..." oninput="handleSearch(this.value)">
+      <input type="text" id="postSearch" class="search-input" placeholder="Search briefings by keyword..." oninput="window.handleSearch?.(this.value)">
     </div>
     <div class="filter-chips" id="filterChips">
-      <button class="filter-chip active" data-cat="all" onclick="filterByCategory('All')">All</button>
-      <button class="filter-chip" data-cat="macro" onclick="filterByCategory('Macro')">Macro</button>
-      <button class="filter-chip" data-cat="policy" onclick="filterByCategory('Policy')">Policy</button>
-      <button class="filter-chip" data-cat="equity" onclick="filterByCategory('Equity')">Equity</button>
-      <button class="filter-chip" data-cat="tech" onclick="filterByCategory('Tech')">Tech</button>
-      <button class="filter-chip" data-cat="crypto" onclick="filterByCategory('Crypto')">Crypto</button>
+      <button class="filter-chip active" data-cat="all" onclick="window.filterByCategory?.('All')">All</button>
+      <button class="filter-chip" data-cat="macro" onclick="window.filterByCategory?.('Macro')">Macro</button>
+      <button class="filter-chip" data-cat="policy" onclick="window.filterByCategory?.('Policy')">Policy</button>
+      <button class="filter-chip" data-cat="equity" onclick="window.filterByCategory?.('Equity')">Equity</button>
+      <button class="filter-chip" data-cat="tech" onclick="window.filterByCategory?.('Tech')">Tech</button>
+      <button class="filter-chip" data-cat="crypto" onclick="window.filterByCategory?.('Crypto')">Crypto</button>
     </div>
   </div>
   <div class="posts-grid" id="postsGrid">
@@ -848,7 +848,7 @@
   <div class="newsletter">
     <h2>Stay ahead of the curve.</h2>
     <p>New insights on fintech, compliance & strategy — delivered to your inbox.</p>
-    <form class="newsletter-form" onsubmit="subscribeNewsletter(event)">
+    <form class="newsletter-form" onsubmit="window.subscribeNewsletter?.(event)">
       <input type="email" id="emailInput" placeholder="your@email.com" required />
       <button type="submit" class="btn-primary" id="subBtn">
         <span id="subBtnText">Subscribe</span>
@@ -1425,7 +1425,7 @@
   await startApp();
 
   // ── Filter chip event listeners (data-cat driven) ──────────────────────────
-  // Works alongside the inline onclick="filterByCategory()" on each chip.
+  // Works alongside the inline onclick="window.filterByCategory?.()" on each chip.
   // The data-cat attribute (added to each chip) drives category matching.
   document.querySelectorAll('.filter-chip').forEach(btn => {
     btn.addEventListener('click', () => {
