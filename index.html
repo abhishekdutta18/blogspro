@@ -1372,6 +1372,7 @@
   let indiaCalendarRaw = [];
   let indiaCalendarHistoryRaw = [];
   let indiaQoqChart = null;
+  let applyForexFiltersGlobal = null;
   let marketRefreshTimer = null;
   let marketRefreshInFlight = false;
   let marketRefreshTick = 0;
@@ -1483,6 +1484,7 @@
       return m ? Number(m[0]) : NaN;
     };
 
+    applyForexFiltersGlobal = null; // reset on each load; reassigned below
     const applyCalendarFilters = () => {
       const q = String(filterEl.value || '').trim().toUpperCase();
       const tq = String(titleFilterEl.value || '').trim().toLowerCase();
@@ -1493,7 +1495,7 @@
       const filtered = forexCalendarRaw.filter((e) => {
         const countryOk = !q || String(e.country || '').toUpperCase().includes(q);
         const titleOk = !tq || String(e.title || '').toLowerCase().includes(tq);
-        const impactOk = impact === 'all' || String(e.impact || '').toLowerCase().includes('high');
+        const impactOk = impact === 'all' || String(e.impact || '').toLowerCase().includes(impact.toLowerCase());
         return countryOk && titleOk && impactOk;
       });
       filtered.sort((a, b) => {
@@ -1507,7 +1509,7 @@
         .filter((e) => {
           const countryOk = !q || String(e.country || '').toUpperCase().includes(q);
           const titleOk = !tq || String(e.title || '').toLowerCase().includes(tq);
-          const impactOk = impact === 'all' || String(e.impact || '').toLowerCase().includes('high');
+          const impactOk = impact === 'all' || String(e.impact || '').toLowerCase().includes(impact.toLowerCase());
           return countryOk && titleOk && impactOk;
         })
         .slice(0, 6);
@@ -1532,8 +1534,8 @@
         return `
           <div class="prob-row">
             <div class="prob-label">${esc(c)}</div>
-            <div class="prob-bar"><span style="width:${pct}%"></span></div>
-            <div class="prob-value">${pct}%</div>
+            <div class="prob-track"><div class="prob-fill" style="width:${pct}%"></div></div>
+            <div class="prob-val">${pct}%</div>
           </div>
         `;
       }).join('') || '<div class="calendar-empty">No country mix available.</div>';
@@ -1552,10 +1554,10 @@
       surpriseBarsEl.innerHTML = surpriseRows.map((r) => {
         const pct = Math.max(8, Math.round((r.s / maxS) * 100));
         return `
-          <div class="sector-row">
-            <div class="sector-name">${esc(r.title.slice(0, 28))}</div>
-            <div class="sector-bar"><span style="width:${pct}%"></span></div>
-            <div class="sector-val">${r.s.toFixed(2)}</div>
+          <div class="prob-row">
+            <div class="prob-label">${esc(r.title.slice(0, 28))}</div>
+            <div class="prob-track"><div class="prob-fill" style="width:${pct}%"></div></div>
+            <div class="prob-val">${r.s.toFixed(2)}</div>
           </div>
         `;
       }).join('') || '<div class="calendar-empty">Need Actual and Forecast values to compute surprises.</div>';
@@ -1623,6 +1625,7 @@
         `).join('');
       }
     };
+    applyForexFiltersGlobal = applyCalendarFilters;
 
     const setState = (chipClass, chipText, events, source, isError = false) => {
       skeletonEl.style.display = 'none';
@@ -2555,13 +2558,14 @@
     if (!refreshEl || !filterEl || !titleFilterEl || !impactEl || !sortEl || !limitEl || !tzEl) return;
     if (!refreshEl.dataset.bound) {
       refreshEl.dataset.bound = '1';
+      const refilter = () => { if (applyForexFiltersGlobal) applyForexFiltersGlobal(); else loadForexFactoryData().catch(() => false); };
       refreshEl.addEventListener('click', () => loadForexFactoryData().catch(() => false));
-      filterEl.addEventListener('input', () => loadForexFactoryData().catch(() => false));
-      titleFilterEl.addEventListener('input', () => loadForexFactoryData().catch(() => false));
-      impactEl.addEventListener('change', () => loadForexFactoryData().catch(() => false));
-      sortEl.addEventListener('change', () => loadForexFactoryData().catch(() => false));
-      limitEl.addEventListener('change', () => loadForexFactoryData().catch(() => false));
-      tzEl.addEventListener('change', () => loadForexFactoryData().catch(() => false));
+      filterEl.addEventListener('input', refilter);
+      titleFilterEl.addEventListener('input', refilter);
+      impactEl.addEventListener('change', refilter);
+      sortEl.addEventListener('change', refilter);
+      limitEl.addEventListener('change', refilter);
+      tzEl.addEventListener('change', refilter);
     }
   }
 
@@ -2949,10 +2953,11 @@
 
   (async () => {
     initIntelHub(); // Priority init for guests
-    await loadSiteSettings().catch(() => false);
+    const settingsOk = await loadSiteSettings().catch(() => false);
     const postsOk = await loadPosts().catch(() => false);
     const aboutOk = await loadAbout().catch(() => false);
     const forexOk = await loadForexFactoryData().catch(() => false);
+    initForexCalendarControls();
     const indiaOk = await loadIndiaCalendarData().catch(() => false);
     const marketOk = await loadUpstoxMarketData({ showLoading: true }).catch(() => false);
     const allOk = settingsOk && postsOk && aboutOk && forexOk && indiaOk && marketOk;
@@ -2960,7 +2965,6 @@
       allOk ? 'online' : 'degraded',
       allOk ? 'Integrations: Online' : 'Integrations: Degraded'
     );
-    initIntelHub(); // Global init for guests
     startMarketAutoRefresh();
   })();
 </script>
