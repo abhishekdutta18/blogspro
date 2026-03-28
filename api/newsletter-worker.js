@@ -139,9 +139,7 @@ export default {
         const seen = new Set();
         const out = [];
         for (const e of items) {
-          const d = new Date(e.date || 0);
-          const ym = Number.isNaN(d.getTime()) ? 'na' : `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-          const key = `${canonicalIndiaEventKey(e.title)}|${ym}`;
+          const key = canonicalIndiaEventKey(e.title);
           if (seen.has(key)) continue;
           seen.add(key);
           out.push(e);

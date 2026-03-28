@@ -1957,9 +1957,7 @@
         const deduped = [];
         const seen = new Set();
         for (const ev of hydrated.slice().sort((a, b) => a.__ts - b.__ts)) {
-          const d = new Date(ev.__ts);
-          const ym = Number.isNaN(d.getTime()) ? 'na' : `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-          const key = `${canonicalIndiaEventKey(ev.title)}|${ym}`;
+          const key = canonicalIndiaEventKey(ev.title);
           if (seen.has(key)) continue;
           seen.add(key);
           deduped.push(ev);
