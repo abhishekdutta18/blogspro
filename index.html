@@ -339,11 +339,22 @@
       font-weight: 600;
     }
     .qoq-bars {
-      min-height: 160px;
+      min-height: 0;
       border: 1px solid rgba(136,150,179,0.2);
       border-radius: 4px;
       padding: 0.4rem;
       background: rgba(8,13,26,0.35);
+    }
+    .qoq-chart-wrap {
+      width: 100%;
+      height: 110px;
+      max-height: 110px;
+    }
+    .qoq-chart-wrap canvas {
+      width: 100% !important;
+      height: 110px !important;
+      max-height: 110px !important;
+      display: block;
     }
     .linechart-wrap {
       width: 100%;
@@ -1925,7 +1936,7 @@
       const labels = seriesAll.map((s) => s.label);
       const histData = history.map((s) => s.value);
       const forecastData = forecastPoint ? [...Array(Math.max(0, history.length - 1)).fill(null), history[history.length - 1].value, forecastPoint.value] : [];
-      qoqBarsEl.innerHTML = '<canvas id="indiaQoqCanvas" style="width:100%;height:130px"></canvas>';
+      qoqBarsEl.innerHTML = '<div class="qoq-chart-wrap"><canvas id="indiaQoqCanvas"></canvas></div>';
       const canvas = document.getElementById('indiaQoqCanvas');
       if (!canvas) return false;
       if (indiaQoqChart) indiaQoqChart.destroy();
@@ -1959,7 +1970,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#c9d2ea', boxWidth: 12 } } },
+          plugins: { legend: { display: false } },
           scales: {
             x: { ticks: { color: '#9aa4bd', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(136,150,179,0.12)' } },
             y: {
