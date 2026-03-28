@@ -49,13 +49,12 @@ async function generateBriefing() {
         const title = titleMatch ? titleMatch[1].trim() : `Briefing — ${dateLabel}`;
         const excerpt = "Sharp Indo-Global market insights and regulatory updates.";
         
+        const fileName = `briefing-${today}.html`;
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content, dateLabel, 
             finalKit: { audioScript: "Listen to today's sharp market pulse..." }, 
-            type: "briefing", freq: frequency 
+            type: "briefing", freq: frequency, fileName
         });
-        
-        const fileName = `briefing-${today}.html`;
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         
         // Update index.json

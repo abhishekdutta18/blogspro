@@ -1,8 +1,7 @@
 const path = require("path");
 
-function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, freq, rel = "../../" }) {
-    const slugDate = new Date().toISOString().split('T')[0];
-    const canonical = `https://blogspro.in/${type}s/${freq}/${type}-${slugDate}.html`;
+function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, freq, fileName, rel = "../../" }) {
+    const canonical = `https://blogspro.in/${type === 'post' ? 'posts/' : (type + 's/' + freq + '/')}${fileName || (type + '-' + new Date().toISOString().split('T')[0] + '.html')}`;
     
     return `<!DOCTYPE html>
 <html lang="en">

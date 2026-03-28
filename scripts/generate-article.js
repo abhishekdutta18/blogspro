@@ -44,13 +44,12 @@ async function generateArticle() {
         const title = titleMatch ? titleMatch[1].trim() : `Strategic Outlook — ${dateLabel}`;
         const excerpt = "Strategic deep-dive for institutional and professional investors.";
         
+        const fileName = `article-${today}.html`;
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content, dateLabel, 
             finalKit: { audioScript: "Listen to this week's strategic deep-dive..." }, 
-            type: "article", freq: frequency 
+            type: "article", freq: frequency, fileName
         });
-        
-        const fileName = `article-${today}.html`;
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         
         // Update index.json

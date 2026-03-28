@@ -4,6 +4,19 @@ const fs = require("fs");
 const path = require("path");
 const fetch = require("node-fetch");
 
+async function fetchWithTimeout(url, options = {}, timeout = 10000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(id);
+        return response;
+    } catch (e) {
+        clearTimeout(id);
+        throw e;
+    }
+}
+
 async function fetchEconomicCalendar() {
     try {
         const response = await fetch("https://nfs.forexfactory.com/ff_calendar_thisweek.xml");
@@ -127,13 +140,15 @@ async function fetchRBIData() {
         
         const docs = [];
         for (const item of items.slice(0, 3)) {
-            const html = await fetch(item.link).then(r => r.text());
-            const pdfMatch = html.match(/href="([^"]+\.PDF)"/i);
-            if (pdfMatch) {
-                const pdfUrl = pdfMatch[1].startsWith('http') ? pdfMatch[1] : `https://www.rbi.org.in/${pdfMatch[1]}`;
-                const local = await downloadRegFile(pdfUrl, `rbi-${Date.now()}-${path.basename(pdfUrl)}`);
-                if (local) docs.push({ title: item.title, url: item.link, pdf: local });
-            }
+            try {
+                const html = await fetchWithTimeout(item.link).then(r => r.text());
+                const pdfMatch = html.match(/href="([^"]+\.PDF)"/i);
+                if (pdfMatch) {
+                    const pdfUrl = pdfMatch[1].startsWith('http') ? pdfMatch[1] : `https://www.rbi.org.in/${pdfMatch[1]}`;
+                    const local = await downloadRegFile(pdfUrl, `rbi-${Date.now()}-${path.basename(pdfUrl)}`);
+                    if (local) docs.push({ title: item.title, url: item.link, pdf: local });
+                }
+            } catch (e) { console.warn(`⚠️ RBI Item fetch failed: ${item.link}`); }
         }
         return { summary: `RBI: ${items.map(i => i.title).join(' | ')}`, docs };
     } catch (e) { return { summary: "RBI: Unavailable.", docs: [] }; }
@@ -164,12 +179,14 @@ async function fetchSEBIData() {
         const items = feed.items.slice(0, 3);
         const docs = [];
         for (const item of items) {
-            const html = await fetch(item.link).then(r => r.text());
-            const pdfMatch = html.match(/https:\/\/www\.sebi\.gov\.in\/sebi_data\/attachdocs\/[^"]+\.pdf/i);
-            if (pdfMatch) {
-                const local = await downloadRegFile(pdfMatch[0], `sebi-${Date.now()}-${path.basename(pdfMatch[0])}`);
-                if (local) docs.push({ title: item.title, url: item.link, pdf: local });
-            }
+            try {
+                const html = await fetchWithTimeout(item.link).then(r => r.text());
+                const pdfMatch = html.match(/https:\/\/www\.sebi\.gov\.in\/sebi_data\/attachdocs\/[^"]+\.pdf/i);
+                if (pdfMatch) {
+                    const local = await downloadRegFile(pdfMatch[0], `sebi-${Date.now()}-${path.basename(pdfMatch[0])}`);
+                    if (local) docs.push({ title: item.title, url: item.link, pdf: local });
+                }
+            } catch (e) { console.warn(`⚠️ SEBI Item fetch failed: ${item.link}`); }
         }
         return { summary: `SEBI: ${items.map(i => i.title).join(' | ')}`, docs };
     } catch (e) { return { summary: "SEBI: Unavailable.", docs: [] }; }

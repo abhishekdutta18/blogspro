@@ -39,13 +39,12 @@ async function generatePost() {
         const title = titleMatch ? titleMatch[1].trim() : `Post: ${category} — ${dateLabel}`;
         const excerpt = `A narrative deep-dive into ${category} and its current market sentiment.`;
         
+        const fileName = `${category.toLowerCase()}-${today}.html`;
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content, dateLabel, 
             finalKit: { pollQuestion: "What do you think of this macro shift?", pollOptions: ["Bullish", "Bearish", "Neutral"] }, 
-            type: "post", freq: "daily", rel: "../"
+            type: "post", freq: "daily", rel: "../", fileName
         });
-        
-        const fileName = `${category.toLowerCase()}-${today}.html`;
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         
         // Update index.json

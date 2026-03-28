@@ -700,7 +700,7 @@
 <section id="briefings">
   <div class="section-header">
     <h2 class="section-title">Latest <em>Briefings</em><span id="postsCount" style="display:none"></span></h2>
-    <a href="/posts" class="section-link">View Archive <span>&rarr;</span></a>
+    <a href="#briefings" class="section-link" onclick="filterByCategory('All')">Full Archive <span>&rarr;</span></a>
   </div>
 
   <!-- Search & Filters -->
@@ -888,7 +888,9 @@
       <div class="sitemap-col-title">Navigate</div>
       <ul>
         <li><a href="#"><span class="sm-icon">🏠</span> Home</a></li>
-        <li><a href="#briefings"><span class="sm-icon">📰</span> Articles</a></li>
+        <li><a href="#pulse"><span class="sm-icon">🕒</span> Pulse</a></li>
+        <li><a href="#briefings"><span class="sm-icon">📰</span> Briefings</a></li>
+        <li><a href="#articles"><span class="sm-icon">📊</span> Articles</a></li>
         <li><a href="#about"><span class="sm-icon">ℹ️</span> About</a></li>
         <li><a href="#newsletter"><span class="sm-icon">✉️</span> Newsletter</a></li>
       </ul>
@@ -1054,14 +1056,20 @@
       results.forEach((res, i) => {
         if (res.status === 'fulfilled') {
           const key = endpoints[i].key;
-          contentState[key] = res.value.map(p => ({
-            ...p,
-            id: `static-${key}-${p.fileName.split('.')[0]}`,
-            published: true,
-            createdAt: { toDate: () => new Date(p.date) },
-            isStatic: true,
-            path: key === 'posts' ? `posts/${p.fileName}` : `${key.includes('briefing') || key === 'daily' || key === 'hourly' ? 'briefings' : 'articles'}/${key}/${p.fileName}`
-          }));
+          contentState[key] = (res.value || []).map(p => {
+            if (!p.fileName) return null;
+            const safeId = `static-${key}-${p.fileName.split('.')[0]}`;
+            const safePath = key === 'posts' ? `posts/${p.fileName}` : `${key.includes('briefing') || key === 'daily' || key === 'hourly' ? 'briefings' : 'articles'}/${key}/${p.fileName}`;
+            
+            return {
+              ...p,
+              id: safeId,
+              published: true,
+              createdAt: { toDate: () => new Date(p.date || Date.now()) },
+              isStatic: true,
+              path: safePath
+            };
+          }).filter(Boolean);
         }
       });
 
