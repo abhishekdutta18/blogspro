@@ -955,12 +955,9 @@
     };
 
     const candidates = [
-      // Primary calendar endpoint currently lives on the newsletter worker URL.
-      'https://blogspro-upstox.abhishek-dutta1996.workers.dev',
-      window.__UPSTOX_WORKER_URL,
-      localStorage.getItem('bp_upstox_worker_url'),
-      'https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev',
-    ].filter(Boolean);
+      // Calendar route is currently available on this worker URL.
+      'https://blogspro-upstox.abhishek-dutta1996.workers.dev'
+    ];
 
     for (const base of [...new Set(candidates.map((u) => String(u).replace(/\/+$/, '')))]) {
       try {
@@ -987,11 +984,9 @@
     if (!gridEl || !updatedEl) return false;
 
     const candidates = [
-      window.__UPSTOX_WORKER_URL,
-      localStorage.getItem('bp_upstox_worker_url'),
-      'https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev',
-      'https://blogspro-upstox.abhishek-dutta1996.workers.dev',
-    ].filter(Boolean);
+      // Quotes/global are served by the stable Upstox proxy.
+      'https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev'
+    ];
 
     const fmtNum = (n) => {
       const x = Number(n);
