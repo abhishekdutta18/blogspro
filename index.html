@@ -747,27 +747,8 @@
     <h2 class="section-title">Market <em>Intelligence</em></h2>
   </div>
   <div id="tvHubContent" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
-    <!-- Terminal Widget -->
-    <div class="glass-card terminal-wrap" style="grid-column: span 1; display: flex; flex-direction: column;">
-      <div class="terminal-header" style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-family: monospace; font-size: 0.75rem; color: var(--gold);">BLOGSPRO TERMINAL v2.0</span>
-        <div style="display:flex; gap:0.5rem; align-items:center">
-          <span id="marketStatus" class="status-dot"></span>
-          <select id="terminalView" onchange="pollMarkets()" style="background:transparent; border:none; color:var(--muted); font-size:0.65rem; outline:none; cursor:pointer">
-            <option value="india">IND/NSE</option>
-            <option value="global">GLOBAL</option>
-          </select>
-        </div>
-      </div>
-      <div id="terminalBody" class="terminal-body" style="flex: 1; padding: 1rem; font-family: monospace; font-size: 0.85rem; overflow-y: auto; max-height: 400px;">
-        <div id="terminal-indices" style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem; border-bottom:1px solid var(--border); padding-bottom:0.75rem;">
-          <!-- Nifty/BankNifty Hydrated here -->
-        </div>
-        <div id="terminal-stocks" style="display:flex; flex-direction:column; gap:0.6rem;">
-          <!-- Top 5 Stocks Hydrated here -->
-        </div>
-      </div>
-    </div>
+    <!-- NSE Live Terminal (TradingView) -->
+    <div class="glass-card terminal-wrap" style="grid-column: span 1; display: flex; flex-direction: column; min-height: 300px; overflow: hidden;" id="tvNseTerminal"></div>
 
     <!-- Policy Tracker -->
     <div class="glass-card" style="padding: 1.25rem; border-left: 4px solid #60a5fa;">
@@ -1428,13 +1409,7 @@
         if (entry.isIntersecting) {
           entry.target.classList.add('active');
           if (entry.target.id === 'tvTickerContainer') initTVTicker();
-          if (entry.target.id === 'tvHubContainer') {
-            initTVHub();
-            if (!marketPollInterval) {
-              pollMarkets();
-              marketPollInterval = setInterval(pollMarkets, 30000);
-            }
-          }
+          if (entry.target.id === 'tvHubContainer') initTVHub();
         }
       });
     }, { threshold: 0.1 });
@@ -1484,9 +1459,6 @@
     }
   }
 
-  let marketPollInterval = null;
-
-
   function initTVTicker() {
       const container = document.getElementById('tvTickerContainer');
       if (container.dataset.loaded) return;
@@ -1527,6 +1499,35 @@
     const container = document.getElementById('tvHubContainer');
     if (!container || container.dataset.loaded) return;
     container.dataset.loaded = "true";
+
+    // ── NSE Live Terminal ──────────────────────────────────────────────────
+    const nseTerminal = document.getElementById('tvNseTerminal');
+    if (nseTerminal && !nseTerminal.dataset.loaded) {
+      nseTerminal.dataset.loaded = "true";
+      nseTerminal.innerHTML = `
+        <div class="tradingview-widget-container" style="height:100%">
+          <div class="tradingview-widget-container__widget" style="height:100%"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
+          {
+            "symbols": [
+              ["NSE:NIFTY|1D"],
+              ["NSE:BANKNIFTY|1D"],
+              ["BSE:SENSEX|1D"],
+              ["NSE:FINNIFTY|1D"],
+              ["NSE:MIDCPNIFTY|1D"]
+            ],
+            "chartOnly": false,
+            "colorTheme": "dark",
+            "isTransparent": true,
+            "showVolume": false,
+            "showMA": false,
+            "locale": "en",
+            "width": "100%",
+            "height": "100%"
+          }
+          <\/script>
+        </div>`;
+    }
 
     // ── Global Indices — market quotes table ───────────────────────────────
     const indicesEl = document.getElementById('tvIndices');
@@ -1717,89 +1718,6 @@
     }
   }
 
-  // ── Market Terminal Polling ──
-  let _pollFailures = 0;
-  const POLL_MAX_FAILURES = 3;
-  const UPSTOX_BASE = 'https://blogspro-upstox.abhishek-dutta1996.workers.dev';
-
-  window.pollMarkets = async function() {
-    const indicesBox = document.getElementById('terminal-indices');
-    const stocksBox  = document.getElementById('terminal-stocks');
-    const view       = document.getElementById('terminalView')?.value || 'india';
-
-    if (!indicesBox || !stocksBox) return;
-
-    // Stop polling after repeated failures — prevents console spam every 30s
-    if (_pollFailures >= POLL_MAX_FAILURES) {
-      clearInterval(marketPollInterval);
-      marketPollInterval = null;
-      const statusDot = document.getElementById('marketStatus');
-      if (statusDot) { statusDot.style.background = 'var(--red)'; statusDot.style.boxShadow = '0 0 6px var(--red)'; }
-      stocksBox.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);padding:0.5rem 0">Live data unavailable — market terminal offline.<br>Charts above are still active.</div>`;
-      return;
-    }
-
-    try {
-      if (view === 'india') {
-        // Fetch with timeout + CORS errors expected when token expires
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        const res  = await fetch(`${UPSTOX_BASE}/quotes`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        const data = await res.json();
-
-        if (data.status === 'success' && data.data) {
-          _pollFailures = 0; // reset on success
-          const d    = data.data;
-          const nifty = d['NSE_INDEX|Nifty 50'];
-          const bank  = d['NSE_INDEX|Nifty Bank'];
-          indicesBox.style.display = 'grid';
-          indicesBox.innerHTML = `
-            <div style="text-align:center"><small style="display:block;color:var(--muted)">NIFTY 50</small>
-              <b style="color:${nifty?.last_price >= nifty?.close ? 'var(--emerald)' : 'var(--red)'}">${nifty?.last_price?.toLocaleString('en-IN') || '—'}</b></div>
-            <div style="text-align:center"><small style="display:block;color:var(--muted)">BANK NIFTY</small>
-              <b style="color:${bank?.last_price >= bank?.close ? 'var(--emerald)' : 'var(--red)'}">${bank?.last_price?.toLocaleString('en-IN') || '—'}</b></div>`;
-          const symbols = ["RELIANCE", "HDFCBANK", "ICICIBANK", "INFY", "TCS"];
-          stocksBox.innerHTML = symbols.map(s => {
-            const item = d[`NSE_EQ|${s}`];
-            if (!item) return '';
-            const chg = (((item.last_price - item.close) / item.close) * 100).toFixed(2);
-            return `<div style="display:flex;justify-content:space-between;font-size:0.8rem">
-              <span>${s}</span>
-              <span style="color:${chg >= 0 ? 'var(--emerald)' : 'var(--red)'}">${item.last_price.toLocaleString('en-IN')} <small>(${chg}%)</small></span>
-            </div>`;
-          }).join('');
-        } else {
-          _pollFailures++;
-        }
-      } else {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        const res  = await fetch(`${UPSTOX_BASE}/global`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        const json = await res.json();
-        if (json.status === 'success') {
-          _pollFailures = 0;
-          indicesBox.style.display = 'none';
-          stocksBox.innerHTML = json.data.map(d => {
-            const name = d.symbol.replace('^', '').replace('=F', '');
-            return `<div style="display:flex;justify-content:space-between;font-size:0.8rem;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:0.4rem">
-              <span style="color:var(--gold)">${name}</span>
-              <span style="color:${d.change >= 0 ? 'var(--emerald)' : 'var(--red)'}">${d.price.toLocaleString()} <small>(${d.change}%)</small></span>
-            </div>`;
-          }).join('');
-        } else {
-          _pollFailures++;
-        }
-      }
-    } catch (e) {
-      _pollFailures++;
-      // Only warn once — not on every poll cycle
-      if (_pollFailures === 1) console.warn('[Terminal] Market feed unavailable:', e.message);
-    }
-  };
 
   // ── Policy Tracker Hydration ──
   function hydratePolicy(latestPost) {
