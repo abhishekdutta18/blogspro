@@ -1744,6 +1744,28 @@
       }
       return out;
     };
+    const isIndiaMarketHours = () => {
+      const d = new Date();
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata',
+        weekday: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).formatToParts(d);
+      const wd = parts.find((p) => p.type === 'weekday')?.value || '';
+      const hh = Number(parts.find((p) => p.type === 'hour')?.value || '0');
+      const mm = Number(parts.find((p) => p.type === 'minute')?.value || '0');
+      const mins = hh * 60 + mm;
+      const isWeekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(wd);
+      return isWeekday && mins >= (9 * 60 + 15) && mins <= (15 * 60 + 30);
+    };
+    const isLiveCard = (c, key) => {
+      if (key === 'crypto') return true;
+      const vol = Number(c?.volume);
+      if (Number.isFinite(vol) && vol > 0) return true;
+      return isIndiaMarketHours();
+    };
     const withLiveDrift = (items, segmentKey) => {
       const ampBySeg = {
         indices: 0.015,
@@ -1757,6 +1779,7 @@
       return items.map((row, idx) => {
         const price = Number(row?.price);
         const change = Number(row?.change);
+        if (!isLiveCard(row, segmentKey)) return row;
         if (!Number.isFinite(price)) return row;
         const pulse = Math.sin((marketRefreshTick + 1 + (idx * 3)) / 4);
         const driftPct = pulse * amp;
@@ -1776,27 +1799,8 @@
         dedup.push(it);
       }
       items = withLiveDrift(padCards(dedup, segmentKey), segmentKey);
-      const isIndiaMarketHours = () => {
-        const d = new Date();
-        const parts = new Intl.DateTimeFormat('en-US', {
-          timeZone: 'Asia/Kolkata',
-          weekday: 'short',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        }).formatToParts(d);
-        const wd = parts.find((p) => p.type === 'weekday')?.value || '';
-        const hh = Number(parts.find((p) => p.type === 'hour')?.value || '0');
-        const mm = Number(parts.find((p) => p.type === 'minute')?.value || '0');
-        const mins = hh * 60 + mm;
-        const isWeekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(wd);
-        return isWeekday && mins >= (9 * 60 + 15) && mins <= (15 * 60 + 30);
-      };
       const tradingStatus = (c, key) => {
-        if (key === 'crypto') return { label: 'Live', cls: 'live' };
-        const vol = Number(c.volume);
-        if (Number.isFinite(vol) && vol > 0) return { label: 'Live', cls: 'live' };
-        return isIndiaMarketHours() ? { label: 'Live', cls: 'live' } : { label: 'Not Trading', cls: 'closed' };
+        return isLiveCard(c, key) ? { label: 'Live', cls: 'live' } : { label: 'Not Trading', cls: 'closed' };
       };
       const detailText = (c, key) => {
         const open = Number.isFinite(Number(c.open)) ? Number(c.open) : NaN;
