@@ -1,5 +1,17 @@
 const path = require("path");
 
+function parseMD(md) {
+    if (!md) return "";
+    return md
+        .replace(/### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
+        .replace(/\*(.*)\*/gim, '<em>$1</em>')
+        .replace(/^\- (.*$)/gim, '<li>$1</li>')
+        .replace(/\n\n/gim, '</p><p>')
+        .replace(/<li>/g, '<ul><li>').replace(/<\/li>/g, '</li></ul>').replace(/<\/ul><ul>/g, '');
+}
+
 function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, freq, fileName, rel = "../../" }) {
     const canonical = `https://blogspro.in/${type === 'post' ? 'posts/' : (type + 's/' + freq + '/')}${fileName || (type + '-' + new Date().toISOString().split('T')[0] + '.html')}`;
     
@@ -56,8 +68,11 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
         .content table { width: 100%; border-collapse: collapse; margin: 2rem 0; font-size: 0.95rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(201,168,76,0.1); }
         .content th { background: rgba(201,168,76,0.1); color: var(--gold); text-align: left; padding: 0.8rem 1rem; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; border-bottom: 2px solid var(--gold); }
         .content td { padding: 0.8rem 1rem; border-bottom: 1px solid rgba(201,168,76,0.05); }
-        .audio-summary { margin: 2rem 0; padding: 1.5rem; background: rgba(201,168,76,0.08); border: 2px solid var(--gold); border-radius: 8px; }
-        .share-btn { background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); color: var(--gold); padding: 0.6rem 1.2rem; border-radius: 4px; font-size: 0.85rem; font-weight: 700; cursor: pointer; text-decoration: none; }
+        .audio-summary { margin: 3rem 0; padding: 2rem; background: rgba(201,168,76,0.05); border: 1px solid var(--gold); border-radius: 12px; }
+        .audio-player { width: 100%; margin-top: 1rem; filter: sepia(20%) saturate(70%) grayscale(1) contrast(99%) invert(12%); }
+        .share-btn { background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); color: var(--gold); padding: 0.6rem 1.2rem; border-radius: 4px; font-size: 0.85rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: 0.2s; }
+        .share-btn:hover { background: var(--gold); color: var(--navy); }
+        .footer-actions { margin-top: 4rem; padding-top: 2rem; border-top: 1px solid rgba(201,168,76,0.1); display: flex; gap: 1rem; }
     </style>
 </head>
 <body>
@@ -74,9 +89,17 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
         ${finalKit?.audioScript ? `
         <div class="audio-summary">
             <h3 style="margin-top:0;color:var(--gold);">🔊 AI Audio Summary</h3>
-            <p>${finalKit.audioScript}</p>
+            <p style="font-size:0.95rem;color:var(--muted);">${finalKit.audioScript}</p>
+            <audio controls class="audio-player">
+                <source src="${finalKit.audioUrl || '#'}" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
         </div>` : ''}
-        <div class="content">${content}</div>
+        <div class="content"><p>${parseMD(content)}</p></div>
+        <div class="footer-actions">
+            <button class="share-btn" onclick="navigator.share({title: '${title}', url: window.location.href})">📤 Share Report</button>
+            <a href="mailto:compliance@blogspro.in?subject=Report Abuse: ${fileName}" class="share-btn" style="opacity:0.6">🚩 Report Analysis</a>
+        </div>
         ${finalKit?.pollQuestion ? `
         <section style="margin-top:4rem;padding:2rem;background:rgba(201,168,76,0.05);border-radius:8px;">
             <h3 style="color:var(--gold);margin-top:0;">🗳️ Poll: ${finalKit.pollQuestion}</h3>

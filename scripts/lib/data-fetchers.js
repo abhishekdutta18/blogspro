@@ -199,7 +199,10 @@ async function fetchMacroPulse() {
             const json = await res.json();
             if (json && json[1] && json[1][0]) {
                 const item = json[1][0];
-                return { value: item.value?.toFixed(2), date: item.date };
+                return { 
+                    value: (item.value !== null && item.value !== undefined) ? item.value.toFixed(2) : "N/A", 
+                    date: item.date || "N/A" 
+                };
             }
         } catch (e) {}
         return { value: "N/A", date: "N/A" };
@@ -241,7 +244,7 @@ async function fetchUpstoxData() {
             summary += ` | NIFTY Trend: ${lastClose > prevClose ? "Bullish" : "Bearish"} (${((lastClose - prevClose)/prevClose * 100).toFixed(2)}%)`;
         }
         return { summary, raw };
-    } catch (e) { return { summary: "Upstox: Unavailable.", raw: {} }; }
+    } catch (e) { return { summary: "Live Markets (Upstox): Currently unavailable. Relying on TradingView fallback.", raw: {} }; }
 }
 
 module.exports = {
