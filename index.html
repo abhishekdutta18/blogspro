@@ -1753,7 +1753,7 @@
           const price = Number(row?.usd);
           const change = Number(row?.usd_24h_change);
           if (!Number.isFinite(price)) return null;
-          return { symbol: sym, price, change: Number.isFinite(change) ? change : 0, source: 'coingecko' };
+          return { symbol: sym, price, change: Number.isFinite(change) ? change : 0, source: 'coingecko', _live: true };
         })
         .filter(Boolean);
     };
@@ -1866,9 +1866,8 @@
       return isWeekday && mins >= (9 * 60 + 15) && mins <= (15 * 60 + 30);
     };
     const isLiveCard = (c, key) => {
-      if (key === 'crypto') return true;
-      const vol = Number(c?.volume);
-      if (Number.isFinite(vol) && vol > 0) return true;
+      if (!c._live) return false; // fallback/static data is never live
+      if (key === 'crypto') return true; // crypto trades 24/7
       return isIndiaMarketHours();
     };
     const withLiveDrift = (items, segmentKey) => {
@@ -2017,6 +2016,7 @@
             prev: Number(val?.ohlc?.close ?? val?.prev_close_price),
             volume: Number(val?.volume ?? val?.vol ?? val?.total_volume),
             yield: Number(val?.yield ?? val?.ytm ?? val?.yield_to_maturity),
+            _live: true,
           };
           const k = String(instrument).toUpperCase();
           const symU = String(symbol).toUpperCase();
