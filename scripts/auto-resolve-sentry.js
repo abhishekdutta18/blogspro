@@ -9,8 +9,32 @@ const SENTRY_AUTH_TOKEN = process.env.SENTRY_AUTH_TOKEN;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO = process.env.GITHUB_REPOSITORY; // e.g. 'abhishekdutta18/blogspro'
 
+let CURRENT_SENTRY_ORG = SENTRY_ORG;
+let CURRENT_SENTRY_PROJECT = SENTRY_PROJECT;
+
+async function discoverSentryEnvironment() {
+  const url = `https://de.sentry.io/api/0/projects/`;
+  const res = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${SENTRY_AUTH_TOKEN}` }
+  });
+  
+  if (!res.ok) {
+    throw new Error(`Sentry Discovery Error: ${res.status} ${await res.text()}`);
+  }
+  
+  const projects = await res.json();
+  if (projects.length === 0) throw new Error("No Sentry projects found for this token.");
+  
+  // Use the first project found as the primary
+  const target = projects[0];
+  CURRENT_SENTRY_ORG = target.organization.slug;
+  CURRENT_SENTRY_PROJECT = target.slug;
+  
+  console.log(`📡 Discovered Sentry Environment: Org=${CURRENT_SENTRY_ORG}, Project=${CURRENT_SENTRY_PROJECT}`);
+}
+
 async function fetchUnresolvedIssues() {
-  const url = `https://de.sentry.io/api/0/projects/${SENTRY_ORG}/${SENTRY_PROJECT}/issues/?query=${encodeURIComponent('is:unresolved')}`;
+  const url = `https://de.sentry.io/api/0/projects/${CURRENT_SENTRY_ORG}/${CURRENT_SENTRY_PROJECT}/issues/?query=${encodeURIComponent('is:unresolved')}`;
   const res = await fetch(url, {
     headers: {
       'Authorization': `Bearer ${SENTRY_AUTH_TOKEN}`,
@@ -90,13 +114,15 @@ async function createGitHubIssue(sentryIssue) {
 }
 
 async function main() {
-  if (!SENTRY_AUTH_TOKEN || !GITHUB_TOKEN || !REPO || !SENTRY_ORG) {
-    console.error("CRITICAL: Missing required environment variables (SENTRY_AUTH_TOKEN, GITHUB_TOKEN, GITHUB_REPOSITORY, SENTRY_ORG)");
+  if (!SENTRY_AUTH_TOKEN || !GITHUB_TOKEN || !REPO) {
+    console.error("CRITICAL: Missing required environment variables (SENTRY_AUTH_TOKEN, GITHUB_TOKEN, GITHUB_REPOSITORY)");
     process.exit(1);
   }
 
-  console.log("Connecting to Sentry to pull unresolved issues...");
+  console.log("Initializing Sentry context...");
   try {
+    await discoverSentryEnvironment();
+    console.log("Connecting to Sentry to pull unresolved issues...");
     const issues = await fetchUnresolvedIssues();
     console.log(`Found ${issues.length} unresolved issues in Sentry.`);
 

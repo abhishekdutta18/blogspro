@@ -29,8 +29,6 @@ jobs:
 
       - name: Run Sentry Monitor
         env:
-          SENTRY_ORG: "o4511069230530560"
-          SENTRY_PROJECT: "4511069332832336"
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
