@@ -1724,28 +1724,36 @@
     ];
     const loadCryptoFromCoinGecko = async () => {
       const ids = [
-        'bitcoin',
-        'ethereum',
-        'binancecoin',
-        'solana',
-        'ripple',
-        'dogecoin',
-        'cardano',
-        'matic-network'
+        'bitcoin', 'ethereum', 'binancecoin', 'solana', 'ripple',
+        'dogecoin', 'cardano', 'matic-network', 'avalanche-2', 'polkadot',
+        'chainlink', 'litecoin', 'uniswap', 'near', 'stellar',
+        'internet-computer', 'aptos', 'arbitrum', 'optimism', 'filecoin'
       ];
       const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd&include_24hr_change=true`;
       const res = await withTimeout(fetch(`${url}&t=${Date.now()}`, { cache: 'no-store' }), 12000, 'coingecko crypto');
       if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status}`);
       const json = await res.json();
       const map = [
-        ['bitcoin', 'BTCUSDT'],
-        ['ethereum', 'ETHUSDT'],
-        ['binancecoin', 'BNBUSDT'],
-        ['solana', 'SOLUSDT'],
-        ['ripple', 'XRPUSDT'],
-        ['dogecoin', 'DOGEUSDT'],
-        ['cardano', 'ADAUSDT'],
-        ['matic-network', 'MATICUSDT'],
+        ['bitcoin',          'BTCUSDT'],
+        ['ethereum',         'ETHUSDT'],
+        ['binancecoin',      'BNBUSDT'],
+        ['solana',           'SOLUSDT'],
+        ['ripple',           'XRPUSDT'],
+        ['dogecoin',         'DOGEUSDT'],
+        ['cardano',          'ADAUSDT'],
+        ['matic-network',    'MATICUSDT'],
+        ['avalanche-2',      'AVAXUSDT'],
+        ['polkadot',         'DOTUSDT'],
+        ['chainlink',        'LINKUSDT'],
+        ['litecoin',         'LTCUSDT'],
+        ['uniswap',          'UNIUSDT'],
+        ['near',             'NEARUSDT'],
+        ['stellar',          'XLMUSDT'],
+        ['internet-computer','ICPUSDT'],
+        ['aptos',            'APTUSDT'],
+        ['arbitrum',         'ARBUSDT'],
+        ['optimism',         'OPUSDT'],
+        ['filecoin',         'FILUSDT'],
       ];
       return map
         .map(([id, sym]) => {
@@ -1835,12 +1843,12 @@
       ],
     };
     const segmentTargetCount = {
-      indices: 12,
-      stocksOptions: 16,
-      bonds: 10,
-      currency: 10,
-      commodities: 10,
-      crypto: 12,
+      indices: 24,
+      stocksOptions: 24,
+      bonds: 12,
+      currency: 12,
+      commodities: 12,
+      crypto: 20,
     };
     const padCards = (items, segmentKey) => {
       // If we have any live data, show only that — never mix live with stale fallback
@@ -2046,12 +2054,12 @@
             }
           }
         } catch (_) {}
-        renderCards(segmentIndices, segments.indices.slice(0, 20), 'indices');
-        renderCards(segmentStocksOptions, segments.stocksOptions.slice(0, 24), 'stocksOptions');
-        renderCards(segmentBonds, segments.bonds.slice(0, 14), 'bonds');
-        renderCards(segmentCurrency, segments.currency.slice(0, 14), 'currency');
-        renderCards(segmentCommodities, segments.commodities.slice(0, 14), 'commodities');
-        renderCards(segmentCrypto, segments.crypto.slice(0, 16), 'crypto');
+        renderCards(segmentIndices, segments.indices.slice(0, 30), 'indices');
+        renderCards(segmentStocksOptions, segments.stocksOptions.slice(0, 30), 'stocksOptions');
+        renderCards(segmentBonds, segments.bonds.slice(0, 16), 'bonds');
+        renderCards(segmentCurrency, segments.currency.slice(0, 16), 'currency');
+        renderCards(segmentCommodities, segments.commodities.slice(0, 16), 'commodities');
+        renderCards(segmentCrypto, segments.crypto.slice(0, 20), 'crypto');
         skeletonEl.style.display = 'none';
         segmentIndices.dataset.loaded = '1';
         marketLastUpdatedAt = Date.now();

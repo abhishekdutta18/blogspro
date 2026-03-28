@@ -51,34 +51,73 @@ export default {
           "NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank", "NSE_INDEX|Nifty IT",
           "NSE_INDEX|Nifty Auto", "NSE_INDEX|Nifty Pharma", "NSE_INDEX|Nifty Metal",
           "NSE_INDEX|Nifty FMCG", "NSE_INDEX|Nifty PSU Bank", "NSE_INDEX|Nifty Realty",
-          "NSE_INDEX|Nifty Midcap 50"
+          "NSE_INDEX|Nifty Midcap 50", "NSE_INDEX|Nifty Midcap 100",
+          "NSE_INDEX|Nifty Smallcap 100", "NSE_INDEX|Nifty Energy",
+          "NSE_INDEX|Nifty Infra", "NSE_INDEX|Nifty Media"
         ].join(",");
 
         // Yahoo Finance tickers → [yf_ticker, instrument_key, display_symbol]
-        // v8/finance/chart is used (one call per symbol in parallel) — v7/quote requires auth
+        // v8/finance/chart used per-symbol in parallel — v7/quote now requires auth
         const yfMap = [
-          // NSE stocks (prices in INR)
-          ["RELIANCE.NS",   "NSE_EQ:RELIANCE",   "RELIANCE"],
-          ["HDFCBANK.NS",   "NSE_EQ:HDFCBANK",   "HDFCBANK"],
-          ["ICICIBANK.NS",  "NSE_EQ:ICICIBANK",  "ICICIBANK"],
-          ["INFY.NS",       "NSE_EQ:INFY",       "INFY"],
-          ["TCS.NS",        "NSE_EQ:TCS",        "TCS"],
-          ["SBIN.NS",       "NSE_EQ:SBIN",       "SBIN"],
-          ["BHARTIARTL.NS", "NSE_EQ:BHARTIARTL", "BHARTIARTL"],
-          ["LT.NS",         "NSE_EQ:LT",         "LT"],
-          ["KOTAKBANK.NS",  "NSE_EQ:KOTAKBANK",  "KOTAKBANK"],
-          ["AXISBANK.NS",   "NSE_EQ:AXISBANK",   "AXISBANK"],
-          // Commodities (USD prices — Gold $/oz, Silver $/oz, etc.)
+          // ── NSE Blue-chip stocks (INR) ──────────────────────────────────────
+          ["RELIANCE.NS",   "NSE_EQ:RELIANCE",    "RELIANCE"],
+          ["HDFCBANK.NS",   "NSE_EQ:HDFCBANK",    "HDFCBANK"],
+          ["ICICIBANK.NS",  "NSE_EQ:ICICIBANK",   "ICICIBANK"],
+          ["INFY.NS",       "NSE_EQ:INFY",        "INFY"],
+          ["TCS.NS",        "NSE_EQ:TCS",         "TCS"],
+          ["SBIN.NS",       "NSE_EQ:SBIN",        "SBIN"],
+          ["BHARTIARTL.NS", "NSE_EQ:BHARTIARTL",  "BHARTIARTL"],
+          ["LT.NS",         "NSE_EQ:LT",          "LT"],
+          ["KOTAKBANK.NS",  "NSE_EQ:KOTAKBANK",   "KOTAKBANK"],
+          ["AXISBANK.NS",   "NSE_EQ:AXISBANK",    "AXISBANK"],
+          ["WIPRO.NS",      "NSE_EQ:WIPRO",       "WIPRO"],
+          ["HCLTECH.NS",    "NSE_EQ:HCLTECH",     "HCLTECH"],
+          ["MARUTI.NS",     "NSE_EQ:MARUTI",      "MARUTI"],
+          ["TITAN.NS",      "NSE_EQ:TITAN",       "TITAN"],
+          ["BAJFINANCE.NS", "NSE_EQ:BAJFINANCE",  "BAJFINANCE"],
+          ["ADANIENT.NS",   "NSE_EQ:ADANIENT",    "ADANIENT"],
+          ["HINDUNILVR.NS", "NSE_EQ:HINDUNILVR",  "HINDUNILVR"],
+          ["NESTLEIND.NS",  "NSE_EQ:NESTLEIND",   "NESTLEIND"],
+          ["SUNPHARMA.NS",  "NSE_EQ:SUNPHARMA",   "SUNPHARMA"],
+          ["TATAMOTORS.NS", "NSE_EQ:TATAMOTORS",  "TATAMOTORS"],
+          // ── Global indices (routed to indices segment) ──────────────────────
+          ["^GSPC",    "GLOBAL_INDEX:SP500",    "S&P 500"],
+          ["^IXIC",    "GLOBAL_INDEX:NASDAQ",   "NASDAQ"],
+          ["^DJI",     "GLOBAL_INDEX:DJIA",     "Dow Jones"],
+          ["^FTSE",    "GLOBAL_INDEX:FTSE100",  "FTSE 100"],
+          ["^N225",    "GLOBAL_INDEX:NIKKEI",   "Nikkei 225"],
+          ["^HSI",     "GLOBAL_INDEX:HSI",      "Hang Seng"],
+          ["^GDAXI",   "GLOBAL_INDEX:DAX",      "DAX"],
+          ["^FCHI",    "GLOBAL_INDEX:CAC40",    "CAC 40"],
+          ["^STOXX50E","GLOBAL_INDEX:EUROSTOXX","Euro Stoxx 50"],
+          ["^BSESN",   "GLOBAL_INDEX:SENSEX",   "Sensex"],
+          // ── Commodities (USD) ───────────────────────────────────────────────
           ["GC=F",  "MCX_FO:GOLD",       "Gold ($/oz)"],
           ["SI=F",  "MCX_FO:SILVER",     "Silver ($/oz)"],
-          ["CL=F",  "MCX_FO:CRUDEOIL",  "WTI Crude ($/bbl)"],
+          ["CL=F",  "MCX_FO:CRUDEOIL",  "WTI ($/bbl)"],
           ["BZ=F",  "MCX_FO:BRENTOIL",  "Brent ($/bbl)"],
           ["NG=F",  "MCX_FO:NATURALGAS","NatGas ($/mmBtu)"],
-          // FX — INR per 1 foreign currency unit
+          ["HG=F",  "MCX_FO:COPPER",    "Copper ($/lb)"],
+          ["PL=F",  "MCX_FO:PLATINUM",  "Platinum ($/oz)"],
+          ["PA=F",  "MCX_FO:PALLADIUM", "Palladium ($/oz)"],
+          ["ZC=F",  "MCX_FO:CORN",      "Corn ($/bu)"],
+          ["ZW=F",  "MCX_FO:WHEAT",     "Wheat ($/bu)"],
+          // ── Bond yields ─────────────────────────────────────────────────────
+          ["^TNX", "NSE_DEBT:US10Y",  "US 10Y Yield"],
+          ["^FVX", "NSE_DEBT:US5Y",   "US 5Y Yield"],
+          ["^TYX", "NSE_DEBT:US30Y",  "US 30Y Yield"],
+          ["^IRX", "NSE_DEBT:US3M",   "US 3M T-Bill"],
+          // ── FX / Currency ───────────────────────────────────────────────────
           ["USDINR=X", "NSE_CDS:USDINR", "USDINR"],
           ["EURINR=X", "NSE_CDS:EURINR", "EURINR"],
           ["GBPINR=X", "NSE_CDS:GBPINR", "GBPINR"],
           ["JPYINR=X", "NSE_CDS:JPYINR", "JPYINR"],
+          ["AUDINR=X", "NSE_CDS:AUDINR", "AUDINR"],
+          ["EURUSD=X", "NSE_CDS:EURUSD", "EURUSD"],
+          ["GBPUSD=X", "NSE_CDS:GBPUSD", "GBPUSD"],
+          ["USDJPY=X", "NSE_CDS:USDJPY", "USDJPY"],
+          ["AUDUSD=X", "NSE_CDS:AUDUSD", "AUDUSD"],
+          ["USDCNY=X", "NSE_CDS:USDCNY", "USDCNY"],
         ];
 
         const fetchYfChart = async ([ticker, instrKey]) => {
