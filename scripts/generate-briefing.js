@@ -64,8 +64,8 @@ async function generateBriefing() {
         index.unshift({ title, date: today, fileName, type: "briefing", frequency });
         fs.writeFileSync(indexPath, JSON.stringify(index.slice(0, 50), null, 2));
 
-        if (process.env.NEWSLETTER_WORKER_URL && frequency === 'daily') {
-            console.log("📨 Dispatching Daily Newsletter...");
+        if (process.env.NEWSLETTER_WORKER_URL && (frequency === 'daily' || frequency === 'hourly')) {
+            console.log(`📨 Dispatching ${frequency} Newsletter...`);
             await fetch(process.env.NEWSLETTER_WORKER_URL, {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ subject: title, html: fullHtml, secret: process.env.NEWSLETTER_SECRET })
