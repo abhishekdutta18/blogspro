@@ -176,21 +176,23 @@
     .ticker-tag { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
     .ticker-sep { color: var(--muted); }
 
-    /* ── DATA FEED STATUS ── */
+    /* ── FOREX CALENDAR ── */
     .feed-status-wrap { max-width: 1200px; margin: 0 auto; padding: 0.9rem 2rem 0; }
     .feed-status {
       background: var(--navy2);
       border: 1px solid var(--border);
       border-left: 3px solid var(--gold);
-      padding: 0.65rem 0.85rem;
+      padding: 0.8rem 0.9rem;
+    }
+    .feed-status-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 0.8rem;
+      margin-bottom: 0.55rem;
       flex-wrap: wrap;
     }
     .feed-status-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
-    .feed-status-text { font-size: 0.78rem; color: var(--muted); }
     .feed-status-chip {
       font-size: 0.62rem;
       color: #86efac;
@@ -211,6 +213,48 @@
       color: #fca5a5;
       background: rgba(239,68,68,0.1);
       border-color: rgba(239,68,68,0.35);
+    }
+    .calendar-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.35rem;
+    }
+    .calendar-item {
+      display: grid;
+      grid-template-columns: 84px 1fr 52px;
+      gap: 0.6rem;
+      align-items: center;
+      font-size: 0.78rem;
+      padding: 0.38rem 0;
+      border-top: 1px solid rgba(136,150,179,0.15);
+    }
+    .calendar-item:first-child { border-top: 0; }
+    .calendar-country {
+      font-size: 0.66rem;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 600;
+    }
+    .calendar-title {
+      color: var(--cream);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .calendar-impact {
+      text-align: right;
+      font-size: 0.62rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #f0cc6e;
+    }
+    .calendar-empty {
+      font-size: 0.78rem;
+      color: var(--muted);
+      padding: 0.2rem 0 0.1rem;
     }
 
     /* ── SECTION ── */
@@ -519,14 +563,16 @@
   </div>
 </div>
 
-<!-- FEED STATUS -->
+<!-- FOREX CALENDAR -->
 <div class="feed-status-wrap">
   <div class="feed-status">
-    <div>
-      <div class="feed-status-label">Data Feed Status</div>
-      <div class="feed-status-text" id="forexFeedText">Loading ForexFactory calendar data…</div>
+    <div class="feed-status-head">
+      <div class="feed-status-label">This Week High-Impact Calendar</div>
+      <div class="feed-status-chip warn" id="forexFeedChip">Syncing</div>
     </div>
-    <div class="feed-status-chip warn" id="forexFeedChip">Syncing</div>
+    <ul class="calendar-list" id="forexCalendarList">
+      <li class="calendar-empty">Loading ForexFactory calendar data…</li>
+    </ul>
   </div>
 </div>
 
@@ -671,15 +717,27 @@
   }
 
   async function loadForexFactoryData() {
-    const textEl = document.getElementById('forexFeedText');
+    const listEl = document.getElementById('forexCalendarList');
     const chipEl = document.getElementById('forexFeedChip');
-    if (!textEl || !chipEl) return false;
+    if (!listEl || !chipEl) return false;
 
-    const setState = (chipClass, chipText, bodyText) => {
+    const setState = (chipClass, chipText, events, isError = false) => {
       chipEl.classList.remove('warn', 'down');
       if (chipClass) chipEl.classList.add(chipClass);
       chipEl.textContent = chipText;
-      textEl.textContent = bodyText;
+      if (isError) {
+        listEl.innerHTML = `<li class="calendar-empty">Calendar feeds currently unavailable. Please check back shortly.</li>`;
+        return;
+      }
+      listEl.innerHTML = events
+        .map((e) => `
+          <li class="calendar-item">
+            <span class="calendar-country">${e.country || 'FX'}</span>
+            <span class="calendar-title">${(e.title || 'Untitled event').replace(/</g, '&lt;')}</span>
+            <span class="calendar-impact">${e.impact || 'High'}</span>
+          </li>
+        `)
+        .join('');
     };
 
     const candidates = [
@@ -694,17 +752,17 @@
         const res = await withTimeout(fetch(`${base}/calendar`), 12000, 'calendar worker');
         if (!res.ok) continue;
         const json = await res.json();
-        const events = (json?.events || []).slice(0, 3).map((e) => `${e.title} (${e.country})`);
+        const events = (json?.events || []).slice(0, 5);
         if (!events.length) continue;
         if (json.source === 'forexfactory') {
-          setState(null, 'Live', `ForexFactory: ${events.join(' • ')}`);
+          setState(null, 'Live', events);
         } else {
-          setState('warn', 'Fallback', `TradingEconomics: ${events.join(' • ')}`);
+          setState('warn', 'Fallback', events);
         }
         return true;
       } catch (_) {}
     }
-    setState('down', 'Down', 'Calendar feeds currently unavailable. Please check back shortly.');
+    setState('down', 'Down', [], true);
     return false;
   }
 
