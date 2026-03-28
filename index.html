@@ -1864,6 +1864,11 @@
       const surpriseText = m.topSurprises.length
         ? m.topSurprises.map((s) => `${s.title}: ${s.diff > 0 ? '+' : ''}${s.diff.toFixed(2)}`).join(' | ')
         : 'No actual-vs-forecast pairs yet';
+      const focusEvents = events
+        .filter((e) => String(e.title || '').trim().length > 0)
+        .slice(0, 6)
+        .map((e) => esc(e.title))
+        .join(' · ') || 'No event names available';
       snapshotEl.innerHTML = `
         <div><b>Window:</b> ${events.length} India events tracked</div>
         <div><b>Policy Regime:</b> ${m.regimeTag}</div>
@@ -1876,10 +1881,12 @@
         <div><b>Confidence Score:</b> ${m.confidence}/100 weighted quality</div>
       `;
       explainEl.innerHTML = `
-        <div><b>How to read RBI Probability:</b> model blend of inflation, growth, and event-density signals.</div>
-        <div><b>How to read INR Pressure:</b> positive score implies depreciation pressure; negative implies stability/appreciation bias.</div>
-        <div><b>How to read Sector Impact:</b> counts event relevance by sector to highlight likely sensitivity clusters.</div>
-        <div><b>How to read Confidence:</b> weighted data quality score from forecast/date/impact/sector coverage.</div>
+        <div><b>How To Read</b></div>
+        <div><b>Rates Lens:</b> RBI Probability blends inflation, growth, and event-density signals.</div>
+        <div><b>FX Lens:</b> INR Pressure above zero implies depreciation bias; below zero implies stability/appreciation bias.</div>
+        <div><b>Sector Lens:</b> Sector Impact ranks sensitivity by event clustering across Banks, IT, FMCG, Autos, and Metals.</div>
+        <div><b>Data Quality Lens:</b> Confidence Score reflects forecast, impact, date, and coverage completeness.</div>
+        <div><b>Key Events In Focus:</b> ${focusEvents}</div>
       `;
       probBarsEl.innerHTML = [
         { label: 'Hold', val: m.holdProb },
