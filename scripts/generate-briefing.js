@@ -1,8 +1,20 @@
-const fs = require("fs");
-const path = require("path");
 const { fetchEconomicCalendar, fetchMultiAssetData, fetchIndianNews, fetchGlobalNews, fetchGlobalMarkets, fetchMacroPulse, fetchUpstoxData } = require("./lib/data-fetchers");
 const { askAI } = require("./lib/ai-service");
 const { getBaseTemplate } = require("./lib/templates");
+const fetch = require("node-fetch");
+
+async function fetchWithTimeout(url, options = {}, timeout = 15000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(id);
+        return response;
+    } catch (e) {
+        clearTimeout(id);
+        throw e;
+    }
+}
 
 async function generateBriefing() {
     const frequency = process.argv.find(a => a.startsWith('--freq='))?.split('=')[1] || 'daily';
@@ -93,10 +105,10 @@ async function generateBriefing() {
 
         if (process.env.NEWSLETTER_WORKER_URL && (frequency === 'daily' || frequency === 'hourly')) {
             console.log(`📨 Dispatching ${frequency} Newsletter...`);
-            await fetch(process.env.NEWSLETTER_WORKER_URL, {
+            await fetchWithTimeout(process.env.NEWSLETTER_WORKER_URL, {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ subject: title, html: fullHtml, secret: process.env.NEWSLETTER_SECRET })
-            });
+            }).catch(e => console.error("⚠️ Newsletter dispatch timed out/failed:", e.message));
         }
 
         if (process.env.TELEGRAM_TOKEN && process.env.TELEGRAM_TO) {
@@ -104,10 +116,10 @@ async function generateBriefing() {
             const tgTitle = frequency === 'hourly' ? `🕒 <b>HOURLY PULSE</b>` : `📅 <b>DAILY BRIEFING</b>`;
             const text = `${tgTitle}\n\n<b>${title}</b>\n\n${excerpt}\n\n🔗 <a href="https://blogspro.in/briefings/${frequency}/${fileName}">Read Full Terminal Report</a>`;
             
-            await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+            await fetchWithTimeout(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ chat_id: process.env.TELEGRAM_TO, text, parse_mode: "HTML" })
-            });
+            }).catch(e => console.error("⚠️ Telegram dispatch timed out/failed:", e.message));
         }
 
         console.log(`🏁 Briefing Success: ${fileName}`);

@@ -3,6 +3,20 @@ const path = require("path");
 const { fetchRBIData, fetchSEBIData, fetchCCILData, fetchMacroPulse, fetchGlobalMarkets } = require("./lib/data-fetchers");
 const { askAI } = require("./lib/ai-service");
 const { getBaseTemplate } = require("./lib/templates");
+const fetch = require("node-fetch");
+
+async function fetchWithTimeout(url, options = {}, timeout = 15000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(id);
+        return response;
+    } catch (e) {
+        clearTimeout(id);
+        throw e;
+    }
+}
 
 async function generateArticle() {
     const frequency = process.argv.find(a => a.startsWith('--freq='))?.split('=')[1] || 'weekly';
@@ -87,21 +101,21 @@ async function generateArticle() {
 
         if (process.env.NEWSLETTER_WORKER_URL && (frequency === 'weekly' || frequency === 'monthly')) {
             console.log(`📨 Dispatching ${frequency} Newsletter...`);
-            await fetch(process.env.NEWSLETTER_WORKER_URL, {
+            await fetchWithTimeout(process.env.NEWSLETTER_WORKER_URL, {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ subject: title, html: fullHtml, secret: process.env.NEWSLETTER_SECRET })
-            });
+            }).catch(e => console.error("⚠️ Newsletter dispatch failed:", e.message));
         }
 
         if (process.env.TELEGRAM_TOKEN && process.env.TELEGRAM_TO) {
-            console.log(`📡 Dispatching ${frequency} Article alert to Telegram...`);
-            const tgTitle = frequency === 'weekly' ? `🗞️ <b>STRATEGIC WEEKLY</b>` : `📚 <b>MONTHLY OUTLOOK</b>`;
-            const text = `${tgTitle}\n\n<b>${title}</b>\n\n${excerpt}\n\n🔗 <a href="https://blogspro.in/articles/${frequency}/${fileName}">Read Full Strategic Report</a>`;
+            console.log(`📡 Dispatching Strategic Article to Telegram...`);
+            const tgTitle = `📑 <b>STRATEGIC DISPATCH</b>`;
+            const text = `${tgTitle}\n\n<b>${title}</b>\n\n${excerpt}\n\n🔗 <a href="https://blogspro.in/articles/${frequency}/${fileName}">Read Strategic Analysis</a>`;
             
-            await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+            await fetchWithTimeout(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ chat_id: process.env.TELEGRAM_TO, text, parse_mode: "HTML" })
-            });
+            }).catch(e => console.error("⚠️ Telegram article dispatch timed out/failed:", e.message));
         }
 
         console.log(`🏁 Article Success: ${fileName}`);
