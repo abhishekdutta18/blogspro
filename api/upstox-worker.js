@@ -18,6 +18,19 @@ function jsonResponse(data, status = 200, extra = {}) {
 
 export default {
   async fetch(request, env) {
+    // Top-level guard: always return CORS headers even on unexpected crashes
+    try {
+      return await handleRequest(request, env);
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
+  }
+};
+
+async function handleRequest(request, env) {
     const url = new URL(request.url);
 
     // 0. Handle CORS Preflight — always respond with CORS headers
@@ -108,5 +121,4 @@ export default {
     }
 
     return jsonResponse({ error: "Not found" }, 404);
-  }
-};
+}
