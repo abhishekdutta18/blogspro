@@ -1245,6 +1245,7 @@
   let forexCalendarRaw = [];
   let forexCalendarPast = [];
   let indiaCalendarRaw = [];
+  let indiaCalendarHistoryRaw = [];
   let imagesEnabled = true;
   const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
   const FIREBASE_TIMEOUT_MS = 12000;
@@ -1871,7 +1872,7 @@
       `;
     };
     const renderQoq = (event) => {
-      const { history, forecastPoint } = buildQoqHistorySeries(event, indiaCalendarRaw);
+      const { history, forecastPoint } = buildQoqHistorySeries(event, indiaCalendarHistoryRaw);
       if (!history.length) {
         qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
         qoqBarsEl.innerHTML = '<div class="calendar-empty">No numeric values available for this event.</div>';
@@ -1988,9 +1989,11 @@
           const ts = Number.isFinite(t) && t > 0 ? t : now + ((i + 1) * 6 * 3600 * 1000);
           return { ...e, __ts: ts, date: e.date || new Date(ts).toISOString() };
         });
+        const sortedAll = hydrated.slice().sort((a, b) => a.__ts - b.__ts);
+        indiaCalendarHistoryRaw = sortedAll.slice();
         const deduped = [];
         const seen = new Set();
-        for (const ev of hydrated.slice().sort((a, b) => a.__ts - b.__ts)) {
+        for (const ev of sortedAll) {
           const key = canonicalIndiaEventKey(ev.title);
           if (seen.has(key)) continue;
           seen.add(key);
@@ -2006,6 +2009,7 @@
 
     chipEl.classList.add('down');
     chipEl.textContent = 'Down';
+    indiaCalendarHistoryRaw = [];
     metaEl.textContent = `Source: India Macro Feed · Events: 0 · Updated: ${nowStamp()}`;
     analysisEl.textContent = 'Analyst view: India macro feed unavailable right now.';
     summaryEl.textContent = 'Summary: no live data';
