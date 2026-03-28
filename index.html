@@ -1111,8 +1111,13 @@
     const grid = document.getElementById('postsGrid');
     if (!grid) return;
     if (!posts.length) { grid.innerHTML = '<p class="muted">No briefings available.</p>'; return; }
-    
+
     grid.innerHTML = posts.map((p, i) => renderCard(p, i, 'daily')).join('');
+  }
+
+  // Used by search and category filter
+  function renderPosts(posts) {
+    renderBriefings(posts);
   }
 
   function renderArticles(posts) {
@@ -1394,14 +1399,23 @@
 
   // ── Late Initialization (Consolidated) ──────────────────────────
   async function startApp() {
-    window.loadPosts = loadPosts;
     const yearEl = document.getElementById('year');
     if (yearEl) yearEl.textContent = new Date().getFullYear();
-    
+
     loadTicker(); // non-blocking
     await loadSiteSettings();
     await loadTerminal();
-    
+
+    // Populate allPosts for search/filter after terminal has loaded all content
+    allPosts = [
+      ...contentState.hourly,
+      ...contentState.daily,
+      ...contentState.weekly,
+      ...contentState.monthly,
+      ...contentState.posts
+    ];
+    filteredPosts = [...allPosts];
+
     if (allPosts && allPosts.length > 0) {
       hydratePolicy(allPosts[0]);
     }
