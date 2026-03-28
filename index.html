@@ -314,6 +314,69 @@
       color: var(--muted);
       padding: 0.2rem 0 0.1rem;
     }
+    .market-wrap { max-width: 1200px; margin: 0 auto; padding: 0.9rem 2rem 0; }
+    .market-box {
+      background: var(--navy2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--gold);
+      padding: 0.9rem;
+    }
+    .market-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .market-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+    .market-updated {
+      font-size: 0.66rem;
+      color: var(--muted);
+    }
+    .market-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.5rem;
+    }
+    .market-card {
+      border: 1px solid rgba(136,150,179,0.2);
+      border-radius: 4px;
+      padding: 0.55rem 0.6rem;
+      background: rgba(15,22,40,0.9);
+    }
+    .market-symbol {
+      font-size: 0.63rem;
+      color: var(--muted);
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+    .market-price {
+      font-size: 1rem;
+      color: var(--cream);
+      font-weight: 600;
+      margin-top: 0.2rem;
+    }
+    .market-change {
+      margin-top: 0.15rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .market-change.up { color: #86efac; }
+    .market-change.down { color: #fca5a5; }
+    .market-empty {
+      font-size: 0.78rem;
+      color: var(--muted);
+      padding: 0.25rem 0;
+    }
 
     /* ── SECTION ── */
     section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
@@ -668,6 +731,19 @@
   </div>
 </div>
 
+<!-- UPSTOX MARKET SNAPSHOT -->
+<div class="market-wrap">
+  <div class="market-box">
+    <div class="market-head">
+      <div class="market-title">Upstox Market Snapshot</div>
+      <div class="market-updated" id="marketUpdated">Updating…</div>
+    </div>
+    <div class="market-grid" id="marketGrid">
+      <div class="market-empty">Loading market data…</div>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════ ABOUT SECTION ══════════════ -->
 <div class="about-section" id="about">
   <div class="about-inner" id="aboutInner">
@@ -901,6 +977,76 @@
       } catch (_) {}
     }
     setState('down', 'Down', [], 'none', true);
+    return false;
+  }
+
+  async function loadUpstoxMarketData() {
+    const gridEl = document.getElementById('marketGrid');
+    const updatedEl = document.getElementById('marketUpdated');
+    if (!gridEl || !updatedEl) return false;
+
+    const candidates = [
+      window.__UPSTOX_WORKER_URL,
+      localStorage.getItem('bp_upstox_worker_url'),
+      'https://blogspro-upstox.abhishek-dutta1996.workers.dev',
+      'https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev',
+    ].filter(Boolean);
+
+    const fmtNum = (n) => {
+      const x = Number(n);
+      if (!Number.isFinite(x)) return '--';
+      return x.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    };
+    const now = () => new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+    for (const base of [...new Set(candidates.map((u) => String(u).replace(/\/+$/, '')))]) {
+      try {
+        const [qRes, gRes] = await Promise.all([
+          withTimeout(fetch(`${base}/quotes`), 12000, 'upstox quotes'),
+          withTimeout(fetch(`${base}/global`), 12000, 'global quotes')
+        ]);
+        if (!qRes.ok || !gRes.ok) continue;
+        const qJson = await qRes.json();
+        const gJson = await gRes.json();
+
+        const localCards = [];
+        const data = qJson?.data || {};
+        for (const [instrument, val] of Object.entries(data)) {
+          const symbol = instrument.split('|')[1] || instrument;
+          const last = Number(val?.last_price ?? val?.ltp ?? val?.ohlc?.close);
+          const prev = Number(val?.ohlc?.close ?? val?.prev_close_price ?? 0);
+          if (!Number.isFinite(last)) continue;
+          const pct = prev ? ((last - prev) / prev) * 100 : 0;
+          localCards.push({ symbol, price: last, change: pct });
+        }
+
+        const globalCards = (gJson?.data || []).map((x) => ({
+          symbol: x.symbol,
+          price: Number(x.price),
+          change: Number(x.change)
+        }));
+
+        const cards = [...localCards.slice(0, 6), ...globalCards.slice(0, 4)];
+        if (!cards.length) continue;
+
+        gridEl.innerHTML = cards.map((c) => {
+          const isUp = Number(c.change) >= 0;
+          const sign = isUp ? '+' : '';
+          return `
+            <div class="market-card">
+              <div class="market-symbol">${String(c.symbol || '--').replace(/</g, '&lt;')}</div>
+              <div class="market-price">${fmtNum(c.price)}</div>
+              <div class="market-change ${isUp ? 'up' : 'down'}">${sign}${Number(c.change || 0).toFixed(2)}%</div>
+            </div>
+          `;
+        }).join('');
+        updatedEl.textContent = `Updated: ${now()}`;
+        return true;
+      } catch (_) {}
+    }
+
+    gridEl.innerHTML = '<div class="market-empty">Market data is currently unavailable.</div>';
+    updatedEl.textContent = `Updated: ${now()}`;
     return false;
   }
 
@@ -1278,7 +1424,8 @@
     const postsOk = await loadPosts().catch(() => false);
     const aboutOk = await loadAbout().catch(() => false);
     const forexOk = await loadForexFactoryData().catch(() => false);
-    const allOk = settingsOk && postsOk && aboutOk && forexOk;
+    const marketOk = await loadUpstoxMarketData().catch(() => false);
+    const allOk = settingsOk && postsOk && aboutOk && forexOk && marketOk;
     setIntegrationStatus(
       allOk ? 'online' : 'degraded',
       allOk ? 'Integrations: Online' : 'Integrations: Degraded'
