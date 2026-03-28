@@ -8,7 +8,8 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-const UPSTOX_API = "https://api.upstox.com/v2";
+const UPSTOX_V2 = "https://api.upstox.com/v2";
+const UPSTOX_V3 = "https://api.upstox.com/v3";
 
 function jsonResponse(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
@@ -50,7 +51,7 @@ export default {
         const symbols = url.searchParams.get("symbols") || defaultSymbols;
 
         const response = await fetch(
-          `${UPSTOX_API}/market-quote/quotes?symbol=${encodeURIComponent(symbols)}`,
+          `${UPSTOX_V3}/market-quote/ltp?symbol=${encodeURIComponent(symbols)}`,
           {
             headers: {
               "Accept": "application/json",
@@ -76,7 +77,7 @@ export default {
         const fromDate = url.searchParams.get("fromDate") || thirtyDaysAgo.toISOString().split('T')[0];
 
         const response = await fetch(
-          `${UPSTOX_API}/historical-candle/${encodeURIComponent(instrumentKey)}/${interval}/${toDate}/${fromDate}`,
+          `${UPSTOX_V3}/historical-candle/${encodeURIComponent(instrumentKey)}/${interval}/${toDate}/${fromDate}`,
           {
             headers: {
               "Accept": "application/json",
@@ -90,6 +91,26 @@ export default {
           return jsonResponse(data, response.status || 400);
         }
         return jsonResponse(data, 200, { "Cache-Control": "public, max-age=3600" });
+      }
+
+      if (url.pathname === "/market-status") {
+        const exchange = url.searchParams.get("exchange") || "NSE";
+
+        const response = await fetch(
+          `${UPSTOX_V2}/market/status?exchange=${encodeURIComponent(exchange)}`,
+          {
+            headers: {
+              "Accept": "application/json",
+              "Authorization": `Bearer ${token}`
+            }
+          }
+        );
+        const data = await response.json();
+
+        if (data.status === "error" || !response.ok) {
+          return jsonResponse(data, response.status || 400);
+        }
+        return jsonResponse(data, 200, { "Cache-Control": "public, max-age=60" });
       }
 
       if (url.pathname === "/global") {
