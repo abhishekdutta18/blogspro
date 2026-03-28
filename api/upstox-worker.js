@@ -168,10 +168,22 @@ export default {
           }
         } catch (_) {}
 
+        const fallbackEvents = [
+          { title: "FOMC Statement", country: "USD", impact: "High" },
+          { title: "Non-Farm Employment Change", country: "USD", impact: "High" },
+          { title: "CPI y/y", country: "GBP", impact: "High" },
+          { title: "CPI y/y", country: "AUD", impact: "High" },
+          { title: "ECB Main Refinancing Rate", country: "EUR", impact: "High" },
+        ];
         return jsonResponse(
-          { status: "error", source: "none", message: "Calendar feeds unavailable", events: [] },
-          503,
-          { "Cache-Control": "no-store" }
+          {
+            status: "success",
+            source: "static-fallback",
+            message: "Live calendar feeds unavailable; showing fallback high-impact events.",
+            events: fallbackEvents,
+          },
+          200,
+          { "Cache-Control": "public, max-age=300" }
         );
       }
 
