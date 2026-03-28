@@ -3,8 +3,8 @@ const path = require("path");
 const fs = require("fs");
 const { 
     fetchEconomicCalendar, fetchMultiAssetData, fetchSentimentData, 
-    fetchIndianNews, fetchGlobalNews, fetchInstitutionalNews, 
-    fetchGlobalMarkets, fetchMacroPulse, fetchUpstoxData 
+    fetchUniversalNews, fetchUpstoxData, fetchMacroPulse,
+    fetchMFData, fetchPEVCData, fetchInsuranceData, fetchGIFTCityData
 } = require("./lib/data-fetchers.js");
 const { askAI } = require("./lib/ai-service.js");
 const { getBaseTemplate } = require("./lib/templates.js");
@@ -33,9 +33,10 @@ async function generateBriefing() {
 
     console.log(`🚀 Starting Global Intelligence Engine (${frequency})...`);
     
-    const [calendar, markets, sentiment, universal, upstox, macro] = await Promise.all([
+    const [calendar, markets, sentiment, universal, upstox, macro, mf, pevc, ins, gift] = await Promise.all([
         fetchEconomicCalendar(), fetchMultiAssetData(), fetchSentimentData(),
-        fetchUniversalNews(), fetchUpstoxData(), fetchMacroPulse()
+        fetchUniversalNews(), fetchUpstoxData(), fetchMacroPulse(),
+        fetchMFData(), fetchPEVCData(), fetchInsuranceData(), fetchGIFTCityData()
     ]);
 
     const mkt = require("./lib/data-fetchers.js").getMarketContext();
@@ -51,6 +52,10 @@ async function generateBriefing() {
     UPSTOX: ${upstox.summary}
     MULTI_ASSET: ${markets.summary}
     MACRO: ${macro.summary}
+    MUTUAL_FUNDS: ${mf.summary}
+    PRIVATE_CAPITAL: ${pevc.summary}
+    INSURANCE_RISK: ${ins.summary}
+    GIFT_CITY: ${gift.summary}
     CALENDAR: ${calendar.text}
     
     --- UNIVERSAL NEWS (Yahoo Finance, Business Standard, Reuters, CNBC) ---
