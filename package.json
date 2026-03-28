@@ -11,6 +11,7 @@
     "@google/generative-ai": "^0.21.0",
     "fast-xml-parser": "^4.4.0",
     "figma-js": "^1.16.1-0",
+    "google-charts": "^2.0.0",
     "node-fetch": "^2.7.0",
     "rss-parser": "^3.13.0",
     "upstox-js-sdk": "^2.23.0"
