@@ -46,24 +46,89 @@ export default {
       }
 
       if (url.pathname === "/quotes") {
-        const defaultSymbols = "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank,NSE_EQ|RELIANCE,NSE_EQ|HDFCBANK,NSE_EQ|ICICIBANK,NSE_EQ|INFY,NSE_EQ|TCS";
-        const symbols = url.searchParams.get("symbols") || defaultSymbols;
+        // NSE indices that are accessible with the current Upstox token
+        const nseIndexSymbols = [
+          "NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank", "NSE_INDEX|Nifty IT",
+          "NSE_INDEX|Nifty Auto", "NSE_INDEX|Nifty Pharma", "NSE_INDEX|Nifty Metal",
+          "NSE_INDEX|Nifty FMCG", "NSE_INDEX|Nifty PSU Bank", "NSE_INDEX|Nifty Realty",
+          "NSE_INDEX|Nifty Midcap 50"
+        ].join(",");
 
-        const response = await fetch(
-          `${UPSTOX_API}/market-quote/quotes?symbol=${encodeURIComponent(symbols)}`,
-          {
-            headers: {
-              "Accept": "application/json",
-              "Authorization": `Bearer ${token}`
-            }
-          }
-        );
-        const data = await response.json();
+        // Yahoo Finance tickers → [yf_ticker, instrument_key, display_symbol]
+        const yfMap = [
+          // NSE stocks (prices in INR)
+          ["RELIANCE.NS",  "NSE_EQ:RELIANCE",    "RELIANCE"],
+          ["HDFCBANK.NS",  "NSE_EQ:HDFCBANK",    "HDFCBANK"],
+          ["ICICIBANK.NS", "NSE_EQ:ICICIBANK",   "ICICIBANK"],
+          ["INFY.NS",      "NSE_EQ:INFY",        "INFY"],
+          ["TCS.NS",       "NSE_EQ:TCS",         "TCS"],
+          ["SBIN.NS",      "NSE_EQ:SBIN",        "SBIN"],
+          ["BHARTIARTL.NS","NSE_EQ:BHARTIARTL",  "BHARTIARTL"],
+          ["LT.NS",        "NSE_EQ:LT",          "LT"],
+          ["KOTAKBANK.NS", "NSE_EQ:KOTAKBANK",   "KOTAKBANK"],
+          ["AXISBANK.NS",  "NSE_EQ:AXISBANK",    "AXISBANK"],
+          // Commodities (prices in USD)
+          ["GC=F",   "MCX_FO:GOLD",       "Gold ($/oz)"],
+          ["SI=F",   "MCX_FO:SILVER",     "Silver ($/oz)"],
+          ["CL=F",   "MCX_FO:CRUDEOIL",  "WTI Crude ($/bbl)"],
+          ["BZ=F",   "MCX_FO:BRENTOIL",  "Brent ($/bbl)"],
+          ["NG=F",   "MCX_FO:NATURALGAS","NatGas ($/mmBtu)"],
+          // FX — price is units of INR per 1 foreign unit
+          ["USDINR=X", "NSE_CDS:USDINR", "USDINR"],
+          ["EURINR=X", "NSE_CDS:EURINR", "EURINR"],
+          ["GBPINR=X", "NSE_CDS:GBPINR", "GBPINR"],
+          ["JPYINR=X", "NSE_CDS:JPYINR", "JPYINR"],
+        ];
+        const yfTickers = yfMap.map(([t]) => t).join(",");
 
-        if (data.status === "error" || !response.ok) {
-          return jsonResponse(data, response.status || 401);
+        // Fetch Upstox NSE indices + Yahoo Finance in parallel
+        const [upstoxRes, yfRes] = await Promise.allSettled([
+          fetch(
+            `${UPSTOX_API}/market-quote/quotes?symbol=${encodeURIComponent(nseIndexSymbols)}`,
+            { headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` } }
+          ).then((r) => r.json()).catch(() => null),
+          fetch(
+            `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(yfTickers)}&fields=regularMarketPrice,regularMarketPreviousClose,regularMarketOpen,regularMarketDayHigh,regularMarketDayLow,regularMarketVolume`,
+            { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" } }
+          ).then((r) => r.json()).catch(() => null),
+        ]);
+
+        const merged = {};
+
+        // Upstox NSE indices
+        const upstoxData = upstoxRes.status === "fulfilled" ? (upstoxRes.value?.data || {}) : {};
+        Object.assign(merged, upstoxData);
+
+        // Yahoo Finance — map to Upstox-compatible instrument key format
+        const yfQuotes = yfRes.status === "fulfilled"
+          ? (yfRes.value?.quoteResponse?.result || [])
+          : [];
+        for (const q of yfQuotes) {
+          const entry = yfMap.find(([t]) => t === q.symbol);
+          if (!entry) continue;
+          const [, instrKey, displaySym] = entry;
+          const price = Number(q.regularMarketPrice);
+          const prevClose = Number(q.regularMarketPreviousClose);
+          if (!Number.isFinite(price)) continue;
+          merged[instrKey] = {
+            last_price: price,
+            symbol: displaySym,
+            ohlc: {
+              open: Number(q.regularMarketOpen) || price,
+              high: Number(q.regularMarketDayHigh) || price,
+              low: Number(q.regularMarketDayLow) || price,
+              close: Number.isFinite(prevClose) ? prevClose : price,
+            },
+            volume: Number(q.regularMarketVolume) || 0,
+            net_change: Number.isFinite(prevClose) && prevClose ? price - prevClose : 0,
+            _source: "yahoo",
+          };
         }
-        return jsonResponse(data, 200, { "Cache-Control": "public, max-age=1" });
+
+        if (!Object.keys(merged).length) {
+          return jsonResponse({ status: "error", message: "All data sources failed" }, 503);
+        }
+        return jsonResponse({ status: "success", data: merged }, 200, { "Cache-Control": "public, max-age=15" });
       }
 
       if (url.pathname === "/historical") {
