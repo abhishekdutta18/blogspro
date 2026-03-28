@@ -94,18 +94,28 @@ export default {
 
       if (url.pathname === "/global") {
         const tickers = ["^GSPC", "^IXIC", "GC=F", "BZ=F"];
-        const results = await Promise.all(tickers.map(ticker =>
-          fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`).then(r => r.json())
-        ));
-        const summary = results.map(r => {
-          const meta = r.chart.result[0].meta;
-          return {
-            symbol: meta.symbol,
-            price: meta.regularMarketPrice,
-            prevClose: meta.chartPreviousClose,
-            change: ((meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose * 100).toFixed(2)
-          };
-        });
+        const results = await Promise.all(tickers.map(async (ticker) => {
+          try {
+            const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`);
+            const text = await r.text();
+            if (!r.ok) return null;
+            const parsed = JSON.parse(text);
+            const meta = parsed?.chart?.result?.[0]?.meta;
+            if (!meta || !Number.isFinite(Number(meta.regularMarketPrice)) || !Number.isFinite(Number(meta.chartPreviousClose))) return null;
+            return {
+              symbol: meta.symbol,
+              price: Number(meta.regularMarketPrice),
+              prevClose: Number(meta.chartPreviousClose),
+              change: (((Number(meta.regularMarketPrice) - Number(meta.chartPreviousClose)) / Number(meta.chartPreviousClose)) * 100).toFixed(2)
+            };
+          } catch (_) {
+            return null;
+          }
+        }));
+        const summary = results.filter(Boolean);
+        if (!summary.length) {
+          return jsonResponse({ status: "success", data: [] }, 200, { "Cache-Control": "public, max-age=60" });
+        }
         return jsonResponse({ status: "success", data: summary }, 200, { "Cache-Control": "public, max-age=60" });
       }
 

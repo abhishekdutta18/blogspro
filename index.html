@@ -957,8 +957,8 @@
     const candidates = [
       window.__UPSTOX_WORKER_URL,
       localStorage.getItem('bp_upstox_worker_url'),
-      'https://blogspro-upstox.abhishek-dutta1996.workers.dev',
       'https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev',
+      'https://blogspro-upstox.abhishek-dutta1996.workers.dev',
     ].filter(Boolean);
 
     for (const base of [...new Set(candidates.map((u) => String(u).replace(/\/+$/, '')))]) {
@@ -988,8 +988,8 @@
     const candidates = [
       window.__UPSTOX_WORKER_URL,
       localStorage.getItem('bp_upstox_worker_url'),
-      'https://blogspro-upstox.abhishek-dutta1996.workers.dev',
       'https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev',
+      'https://blogspro-upstox.abhishek-dutta1996.workers.dev',
     ].filter(Boolean);
 
     const fmtNum = (n) => {
