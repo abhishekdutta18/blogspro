@@ -48,10 +48,11 @@ async function generateBriefing() {
     
     MARKET CONTEXT: ${marketContext}`;
 
-    // Dynamic Symbol Detection
-    let tvSymbol = "NSE:NIFTY";
-    if (frequency === 'hourly' && marketContext.includes('USDINR')) tvSymbol = "FX_IDC:USDINR";
-    if (marketContext.includes('BTC') || marketContext.includes('Crypto')) tvSymbol = "BINANCE:BTCUSDT";
+    // Dynamic Symbol Detection (Investing.com Pair IDs)
+    let pairId = "179"; // Nifty 50
+    if (frequency === 'hourly' && marketContext.includes('USDINR')) pairId = "160";
+    if (marketContext.includes('BTC') || marketContext.includes('Crypto')) pairId = "1057391";
+    if (marketContext.includes('Bank Nifty')) pairId = "44301";
 
     try {
         const content = await askAI(prompt);
@@ -69,7 +70,7 @@ async function generateBriefing() {
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content, dateLabel, 
             finalKit: { audioScript: "Listen to today's sharp market pulse..." }, 
-            type: "briefing", freq: frequency, fileName, symbol: tvSymbol, sentimentScore
+            type: "briefing", freq: frequency, fileName, pairId, sentimentScore
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         

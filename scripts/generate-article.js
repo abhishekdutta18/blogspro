@@ -43,9 +43,10 @@ async function generateArticle() {
     
     REGULATORY DATA: ${regulatoryContext}`;
 
-    // Dynamic Symbol Detection
-    let tvSymbol = "NSE:NIFTY";
-    if (regulatoryContext.includes('G-Sec') || regulatoryContext.includes('Bond')) tvSymbol = "CCIL:IND10Y";
+    // Dynamic Symbol Detection (Investing.com Pair IDs)
+    let pairId = "179"; // Nifty 50
+    if (regulatoryContext.includes('G-Sec') || regulatoryContext.includes('Bond')) pairId = "160"; // Use Bond/Forex proxy
+    if (regulatoryContext.includes('Digital Rupee')) pairId = "1057391"; // Use BTC as Fintech proxy
 
     try {
         const content = await askAI(prompt);
@@ -63,7 +64,7 @@ async function generateArticle() {
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content, dateLabel, 
             finalKit: { audioScript: "Listen to this week's strategic deep-dive..." }, 
-            type: "article", freq: frequency, fileName, symbol: tvSymbol, sentimentScore
+            type: "article", freq: frequency, fileName, pairId, sentimentScore
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         

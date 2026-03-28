@@ -29,7 +29,7 @@ function parseMD(md) {
     return html;
 }
 
-function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, freq, fileName, rel = "../../", symbol = "NSE:NIFTY", sentimentScore = 50 }) {
+function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, freq, fileName, rel = "../../", pairId = "179", sentimentScore = 50 }) {
     const sentimentLabel = sentimentScore > 70 ? "EXTREME BULLISH" : (sentimentScore < 30 ? "EXTREME BEARISH" : (sentimentScore > 55 ? "BULLISH" : (sentimentScore < 45 ? "BEARISH" : "NEUTRAL")));
     const sentimentColor = sentimentScore > 70 ? "#22c55e" : (sentimentScore < 30 ? "#ef4444" : "#eab308");
     const gaugeRotation = (sentimentScore / 100) * 180 - 90; // Translate 0-100 to -90deg to 90deg
@@ -106,8 +106,8 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
         .sentiment-label { text-align: center; margin-top: 0.5rem; font-size: 0.75rem; font-weight: 800; color: ${sentimentColor}; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
 
         .dashboard-grid { display: grid; grid-template-columns: 140px 1fr; gap: 3rem; align-items: start; }
-        .chart-container { width: 100%; height: 420px; border-radius: 12px; border: 1px solid rgba(201,168,76,0.1); overflow: hidden; position: relative; }
-        .chart-container::after { content: "LIVE MARKET FEED"; position: absolute; bottom: 10px; right: 10px; font-size: 10px; color: var(--muted); font-weight: 900; opacity: 0.5; }
+        .chart-container { width: 100%; height: 480px; border-radius: 12px; border: 1px solid rgba(201,168,76,0.15); overflow: hidden; position: relative; background: #000; box-shadow: inset 0 0 40px rgba(0,0,0,0.5); }
+        .chart-container::after { content: "INSTITUTIONAL DATA FEED: INVESTING.COM"; position: absolute; bottom: 10px; right: 10px; font-size: 10px; color: var(--gold); font-weight: 900; opacity: 0.4; letter-spacing: 0.1em; }
 
         .audio-summary { margin: 3rem 0; padding: 2.5rem; background: linear-gradient(to right, rgba(201,168,76,0.08), transparent); border: 1px solid var(--gold); border-radius: 16px; }
         .audio-player { width: 100%; margin-top: 1rem; filter: sepia(20%) saturate(70%) grayscale(1) contrast(99%) invert(12%); }
@@ -147,27 +147,16 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
             </div>
             
             <div class="chart-container" style="margin-top: 3rem;">
-                <div class="tradingview-widget-container" style="height:100%;width:100%">
-                    <div id="tradingview_auto" style="height:100%;width:100%"></div>
-                    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-                    <script type="text/javascript">
-                    new TradingView.widget({
-                        "autosize": true,
-                        "symbol": "${symbol}",
-                        "interval": "D",
-                        "timezone": "Asia/Kolkata",
-                        "theme": "dark",
-                        "style": "2",
-                        "locale": "en",
-                        "toolbar_bg": "#f1f3f6",
-                        "enable_publishing": false,
-                        "hide_top_toolbar": true,
-                        "hide_legend": true,
-                        "save_image": false,
-                        "container_id": "tradingview_auto"
-                    });
-                    </script>
-                </div>
+                <iframe 
+                    src="https://www.investing.com/common/technical_chart.php?pair_id=${pairId}&height=480&width=800&interval=300&style=candle" 
+                    width="100%" 
+                    height="100%" 
+                    frameborder="0" 
+                    allowtransparency="true" 
+                    marginwidth="0" 
+                    marginheight="0" 
+                    scrolling="no">
+                </iframe>
             </div>
         </section>
         ${finalKit?.audioScript ? `
