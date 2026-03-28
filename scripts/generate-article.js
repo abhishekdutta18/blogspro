@@ -81,7 +81,7 @@ async function generateArticle() {
             
             CONTEXT:
             - Data Flux: ${v.data}
-            - Institutional Framework (RBI/SEBI/Macro): ${macro.summary} | ${rbi.summary} | ${sebi.summary}
+            - Institutional Anchor: ${macro.summary.substring(0, 500)}...
             - Global News Pulse: ${verticalNews || "Systemic drift mapping via macro context."}
             - Narrative Flow (Continuity): ${lastSummary}
             

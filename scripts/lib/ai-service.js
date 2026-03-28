@@ -1,6 +1,8 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fetch = require("node-fetch");
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function generateGroqContent(prompt) {
     if (!process.env.GROQ_API_KEY) throw new Error("GROQ_API_KEY missing.");
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -17,6 +19,15 @@ async function generateGroqContent(prompt) {
     });
     const data = await res.json();
     if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
+    
+    if (data.error && data.error.code === "rate_limit_exceeded") {
+        const waitMatch = data.error.message.match(/try again in ([\d.]+)s/);
+        const waitMs = waitMatch ? (parseFloat(waitMatch[1]) * 1000) + 1000 : 10000;
+        console.warn(`⏳ Groq TPM Limit. Waiting ${waitMs}ms...`);
+        await sleep(waitMs);
+        return generateGroqContent(prompt); // Recursive retry
+    }
+
     console.error("❌ Groq API Fail Details:", JSON.stringify(data));
     throw new Error(`Groq API Error: ${data.error?.message || "Rate limit or exhaustion"}`);
 }
@@ -45,16 +56,13 @@ async function generateGeminiContent(prompt) {
     if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing.");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     try {
+        // Use gemini-1.5-flash-latest for best compatibility
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const result = await model.generateContent(prompt);
         return result.response.text();
     } catch (e) {
         console.error("❌ Gemini API Fail Details:", e.message);
-        if (e.message.includes("404")) {
-            const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
-            const result = await model.generateContent(prompt);
-            return result.response.text();
-        }
+        // Fallback or retry logic can go here if needed
         throw e;
     }
 }
