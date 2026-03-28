@@ -127,10 +127,17 @@ export default {
               const mm = body.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i"));
               return (mm?.[1] || "").replace(/<!\[CDATA\[|\]\]>/g, "").trim();
             };
+            const ffDate = pick("date");
+            const ffTime = pick("time");
             return {
               title: pick("title"),
               country: pick("country"),
               impact: pick("impact"),
+              actual: pick("actual"),
+              forecast: pick("forecast"),
+              previous: pick("previous"),
+              date: ffDate ? `${ffDate}${ffTime ? ` ${ffTime}` : ""}` : "",
+              time: ffTime,
             };
           });
           return events
@@ -168,7 +175,16 @@ export default {
           const events = (Array.isArray(raw) ? raw : [])
             .filter((e) => e && e.Event && e.Country && Number(e.Importance || 0) >= 2)
             .slice(0, 10)
-            .map((e) => ({ title: e.Event, country: e.Country, impact: "High", date: e.Date }));
+            .map((e) => ({
+              title: e.Event,
+              country: e.Country,
+              impact: "High",
+              date: e.Date,
+              actual: e.Actual || "",
+              forecast: e.Forecast || "",
+              previous: e.Previous || "",
+              time: e.Date ? new Date(e.Date).toISOString() : ""
+            }));
           if (events.length) {
             return jsonResponse(
               { status: "success", source: "tradingeconomics", events },
@@ -181,11 +197,11 @@ export default {
         const now = Date.now();
         const inHours = (h) => new Date(now + h * 3600 * 1000).toISOString();
         const fallbackEvents = [
-          { title: "FOMC Statement", country: "USD", impact: "High", date: inHours(6) },
-          { title: "Non-Farm Employment Change", country: "USD", impact: "High", date: inHours(24) },
-          { title: "CPI y/y", country: "GBP", impact: "High", date: inHours(36) },
-          { title: "CPI y/y", country: "AUD", impact: "High", date: inHours(52) },
-          { title: "ECB Main Refinancing Rate", country: "EUR", impact: "High", date: inHours(72) },
+          { title: "FOMC Statement", country: "USD", impact: "High", date: inHours(6), actual: "Pending", forecast: "5.50%", previous: "5.50%" },
+          { title: "Non-Farm Employment Change", country: "USD", impact: "High", date: inHours(24), actual: "Pending", forecast: "205K", previous: "198K" },
+          { title: "CPI y/y", country: "GBP", impact: "High", date: inHours(36), actual: "Pending", forecast: "3.1%", previous: "3.2%" },
+          { title: "CPI y/y", country: "AUD", impact: "High", date: inHours(52), actual: "Pending", forecast: "3.5%", previous: "3.6%" },
+          { title: "ECB Main Refinancing Rate", country: "EUR", impact: "High", date: inHours(72), actual: "Pending", forecast: "4.50%", previous: "4.50%" },
         ];
         return jsonResponse(
           {

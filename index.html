@@ -400,6 +400,33 @@
       margin-top: 0.18rem;
       white-space: normal;
     }
+    .calendar-points {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.3rem;
+      margin-top: 0.2rem;
+    }
+    .calendar-point {
+      border: 1px solid rgba(136,150,179,0.2);
+      border-radius: 4px;
+      padding: 0.28rem 0.35rem;
+      background: rgba(8,13,26,0.35);
+      min-height: 42px;
+    }
+    .calendar-point-label {
+      font-size: 0.56rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.1rem;
+    }
+    .calendar-point-value {
+      font-size: 0.67rem;
+      color: var(--cream);
+      font-weight: 600;
+      line-height: 1.25;
+      word-break: break-word;
+    }
     .calendar-empty {
       font-size: 0.78rem;
       color: var(--muted);
@@ -1152,6 +1179,20 @@
               </div>
               <span class="calendar-title">${esc(e.title || 'Untitled event')}<span class="calendar-view">${esc(analystView(e))}</span></span>
               <span class="calendar-date">${fmtDate(e.date || e.Date || e.datetime, tzMode)}</span>
+              <div class="calendar-points">
+                <div class="calendar-point">
+                  <div class="calendar-point-label">Actual</div>
+                  <div class="calendar-point-value">${esc(e.actual || 'Pending')}</div>
+                </div>
+                <div class="calendar-point">
+                  <div class="calendar-point-label">Forecast</div>
+                  <div class="calendar-point-value">${esc(e.forecast || '--')}</div>
+                </div>
+                <div class="calendar-point">
+                  <div class="calendar-point-label">Previous</div>
+                  <div class="calendar-point-value">${esc(e.previous || '--')}</div>
+                </div>
+              </div>
             </li>
           `).join('');
       }
