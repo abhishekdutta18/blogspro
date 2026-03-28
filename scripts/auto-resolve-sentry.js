@@ -19,7 +19,9 @@ async function fetchUnresolvedIssues() {
   });
   
   if (!res.ok) {
-    throw new Error(`Sentry API Error: ${res.status} ${await res.text()}`);
+    const errorBody = await res.text();
+    console.error(`Sentry API Error at ${url}`);
+    throw new Error(`Sentry API Error: ${res.status} ${errorBody}`);
   }
   return await res.json();
 }
