@@ -293,6 +293,8 @@
       box-shadow: 0 20px 40px rgba(0,0,0,0.4);
     }
     .post-category { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 1rem; }
+    .post-category-article { border-left: 2px solid var(--gold); padding-left: 0.5rem; color: #60a5fa; }
+    .post-category-briefing { border-left: 2px solid var(--emerald); padding-left: 0.5rem; color: var(--emerald); }
     .post-title { font-family: var(--serif); font-size: 1.45rem; font-weight: 600; line-height: 1.3; margin-bottom: 0.8rem; transition: color 0.2s; }
     .post-card:hover .post-title { color: var(--gold2); }
     .post-excerpt { font-size: 0.88rem; color: var(--muted); line-height: 1.65; margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -401,6 +403,13 @@
       font-size: 1.2rem; font-style: italic;
       color: var(--cream); line-height: 1.6;
     }
+    /* ── PULSE CARDS ── */
+    .pulse-grid { display: flex; gap: 1rem; overflow-x: auto; padding: 1rem 0; scrollbar-width: none; }
+    .pulse-grid::-webkit-scrollbar { display: none; }
+    .pulse-card { min-width: 200px; background: rgba(201,168,76,0.05); border: 1px solid rgba(201,168,76,0.1); padding: 1rem; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+    .pulse-card:hover { border-color: var(--gold); background: rgba(201,168,76,0.1); transform: translateY(-2px); }
+    .pulse-time { font-size: 0.65rem; color: var(--gold); font-weight: 700; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .pulse-title { font-family: var(--serif); font-size: 1rem; color: var(--cream); line-height: 1.3; }
     /* Skeleton for about */
     .about-skeleton { animation: shimmer 1.5s infinite; background: linear-gradient(90deg, var(--navy2) 25%, var(--navy3) 50%, var(--navy2) 75%); background-size: 200% 100%; border-radius: 4px; }
     .about-hidden { display: none !important; }
@@ -664,32 +673,21 @@
   </div>
 </div>
 
-<!-- TOPIC TICKER — scrolling strip of topic tags (populated by loadTicker) -->
+<!-- TOPIC TICKER -->
 <div class="topic-ticker-bar" id="topicTickerBar">
-  <div class="topic-ticker-track" id="ticker">
-    <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Regulatory Compliance</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Market Analysis</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">RBI Policy</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">SEBI Updates</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Equity Research</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Digital Payments</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Crypto & Web3</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Growth Strategy</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Macro Trends</span><span class="ticker-sep">·</span>
-    <!-- duplicated for seamless loop -->
-    <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Regulatory Compliance</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Market Analysis</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">RBI Policy</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">SEBI Updates</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Equity Research</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Digital Payments</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Crypto & Web3</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Growth Strategy</span><span class="ticker-sep">·</span>
-    <span class="ticker-tag">Macro Trends</span><span class="ticker-sep">·</span>
-  </div>
+    <!-- ... -->
 </div>
+
+<!-- MARKET PULSE (HOURLY) -->
+<section id="pulse" class="reveal" style="padding: 2rem 2rem 0;">
+  <div class="section-header">
+    <h2 class="section-title" style="font-size: 1.5rem;">The Market <em>Pulse</em> <span class="status-dot"></span></h2>
+    <span class="muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">Updated Hourly</span>
+  </div>
+  <div class="pulse-grid" id="pulseGrid">
+    <!-- Hydrated by renderPulse -->
+  </div>
+</section>
 
 <!-- POSTS — Primary content, shown immediately after hero -->
 <div class="briefings-wrapper">
@@ -715,9 +713,18 @@
     </div>
   </div>
   <div class="posts-grid" id="postsGrid">
-    <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
-    <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
-    <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
+    <!-- Hydrated by renderBriefings -->
+  </div>
+</section>
+
+<!-- STRATEGIC ARTICLES (WEEKLY/MONTHLY) -->
+<section id="articles" class="reveal" style="margin-top: 4rem;">
+  <div class="section-header">
+    <h2 class="section-title">Strategic <em>Articles</em></h2>
+    <span class="muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">Deep Insights</span>
+  </div>
+  <div class="posts-grid" id="articlesGrid">
+    <!-- Hydrated by renderArticles -->
   </div>
 </section>
 </div><!-- /.briefings-wrapper -->
@@ -1016,175 +1023,115 @@
   document.addEventListener('click', e => { if (!e.target.closest('#navUserBtn')) document.getElementById('navDropdown')?.classList.remove('open'); });
   window.doSignOut = async () => { await signOut(auth); window.location.reload(); };
 
-  // ── Load posts ─────────────────────────────────
-  async function loadPosts() {
+  // ── Load Financial Terminal Content ────────────────
+  const contentState = { hourly: [], daily: [], weekly: [], monthly: [], posts: [] };
+
+  async function loadTerminal() {
     try {
-      // 4s timeout for Firestore fetch
-      const timeout = new Promise(res => setTimeout(() => res('timeout'), 4000));
-      const fetchPromise = getDocs(query(
-        collection(db, 'posts'),
-        where('published', '==', true)
-      ));
+      const endpoints = [
+        { key: 'hourly', url: 'briefings/hourly/index.json' },
+        { key: 'daily', url: 'briefings/daily/index.json' },
+        { key: 'weekly', url: 'articles/weekly/index.json' },
+        { key: 'monthly', url: 'articles/monthly/index.json' },
+        { key: 'posts', url: 'posts/index.json' }
+      ];
 
-      const result = await Promise.race([fetchPromise, timeout]);
-      let docs = [];
-      if (result === 'timeout') {
-        console.warn('Firestore loadPosts timed out. Using static only.');
-      } else {
-        docs = result.docs;
-      }
-
-      let staticPosts = [];
-      try {
-        const resp = await fetch('/posts/index.json');
-        if (resp.ok) {
-          const staticData = await resp.json();
-          staticPosts = staticData.map(p => ({
-            id: `static-${p.slug}`,
+      const results = await Promise.allSettled(endpoints.map(e => fetch(e.url).then(r => r.ok ? r.json() : [])));
+      
+      results.forEach((res, i) => {
+        if (res.status === 'fulfilled') {
+          const key = endpoints[i].key;
+          contentState[key] = res.value.map(p => ({
             ...p,
+            id: `static-${key}-${p.fileName.split('.')[0]}`,
             published: true,
-            category: p.category || 'AI Briefing',
             createdAt: { toDate: () => new Date(p.date) },
             isStatic: true,
-            views: 0
+            path: key === 'posts' ? `posts/${p.fileName}` : `${key.includes('briefing') || key === 'daily' || key === 'hourly' ? 'briefings' : 'articles'}/${key}/${p.fileName}`
           }));
         }
-      } catch(e) { console.warn('Static index not found.'); }
-
-      const firestorePosts = docs.map(d => ({ id: d.id, ...d.data() }));
-      const firestoreSlugs = new Set(firestorePosts.map(p =>
-        (p.title || p.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
-      ));
-      const dedupedStatic = staticPosts.filter(p => {
-        const slug = (p.title || p.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-        return !firestoreSlugs.has(slug);
       });
-      allPosts = [
-        ...firestorePosts,
-        ...dedupedStatic
-      ].sort((a,b) => {
-          const aT = a.createdAt?.toDate?.()?.getTime() || 0;
-          const bT = b.createdAt?.toDate?.()?.getTime() || 0;
-          return bT - aT;
-        });
-      document.getElementById('postCount').textContent = allPosts.length;
-      const postsCountEl = document.getElementById('postsCount');
-      if (postsCountEl && allPosts.length > 0) {
-        postsCountEl.textContent = allPosts.length + ' articles';
-        postsCountEl.style.display = 'inline-flex';
-      }
-      filteredPosts = [...allPosts];
-      const totalViews = allPosts.reduce((sum, p) => sum + (p.views || 0), 0);
-      const tvEl = document.getElementById('totalViewCount');
-      if (tvEl) tvEl.textContent = fmtViews(totalViews);
-      renderPosts(filteredPosts);
-    } catch(err) {
-      console.error('Error loading posts:', err.code, err.message);
-      const errDiv = document.createElement('div');
-      errDiv.style.cssText = 'grid-column:1/-1;padding:2rem;color:#fca5a5;font-size:0.9rem';
-      errDiv.textContent = 'Error: ' + (err.code || err.message);
-      const grid = document.getElementById('postsGrid');
-      grid.innerHTML = '';
-      grid.appendChild(errDiv);
-    }
+
+      // Also fetch Firestore posts for the 'posts' category
+      try {
+        const snap = await getDocs(query(collection(db, 'posts'), where('published', '==', true)));
+        const fsPosts = snap.docs.map(d => ({ id: d.id, ...d.data(), path: `/post.html?id=${d.id}` }));
+        contentState.posts = [...fsPosts, ...contentState.posts].sort((a,b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
+      } catch(e) { console.warn("Firestore posts load failed."); }
+
+      renderTerminal();
+    } catch (err) { console.error("Terminal Load Error:", err); }
   }
 
-  const POSTS_PER_PAGE = 6;
-  let currentPage = 1;
-  let activePosts  = []; // the current filtered/searched list
-
-  function buildCard(p, i) {
-    const esc = (s) => DOMPurify.sanitize(s || '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
-    const title    = esc(p.title);
-    const excerpt  = esc(p.excerpt);
-    const category = esc(p.category) || 'General';
-    const rawImage = imagesEnabled ? DOMPurify.sanitize(String(p.image || '').trim()) : '';
-    const image    = (
-      /^https?:\/\//i.test(rawImage) &&
-      rawImage !== 'null' && rawImage !== 'undefined' && rawImage !== '[object Object]'
-    ) ? rawImage : '';
-    const dateStr      = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
-    const authorName   = esc(p.authorName || 'Staff Writer');
-    const authorDateStr = `${authorName} · ${dateStr}`;
-    const plainText    = (p.content || '').replace(/<[^>]+>/g, ' ').trim();
-    const readTime     = Math.max(1, Math.ceil(plainText.split(/\s+/).filter(Boolean).length / 200));
-    const slug         = (p.title || p.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-
-    if (i === 0) {
-      const visual = image
-        ? `<div class="featured-visual featured-visual-img"><img src="${image}" alt="${title}" loading="lazy" onerror="this.closest('.featured-visual')?.remove();this.closest('.post-card')?.classList.add('featured-no-img');" /></div>`
-        : '';
-      return `
-        <div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}','${slug}')" style="animation-delay:${i*0.08}s">
-          <div class="featured-body">
-            <span class="featured-badge">Featured</span>
-            <span class="post-category">${category}</span>
-            <h2 class="post-title">${title}</h2>
-            <p class="post-excerpt">${excerpt}</p>
-            <div class="post-meta">
-              <span class="post-date">${authorDateStr}</span>
-              <div style="display:flex;align-items:center;gap:0.75rem">
-                <span class="post-read-time">${readTime} min read</span>
-                <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
-              </div>
-            </div>
-          </div>
-          ${visual}
-        </div>`;
-    }
-    return `
-      <div class="post-card" onclick="openPost('${p.id}','${slug}')" style="animation-delay:${i*0.08}s">
-        <span class="post-category">${category}</span>
-        <h3 class="post-title">${title}</h3>
-        <p class="post-excerpt">${excerpt}</p>
-        <div class="complexity-wrap">
-          <div class="complexity-label"><span>Tactical Depth</span><span>${p.complexity || 5}/10</span></div>
-          <div class="complexity-bar"><div class="complexity-fill" style="width:${(p.complexity || 5) * 10}%"></div></div>
-        </div>
-        <div class="post-meta">
-          <span class="post-date">${authorDateStr}</span>
-          <div style="display:flex;align-items:center;gap:0.75rem">
-            <span class="post-read-time">${readTime} min read</span>
-            <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
-          </div>
-        </div>
-      </div>`;
+  function renderTerminal() {
+    renderPulse(contentState.hourly);
+    renderBriefings(contentState.daily);
+    renderArticles([...contentState.weekly, ...contentState.monthly]);
+    
+    const all = [...contentState.hourly, ...contentState.daily, ...contentState.weekly, ...contentState.monthly, ...contentState.posts];
+    const pc = document.getElementById('postCount');
+    if (pc) pc.textContent = all.length;
   }
 
-  function renderPosts(posts) {
-    activePosts  = posts;
-    currentPage  = 1;
-    const grid   = document.getElementById('postsGrid');
-    if (!posts.length) { renderEmpty(); return; }
-    const visible = posts.slice(0, POSTS_PER_PAGE);
-    grid.innerHTML = visible.map((p, i) => buildCard(p, i)).join('');
-    renderLoadMore(grid, posts);
+  function renderPulse(posts) {
+    const pulseGrid = document.getElementById('pulseGrid');
+    if (!pulseGrid) return;
+    if (!posts.length) { pulseGrid.innerHTML = '<p class="muted">Waiting for next pulse...</p>'; return; }
+    
+    pulseGrid.innerHTML = posts.slice(0, 5).map(p => `
+      <div class="pulse-card" onclick="window.location.href='${p.path}'">
+        <div class="pulse-time">${p.time || 'Live'}</div>
+        <div class="pulse-title">${p.title}</div>
+      </div>
+    `).join('');
   }
 
-  function renderLoadMore(grid, posts) {
-    // Remove existing Load More row
-    grid.querySelector('.load-more-wrap')?.remove();
-    const shown = currentPage * POSTS_PER_PAGE;
-    if (shown >= posts.length) return; // all shown
+  function renderBriefings(posts) {
+    const grid = document.getElementById('postsGrid');
+    if (!grid) return;
+    if (!posts.length) { grid.innerHTML = '<p class="muted">No briefings available.</p>'; return; }
+    
+    grid.innerHTML = posts.map((p, i) => renderCard(p, i, 'daily')).join('');
+  }
 
-    const wrap = document.createElement('div');
-    wrap.className = 'load-more-wrap';
-    wrap.innerHTML = `
-      <button class="load-more-btn" id="loadMoreBtn">Load More</button>
-      <span class="posts-counter">Showing ${shown} of ${posts.length} articles</span>`;
-    wrap.querySelector('#loadMoreBtn').addEventListener('click', () => {
-      currentPage++;
-      const nextBatch = posts.slice(shown, currentPage * POSTS_PER_PAGE);
-      // Remove the wrap before appending new cards
-      wrap.remove();
-      nextBatch.forEach((p, i) => {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = buildCard(p, shown + i);
-        grid.appendChild(tmp.firstElementChild);
-      });
-      renderLoadMore(grid, posts);
+  function renderArticles(posts) {
+    const grid = document.getElementById('articlesGrid');
+    if (!grid) return;
+    if (!posts.length) { grid.innerHTML = '<p class="muted">Strategic reports pending.</p>'; return; }
+    
+    const sorted = [...posts].sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || new Date(a.date || 0);
+      const dateB = b.createdAt?.toDate?.() || new Date(b.date || 0);
+      return dateB - dateA;
     });
-    grid.appendChild(wrap);
+    
+    grid.innerHTML = sorted.map((p, i) => renderCard(p, i, 'article')).join('');
+  }
+
+  function renderCard(p, i, mode) {
+    const title = DOMPurify.sanitize(p.title);
+    const excerpt = DOMPurify.sanitize(p.excerpt || '');
+    const dateObj = p.createdAt?.toDate?.() || (p.date ? new Date(p.date) : null);
+    const dateStr = dateObj ? dateObj.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '';
+    
+    const path = p.path || (p.fileName ? `${p.fileName}` : `post.html?id=${p.id}`);
+    const isFeatured = i === 0 && mode === 'daily';
+    
+    const categoryLabel = mode === 'article' ? 'STRATEGIC' : 'MARKET PULSE';
+    const categoryClass = mode === 'article' ? 'post-category-article' : 'post-category-briefing';
+    
+    return `
+      <div class="post-card ${isFeatured ? 'featured' : ''}" onclick="window.location.href='${path}'">
+        <div class="post-body">
+          <span class="post-category ${categoryClass}">${categoryLabel} • ${p.frequency?.toUpperCase() || p.category || 'ANALYSIS'}</span>
+          <h3 class="post-title">${title}</h3>
+          <p class="post-excerpt">${excerpt}</p>
+          <div class="post-meta">
+            <span class="post-date">${dateStr}</span>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   function renderEmpty() {
@@ -1424,6 +1371,48 @@
     btn.disabled = false; btnText.style.display = 'inline'; spinner.style.display = 'none';
   };
 
+  // ── Late Initialization (Consolidated) ──────────────────────────
+  async function startApp() {
+    window.loadPosts = loadPosts;
+    const yearEl = document.getElementById('year');
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
+    
+    loadTicker(); // non-blocking
+    await loadSiteSettings();
+    await loadTerminal();
+    
+    if (allPosts && allPosts.length > 0) {
+      hydratePolicy(allPosts[0]);
+    }
+    await loadAbout();
+
+    // Intersection Observer: reveal animations + lazy widget/market loading
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+          if (entry.target.id === 'tvTickerContainer') initTVTicker();
+          if (entry.target.id === 'tvHubContainer') {
+            initTVHub();
+            if (!marketPollInterval) {
+              pollMarkets();
+              marketPollInterval = setInterval(pollMarkets, 30000);
+            }
+          }
+        }
+      });
+    }, { threshold: 0.1 });
+    
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    const tvTicker = document.getElementById('tvTickerContainer');
+    if (tvTicker) observer.observe(tvTicker);
+    const tvHub = document.getElementById('tvHubContainer');
+    if (tvHub) observer.observe(tvHub);
+  }
+
+  // Trigger startApp after Firebase is ready
+  await startApp();
+
   // ── Filter chip event listeners (data-cat driven) ──────────────────────────
   // Works alongside the inline onclick="filterByCategory()" on each chip.
   // The data-cat attribute (added to each chip) drives category matching.
@@ -1461,39 +1450,6 @@
 
   let marketPollInterval = null;
 
-  (async () => {
-    window.loadPosts = loadPosts;
-    document.getElementById('year').textContent = new Date().getFullYear();
-    loadTicker(); // non-blocking, runs in parallel
-    await loadSiteSettings();
-    await loadPosts();
-    if (allPosts && allPosts.length > 0) {
-      hydratePolicy(allPosts[0]);
-    }
-    await loadAbout();
-    // Intersection Observer: reveal animations + lazy widget/market loading
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('active');
-          if (entry.target.id === 'tvTickerContainer') initTVTicker();
-          if (entry.target.id === 'tvHubContainer') {
-            initTVHub();
-            // Start market polling only once the hub scrolls into view
-            if (!marketPollInterval) {
-              pollMarkets();
-              marketPollInterval = setInterval(pollMarkets, 30000);
-            }
-          }
-        }
-      });
-    }, { threshold: 0.1 });
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-    const tvTicker = document.getElementById('tvTickerContainer');
-    if (tvTicker) observer.observe(tvTicker);
-    const tvHub = document.getElementById('tvHubContainer');
-    if (tvHub) observer.observe(tvHub);
-  })();
 
   function initTVTicker() {
       const container = document.getElementById('tvTickerContainer');

@@ -1,154 +1,241 @@
 const { XMLParser } = require("fast-xml-parser");
-const Parser = require("rss-parser");
+const RSSParser = require("rss-parser");
+const fs = require("fs");
+const path = require("path");
+const fetch = require("node-fetch");
 
-// Node 18+ has global fetch, but we'll use a wrapper for safety/logging
-// Simple deduplication helper (title similarity)
-const seenTitles = new Set();
-function isDuplicate(title) {
-    const slug = (title || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-    if (seenTitles.has(slug)) return true;
-    seenTitles.add(slug);
-    return false;
-}
-
-// Simple sentiment score (0-10) based on keywords
-function getSentiment(text) {
-    const pos = ["growth", "surge", "approval", "success", "profit", "bullish", "innovation", "partnership", "rbi approval", "sebi"];
-    const neg = ["crash", "drop", "failure", "scam", "fraud", "penalty", "loss", "bearish", "hacked"];
-    let score = 5;
-    const lower = text.toLowerCase();
-    pos.forEach(w => { if (lower.includes(w)) score += 1; });
-    neg.forEach(w => { if (lower.includes(w)) score -= 1; });
-    return Math.max(1, Math.min(10, score));
-}
-
-async function safeFetch(url, options = {}) {
+async function fetchEconomicCalendar() {
     try {
-        const response = await fetch(url, options);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status} at ${url}`);
-        return response;
-    } catch (error) {
-        console.error(`Fetch error for ${url}:`, error.message);
+        const response = await fetch("https://nfs.forexfactory.com/ff_calendar_thisweek.xml");
+        const xmlData = await response.text();
+        const parser = new XMLParser();
+        const jsonObj = parser.weeklycalendar.event || [];
+        const events = Array.isArray(jsonObj) ? jsonObj : [jsonObj];
+        const highImpact = events.filter(e => e.impact === 'High');
+        return { 
+            text: `High Impact Events: ${highImpact.slice(0, 10).map(e => `${e.event} (${e.country})`).join(', ')}`,
+            raw: highImpact.slice(0, 10)
+        };
+    } catch (err) { return { text: "Calendar: Unavailable.", raw: [] }; }
+}
+
+async function fetchMultiAssetData() {
+    const fetchScanner = async (market, symbols) => {
+        try {
+            const res = await fetch(`https://scanner.tradingview.com/${market}/scan`, {
+                method: "POST",
+                body: JSON.stringify({
+                    "symbols": { "tickers": symbols },
+                    "columns": ["base_currency", "currency", "close", "change", "change_abs", "description"]
+                })
+            });
+            return await res.json();
+        } catch (e) { return { data: [] }; }
+    };
+
+    try {
+        const [forex, stocks, crypto] = await Promise.all([
+            fetchScanner("forex", ["FX:USDINR", "FX:EURUSD", "FX:GBPUSD", "OANDA:XAUUSD", "TVC:UKOIL"]),
+            fetchScanner("india", ["NSE:RELIANCE", "NSE:HDFCBANK", "NSE:ICICIBANK", "NSE:INFY", "NSE:TCS", "TVC:IN10Y"]),
+            fetchScanner("crypto", ["BINANCE:BTCUSDT", "BINANCE:ETHUSDT", "BINANCE:SOLUSDT"])
+        ]);
+
+        const allData = [...(forex.data || []), ...(stocks.data || []), ...(crypto.data || [])].filter(i => i && i.d);
+        const summary = allData.map(item => {
+            const [base, cur, close, chg, abs, desc] = item.d;
+            return `${desc || base+cur}: ${close.toFixed(2)} (${chg.toFixed(2)}%)`;
+        }).join(' | ');
+        return { summary, raw: allData };
+    } catch (e) { return { summary: "Market Data: Unavailable.", raw: [] }; }
+}
+
+async function fetchIndianNews() {
+    try {
+        const parser = new RSSParser();
+        const feeds = [
+            "https://www.business-standard.com/rss/markets-106.rss",
+            "https://www.livemint.com/rss/markets",
+            "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"
+        ];
+        const results = await Promise.allSettled(feeds.map(f => parser.parseURL(f)));
+        const news = results
+            .filter(r => r.status === 'fulfilled')
+            .flatMap(r => r.value.items.slice(0, 5))
+            .map(i => i.title)
+            .join(' | ');
+        return news || "Indian News: No recent updates.";
+    } catch (e) { return "Indian News: Unavailable."; }
+}
+
+async function fetchGlobalNews() {
+    try {
+        const parser = new RSSParser();
+        const feeds = [
+            "https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml",
+            "https://www.reutersagency.com/feed/?best-topics=business&post_type=best"
+        ];
+        const results = await Promise.allSettled(feeds.map(f => parser.parseURL(f)));
+        const news = results
+            .filter(r => r.status === 'fulfilled')
+            .flatMap(r => r.value.items.slice(0, 5))
+            .map(i => i.title)
+            .join(' | ');
+        return news || "Global News: No recent updates.";
+    } catch (e) { return "Global News: Unavailable."; }
+}
+
+async function fetchGlobalMarkets() {
+    try {
+        const res = await fetch("https://blogspro-upstox.abhishek-dutta1996.workers.dev/global");
+        const json = await res.json();
+        if (json.status === 'success') {
+            const summary = json.data.map(d => `${d.symbol}: ${d.price} (${d.change}%)`).join(' | ');
+            return { summary, raw: json.data };
+        }
+        return { summary: "Global Markets: Unavailable.", raw: [] };
+    } catch (e) { return { summary: "Global Markets: Unavailable.", raw: [] }; }
+}
+
+async function downloadRegFile(url, fileName) {
+    try {
+        const downloadsDir = path.join(__dirname, "../../downloads");
+        if (!fs.existsSync(downloadsDir)) fs.mkdirSync(downloadsDir, { recursive: true });
+        const dest = path.join(downloadsDir, fileName);
+        if (fs.existsSync(dest)) return fileName;
+        const res = await fetch(url);
+        const buffer = await res.buffer();
+        fs.writeFileSync(dest, buffer);
+        console.log(`✅ Downloaded: ${fileName}`);
+        return fileName;
+    } catch (e) {
+        console.warn(`❌ Download fail (${fileName}):`, e.message);
         return null;
     }
 }
 
-/**
- * Fetches high-impact economic events from Forex Factory's XML feed.
- */
-async function fetchForexFactory() {
-    const url = "https://nfs.forexfactory.com/ff_calendar_thisweek.xml";
-    const response = await safeFetch(url);
-    if (!response) return "FOREX FACTORY: Data unavailable.\n";
-
-    const xmlData = await response.text();
-    const parser = new XMLParser();
-    const jsonObj = parser.parse(xmlData);
-    
-    // Sometimes it's an array, sometimes a single object
-    let events = jsonObj.weeklyevents.event;
-    if (!Array.isArray(events)) events = [events];
-
-    let context = "THIS WEEK'S HIGH-IMPACT ECONOMIC EVENTS (FOREX FACTORY):\n";
-    let foundHigh = false;
-
-    events.forEach(event => {
-        if (event.impact === "High") {
-            foundHigh = true;
-            context += `
-- Event: ${event.title}
-- Currency: ${event.country}
-- Date/Time: ${event.date} ${event.time}
-- Forecast: ${event.forecast || "N/A"}
-- Previous: ${event.previous || "N/A"}
-- Actual: ${event.actual || "Not yet released"}
-`;
+async function fetchRBIData() {
+    try {
+        const parser = new RSSParser();
+        const urls = [
+            "https://www.rbi.org.in/pressreleases_rss.xml",
+            "https://www.rbi.org.in/notifications_rss.xml"
+        ];
+        const results = await Promise.allSettled(urls.map(u => parser.parseURL(u)));
+        const items = results
+            .filter(r => r.status === 'fulfilled')
+            .flatMap(r => r.value.items.slice(0, 3));
+        
+        const docs = [];
+        for (const item of items.slice(0, 3)) {
+            const html = await fetch(item.link).then(r => r.text());
+            const pdfMatch = html.match(/href="([^"]+\.PDF)"/i);
+            if (pdfMatch) {
+                const pdfUrl = pdfMatch[1].startsWith('http') ? pdfMatch[1] : `https://www.rbi.org.in/${pdfMatch[1]}`;
+                const local = await downloadRegFile(pdfUrl, `rbi-${Date.now()}-${path.basename(pdfUrl)}`);
+                if (local) docs.push({ title: item.title, url: item.link, pdf: local });
+            }
         }
-    });
-
-    return foundHigh ? context : "FOREX FACTORY: No high-impact events found.\n";
+        return { summary: `RBI: ${items.map(i => i.title).join(' | ')}`, docs };
+    } catch (e) { return { summary: "RBI: Unavailable.", docs: [] }; }
 }
 
-/**
- * Fetches news from NewsAPI.
- * Requires API_KEY_NEWS in environment.
- */
-async function fetchNewsAPI(query = "fintech OR finance") {
-    const apiKey = process.env.API_KEY_NEWS;
-    if (!apiKey) return "NEWS API: API key missing.\n";
-
-    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&sortBy=publishedAt&pageSize=5&apiKey=${apiKey}`;
-    const response = await safeFetch(url);
-    if (!response) return "NEWS API: Data unavailable.\n";
-
-    const data = await response.json();
-    if (!data.articles || data.articles.length === 0) return "NEWS API: No articles found.\n";
-
-    // Sort by sentiment and deduplicate
-    const processed = data.articles
-        .filter(a => !isDuplicate(a.title))
-        .map(a => ({ ...a, sentiment: getSentiment(`${a.title} ${a.description}`) }))
-        .sort((a, b) => b.sentiment - a.sentiment)
-        .slice(0, 5);
-
-    let context = "LATEST NEWS HEADLINES (SCORED BY SENTIMENT):\n";
-    processed.forEach((article, i) => {
-        context += `${i + 1}. Source: ${article.source.name} [Sentiment: ${article.sentiment}/10]\n   Title: ${article.title}\n   Snippet: ${article.description || "N/A"}\n`;
-    });
-    return context;
+async function fetchCCILData() {
+    try {
+        const parser = new RSSParser();
+        const feeds = [
+            "https://www.ccilindia.com/o/rss/Notification-rss",
+            "https://www.ccilindia.com/web/ccil/what-s-news/-/journal/rss/43866/334136201"
+        ];
+        const results = await Promise.allSettled(feeds.map(f => parser.parseURL(f)));
+        const items = results
+            .filter(r => r.status === 'fulfilled')
+            .flatMap(r => r.value.items.slice(0, 5));
+        return { 
+            summary: items.length ? `CCIL Pulse: ${items.map(i => i.title).join(' | ')}` : "CCIL: No recent updates.",
+            raw: items 
+        };
+    } catch (e) { return { summary: "CCIL Data: Unavailable.", raw: [] }; }
 }
 
-/**
- * Fetches and parses an RSS feed (e.g., WSJ, FT).
- */
-async function fetchRSS(url, sourceName = "RSS Feed") {
-    const parser = new Parser({
-        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) BlogsPro-Bot/1.0" }
-    });
+async function fetchSEBIData() {
+    try {
+        const parser = new RSSParser();
+        const feed = await parser.parseURL("https://www.sebi.gov.in/sebirss.xml");
+        const items = feed.items.slice(0, 3);
+        const docs = [];
+        for (const item of items) {
+            const html = await fetch(item.link).then(r => r.text());
+            const pdfMatch = html.match(/https:\/\/www\.sebi\.gov\.in\/sebi_data\/attachdocs\/[^"]+\.pdf/i);
+            if (pdfMatch) {
+                const local = await downloadRegFile(pdfMatch[0], `sebi-${Date.now()}-${path.basename(pdfMatch[0])}`);
+                if (local) docs.push({ title: item.title, url: item.link, pdf: local });
+            }
+        }
+        return { summary: `SEBI: ${items.map(i => i.title).join(' | ')}`, docs };
+    } catch (e) { return { summary: "SEBI: Unavailable.", docs: [] }; }
+}
+
+async function fetchMacroPulse() {
+    const getWB = async (country, indicator) => {
+        try {
+            const res = await fetch(`https://api.worldbank.org/v2/country/${country}/indicator/${indicator}?format=json&per_page=1`);
+            const json = await res.json();
+            if (json && json[1] && json[1][0]) {
+                const item = json[1][0];
+                return { value: item.value?.toFixed(2), date: item.date };
+            }
+        } catch (e) {}
+        return { value: "N/A", date: "N/A" };
+    };
 
     try {
-        const feed = await parser.parseURL(url);
-        let context = `PREMIUM NEWSPAPER HEADLINES (${sourceName}):\n`;
-        feed.items
-            .filter(item => !isDuplicate(item.title))
-            .slice(0, 3)
-            .forEach((item, i) => {
-                context += `${i + 1}. Title: ${item.title}\n   Snippet: ${(item.contentSnippet || "").substring(0, 200)}...\n`;
-            });
-        return context;
-    } catch (error) {
-        console.error(`RSS Error (${sourceName}):`, error.message);
-        return `${sourceName}: Data unavailable.\n`;
-    }
+        const [inGdp, inInf, usGdp, usInf] = await Promise.all([
+            getWB("IND", "NY.GDP.MKTP.KD.ZG"),
+            getWB("IND", "FP.CPI.TOTL.ZG"),
+            getWB("USA", "NY.GDP.MKTP.KD.ZG"),
+            getWB("USA", "FP.CPI.TOTL.ZG")
+        ]);
+        return {
+            summary: `IN GDP: ${inGdp.value}% (${inGdp.date}) | IN INF: ${inInf.value}% (${inInf.date}) | US GDP: ${usGdp.value}% (${usGdp.date}) | US INF: ${usInf.value}% (${usInf.date})`,
+            raw: { india: { gdp: inGdp, inflation: inInf }, us: { gdp: usGdp, inflation: usInf } }
+        };
+    } catch (e) { return { summary: "Macro Data: Unavailable.", raw: {} }; }
 }
 
-/**
- * Fetches research papers from arXiv.
- */
-async function fetchArXiv(query = "cat:q-fin.ST OR cat:q-fin.GN") {
-    const url = `https://export.arxiv.org/api/query?search_query=${encodeURIComponent(query)}&sortBy=submittedDate&sortOrder=descending&max_results=3`;
-    const response = await safeFetch(url);
-    if (!response) return "ARXIV: Data unavailable.\n";
-
-    const xmlData = await response.text();
-    const parser = new XMLParser();
-    const jsonObj = parser.parse(xmlData);
-
-    let entries = jsonObj.feed.entry;
-    if (!entries) return "ARXIV: No recent papers found.\n";
-    if (!Array.isArray(entries)) entries = [entries];
-
-    let context = "LATEST ACADEMIC RESEARCH (arXiv):\n";
-    entries.forEach((entry, i) => {
-        const summary = (entry.summary || "").replace(/\n/g, " ").substring(0, 300);
-        context += `${i + 1}. Title: ${entry.title}\n   Abstract: ${summary}...\n`;
-    });
-    return context;
+async function fetchUpstoxData() {
+    try {
+        const [liveRes, histRes] = await Promise.all([
+            fetch("https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/quotes"),
+            fetch("https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/historical?instrumentKey=NSE_INDEX%7CNifty%2050&interval=day")
+        ]);
+        const liveData = await liveRes.json();
+        const histData = await histRes.json();
+        let summary = "Upstox: Live data unavailable.";
+        let raw = {};
+        if (liveData.status === "success" && liveData.data) {
+            const d = liveData.data;
+            const getLtp = (s) => d[s]?.last_price || "N/A";
+            summary = `NIFTY: ${getLtp("NSE_INDEX:Nifty 50")} | BANK NIFTY: ${getLtp("NSE_INDEX:Nifty Bank")} | REL: ${getLtp("NSE_EQ:RELIANCE")} | HDFC: ${getLtp("NSE_EQ:HDFCBANK")}`;
+            raw = d;
+        }
+        if (histData.status === "success" && histData.data && histData.data.candles) {
+            const lastClose = histData.data.candles[0][4]; 
+            const prevClose = histData.data.candles[1][4];
+            summary += ` | NIFTY Trend: ${lastClose > prevClose ? "Bullish" : "Bearish"} (${((lastClose - prevClose)/prevClose * 100).toFixed(2)}%)`;
+        }
+        return { summary, raw };
+    } catch (e) { return { summary: "Upstox: Unavailable.", raw: {} }; }
 }
 
 module.exports = {
-    fetchForexFactory,
-    fetchNewsAPI,
-    fetchRSS,
-    fetchArXiv
+    fetchEconomicCalendar,
+    fetchMultiAssetData,
+    fetchIndianNews,
+    fetchGlobalNews,
+    fetchGlobalMarkets,
+    fetchRBIData,
+    fetchCCILData,
+    fetchSEBIData,
+    fetchMacroPulse,
+    fetchUpstoxData
 };

@@ -66,15 +66,16 @@ async function generateSitemap() {
       }
     }
 
-    // Static Pages from the /p and /posts directories (automated AI briefings)
-    ['../p', '../posts'].forEach(relPath => {
+    // Static Pages from briefings and articles (automated AI content)
+    ['../briefings/daily', '../briefings/hourly', '../articles/weekly', '../articles/monthly', '../posts'].forEach(relPath => {
       const dir = path.join(__dirname, relPath);
       if (fs.existsSync(dir)) {
         const files = fs.readdirSync(dir).filter(f => f.endsWith('.html'));
         files.forEach(file => {
           const stats = fs.statSync(path.join(dir, file));
           const lastMod = stats.mtime.toISOString().split('T')[0];
-          const loc = `${DOMAIN}/${relPath.split('/').pop()}/${file}`;
+          const pathSegments = relPath.split('/').filter(s => s !== '..');
+          const loc = `${DOMAIN}/${pathSegments.join('/')}/${file}`;
           if (!urls.includes(loc)) {
             urls += `
   <url>

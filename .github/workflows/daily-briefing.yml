@@ -1,4 +1,4 @@
-name: Daily AI Article Generation
+name: Daily AI Briefing
 
 on:
   schedule:
@@ -25,7 +25,7 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Generate AI Briefing
+      - name: Generate Daily Briefing
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
@@ -38,7 +38,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           NOTIFICATION_WEBHOOK: ${{ secrets.WEBHOOK_SECRET }}
-        run: node scripts/generate-article.js
+        run: node scripts/generate-briefing.js --freq=daily
 
       - name: Update Sitemap
         run: node scripts/generate-sitemap.js
@@ -47,6 +47,6 @@ jobs:
         run: |
           git config --global user.name "BlogsPro Bot"
           git config --global user.email "bot@blogspro.in"
-          git add posts/ index.html sitemap.xml
+          git add briefings/ articles/ index.html sitemap.xml
           git commit -m "chore: automated daily financial briefing [skip ci]" || echo "No changes to commit"
           git push

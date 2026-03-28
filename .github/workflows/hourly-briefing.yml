@@ -1,0 +1,47 @@
+name: Hourly Market Pulse
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Every hour
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-and-post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Generate Hourly Pulse
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
+          NEWS_API_KEY: ${{ secrets.API_KEY_NEWS }}
+          UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          NOTIFICATION_WEBHOOK: ${{ secrets.WEBHOOK_SECRET }}
+        run: node scripts/generate-briefing.js --freq=hourly
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "BlogsPro Bot"
+          git config --global user.email "bot@blogspro.in"
+          git add briefings/ index.html
+          git commit -m "chore: automated hourly market pulse [skip ci]" || echo "No changes to commit"
+          git push

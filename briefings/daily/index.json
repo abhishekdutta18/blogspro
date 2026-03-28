@@ -1,0 +1,12 @@
+[
+  {
+    "title": "Sample Daily Briefing",
+    "slug": "sample-briefing",
+    "date": "2026-03-28",
+    "fileName": "sample-briefing.html",
+    "path": "briefings/daily/sample-briefing.html",
+    "type": "briefing",
+    "frequency": "daily",
+    "excerpt": "A demonstration of the automated daily financial pulse."
+  }
+]
