@@ -619,6 +619,25 @@ CRITICAL: Respond ONLY with a single valid JSON object. No markdown, no backtick
 
     const metaProvider = PROVIDER_META[metaResult.provider]?.label || metaResult.provider || 'auto';
     setRoadmapStep('metadata', 'done', metaProvider);
+
+    // ── STEP 4: Auto citations + references ─────
+    setRoadmapStep('citation', 'active');
+    timerLog('Adding citations and references…');
+    _setModalContent('📚 Adding inline citations and references…');
+    try {
+      if (typeof window.autoAddCitations === 'function') {
+        await window.autoAddCitations();
+      } else {
+        if (typeof window.insertInlineCitations === 'function') await window.insertInlineCitations();
+        if (typeof window.insertReferencesBlock === 'function') await window.insertReferencesBlock();
+      }
+      setRoadmapStep('citation', 'done', 'auto');
+      timerLog('✓ Citations + references added');
+    } catch (e) {
+      setRoadmapStep('citation', 'error', 'failed');
+      timerLog(`⚠ Citation step failed: ${e.message}`);
+    }
+
     setRoadmapStep('done', 'done');
     stopTimer();
     clearJobState();

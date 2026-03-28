@@ -4,6 +4,7 @@
 
 export const state = {
   currentUser:         null,
+  currentUserProfile:  null,
   editingPostId:       null,
   allPosts:            [],
   allSubs:             [],

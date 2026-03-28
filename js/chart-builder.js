@@ -87,22 +87,22 @@ Pick the best chart type and generate REAL, SPECIFIC numeric data relevant to th
 CRITICAL: Return ONLY a raw JSON object. No markdown, no backticks, no explanation. Start with {
 
 REQUIRED FIELDS:
-- "name": A unique descriptive name for this chart (e.g. "UPI Transaction Volume 2020-2024"). DO NOT include prefixes like "Fig 1:" or "Table 1:".
+- "name": A unique descriptive name for this chart (e.g. "Fig 1: UPI Transaction Volume 2020-2024")
 - "title": Display title shown above the chart
 - "source": Citation source (e.g. "Source: RBI Annual Report 2024", "Source: NPCI Dashboard")
 - "subtitle": Brief description of what the data shows
 
 Example for a bar chart:
-{"type":"bar","name":"Top 5 Fintech Markets","title":"Top 5 Fintech Markets by Investment","subtitle":"2024 data","labels":["USA","China","UK","India","Brazil"],"datasets":[{"name":"Investment $B","values":[89,52,31,8,4]}],"unit":"$B","source":"Source: CB Insights Global Fintech Report 2024"}
+{"type":"bar","name":"Fig 1: Top 5 Fintech Markets","title":"Top 5 Fintech Markets by Investment","subtitle":"2024 data","labels":["USA","China","UK","India","Brazil"],"datasets":[{"name":"Investment $B","values":[89,52,31,8,4]}],"unit":"$B","source":"Source: CB Insights Global Fintech Report 2024"}
 
 Example for a stats chart:
-{"type":"stats","name":"Global Fintech Key Metrics","title":"Key Market Statistics","subtitle":"Global fintech 2024","labels":["Market Size","YoY Growth","Active Users","Funding Rounds"],"datasets":[{"name":"values","values":["$340B","23%","4.8B","2,847"]}],"unit":"","source":"Source: Statista Digital Payments Report 2024"}
+{"type":"stats","name":"Fig 2: Global Fintech Key Metrics","title":"Key Market Statistics","subtitle":"Global fintech 2024","labels":["Market Size","YoY Growth","Active Users","Funding Rounds"],"datasets":[{"name":"values","values":["$340B","23%","4.8B","2,847"]}],"unit":"","source":"Source: Statista Digital Payments Report 2024"}
 
 Example for a table:
-{"type":"table","name":"Banking Model Comparison","title":"Feature Comparison","subtitle":"","labels":["Speed","Cost","Security","Ease of Use"],"datasets":[{"name":"Provider A","values":["Fast","Low","High","Easy"]},{"name":"Provider B","values":["Medium","Medium","High","Medium"]}],"unit":"","source":"Source: Deloitte Banking Survey 2024"}
+{"type":"table","name":"Table 1: Banking Model Comparison","title":"Feature Comparison","subtitle":"","labels":["Speed","Cost","Security","Ease of Use"],"datasets":[{"name":"Provider A","values":["Fast","Low","High","Easy"]},{"name":"Provider B","values":["Medium","Medium","High","Medium"]}],"unit":"","source":"Source: Deloitte Banking Survey 2024"}
 
 Rules:
-- "name" MUST NOT start with "Fig N:" or "Table N:". Just provide the descriptive name.
+- "name" MUST start with "Fig N:" or "Table N:" followed by a descriptive name
 - "source" MUST cite a real organization (RBI, SEBI, NPCI, World Bank, McKinsey, PwC, Statista, etc.)
 - ALL numbers must be realistic for the topic — do NOT use placeholder zeros
 - labels array and values array MUST have the same length
@@ -128,9 +128,8 @@ Rules:
   if (data.labels.length !== data.datasets[0].values.length &&
       data.type !== 'table') return '';
 
-  // Validate chart name exists and strip problematic prefixes
-  if (!data.name) data.name = data.title || sectionTitle;
-  data.name = data.name.replace(/^(Fig(?:ure)?\s*\d*\s*[:\-.]?|Table\s*\d*\s*[:\-.]?)\s*/i, '');
+  // Validate chart name exists
+  if (!data.name) data.name = `${data.type === 'table' ? 'Table' : 'Fig'}: ${data.title || sectionTitle}`;
 
   // Validate source citation exists
   if (!data.source) data.source = `Source: Industry analysis for "${sectionTitle}"`;
@@ -301,8 +300,7 @@ function buildPieChart(data) {
   let angle = -Math.PI / 2;
 
   const slices = vals.map((v, i) => {
-    let sweep = (v / total) * 2 * Math.PI;
-    if (sweep >= 2 * Math.PI) sweep -= 0.0001; // SVG arc cannot draw exactly 360 degrees
+    const sweep = (v / total) * 2 * Math.PI;
     const x1 = CX + R * Math.cos(angle);
     const y1 = CY + R * Math.sin(angle);
     angle += sweep;
@@ -377,19 +375,10 @@ function buildDataTable(data) {
   const rows    = data.datasets || [];
   if (!headers.length || !rows.length) return '';
 
-  const maxValues = Math.max(...rows.map(r => (r.values || []).length));
-  
-  let theadHtml = '';
-  if (headers.length === maxValues + 1) {
-    theadHtml = `<tr>
-      ${headers.map((h, i) => `<th style="${i===0 ? 'position:sticky;left:0;' : ''}padding:0.6rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;background:${THEME.bg2};${i===0?'z-index:2':''}">${h}</th>`).join('')}
-    </tr>`;
-  } else {
-    theadHtml = `<tr>
-      <th style="padding:0.6rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;position:sticky;left:0;background:${THEME.bg2};z-index:2">Feature</th>
-      ${headers.map(h => `<th style="padding:0.6rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;background:${THEME.bg2}">${h}</th>`).join('')}
-    </tr>`;
-  }
+  const thead = `<tr>
+    <th style="padding:0.6rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;position:sticky;left:0;background:${THEME.bg2};z-index:2"></th>
+    ${headers.map(h => `<th style="padding:0.6rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;background:${THEME.bg2}">${h}</th>`).join('')}
+  </tr>`;
 
   const tbody = rows.map((row, ri) => {
     const bg = ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.025)';
@@ -408,7 +397,7 @@ function buildDataTable(data) {
         <caption style="caption-side:top;text-align:left;padding:0.6rem 0.75rem;color:${THEME.muted};font-size:0.7rem;border-bottom:1px solid ${THEME.border}">
           ${data.name || data.title || 'Comparison Table'}
         </caption>
-        <thead>${theadHtml}</thead>
+        <thead>${thead}</thead>
         <tbody>${tbody}</tbody>
       </table>
     </div>`

@@ -27,6 +27,7 @@ export function initAuth() {
     try {
       const snap = await getDoc(doc(db, 'users', user.uid));
       const role  = snap.exists() ? snap.data().role : null;
+      state.currentUserProfile = snap.exists() ? snap.data() : null;
       if (role !== 'admin') {
         await signOut(auth);
         window.location.href = 'login.html?error=unauthorized';
@@ -42,7 +43,7 @@ export function initAuth() {
       }
       console.error('Auth role check failed:', e.message);
       const tbody = document.getElementById('recentPostsBody');
-      if (tbody) tbody.innerHTML = `<tr><td colspan="6"><div class="table-empty" style="color:#fca5a5">
+      if (tbody) tbody.innerHTML = `<tr><td colspan="7"><div class="table-empty" style="color:#fca5a5">
         ✕ Could not verify admin role. Please refresh or sign in again.<br>
         <span style="font-size:0.75rem;color:var(--muted)">${e.message}</span>
       </div></td></tr>`;

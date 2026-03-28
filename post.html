@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- SSG_META_START -->
   <title id="pageTitle">Loading… — BlogsPro</title>
   <meta name="description"        id="metaDesc"  content="" />
   <meta property="og:title"       id="ogTitle"   content="" />
@@ -16,9 +15,30 @@
   <meta name="twitter:description" id="twDesc"  content="" />
   <link rel="canonical"           id="canonLink" href="" />
   <script type="application/ld+json" id="ldJson"></script>
-  <!-- SSG_META_END -->
-  <!-- Consolidated Sentry Configuration -->
-  <script src="js/sentry-init-v2.js"></script>
+  <!-- Sentry Error Tracking v10.44.0 -->
+  <script src="https://browser.sentry-cdn.com/10.44.0/bundle.min.js"
+    integrity="sha384-sx+UyjbtMU5ociD00tpUP0LC8A78wmbbIzMUl3+Y35sUqIweqvkXE43dDRqQDEO8"
+    crossorigin="anonymous"></script>
+  <script>
+  Sentry.init({
+    dsn: "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336",
+    environment: window.location.hostname === "blogspro.in" ? "production" : "development",
+    release: "blogspro@2026-03-19",
+    sampleRate: 1.0,
+    tracesSampleRate: 0.1,
+    ignoreErrors: [
+      "ResizeObserver loop limit exceeded",
+      "ResizeObserver loop completed with undelivered notifications",
+      "Network request failed",
+      "Failed to fetch",
+      "Load failed",
+    ],
+  });
+  window.setSentryUser = function(u) { Sentry.setUser(u); };
+  window.trackEvent   = function(name, data) {
+    Sentry.addBreadcrumb({ message: name, data: data, level: "info" });
+  };
+  </script>
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DED9GTRR3E');</script>
@@ -30,9 +50,7 @@
   <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" />
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" /></noscript>
   <!-- DOMPurify for XSS sanitization -->
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
-  <!-- Global UI Utilities -->
-  <script src="js/ui-utils.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -53,10 +71,7 @@
     #progress{position:fixed;top:0;left:0;z-index:200;height:3px;background:linear-gradient(90deg,var(--gold),var(--gold2));width:0%;transition:width .1s linear;}
     nav{position:sticky;top:0;z-index:100;background:rgba(8,13,26,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:68px;}
     body.light nav{background:rgba(248,245,239,0.92);}
-    .nav-brand{font-family:var(--serif);font-size:1.5rem;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--gold2));      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-}
+    .nav-brand{font-family:var(--serif);font-size:1.5rem;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
     .nav-right{display:flex;align-items:center;gap:1rem;}
     .back-link{font-size:.82rem;color:var(--muted);transition:color .2s;}
     .back-link:hover{color:var(--gold);}
@@ -73,11 +88,6 @@
     .article-content h2{font-family:var(--serif);font-size:1.9rem;font-weight:700;margin:2.5rem 0 1rem;}
     .article-content h3{font-family:var(--serif);font-size:1.4rem;font-weight:600;margin:2rem 0 .75rem;}
     .article-content p{margin-bottom:1.5rem;}
-    .article-content table { width: 100%; border-collapse: collapse; margin: 2rem 0; font-size: 0.95rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(201,168,76,0.1); }
-    .article-content th { background: rgba(201,168,76,0.1); color: var(--gold); text-align: left; padding: 0.8rem 1rem; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; border-bottom: 2px solid var(--gold); }
-    .article-content td { padding: 0.8rem 1rem; border-bottom: 1px solid rgba(201,168,76,0.05); }
-    .article-content tr:last-child td { border-bottom: none; }
-    .article-content tr:hover td { background: rgba(201,168,76,0.03); }
     .article-content blockquote{border-left:3px solid var(--gold);padding:.5rem 0 .5rem 1.5rem;margin:2rem 0;font-family:var(--serif);font-size:1.35rem;font-style:italic;line-height:1.5;}
     .article-content ul,.article-content ol{padding-left:1.5rem;margin-bottom:1.5rem;}
     .article-content li{margin-bottom:.4rem;}
@@ -144,8 +154,6 @@
     .ad-in-content{border:1px solid var(--border);border-radius:3px;padding:.75rem;background:rgba(255,255,255,.02);clear:both;}
     .ad-pre-comments{border-top:1px solid var(--border);padding:1.2rem 0;}
   </style>
-  <!-- Microsoft Clarity -->
-  <script src="js/clarity-init.js"></script>
 </head>
 <body>
 <div id="progress"></div>
@@ -157,32 +165,67 @@
   </div>
 </nav>
 <main class="article-wrap" id="articleWrap">
-  <!-- SSG_CONTENT_START -->
   <p style="color:var(--muted);margin-top:4rem">Loading article…</p>
-  <!-- SSG_CONTENT_END -->
 </main>
 
 <script type="module">
-  // Theme and Scroll are now handled by js/ui-utils.js
+  // FIX: Theme and progress bar run immediately (no Firebase needed)
+  window.toggleTheme = () => {
+    document.body.classList.toggle('light');
+    const isLight = document.body.classList.contains('light');
+    document.getElementById('themeBtn').textContent = isLight ? '🌙' : '☀️';
+    localStorage.setItem('bpTheme', isLight ? 'light' : 'dark');
+  };
   if (localStorage.getItem('bpTheme') === 'light') {
+    document.body.classList.add('light');
     document.getElementById('themeBtn').textContent = '🌙';
   } else {
     document.getElementById('themeBtn').textContent = '☀️';
   }
 
+  window.addEventListener('scroll', () => {
+    const el = document.documentElement;
+    document.getElementById('progress').style.width =
+      Math.min((el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100, 100) + '%';
+  });
+
   // FIX: Defer all Firebase loading until after page has painted.
   // This stops Firebase SDK from blocking FCP/LCP.
   window.addEventListener('load', async () => {
-    const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const FIREBASE_TIMEOUT_MS = 12000;
+    function withTimeout(promise, ms = FIREBASE_TIMEOUT_MS, label = 'request') {
+      let timer;
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+        }),
+      ]).finally(() => clearTimeout(timer));
+    }
+
+    function renderFatal(msg) {
+      document.getElementById('articleWrap').innerHTML = `
+        <div class="error-state"><h2>${msg}</h2>
+        <a href="index.html" style="color:var(--gold)">← Back to all articles</a></div>`;
+    }
+
+    try {
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
     const { getFirestore, doc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, orderBy, where, limit }
       = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
     const { getAuth, onAuthStateChanged }
       = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
 
-    const { firebaseConfig } = await import("./js/firebase-config.js");
+  const firebaseConfig = {
+    apiKey:"AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
+    authDomain:"blogspro-ai.firebaseapp.com",
+    projectId:"blogspro-ai",
+    storageBucket:"blogspro-ai.firebasestorage.app",
+    messagingSenderId:"940428277283",
+    appId:"1:940428277283:web:d3bb414f0992718ca76396"
+  };
 
-  // Avoid duplicate app initialization
-  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
   const auth = getAuth(app);
   let currentUser = null;
@@ -204,7 +247,7 @@
 
   async function loadPost(id) {
     try {
-      const snap = await getDoc(doc(db, 'posts', id));
+      const snap = await withTimeout(getDoc(doc(db, 'posts', id)), FIREBASE_TIMEOUT_MS, 'post query');
       if (!snap.exists()) { renderError('Post not found.'); return; }
       const p = { id: snap.id, ...snap.data() };
       if (!p.published) { renderError('This post is not available.'); return; }
@@ -231,8 +274,10 @@
         excerpt:    DOMPurify.sanitize(p.excerpt    || ''),
         content:    DOMPurify.sanitize(p.content    || '', purifyConfig),
         authorName: DOMPurify.sanitize(p.authorName || ''),
+        authorEmail: DOMPurify.sanitize(p.authorEmail || ''),
         category:   DOMPurify.sanitize(p.category   || 'General'),
       };
+      const displayAuthor = clean.authorName || (clean.authorEmail ? clean.authorEmail.split('@')[0] : '') || 'BlogsPro';
 
       if (!siteImagesEnabled) {
         clean.content = clean.content
@@ -254,19 +299,11 @@
       document.getElementById('ldJson').textContent = JSON.stringify({
         "@context":"https://schema.org","@type":"Article",
         "headline":clean.title,"description":desc,
-        "author":{"@type":"Person","name":clean.authorName||"BlogsPro"},
+        "author":{"@type":"Person","name":displayAuthor},
         "publisher":{"@type":"Organization","name":"BlogsPro","url":"https://blogspro.in"},
         "datePublished":p.createdAt?.toDate?.()?.toISOString()||new Date().toISOString(),
         "url":url
       });
-
-      if (typeof window.gtag === 'function') {
-        window.gtag('event', 'page_view', {
-          page_title: clean.title,
-          page_location: url,
-          page_path: window.location.pathname + window.location.search
-        });
-      }
 
       const date      = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}) || '';
       const readTime  = Math.max(1, Math.ceil((clean.content||'').split(' ').length / 200));
@@ -288,10 +325,10 @@
           <span class="ad-label">Advertisement</span>
           <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5696584446633401" data-ad-slot="6614122455" data-ad-format="auto" data-full-width-responsive="true"></ins>
         </div>
-        ${clean.authorName ? `<div class="author-bar">
-          <div class="author-avatar">${clean.authorName[0].toUpperCase()}</div>
-          <div><div class="author-name">${clean.authorName}</div><div class="author-role">${clean.category}</div></div>
-        </div>` : ''}
+        <div class="author-bar">
+          <div class="author-avatar">${displayAuthor[0].toUpperCase()}</div>
+          <div><div class="author-name">${displayAuthor}</div><div class="author-role">${clean.category}</div></div>
+        </div>
         ${canRead
           ? `<div class="article-content" id="articleContent">${clean.content}</div>`
           : `<div class="premium-blur">
@@ -329,9 +366,12 @@
 
     } catch(err) {
       console.error(err.code, err.message);
-      renderError(err.code === 'permission-denied'
-        ? 'Access denied — check Firestore rules.'
-        : `Failed to load article. (${err.code||err.message})`);
+      const msg = String(err?.message || '').toLowerCase().includes('timed out')
+        ? 'Content service timed out. Please refresh.'
+        : (err.code === 'permission-denied'
+          ? 'Access denied — check Firestore rules.'
+          : `Failed to load article. (${err.code||err.message})`);
+      renderError(msg);
     }
   }
 
@@ -387,14 +427,14 @@
   async function loadRelated(cat, currentId) {
     try {
       // FIX: Query only matching category server-side instead of fetching all posts
-      const snap = await getDocs(
+      const snap = await withTimeout(getDocs(
         query(
           collection(db, 'posts'),
           where('published', '==', true),
           where('category',  '==', cat),
           limit(4)
         )
-      );
+      ), FIREBASE_TIMEOUT_MS, 'related posts query');
       const posts = snap.docs
         .map(d => ({ id: d.id, ...d.data() }))
         .filter(p => p.id !== currentId)
@@ -436,9 +476,9 @@
         </div>`;
 
     try {
-      const snap = await getDocs(query(
+      const snap = await withTimeout(getDocs(query(
         collection(db, 'posts', postId, 'comments'), orderBy('createdAt','desc')
-      ));
+      )), FIREBASE_TIMEOUT_MS, 'comments query');
       const comments = snap.docs.map(d=>({id:d.id,...d.data()}));
       sec.innerHTML = `
         <div class="section-heading">Comments</div>
@@ -512,7 +552,7 @@
 
   async function loadSiteSettings() {
     try {
-      const s = await getDoc(doc(db, 'site', 'settings'));
+      const s = await withTimeout(getDoc(doc(db, 'site', 'settings')), FIREBASE_TIMEOUT_MS, 'site settings query');
       if (s.exists() && typeof s.data().imagesEnabled === 'boolean') {
         siteImagesEnabled = s.data().imagesEnabled;
       } else {
@@ -524,6 +564,10 @@
   }
 
   await loadSiteSettings();
+    } catch (fatalErr) {
+      console.error('post bootstrap failed:', fatalErr);
+      renderFatal('Post services are temporarily unavailable.');
+    }
 
   }); // end window.addEventListener('load', ...)
 </script>

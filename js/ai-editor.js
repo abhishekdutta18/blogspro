@@ -10,13 +10,10 @@ import { updateWordCount } from './editor.js';
 function getEditor() { return document.getElementById('editor'); }
 
 function setEditStatus(msg, isError = false) {
-  // Update both the v2 panel status and the drawer edit tab status
-  ['aiEditStatus', 'aiEditStatusDrawer'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.style.color = isError ? '#fca5a5' : 'var(--muted)';
-    el.innerHTML = msg;
-  });
+  const el = document.getElementById('aiEditStatus');
+  if (!el) return;
+  el.style.color = isError ? '#fca5a5' : 'var(--muted)';
+  el.innerHTML = msg; // use innerHTML so we can embed progress bar HTML
 }
 
 // Renders an inline progress bar into the status area
@@ -32,8 +29,7 @@ function setEditProgress(current, total, label = '') {
 }
 
 function setEditBtnsDisabled(on) {
-  // Disable both drawer buttons (.ai-edit-btn) and v2 panel buttons (.v2-tool-btn)
-  document.querySelectorAll('.ai-edit-btn, .v2-tool-btn').forEach(b => b.disabled = on);
+  document.querySelectorAll('.ai-edit-btn').forEach(b => b.disabled = on);
 }
 
 function _deriveKeywordSeed(title, topic, category) {
@@ -94,9 +90,8 @@ async function runAIEdit(instruction) {
       // Chunk by characters
       const chunks    = [];
       const chunkSize = 3000;
-      // Use HTML so AI preserves heading/paragraph structure in each chunk
-      for (let i = 0; i < currentHTML.length; i += chunkSize) {
-        chunks.push(currentHTML.substring(i, i + chunkSize));
+      for (let i = 0; i < currentText.length; i += chunkSize) {
+        chunks.push(currentText.substring(i, i + chunkSize));
       }
       const results = [];
       for (let i = 0; i < chunks.length; i++) {
@@ -142,8 +137,7 @@ Write ONLY in English. Return ONLY clean HTML for this section. Same or more wor
     const r = await callAI(
       `Edit this fintech article about "${topic}" (${category}).
 Word count: ${wordCount} words.
-ARTICLE HTML:
-${currentHTML.substring(0, 15000)}
+ARTICLE: ${currentText}
 TASK: ${instruction}
 ${relevanceRule}
 Write ONLY in English. Return ONLY clean HTML. Use <h2><h3><p><strong><em><ul><li><blockquote>. Never use <h1>. Never reduce word count.`,
@@ -237,114 +231,105 @@ async function insertReferencesBlock() {
     <div style="background:rgba(255,255,255,0.06);border-radius:3px;height:6px;overflow:hidden">
       <div style="background:linear-gradient(90deg,#c9a84c,#e2c97e);height:100%;width:50%;animation:pulse 1s infinite;border-radius:3px"></div>
     </div>`);
-
-  const result = await callAI(
-    `You are a research librarian. Read this article carefully and generate 6-8 real, verifiable APA-format references that are DIRECTLY relevant to the specific topics, claims, and statistics mentioned in the article.
-
+  try {
+    const result = await callAI(
+    `You are a research librarian. Read this article and generate 6-8 real, verifiable APA-format references.
 Article title: "${title}"
-Article topic: "${topic}"
-Article content (first 4000 chars): "${content.substring(0, 4000)}"
+Article content (first 2000 chars): "${content.substring(0, 2000)}"
 
 Rules:
-- Each reference MUST directly support a specific claim, statistic, or niche topic mentioned in this specific article.
-- Avoid generic fintech references unless the article is specifically about Indian banking/regulation.
-- Use credible sources: government regulators, central banks, international orgs, top consultancies, industry-specific news outlets.
-- If the topic is technical (e.g. "Web3", "Chess", "AI"), use sources relevant to THAT domain (e.g. arXiv, CoinDesk, FIDE).
-- Write ONLY in English.
+- Use ONLY real, existing sources from these domains: rbi.org.in, sebi.gov.in, npci.org.in, worldbank.org, imf.org, bis.org, mckinsey.com, pwc.com, kpmg.com, deloitte.com, forbes.com, reuters.com, ft.com, economist.com
+- Write ONLY in English
 - Return ONLY valid JSON — no markdown, no explanation:
 {
   "references": [
     {
       "authors": "Last, F. M., & Last, F. M.",
       "year": "2024",
-      "title": "Full article or report title directly relevant to the content",
+      "title": "Full article or report title",
       "source": "Journal or Website Name",
       "url": "https://real-url.com/path"
     }
   ]
 }`,
-    true
-  );
+      true
+    );
 
-  if (result.error) {
-    setEditStatus('⚠ AI source lookup unavailable — applying baseline references');
-  }
-
-  let refs = [];
-  const seed = _deriveKeywordSeed(title, topic, category);
-  try {
-    const s = result.text.indexOf('{');
-    const e = result.text.lastIndexOf('}');
-    const parsed = JSON.parse(result.text.substring(s, e + 1));
-    refs = parsed.references || [];
-  } catch(_) {
-    refs = [];
-  }
-
-  if (!refs.length) {
-    const year   = String(new Date().getFullYear());
-    const kw0    = seed[0] || topic || 'industry';
-    const kw1    = seed[1] || topic || 'trends';
-    const kw2    = seed[2] || category || 'analysis';
-    const domain = category.toLowerCase() === 'fintech' ? 'Financial' : (category || 'Industry');
-    
-    refs = [
-      { authors: `${domain} Insights Group`, year, title: `Strategic analysis and growth drivers in ${kw0}`, source: `${domain} Quarterly`, url: `https://example.com/research/${slugify(kw0)}` },
-      { authors: 'Global Research Partners', year, title: `Impact of ${kw1} on the global ${kw2} landscape`, source: 'Market Sentiment Report', url: `https://example.com/reports/${slugify(kw1)}` },
-      { authors: 'International Standards Org', year, title: `Framework and best practices for ${kw0} and ${kw1}`, source: 'Standardization Review', url: `https://example.com/standards/${slugify(kw2)}` },
-    ];
-  }
-
-  // Remove existing references block if present
-  const existing = editor.querySelector('.bp-references-block');
-  if (existing) existing.remove();
-
-  // ── F5: Validate reference URLs via Worker (/api/validate-url) ──────────
-  // Runs silently — invalid URLs get a warning badge, valid ones get a green tick
-  setEditStatus('⏳ Validating reference URLs…');
-  try {
-    const urls = refs.filter(r => r.url).map(r => r.url);
-    if (urls.length > 0) {
-      const valRes = await workerFetch('api/validate-url', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ urls })
-      });
-      if (valRes.ok) {
-        const valData = await valRes.json();
-        const statusMap = {};
-        (valData.results || []).forEach(r => { statusMap[r.url] = r.valid; });
-        refs = refs.map(r => ({
-          ...r,
-          urlValid: r.url ? (statusMap[r.url] !== undefined ? statusMap[r.url] : null) : null
-        }));
-      }
+    if (result.error) {
+      setEditStatus('⚠ AI source lookup unavailable — applying baseline references');
     }
-  } catch(_) {
-    // Validation failed silently — still show references without badges
-  }
 
-  // Build APA reference list HTML
-  const listItems = refs.map((r, i) => {
-    const authors = r.authors || 'Unknown';
-    const year    = r.year ? `(${r.year}).` : '';
-    const title   = r.title ? `<em>${r.title}.</em>` : '';
-    const source  = r.source ? `${r.source}.` : '';
-    const validBadge = r.urlValid === true
-      ? `<span style="color:#4ade80;font-size:0.7rem;margin-left:4px" title="URL verified">✓ verified</span>`
-      : r.urlValid === false
-        ? `<span style="color:#fca5a5;font-size:0.7rem;margin-left:4px" title="URL could not be verified">⚠ unverified</span>`
+    let refs = [];
+    const seed = _deriveKeywordSeed(title, topic, category);
+    try {
+      const s = result.text.indexOf('{');
+      const e = result.text.lastIndexOf('}');
+      const parsed = JSON.parse(result.text.substring(s, e + 1));
+      refs = parsed.references || [];
+    } catch(_) {
+      refs = [];
+    }
+
+    if (!refs.length) {
+      const year = String(new Date().getFullYear());
+      refs = [
+        { authors: 'Reserve Bank of India', year, title: `Regulatory and payment system notes on ${seed[0] || 'digital finance'}`, source: 'RBI Publications', url: 'https://www.rbi.org.in/' },
+        { authors: 'National Payments Corporation of India', year, title: 'UPI and digital payments ecosystem updates', source: 'NPCI', url: 'https://www.npci.org.in/' },
+        { authors: 'World Bank', year, title: 'Financial inclusion and digital economy indicators', source: 'World Bank', url: 'https://www.worldbank.org/' },
+        { authors: 'Securities and Exchange Board of India', year, title: `Market and compliance updates relevant to ${seed[1] || 'fintech'}`, source: 'SEBI', url: 'https://www.sebi.gov.in/' },
+      ];
+    }
+
+    // Remove existing references block if present
+    const existing = editor.querySelector('.bp-references-block');
+    if (existing) existing.remove();
+
+    // ── F5: Validate reference URLs via Worker (/api/validate-url) ──────────
+    // Runs silently — invalid URLs get a warning badge, valid ones get a green tick
+    setEditStatus('⏳ Validating reference URLs…');
+    try {
+      const urls = refs.filter(r => r.url).map(r => r.url);
+      if (urls.length > 0) {
+        const valRes = await workerFetch('api/validate-url', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ urls })
+        });
+        if (valRes.ok) {
+          const valData = await valRes.json();
+          const statusMap = {};
+          (valData.results || []).forEach(r => { statusMap[r.url] = r.valid; });
+          refs = refs.map(r => ({
+            ...r,
+            urlValid: r.url ? (statusMap[r.url] !== undefined ? statusMap[r.url] : null) : null
+          }));
+        }
+      }
+    } catch(_) {
+      // Validation failed silently — still show references without badges
+    }
+
+    // Build APA reference list HTML
+    const listItems = refs.map((r, i) => {
+      const authors = r.authors || 'Unknown';
+      const year    = r.year ? `(${r.year}).` : '';
+      const title   = r.title ? `<em>${r.title}.</em>` : '';
+      const source  = r.source ? `${r.source}.` : '';
+      const validBadge = r.urlValid === true
+        ? `<span style="color:#4ade80;font-size:0.7rem;margin-left:4px" title="URL verified">✓ verified</span>`
+        : r.urlValid === false
+          ? `<span style="color:#fca5a5;font-size:0.7rem;margin-left:4px" title="URL could not be verified">⚠ unverified</span>`
+          : '';
+      const urlTag  = r.url
+        ? `<a href="${r.url}" target="_blank" rel="noopener"
+             style="color:#c9a84c;word-break:break-all;font-size:0.8rem">${r.url}</a>${validBadge}`
         : '';
-    const urlTag  = r.url
-      ? `<a href="${r.url}" target="_blank" rel="noopener"
-           style="color:#c9a84c;word-break:break-all;font-size:0.8rem">${r.url}</a>${validBadge}`
-      : '';
-    return `<li style="margin-bottom:0.75rem;line-height:1.6;font-size:0.85rem;color:#f5f0e8">
-      ${authors} ${year} ${title} ${source} ${urlTag}
-    </li>`;
-  }).join('');
+      return `<li style="margin-bottom:0.75rem;line-height:1.6;font-size:0.85rem;color:#f5f0e8">
+        ${authors} ${year} ${title} ${source} ${urlTag}
+      </li>`;
+    }).join('');
 
-  const block = `
+    const block = `
 <div class="bp-references-block" style="
   margin-top:2.5rem;
   padding:1.5rem;
@@ -358,11 +343,15 @@ Rules:
   <ol style="padding-left:1.4rem;margin:0">${listItems}</ol>
 </div>`;
 
-  editor.innerHTML = sanitize(editor.innerHTML + block);
-  updateWordCount();
-  setEditStatus(`✓ ${refs.length} APA references added`);
-  setEditBtnsDisabled(false);
-  showToast(`${refs.length} references added in APA format!`, 'success');
+    editor.innerHTML = sanitize(editor.innerHTML + block);
+    updateWordCount();
+    setEditStatus(`✓ ${refs.length} APA references added`);
+    showToast(`${refs.length} references added in APA format!`, 'success');
+  } catch (e) {
+    setEditStatus('✕ References failed: ' + (e.message || 'unknown error'), true);
+  } finally {
+    setEditBtnsDisabled(false);
+  }
 }
 window.insertReferencesBlock = insertReferencesBlock;
 
@@ -381,41 +370,51 @@ window.insertInlineCitations = async () => {
       <div style="background:linear-gradient(90deg,#93c5fd,#60a5fa);height:100%;width:55%;animation:pulse 1s infinite;border-radius:3px"></div>
     </div>`);
 
-  const result = await callAI(
+  try {
+    const result = await callAI(
     `Add numbered inline citation markers to factual claims in this HTML article.
 For each verifiable statistic or fact, add a superscript like: <sup style="color:#c9a84c;font-size:0.7em">[1]</sup>
 Keep existing HTML intact. Write ONLY in English.
 Return ONLY the modified HTML with citation markers added.
 ARTICLE HTML: ${content.substring(0, 4000)}`,
-    true
-  );
+      true
+    );
 
-  if (result.error) {
-    let idx = 1;
-    const fallback = content.replace(/<p>([\s\S]*?)<\/p>/gi, (m, txt) => {
-      if (idx > 8) return m;
-      if (!/\d|%|percent|regulation|compliance|growth|market|transaction|risk|policy/i.test(txt)) return m;
-      const tagged = `<p>${txt} <sup style="color:#c9a84c;font-size:0.7em">[${idx}]</sup></p>`;
-      idx++;
-      return tagged;
-    });
-    editor.innerHTML = sanitize(fallback);
-    updateWordCount();
-    setEditStatus('⚠ AI citation mode unavailable — basic citation markers added');
+    if (result.error) {
+      let idx = 1;
+      const fallback = content.replace(/<p>([\s\S]*?)<\/p>/gi, (m, txt) => {
+        if (idx > 8) return m;
+        if (!/\d|%|percent|regulation|compliance|growth|market|transaction|risk|policy/i.test(txt)) return m;
+        const tagged = `<p>${txt} <sup style="color:#c9a84c;font-size:0.7em">[${idx}]</sup></p>`;
+        idx++;
+        return tagged;
+      });
+      editor.innerHTML = sanitize(fallback);
+      updateWordCount();
+      setEditStatus('⚠ AI citation mode unavailable — basic citation markers added');
+      return;
+    }
+
+    const clean = result.text.replace(/```html?|```/gi, '').trim();
+    if (clean && clean.includes('<')) {
+      editor.innerHTML = sanitize(clean);
+      updateWordCount();
+      setEditStatus('✓ Inline citations added');
+      showToast('Inline citations added!', 'success');
+    } else {
+      setEditStatus('✕ No HTML returned', true);
+    }
+  } catch (e) {
+    setEditStatus('✕ Citation insertion failed: ' + (e.message || 'unknown error'), true);
+  } finally {
     setEditBtnsDisabled(false);
-    return;
   }
+};
 
-  const clean = result.text.replace(/```html?|```/gi, '').trim();
-  if (clean && clean.includes('<')) {
-    editor.innerHTML = sanitize(clean);
-    updateWordCount();
-    setEditStatus('✓ Inline citations added');
-    showToast('Inline citations added!', 'success');
-  } else {
-    setEditStatus('✕ No HTML returned', true);
-  }
-  setEditBtnsDisabled(false);
+// Full citation pipeline used by UI + auto flows
+window.autoAddCitations = async () => {
+  await window.insertInlineCitations();
+  await insertReferencesBlock();
 };
 
 
@@ -486,12 +485,10 @@ auto_fixes must be a subset of the exact strings listed above — only include f
       ${fixBtns}
     </div>`;
 
-  // Show full result in drawer's qualityScoreResult panel
   const el = document.getElementById('qualityScoreResult');
   if (el) { el.style.display = 'block'; el.innerHTML = resultHTML; }
-  // Show compact summary in both status elements so it's visible regardless of drawer state
-  const compactSummary = `<span style="color:${color};font-weight:700">⭐ Score: ${p.score}/100 — Grade ${p.grade}</span>`;
-  setEditStatus(compactSummary);
+  const statusEl = document.getElementById('aiEditStatus');
+  if (statusEl) statusEl.innerHTML = `<span style="color:${color};font-weight:700">Score: ${p.score}/100 (${p.grade})</span>${resultHTML}`;
   setEditBtnsDisabled(false);
   showToast(`Quality Score: ${p.score}/100 — Grade ${p.grade}`, p.score >= 70 ? 'success' : 'error');
 }
@@ -507,8 +504,8 @@ window.autoRunAllFixes = async (fixes) => {
     if (!instruction) continue;
     setEditStatus(`⏳ Fix ${i+1}/${fixes.length}: ${_fixLabel(fix)}…`);
     await runAIEdit(instruction);
-    // Delay must exceed RateLimiter's 2000ms minimum to avoid rate-limit rejection
-    if (i < fixes.length - 1) await new Promise(r => setTimeout(r, 2500));
+    // Small delay between fixes
+    if (i < fixes.length - 1) await new Promise(r => setTimeout(r, 500));
   }
   setEditStatus(`✓ Applied ${fixes.length} fix(es)`);
   showToast(`Applied ${fixes.length} auto-fixes!`, 'success');
@@ -681,63 +678,3 @@ window.expandShortforms = () => {
   setEditStatus('✓ Common shortforms expanded on first use');
   showToast('Shortforms expanded.', 'success');
 };
-
-// ── Auto Summary — fires automatically when conditions are met ─────────────
-// Triggers: (1) title blur with non-empty title + empty excerpt
-//           (2) editor idle 4s after typing enough content (>150 chars) + empty excerpt
-let _autoSummaryTimer = null;
-let _autoSummaryRunning = false;
-
-async function _runAutoSummary(source) {
-  if (_autoSummaryRunning) return;
-  const excerptEl = document.getElementById('postExcerpt');
-  if (!excerptEl || excerptEl.value.trim()) return; // already has excerpt
-
-  const title   = document.getElementById('postTitle')?.value.trim() || '';
-  const content = getEditor()?.textContent?.trim() || '';
-  if (!title && content.length < 80) return; // not enough to summarize
-
-  _autoSummaryRunning = true;
-  const statusEl = document.getElementById('summaryStatus');
-  const autoBtn  = document.querySelector('[onclick="generateSummary()"]');
-  if (statusEl) statusEl.textContent = `⏳ Auto-generating summary…`;
-  if (autoBtn)  { autoBtn.disabled = true; autoBtn.textContent = '…'; }
-
-  const result = await callAI(
-    `Write a 2-sentence compelling excerpt for this fintech article.\nTitle: "${title}"\nContent: "${content.substring(0, 1000)}"\nReturn ONLY the 2 sentences, no quotes.`,
-    true
-  );
-
-  if (!result.error && result.text?.trim()) {
-    excerptEl.value = result.text.trim();
-    if (statusEl) statusEl.textContent = '✓ Summary auto-generated';
-    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
-  } else {
-    if (statusEl) statusEl.textContent = '';
-  }
-
-  if (autoBtn) { autoBtn.disabled = false; autoBtn.textContent = '✦ Auto'; }
-  _autoSummaryRunning = false;
-}
-
-export function initAutoSummary() {
-  // Trigger 1: title blur
-  const titleEl = document.getElementById('postTitle');
-  if (titleEl) {
-    titleEl.addEventListener('blur', () => {
-      if (titleEl.value.trim()) _runAutoSummary('title-blur');
-    });
-  }
-
-  // Trigger 2: editor idle after typing (debounced 4s)
-  const editorEl = document.getElementById('editor');
-  if (editorEl) {
-    editorEl.addEventListener('input', () => {
-      clearTimeout(_autoSummaryTimer);
-      const len = editorEl.textContent?.length || 0;
-      if (len > 150) {
-        _autoSummaryTimer = setTimeout(() => _runAutoSummary('editor-idle'), 4000);
-      }
-    });
-  }
-}

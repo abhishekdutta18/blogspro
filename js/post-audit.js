@@ -28,6 +28,7 @@ const POLLINATIONS = (prompt, w = 1280, h = 720, seed = 0) =>
 
 const GH_KEY = 'audit_gh_config';
 function ghCfg() { try { return JSON.parse(localStorage.getItem(GH_KEY) || '{}'); } catch { return {}; } }
+const WRAP_MARK = '__postAuditWrapped__';
 
 const T = {
   minWords:      400,
@@ -44,6 +45,7 @@ const T = {
 };
 
 let _running = false;
+let _hooksInstalled = false;
 const AUDIT_CFG = {
   autorun: window.__POST_AUDIT_AUTORUN__ === true,
   allowAutoRectify: window.__POST_AUDIT_AUTO_RECTIFY__ === true,
@@ -57,21 +59,43 @@ const AUDIT_CFG = {
 function _wrap(name, after) {
   const orig = window[name];
   if (typeof orig !== 'function') { console.warn(`[PostAudit] ${name} not found`); return; }
+  if (orig[WRAP_MARK]) return;
   window[name] = async function (...args) {
     const r = await orig.apply(this, args);
     try { await after(); } catch (e) { console.error('[PostAudit] hook error:', e); }
     return r;
   };
+  window[name][WRAP_MARK] = true;
 }
 
 function installHooks() {
+  if (_hooksInstalled) return;
   if (!AUDIT_CFG.autorun) {
     console.log('[PostAudit] autorun disabled (safe mode)');
     return;
   }
-  _wrap('generateAIPost', () => runFullAudit('ai-writer'));
-  _wrap('aitRunAutoBlog', () => runFullAudit('auto-blog'));
-  console.log('[PostAudit] ✓ Hooks installed');
+
+  let wrapped = 0;
+  // Writer hook
+  if (typeof window.generateAIPost === 'function') {
+    _wrap('generateAIPost', () => runFullAudit('ai-writer'));
+    wrapped++;
+  }
+  // Auto-blog hook (different builds expose different names)
+  if (typeof window.aitRunAutoBlog === 'function') {
+    _wrap('aitRunAutoBlog', () => runFullAudit('auto-blog'));
+    wrapped++;
+  } else if (typeof window.runAutoBlog === 'function') {
+    _wrap('runAutoBlog', () => runFullAudit('auto-blog'));
+    wrapped++;
+  }
+
+  if (wrapped > 0) {
+    _hooksInstalled = true;
+    console.log('[PostAudit] ✓ Hooks installed');
+  } else {
+    console.warn('[PostAudit] hooks not ready yet, retrying…');
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -102,9 +126,14 @@ function collect() {
   }));
 
   const refBlock  = editor?.querySelector('.bp-references-block');
-  const refLinks  = refBlock
-    ? [...refBlock.querySelectorAll('a[href]')].map(a => ({ text: a.textContent.trim(), url: a.href }))
+  const refContainers = [
+    refBlock,
+    ...(editor ? [...editor.querySelectorAll('.references, [data-block="references"], #references')] : []),
+  ].filter(Boolean);
+  const refLinksRaw = refContainers.length
+    ? refContainers.flatMap(n => [...n.querySelectorAll('a[href]')].map(a => ({ text: a.textContent.trim(), url: a.href })))
     : [];
+  const refLinks = [...new Map(refLinksRaw.map(r => [r.url, r])).values()];
 
   const inlineImgs = [...(editor?.querySelectorAll('img') || [])].map(i => ({ src: i.src, alt: i.alt }));
 
@@ -180,8 +209,7 @@ async function checkQuality(p) {
     );
     if (!r.error) {
       try {
-        const raw = r.text.replace(/```json|```/gi, '').trim();
-        const parsed = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
+        const parsed = _parseAIJson(r.text);
         if (!parsed.valid)
           add(`chart-invalid-${i}`, 'content', `Chart "${chart.name}": ${parsed.issue || 'data not contextual'}`, 'warning');
       } catch {}
@@ -199,8 +227,7 @@ async function checkQuality(p) {
     );
     if (!r.error) {
       try {
-        const raw = r.text.replace(/```json|```/gi, '').trim();
-        const parsed = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
+        const parsed = _parseAIJson(r.text);
         if (!parsed.valid)
           add(`table-invalid-${i}`, 'content', `Table "${table.name}": ${parsed.issue || 'data not valid'}`, 'warning');
       } catch {}
@@ -208,13 +235,21 @@ async function checkQuality(p) {
   }
 
   for (const ref of p.refLinks.slice(0, 8)) {
+    if (!_isHttpUrl(ref.url)) {
+      add('ref-invalid-url:' + String(ref.url || '').slice(-24), 'refs', `Invalid ref URL: ${String(ref.url || '').slice(0, 55)}`);
+      continue;
+    }
     try {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 6000);
-      await fetch(ref.url, { method: 'HEAD', signal: ctrl.signal, mode: 'no-cors' });
+      await fetch(ref.url, { method: 'GET', signal: ctrl.signal, cache: 'no-store' });
       clearTimeout(t);
-    } catch {
-      add('ref-dead:' + ref.url.slice(-30), 'refs', `Unreachable ref: ${ref.url.slice(0, 55)}`);
+    } catch (e) {
+      const msg = String(e?.message || e || '');
+      // CORS/opaque browser failures are non-deterministic; don't flag dead links from them.
+      if (/abort|timeout/i.test(msg)) {
+        add('ref-unverified:' + ref.url.slice(-30), 'refs', `Reference timed out: ${ref.url.slice(0, 55)}`, 'warning');
+      }
     }
   }
 
@@ -228,8 +263,7 @@ async function checkQuality(p) {
     );
     if (!r.error) {
       try {
-        const raw = r.text.replace(/```json|```/gi, '').trim();
-        const parsed = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
+        const parsed = _parseAIJson(r.text);
         if (!parsed.all_relevant && parsed.bad_indices?.length)
           add('refs-irrelevant', 'refs', `${parsed.bad_indices.length} ref(s) not contextual: ${parsed.reason || ''}`, 'warning');
       } catch {}
@@ -239,18 +273,6 @@ async function checkQuality(p) {
   if (p.coverUrl) {
     const ok = await _imgLoads(p.coverUrl);
     if (!ok) add('cover-broken', 'cover', `Cover broken: ${p.coverUrl.slice(0, 55)}`);
-    else {
-      const r = await callAI(
-        `Article: "${p.title}". Cover URL: ${p.coverUrl}\n` +
-        `Is this cover photo URL contextually appropriate? Reply ONLY: {"ok":true/false,"reason":""}`, true);
-      if (!r.error) {
-        try {
-          const raw = r.text.replace(/```json|```/gi, '').trim();
-          const parsed = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
-          if (!parsed.ok) add('cover-irrelevant', 'cover', `Cover not contextual: ${parsed.reason || ''}`, 'warning');
-        } catch {}
-      }
-    }
   }
 
   for (const img of p.inlineImgs) {
@@ -295,11 +317,8 @@ async function rectify(p, allIssues) {
   }
   if (ids.has('tags')) {
     _log('✍ Generating tags…');
-    const r = await callAI(`Generate 5 SEO tags. Return ONLY comma-separated words. No 'Tags:' prefix:\nTitle: ${p.title}`, true);
-    let rawTags = (!r.error && r.text) ? r.text.replace(/^["']|["']$/g, '').replace(/^Tags:/i, '') : `${p.category || 'technology'}, startup, finance, banking, market`;
-    const v = rawTags.split(',').map(t => t.trim()).filter(Boolean).slice(0, 6).join(', ');
-    _setF('postTags', v);
-    log('tags', 'AI tags', p.tags.join(', '), v);
+    const r = await callAI(`Generate 5 fintech SEO tags. Return ONLY comma-separated:\nTitle: ${p.title}`, true);
+    if (!r.error && r.text) { const v = r.text.split(',').map(t => t.trim()).filter(Boolean).slice(0, 5).join(', '); _setF('postTags', v); log('tags', 'AI tags', p.tags.join(', '), v); }
   }
 
   // ── Add names to unnamed charts ────────────────────────────────
@@ -310,15 +329,15 @@ async function rectify(p, allIssues) {
     if (!chart?.el) continue;
     _log(`📊 Naming chart ${idx + 1}…`);
     const r = await callAI(
-      `Article: "${p.title}". Chart type: ${chart.type}. Content sample: "${chart.el.textContent.slice(0, 150)}"\n` +
+      `Article: "${p.title}". Chart type: ${chart.type}. Content sample: "${chart.el.textContent.slice(0, 200)}"\n` +
       `Write a specific, descriptive 6-8 word name for this chart. Return ONLY the name, no quotes.`, true);
-    
-    let name = (r && !r.error && r.text && r.text.length > 5) ? r.text.trim().replace(/^["']|["']$/g, '') : `${p.category || 'Data'} Metrics Overview ${idx+1}`;
-    
-    chart.el.setAttribute('data-name', name);
-    const titleEl = chart.el.querySelector('.bp-chart-title');
-    if (titleEl) titleEl.textContent = name;
-    log('content', `Chart ${idx + 1} named`, '(unnamed)', name);
+    if (!r.error && r.text) {
+      const name = _plain(r.text.trim());
+      chart.el.setAttribute('data-name', name);
+      const titleEl = chart.el.querySelector('.bp-chart-title');
+      if (titleEl) titleEl.textContent = name;
+      log('content', `Chart ${idx + 1} named`, '(unnamed)', name);
+    }
   }
 
   // ── Add names to unnamed tables ────────────────────────────────
@@ -332,7 +351,7 @@ async function rectify(p, allIssues) {
       `Article: "${p.title}". Table content: "${table.el.textContent.slice(0, 200)}"\n` +
       `Write a specific, descriptive 5-7 word name for this table. Return ONLY the name, no quotes.`, true);
     if (!r.error && r.text) {
-      const name = r.text.trim();
+      const name = _plain(r.text.trim());
       let caption = table.el.querySelector('caption');
       if (!caption) {
         caption = document.createElement('caption');
@@ -420,12 +439,18 @@ async function rectify(p, allIssues) {
 
   // ── References (missing, broken, irrelevant) ───────────────────
   const needsRefs = ids.has('refs') ||
-    allIssues.some(i => i.id.startsWith('ref-dead:') || i.id === 'refs-irrelevant');
+    allIssues.some(i => i.id.startsWith('ref-unverified:') || i.id.startsWith('ref-invalid-url:') || i.id === 'refs-irrelevant');
   if (needsRefs && editor) {
     _log('📚 Regenerating references…');
     try {
       editor.querySelector('.bp-references-block')?.remove();
-      await window.aiEditAction?.('references');
+      if (typeof window.aiEditAction === 'function') {
+        await window.aiEditAction('references');
+      } else if (typeof window.insertReferencesBlock === 'function') {
+        await window.insertReferencesBlock();
+      } else {
+        throw new Error('Reference generator not available');
+      }
       // FIX: wait for DOM to settle after async reference insertion
       await new Promise(r => setTimeout(r, 800));
       log('content', 'References regenerated', `${p.refLinks.length} old refs`, 'fresh APA block');
@@ -451,7 +476,7 @@ async function rectify(p, allIssues) {
   }
 
   // ── Cover photo ────────────────────────────────────────────────
-  const needsCover = ids.has('cover') || ids.has('cover-broken') || ids.has('cover-irrelevant');
+  const needsCover = ids.has('cover') || ids.has('cover-broken');
   if (needsCover) {
     _log('🎨 Generating cover photo…');
     const seed   = Math.floor(Math.random() * 999999);
@@ -478,6 +503,15 @@ async function rectify(p, allIssues) {
 async function autoSave() {
   const p      = collect();
   const editor = document.getElementById('editor');
+  const existing = state.editingPostId
+    ? state.allPosts.find(x => x.id === state.editingPostId)
+    : null;
+  const email = state.currentUser?.email || existing?.authorEmail || '';
+  const authorName = existing?.authorName
+    || state.currentUserProfile?.name
+    || state.currentUser?.displayName
+    || (email.includes('@') ? email.split('@')[0] : '')
+    || 'BlogsPro';
   const data   = {
     title:       p.title,
     excerpt:     p.excerpt,
@@ -490,19 +524,16 @@ async function autoSave() {
     readingTime: Math.max(1, Math.ceil(p.words / 200)),
     published:   false,
     premium:     state.isPremium || false,
+    authorUid:   existing?.authorUid || state.currentUser?.uid || null,
+    authorName,
+    authorEmail: existing?.authorEmail || email || null,
     updatedAt:   serverTimestamp(),
-    auditedAt:   serverTimestamp(),
-    auditPassed: true,
-    authorName:  state.currentUser?.displayName || state.currentUser?.email?.split('@')[0] || 'Admin',
-    authorUid:   state.currentUser?.uid || '',
   };
 
-  if (!data.slug) data.slug = slugify(data.title) || 'untitled-post';
   if (state.editingPostId) {
     await updateDoc(doc(db, 'posts', state.editingPostId), data);
   } else {
     data.createdAt     = serverTimestamp();
-    data.autoGenerated = true;
     const ref = await addDoc(collection(db, 'posts'), data);
     state.editingPostId = ref.id;
   }
@@ -625,12 +656,10 @@ export async function runFullAudit(trigger = 'manual') {
   } catch (err) {
     console.error('[PostAudit]', err);
     showToast('Post audit error: ' + err.message, 'error');
-    _closeProgress();
   } finally {
     _running = false;
   }
 }
-window.runFullAudit = runFullAudit;
 
 // ─────────────────────────────────────────────────────────────────
 // ADMIN GATE — review only, post already saved
@@ -836,6 +865,20 @@ function _closeProgress() { setTimeout(() => document.getElementById('pa-progres
 // ─────────────────────────────────────────────────────────────────
 function _setF(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
 function _cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
+function _plain(s) { return String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(); }
+function _isHttpUrl(url) {
+  try {
+    const u = new URL(String(url || ''));
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch { return false; }
+}
+function _parseAIJson(text) {
+  const raw = String(text || '').replace(/```json|```/gi, '').trim();
+  const s = raw.indexOf('{');
+  const e = raw.lastIndexOf('}');
+  if (s === -1 || e === -1 || e <= s) throw new Error('No JSON object');
+  return JSON.parse(raw.substring(s, e + 1));
+}
 function _imgLoads(url, timeout = 8000) {
   return new Promise(resolve => {
     if (!url || url.startsWith('data:') || url.startsWith('blob:')) { resolve(true); return; }
@@ -858,4 +901,6 @@ function _imgLoads(url, timeout = 8000) {
 
 // Init — delay so all window.* functions are registered first
 setTimeout(installHooks, 400);
+setTimeout(installHooks, 1200);
+setTimeout(installHooks, 2500);
 window.runPostAudit = () => runFullAudit('manual');

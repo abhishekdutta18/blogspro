@@ -10,14 +10,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <script>
-    window.fmtViews = function(n) {
-      if (!n) return '0';
-      if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
-      if (n >= 1000) return (n/1000).toFixed(1) + 'k';
-      return n;
-    };
-  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -32,8 +24,6 @@
       --border:  rgba(201,168,76,0.2);
       --serif:   'Cormorant Garamond', Georgia, serif;
       --sans:    'DM Sans', sans-serif;
-      --emerald: #4ade80;
-      --red:     #f87171;
     }
 
     html { scroll-behavior: smooth; }
@@ -67,7 +57,6 @@
       letter-spacing: 0.02em;
       background: linear-gradient(135deg, var(--gold), var(--gold2));
       -webkit-background-clip: text;
-      background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
@@ -79,15 +68,6 @@
       color: var(--muted); transition: color 0.2s;
     }
     .nav-links a:hover { color: var(--gold); }
-
-    /* ── HAMBURGER (mobile) ── */
-    .nav-hamburger {
-      display: none; background: transparent; border: 1px solid var(--border);
-      color: var(--muted); width: 36px; height: 36px; border-radius: 4px;
-      font-size: 1.2rem; cursor: pointer; align-items: center; justify-content: center;
-      transition: all 0.2s; flex-shrink: 0;
-    }
-    .nav-hamburger:hover { border-color: var(--gold); color: var(--gold); }
 
     .nav-cta {
       background: var(--gold); color: var(--navy) !important;
@@ -103,11 +83,6 @@
     }
     body.light nav { background: rgba(248,245,239,0.92); }
     body.light .hero::before { opacity: 0.4; }
-    .terminal-card {
-      background: rgba(8, 13, 26, 0.4) !important;
-    }
-    .price-up { color: #4ade80 !important; }
-    .price-down { color: #f87171 !important; }
 
     .theme-btn-nav {
       background: transparent; border: 1px solid var(--border); color: var(--muted);
@@ -149,9 +124,9 @@
 
     /* ── HERO ── */
     .hero {
-      min-height: 60vh;
+      min-height: 88vh;
       display: flex; flex-direction: column; justify-content: center;
-      padding: 4rem 2rem 3rem;
+      padding: 5rem 2rem 4rem;
       max-width: 1200px; margin: 0 auto;
       position: relative;
     }
@@ -167,28 +142,39 @@
       display: flex; align-items: center; gap: 0.75rem;
     }
     .hero-label::before { content: ''; display: block; width: 2rem; height: 1px; background: var(--gold); }
-    /* ── GLASSMORPHISM 2.0 ── */
-    .glass-card {
-      background: rgba(255,255,255,0.03);
-      backdrop-filter: blur(16px) saturate(180%);
-      -webkit-backdrop-filter: blur(16px) saturate(180%);
-      border: 1px solid rgba(201,168,76,0.15);
-      border-radius: 8px;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    .hero h1 {
+      font-family: var(--serif); font-size: clamp(3.2rem, 7vw, 6.5rem);
+      font-weight: 700; line-height: 1.05; letter-spacing: -0.01em;
+      max-width: 14ch; margin-bottom: 1.8rem;
     }
-    .glass-card:hover {
-      background: rgba(201,168,76,0.05);
-      border-color: var(--gold);
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 20px rgba(201,168,76,0.1);
+    .hero h1 em {
+      font-style: italic;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
-
-    /* ── REVEAL ANIMATIONS ── */
-    .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
-    .reveal.active { opacity: 1; transform: translateY(0); }
+    .hero-sub { font-size: 1.1rem; color: var(--muted); max-width: 48ch; margin-bottom: 3rem; line-height: 1.7; }
+    .hero-actions { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--gold); color: var(--navy);
+      padding: 0.85rem 2rem; border-radius: 3px;
+      font-weight: 600; font-size: 0.9rem; letter-spacing: 0.04em;
+      transition: all 0.2s; border: none; cursor: pointer;
+    }
+    .btn-primary:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(201,168,76,0.3); }
+    .hero-scroll { color: var(--muted); font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; transition: color 0.2s; }
+    .hero-scroll:hover { color: var(--gold); }
+    .hero-stats { position: absolute; bottom: 3rem; right: 0; display: flex; gap: 3rem; }
+    .stat-item { text-align: right; }
+    .stat-value { font-family: var(--serif); font-size: 2.5rem; font-weight: 700; color: var(--cream); line-height: 1; }
+    .stat-label { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.25rem; }
 
     /* ── TICKER ── */
-    .ticker-bar { background: var(--navy3); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); overflow: hidden; }
+    .ticker-bar { background: var(--navy3); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); overflow: hidden; padding: 0.7rem 0; }
+    .ticker-inner { display: flex; gap: 4rem; animation: ticker 28s linear infinite; white-space: nowrap; }
+    .ticker-inner:hover { animation-play-state: paused; }
+    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .ticker-tag { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+    .ticker-sep { color: var(--muted); }
 
     /* ── SECTION ── */
     section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
@@ -202,112 +188,21 @@
     .filter-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 0.45rem 1rem; border-radius: 2px; font-family: var(--sans); font-size: 0.78rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
     .filter-btn:hover, .filter-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
 
-    /* ── TOPIC TICKER ── */
-    .topic-ticker-bar {
-      background: var(--navy3);
-      border-bottom: 1px solid var(--border);
-      padding: 0.45rem 0;
-      overflow: hidden;
-      white-space: nowrap;
-      user-select: none;
-    }
-    .topic-ticker-track {
-      display: inline-flex;
-      align-items: center;
-      gap: 0;
-      animation: topicScroll 35s linear infinite;
-    }
-    .topic-ticker-track:hover { animation-play-state: paused; }
-    @keyframes topicScroll {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-50%); }
-    }
-    .ticker-tag {
-      font-size: 0.72rem;
-      font-weight: 500;
-      color: var(--muted);
-      letter-spacing: 0.05em;
-      padding: 0 0.6rem;
-      transition: color 0.2s;
-      cursor: default;
-    }
-    .ticker-tag:hover { color: var(--gold); }
-    .ticker-sep { color: var(--border); padding: 0 0.1rem; font-size: 0.65rem; }
-
-    /* ── POSTS SECTION PRIORITY ── */
-    .briefings-wrapper {
-      border-top: 2px solid var(--gold);
-      background: linear-gradient(180deg, rgba(201,168,76,0.04) 0%, transparent 120px);
-    }
-    #briefings {
-      padding-top: 2rem;
-      padding-bottom: 4rem;
-    }
-    #briefings .section-title {
-      font-size: clamp(1.8rem, 4vw, 2.6rem);
-    }
-    #briefings .section-title em {
-      font-style: italic;
-      color: var(--gold);
-    }
-    /* Posts count badge */
-    #postsCount {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-      background: var(--navy3);
-      border: 1px solid var(--border);
-      padding: 0.25rem 0.7rem;
-      border-radius: 20px;
-      margin-left: 1rem;
-      vertical-align: middle;
-    }
-    /* ── POST CARD ENTER ANIMATION ── */
-    @keyframes cardIn {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .post-card { animation: cardIn 0.4s ease-out both; }
-
     /* ── GRID ── */
-    .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
-    .post-card { 
-      background: var(--navy2); 
-      padding: 2.2rem; 
-      border: 1px solid var(--border); 
-      border-radius: 8px;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-      cursor: pointer; 
-      position: relative; 
-      overflow: hidden; 
-    }
-    .post-card:hover { 
-      border-color: var(--gold); 
-      background: rgba(201,168,76,0.04); 
-      transform: translateY(-6px);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-    }
+    .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 2px; }
+    .post-card { background: var(--navy2); padding: 2rem; border: 1px solid transparent; transition: all 0.3s; cursor: pointer; position: relative; overflow: hidden; animation: fadeUp 0.5s ease both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .post-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 0; background: linear-gradient(180deg, var(--gold), transparent); transition: height 0.3s; }
+    .post-card:hover { border-color: var(--border); background: #131d38; }
+    .post-card:hover::before { height: 100%; }
     .post-category { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 1rem; }
-    .post-category-article { border-left: 2px solid var(--gold); padding-left: 0.5rem; color: #60a5fa; }
-    .post-category-briefing { border-left: 2px solid var(--emerald); padding-left: 0.5rem; color: var(--emerald); }
     .post-title { font-family: var(--serif); font-size: 1.45rem; font-weight: 600; line-height: 1.3; margin-bottom: 0.8rem; transition: color 0.2s; }
     .post-card:hover .post-title { color: var(--gold2); }
-    .post-excerpt { font-size: 0.88rem; color: var(--muted); line-height: 1.65; margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .post-excerpt { font-size: 0.88rem; color: var(--muted); line-height: 1.65; margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
     .post-meta { display: flex; align-items: center; justify-content: space-between; padding-top: 1.2rem; border-top: 1px solid var(--border); }
     .post-date { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.04em; }
     .post-read-time { font-size: 0.72rem; color: var(--gold); letter-spacing: 0.06em; }
     .post-views { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 0.25rem; }
-    
-    /* ── COMPLEXITY BAR ── */
-    .complexity-wrap { margin-top: 1.5rem; }
-    .complexity-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; display: flex; justify-content: space-between; margin-bottom: 0.4rem; }
-    .complexity-bar { height: 3px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; position: relative; }
-    .complexity-fill { position: absolute; top: 0; left: 0; height: 100%; background: var(--gold); border-radius: 2px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
 
     /* ── FEATURED ── */
     .post-card.featured { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; padding: 3rem; }
@@ -371,6 +266,7 @@
       transition: all 0.2s;
     }
     .about-social-link:hover { border-color: var(--gold); color: var(--gold); }
+    .about-content-col {}
     .about-label {
       font-size: 0.68rem; font-weight: 600;
       letter-spacing: 0.18em; text-transform: uppercase;
@@ -403,14 +299,6 @@
       font-size: 1.2rem; font-style: italic;
       color: var(--cream); line-height: 1.6;
     }
-    /* ── PULSE CARDS ── */
-    .pulse-grid { display: flex; gap: 1rem; overflow-x: auto; padding: 1rem 0; scrollbar-width: none; }
-    .pulse-grid::-webkit-scrollbar { display: none; }
-    .pulse-card { min-width: 260px; background: rgba(201,168,76,0.03); border: 1px solid rgba(201,168,76,0.08); padding: 1.25rem; border-radius: 8px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); flex-shrink: 0; }
-    .pulse-card:hover { border-color: var(--gold); background: rgba(201,168,76,0.08); transform: translateY(-4px); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); }
-    .pulse-time { font-size: 0.7rem; color: var(--gold); font-weight: 700; text-transform: uppercase; margin-bottom: 0.75rem; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.4rem; }
-    .pulse-time::before { content: ''; display: inline-block; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; box-shadow: 0 0 10px var(--gold); }
-    .pulse-title { font-family: var(--serif); font-size: 1.15rem; color: var(--cream); line-height: 1.4; font-weight: 600; }
     /* Skeleton for about */
     .about-skeleton { animation: shimmer 1.5s infinite; background: linear-gradient(90deg, var(--navy2) 25%, var(--navy3) 50%, var(--navy2) 75%); background-size: 200% 100%; border-radius: 4px; }
     .about-hidden { display: none !important; }
@@ -434,182 +322,58 @@
     .sk-title { height: 1.8rem; width: 80%; margin-bottom: 1rem; }
     .sk-block { height: 4rem; margin-bottom: 0.5rem; }
 
-    /* ── LOAD MORE ── */
-    .load-more-wrap { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding-top: 1.5rem; }
-    .load-more-btn {
-      background: transparent; border: 1px solid var(--border); color: var(--muted);
-      padding: 0.7rem 2rem; border-radius: 3px; font-family: var(--sans);
-      font-size: 0.82rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
-      cursor: pointer; transition: all 0.2s;
-    }
-    .load-more-btn:hover { border-color: var(--gold); color: var(--gold); }
-    .load-more-btn:disabled { opacity: 0.4; cursor: default; }
-    .posts-counter { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; }
-
     /* ── EMPTY STATE ── */
     .empty-state { text-align: center; padding: 5rem 2rem; color: var(--muted); }
     .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
     .empty-state p { font-size: 1rem; }
 
-    /* ── SITEMAP ── */
-    .sitemap { background: var(--navy2); border-top: 1px solid var(--border); padding: 4rem 2rem 2rem; }
-    .sitemap-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1.5fr repeat(3, 1fr); gap: 3rem; }
-    .sitemap-brand { font-family: var(--serif); font-size: 1.8rem; font-weight: 700; background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.8rem; }
-    .sitemap-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.7; max-width: 28ch; }
-    .sitemap-col-title { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 1.2rem; }
-    .sitemap-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.7rem; }
-    .sitemap-col a { font-size: 0.85rem; color: var(--muted); transition: color 0.2s; display: flex; align-items: center; gap: 0.4rem; }
-    .sitemap-col a:hover { color: var(--cream); }
-    .sitemap-col a .sm-icon { font-size: 0.75rem; opacity: 0.6; }
-    @media (max-width: 768px) { .sitemap-inner { grid-template-columns: 1fr 1fr; gap: 2rem; } }
-    @media (max-width: 480px) { .sitemap-inner { grid-template-columns: 1fr; gap: 1.5rem; } }
-
     /* ── FOOTER ── */
-    footer { border-top: 1px solid var(--border); padding: 2rem 2rem; max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
-    .footer-brand { font-family: var(--serif); font-size: 1.2rem; font-weight: 700; background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .footer-copy { font-size: 0.78rem; color: var(--muted); }
+    footer { border-top: 1px solid var(--border); padding: 3rem 2rem; max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; }
+    .footer-brand { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .footer-copy { font-size: 0.8rem; color: var(--muted); }
     .footer-links { display: flex; gap: 1.5rem; list-style: none; }
-    .footer-links a { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.2s; }
+    .footer-links a { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.2s; }
     .footer-links a:hover { color: var(--gold); }
 
-    /* ── SEARCH & FILTERS ── */
-    .search-container { margin-bottom: 3rem; display: flex; flex-direction: column; gap: 1.5rem; }
-    .search-input-wrap { position: relative; max-width: 500px; }
-    .search-input { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 4px; padding: 0.8rem 1.2rem 0.8rem 2.8rem; color: var(--cream); font-family: var(--sans); font-size: 0.95rem; transition: all 0.2s; }
-    .search-input:focus { border-color: var(--gold); background: rgba(201,168,76,0.05); outline: none; box-shadow: 0 0 15px rgba(201,168,76,0.1); }
-    .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 1rem; pointer-events: none; }
-    .filter-chips { display: flex; gap: 0.6rem; flex-wrap: wrap; }
-    .filter-chip { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; cursor: pointer; transition: all 0.2s; }
-    .filter-chip:hover { border-color: var(--gold); color: var(--gold); }
-    .filter-chip.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
+    /* ── INTEGRATION BADGE ── */
+    .integration-badge {
+      position: fixed;
+      right: 1rem;
+      bottom: 1rem;
+      z-index: 300;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      border: 1px solid var(--border);
+      background: rgba(8,13,26,0.9);
+      color: var(--muted);
+      padding: 0.42rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      backdrop-filter: blur(8px);
+    }
+    .integration-badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #f0cc6e;
+      box-shadow: 0 0 0 0 rgba(240,204,110,0.45);
+      animation: pulseDot 1.8s infinite;
+    }
+    .integration-badge.online { color: #86efac; border-color: rgba(34,197,94,0.35); }
+    .integration-badge.online .integration-badge-dot { background: #22c55e; animation: none; box-shadow: none; }
+    .integration-badge.degraded { color: #fca5a5; border-color: rgba(239,68,68,0.35); }
+    .integration-badge.degraded .integration-badge-dot { background: #ef4444; animation: none; box-shadow: none; }
+    @keyframes pulseDot {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(240,204,110,0.45); }
+      50% { box-shadow: 0 0 0 5px rgba(240,204,110,0); }
+    }
 
     /* ── RESPONSIVE ── */
-    /* ── HERO ELEMENTS ── */
-    .hero h1 {
-      font-family: var(--serif);
-      font-size: clamp(2.8rem, 6vw, 5rem);
-      font-weight: 700;
-      line-height: 1.1;
-      letter-spacing: -0.02em;
-      margin-bottom: 1.5rem;
-    }
-    .hero h1 em { font-style: italic; color: var(--gold); }
-
-    /* ── HERO "EDGE" TREATMENT ── */
-    .hero-edge {
-      color: var(--cream);
-      font-style: italic;
-      border-bottom: 1px solid rgba(201,168,76,0.4);
-      padding-bottom: 2px;
-    }
-    .hero-sub {
-      font-size: 1.05rem;
-      color: var(--muted);
-      max-width: 56ch;
-      line-height: 1.7;
-      margin-bottom: 2.5rem;
-    }
-    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
-    .btn-primary {
-      background: var(--gold);
-      color: var(--navy);
-      padding: 0.75rem 1.75rem;
-      border-radius: 3px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      letter-spacing: 0.04em;
-      transition: background 0.2s, transform 0.15s;
-      display: inline-block;
-    }
-    .btn-primary:hover { background: var(--gold2); transform: translateY(-1px); }
-    .hero-scroll {
-      font-size: 0.82rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      transition: color 0.2s;
-    }
-    .hero-scroll:hover { color: var(--gold); }
-    .hero-stats {
-      display: flex;
-      gap: 3rem;
-      margin-top: 4rem;
-      padding-top: 2rem;
-      border-top: 1px solid var(--border);
-    }
-    .stat-item { display: flex; flex-direction: column; gap: 0.25rem; }
-    .stat-value {
-      font-family: var(--serif);
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--cream);
-      line-height: 1;
-    }
-    .stat-label {
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    /* ── TRADINGVIEW WIDGETS ── */
-    .tv-chart-wrap { height: 520px; overflow: hidden; }
-    .tv-cal-wrap   { height: 420px; overflow: hidden; }
-    .tv-chart-wrap .tradingview-widget-container,
-    .tv-cal-wrap   .tradingview-widget-container { height: 100%; }
-    .tv-chart-wrap .tradingview-widget-container__widget,
-    .tv-cal-wrap   .tradingview-widget-container__widget { height: 100%; }
     @media (max-width: 768px) {
-      .tv-chart-wrap { height: 360px; }
-      .tv-cal-wrap   { height: 340px; }
-    }
-
-    /* ── TERMINAL ── */
-    .terminal-wrap { min-height: 300px; }
-    .terminal-header {
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .terminal-body {
-      flex: 1;
-      padding: 1rem;
-      font-family: monospace;
-      font-size: 0.85rem;
-      overflow-y: auto;
-      max-height: 400px;
-    }
-    .status-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--emerald);
-      display: inline-block;
-      box-shadow: 0 0 6px var(--emerald);
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    @media (max-width: 768px) {
-      .nav-hamburger { display: flex; }
-      .nav-links {
-        display: none; position: absolute; top: 68px; left: 0; right: 0;
-        background: rgba(8,13,26,0.97); backdrop-filter: blur(12px);
-        flex-direction: column; padding: 1rem 2rem 1.5rem;
-        border-bottom: 1px solid var(--border);
-        gap: 0.3rem;
-      }
-      .nav-links.mobile-open { display: flex; }
-      .nav-links li { list-style: none; }
-      .nav-links a { display: block; padding: 0.7rem 0; font-size: 0.95rem; }
-      .nav-links .nav-cta { display: inline-block; margin-top: 0.5rem; text-align: center; }
-      .nav-user { padding: 0.7rem 0; }
+      .nav-links { display: none; }
       .hero-stats { display: none; }
       .post-card.featured { grid-template-columns: 1fr; }
       .featured-visual { display: none; }
@@ -623,9 +387,30 @@
       .about-socials { justify-content: flex-start; }
     }
   </style>
-  <!-- Sentry Error Tracking -->
-  <!-- Consolidated Sentry Configuration -->
-  <script src="js/sentry-init-v2.js"></script>
+  <!-- Sentry Error Tracking v10.44.0 -->
+  <script src="https://browser.sentry-cdn.com/10.44.0/bundle.min.js"
+    integrity="sha384-sx+UyjbtMU5ociD00tpUP0LC8A78wmbbIzMUl3+Y35sUqIweqvkXE43dDRqQDEO8"
+    crossorigin="anonymous"></script>
+  <script>
+  Sentry.init({
+    dsn: "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336",
+    environment: window.location.hostname === "blogspro.in" ? "production" : "development",
+    release: "blogspro@2026-03-19",
+    sampleRate: 1.0,
+    tracesSampleRate: 0.1,
+    ignoreErrors: [
+      "ResizeObserver loop limit exceeded",
+      "ResizeObserver loop completed with undelivered notifications",
+      "Network request failed",
+      "Failed to fetch",
+      "Load failed",
+    ],
+  });
+  window.setSentryUser = function(u) { Sentry.setUser(u); };
+  window.trackEvent   = function(name, data) {
+    Sentry.addBreadcrumb({ message: name, data: data, level: "info" });
+  };
+  </script>
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
   <script>
@@ -633,28 +418,18 @@
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date()); gtag('config', 'G-DED9GTRR3E');
   </script>
-  <!-- Microsoft Clarity -->
-  <script src="js/clarity-init.js"></script>
 </head>
 <body>
-<script>
-  // Prevent browser from restoring a hash-based scroll position (e.g. #briefings)
-  // so the page always starts at the hero on load.
-  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  window.scrollTo(0, 0);
-</script>
 
 <!-- NAV -->
 <nav>
   <a class="nav-brand" href="index.html">BlogsPro</a>
-  <button class="nav-hamburger" id="navHamburger" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
-  <ul class="nav-links" id="navLinksMenu">
-    <li><a href="#briefings">Articles</a></li>
+  <ul class="nav-links">
+    <li><a href="#posts">Articles</a></li>
     <li><a href="#about">About</a></li>
     <li><button class="theme-btn-nav" id="themeBtn" onclick="toggleTheme()">☀️</button></li>
-    <li id="navAuthSlot" style="display:flex;align-items:center;gap:0.5rem">
+    <li id="navAuthSlot">
       <a href="login.html" class="nav-cta">Login</a>
-      <a href="register.html" class="nav-cta" style="background:transparent;border:1px solid var(--gold);color:var(--gold)!important;">Sign Up</a>
     </li>
   </ul>
 </nav>
@@ -662,10 +437,10 @@
 <!-- HERO -->
 <div class="hero">
   <p class="hero-label">Fintech · Compliance · Strategy</p>
-  <h1>The <em>edge</em> is in the <span class="hero-edge">details.</span></h1>
+  <h1>The edge is in the <em>details.</em></h1>
   <p class="hero-sub">Sharp analysis on financial technology, regulatory compliance, and growth strategy for practitioners who move markets.</p>
   <div class="hero-actions">
-    <a href="#briefings" class="btn-primary">Read Latest</a>
+    <a href="#posts" class="btn-primary">Read Latest</a>
     <a href="#newsletter" class="hero-scroll">Subscribe ↓</a>
   </div>
   <div class="hero-stats" id="heroStats">
@@ -674,128 +449,54 @@
       <div class="stat-label">Articles</div>
     </div>
     <div class="stat-item">
+      <div class="stat-value">3</div>
+      <div class="stat-label">Topics</div>
+    </div>
+    <div class="stat-item">
       <div class="stat-value" id="totalViewCount">—</div>
       <div class="stat-label">Total Views</div>
     </div>
   </div>
 </div>
 
-<!-- TOPIC TICKER -->
-<div class="topic-ticker-bar" id="topicTickerBar">
-    <!-- ... -->
+<!-- TICKER -->
+<div class="ticker-bar">
+  <div class="ticker-inner" id="ticker">
+    <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Compliance</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Strategy</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Regulation</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Payments</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Risk</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Digital Banking</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Open Finance</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Compliance</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Strategy</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Regulation</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Payments</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Risk</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Digital Banking</span><span class="ticker-sep">·</span>
+    <span class="ticker-tag">Open Finance</span><span class="ticker-sep">·</span>
+  </div>
 </div>
 
-<!-- MARKET PULSE (HOURLY) -->
-<section id="pulse" class="reveal" style="padding: 2rem 2rem 0;">
+<!-- POSTS -->
+<section id="posts">
   <div class="section-header">
-    <h2 class="section-title" style="font-size: 1.5rem;">The Market <em>Pulse</em> <span class="status-dot"></span></h2>
-    <span class="muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">Updated Hourly</span>
+    <h2 class="section-title">Latest Articles</h2>
   </div>
-  <div class="pulse-grid" id="pulseGrid">
-    <!-- Hydrated by renderPulse -->
-  </div>
-</section>
-
-<!-- POSTS — Primary content, shown immediately after hero -->
-<div class="briefings-wrapper">
-<section id="briefings">
-  <div class="section-header">
-    <h2 class="section-title">Latest <em>Briefings</em><span id="postsCount" style="display:none"></span></h2>
-    <a href="#briefings" class="section-link" onclick="filterByCategory('All')">Full Archive <span>&rarr;</span></a>
-  </div>
-
-  <!-- Search & Filters -->
-  <div class="search-container">
-    <div class="search-input-wrap">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="postSearch" class="search-input" placeholder="Search briefings by keyword..." oninput="handleSearch(this.value)">
-    </div>
-    <div class="filter-chips" id="filterChips">
-      <button class="filter-chip active" data-cat="all" onclick="filterByCategory('All')">All</button>
-      <button class="filter-chip" data-cat="macro" onclick="filterByCategory('Macro')">Macro</button>
-      <button class="filter-chip" data-cat="policy" onclick="filterByCategory('Policy')">Policy</button>
-      <button class="filter-chip" data-cat="equity" onclick="filterByCategory('Equity')">Equity</button>
-      <button class="filter-chip" data-cat="tech" onclick="filterByCategory('Tech')">Tech</button>
-      <button class="filter-chip" data-cat="crypto" onclick="filterByCategory('Crypto')">Crypto</button>
-    </div>
+  <div class="filters">
+    <button class="filter-btn active" data-cat="all">All</button>
+    <button class="filter-btn" data-cat="Fintech">Fintech</button>
+    <button class="filter-btn" data-cat="Compliance">Compliance</button>
+    <button class="filter-btn" data-cat="Strategy">Strategy</button>
   </div>
   <div class="posts-grid" id="postsGrid">
-    <!-- Hydrated by renderBriefings -->
+    <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
+    <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
+    <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
   </div>
-</section>
-
-<!-- STRATEGIC ARTICLES (WEEKLY/MONTHLY) -->
-<section id="articles" class="reveal" style="margin-top: 4rem;">
-  <div class="section-header">
-    <h2 class="section-title">Strategic <em>Articles</em></h2>
-    <span class="muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">Deep Insights</span>
-  </div>
-  <div class="posts-grid" id="articlesGrid">
-    <!-- Hydrated by renderArticles -->
-  </div>
-</section>
-</div><!-- /.briefings-wrapper -->
-
-<!-- TICKER TAPE (Professional TradingView Widget) -->
-<div class="ticker-bar" id="tvTickerContainer">
-  <!-- Lazy loaded -->
-</div>
-
-<!-- MARKET INTELLIGENCE HUB -->
-<section class="reveal" id="tvHubContainer">
-  <div class="section-header">
-    <h2 class="section-title">Market <em>Intelligence</em></h2>
-  </div>
-  <div id="tvHubContent" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
-    <!-- NSE Live Terminal (TradingView) -->
-    <div class="glass-card terminal-wrap" style="grid-column: span 1; display: flex; flex-direction: column; min-height: 300px; overflow: hidden;" id="tvNseTerminal"></div>
-
-    <!-- Policy Tracker -->
-    <div class="glass-card" style="padding: 1.25rem; border-left: 4px solid #60a5fa;">
-      <h3 style="font-family: var(--serif); font-size: 1.1rem; color: #60a5fa; margin-bottom: 1rem;">Policy & Regulation</h3>
-      <div id="policyTracker" style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.85rem;">
-        <div class="policy-item">
-          <strong style="color:var(--gold); display:block; margin-bottom: 0.2rem;">RBI (Reserve Bank)</strong>
-          <p id="rbiSnippet" style="margin:0; color:var(--muted); line-height:1.4;">Fetching latest updates...</p>
-        </div>
-        <div class="policy-item">
-          <strong style="color:var(--gold); display:block; margin-bottom: 0.2rem;">SEBI (Markets Regulator)</strong>
-          <p id="sebiSnippet" style="margin:0; color:var(--muted); line-height:1.4;">Fetching latest updates...</p>
-        </div>
-        <!-- Download Center (New) -->
-        <div style="border-top:1px solid var(--border); padding-top:0.8rem; margin-top:0.5rem">
-          <strong style="display:block; font-size:0.75rem; color:var(--cream); margin-bottom:0.5rem">Regulatory Library</strong>
-          <div id="downloadHub" style="display:flex; flex-direction:column; gap:0.4rem;">
-            <span style="font-size:0.7rem; color:var(--muted)">No documents available yet.</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Market Overview (Indices + Crypto tabs) -->
-    <div id="tvHeatmap" class="glass-card" style="min-height: 300px; overflow: hidden;"></div>
-  </div>
-
-  <!-- Global Indices — full width -->
-  <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
-    <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Global Indices</span>
-    <span style="font-size:0.72rem;color:var(--muted);">Americas · Europe · Asia-Pacific · India · Commodities</span>
-  </div>
-  <div id="tvIndices" class="glass-card" style="min-height: 450px; overflow: hidden;"></div>
-
-  <!-- Advanced Interactive Chart — full width -->
-  <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
-    <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Live Chart</span>
-    <span style="font-size:0.72rem;color:var(--muted);">NIFTY 50 — NSE</span>
-  </div>
-  <div id="tvAdvChart" class="glass-card tv-chart-wrap"></div>
-
-  <!-- Economic Calendar — full width -->
-  <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
-    <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Economic Calendar</span>
-    <span style="font-size:0.72rem;color:var(--muted);">India · USA · EU · UK</span>
-  </div>
-  <div id="tvEconCal" class="glass-card tv-cal-wrap"></div>
 </section>
 
 <!-- ══════════════ ABOUT SECTION ══════════════ -->
@@ -859,75 +560,66 @@
   </div>
 </section>
 
-<!-- SITEMAP -->
-<div class="sitemap">
-  <div class="sitemap-inner">
-    <div class="sitemap-col">
-      <div class="sitemap-brand">BlogsPro</div>
-      <p class="sitemap-desc">Sharp insights on fintech, regulatory compliance, and growth strategy for builders and operators.</p>
-    </div>
-    <div class="sitemap-col">
-      <div class="sitemap-col-title">Navigate</div>
-      <ul>
-        <li><a href="#"><span class="sm-icon">🏠</span> Home</a></li>
-        <li><a href="#pulse"><span class="sm-icon">🕒</span> Pulse</a></li>
-        <li><a href="#briefings"><span class="sm-icon">📰</span> Briefings</a></li>
-        <li><a href="#articles"><span class="sm-icon">📊</span> Articles</a></li>
-        <li><a href="#about"><span class="sm-icon">ℹ️</span> About</a></li>
-        <li><a href="#newsletter"><span class="sm-icon">✉️</span> Newsletter</a></li>
-      </ul>
-    </div>
-    <div class="sitemap-col">
-      <div class="sitemap-col-title">Account</div>
-      <ul>
-        <li><a href="login.html" id="footerAuthLink"><span class="sm-icon">🔑</span> Login</a></li>
-        <li><a href="register.html"><span class="sm-icon">📝</span> Register</a></li>
-        <li><a href="dashboard.html"><span class="sm-icon">📊</span> Dashboard</a></li>
-      </ul>
-    </div>
-    <div class="sitemap-col">
-      <div class="sitemap-col-title">Connect</div>
-      <ul id="sitemapSocials">
-        <li><a href="mailto:contact@blogspro.in"><span class="sm-icon">✉</span> Email</a></li>
-      </ul>
-    </div>
-  </div>
-</div>
-
 <!-- FOOTER -->
 <footer>
   <span class="footer-brand">BlogsPro</span>
   <span class="footer-copy">© <span id="year"></span> BlogsPro. All rights reserved.</span>
   <ul class="footer-links">
-    <li><a href="#">Privacy</a></li>
-    <li><a href="#">Terms</a></li>
+    <li><a href="login.html" id="footerAuthLink">Login</a></li>
   </ul>
 </footer>
+<div class="integration-badge" id="integrationBadge">
+  <span class="integration-badge-dot"></span>
+  <span id="integrationBadgeText">Integrations: Initializing</span>
+</div>
 
 <!-- FIREBASE -->
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
-<script src="js/ui-utils.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
 <script type="module">
   import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, doc, getDocs, getDoc, addDoc, query, where }
+  import { getFirestore, collection, doc, getDocs, getDoc, query, where, addDoc }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-  import { firebaseConfig } from "./js/firebase-config.js";
-  import { identifyUser }   from "./js/analytics.js";
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
+    authDomain:        "blogspro-ai.firebaseapp.com",
+    projectId:         "blogspro-ai",
+    storageBucket:     "blogspro-ai.firebasestorage.app",
+    messagingSenderId: "940428277283",
+    appId:             "1:940428277283:web:d3bb414f0992718ca76396"
+  };
 
   const app  = initializeApp(firebaseConfig);
   const db   = getFirestore(app);
   const auth = getAuth(app);
 
   let allPosts   = [];
-  let filteredPosts = []; 
   let currentCat = 'all';
   let imagesEnabled = true;
   const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
+  const FIREBASE_TIMEOUT_MS = 12000;
+  function setIntegrationStatus(mode, label) {
+    const badge = document.getElementById('integrationBadge');
+    const text = document.getElementById('integrationBadgeText');
+    if (!badge || !text) return;
+    badge.classList.remove('online', 'degraded');
+    if (mode === 'online') badge.classList.add('online');
+    if (mode === 'degraded') badge.classList.add('degraded');
+    text.textContent = label || 'Integrations: Initializing';
+  }
+  setIntegrationStatus(null, 'Integrations: Initializing');
 
-  // ── Utils ──────────────────────────────────────
+  function withTimeout(promise, ms = FIREBASE_TIMEOUT_MS, label = 'request') {
+    let timer;
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+      }),
+    ]).finally(() => clearTimeout(timer));
+  }
 
   function isPermissionDenied(err) {
     const code = String(err?.code || '').toLowerCase();
@@ -935,30 +627,19 @@
     return code.includes('permission-denied') || msg.includes('missing or insufficient permissions');
   }
 
-  // Theme is now handled by js/ui-utils.js
-  if (localStorage.getItem('bpTheme') === 'light') {
-    document.getElementById('themeBtn').textContent = '🌙';
-  } else {
-    document.getElementById('themeBtn').textContent = '☀️';
-  }
+  document.getElementById('year').textContent = new Date().getFullYear();
 
-  // ── Mobile nav hamburger ────────────────────────
-  window.toggleMobileNav = () => {
-    const menu = document.getElementById('navLinksMenu');
-    const btn  = document.getElementById('navHamburger');
-    if (!menu) return;
-    menu.classList.toggle('mobile-open');
-    btn.textContent = menu.classList.contains('mobile-open') ? '✕' : '☰';
+  // ── Theme ──────────────────────────────────────
+  window.toggleTheme = () => {
+    document.body.classList.toggle('light');
+    const isLight = document.body.classList.contains('light');
+    document.getElementById('themeBtn').textContent = isLight ? '🌙' : '☀️';
+    localStorage.setItem('bpTheme', isLight ? 'light' : 'dark');
   };
-  // Close mobile nav when a link is tapped
-  document.querySelectorAll('#navLinksMenu a').forEach(a => {
-    a.addEventListener('click', () => {
-      const menu = document.getElementById('navLinksMenu');
-      const btn  = document.getElementById('navHamburger');
-      if (menu) menu.classList.remove('mobile-open');
-      if (btn) btn.textContent = '☰';
-    });
-  });
+  if (localStorage.getItem('bpTheme') === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('themeBtn').textContent = '🌙';
+  }
 
   // ── Auth nav ───────────────────────────────────
   onAuthStateChanged(auth, async user => {
@@ -966,12 +647,8 @@
     const footerLink = document.getElementById('footerAuthLink');
 
     if (!user) {
-      slot.innerHTML = `
-        <a href="login.html" class="nav-cta">Login</a>
-        <a href="register.html" class="nav-cta" style="background:transparent;border:1px solid var(--gold);color:var(--gold)!important;">Sign Up</a>
-      `;
+      slot.innerHTML = `<a href="login.html" class="nav-cta">Login</a>`;
       footerLink.textContent = 'Login'; footerLink.href = 'login.html';
-      identifyUser(null);
       return;
     }
 
@@ -982,9 +659,6 @@
     } catch (err) {
       console.warn('Role check failed:', err);
     }
-
-    // Identify with correct role so Clarity can segment admin vs reader sessions
-    identifyUser(user, isAdmin ? 'admin' : 'user');
 
     if (isAdmin) {
       slot.innerHTML = `
@@ -1020,126 +694,98 @@
   document.addEventListener('click', e => { if (!e.target.closest('#navUserBtn')) document.getElementById('navDropdown')?.classList.remove('open'); });
   window.doSignOut = async () => { await signOut(auth); window.location.reload(); };
 
-  // ── Load Financial Terminal Content ────────────────
-  const contentState = { hourly: [], daily: [], weekly: [], monthly: [], posts: [] };
-
-  async function loadTerminal() {
+  // ── Load posts ─────────────────────────────────
+  async function loadPosts() {
     try {
-      const endpoints = [
-        { key: 'hourly', url: 'briefings/hourly/index.json' },
-        { key: 'daily', url: 'briefings/daily/index.json' },
-        { key: 'weekly', url: 'articles/weekly/index.json' },
-        { key: 'monthly', url: 'articles/monthly/index.json' },
-        { key: 'posts', url: 'posts/index.json' }
-      ];
-
-      const results = await Promise.allSettled(endpoints.map(e => fetch(e.url).then(r => r.ok ? r.json() : [])));
-      
-      results.forEach((res, i) => {
-        if (res.status === 'fulfilled') {
-          const key = endpoints[i].key;
-          contentState[key] = (res.value || []).map(p => {
-            if (!p.fileName) return null;
-            const safeId = `static-${key}-${p.fileName.split('.')[0]}`;
-            const safePath = key === 'posts' ? `posts/${p.fileName}` : `${key.includes('briefing') || key === 'daily' || key === 'hourly' ? 'briefings' : 'articles'}/${key}/${p.fileName}`;
-            
-            return {
-              ...p,
-              id: safeId,
-              published: true,
-              createdAt: { toDate: () => new Date(p.date || Date.now()) },
-              isStatic: true,
-              path: safePath
-            };
-          }).filter(Boolean);
-        }
-      });
-
-      // Also fetch Firestore posts for the 'posts' category
-      try {
-        const snap = await getDocs(query(collection(db, 'posts'), where('published', '==', true)));
-        const fsPosts = snap.docs.map(d => ({ id: d.id, ...d.data(), path: `/post.html?id=${d.id}` }));
-        contentState.posts = [...fsPosts, ...contentState.posts].sort((a,b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
-      } catch(e) { console.warn("Firestore posts load failed."); }
-
-      renderTerminal();
-    } catch (err) { console.error("Terminal Load Error:", err); }
+      const snap = await withTimeout(getDocs(query(
+        collection(db, 'posts'),
+        where('published', '==', true)
+      )), FIREBASE_TIMEOUT_MS, 'posts query');
+      allPosts = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a,b) => {
+          const aT = a.createdAt?.toDate?.()?.getTime() || 0;
+          const bT = b.createdAt?.toDate?.()?.getTime() || 0;
+          return bT - aT;
+        });
+      document.getElementById('postCount').textContent = allPosts.length;
+      const totalViews = allPosts.reduce((sum, p) => sum + (p.views || 0), 0);
+      const tvEl = document.getElementById('totalViewCount');
+      if (tvEl) tvEl.textContent = fmtViews(totalViews);
+      renderPosts(allPosts);
+      return true;
+    } catch(err) {
+      console.error('Error loading posts:', err.code, err.message);
+      document.getElementById('postsGrid').innerHTML = `
+        <div style="grid-column:1/-1;padding:2rem;color:var(--muted);font-size:0.9rem;border:1px dashed var(--border);background:var(--navy2)">
+          Content service is temporarily unavailable. Please refresh in a moment.
+        </div>`;
+      document.getElementById('postCount').textContent = '0';
+      const tvEl = document.getElementById('totalViewCount');
+      if (tvEl) tvEl.textContent = '0';
+      return false;
+    }
   }
 
-  function renderTerminal() {
-    renderPulse(contentState.hourly);
-    renderBriefings(contentState.daily);
-    renderArticles([...contentState.weekly, ...contentState.monthly]);
-    
-    const all = [...contentState.hourly, ...contentState.daily, ...contentState.weekly, ...contentState.monthly, ...contentState.posts];
-    const pc = document.getElementById('postCount');
-    if (pc) pc.textContent = all.length;
-  }
-
-  function renderPulse(posts) {
-    const pulseGrid = document.getElementById('pulseGrid');
-    if (!pulseGrid) return;
-    if (!posts.length) { pulseGrid.innerHTML = '<p class="muted">Waiting for next pulse...</p>'; return; }
-    
-    pulseGrid.innerHTML = posts.slice(0, 5).map(p => `
-      <div class="pulse-card" onclick="window.location.href='${p.path}'">
-        <div class="pulse-time">${p.time || 'Live'}</div>
-        <div class="pulse-title">${p.title}</div>
-      </div>
-    `).join('');
-  }
-
-  function renderBriefings(posts) {
-    const grid = document.getElementById('postsGrid');
-    if (!grid) return;
-    if (!posts.length) { grid.innerHTML = '<p class="muted">No briefings available.</p>'; return; }
-
-    grid.innerHTML = posts.map((p, i) => renderCard(p, i, 'daily')).join('');
-  }
-
-  // Used by search and category filter
   function renderPosts(posts) {
-    renderBriefings(posts);
-  }
-
-  function renderArticles(posts) {
-    const grid = document.getElementById('articlesGrid');
-    if (!grid) return;
-    if (!posts.length) { grid.innerHTML = '<p class="muted">Strategic reports pending.</p>'; return; }
-    
-    const sorted = [...posts].sort((a, b) => {
-      const dateA = a.createdAt?.toDate?.() || new Date(a.date || 0);
-      const dateB = b.createdAt?.toDate?.() || new Date(b.date || 0);
-      return dateB - dateA;
-    });
-    
-    grid.innerHTML = sorted.map((p, i) => renderCard(p, i, 'article')).join('');
-  }
-
-  function renderCard(p, i, mode) {
-    const title = DOMPurify.sanitize(p.title);
-    const excerpt = DOMPurify.sanitize(p.excerpt || '');
-    const dateObj = p.createdAt?.toDate?.() || (p.date ? new Date(p.date) : null);
-    const dateStr = dateObj ? dateObj.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '';
-    
-    const path = p.path || (p.fileName ? `${p.fileName}` : `post.html?id=${p.id}`);
-    const isFeatured = i === 0 && mode === 'daily';
-    
-    const categoryLabel = mode === 'article' ? 'STRATEGIC' : 'MARKET PULSE';
-    const categoryClass = mode === 'article' ? 'post-category-article' : 'post-category-briefing';
-    
-    return `
-      <div class="post-card ${isFeatured ? 'featured' : ''}" onclick="window.location.href='${path}'">
-        <div class="post-body">
-          <span class="post-category ${categoryClass}">${categoryLabel} • ${p.frequency?.toUpperCase() || p.category || 'ANALYSIS'}</span>
+    const grid = document.getElementById('postsGrid');
+    if (!posts.length) { renderEmpty(); return; }
+    // Helper: sanitize text fields for safe HTML insertion
+    const esc = (s) => DOMPurify.sanitize(s || '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    grid.innerHTML = posts.map((p, i) => {
+      const title    = esc(p.title);
+      const excerpt  = esc(p.excerpt);
+      const category = esc(p.category) || 'General';
+      const author = esc(p.authorName || (p.authorEmail ? String(p.authorEmail).split('@')[0] : '') || 'BlogsPro');
+      const rawImage = imagesEnabled ? DOMPurify.sanitize(String(p.image || '').trim()) : '';
+      const image    = (
+        /^https?:\/\//i.test(rawImage) &&
+        rawImage !== 'null' &&
+        rawImage !== 'undefined' &&
+        rawImage !== '[object Object]'
+      ) ? rawImage : '';
+      const date = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
+      // FIX: Strip HTML tags before counting words for reading time
+      const plainText = (p.content || '').replace(/<[^>]+>/g, ' ').trim();
+      const readTime = Math.max(1, Math.ceil(plainText.split(/\s+/).filter(Boolean).length / 200));
+      if (i === 0) {
+        const visual = image
+          ? `<div class="featured-visual featured-visual-img"><img src="${image}" alt="${title}" loading="lazy" onerror="this.closest('.featured-visual')?.remove(); this.closest('.post-card')?.classList.add('featured-no-img');" /></div>`
+          : '';
+        return `
+          <div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}')" style="animation-delay:${i*0.08}s">
+            <div class="featured-body">
+              <span class="featured-badge">Featured</span>
+              <span class="post-category">${category}</span>
+              <h2 class="post-title">${title}</h2>
+              <p class="post-excerpt">${excerpt}</p>
+              <div class="post-meta">
+                <span class="post-date">${date}</span>
+                <div style="display:flex;align-items:center;gap:0.75rem">
+                  <span class="post-date">By ${author}</span>
+                  <span class="post-read-time">${readTime} min read</span>
+                  <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
+                </div>
+              </div>
+            </div>
+            ${visual}
+          </div>`;
+      }
+      return `
+        <div class="post-card" onclick="openPost('${p.id}')" style="animation-delay:${i*0.08}s">
+          <span class="post-category">${category}</span>
           <h3 class="post-title">${title}</h3>
           <p class="post-excerpt">${excerpt}</p>
           <div class="post-meta">
-            <span class="post-date">${dateStr}</span>
+            <span class="post-date">${date}</span>
+            <div style="display:flex;align-items:center;gap:0.75rem">
+              <span class="post-date">By ${author}</span>
+              <span class="post-read-time">${readTime} min read</span>
+              <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
+            </div>
           </div>
-        </div>
-      </div>
-    `;
+        </div>`;
+    }).join('');
   }
 
   function renderEmpty() {
@@ -1150,17 +796,8 @@
       </div>`;
   }
 
-  window.openPost = async (id, slug) => {
-    // Clarity: tag this session as a post-reader and track the click
-    if (typeof window.clarity === 'function') {
-      window.clarity('set',   'last_post_slug', slug);
-      window.clarity('event', 'post_open');
-    }
-
-    if (id.startsWith('static-')) {
-      window.location.href = `/posts/${id.replace('static-', '')}.html`;
-      return;
-    }
+  window.openPost = async (id) => {
+    // Increment view count (once per session per post)
     const key = `bp_viewed_${id}`;
     if (!sessionStorage.getItem(key)) {
       sessionStorage.setItem(key, '1');
@@ -1172,38 +809,14 @@
     window.location.href = `post.html?id=${id}`;
   };
 
-  // ── Search & Category Filter globals (called from inline onclick/oninput) ──
-  window.handleSearch = function(query) {
-    const q = query.trim().toLowerCase();
-    if (!q) {
-      filteredPosts = currentCat === 'all' ? [...allPosts] : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat.toLowerCase());
-    } else {
-      filteredPosts = allPosts.filter(p => {
-        const inCat = currentCat === 'all' || (p.category || '').toLowerCase() === currentCat.toLowerCase();
-        const inText = (p.title || '').toLowerCase().includes(q) || (p.excerpt || '').toLowerCase().includes(q);
-        return inCat && inText;
-      });
-    }
-    renderPosts(filteredPosts);
-  };
-
-  window.filterByCategory = function(cat) {
-    if (typeof window.clarity === 'function') {
-      window.clarity('set',   'active_filter', cat.toLowerCase());
-      window.clarity('event', 'filter_used');
-    }
-    currentCat = cat.toLowerCase();
-    document.querySelectorAll('.filter-chip').forEach(b => {
-      b.classList.toggle('active', b.textContent.trim().toLowerCase() === currentCat || (currentCat === 'all' && b.textContent.trim() === 'All'));
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCat = btn.dataset.cat;
+      renderPosts(currentCat === 'all' ? allPosts : allPosts.filter(p => p.category === currentCat));
     });
-    const searchVal = document.getElementById('postSearch')?.value?.trim().toLowerCase() || '';
-    if (searchVal) {
-      window.handleSearch(searchVal);
-    } else {
-      filteredPosts = currentCat === 'all' ? [...allPosts] : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat.toLowerCase());
-      renderPosts(filteredPosts);
-    }
-  };
+  });
 
   // ── Load About ─────────────────────────────────
   async function loadAbout() {
@@ -1226,7 +839,7 @@
     };
 
     try {
-      const snap = await getDoc(doc(db, 'site', 'about'));
+      const snap = await withTimeout(getDoc(doc(db, 'site', 'about')), FIREBASE_TIMEOUT_MS, 'about query');
       const skeleton = document.getElementById('aboutSkeleton');
       const avatarCol = document.getElementById('aboutAvatarCol');
       const contentCol = document.getElementById('aboutContentCol');
@@ -1267,15 +880,12 @@
         document.getElementById('aboutMissionWrap').style.display = 'none';
       }
 
-      // Social links — read from nested socials object (admin profile) with flat-field fallback
-      const s = data.socials || {};
+      // Social links
       const socials = document.getElementById('aboutSocials');
       const links = [
-        { key: 'email',    label: '✉ Email',    href: (data.email || s.email)    ? `mailto:${data.email || s.email}` : null },
-        { key: 'twitter',  label: '𝕏 Twitter',  href: s.x || data.twitter  || null },
-        { key: 'linkedin', label: 'in LinkedIn', href: s.linkedin || data.linkedin || null },
-        { key: 'youtube',  label: '▶ YouTube',  href: s.youtube  || null },
-        { key: 'github',   label: '⌂ GitHub',   href: s.github   || null },
+        { key: 'email',    label: '✉ Email',    href: data.email    ? `mailto:${data.email}` : null },
+        { key: 'twitter',  label: '𝕏 Twitter',  href: data.twitter  || null },
+        { key: 'linkedin', label: 'in LinkedIn', href: data.linkedin || null },
         { key: 'website',  label: '↗ Website',  href: data.website  || null },
       ];
       socials.innerHTML = links
@@ -1283,19 +893,11 @@
         .map(l => `<a class="about-social-link" href="${l.href}" target="_blank" rel="noopener">${l.label}</a>`)
         .join('');
 
-      // Populate sitemap social links too
-      const smSocials = document.getElementById('sitemapSocials');
-      if (smSocials) {
-        const smLinks = links.filter(l => l.href);
-        smSocials.innerHTML = smLinks
-          .map(l => `<li><a href="${l.href}" target="_blank" rel="noopener"><span class="sm-icon">${l.label.split(' ')[0]}</span> ${l.label.split(' ').slice(1).join(' ')}</a></li>`)
-          .join('') || '<li><a href="mailto:contact@blogspro.in"><span class="sm-icon">✉</span> Email</a></li>';  
-      }
-
       // Show real content, hide skeleton
       if (skeleton)    skeleton.style.display = 'none';
       if (avatarCol)   avatarCol.classList.remove('about-hidden');
       if (contentCol)  contentCol.classList.remove('about-hidden');
+      return true;
 
     } catch(err) {
       if (isPermissionDenied(err)) {
@@ -1310,6 +912,7 @@
       if (skeleton) skeleton.style.display = 'none';
       if (avatarCol) avatarCol.classList.remove('about-hidden');
       if (contentCol) contentCol.classList.remove('about-hidden');
+      return false;
     }
   }
 
@@ -1318,28 +921,15 @@
     if (localValue === 'true' || localValue === 'false') {
       imagesEnabled = localValue === 'true';
     }
-
-    // Defensive timeout (4s)
-    const timeout = new Promise(res => setTimeout(() => res('timeout'), 4000));
-
     try {
-      const result = await Promise.race([
-        getDoc(doc(db, 'site', 'settings')),
-        timeout
-      ]);
-
-      if (result === 'timeout') {
-         console.warn('Site settings fetch timed out. Using local/defaults.');
-         return;
-      }
-
-      const snap = result;
+      const snap = await withTimeout(getDoc(doc(db, 'site', 'settings')), FIREBASE_TIMEOUT_MS, 'site settings query');
       if (snap.exists() && typeof snap.data().imagesEnabled === 'boolean') {
         imagesEnabled = snap.data().imagesEnabled;
         localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));
       } else {
         imagesEnabled = true;
       }
+      return true;
     } catch (err) {
       if (isPermissionDenied(err)) {
         console.info('Site settings fallback active (permission blocked).');
@@ -1349,6 +939,7 @@
       if (localValue !== 'true' && localValue !== 'false') {
         imagesEnabled = true;
       }
+      return false;
     }
   }
 
@@ -1366,10 +957,6 @@
     try {
       await addDoc(collection(db, 'subscribers'), { email, createdAt: new Date() });
       document.getElementById('emailInput').value = '';
-      if (typeof window.clarity === 'function') {
-        window.clarity('set',   'subscribed', 'true');
-        window.clarity('event', 'newsletter_subscribe');
-      }
       msg.style.cssText = 'display:block;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#86efac;margin-top:1.2rem;padding:0.85rem 1.2rem;border-radius:3px;font-size:0.88rem;font-weight:500';
       msg.textContent = "✓ You're on the list! We'll be in touch.";
     } catch(err) {
@@ -1379,368 +966,24 @@
     btn.disabled = false; btnText.style.display = 'inline'; spinner.style.display = 'none';
   };
 
-  // ── Late Initialization (Consolidated) ──────────────────────────
-  async function startApp() {
-    const yearEl = document.getElementById('year');
-    if (yearEl) yearEl.textContent = new Date().getFullYear();
-
-    loadTicker(); // non-blocking
-    await loadSiteSettings();
-    await loadTerminal();
-
-    // Populate allPosts for search/filter after terminal has loaded all content
-    allPosts = [
-      ...contentState.hourly,
-      ...contentState.daily,
-      ...contentState.weekly,
-      ...contentState.monthly,
-      ...contentState.posts
-    ];
-    filteredPosts = [...allPosts];
-
-    if (allPosts && allPosts.length > 0) {
-      hydratePolicy(allPosts[0]);
-    }
-    await loadAbout();
-
-    // Intersection Observer: reveal animations + lazy widget/market loading
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('active');
-          if (entry.target.id === 'tvTickerContainer') initTVTicker();
-          if (entry.target.id === 'tvHubContainer') initTVHub();
-        }
-      });
-    }, { threshold: 0.1 });
-    
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-    const tvTicker = document.getElementById('tvTickerContainer');
-    if (tvTicker) observer.observe(tvTicker);
-    const tvHub = document.getElementById('tvHubContainer');
-    if (tvHub) observer.observe(tvHub);
+  // Format views: 1200 → "1.2k"
+  function fmtViews(n) {
+    if (!n) return '0';
+    if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
+    if (n >= 1000)    return (n/1000).toFixed(1).replace(/\.0$/,'') + 'k';
+    return String(n);
   }
 
-  // Trigger startApp after Firebase is ready
-  await startApp();
-
-  // ── Filter chip event listeners (data-cat driven) ──────────────────────────
-  // Works alongside the inline onclick="filterByCategory()" on each chip.
-  // The data-cat attribute (added to each chip) drives category matching.
-  document.querySelectorAll('.filter-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentCat = btn.dataset.cat || btn.textContent.trim().toLowerCase();
-      renderPosts(currentCat === 'all'
-        ? allPosts
-        : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat)
-      );
-    });
-  });
-
-  // ── Topic Ticker ────────────────────────────────────────────────────────────
-  // Fetches /posts/ticker.json (array of topic tag strings) and prepends them
-  // to the scrolling #ticker strip, replacing the static defaults if data found.
-  async function loadTicker() {
-    try {
-      const resp = await fetch('/posts/ticker.json');
-      if (!resp.ok) return;
-      const data = await resp.json();
-      if (!Array.isArray(data) || !data.length) return;
-      const ticker = document.getElementById('ticker');
-      if (!ticker) return;
-      // Sanitize each tag, then build two copies for seamless infinite scroll
-      const sanitized = data.map(t => DOMPurify.sanitize(String(t), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }));
-      const half = sanitized.map(t => `<span class="ticker-tag">${t}</span><span class="ticker-sep">·</span>`).join('');
-      ticker.innerHTML = half + half; // duplicate for seamless loop
-    } catch(e) {
-      console.warn('Ticker data not found — using static defaults.');
-    }
-  }
-
-  function initTVTicker() {
-      const container = document.getElementById('tvTickerContainer');
-      if (container.dataset.loaded) return;
-      container.innerHTML = `
-        <div class="tradingview-widget-container">
-          <div class="tradingview-widget-container__widget"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-          {
-            "symbols": [
-              {"proName": "NSE:NIFTY",        "title": "NIFTY 50"},
-              {"proName": "BSE:SENSEX",        "title": "SENSEX"},
-              {"proName": "NSE:BANKNIFTY",     "title": "BANK NIFTY"},
-              {"proName": "INDEX:SPX",         "title": "S&P 500"},
-              {"proName": "NASDAQ:NDX",        "title": "NASDAQ 100"},
-              {"proName": "INDEX:DJI",         "title": "Dow Jones"},
-              {"proName": "INDEX:DEU40",       "title": "DAX"},
-              {"proName": "INDEX:UKX",         "title": "FTSE 100"},
-              {"proName": "INDEX:NI225",       "title": "Nikkei 225"},
-              {"proName": "INDEX:HSI",         "title": "Hang Seng"},
-              {"proName": "COMEX:GC1!",        "title": "Gold"},
-              {"proName": "NYMEX:CL1!",        "title": "WTI Crude"},
-              {"proName": "CRYPTOCAP:BTC",     "title": "Bitcoin"},
-              {"proName": "FX:USDINR",         "title": "USD/INR"},
-              {"proName": "FX:EURUSD",         "title": "EUR/USD"}
-            ],
-            "showSymbolLogo": true,
-            "colorTheme": "dark",
-            "isTransparent": true,
-            "displayMode": "adaptive",
-            "locale": "en"
-          }
-          <\/script>
-        </div>`;
-      container.dataset.loaded = "true";
-  }
-
-  function initTVHub() {
-    const container = document.getElementById('tvHubContainer');
-    if (!container || container.dataset.loaded) return;
-    container.dataset.loaded = "true";
-
-    // ── NSE Live Terminal ──────────────────────────────────────────────────
-    const nseTerminal = document.getElementById('tvNseTerminal');
-    if (nseTerminal && !nseTerminal.dataset.loaded) {
-      nseTerminal.dataset.loaded = "true";
-      nseTerminal.innerHTML = `
-        <div class="tradingview-widget-container" style="height:100%">
-          <div class="tradingview-widget-container__widget" style="height:100%"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
-          {
-            "symbols": [
-              ["NSE:NIFTY|1D"],
-              ["NSE:BANKNIFTY|1D"],
-              ["BSE:SENSEX|1D"],
-              ["NSE:FINNIFTY|1D"],
-              ["NSE:MIDCPNIFTY|1D"]
-            ],
-            "chartOnly": false,
-            "colorTheme": "dark",
-            "isTransparent": true,
-            "showVolume": false,
-            "showMA": false,
-            "locale": "en",
-            "width": "100%",
-            "height": "100%"
-          }
-          <\/script>
-        </div>`;
-    }
-
-    // ── Global Indices — market quotes table ───────────────────────────────
-    const indicesEl = document.getElementById('tvIndices');
-    if (indicesEl) {
-      indicesEl.innerHTML = `
-        <div class="tradingview-widget-container" style="height:100%">
-          <div class="tradingview-widget-container__widget"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js" async>
-          {
-            "title": "Major Global Indices",
-            "symbolsGroups": [
-              {
-                "name": "India",
-                "symbols": [
-                  {"name": "NSE:NIFTY",        "displayName": "NIFTY 50"},
-                  {"name": "BSE:SENSEX",        "displayName": "SENSEX"},
-                  {"name": "NSE:BANKNIFTY",     "displayName": "BANK NIFTY"},
-                  {"name": "NSE:MIDCPNIFTY",    "displayName": "NIFTY MIDCAP"},
-                  {"name": "NSE:FINNIFTY",      "displayName": "FIN NIFTY"}
-                ]
-              },
-              {
-                "name": "Americas",
-                "symbols": [
-                  {"name": "FOREXCOM:SPXUSD",   "displayName": "S&P 500"},
-                  {"name": "NASDAQ:NDX",         "displayName": "NASDAQ 100"},
-                  {"name": "INDEX:DJI",          "displayName": "Dow Jones"},
-                  {"name": "INDEX:RUT",          "displayName": "Russell 2000"},
-                  {"name": "INDEX:TSX",          "displayName": "TSX (Canada)"}
-                ]
-              },
-              {
-                "name": "Europe",
-                "symbols": [
-                  {"name": "INDEX:DEU40",        "displayName": "DAX (Germany)"},
-                  {"name": "INDEX:UKX",          "displayName": "FTSE 100 (UK)"},
-                  {"name": "INDEX:CAC40",        "displayName": "CAC 40 (France)"},
-                  {"name": "INDEX:STOXX50E",     "displayName": "Euro Stoxx 50"},
-                  {"name": "INDEX:SMI",          "displayName": "SMI (Switzerland)"}
-                ]
-              },
-              {
-                "name": "Asia-Pacific",
-                "symbols": [
-                  {"name": "INDEX:NI225",        "displayName": "Nikkei 225 (Japan)"},
-                  {"name": "INDEX:HSI",          "displayName": "Hang Seng (HK)"},
-                  {"name": "SSE:000001",         "displayName": "Shanghai Composite"},
-                  {"name": "INDEX:KOSPI",        "displayName": "KOSPI (Korea)"},
-                  {"name": "INDEX:AS51",         "displayName": "ASX 200 (Australia)"}
-                ]
-              },
-              {
-                "name": "Commodities",
-                "symbols": [
-                  {"name": "COMEX:GC1!",         "displayName": "Gold"},
-                  {"name": "COMEX:SI1!",         "displayName": "Silver"},
-                  {"name": "NYMEX:CL1!",         "displayName": "WTI Crude Oil"},
-                  {"name": "NYMEX:NG1!",         "displayName": "Natural Gas"},
-                  {"name": "TVC:DXY",            "displayName": "US Dollar Index"}
-                ]
-              }
-            ],
-            "showSymbolLogo": true,
-            "isTransparent": true,
-            "colorTheme": "dark",
-            "locale": "en"
-          }
-          <\/script>
-        </div>`;
-    }
-
-    // ── Market Overview: Indices + Crypto tabs ──────────────────────────────
-    const heatmap = document.getElementById('tvHeatmap');
-    if (heatmap) {
-      heatmap.innerHTML = `
-        <div class="tradingview-widget-container" style="height:100%">
-          <div class="tradingview-widget-container__widget" style="height:100%"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js" async>
-          {
-            "colorTheme": "dark",
-            "dateRange": "1M",
-            "showChart": true,
-            "locale": "en",
-            "isTransparent": true,
-            "showSymbolLogo": true,
-            "showFloatingTooltip": false,
-            "width": "100%",
-            "height": "100%",
-            "tabs": [
-              {
-                "title": "Indices",
-                "symbols": [
-                  {"s": "NSE:NIFTY",         "d": "NIFTY 50"},
-                  {"s": "NSE:BANKNIFTY",     "d": "BANK NIFTY"},
-                  {"s": "BSE:SENSEX",        "d": "SENSEX"},
-                  {"s": "FOREXCOM:SPXUSD",   "d": "S&P 500"},
-                  {"s": "NASDAQ:NDX",        "d": "NASDAQ 100"},
-                  {"s": "INDEX:DJI",         "d": "Dow Jones"},
-                  {"s": "INDEX:DEU40",       "d": "DAX"},
-                  {"s": "INDEX:UKX",         "d": "FTSE 100"},
-                  {"s": "INDEX:NI225",       "d": "Nikkei 225"},
-                  {"s": "INDEX:HSI",         "d": "Hang Seng"}
-                ],
-                "originalTitle": "Indices"
-              },
-              {
-                "title": "Crypto",
-                "symbols": [
-                  {"s": "CRYPTOCAP:BTC", "d": "Bitcoin"},
-                  {"s": "CRYPTOCAP:ETH", "d": "Ethereum"},
-                  {"s": "CRYPTOCAP:SOL", "d": "Solana"},
-                  {"s": "CRYPTOCAP:BNB", "d": "BNB"}
-                ],
-                "originalTitle": "Crypto"
-              },
-              {
-                "title": "Forex",
-                "symbols": [
-                  {"s": "FX:USDINR", "d": "USD/INR"},
-                  {"s": "FX:EURUSD", "d": "EUR/USD"},
-                  {"s": "FX:GBPUSD", "d": "GBP/USD"},
-                  {"s": "FX:USDJPY", "d": "USD/JPY"},
-                  {"s": "TVC:DXY",   "d": "DXY Index"}
-                ],
-                "originalTitle": "Forex"
-              },
-              {
-                "title": "Commodities",
-                "symbols": [
-                  {"s": "COMEX:GC1!",  "d": "Gold"},
-                  {"s": "NYMEX:CL1!",  "d": "WTI Crude"},
-                  {"s": "COMEX:SI1!",  "d": "Silver"},
-                  {"s": "NYMEX:NG1!",  "d": "Natural Gas"}
-                ],
-                "originalTitle": "Commodities"
-              }
-            ]
-          }
-          <\/script>
-        </div>`;
-    }
-
-    // ── Advanced Interactive Chart (NIFTY 50) ───────────────────────────────
-    const advChart = document.getElementById('tvAdvChart');
-    if (advChart) {
-      advChart.innerHTML = `
-        <div class="tradingview-widget-container" style="height:100%">
-          <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px)"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-          {
-            "autosize": true,
-            "symbol": "NSE:NIFTY",
-            "interval": "D",
-            "timezone": "Asia/Kolkata",
-            "theme": "dark",
-            "style": "1",
-            "locale": "en",
-            "backgroundColor": "rgba(8,13,26,0)",
-            "gridColor": "rgba(201,168,76,0.06)",
-            "hide_top_toolbar": false,
-            "hide_legend": false,
-            "save_image": false,
-            "hide_volume": false,
-            "support_host": "https://www.tradingview.com"
-          }
-          <\/script>
-        </div>`;
-    }
-
-    // ── Economic Calendar ───────────────────────────────────────────────────
-    const econCal = document.getElementById('tvEconCal');
-    if (econCal) {
-      econCal.innerHTML = `
-        <div class="tradingview-widget-container" style="height:100%">
-          <div class="tradingview-widget-container__widget" style="height:100%"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-          {
-            "colorTheme": "dark",
-            "isTransparent": true,
-            "width": "100%",
-            "height": "100%",
-            "locale": "en",
-            "importanceFilter": "0,1",
-            "countryFilter": "in,us,eu,gb"
-          }
-          <\/script>
-        </div>`;
-    }
-  }
-
-
-  // ── Policy Tracker Hydration ──
-  function hydratePolicy(latestPost) {
-    if (!latestPost) return;
-    const rbi = document.getElementById('rbiSnippet');
-    const sebi = document.getElementById('sebiSnippet');
-    const hub = document.getElementById('downloadHub');
-
-    if (rbi && latestPost.rbi) rbi.textContent = latestPost.rbi + '...';
-    if (sebi && latestPost.sebi) sebi.textContent = latestPost.sebi + '...';
-    
-    if (hub && latestPost.docs && latestPost.docs.length > 0) {
-      hub.innerHTML = latestPost.docs.map(doc => `
-        <a href="downloads/${doc.pdf}" target="_blank" class="glass-btn" style="padding:0.4rem 0.6rem; font-size:0.72rem; display:flex; align-items:center; gap:0.4rem; text-decoration:none;">
-          <span>📄</span>
-          <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${doc.title}</span>
-          <span>⬇</span>
-        </a>
-      `).join('');
-    }
-  }
-
-
+  (async () => {
+    const settingsOk = await loadSiteSettings().catch(() => false);
+    const postsOk = await loadPosts().catch(() => false);
+    const aboutOk = await loadAbout().catch(() => false);
+    const allOk = settingsOk && postsOk && aboutOk;
+    setIntegrationStatus(
+      allOk ? 'online' : 'degraded',
+      allOk ? 'Integrations: Online' : 'Integrations: Degraded'
+    );
+  })();
 </script>
 </body>
 </html>

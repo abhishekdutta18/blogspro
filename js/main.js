@@ -10,7 +10,7 @@ import "./subscribers.js";
 import "./newsletter.js";
 import "./seo-page.js";
 import "./images-upload.js";
-import { initAutoSummary } from "./ai-editor.js";
+import "./ai-editor.js";
 import "./ai-tools.js";
 import "./v2-editor.js";
 import "./image-manager.js";
@@ -18,11 +18,21 @@ import { initAIWriter } from "./ai-writer.js";
 import { initAutoBlog } from "./auto-blog.js";
 import { initAIImages } from "./ai-images.js";
 import { initSiteSettings } from "./site-settings.js";
-import { initHealthMonitor } from "./health.js";
-import { initProfile } from "./profile.js";
+import { initAdminAccount } from "./admin-account.js";
 
 // ── Sentry is initialised in admin.html via Sentry.onLoad() — do NOT
 //    call Sentry.init() here. Just use window.Sentry when available. ──
+function setAdminIntegrationStatus(mode, label) {
+  const badge = document.getElementById("integrationBadgeAdmin");
+  const text = document.getElementById("integrationBadgeAdminText");
+  if (!badge || !text) return;
+  badge.classList.remove("online", "degraded");
+  if (mode === "online") badge.classList.add("online");
+  if (mode === "degraded") badge.classList.add("degraded");
+  text.textContent = label || "Integrations: Initializing";
+}
+window.__setAdminIntegrationStatus = setAdminIntegrationStatus;
+setAdminIntegrationStatus(null, "Integrations: Initializing");
 
 // ── Boot — B-01 fix: try/catch so any module failure shows a
 //    diagnostic screen instead of a blank white page ───────────────────
@@ -38,16 +48,16 @@ async function boot() {
     initAutoBlog();
     initAIImages();
     initSiteSettings();
-    initHealthMonitor();
-    initProfile();
-    initAutoSummary();
+    initAdminAccount();
     if (window.__ENABLE_POST_AUDIT__ === true) {
       import("./post-audit.js").catch(err => {
         console.warn("[post-audit] optional module failed to load:", err.message);
       });
     }
+    setAdminIntegrationStatus("online", "Integrations: Online");
   } catch (err) {
     window.Sentry?.captureException(err);
+    setAdminIntegrationStatus("degraded", "Integrations: Degraded");
     document.body.innerHTML =
       '<div style="padding:2rem;color:#fca5a5;font-family:sans-serif">' +
       '<h2>BlogsPro failed to load</h2><p>' + err.message + '</p>' +
@@ -74,24 +84,3 @@ editor?.addEventListener("click", (e) => {
   const img = e.target.closest("img");
   if (!img) return;
 });
-
-// ── Global Sentry Button Tracking ─────────────────────────────────────
-import { trackAction } from "./utils.js";
-
-document.addEventListener("click", (e) => {
-  const target = e.target.closest("button, [data-sentry-label], .v2-btn-top, .v2-btn-accent");
-  if (!target) return;
-
-  const label = target.getAttribute("data-sentry-label") || 
-                target.innerText.trim().slice(0, 30) || 
-                target.id || 
-                "unnamed-button";
-
-  const context = {
-    id: target.id,
-    classes: target.className,
-    tag: target.tagName.toLowerCase()
-  };
-
-  trackAction(`click:${label}`, context);
-}, true); // Use capture phase to ensure we catch it before other handlers might stop propagation

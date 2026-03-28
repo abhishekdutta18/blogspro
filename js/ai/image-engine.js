@@ -15,6 +15,9 @@ export async function runImageAI(prompt) {
 
     }
     catch (err) {
+      if (String(err?.message || "").toLowerCase().includes("endpoint not configured")) {
+        throw err;
+      }
 
       console.warn("Image provider failed:", provider);
 
@@ -39,7 +42,9 @@ async function callImageProvider(provider, prompt) {
 
     body: JSON.stringify({
       provider,
-      prompt
+      prompt,
+      type: "image",
+      model: provider === "google" ? "imagen-3.0-generate-002" : undefined
     })
 
   }, 60000);  // Images can take longer, 60s timeout

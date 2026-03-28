@@ -3,62 +3,93 @@
 // ═══════════════════════════════════════════════
 import { db }        from './config.js';
 import { showToast } from './config.js';
-import { collection, getDocs, updateDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, getDocs, updateDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Track ongoing role changes to prevent race conditions
-const updatingUsers = new Set();
+const FIREBASE_TIMEOUT_MS = 12000;
+function withTimeout(promise, ms = FIREBASE_TIMEOUT_MS, label = 'request') {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
 
 export async function loadUsers() {
   const tbody = document.getElementById('usersTableBody');
   if (!tbody) return;
   try {
-    const snap  = await getDocs(query(collection(db,'users'), orderBy('createdAt','desc')));
+    const snap  = await withTimeout(getDocs(collection(db,'users')), FIREBASE_TIMEOUT_MS, 'users query');
     // Filter by role only — no hardcoded UIDs or emails
     const users = snap.docs.map(d=>({id:d.id,...d.data()}))
-      .filter(u => u.role !== 'admin');
+      .filter(u => u.role !== 'admin')
+      .sort((a, b) => {
+        const aMs = a.createdAt?.toDate?.()?.getTime?.() || 0;
+        const bMs = b.createdAt?.toDate?.()?.getTime?.() || 0;
+        return bMs - aMs;
+      });
     if (!users.length) { tbody.innerHTML=`<tr><td colspan="5"><div class="table-empty">No other users yet.</div></td></tr>`; return; }
     const roleColors = {reader:'color:#8896b3',editor:'color:#93c5fd',coauthor:'color:#c9a84c'};
     const roleLabels = {reader:'Reader',editor:'Editor',coauthor:'Co-Author'};
     tbody.innerHTML = users.map(u => {
       const date  = u.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})||'—';
+      const requested = u.requestedRole && u.requestedRole !== u.role
+        ? `<div style="font-size:0.68rem;color:var(--gold);margin-top:0.2rem">Requested: ${roleLabels[u.requestedRole]||u.requestedRole}</div>`
+        : '';
       return `<tr>
         <td><strong>${u.name||'—'}</strong></td>
         <td style="color:var(--muted);font-size:0.85rem">${u.email||'—'}</td>
-        <td><span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;${roleColors[u.role]||'color:#8896b3'}">${roleLabels[u.role]||u.role||'Reader'}</span></td>
+        <td>
+          <span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;${roleColors[u.role]||'color:#8896b3'}">${roleLabels[u.role]||u.role||'Reader'}</span>
+          ${requested}
+        </td>
         <td style="color:var(--muted);font-size:0.83rem;white-space:nowrap">${date}</td>
-        <td><select class="user-role-select" data-user-id="${u.id}" style="background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.3rem 0.5rem;border-radius:2px;font-family:var(--sans);font-size:0.78rem;cursor:pointer;outline:none">
+        <td><select onchange="changeUserRole('${u.id}',this.value)" style="background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.3rem 0.5rem;border-radius:2px;font-family:var(--sans);font-size:0.78rem;cursor:pointer;outline:none">
           <option value="reader" ${u.role==='reader'?'selected':''}>Reader</option>
           <option value="editor" ${u.role==='editor'?'selected':''}>Editor</option>
           <option value="coauthor" ${u.role==='coauthor'?'selected':''}>Co-Author</option>
         </select></td></tr>`;
     }).join('');
-    // Attach event listeners to role selects
-    tbody.querySelectorAll('.user-role-select').forEach(select => {
-      select.addEventListener('change', async (e) => {
-        const uid = e.target.dataset.userId;
-        const newRole = e.target.value;
-        await changeUserRole(uid, newRole);
-      });
-    });
-  } catch(e) { tbody.innerHTML=`<tr><td colspan="5"><div class="table-empty">Failed to load users.</div></td></tr>`; }
-}
-
-async function changeUserRole(uid, role) {
-  // Prevent concurrent updates to the same user
-  if (updatingUsers.has(uid)) {
-    showToast('Update in progress, please wait…', 'info');
-    return;
-  }
-  updatingUsers.add(uid);
-  try {
-    await updateDoc(doc(db,'users',uid),{role});
-    showToast(`Role updated to ${role}.`,'success');
-    await loadUsers();
   } catch(e) {
-    showToast('Failed: '+e.message,'error');
-  } finally {
-    updatingUsers.delete(uid);
+    tbody.innerHTML = `<tr><td colspan="5"><div class="table-empty">Users unavailable. Please retry.</div></td></tr>`;
   }
 }
 
-window.changeUserRole = changeUserRole;
+window.changeUserRole = async (uid, role) => {
+  try {
+    await updateDoc(doc(db,'users',uid),{
+      role,
+      requestedRole: role,
+      roleRequestUpdatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    showToast(`Role updated to ${role}.`,'success');
+    loadUsers();
+  }
+  catch(e) { showToast('Failed: '+e.message,'error'); }
+};
+
+window.backfillUserCreatedAt = async () => {
+  if (!confirm('Backfill missing join dates (createdAt) for existing users?')) return;
+  try {
+    const snap = await withTimeout(getDocs(collection(db, 'users')), FIREBASE_TIMEOUT_MS, 'users backfill query');
+    const missing = snap.docs.filter(d => !d.data()?.createdAt);
+    if (!missing.length) {
+      showToast('No users need backfill.', 'success');
+      return;
+    }
+
+    for (const d of missing) {
+      await updateDoc(doc(db, 'users', d.id), {
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    }
+
+    showToast(`Backfilled ${missing.length} user${missing.length === 1 ? '' : 's'}.`, 'success');
+    loadUsers();
+  } catch (e) {
+    showToast('Backfill failed: ' + e.message, 'error');
+  }
+};

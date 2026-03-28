@@ -97,6 +97,10 @@ function onModelChange(val) {
   <span id="mobileTopBarTitle">BlogsPro</span>
 </div>
 <div id="sideOverlay" onclick="toggleSidebar()"></div>
+<div class="integration-badge-admin" id="integrationBadgeAdmin">
+  <span class="integration-badge-admin-dot"></span>
+  <span id="integrationBadgeAdminText">Integrations: Initializing</span>
+</div>
 
 <!-- SIDEBAR -->
 <aside id="sidebar">
@@ -122,6 +126,7 @@ function onModelChange(val) {
 
     <span class="nav-label" style="margin-top:1.5rem">People</span>
     <div class="nav-item" data-view="users"><span>👥</span> Users</div>
+    <div class="nav-item" data-view="account"><span>👤</span> Account</div>
     <div class="nav-item" data-view="subscribers"><span>✉</span> Subscribers</div>
 
     <span class="nav-label" style="margin-top:1.5rem">Site</span>
@@ -208,8 +213,51 @@ function onModelChange(val) {
     </div>
     <div class="table-wrap">
       <div class="table-header"><span class="table-title">Recent Posts</span></div>
-      <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Views</th><th>Date</th><th>Actions</th></tr></thead>
-      <tbody id="recentPostsBody"><tr><td colspan="6"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+      <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Author</th><th>Views</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody id="recentPostsBody"><tr><td colspan="7"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ══════════════ ACCOUNT ══════════════ -->
+  <div class="view" id="view-account">
+    <div class="page-header">
+      <div><h2>My Account</h2><p>Update your admin profile details.</p></div>
+    </div>
+    <div class="saas-grid-2">
+      <div class="saas-panel gold-accent">
+        <div class="saas-panel-header">
+          <h3>Profile Details</h3>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-input" id="adminAccountName" placeholder="Your name" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Photo URL</label>
+          <input type="url" class="form-input" id="adminAccountPhotoURL" placeholder="https://example.com/photo.jpg" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Bio</label>
+          <textarea class="form-textarea" id="adminAccountBio" rows="4" placeholder="Short profile bio"></textarea>
+        </div>
+        <button class="btn-publish" id="adminAccountSaveBtn" onclick="saveAdminAccount()">Save Account</button>
+      </div>
+      <div class="saas-panel blue-accent">
+        <div class="saas-panel-header">
+          <h3>Account Info</h3>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-input" id="adminAccountEmail" readonly />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Role</label>
+          <input type="text" class="form-input" id="adminAccountRole" readonly />
+        </div>
+        <div style="font-size:0.78rem;color:var(--muted);line-height:1.7">
+          Email and role are controlled by authentication and admin access rules.
+        </div>
+      </div>
     </div>
   </div>
 
@@ -234,8 +282,8 @@ function onModelChange(val) {
       <div id="repairLog" style="font-size:0.72rem;color:var(--muted);max-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:0.2rem"></div>
     </div>
     <div class="table-wrap">
-      <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Views</th><th>Date</th><th>Actions</th></tr></thead>
-      <tbody id="allPostsBody"><tr><td colspan="6"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+      <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Author</th><th>Views</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody id="allPostsBody"><tr><td colspan="7"><div class="table-empty">Loading…</div></td></tr></tbody></table>
     </div>
   </div>
 

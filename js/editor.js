@@ -19,6 +19,8 @@ export function initEditor() {
   if (!editor) return;
 
   editor.contentEditable = true;
+  editor.setAttribute("role", "textbox");
+  editor.setAttribute("aria-multiline", "true");
 
   console.log("[editor] initialized");
 
@@ -36,6 +38,8 @@ export function initEditor() {
 
 function setupEvents() {
   editor.addEventListener("input", () => { saveHistory(); updateWordCount(); });
+  // Mobile reliability: ensure tap focuses editable surface.
+  editor.addEventListener("touchstart", () => { editor.focus(); }, { passive: true });
   editor.addEventListener("paste", handlePaste);
   editor.addEventListener("click", handleClick);
   editor.addEventListener("keydown", handleSlashCommands);
@@ -251,7 +255,7 @@ function removeSlashMenu() {
 function handleClick(e) {
   const img = e.target.closest("img");
   removeImgToolbar();
-  if (!img) { _selectedImg = null; return; }
+  if (!img) { _selectedImg = null; editor.focus(); return; }
   _selectedImg = img;
   // Add visual selection indicator
   editor.querySelectorAll('img').forEach(i => i.style.outline = 'none');

@@ -1,15 +1,26 @@
 // ═══════════════════════════════════════════════
 // posts.js — Post CRUD and dashboard data
 // ═══════════════════════════════════════════════
-import { db, sanitize, showToast, slugify, stripTags, validateImageUrl } from './config.js';
-import { state } from './state.js';
-import { injectUtm, trackEvent } from './analytics.js';
+import { db }            from './config.js';
+import { sanitize, showToast, slugify, stripTags } from './config.js';
+import { state }         from './state.js';
 import { buildInternalLinks } from './ai-editor.js';
 import { uploadToStorage, blobUrlToFile } from './images-upload.js';
 import {
   collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc,
   query, orderBy, limit, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const FIREBASE_TIMEOUT_MS = 12000;
+function withTimeout(promise, ms = FIREBASE_TIMEOUT_MS, label = 'request') {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
 
 // Pure formatting — no Firebase import needed
 function formatViews(n) {
@@ -20,6 +31,7 @@ function formatViews(n) {
 }
 
 export async function loadAll() {
+  window.__setAdminIntegrationStatus?.(null, 'Integrations: Syncing');
   ['statTotal','statPublished','statDrafts','statSubs'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = '…';
@@ -28,45 +40,24 @@ export async function loadAll() {
   try {
     let snap;
     try {
-      const timeout = new Promise(res => setTimeout(() => res('timeout'), 4000));
-      const fetchPromise = getDocs(query(collection(db,'posts'),orderBy('createdAt','desc'), limit(50)));
-      const result = await Promise.race([fetchPromise, timeout]);
-
-      if (result === 'timeout') {
-        console.warn('Dashboard posts fetch timed out.');
-        snap = { docs: [] }; // Set snap to an empty collection if timed out
-      } else {
-        snap = result;
-      }
+      snap = await withTimeout(
+        getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(50))),
+        FIREBASE_TIMEOUT_MS,
+        'posts dashboard query'
+      );
     } catch(indexErr) {
       console.warn('Ordered query failed, falling back:', indexErr.message);
-      snap = await getDocs(query(collection(db,'posts'), limit(50)));
+      snap = await withTimeout(
+        getDocs(query(collection(db,'posts'), limit(50))),
+        FIREBASE_TIMEOUT_MS,
+        'posts fallback query'
+      );
     }
 
-    let staticPosts = [];
-    try {
-      const resp = await fetch('/posts/index.json');
-      if (resp.ok) {
-        const staticData = await resp.json();
-        staticPosts = staticData.map(p => ({
-          id: `static-${p.slug}`,
-          ...p,
-          published: true,
-          category: 'AI Briefing',
-          createdAt: { toMillis: () => new Date(p.date).getTime() },
-          isStatic: true
-        }));
-      }
-    } catch(e) { console.warn('Static index not found or empty.'); }
-
-    state.allPosts = [
-      ...snap.docs.map(d => ({ id: d.id, ...d.data() })),
-      ...staticPosts
-    ];
-
+    state.allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     state.allPosts.sort((a,b) => {
-      const ta = a.createdAt?.toMillis?.() || (a.createdAt?.seconds||0)*1000 || 0;
-      const tb = b.createdAt?.toMillis?.() || (b.createdAt?.seconds||0)*1000 || 0;
+      const ta = a.createdAt?.toMillis?.() || (a.createdAt?.seconds||0)*1000;
+      const tb = b.createdAt?.toMillis?.() || (b.createdAt?.seconds||0)*1000;
       return tb - ta;
     });
 
@@ -75,18 +66,16 @@ export async function loadAll() {
     document.getElementById('statDrafts').textContent    = state.allPosts.filter(p=>!p.published).length;
 
     try {
-      const subTimeout = new Promise(res => setTimeout(() => res('timeout'), 4000));
-      const subFetch = getDocs(collection(db, 'subscribers'));
-      const subResult = await Promise.race([subFetch, subTimeout]);
-      
-      if (subResult !== 'timeout') {
-         document.getElementById('statSubs').textContent = subResult.size;
-      } else {
-         document.getElementById('statSubs').textContent = '— (Timed out)';
-      }
-    } catch(_) { document.getElementById('statSubs').textContent = '— (Error)'; }
+      const ss = await withTimeout(
+        getDocs(query(collection(db,'subscribers'), limit(1000))),
+        FIREBASE_TIMEOUT_MS,
+        'subscribers stats query'
+      );
+      document.getElementById('statSubs').textContent = ss.size;
+    } catch(_) { document.getElementById('statSubs').textContent = '—'; }
 
     renderPostsTable(state.allPosts.slice(0,8), 'recentPostsBody');
+    window.__setAdminIntegrationStatus?.('online', 'Integrations: Online');
 
   } catch(e) {
     console.error('loadAll error:', e);
@@ -96,7 +85,7 @@ export async function loadAll() {
     if (isRules) hint = 'Firestore rules not deployed — go to Firebase Console → Firestore → Rules and publish the new rules.';
     if (isInit)  hint = 'config.js not updated — deploy the new config.js from blogspro-complete-fix.zip and hard-refresh.';
     const tbody = document.getElementById('recentPostsBody');
-    if (tbody) tbody.innerHTML = `<tr><td colspan="6"><div class="table-empty" style="color:#fca5a5;line-height:1.8">
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7"><div class="table-empty" style="color:#fca5a5;line-height:1.8">
       ✕ ${e.message || 'Unknown error'}<br>
       <span style="font-size:0.75rem;color:var(--muted)">${hint}</span><br>
       <button onclick="loadAll()" style="margin-top:8px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:4px 12px;border-radius:3px;font-size:0.75rem;cursor:pointer">↺ Retry</button>
@@ -104,6 +93,7 @@ export async function loadAll() {
     ['statTotal','statPublished','statDrafts','statSubs'].forEach(id => {
       const el = document.getElementById(id); if (el) el.textContent = '—';
     });
+    window.__setAdminIntegrationStatus?.('degraded', 'Integrations: Degraded');
     showToast('Failed to load: ' + (e.message || e.code), 'error');
   }
 }
@@ -112,7 +102,7 @@ export function renderPostsTable(posts, tbodyId) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
   if (!posts.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="table-empty">No posts yet.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7"><div class="table-empty">No posts yet.</div></td></tr>';
     return;
   }
   // FIX: Escape post fields to prevent XSS in admin table
@@ -120,6 +110,7 @@ export function renderPostsTable(posts, tbodyId) {
   tbody.innerHTML = posts.map(p => {
     const title  = escHtml(p.title) || '(Untitled)';
     const cat    = escHtml(p.category) || '—';
+    const author = escHtml(p.authorName || p.authorEmail || 'BlogsPro');
     const date   = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) || '—';
     // FEATURE 13: Stage-based status display
     const stageColors = { writing: '#93c5fd', review: '#c9a84c', published: '#4ade80', archived: '#8896b3' };
@@ -132,30 +123,19 @@ export function renderPostsTable(posts, tbodyId) {
     return `<tr>
       <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>${title}</strong></td>
       <td>${cat}</td><td>${status}</td>
+      <td style="white-space:nowrap">${author}</td>
       <td>${views}</td>
       <td style="color:var(--muted);white-space:nowrap">${date}</td>
       <td>
-        ${p.isStatic 
-          ? `<button class="action-btn" onclick="window.open('/posts/${p.fileName}', '_blank')">View</button>
-             <button class="action-btn" onclick="copyPostLink('${p.slug}', true)">Copy Link</button>`
-          : `<button class="action-btn" onclick="editPost('${p.id}')">Edit</button>
-             <button class="action-btn" onclick="copyPostLink('${p.slug}')">Copy Link</button>
-             <button class="action-btn" onclick="togglePublish('${p.id}',${!!p.published})">${p.published?'Unpublish':'Publish'}</button>
-             ${stage !== 'archived' ? `<button class="action-btn" onclick="archivePost('${p.id}')">Archive</button>` : ''}
-             <button class="action-btn delete" onclick="deletePost('${p.id}')">Delete</button>`
-        }
+        <button class="action-btn" onclick="editPost('${p.id}')">Edit</button>
+        <button class="action-btn" onclick="togglePublish('${p.id}',${!!p.published})">${p.published?'Unpublish':'Publish'}</button>
+        ${stage !== 'archived' ? `<button class="action-btn" onclick="archivePost('${p.id}')">Archive</button>` : ''}
+        <button class="action-btn delete" onclick="deletePost('${p.id}')">Delete</button>
       </td></tr>`;
   }).join('');
 }
 
 export async function savePost(publish) {
-  // Prevent concurrent saves (race condition fix)
-  if (state.isSaving) {
-    showToast('Save in progress, please wait…', 'info');
-    return;
-  }
-  state.isSaving = true;
-
   const title    = stripTags(document.getElementById('postTitle').value.trim());
   const excerpt  = document.getElementById('postExcerpt').value.trim();
   const cat      = document.getElementById('postCategory').value;
@@ -166,24 +146,12 @@ export async function savePost(publish) {
   const editor   = document.getElementById('editor');
   const readMin  = Math.max(1, Math.ceil((editor.textContent||'').split(/\s+/).filter(Boolean).length/200));
 
-  if (!title) { showToast('Please add a title.','error'); state.isSaving = false; return; }
+  if (!title) { showToast('Please add a title.','error'); return; }
 
   const saveStatus = document.getElementById('saveStatus');
   saveStatus.textContent = 'Checking images…';
   let image   = document.getElementById('postImage').value.trim();
   let content = editor.innerHTML;
-
-  // Validate image URL for safety
-  if (image && !image.startsWith('blob:')) {
-    const validatedUrl = validateImageUrl(image);
-    if (!validatedUrl) {
-      showToast('Invalid image URL (must be HTTPS from safe domains).', 'error');
-      saveStatus.textContent = '';
-      state.isSaving = false;
-      return;
-    }
-    image = validatedUrl;
-  }
 
   if (image.startsWith('blob:')) {
     try {
@@ -191,7 +159,7 @@ export async function savePost(publish) {
       const file = await blobUrlToFile(image, 'featured-image.jpg');
       image = await uploadToStorage(file, 'featured', pct => { saveStatus.textContent = `⏳ Uploading featured ${pct}%`; });
       document.getElementById('postImage').value = image;
-    } catch(e) { showToast('Featured upload failed: ' + e.message,'error'); saveStatus.textContent=''; state.isSaving = false; return; }
+    } catch(e) { showToast('Featured upload failed: ' + e.message,'error'); saveStatus.textContent=''; return; }
   }
 
   const blobMatches = [...content.matchAll(/src="(blob:[^"]+)"/g)];
@@ -214,7 +182,20 @@ export async function savePost(publish) {
   saveStatus.textContent = 'Saving…';
   // FEATURE 13: Determine post stage based on publish state
   const stage = publish ? 'published' : (state.editingPostId ? 'review' : 'writing');
-  const data = { title, excerpt, content, category:cat, slug, image, metaDesc, tags, readingTime:readMin, published:publish, premium:state.isPremium, stage, updatedAt:serverTimestamp() };
+  const existingPost = state.editingPostId ? state.allPosts.find(p => p.id === state.editingPostId) : null;
+  const email = state.currentUser?.email || '';
+  const fallbackName = state.currentUserProfile?.name
+    || state.currentUser?.displayName
+    || (email.includes('@') ? email.split('@')[0] : '')
+    || 'BlogsPro';
+  const data = {
+    title, excerpt, content, category:cat, slug, image, metaDesc, tags,
+    readingTime:readMin, published:publish, premium:state.isPremium, stage,
+    authorUid: existingPost?.authorUid || state.currentUser?.uid || null,
+    authorName: existingPost?.authorName || fallbackName,
+    authorEmail: existingPost?.authorEmail || email || null,
+    updatedAt:serverTimestamp()
+  };
   try {
     if (state.editingPostId) {
       await updateDoc(doc(db,'posts',state.editingPostId), data);
@@ -223,71 +204,14 @@ export async function savePost(publish) {
       const ref = await addDoc(collection(db,'posts'), data);
       state.editingPostId = ref.id;
     }
+    const topbarStateBadge = document.getElementById('topbarStateBadge');
+    if (topbarStateBadge) topbarStateBadge.textContent = publish ? 'Published' : 'Draft';
     saveStatus.textContent = publish ? '✓ Published' : '✓ Draft saved';
     showToast(publish ? 'Post published!' : 'Draft saved.', 'success');
     await loadAll();
-    return state.editingPostId;
-  } catch(e) {
-    saveStatus.textContent = '';
-    showToast('Save failed: '+(e.code||e.message),'error');
-    return null;
-  } finally {
-    state.isSaving = false;
-  }
+  } catch(e) { saveStatus.textContent = ''; showToast('Save failed: '+(e.code||e.message),'error'); }
 }
 window.savePost = savePost;
-
-window.savePostAndNotify = async function() {
-  const btn = event?.currentTarget;
-  const originalText = btn ? btn.innerHTML : "🚀 Publish & Notify";
-  if (btn) {
-    btn.innerHTML = "⏳ Publishing...";
-    btn.disabled = true;
-  }
-
-  try {
-    const postId = await savePost(true);
-    if (!postId) {
-      if (btn) {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-      }
-      return;
-    }
-
-    if (btn) btn.innerHTML = "📧 Notifying Subscribers...";
-    
-    const title = document.getElementById('postTitle').value.trim() || 'New Article';
-    const excerpt = document.getElementById('postExcerpt').value.trim() || 'Check out our latest post on BlogsPro!';
-    const rawSlug = document.getElementById('postSlug').value.trim() || title;
-    const slug = rawSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || postId;
-    
-    // Using unified worker endpoint and secret from Remote Config
-    const workerUrl = state.NEWSLETTER_CONFIG?.workerUrl || "https://blogspro-sentry-webhook.abhishek-dutta1996.workers.dev/newsletter";
-    const secret = state.NEWSLETTER_CONFIG?.secret || "biltu123";
-
-    const res = await fetch(workerUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ postId, title, excerpt, slug, secret })
-    });
-
-    if (res.ok) {
-        showToast('Blast Complete! Subscribers notified.', 'success');
-    } else {
-        const errText = await res.text();
-        throw new Error('Newsletter API Failed: ' + errText);
-    }
-  } catch (err) {
-    console.error('[savePostAndNotify]', err);
-    showToast('Post published, but emails failed to send. Check worker logs.', 'error');
-  } finally {
-    if (btn) {
-      btn.innerHTML = originalText;
-      btn.disabled = false;
-    }
-  }
-};
 
 // FEATURE 13: Archive/unarchive a post
 window.archivePost = async (id) => {
@@ -302,24 +226,29 @@ export async function editPost(id) {
   window.showView('editor');
   state.editingPostId = id;
   document.getElementById('editorHeading').textContent = 'Edit Post';
+  const topbarTitle = document.getElementById('topbarTitle');
+  if (topbarTitle) topbarTitle.textContent = 'Edit Post';
   try {
-    const snap = await getDoc(doc(db,'posts',id));
+    const snap = await withTimeout(getDoc(doc(db,'posts',id)), FIREBASE_TIMEOUT_MS, 'edit post query');
     if (!snap.exists()) return;
     const p = snap.data();
     const editor = document.getElementById('editor');
     document.getElementById('postTitle').value    = stripTags(p.title||'');
     document.getElementById('postExcerpt').value  = p.excerpt||'';
     document.getElementById('postSlug').value     = p.slug||'';
-    // Validate image URL for safety
-    const validatedImage = p.image ? validateImageUrl(p.image) : '';
-    document.getElementById('postImage').value    = validatedImage || '';
-    if (validatedImage) window.updateFeaturedPreview?.(validatedImage);
+    document.getElementById('postImage').value    = p.image||'';
+    if (p.image) window.updateFeaturedPreview?.(p.image);
     document.getElementById('postMeta').value     = p.metaDesc||'';
     document.getElementById('postTags').value     = (p.tags||[]).join(', ');
     editor.innerHTML = sanitize(p.content||'');
     document.getElementById('postCategory').value = p.category||'Fintech';
     state.isPremium = p.premium === true;
     document.getElementById('premiumSwitch')?.classList.toggle('on', state.isPremium);
+    const topbarStateBadge = document.getElementById('topbarStateBadge');
+    if (topbarStateBadge) {
+      const stage = p.stage || (p.published ? 'published' : 'draft');
+      topbarStateBadge.textContent = stage === 'published' ? 'Published' : (stage === 'review' ? 'Review' : 'Draft');
+    }
     window.updateWordCount?.();
     window.openAIDrawer?.('edit');
   } catch(e) { showToast('Failed to load post.','error'); }
@@ -338,27 +267,3 @@ export async function deletePost(id) {
   catch(e) { showToast('Delete failed.','error'); }
 }
 window.deletePost = deletePost;
-
-/**
- * Copies a post link to clipboard with automated UTM injection.
- * @param {string} slug - The post slug.
- */
-export function copyPostLink(slug, isStatic = false) {
-  if (!slug) {
-    showToast('Cannot copy link: Slug missing.', 'error');
-    return;
-  }
-  
-  const baseUrl = isStatic 
-    ? `${window.location.origin}/posts/${slug}.html`
-    : `${window.location.origin}/p/${slug}.html`;
-  const trackedUrl = injectUtm(baseUrl, 'admin', 'share', 'dashboard');
-  
-  navigator.clipboard.writeText(trackedUrl).then(() => {
-    showToast('Link copied with UTM tracking!', 'success');
-    trackEvent('share_link_copied', { slug, utm_source: 'admin' });
-  }).catch(() => {
-    showToast('Failed to copy link.', 'error');
-  });
-}
-window.copyPostLink = copyPostLink;

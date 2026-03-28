@@ -226,8 +226,16 @@ window._onModelChange = (val) => {
 
 // ── runCitationEngine — referenced in admin.html ─
 window.runCitationEngine = async () => {
+  if (typeof window.autoAddCitations === 'function') {
+    await window.autoAddCitations();
+    return;
+  }
   if (typeof window.aiEditAction === 'function') {
     await window.aiEditAction('references');
+    return;
+  }
+  if (typeof window.insertReferencesBlock === 'function') {
+    await window.insertReferencesBlock();
   }
 };
 
