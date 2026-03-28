@@ -46,24 +46,224 @@ export default {
       }
 
       if (url.pathname === "/quotes") {
-        const defaultSymbols = "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank,NSE_EQ|RELIANCE,NSE_EQ|HDFCBANK,NSE_EQ|ICICIBANK,NSE_EQ|INFY,NSE_EQ|TCS";
-        const symbols = url.searchParams.get("symbols") || defaultSymbols;
+        // NSE indices that are accessible with the current Upstox token
+        const nseIndexSymbols = [
+          "NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank", "NSE_INDEX|Nifty IT",
+          "NSE_INDEX|Nifty Auto", "NSE_INDEX|Nifty Pharma", "NSE_INDEX|Nifty Metal",
+          "NSE_INDEX|Nifty FMCG", "NSE_INDEX|Nifty PSU Bank", "NSE_INDEX|Nifty Realty",
+          "NSE_INDEX|Nifty Midcap 50", "NSE_INDEX|Nifty Midcap 100",
+          "NSE_INDEX|Nifty Smallcap 100", "NSE_INDEX|Nifty Energy",
+          "NSE_INDEX|Nifty Infra", "NSE_INDEX|Nifty Media"
+        ].join(",");
 
-        const response = await fetch(
-          `${UPSTOX_API}/market-quote/quotes?symbol=${encodeURIComponent(symbols)}`,
-          {
-            headers: {
-              "Accept": "application/json",
-              "Authorization": `Bearer ${token}`
+        // Yahoo Finance tickers → [yf_ticker, instrument_key, display_symbol]
+        // v8/finance/chart used per-symbol in parallel — v7/quote now requires auth
+        const yfMap = [
+          // ── NSE Blue-chip stocks (INR) ──────────────────────────────────────
+          ["RELIANCE.NS",   "NSE_EQ:RELIANCE",    "RELIANCE"],
+          ["HDFCBANK.NS",   "NSE_EQ:HDFCBANK",    "HDFCBANK"],
+          ["ICICIBANK.NS",  "NSE_EQ:ICICIBANK",   "ICICIBANK"],
+          ["INFY.NS",       "NSE_EQ:INFY",        "INFY"],
+          ["TCS.NS",        "NSE_EQ:TCS",         "TCS"],
+          ["SBIN.NS",       "NSE_EQ:SBIN",        "SBIN"],
+          ["BHARTIARTL.NS", "NSE_EQ:BHARTIARTL",  "BHARTIARTL"],
+          ["LT.NS",         "NSE_EQ:LT",          "LT"],
+          ["KOTAKBANK.NS",  "NSE_EQ:KOTAKBANK",   "KOTAKBANK"],
+          ["AXISBANK.NS",   "NSE_EQ:AXISBANK",    "AXISBANK"],
+          ["WIPRO.NS",      "NSE_EQ:WIPRO",       "WIPRO"],
+          ["HCLTECH.NS",    "NSE_EQ:HCLTECH",     "HCLTECH"],
+          ["MARUTI.NS",     "NSE_EQ:MARUTI",      "MARUTI"],
+          ["TITAN.NS",      "NSE_EQ:TITAN",       "TITAN"],
+          ["BAJFINANCE.NS", "NSE_EQ:BAJFINANCE",  "BAJFINANCE"],
+          ["ADANIENT.NS",   "NSE_EQ:ADANIENT",    "ADANIENT"],
+          ["HINDUNILVR.NS", "NSE_EQ:HINDUNILVR",  "HINDUNILVR"],
+          ["NESTLEIND.NS",  "NSE_EQ:NESTLEIND",   "NESTLEIND"],
+          ["SUNPHARMA.NS",  "NSE_EQ:SUNPHARMA",   "SUNPHARMA"],
+          ["TATAMOTORS.NS", "NSE_EQ:TATAMOTORS",  "TATAMOTORS"],
+          // ── Global indices (routed to indices segment) ──────────────────────
+          ["^GSPC",    "GLOBAL_INDEX:SP500",    "S&P 500"],
+          ["^IXIC",    "GLOBAL_INDEX:NASDAQ",   "NASDAQ"],
+          ["^DJI",     "GLOBAL_INDEX:DJIA",     "Dow Jones"],
+          ["^FTSE",    "GLOBAL_INDEX:FTSE100",  "FTSE 100"],
+          ["^N225",    "GLOBAL_INDEX:NIKKEI",   "Nikkei 225"],
+          ["^HSI",     "GLOBAL_INDEX:HSI",      "Hang Seng"],
+          ["^GDAXI",   "GLOBAL_INDEX:DAX",      "DAX"],
+          ["^FCHI",    "GLOBAL_INDEX:CAC40",    "CAC 40"],
+          ["^STOXX50E","GLOBAL_INDEX:EUROSTOXX","Euro Stoxx 50"],
+          ["^BSESN",   "GLOBAL_INDEX:SENSEX",   "Sensex"],
+          // ── Commodities (fetched in USD, converted to INR below) ───────────
+          ["GC=F",  "MCX_FO:MCX Gold",    "MCX Gold"],
+          ["SI=F",  "MCX_FO:MCX Silver",  "MCX Silver"],
+          ["CL=F",  "MCX_FO:Crude Oil",   "Crude Oil"],
+          ["BZ=F",  "MCX_FO:Brent Crude", "Brent Crude"],
+          ["NG=F",  "MCX_FO:Natural Gas", "Natural Gas"],
+          ["HG=F",  "MCX_FO:Copper",      "Copper"],
+          ["PL=F",  "MCX_FO:Platinum",    "Platinum"],
+          ["PA=F",  "MCX_FO:Palladium",   "Palladium"],
+          ["ZC=F",  "MCX_FO:Corn",        "Corn"],
+          ["ZW=F",  "MCX_FO:Wheat",       "Wheat"],
+          // ── Bond yields — US Treasuries ──────────────────────────────────────
+          ["^TNX", "NSE_DEBT:US10Y",  "US 10Y Yield"],
+          ["^FVX", "NSE_DEBT:US5Y",   "US 5Y Yield"],
+          ["^TYX", "NSE_DEBT:US30Y",  "US 30Y Yield"],
+          ["^IRX", "NSE_DEBT:US3M",   "US 3M T-Bill"],
+          // Indian bonds are fetched from NSE allIndices API (not Yahoo Finance)
+          // ── FX / Currency ───────────────────────────────────────────────────
+          ["USDINR=X", "NSE_CDS:USDINR", "USDINR"],
+          ["EURINR=X", "NSE_CDS:EURINR", "EURINR"],
+          ["GBPINR=X", "NSE_CDS:GBPINR", "GBPINR"],
+          ["JPYINR=X", "NSE_CDS:JPYINR", "JPYINR"],
+          ["AUDINR=X", "NSE_CDS:AUDINR", "AUDINR"],
+          ["EURUSD=X", "NSE_CDS:EURUSD", "EURUSD"],
+          ["GBPUSD=X", "NSE_CDS:GBPUSD", "GBPUSD"],
+          ["USDJPY=X", "NSE_CDS:USDJPY", "USDJPY"],
+          ["AUDUSD=X", "NSE_CDS:AUDUSD", "AUDUSD"],
+          ["USDCNY=X", "NSE_CDS:USDCNY", "USDCNY"],
+        ];
+
+        const fetchNseBondIndices = async () => {
+          try {
+            const r = await fetch('https://www.nseindia.com/api/allIndices', {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Referer': 'https://www.nseindia.com/',
+                'X-Requested-With': 'XMLHttpRequest',
+              }
+            });
+            if (!r.ok) return {};
+            const text = await r.text();
+            if (!text.trim().startsWith('{')) return {};
+            let json; try { json = JSON.parse(text); } catch (_) { return {}; }
+            const fiItems = (json?.data || []).filter(x => x.key === 'FIXED INCOME INDICES');
+            const symbolMap = {
+              'NIFTY GS 10YR':     'NSE_DEBT:G-Sec 10Y',
+              'NIFTY GS 8 13YR':   'NSE_DEBT:G-Sec 8-13Y',
+              'NIFTY GS 4 8YR':    'NSE_DEBT:G-Sec 4-8Y',
+              'NIFTY GS 11 15YR':  'NSE_DEBT:G-Sec 11-15Y',
+              'NIFTY GS 15YRPLUS': 'NSE_DEBT:G-Sec 15Y+',
+              'NIFTY GS COMPSITE': 'NSE_DEBT:G-Sec Composite',
+              'BHARATBOND-APR30':  'NSE_DEBT:BBond Apr 2030',
+              'BHARATBOND-APR31':  'NSE_DEBT:BBond Apr 2031',
+              'BHARATBOND-APR32':  'NSE_DEBT:BBond Apr 2032',
+              'BHARATBOND-APR33':  'NSE_DEBT:BBond Apr 2033',
+            };
+            const result = {};
+            for (const item of fiItems) {
+              const instrKey = symbolMap[item.indexSymbol];
+              if (!instrKey) continue;
+              const last = Number(item.last);
+              const prevClose = Number(item.previousClose);
+              if (!Number.isFinite(last)) continue;
+              result[instrKey] = {
+                last_price: last,
+                ohlc: { open: Number(item.open)||last, high: Number(item.high)||last,
+                        low: Number(item.low)||last, close: Number.isFinite(prevClose)?prevClose:last },
+                volume: 0,
+                net_change: Number(item.variation) || 0,
+                _live: true,
+                _source: 'nse',
+              };
             }
-          }
-        );
-        const data = await response.json();
+            return result;
+          } catch (_) { return {}; }
+        };
 
-        if (data.status === "error" || !response.ok) {
-          return jsonResponse(data, response.status || 401);
+        const fetchYfChart = async ([ticker, instrKey]) => {
+          try {
+            const r = await fetch(
+              `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`,
+              { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" } }
+            );
+            const text = await r.text();
+            if (!r.ok || !text.trim().startsWith('{')) return null;
+            let json; try { json = JSON.parse(text); } catch (_) { return null; }
+            const meta = json?.chart?.result?.[0]?.meta;
+            const price = Number(meta?.regularMarketPrice);
+            const prevClose = Number(meta?.chartPreviousClose);
+            if (!Number.isFinite(price)) return null;
+            return [instrKey, {
+              last_price: price,
+              ohlc: {
+                open: Number(meta?.regularMarketOpen) || price,
+                high: Number(meta?.regularMarketDayHigh) || price,
+                low:  Number(meta?.regularMarketDayLow)  || price,
+                close: Number.isFinite(prevClose) ? prevClose : price,
+              },
+              volume: Number(meta?.regularMarketVolume) || 0,
+              net_change: Number.isFinite(prevClose) && prevClose ? price - prevClose : 0,
+              _source: "yahoo",
+            }];
+          } catch (_) { return null; }
+        };
+
+        // Fetch Upstox NSE indices + NSE bond indices + all Yahoo Finance symbols in parallel
+        const [upstoxRes, nseBondsRes, ...yfResults] = await Promise.allSettled([
+          fetch(
+            `${UPSTOX_API}/market-quote/quotes?symbol=${encodeURIComponent(nseIndexSymbols)}`,
+            { headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` } }
+          ).then((r) => r.json()).catch(() => null),
+          fetchNseBondIndices(),
+          ...yfMap.map(fetchYfChart),
+        ]);
+
+        const merged = {};
+
+        // Upstox NSE indices
+        const upstoxData = upstoxRes.status === "fulfilled" ? (upstoxRes.value?.data || {}) : {};
+        Object.assign(merged, upstoxData);
+
+        // NSE bond indices (G-Sec + BHARAT Bond)
+        const nseBonds = nseBondsRes.status === "fulfilled" ? (nseBondsRes.value || {}) : {};
+        Object.assign(merged, nseBonds);
+
+        // Yahoo Finance — each result is [instrKey, cardData] or null
+        for (const res of yfResults) {
+          if (res.status === "fulfilled" && res.value) {
+            const [instrKey, cardData] = res.value;
+            merged[instrKey] = cardData;
+          }
         }
-        return jsonResponse(data, 200, { "Cache-Control": "public, max-age=1" });
+
+        // Convert commodity USD prices → INR using live USDINR rate
+        // Gold/Silver: COMEX $/troy-oz → MCX ₹ per respective unit
+        const usdinr = Number(merged["NSE_CDS:USDINR"]?.last_price);
+        if (Number.isFinite(usdinr) && usdinr > 0) {
+          const conversionMap = {
+            "MCX_FO:MCX Gold":    (p) => p * usdinr * 10 / 31.1035,    // $/oz → ₹/10g
+            "MCX_FO:MCX Silver":  (p) => p * usdinr * 1000 / 31.1035,  // $/oz → ₹/kg
+            "MCX_FO:Crude Oil":   (p) => p * usdinr,                    // $/bbl → ₹/bbl
+            "MCX_FO:Brent Crude": (p) => p * usdinr,
+            "MCX_FO:Natural Gas": (p) => p * usdinr,                    // $/mmBtu → ₹/mmBtu
+            "MCX_FO:Copper":      (p) => p * usdinr / 0.453592,         // $/lb → ₹/kg
+            "MCX_FO:Platinum":    (p) => p * usdinr,                    // $/oz → ₹/oz
+            "MCX_FO:Palladium":   (p) => p * usdinr,
+          };
+          for (const [key, fn] of Object.entries(conversionMap)) {
+            if (!merged[key]) continue;
+            const safeConv = (v) => { const n = Number(v); return Number.isFinite(n) ? fn(n) : v; };
+            const m = merged[key];
+            const newPrice = safeConv(m.last_price);
+            const newClose = safeConv(m.ohlc?.close);
+            merged[key] = {
+              ...m,
+              last_price: newPrice,
+              ohlc: {
+                open:  safeConv(m.ohlc?.open),
+                high:  safeConv(m.ohlc?.high),
+                low:   safeConv(m.ohlc?.low),
+                close: newClose,
+              },
+              net_change: newPrice - newClose,
+              _inr: true,
+            };
+          }
+        }
+
+        if (!Object.keys(merged).length) {
+          return jsonResponse({ status: "error", message: "All data sources failed" }, 503);
+        }
+        return jsonResponse({ status: "success", data: merged }, 200, { "Cache-Control": "public, max-age=15" });
       }
 
       if (url.pathname === "/historical") {
@@ -96,10 +296,12 @@ export default {
         const tickers = ["^GSPC", "^IXIC", "GC=F", "BZ=F"];
         const results = await Promise.all(tickers.map(async (ticker) => {
           try {
-            const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`);
+            const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`,
+              { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" } });
             const text = await r.text();
-            if (!r.ok) return null;
-            const parsed = JSON.parse(text);
+            if (!r.ok || !text.trim().startsWith('{')) return null;
+            let parsed;
+            try { parsed = JSON.parse(text); } catch (_) { return null; }
             const meta = parsed?.chart?.result?.[0]?.meta;
             if (!meta || !Number.isFinite(Number(meta.regularMarketPrice)) || !Number.isFinite(Number(meta.chartPreviousClose))) return null;
             return {

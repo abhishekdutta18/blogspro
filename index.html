@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BlogsPro — Fintech | Compliance | Strategy</title>
   <meta name="description" content="Sharp insights on fintech, regulatory compliance, and growth strategy." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="icon" type="image/x-icon" href="favicon.ico" />
-  <link rel="apple-touch-icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
@@ -610,9 +611,15 @@
     }
     .market-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.45rem;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 0.4rem;
       padding: 0.5rem;
+    }
+    @media (max-width: 1200px) {
+      .market-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    }
+    @media (max-width: 900px) {
+      .market-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     .market-segments {
       display: block;
@@ -759,6 +766,7 @@
         min-height: 84px;
       }
       .market-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .market-row { min-height: 84px; }
     }
 
     /* ── SECTION ── */
@@ -1342,8 +1350,9 @@
 
 <!-- FIREBASE -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<!-- Google Charts -->
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript">google.charts.load('current', { packages: ['corechart'] });</script>
 <script type="module">
   import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, collection, doc, getDocs, getDoc, query, where, addDoc }
@@ -1722,28 +1731,36 @@
     ];
     const loadCryptoFromCoinGecko = async () => {
       const ids = [
-        'bitcoin',
-        'ethereum',
-        'binancecoin',
-        'solana',
-        'ripple',
-        'dogecoin',
-        'cardano',
-        'matic-network'
+        'bitcoin', 'ethereum', 'binancecoin', 'solana', 'ripple',
+        'dogecoin', 'cardano', 'matic-network', 'avalanche-2', 'polkadot',
+        'chainlink', 'litecoin', 'uniswap', 'near', 'stellar',
+        'internet-computer', 'aptos', 'arbitrum', 'optimism', 'filecoin'
       ];
       const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd&include_24hr_change=true`;
       const res = await withTimeout(fetch(`${url}&t=${Date.now()}`, { cache: 'no-store' }), 12000, 'coingecko crypto');
       if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status}`);
       const json = await res.json();
       const map = [
-        ['bitcoin', 'BTCUSDT'],
-        ['ethereum', 'ETHUSDT'],
-        ['binancecoin', 'BNBUSDT'],
-        ['solana', 'SOLUSDT'],
-        ['ripple', 'XRPUSDT'],
-        ['dogecoin', 'DOGEUSDT'],
-        ['cardano', 'ADAUSDT'],
-        ['matic-network', 'MATICUSDT'],
+        ['bitcoin',          'BTCUSDT'],
+        ['ethereum',         'ETHUSDT'],
+        ['binancecoin',      'BNBUSDT'],
+        ['solana',           'SOLUSDT'],
+        ['ripple',           'XRPUSDT'],
+        ['dogecoin',         'DOGEUSDT'],
+        ['cardano',          'ADAUSDT'],
+        ['matic-network',    'MATICUSDT'],
+        ['avalanche-2',      'AVAXUSDT'],
+        ['polkadot',         'DOTUSDT'],
+        ['chainlink',        'LINKUSDT'],
+        ['litecoin',         'LTCUSDT'],
+        ['uniswap',          'UNIUSDT'],
+        ['near',             'NEARUSDT'],
+        ['stellar',          'XLMUSDT'],
+        ['internet-computer','ICPUSDT'],
+        ['aptos',            'APTUSDT'],
+        ['arbitrum',         'ARBUSDT'],
+        ['optimism',         'OPUSDT'],
+        ['filecoin',         'FILUSDT'],
       ];
       return map
         .map(([id, sym]) => {
@@ -1751,7 +1768,7 @@
           const price = Number(row?.usd);
           const change = Number(row?.usd_24h_change);
           if (!Number.isFinite(price)) return null;
-          return { symbol: sym, price, change: Number.isFinite(change) ? change : 0, source: 'coingecko' };
+          return { symbol: sym, price, change: Number.isFinite(change) ? change : 0, source: 'coingecko', _live: true };
         })
         .filter(Boolean);
     };
@@ -1833,26 +1850,19 @@
       ],
     };
     const segmentTargetCount = {
-      indices: 12,
-      stocksOptions: 16,
-      bonds: 10,
-      currency: 10,
-      commodities: 10,
-      crypto: 12,
+      indices: 24,
+      stocksOptions: 24,
+      bonds: 12,
+      currency: 12,
+      commodities: 12,
+      crypto: 20,
     };
     const padCards = (items, segmentKey) => {
+      // If we have any live data, show only that — never mix live with stale fallback
+      if (items.length > 0) return items;
+      // Only use fallback when the API returned nothing for this segment
       const target = segmentTargetCount[segmentKey] || 6;
-      const fallback = fallbackBySegment[segmentKey] || [];
-      const out = items.slice(0, target);
-      const seen = new Set(out.map((x) => String(x?.symbol || '').toUpperCase()));
-      for (const f of fallback) {
-        if (out.length >= target) break;
-        const k = String(f?.symbol || '').toUpperCase();
-        if (!k || seen.has(k)) continue;
-        seen.add(k);
-        out.push(f);
-      }
-      return out;
+      return (fallbackBySegment[segmentKey] || []).slice(0, target);
     };
     const isIndiaMarketHours = () => {
       const d = new Date();
@@ -1871,9 +1881,8 @@
       return isWeekday && mins >= (9 * 60 + 15) && mins <= (15 * 60 + 30);
     };
     const isLiveCard = (c, key) => {
-      if (key === 'crypto') return true;
-      const vol = Number(c?.volume);
-      if (Number.isFinite(vol) && vol > 0) return true;
+      if (!c._live) return false; // fallback/static data is never live
+      if (key === 'crypto') return true; // crypto trades 24/7
       return isIndiaMarketHours();
     };
     const withLiveDrift = (items, segmentKey) => {
@@ -2022,6 +2031,7 @@
             prev: Number(val?.ohlc?.close ?? val?.prev_close_price),
             volume: Number(val?.volume ?? val?.vol ?? val?.total_volume),
             yield: Number(val?.yield ?? val?.ytm ?? val?.yield_to_maturity),
+            _live: true,
           };
           const k = String(instrument).toUpperCase();
           const symU = String(symbol).toUpperCase();
@@ -2032,9 +2042,9 @@
             continue;
           }
           if (k.includes('INDEX') || symbol.toUpperCase().includes('NIFTY')) segments.indices.push(card);
-          else if (k.includes('BSE') || symbol.includes('GSEC') || symbol.includes('BOND')) segments.bonds.push(card);
-          else if (k.includes('CDS') || symbol.includes('USDINR') || symbol.includes('EURINR')) segments.currency.push(card);
-          else if (k.includes('MCX') || symbol.includes('GOLD') || symbol.includes('SILVER') || symbol.includes('CRUDE')) segments.commodities.push(card);
+          else if (k.includes('BSE_DEBT') || k.includes('NSE_DEBT') || k.includes('NSE_BD') || symbol.includes('GSEC') || symbol.includes('BOND')) segments.bonds.push(card);
+          else if (k.includes('CDS') || k.startsWith('NSE_CDS') || k.startsWith('BSE_CDS')) segments.currency.push(card);
+          else if (k.includes('MCX') || k.startsWith('NSE_COM') || k.startsWith('BSE_COM')) segments.commodities.push(card);
           else if (!isOption) segments.stocksOptions.push(card);
         }
         const hasAny = Object.values(segments).some((arr) => arr.length);
@@ -2051,12 +2061,12 @@
             }
           }
         } catch (_) {}
-        renderCards(segmentIndices, segments.indices.slice(0, 20), 'indices');
-        renderCards(segmentStocksOptions, segments.stocksOptions.slice(0, 24), 'stocksOptions');
-        renderCards(segmentBonds, segments.bonds.slice(0, 14), 'bonds');
-        renderCards(segmentCurrency, segments.currency.slice(0, 14), 'currency');
-        renderCards(segmentCommodities, segments.commodities.slice(0, 14), 'commodities');
-        renderCards(segmentCrypto, segments.crypto.slice(0, 16), 'crypto');
+        renderCards(segmentIndices, segments.indices.slice(0, 30), 'indices');
+        renderCards(segmentStocksOptions, segments.stocksOptions.slice(0, 30), 'stocksOptions');
+        renderCards(segmentBonds, segments.bonds.slice(0, 16), 'bonds');
+        renderCards(segmentCurrency, segments.currency.slice(0, 16), 'currency');
+        renderCards(segmentCommodities, segments.commodities.slice(0, 16), 'commodities');
+        renderCards(segmentCrypto, segments.crypto.slice(0, 20), 'crypto');
         skeletonEl.style.display = 'none';
         segmentIndices.dataset.loaded = '1';
         marketLastUpdatedAt = Date.now();
@@ -2273,122 +2283,71 @@
       }
       return { history, forecastPoint };
     };
-    const niceNum = (range, round) => {
-      const r = Math.max(1e-12, Math.abs(range));
-      const exponent = Math.floor(Math.log10(r));
-      const fraction = r / Math.pow(10, exponent);
-      let niceFraction;
-      if (round) {
-        if (fraction < 1.5) niceFraction = 1;
-        else if (fraction < 3) niceFraction = 2;
-        else if (fraction < 7) niceFraction = 5;
-        else niceFraction = 10;
-      } else {
-        if (fraction <= 1) niceFraction = 1;
-        else if (fraction <= 2) niceFraction = 2;
-        else if (fraction <= 5) niceFraction = 5;
-        else niceFraction = 10;
-      }
-      return niceFraction * Math.pow(10, exponent);
-    };
-    const buildNiceScale = (lo, hi, maxTicks = 5) => {
-      let dMin = Number(lo);
-      let dMax = Number(hi);
-      if (!Number.isFinite(dMin) || !Number.isFinite(dMax)) return { min: 0, max: 1, step: 0.25 };
-      if (dMin === dMax) {
-        const bump = Math.max(1, Math.abs(dMin) * 0.05);
-        dMin -= bump;
-        dMax += bump;
-      }
-      const range = niceNum(dMax - dMin, false);
-      const step = niceNum(range / Math.max(2, maxTicks - 1), true);
-      const nMin = Math.floor(dMin / step) * step;
-      const nMax = Math.ceil(dMax / step) * step;
-      return { min: nMin, max: nMax, step };
-    };
-    const renderQoqChartJs = (history, forecastPoint) => {
-      if (!window.Chart) return false;
-      const seriesAll = forecastPoint ? [...history, forecastPoint] : history.slice();
-      const min = Math.min(...seriesAll.map((s) => s.value));
-      const max = Math.max(...seriesAll.map((s) => s.value));
-      const scale = buildNiceScale(min, max, 5);
-      const labels = seriesAll.map((s) => s.label);
-      const histData = history.map((s) => s.value);
-      const forecastData = forecastPoint ? [...Array(Math.max(0, history.length - 1)).fill(null), history[history.length - 1].value, forecastPoint.value] : [];
-      qoqBarsEl.innerHTML = '<div class="qoq-chart-wrap"><canvas id="indiaQoqCanvas"></canvas></div>';
+    const renderQoqGoogleChart = (history, forecastPoint) => {
+      if (!window.google || !window.google.visualization) return false;
+      qoqBarsEl.innerHTML = '<div id="indiaQoqGoogleChart" style="width:100%;height:190px"></div>';
       qoqBarsEl.style.height = '220px';
       qoqBarsEl.style.maxHeight = '220px';
-      const canvas = document.getElementById('indiaQoqCanvas');
-      if (!canvas) return false;
-      canvas.height = 190;
-      canvas.style.height = '190px';
-      if (indiaQoqChart) indiaQoqChart.destroy();
-      const DL = window.ChartDataLabels;
-      if (DL && window.Chart && !window.Chart.registry.plugins.get('datalabels')) {
-        window.Chart.register(DL);
-      }
-      indiaQoqChart = new Chart(canvas.getContext('2d'), {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: 'Historical',
-              data: histData,
-              borderColor: '#d8b95e',
-              backgroundColor: 'rgba(216,185,94,0.15)',
-              pointBackgroundColor: '#e9d08a',
-              pointBorderColor: '#080d1a',
-              tension: 0.2,
-              pointRadius: 3,
-              borderWidth: 2
-            },
-            ...(forecastPoint ? [{
-              label: 'Forecast',
-              data: forecastData,
-              borderColor: '#8fb5ff',
-              borderDash: [6, 5],
-              pointRadius: 3,
-              pointBackgroundColor: '#8fb5ff',
-              tension: 0
-            }] : [])
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            datalabels: {
-              color: '#e9d08a',
-              align: 'top',
-              anchor: 'end',
-              offset: 2,
-              clamp: true,
-              formatter: (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(2) : ''),
-              font: { size: 9, weight: '600' }
-            }
-          },
-          scales: {
-            x: {
-              title: { display: true, text: 'Quarter', color: '#c9d2ea', font: { size: 10, weight: '600' } },
-              ticks: { color: '#9aa4bd', maxRotation: 0, autoSkip: true },
-              grid: { color: 'rgba(136,150,179,0.12)' }
-            },
-            y: {
-              beginAtZero: false,
-              suggestedMin: scale.min,
-              suggestedMax: scale.max,
-              title: { display: true, text: 'Value', color: '#c9d2ea', font: { size: 10, weight: '600' } },
-              ticks: {
-                color: '#9aa4bd',
-                maxTicksLimit: 6
-              },
-              grid: { color: 'rgba(136,150,179,0.18)' }
-            }
-          }
-        }
+      const chartEl = document.getElementById('indiaQoqGoogleChart');
+      if (!chartEl) return false;
+      if (indiaQoqChart) indiaQoqChart.clearChart();
+
+      const hasForecast = !!forecastPoint;
+      const cols = [
+        { type: 'string', label: 'Quarter' },
+        { type: 'number', label: 'Historical' },
+        { type: 'string', role: 'annotation' },
+        ...(hasForecast ? [{ type: 'number', label: 'Forecast' }] : [])
+      ];
+      const rows = history.map((pt) => {
+        const row = [pt.label, pt.value, String(pt.value.toFixed(2))];
+        if (hasForecast) row.push(null);
+        return row;
       });
+      if (hasForecast) {
+        // bridge: last historical point duplicated onto forecast series so lines connect
+        const last = history[history.length - 1];
+        rows[rows.length - 1][rows[rows.length - 1].length - 1] = last.value;
+        rows.push([forecastPoint.label, null, null, forecastPoint.value]);
+      }
+      const dataTable = new google.visualization.DataTable();
+      cols.forEach((c) => dataTable.addColumn(c));
+      dataTable.addRows(rows);
+
+      const options = {
+        backgroundColor: 'transparent',
+        chartArea: { left: 48, top: 16, right: 12, bottom: 36, width: '100%', height: '75%' },
+        legend: { position: 'none' },
+        curveType: 'function',
+        lineWidth: 2,
+        series: {
+          0: { color: '#d8b95e', pointSize: 4, pointShape: 'circle' },
+          ...(hasForecast ? { 1: { color: '#8fb5ff', pointSize: 4, lineDashStyle: [6, 4] } } : {})
+        },
+        annotations: {
+          textStyle: { fontSize: 9, color: '#e9d08a', bold: true },
+          stem: { color: 'transparent', length: 4 }
+        },
+        hAxis: {
+          title: 'Quarter',
+          titleTextStyle: { color: '#c9d2ea', fontSize: 10, bold: true },
+          textStyle: { color: '#9aa4bd', fontSize: 10 },
+          gridlines: { color: 'rgba(136,150,179,0.12)' },
+          baselineColor: 'rgba(136,150,179,0.35)'
+        },
+        vAxis: {
+          title: 'Value',
+          titleTextStyle: { color: '#c9d2ea', fontSize: 10, bold: true },
+          textStyle: { color: '#9aa4bd', fontSize: 10 },
+          gridlines: { color: 'rgba(136,150,179,0.18)' },
+          baselineColor: 'rgba(136,150,179,0.35)',
+          viewWindowMode: 'pretty'
+        },
+        tooltip: { textStyle: { color: '#1a1a2e', fontSize: 11 } }
+      };
+
+      indiaQoqChart = new google.visualization.LineChart(chartEl);
+      indiaQoqChart.draw(dataTable, options);
       return true;
     };
     const renderQoq = (event) => {
@@ -2399,8 +2358,8 @@
         return;
       }
       qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
-      if (renderQoqChartJs(history, forecastPoint)) {
-        // Chart and note are already rendered by renderQoqChartJs.
+      if (renderQoqGoogleChart(history, forecastPoint)) {
+        // Chart rendered by renderQoqGoogleChart.
       } else {
         qoqBarsEl.innerHTML = '<div class="calendar-empty">Chart library unavailable. Please refresh.</div>';
       }
@@ -2970,6 +2929,7 @@
     const aboutOk = await loadAbout().catch(() => false);
     const forexOk = await loadForexFactoryData().catch(() => false);
     initForexCalendarControls();
+    await new Promise((res) => google.charts.setOnLoadCallback(res));
     const indiaOk = await loadIndiaCalendarData().catch(() => false);
     const marketOk = await loadUpstoxMarketData({ showLoading: true }).catch(() => false);
     const allOk = settingsOk && postsOk && aboutOk && forexOk && indiaOk && marketOk;
