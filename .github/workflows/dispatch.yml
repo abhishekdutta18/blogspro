@@ -1,0 +1,98 @@
+name: BlogsPro Unified Dispatch Engine
+
+on:
+  schedule:
+    - cron: '0 * * * *'    # Every Hour (Hourly Pulse)
+    - cron: '30 08 * * *'  # 08:30 UTC Daily (Daily Briefing)
+    - cron: '0 09 * * 0'   # Sunday 09:00 UTC (Weekly Strategic)
+    - cron: '0 10 1 * *'   # 1st of Month 10:00 UTC (Monthly Outlook)
+  workflow_dispatch:
+    inputs:
+      frequency:
+        description: 'Analysis Frequency to Trigger'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - hourly
+          - daily
+          - weekly
+          - monthly
+
+permissions:
+  contents: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: "dispatch"
+      cancel-in-progress: false
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Execute Autonomous Briefings
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
+          NEWS_API_KEY: ${{ secrets.API_KEY_NEWS }}
+          NEWSLETTER_WORKER_URL: ${{ secrets.NEWSLETTER_WORKER_URL }}
+          NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
+          UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_TO: ${{ secrets.TELEGRAM_CHAT_ID }}
+          NOTIFICATION_WEBHOOK: ${{ secrets.WEBHOOK_SECRET }}
+        run: |
+          FREQ="${{ github.event.inputs.frequency }}"
+          EVENT="${{ github.event_name }}"
+          CRON="${{ github.event.schedule }}"
+
+          # 1. Hourly Market Pulse (Always for Dispatch/Hourly, or H:00 schedule)
+          if [ "$FREQ" == "all" ] || [ "$FREQ" == "hourly" ] || [ "$CRON" == "0 * * * *" ]; then
+            echo "🚀 Dispatching Hourly Market Pulse..."
+            node scripts/generate-briefing.js --freq=hourly
+          fi
+
+          # 2. Daily AI Briefing (Dispatch/Daily, or 08:30 schedule)
+          if [ "$FREQ" == "all" ] || [ "$FREQ" == "daily" ] || [ "$CRON" == "30 08 * * *" ]; then
+            echo "📅 Dispatching Daily AI Briefing..."
+            node scripts/generate-briefing.js --freq=daily
+          fi
+
+          # 3. Weekly Strategic Article (Dispatch/Weekly, or Sunday schedule)
+          if [ "$FREQ" == "all" ] || [ "$FREQ" == "weekly" ] || [ "$CRON" == "0 09 * * 0" ]; then
+            echo "📊 Dispatching Weekly Strategic Article..."
+            node scripts/generate-article.js --freq=weekly
+          fi
+
+          # 4. Monthly Macro Outlook (Dispatch/Monthly, or 1st schedule)
+          if [ "$FREQ" == "all" ] || [ "$FREQ" == "monthly" ] || [ "$CRON" == "0 10 1 * *" ]; then
+            echo "🌎 Dispatching Monthly Macro Outlook..."
+            node scripts/generate-article.js --freq=monthly
+          fi
+
+      - name: Update Sitemap
+        run: node scripts/generate-sitemap.js
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "BlogsPro Bot"
+          git config --global user.email "bot@blogspro.in"
+          git add briefings/ articles/ index.html sitemap.xml robots.txt
+          git commit -m "chore: automated dispatch update [skip ci]" || echo "No changes to commit"
+          git pull --rebase origin main
+          git push
