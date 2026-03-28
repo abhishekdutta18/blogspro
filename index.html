@@ -604,7 +604,10 @@
       color: var(--muted);
     }
     .market-grid {
-      display: block;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.45rem;
+      padding: 0.5rem;
     }
     .market-segments {
       display: block;
@@ -630,32 +633,39 @@
       background: rgba(8,13,26,0.65);
     }
     .market-row {
+      border: 1px solid rgba(136,150,179,0.2);
+      border-radius: 4px;
+      background: rgba(15,22,40,0.88);
+      padding: 0.5rem 0.55rem;
       display: grid;
-      grid-template-columns: minmax(110px, 1.2fr) minmax(90px, 0.8fr) minmax(70px, 0.6fr) minmax(180px, 1.5fr);
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.42rem 0.65rem;
-      border-bottom: 1px solid rgba(136,150,179,0.16);
+      gap: 0.22rem;
+      min-height: 92px;
     }
-    .market-row:last-child { border-bottom: none; }
     .market-symbol {
       font-size: 0.63rem;
-      color: var(--muted);
+      color: var(--cream);
       letter-spacing: 0.05em;
-      text-transform: none;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .market-code {
+      font-size: 0.55rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
     .market-price {
-      font-size: 0.76rem;
+      font-size: 0.9rem;
       color: var(--cream);
       font-weight: 600;
-      text-align: right;
+      line-height: 1.1;
     }
     .market-change {
-      font-size: 0.64rem;
+      font-size: 0.62rem;
       font-weight: 600;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      text-align: right;
+      text-align: left;
     }
     .market-change.up { color: #86efac; }
     .market-change.down { color: #fca5a5; }
@@ -663,7 +673,7 @@
       font-size: 0.58rem;
       color: var(--muted);
       letter-spacing: 0.03em;
-      text-align: right;
+      text-align: left;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -687,11 +697,9 @@
     .market-seg-skeleton .cal-skel { height: 10px; }
     @media (max-width: 760px) {
       .market-row {
-        grid-template-columns: minmax(120px, 1.1fr) minmax(82px, 0.8fr) minmax(64px, 0.6fr);
+        min-height: 84px;
       }
-      .market-extra {
-        display: none;
-      }
+      .market-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
     /* ── SECTION ── */
@@ -1544,8 +1552,8 @@
         { symbol: 'SBIN', price: 768.10, change: 0.76 },
         { symbol: 'BHARTIARTL', price: 1279.95, change: -0.06 },
         { symbol: 'LT', price: 3721.55, change: 0.22 },
-        { symbol: 'BANKNIFTY CE', price: 412.40, change: 3.12 },
-        { symbol: 'NIFTY PE', price: 286.15, change: -2.24 },
+        { symbol: 'KOTAKBANK', price: 1762.30, change: 0.31 },
+        { symbol: 'AXISBANK', price: 1112.40, change: -0.11 },
       ],
       bonds: [
         { symbol: 'India 10Y G-Sec', price: 100.15, change: -0.04, yield: 7.12 },
@@ -1602,7 +1610,15 @@
       return out;
     };
     const renderCards = (el, items, segmentKey) => {
-      items = padCards(items, segmentKey);
+      const dedup = [];
+      const seen = new Set();
+      for (const it of items) {
+        const k = String(it?.symbol || '').trim().toUpperCase();
+        if (!k || seen.has(k)) continue;
+        seen.add(k);
+        dedup.push(it);
+      }
+      items = padCards(dedup, segmentKey);
       const detailText = (c, key) => {
         const open = Number.isFinite(Number(c.open)) ? Number(c.open) : NaN;
         const high = Number.isFinite(Number(c.high)) ? Number(c.high) : NaN;
@@ -1622,9 +1638,12 @@
         const c = raw;
         const isUp = Number(c.change) >= 0;
         const sign = isUp ? '+' : '';
+        const symbolText = String(c.symbol || '--').replace(/</g, '&lt;');
+        const codeText = symbolText.replace(/[^A-Za-z0-9]/g, '').slice(0, 10) || '--';
         return `
           <div class="market-row">
-            <div class="market-symbol">${String(c.symbol || '--').replace(/</g, '&lt;')}</div>
+            <div class="market-symbol">${symbolText}</div>
+            <div class="market-code">SYM ${codeText}</div>
             <div class="market-price">${fmtNum(c.price)}</div>
             <div class="market-change ${isUp ? 'up' : 'down'}">${sign}${Number(c.change || 0).toFixed(2)}%</div>
             <div class="market-extra">${detailText(c, segmentKey)}</div>
