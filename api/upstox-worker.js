@@ -55,42 +55,67 @@ export default {
         ].join(",");
 
         // Yahoo Finance tickers → [yf_ticker, instrument_key, display_symbol]
+        // v8/finance/chart is used (one call per symbol in parallel) — v7/quote requires auth
         const yfMap = [
           // NSE stocks (prices in INR)
-          ["RELIANCE.NS",  "NSE_EQ:RELIANCE",    "RELIANCE"],
-          ["HDFCBANK.NS",  "NSE_EQ:HDFCBANK",    "HDFCBANK"],
-          ["ICICIBANK.NS", "NSE_EQ:ICICIBANK",   "ICICIBANK"],
-          ["INFY.NS",      "NSE_EQ:INFY",        "INFY"],
-          ["TCS.NS",       "NSE_EQ:TCS",         "TCS"],
-          ["SBIN.NS",      "NSE_EQ:SBIN",        "SBIN"],
-          ["BHARTIARTL.NS","NSE_EQ:BHARTIARTL",  "BHARTIARTL"],
-          ["LT.NS",        "NSE_EQ:LT",          "LT"],
-          ["KOTAKBANK.NS", "NSE_EQ:KOTAKBANK",   "KOTAKBANK"],
-          ["AXISBANK.NS",  "NSE_EQ:AXISBANK",    "AXISBANK"],
-          // Commodities (prices in USD)
-          ["GC=F",   "MCX_FO:GOLD",       "Gold ($/oz)"],
-          ["SI=F",   "MCX_FO:SILVER",     "Silver ($/oz)"],
-          ["CL=F",   "MCX_FO:CRUDEOIL",  "WTI Crude ($/bbl)"],
-          ["BZ=F",   "MCX_FO:BRENTOIL",  "Brent ($/bbl)"],
-          ["NG=F",   "MCX_FO:NATURALGAS","NatGas ($/mmBtu)"],
-          // FX — price is units of INR per 1 foreign unit
+          ["RELIANCE.NS",   "NSE_EQ:RELIANCE",   "RELIANCE"],
+          ["HDFCBANK.NS",   "NSE_EQ:HDFCBANK",   "HDFCBANK"],
+          ["ICICIBANK.NS",  "NSE_EQ:ICICIBANK",  "ICICIBANK"],
+          ["INFY.NS",       "NSE_EQ:INFY",       "INFY"],
+          ["TCS.NS",        "NSE_EQ:TCS",        "TCS"],
+          ["SBIN.NS",       "NSE_EQ:SBIN",       "SBIN"],
+          ["BHARTIARTL.NS", "NSE_EQ:BHARTIARTL", "BHARTIARTL"],
+          ["LT.NS",         "NSE_EQ:LT",         "LT"],
+          ["KOTAKBANK.NS",  "NSE_EQ:KOTAKBANK",  "KOTAKBANK"],
+          ["AXISBANK.NS",   "NSE_EQ:AXISBANK",   "AXISBANK"],
+          // Commodities (USD prices — Gold $/oz, Silver $/oz, etc.)
+          ["GC=F",  "MCX_FO:GOLD",       "Gold ($/oz)"],
+          ["SI=F",  "MCX_FO:SILVER",     "Silver ($/oz)"],
+          ["CL=F",  "MCX_FO:CRUDEOIL",  "WTI Crude ($/bbl)"],
+          ["BZ=F",  "MCX_FO:BRENTOIL",  "Brent ($/bbl)"],
+          ["NG=F",  "MCX_FO:NATURALGAS","NatGas ($/mmBtu)"],
+          // FX — INR per 1 foreign currency unit
           ["USDINR=X", "NSE_CDS:USDINR", "USDINR"],
           ["EURINR=X", "NSE_CDS:EURINR", "EURINR"],
           ["GBPINR=X", "NSE_CDS:GBPINR", "GBPINR"],
           ["JPYINR=X", "NSE_CDS:JPYINR", "JPYINR"],
         ];
-        const yfTickers = yfMap.map(([t]) => t).join(",");
 
-        // Fetch Upstox NSE indices + Yahoo Finance in parallel
-        const [upstoxRes, yfRes] = await Promise.allSettled([
+        const fetchYfChart = async ([ticker, instrKey]) => {
+          try {
+            const r = await fetch(
+              `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`,
+              { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" } }
+            );
+            const text = await r.text();
+            if (!r.ok || !text.trim().startsWith('{')) return null;
+            let json; try { json = JSON.parse(text); } catch (_) { return null; }
+            const meta = json?.chart?.result?.[0]?.meta;
+            const price = Number(meta?.regularMarketPrice);
+            const prevClose = Number(meta?.chartPreviousClose);
+            if (!Number.isFinite(price)) return null;
+            return [instrKey, {
+              last_price: price,
+              ohlc: {
+                open: Number(meta?.regularMarketOpen) || price,
+                high: Number(meta?.regularMarketDayHigh) || price,
+                low:  Number(meta?.regularMarketDayLow)  || price,
+                close: Number.isFinite(prevClose) ? prevClose : price,
+              },
+              volume: Number(meta?.regularMarketVolume) || 0,
+              net_change: Number.isFinite(prevClose) && prevClose ? price - prevClose : 0,
+              _source: "yahoo",
+            }];
+          } catch (_) { return null; }
+        };
+
+        // Fetch Upstox NSE indices + all Yahoo Finance symbols in parallel
+        const [upstoxRes, ...yfResults] = await Promise.allSettled([
           fetch(
             `${UPSTOX_API}/market-quote/quotes?symbol=${encodeURIComponent(nseIndexSymbols)}`,
             { headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` } }
           ).then((r) => r.json()).catch(() => null),
-          fetch(
-            `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(yfTickers)}&fields=regularMarketPrice,regularMarketPreviousClose,regularMarketOpen,regularMarketDayHigh,regularMarketDayLow,regularMarketVolume`,
-            { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" } }
-          ).then((r) => r.json()).catch(() => null),
+          ...yfMap.map(fetchYfChart),
         ]);
 
         const merged = {};
@@ -99,30 +124,12 @@ export default {
         const upstoxData = upstoxRes.status === "fulfilled" ? (upstoxRes.value?.data || {}) : {};
         Object.assign(merged, upstoxData);
 
-        // Yahoo Finance — map to Upstox-compatible instrument key format
-        const yfQuotes = yfRes.status === "fulfilled"
-          ? (yfRes.value?.quoteResponse?.result || [])
-          : [];
-        for (const q of yfQuotes) {
-          const entry = yfMap.find(([t]) => t === q.symbol);
-          if (!entry) continue;
-          const [, instrKey, displaySym] = entry;
-          const price = Number(q.regularMarketPrice);
-          const prevClose = Number(q.regularMarketPreviousClose);
-          if (!Number.isFinite(price)) continue;
-          merged[instrKey] = {
-            last_price: price,
-            symbol: displaySym,
-            ohlc: {
-              open: Number(q.regularMarketOpen) || price,
-              high: Number(q.regularMarketDayHigh) || price,
-              low: Number(q.regularMarketDayLow) || price,
-              close: Number.isFinite(prevClose) ? prevClose : price,
-            },
-            volume: Number(q.regularMarketVolume) || 0,
-            net_change: Number.isFinite(prevClose) && prevClose ? price - prevClose : 0,
-            _source: "yahoo",
-          };
+        // Yahoo Finance — each result is [instrKey, cardData] or null
+        for (const res of yfResults) {
+          if (res.status === "fulfilled" && res.value) {
+            const [instrKey, cardData] = res.value;
+            merged[instrKey] = cardData;
+          }
         }
 
         if (!Object.keys(merged).length) {
