@@ -24,14 +24,16 @@ async function generateBriefing() {
         fetchMacroPulse()
     ]);
 
-    const liveDataBlock = `
-    MARKET PULSE:
-    MULTI-ASSET: ${markets.summary}
+    const marketContext = `
+    LIVE DATA:
     UPSTOX: ${upstox.summary}
     GLOBAL: ${global.summary}
     CALENDAR: ${calendar.text}
     MACRO: ${macro.summary}
-    
+    MULTI-ASSET: ${markets.summary}
+    `;
+
+    const regulatoryContext = `
     NEWS:
     IN: ${inNews}
     GL: ${glNews}
@@ -44,7 +46,7 @@ async function generateBriefing() {
     1. Start with exactly one <h2> tag containing a unique, punchy, and keyword-rich title for this specific hour/day (e.g., "Nifty Tests 22K Support Amidst Global Tech Sell-off" instead of "Market Summary").
     2. Provide a 1-sentence analytical excerpt (max 160 chars) at the very top, wrapped in a <details id="meta-excerpt" style="display:none"> tag.
     
-    MARKET CONTEXT: ${staticDataBlock}`;
+    MARKET CONTEXT: ${marketContext}`;
 
     try {
         const content = await askAI(prompt);

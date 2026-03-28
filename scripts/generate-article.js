@@ -23,10 +23,10 @@ async function generateArticle() {
         fetchGlobalMarkets()
     ]);
 
-    const staticDataBlock = `
+    const regulatoryContext = `
     INSTITUTIONAL PULSE:
     RBI (Official): ${rbi.summary}
-    SEBI (Official): ${sebi.summary}
+    SEBI (Compl): ${sebi.summary}
     CCIL (Clearing): ${ccil.summary}
     MACRO (WB): ${macro.summary}
     GLOBAL: ${global.summary}
@@ -39,7 +39,7 @@ async function generateArticle() {
     1. Start with exactly one <h2> tag containing a unique, structural title (e.g., "RBI Digital Rupee Pivot: Analyzing the 2026 Sandbox Roadmap").
     2. Provide a 1-sentence analytical excerpt (max 160 chars) at the very top, wrapped in a <details id="meta-excerpt" style="display:none"> tag.
     
-    REGULATORY DATA: ${staticDataBlock}`;
+    REGULATORY DATA: ${regulatoryContext}`;
 
     try {
         const content = await askAI(prompt);
