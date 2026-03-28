@@ -1216,27 +1216,27 @@
     </div>
     <div class="market-segments">
       <div class="market-segment">
-        <div class="market-segment-title">Indices</div>
+        <div class="market-segment-title">Indices <span id="ageIndices" style="float:right;color:var(--muted);font-size:0.52rem">Age: --</span></div>
         <div class="market-grid" id="segmentIndices"><div class="market-empty">Loading…</div></div>
       </div>
       <div class="market-segment">
-        <div class="market-segment-title">Stocks</div>
+        <div class="market-segment-title">Stocks <span id="ageStocks" style="float:right;color:var(--muted);font-size:0.52rem">Age: --</span></div>
         <div class="market-grid" id="segmentStocksOptions"><div class="market-empty">Loading…</div></div>
       </div>
       <div class="market-segment">
-        <div class="market-segment-title">Bonds</div>
+        <div class="market-segment-title">Bonds <span id="ageBonds" style="float:right;color:var(--muted);font-size:0.52rem">Age: --</span></div>
         <div class="market-grid" id="segmentBonds"><div class="market-empty">Loading…</div></div>
       </div>
       <div class="market-segment">
-        <div class="market-segment-title">Currency</div>
+        <div class="market-segment-title">Currency <span id="ageCurrency" style="float:right;color:var(--muted);font-size:0.52rem">Age: --</span></div>
         <div class="market-grid" id="segmentCurrency"><div class="market-empty">Loading…</div></div>
       </div>
       <div class="market-segment">
-        <div class="market-segment-title">Commodities</div>
+        <div class="market-segment-title">Commodities <span id="ageCommodities" style="float:right;color:var(--muted);font-size:0.52rem">Age: --</span></div>
         <div class="market-grid" id="segmentCommodities"><div class="market-empty">Loading…</div></div>
       </div>
       <div class="market-segment">
-        <div class="market-segment-title">Crypto Market</div>
+        <div class="market-segment-title">Crypto Market <span id="ageCrypto" style="float:right;color:var(--muted);font-size:0.52rem">Age: --</span></div>
         <div class="market-grid" id="segmentCrypto"><div class="market-empty">Loading…</div></div>
       </div>
     </div>
@@ -1357,6 +1357,7 @@
   let marketRefreshInFlight = false;
   let marketRefreshTick = 0;
   let marketNextFetchAt = 0;
+  let marketLastUpdatedAt = 0;
   let imagesEnabled = true;
   const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
   const FIREBASE_TIMEOUT_MS = 12000;
@@ -1580,9 +1581,22 @@
     const segmentCurrency = document.getElementById('segmentCurrency');
     const segmentCommodities = document.getElementById('segmentCommodities');
     const segmentCrypto = document.getElementById('segmentCrypto');
+    const ageEls = {
+      indices: document.getElementById('ageIndices'),
+      stocks: document.getElementById('ageStocks'),
+      bonds: document.getElementById('ageBonds'),
+      currency: document.getElementById('ageCurrency'),
+      commodities: document.getElementById('ageCommodities'),
+      crypto: document.getElementById('ageCrypto'),
+    };
     const skeletonEl = document.getElementById('marketSegmentsSkeleton');
     const updatedEl = document.getElementById('marketUpdated');
     if (!segmentIndices || !segmentStocksOptions || !segmentBonds || !segmentCurrency || !segmentCommodities || !segmentCrypto || !skeletonEl || !updatedEl) return false;
+    const setAgeLabels = (stamp) => {
+      const ageSec = stamp ? Math.max(0, Math.round((Date.now() - stamp) / 1000)) : null;
+      const txt = ageSec == null ? 'Age: --' : `Age: ${ageSec}s`;
+      Object.values(ageEls).forEach((el) => { if (el) el.textContent = txt; });
+    };
 
     const candidates = [
       // Quotes/global are served by the stable Upstox proxy.
@@ -1881,6 +1895,8 @@
         renderCards(segmentCrypto, segments.crypto.slice(0, 16), 'crypto');
         skeletonEl.style.display = 'none';
         segmentIndices.dataset.loaded = '1';
+        marketLastUpdatedAt = Date.now();
+        setAgeLabels(marketLastUpdatedAt);
         updatedEl.textContent = `Updated: ${now()} · Tick ${marketRefreshTick}`;
         return true;
       } catch (_) {}
@@ -1896,6 +1912,7 @@
       segmentIndices.dataset.loaded = '1';
     }
     skeletonEl.style.display = 'none';
+    setAgeLabels(marketLastUpdatedAt || 0);
     updatedEl.textContent = `Updated: ${now()} · Tick ${marketRefreshTick}`;
     return false;
   }
@@ -2770,6 +2787,12 @@
         marketRefreshTick += 1;
         const updatedEl = document.getElementById('marketUpdated');
         if (updatedEl) updatedEl.textContent = `Polling: ${now()} · Tick ${marketRefreshTick}`;
+        const ageTxt = marketLastUpdatedAt ? `Age: ${Math.max(0, Math.round((Date.now() - marketLastUpdatedAt) / 1000))}s` : 'Age: --';
+        const ageIds = ['ageIndices', 'ageStocks', 'ageBonds', 'ageCurrency', 'ageCommodities', 'ageCrypto'];
+        ageIds.forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = ageTxt;
+        });
         if (marketRefreshInFlight) return;
         if (Date.now() < marketNextFetchAt) return;
         marketRefreshInFlight = true;
