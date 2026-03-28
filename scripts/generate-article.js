@@ -172,7 +172,15 @@ async function generateArticle() {
         
         const indexPath = path.join(targetDir, "index.json");
         let index = fs.existsSync(indexPath) ? JSON.parse(fs.readFileSync(indexPath, "utf-8")) : [];
-        index.unshift({ title, date: today, fileName, type: "article", frequency });
+        index.unshift({ 
+            title, 
+            date: today, 
+            timestamp: Date.now(),
+            excerpt: excerpt || "Strategic Institutional Analysis",
+            fileName, 
+            type: "article", 
+            frequency 
+        });
         fs.writeFileSync(indexPath, JSON.stringify(index.slice(0, 50), null, 2));
 
         if (process.env.NEWSLETTER_WORKER_URL && (isMonthly || frequency === 'weekly')) {

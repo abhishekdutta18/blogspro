@@ -218,7 +218,15 @@ async function generateBriefing() {
 
         const indexPath = path.join(targetDir, "index.json");
         let index = fs.existsSync(indexPath) ? JSON.parse(fs.readFileSync(indexPath, "utf-8")) : [];
-        index.unshift({ title, date: today, fileName, type: "briefing", frequency });
+        index.unshift({ 
+            title, 
+            date: today, 
+            timestamp: Date.now(),
+            excerpt,
+            fileName, 
+            type: "briefing", 
+            frequency 
+        });
         fs.writeFileSync(indexPath, JSON.stringify(index.slice(0, 50), null, 2));
 
         if (process.env.NEWSLETTER_WORKER_URL && (isDaily || isHourly)) {
