@@ -27,6 +27,13 @@ export async function initIntelHub() {
 
         renderHub(hubContainer, { daily: latestDaily, hourly: latestHourly, weekly: latestWeekly, monthly: latestMonthly });
         
+        // 2. Update Global Terminal Stats
+        updateHeroStats({
+            posts: dailyRes.length + hourlyRes.length + weeklyRes.length + monthlyRes.length,
+            experts: 13,
+            version: "V6.33"
+        });
+        
         if (window.trackPulse) {
             window.trackPulse('hub', 'loaded', { 
                 daily: latestDaily?.fileName, 
@@ -37,6 +44,16 @@ export async function initIntelHub() {
         console.error('[IntelHub] Failed to load:', err);
         hubContainer.innerHTML = '<div style="padding:1rem;color:#fca5a5;font-size:0.8rem">⚠️ Briefing Terminal Offline</div>';
     }
+}
+
+function updateHeroStats({ posts, experts, version }) {
+    const elPosts = document.getElementById('stat-posts');
+    const elWords = document.getElementById('stat-words');
+    const elPrec = document.getElementById('stat-prec');
+
+    if (elPosts) elPosts.innerText = experts; // 13 Experts
+    if (elWords) elWords.innerText = "50k+";
+    if (elPrec) elPrec.innerText = version;
 }
 
 function renderHub(container, { daily, hourly, weekly, monthly }) {
