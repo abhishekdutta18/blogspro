@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: '0 10 1 * *' # 1st of every month at 10:00 UTC
   workflow_dispatch:
+  
+concurrency:
+  group: "git-push"
+  cancel-in-progress: false
 
 permissions:
   contents: write
