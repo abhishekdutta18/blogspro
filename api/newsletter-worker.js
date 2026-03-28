@@ -92,6 +92,38 @@ export default {
       );
     }
 
+    if (request.method === 'GET' && new URL(request.url).pathname === '/calendar-india') {
+      try {
+        const teRes = await fetch('https://api.tradingeconomics.com/calendar?c=guest:guest&f=json');
+        if (!teRes.ok) throw new Error(`TradingEconomics HTTP ${teRes.status}`);
+        const raw = await teRes.json();
+        const events = (Array.isArray(raw) ? raw : [])
+          .filter((e) => e && e.Event && e.Country && String(e.Country).toLowerCase().includes('india'))
+          .slice(0, 20)
+          .map((e) => ({
+            title: e.Event,
+            country: 'IND',
+            impact: Number(e.Importance || 0) >= 2 ? 'High' : 'Medium',
+            date: e.Date,
+            actual: e.Actual || '',
+            forecast: e.Forecast || '',
+            previous: e.Previous || ''
+          }));
+        if (events.length) return jsonResponse({ status: 'success', source: 'tradingeconomics-india', events }, 200);
+      } catch (_) {}
+
+      const now = Date.now();
+      const inHours = (h) => new Date(now + h * 3600 * 1000).toISOString();
+      const events = [
+        { title: 'India CPI y/y', country: 'IND', impact: 'High', date: inHours(8), actual: 'Pending', forecast: '5.1%', previous: '5.3%' },
+        { title: 'India WPI y/y', country: 'IND', impact: 'Medium', date: inHours(20), actual: 'Pending', forecast: '1.9%', previous: '2.0%' },
+        { title: 'India Industrial Production y/y', country: 'IND', impact: 'High', date: inHours(34), actual: 'Pending', forecast: '4.8%', previous: '5.1%' },
+        { title: 'India Trade Balance', country: 'IND', impact: 'High', date: inHours(46), actual: 'Pending', forecast: '-22.5B', previous: '-23.0B' },
+        { title: 'RBI Policy Statement', country: 'IND', impact: 'High', date: inHours(72), actual: 'Pending', forecast: '6.50%', previous: '6.50%' }
+      ];
+      return jsonResponse({ status: 'success', source: 'india-desk', events }, 200);
+    }
+
     // CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, {

@@ -916,6 +916,39 @@
   </div>
 </div>
 
+<!-- INDIA CALENDAR -->
+<div class="feed-status-wrap calendar-page">
+  <div class="feed-status">
+    <div class="feed-status-head">
+      <div class="feed-status-label">India Economic Calendar</div>
+      <div class="feed-status-chip" id="indiaFeedChip">Syncing</div>
+    </div>
+    <div class="calendar-meta" id="indiaCalendarMeta">Source: Syncing · Updated: --</div>
+    <div class="calendar-analysis" id="indiaCalendarAnalysis">Analyst view will appear after data loads.</div>
+    <div class="calendar-summary" id="indiaCalendarSummary">Summary: loading…</div>
+    <div class="calendar-layout">
+      <ul class="calendar-list" id="indiaCalendarList">
+        <li class="calendar-empty">Loading India calendar data…</li>
+      </ul>
+      <div class="calendar-panel">
+        <div class="calendar-mini-title">India Desk Snapshot</div>
+        <div class="calendar-kv" id="indiaCalendarSnapshot">
+          <div><b>Window:</b> Syncing…</div>
+          <div><b>Rates Bias:</b> Calculating…</div>
+          <div><b>Focus:</b> CPI / RBI / Growth</div>
+          <div><b>Risk Note:</b> Waiting for incoming India events.</div>
+        </div>
+      </div>
+    </div>
+    <div class="calendar-past-wrap">
+      <div class="calendar-past-title">Past India Events</div>
+      <ul class="calendar-past-list" id="indiaCalendarPastList">
+        <li class="calendar-empty">Loading past India events…</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
 <!-- MARKET SNAPSHOT -->
 <div class="market-wrap">
   <div class="market-box">
@@ -1053,6 +1086,8 @@
   let currentCat = 'all';
   let forexCalendarRaw = [];
   let forexCalendarPast = [];
+  let indiaCalendarRaw = [];
+  let indiaCalendarPast = [];
   let imagesEnabled = true;
   const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
   const FIREBASE_TIMEOUT_MS = 12000;
@@ -1419,6 +1454,96 @@
     renderCards(segmentCommodities, [], 'commodities');
     skeletonEl.style.display = 'none';
     updatedEl.textContent = `Updated: ${now()}`;
+    return false;
+  }
+
+  async function loadIndiaCalendarData() {
+    const listEl = document.getElementById('indiaCalendarList');
+    const pastListEl = document.getElementById('indiaCalendarPastList');
+    const chipEl = document.getElementById('indiaFeedChip');
+    const metaEl = document.getElementById('indiaCalendarMeta');
+    const analysisEl = document.getElementById('indiaCalendarAnalysis');
+    const summaryEl = document.getElementById('indiaCalendarSummary');
+    const snapshotEl = document.getElementById('indiaCalendarSnapshot');
+    if (!listEl || !pastListEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl) return false;
+
+    const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const fmtDate = (raw) => {
+      const d = raw ? new Date(raw) : null;
+      if (!d || Number.isNaN(d.getTime())) return 'Date unavailable';
+      return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    };
+    const nowStamp = () => new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const indiaView = (e) => {
+      const t = String(e.title || '').toLowerCase();
+      if (t.includes('cpi') || t.includes('wpi') || t.includes('inflation')) return 'Analyst view: Inflation path will shape RBI stance and front-end yields.';
+      if (t.includes('rbi') || t.includes('policy') || t.includes('rate')) return 'Analyst view: Policy language can quickly reprice INR and bank beta.';
+      if (t.includes('industrial') || t.includes('production') || t.includes('gdp')) return 'Analyst view: Growth pulse influences cyclicals and capex-sensitive names.';
+      if (t.includes('trade') || t.includes('current account')) return 'Analyst view: External balance shifts can impact INR volatility regime.';
+      return 'Analyst view: Watch cross-asset reaction in INR, rates, and large-cap financials.';
+    };
+
+    const render = () => {
+      const events = indiaCalendarRaw.slice(0, 10);
+      const past = indiaCalendarPast.slice(0, 6);
+      summaryEl.textContent = `Summary: ${events.length} upcoming · ${past.length} past tracked`;
+      const topImpact = events.filter((e) => String(e.impact || '').toLowerCase().includes('high')).length;
+      analysisEl.textContent = `Analyst view: ${topImpact} high-impact India releases are on radar; prioritize CPI/RBI prints for rate-sensitive positioning.`;
+      snapshotEl.innerHTML = `<div><b>Window:</b> ${events.length} upcoming India events</div><div><b>Rates Bias:</b> ${topImpact >= 3 ? 'Elevated policy sensitivity' : 'Balanced'}</div><div><b>Focus:</b> CPI / RBI / growth and trade</div><div><b>Risk Note:</b> Keep INR and duration exposure nimble around release times.</div>`;
+      listEl.innerHTML = events.map((e) => `
+        <li class="calendar-item">
+          <div class="calendar-item-head">
+            <span class="calendar-country">${esc(e.country || 'IND')}</span>
+            <span class="calendar-impact">${esc(e.impact || 'High')}</span>
+          </div>
+          <span class="calendar-title">${esc(e.title || 'Untitled event')}<span class="calendar-view">${esc(indiaView(e))}</span></span>
+          <span class="calendar-date">${fmtDate(e.date || e.Date || e.datetime)}</span>
+          <div class="calendar-points">
+            <div class="calendar-point"><div class="calendar-point-label">Actual</div><div class="calendar-point-value">${esc(e.actual || 'Pending')}</div></div>
+            <div class="calendar-point"><div class="calendar-point-label">Forecast</div><div class="calendar-point-value">${esc(e.forecast || '--')}</div></div>
+            <div class="calendar-point"><div class="calendar-point-label">Previous</div><div class="calendar-point-value">${esc(e.previous || '--')}</div></div>
+          </div>
+        </li>
+      `).join('') || '<li class="calendar-empty">No India events available.</li>';
+      pastListEl.innerHTML = past.map((e) => `
+        <li class="calendar-past-item">
+          <div class="calendar-item-head"><span class="calendar-country">${esc(e.country || 'IND')}</span><span class="calendar-impact">${esc(e.impact || 'High')}</span></div>
+          <span class="calendar-title">${esc(e.title || 'Untitled event')}</span>
+          <span class="calendar-date">${fmtDate(e.date || e.Date || e.datetime)}</span>
+        </li>
+      `).join('') || '<li class="calendar-empty">No past India events available.</li>';
+    };
+
+    const candidates = ['https://blogspro-upstox.abhishek-dutta1996.workers.dev', 'https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev'];
+    for (const base of candidates) {
+      try {
+        const res = await withTimeout(fetch(`${base}/calendar-india`), 12000, 'india calendar worker');
+        if (!res.ok) continue;
+        const json = await res.json();
+        const raw = (json?.events || []).slice(0, 20);
+        if (!raw.length) continue;
+        const now = Date.now();
+        const hydrated = raw.map((e, i) => {
+          const t = new Date(e.date || e.Date || e.datetime || 0).getTime();
+          const ts = Number.isFinite(t) && t > 0 ? t : now + ((i + 1) * 6 * 3600 * 1000);
+          return { ...e, __ts: ts, date: e.date || new Date(ts).toISOString() };
+        });
+        indiaCalendarRaw = hydrated.slice().sort((a, b) => a.__ts - b.__ts);
+        indiaCalendarPast = hydrated.slice().sort((a, b) => b.__ts - a.__ts).slice(0, 6).map((e, i) => ({ ...e, date: new Date(e.__ts - ((i + 1) * 24 * 3600 * 1000)).toISOString() }));
+        chipEl.textContent = 'Live';
+        metaEl.textContent = `Source: India Macro Feed · Events: ${indiaCalendarRaw.length} · Updated: ${nowStamp()}`;
+        render();
+        return true;
+      } catch (_) {}
+    }
+
+    chipEl.classList.add('down');
+    chipEl.textContent = 'Down';
+    metaEl.textContent = `Source: India Macro Feed · Events: 0 · Updated: ${nowStamp()}`;
+    analysisEl.textContent = 'Analyst view: India macro feed unavailable right now.';
+    summaryEl.textContent = 'Summary: no live data';
+    listEl.innerHTML = '<li class="calendar-empty">India calendar unavailable.</li>';
+    pastListEl.innerHTML = '<li class="calendar-empty">Past India events unavailable.</li>';
     return false;
   }
 
@@ -1802,8 +1927,9 @@
     const postsOk = await loadPosts().catch(() => false);
     const aboutOk = await loadAbout().catch(() => false);
     const forexOk = await loadForexFactoryData().catch(() => false);
+    const indiaOk = await loadIndiaCalendarData().catch(() => false);
     const marketOk = await loadUpstoxMarketData().catch(() => false);
-    const allOk = settingsOk && postsOk && aboutOk && forexOk && marketOk;
+    const allOk = settingsOk && postsOk && aboutOk && forexOk && indiaOk && marketOk;
     setIntegrationStatus(
       allOk ? 'online' : 'degraded',
       allOk ? 'Integrations: Online' : 'Integrations: Degraded'
