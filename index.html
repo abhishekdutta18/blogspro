@@ -1971,6 +1971,10 @@
           }
         }
       });
+      const noteEl = document.createElement('div');
+      noteEl.className = 'linechart-note';
+      noteEl.textContent = 'Historical line: last 12 months by quarter. Dotted extension: next-quarter forecast.';
+      qoqBarsEl.appendChild(noteEl);
       return true;
     };
     const renderQoq = (event) => {
@@ -1982,7 +1986,7 @@
       }
       qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
       if (renderQoqChartJs(history, forecastPoint)) {
-        qoqBarsEl.innerHTML += '<div class="linechart-note">Historical line: last 12 months by quarter. Dotted extension: next-quarter forecast.</div>';
+        // Chart and note are already rendered by renderQoqChartJs.
       } else {
         qoqBarsEl.innerHTML = '<div class="calendar-empty">Chart library unavailable. Please refresh.</div>';
       }
