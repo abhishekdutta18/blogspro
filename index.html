@@ -1474,13 +1474,71 @@
       if (t.includes('trade') || t.includes('current account')) return 'Analyst view: External balance shifts can impact INR volatility regime.';
       return 'Analyst view: Watch cross-asset reaction in INR, rates, and large-cap financials.';
     };
+    const numFrom = (v) => {
+      const m = String(v ?? '').replace(/,/g, '').match(/-?\d+(\.\d+)?/);
+      return m ? Number(m[0]) : NaN;
+    };
+    const pctStr = (n) => `${n > 0 ? '+' : ''}${n.toFixed(1)}%`;
+    const buildIndiaDeskMetrics = (events) => {
+      let highCount = 0;
+      let inflationSignal = 0;
+      let growthSignal = 0;
+      let extSignal = 0;
+      let withForecast = 0;
+      const sectorHits = { Banks: 0, Autos: 0, FMCG: 0, IT: 0, Metals: 0 };
+      const surprises = [];
+
+      for (const e of events) {
+        const title = String(e.title || '').toLowerCase();
+        const impact = String(e.impact || '').toLowerCase();
+        if (impact.includes('high')) highCount += 1;
+        const actual = numFrom(e.actual);
+        const forecast = numFrom(e.forecast);
+        if (Number.isFinite(actual) && Number.isFinite(forecast)) {
+          withForecast += 1;
+          surprises.push({ title: e.title, diff: actual - forecast });
+        }
+
+        if (title.includes('cpi') || title.includes('wpi') || title.includes('inflation')) inflationSignal += 1;
+        if (title.includes('industrial') || title.includes('production') || title.includes('gdp') || title.includes('pmi')) growthSignal += 1;
+        if (title.includes('trade') || title.includes('current account') || title.includes('fx reserves')) extSignal += 1;
+
+        if (title.includes('rbi') || title.includes('policy') || title.includes('rate') || title.includes('cpi')) sectorHits.Banks += 1;
+        if (title.includes('cpi') || title.includes('fuel') || title.includes('oil')) sectorHits.Autos += 1;
+        if (title.includes('cpi') || title.includes('wpi') || title.includes('food')) sectorHits.FMCG += 1;
+        if (title.includes('trade') || title.includes('inr') || title.includes('services')) sectorHits.IT += 1;
+        if (title.includes('industrial') || title.includes('wpi') || title.includes('manufacturing')) sectorHits.Metals += 1;
+      }
+
+      const holdProb = Math.max(35, Math.min(80, 60 + (inflationSignal * 5) - (growthSignal * 3)));
+      const cutProb = Math.max(5, Math.min(45, 100 - holdProb - Math.max(10, highCount * 2)));
+      const hikeProb = Math.max(5, 100 - holdProb - cutProb);
+      const inrPressure = (extSignal * 0.6 + inflationSignal * 0.4 - growthSignal * 0.2);
+      const confidence = Math.round((withForecast / Math.max(events.length, 1)) * 100);
+      surprises.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+      const topSurprises = surprises.slice(0, 3);
+      const topSector = Object.entries(sectorHits).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Banks';
+
+      return { holdProb, cutProb, hikeProb, inrPressure, confidence, topSector, topSurprises, sectorHits };
+    };
 
     const render = () => {
       const events = indiaCalendarRaw.slice();
       summaryEl.textContent = `Summary: ${events.length} India events tracked`;
       const topImpact = events.filter((e) => String(e.impact || '').toLowerCase().includes('high')).length;
       analysisEl.textContent = `Analyst view: ${topImpact} high-impact India releases are on radar; prioritize CPI/RBI prints for rate-sensitive positioning.`;
-      snapshotEl.innerHTML = `<div><b>Window:</b> ${events.length} upcoming India events</div><div><b>Rates Bias:</b> ${topImpact >= 3 ? 'Elevated policy sensitivity' : 'Balanced'}</div><div><b>Focus:</b> CPI / RBI / growth and trade</div><div><b>Risk Note:</b> Keep INR and duration exposure nimble around release times.</div>`;
+      const m = buildIndiaDeskMetrics(events);
+      const surpriseText = m.topSurprises.length
+        ? m.topSurprises.map((s) => `${s.title}: ${s.diff > 0 ? '+' : ''}${s.diff.toFixed(2)}`).join(' | ')
+        : 'No actual-vs-forecast pairs yet';
+      snapshotEl.innerHTML = `
+        <div><b>Window:</b> ${events.length} India events tracked</div>
+        <div><b>RBI Probability:</b> Hold ${m.holdProb}% · Hike ${m.hikeProb}% · Cut ${m.cutProb}%</div>
+        <div><b>INR Pressure Gauge:</b> ${pctStr(m.inrPressure)} (${m.inrPressure >= 0 ? 'depreciation bias' : 'stability/appreciation bias'})</div>
+        <div><b>Sector Impact Map:</b> Top sensitivity in ${m.topSector}; Banks ${m.sectorHits.Banks}, IT ${m.sectorHits.IT}, FMCG ${m.sectorHits.FMCG}</div>
+        <div><b>Surprise Tracker:</b> ${surpriseText}</div>
+        <div><b>Confidence Score:</b> ${m.confidence}/100 data completeness</div>
+      `;
       listEl.innerHTML = events.map((e) => `
         <li class="calendar-item">
           <div class="calendar-item-head">
