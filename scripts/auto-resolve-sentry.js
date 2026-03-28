@@ -1,4 +1,5 @@
 // scripts/auto-resolve-sentry.js
+const fetch = require('node-fetch');
 // This script runs on a GitHub Actions schedule to pull unresolved Sentry issues.
 // It creates a GitHub Issue containing the stack trace, which is designed to trigger an AI coding agent (like Antigravity or Sweep) to automatically formulate a PR to resolve it.
 
