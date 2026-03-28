@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const path = require("path");
+const fs = require("fs");
 const { fetchEconomicCalendar, fetchMultiAssetData, fetchIndianNews, fetchGlobalNews, fetchGlobalMarkets, fetchMacroPulse, fetchUpstoxData } = require(path.join(__dirname, "lib", "data-fetchers"));
 const { askAI } = require(path.join(__dirname, "lib", "ai-service"));
 const { getBaseTemplate } = require(path.join(__dirname, "lib", "templates"));
