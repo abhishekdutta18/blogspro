@@ -595,11 +595,15 @@
       gap: 0.5rem;
     }
     .market-segments {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
       gap: 0.6rem;
+      padding-bottom: 0.2rem;
+      scrollbar-width: thin;
     }
     .market-segment {
+      flex: 0 0 min(340px, 82vw);
       border: 1px solid rgba(136,150,179,0.2);
       border-radius: 4px;
       padding: 0.55rem;
