@@ -794,6 +794,13 @@
     <div id="tvHeatmap" class="glass-card" style="min-height: 300px; overflow: hidden;"></div>
   </div>
 
+  <!-- Global Indices — full width -->
+  <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
+    <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Global Indices</span>
+    <span style="font-size:0.72rem;color:var(--muted);">Americas · Europe · Asia-Pacific · India · Commodities</span>
+  </div>
+  <div id="tvIndices" class="glass-card" style="min-height: 450px; overflow: hidden;"></div>
+
   <!-- Advanced Interactive Chart — full width -->
   <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
     <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Live Chart</span>
@@ -1466,11 +1473,21 @@
           <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
           {
             "symbols": [
-              {"proName": "INDEX:SPX", "title": "S&P 500"},
-              {"proName": "CRYPTOCAP:BTC", "title": "Bitcoin"},
-              {"proName": "FX:USDINR", "title": "USD/INR"},
-              {"symbol": "BSE:SENSEX", "title": "SENSEX"},
-              {"symbol": "NSE:NIFTY", "title": "NIFTY"}
+              {"proName": "NSE:NIFTY",        "title": "NIFTY 50"},
+              {"proName": "BSE:SENSEX",        "title": "SENSEX"},
+              {"proName": "NSE:BANKNIFTY",     "title": "BANK NIFTY"},
+              {"proName": "INDEX:SPX",         "title": "S&P 500"},
+              {"proName": "NASDAQ:NDX",        "title": "NASDAQ 100"},
+              {"proName": "INDEX:DJI",         "title": "Dow Jones"},
+              {"proName": "INDEX:DEU40",       "title": "DAX"},
+              {"proName": "INDEX:UKX",         "title": "FTSE 100"},
+              {"proName": "INDEX:NI225",       "title": "Nikkei 225"},
+              {"proName": "INDEX:HSI",         "title": "Hang Seng"},
+              {"proName": "COMEX:GC1!",        "title": "Gold"},
+              {"proName": "NYMEX:CL1!",        "title": "WTI Crude"},
+              {"proName": "CRYPTOCAP:BTC",     "title": "Bitcoin"},
+              {"proName": "FX:USDINR",         "title": "USD/INR"},
+              {"proName": "FX:EURUSD",         "title": "EUR/USD"}
             ],
             "showSymbolLogo": true,
             "colorTheme": "dark",
@@ -1487,6 +1504,76 @@
     const container = document.getElementById('tvHubContainer');
     if (!container || container.dataset.loaded) return;
     container.dataset.loaded = "true";
+
+    // ── Global Indices — market quotes table ───────────────────────────────
+    const indicesEl = document.getElementById('tvIndices');
+    if (indicesEl) {
+      indicesEl.innerHTML = `
+        <div class="tradingview-widget-container" style="height:100%">
+          <div class="tradingview-widget-container__widget"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js" async>
+          {
+            "title": "Major Global Indices",
+            "symbolsGroups": [
+              {
+                "name": "India",
+                "symbols": [
+                  {"name": "NSE:NIFTY",        "displayName": "NIFTY 50"},
+                  {"name": "BSE:SENSEX",        "displayName": "SENSEX"},
+                  {"name": "NSE:BANKNIFTY",     "displayName": "BANK NIFTY"},
+                  {"name": "NSE:MIDCPNIFTY",    "displayName": "NIFTY MIDCAP"},
+                  {"name": "NSE:FINNIFTY",      "displayName": "FIN NIFTY"}
+                ]
+              },
+              {
+                "name": "Americas",
+                "symbols": [
+                  {"name": "FOREXCOM:SPXUSD",   "displayName": "S&P 500"},
+                  {"name": "NASDAQ:NDX",         "displayName": "NASDAQ 100"},
+                  {"name": "INDEX:DJI",          "displayName": "Dow Jones"},
+                  {"name": "INDEX:RUT",          "displayName": "Russell 2000"},
+                  {"name": "INDEX:TSX",          "displayName": "TSX (Canada)"}
+                ]
+              },
+              {
+                "name": "Europe",
+                "symbols": [
+                  {"name": "INDEX:DEU40",        "displayName": "DAX (Germany)"},
+                  {"name": "INDEX:UKX",          "displayName": "FTSE 100 (UK)"},
+                  {"name": "INDEX:CAC40",        "displayName": "CAC 40 (France)"},
+                  {"name": "INDEX:STOXX50E",     "displayName": "Euro Stoxx 50"},
+                  {"name": "INDEX:SMI",          "displayName": "SMI (Switzerland)"}
+                ]
+              },
+              {
+                "name": "Asia-Pacific",
+                "symbols": [
+                  {"name": "INDEX:NI225",        "displayName": "Nikkei 225 (Japan)"},
+                  {"name": "INDEX:HSI",          "displayName": "Hang Seng (HK)"},
+                  {"name": "SSE:000001",         "displayName": "Shanghai Composite"},
+                  {"name": "INDEX:KOSPI",        "displayName": "KOSPI (Korea)"},
+                  {"name": "INDEX:AS51",         "displayName": "ASX 200 (Australia)"}
+                ]
+              },
+              {
+                "name": "Commodities",
+                "symbols": [
+                  {"name": "COMEX:GC1!",         "displayName": "Gold"},
+                  {"name": "COMEX:SI1!",         "displayName": "Silver"},
+                  {"name": "NYMEX:CL1!",         "displayName": "WTI Crude Oil"},
+                  {"name": "NYMEX:NG1!",         "displayName": "Natural Gas"},
+                  {"name": "TVC:DXY",            "displayName": "US Dollar Index"}
+                ]
+              }
+            ],
+            "showSymbolLogo": true,
+            "isTransparent": true,
+            "colorTheme": "dark",
+            "locale": "en"
+          }
+          <\/script>
+        </div>`;
+    }
 
     // ── Market Overview: Indices + Crypto tabs ──────────────────────────────
     const heatmap = document.getElementById('tvHeatmap');
@@ -1509,11 +1596,16 @@
               {
                 "title": "Indices",
                 "symbols": [
-                  {"s": "NSE:NIFTY",     "d": "NIFTY 50"},
-                  {"s": "NSE:BANKNIFTY", "d": "BANK NIFTY"},
-                  {"s": "BSE:SENSEX",    "d": "SENSEX"},
-                  {"s": "INDEX:SPX",     "d": "S&P 500"},
-                  {"s": "INDEX:NKY",     "d": "Nikkei 225"}
+                  {"s": "NSE:NIFTY",         "d": "NIFTY 50"},
+                  {"s": "NSE:BANKNIFTY",     "d": "BANK NIFTY"},
+                  {"s": "BSE:SENSEX",        "d": "SENSEX"},
+                  {"s": "FOREXCOM:SPXUSD",   "d": "S&P 500"},
+                  {"s": "NASDAQ:NDX",        "d": "NASDAQ 100"},
+                  {"s": "INDEX:DJI",         "d": "Dow Jones"},
+                  {"s": "INDEX:DEU40",       "d": "DAX"},
+                  {"s": "INDEX:UKX",         "d": "FTSE 100"},
+                  {"s": "INDEX:NI225",       "d": "Nikkei 225"},
+                  {"s": "INDEX:HSI",         "d": "Hang Seng"}
                 ],
                 "originalTitle": "Indices"
               },
@@ -1532,9 +1624,21 @@
                 "symbols": [
                   {"s": "FX:USDINR", "d": "USD/INR"},
                   {"s": "FX:EURUSD", "d": "EUR/USD"},
-                  {"s": "FX:GBPUSD", "d": "GBP/USD"}
+                  {"s": "FX:GBPUSD", "d": "GBP/USD"},
+                  {"s": "FX:USDJPY", "d": "USD/JPY"},
+                  {"s": "TVC:DXY",   "d": "DXY Index"}
                 ],
                 "originalTitle": "Forex"
+              },
+              {
+                "title": "Commodities",
+                "symbols": [
+                  {"s": "COMEX:GC1!",  "d": "Gold"},
+                  {"s": "NYMEX:CL1!",  "d": "WTI Crude"},
+                  {"s": "COMEX:SI1!",  "d": "Silver"},
+                  {"s": "NYMEX:NG1!",  "d": "Natural Gas"}
+                ],
+                "originalTitle": "Commodities"
               }
             ]
           }
