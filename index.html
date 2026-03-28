@@ -214,6 +214,14 @@
       background: rgba(239,68,68,0.1);
       border-color: rgba(239,68,68,0.35);
     }
+    .calendar-page {
+      min-height: 72vh;
+    }
+    .calendar-layout {
+      display: grid;
+      grid-template-columns: 1.35fr 0.9fr;
+      gap: 0.8rem;
+    }
     .calendar-list {
       list-style: none;
       margin: 0;
@@ -240,6 +248,52 @@
       gap: 0.55rem;
       flex-wrap: wrap;
       margin-bottom: 0.45rem;
+    }
+    .calendar-panel {
+      border: 1px solid rgba(136,150,179,0.2);
+      border-radius: 4px;
+      padding: 0.65rem;
+      background: rgba(15,22,40,0.6);
+    }
+    .calendar-mini-title {
+      font-size: 0.64rem;
+      color: var(--gold);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 0.45rem;
+      font-weight: 600;
+    }
+    .calendar-kv {
+      display: grid;
+      gap: 0.35rem;
+      font-size: 0.73rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .calendar-kv b { color: var(--cream); font-weight: 600; }
+    .calendar-skeleton {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.5rem;
+    }
+    .calendar-skel-row {
+      display: grid;
+      grid-template-columns: 72px 1fr 135px 52px;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .cal-skel {
+      height: 11px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(136,150,179,0.2), rgba(136,150,179,0.34), rgba(136,150,179,0.2));
+      background-size: 220% 100%;
+      animation: calPulse 1.25s ease-in-out infinite;
+    }
+    @keyframes calPulse {
+      0% { background-position: 0% 0; }
+      100% { background-position: -220% 0; }
     }
     .calendar-input, .calendar-select, .calendar-btn {
       background: rgba(15,22,40,0.9);
@@ -345,6 +399,25 @@
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 0.5rem;
     }
+    .market-segments {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 0.6rem;
+    }
+    .market-segment {
+      border: 1px solid rgba(136,150,179,0.2);
+      border-radius: 4px;
+      padding: 0.55rem;
+      background: rgba(15,22,40,0.62);
+    }
+    .market-segment-title {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--gold);
+      margin-bottom: 0.45rem;
+      font-weight: 600;
+    }
     .market-card {
       border: 1px solid rgba(136,150,179,0.2);
       border-radius: 4px;
@@ -377,6 +450,18 @@
       color: var(--muted);
       padding: 0.25rem 0;
     }
+    .market-seg-empty {
+      font-size: 0.7rem;
+      color: var(--muted);
+      border: 1px dashed rgba(136,150,179,0.25);
+      border-radius: 4px;
+      padding: 0.45rem;
+    }
+    .market-seg-skeleton {
+      display: grid;
+      gap: 0.4rem;
+    }
+    .market-seg-skeleton .cal-skel { height: 10px; }
 
     /* ── SECTION ── */
     section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
@@ -588,6 +673,10 @@
       .about-avatar-initial { font-size: 2rem; }
       .about-socials { justify-content: flex-start; }
       .feed-status-wrap { padding: 0.75rem 1rem 0; }
+      .market-wrap { padding: 0.75rem 1rem 0; }
+      .calendar-layout { grid-template-columns: 1fr; }
+      .calendar-item { grid-template-columns: 68px 1fr; }
+      .calendar-date, .calendar-impact { text-align: left; }
     }
   </style>
   <!-- Sentry Error Tracking v10.44.0 -->
@@ -702,8 +791,8 @@
   </div>
 </section>
 
-<!-- FOREX CALENDAR -->
-<div class="feed-status-wrap">
+<!-- CALENDAR -->
+<div class="feed-status-wrap calendar-page">
   <div class="feed-status">
     <div class="feed-status-head">
       <div class="feed-status-label">This Week High-Impact Calendar</div>
@@ -723,23 +812,74 @@
         <option value="local">Local Time</option>
         <option value="utc">UTC</option>
       </select>
+      <input class="calendar-input" id="forexCalendarTitleFilter" type="text" placeholder="Filter event title keyword…" />
+      <select class="calendar-select" id="forexCalendarImpactFilter">
+        <option value="all">All impact</option>
+        <option value="high">High only</option>
+      </select>
+      <select class="calendar-select" id="forexCalendarSort">
+        <option value="date_asc">Sort: Date ↑</option>
+        <option value="date_desc">Sort: Date ↓</option>
+        <option value="country">Sort: Country</option>
+      </select>
     </div>
     <div class="calendar-summary" id="forexCalendarSummary">Summary: loading…</div>
-    <ul class="calendar-list" id="forexCalendarList">
-      <li class="calendar-empty">Loading ForexFactory calendar data…</li>
+    <div class="calendar-layout">
+      <ul class="calendar-list" id="forexCalendarList">
+        <li class="calendar-empty">Loading calendar data…</li>
+      </ul>
+      <div class="calendar-panel">
+        <div class="calendar-mini-title">Desk Snapshot</div>
+        <div class="calendar-kv" id="forexCalendarSnapshot">
+          <div><b>Window:</b> Syncing…</div>
+          <div><b>Volatility Bias:</b> Calculating…</div>
+          <div><b>Focus Pair:</b> --</div>
+          <div><b>Risk Note:</b> Waiting for incoming events.</div>
+        </div>
+      </div>
+    </div>
+    <ul class="calendar-skeleton" id="forexCalendarSkeleton" style="display:none">
+      <li class="calendar-skel-row"><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span></li>
+      <li class="calendar-skel-row"><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span></li>
+      <li class="calendar-skel-row"><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span></li>
+      <li class="calendar-skel-row"><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span></li>
     </ul>
   </div>
 </div>
 
-<!-- UPSTOX MARKET SNAPSHOT -->
+<!-- MARKET SNAPSHOT -->
 <div class="market-wrap">
   <div class="market-box">
     <div class="market-head">
-      <div class="market-title">Upstox Market Snapshot</div>
+      <div class="market-title">Market Snapshot</div>
       <div class="market-updated" id="marketUpdated">Updating…</div>
     </div>
-    <div class="market-grid" id="marketGrid">
-      <div class="market-empty">Loading market data…</div>
+    <div class="market-segments">
+      <div class="market-segment">
+        <div class="market-segment-title">Indices</div>
+        <div class="market-grid" id="segmentIndices"><div class="market-empty">Loading…</div></div>
+      </div>
+      <div class="market-segment">
+        <div class="market-segment-title">Stocks + Options</div>
+        <div class="market-grid" id="segmentStocksOptions"><div class="market-empty">Loading…</div></div>
+      </div>
+      <div class="market-segment">
+        <div class="market-segment-title">Bonds</div>
+        <div class="market-grid" id="segmentBonds"><div class="market-empty">Loading…</div></div>
+      </div>
+      <div class="market-segment">
+        <div class="market-segment-title">Currency</div>
+        <div class="market-grid" id="segmentCurrency"><div class="market-empty">Loading…</div></div>
+      </div>
+      <div class="market-segment">
+        <div class="market-segment-title">Commodities</div>
+        <div class="market-grid" id="segmentCommodities"><div class="market-empty">Loading…</div></div>
+      </div>
+    </div>
+    <div class="market-seg-skeleton" id="marketSegmentsSkeleton" style="display:none">
+      <span class="cal-skel"></span>
+      <span class="cal-skel"></span>
+      <span class="cal-skel"></span>
     </div>
   </div>
 </div>
@@ -873,10 +1013,15 @@
     const metaEl = document.getElementById('forexCalendarMeta');
     const analysisEl = document.getElementById('forexCalendarAnalysis');
     const summaryEl = document.getElementById('forexCalendarSummary');
+    const snapshotEl = document.getElementById('forexCalendarSnapshot');
     const filterEl = document.getElementById('forexCalendarCountryFilter');
+    const titleFilterEl = document.getElementById('forexCalendarTitleFilter');
+    const impactEl = document.getElementById('forexCalendarImpactFilter');
+    const sortEl = document.getElementById('forexCalendarSort');
     const limitEl = document.getElementById('forexCalendarLimit');
     const tzEl = document.getElementById('forexCalendarTimezone');
-    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !filterEl || !limitEl || !tzEl) return false;
+    const skeletonEl = document.getElementById('forexCalendarSkeleton');
+    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !filterEl || !titleFilterEl || !impactEl || !sortEl || !limitEl || !tzEl || !skeletonEl) return false;
 
     const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
     const fmtDate = (raw, mode = 'local') => {
@@ -912,9 +1057,23 @@
 
     const applyCalendarFilters = () => {
       const q = String(filterEl.value || '').trim().toUpperCase();
+      const tq = String(titleFilterEl.value || '').trim().toLowerCase();
       const maxN = Number(limitEl.value || 5);
       const tzMode = tzEl.value === 'utc' ? 'utc' : 'local';
-      const filtered = forexCalendarRaw.filter((e) => !q || String(e.country || '').toUpperCase().includes(q));
+      const impact = impactEl.value || 'all';
+      const sort = sortEl.value || 'date_asc';
+      const filtered = forexCalendarRaw.filter((e) => {
+        const countryOk = !q || String(e.country || '').toUpperCase().includes(q);
+        const titleOk = !tq || String(e.title || '').toLowerCase().includes(tq);
+        const impactOk = impact === 'all' || String(e.impact || '').toLowerCase().includes('high');
+        return countryOk && titleOk && impactOk;
+      });
+      filtered.sort((a, b) => {
+        if (sort === 'country') return String(a.country || '').localeCompare(String(b.country || ''));
+        const ad = new Date(a.date || a.Date || a.datetime || 0).getTime() || 0;
+        const bd = new Date(b.date || b.Date || b.datetime || 0).getTime() || 0;
+        return sort === 'date_desc' ? (bd - ad) : (ad - bd);
+      });
       const events = filtered.slice(0, Math.max(1, maxN));
       const byCountry = {};
       for (const e of filtered) {
@@ -924,6 +1083,12 @@
       const topCountry = Object.entries(byCountry).sort((a, b) => b[1] - a[1])[0];
       const nextDate = filtered.map((e) => e.date || e.Date || e.datetime).find(Boolean);
       summaryEl.textContent = `Summary: ${filtered.length} matched · Top country: ${topCountry ? `${topCountry[0]} (${topCountry[1]})` : 'N/A'} · Next release: ${fmtDate(nextDate, tzMode)}`;
+      snapshotEl.innerHTML = `
+        <div><b>Window:</b> ${filtered.length} events in active filter set</div>
+        <div><b>Volatility Bias:</b> ${topCountry ? `${topCountry[0]}-linked pairs` : 'Balanced / mixed'}</div>
+        <div><b>Focus Pair:</b> ${topCountry?.[0] === 'USD' ? 'EURUSD / USDJPY' : topCountry?.[0] === 'GBP' ? 'GBPUSD / EURGBP' : topCountry?.[0] === 'AUD' ? 'AUDUSD / AUDJPY' : 'DXY + majors'}</div>
+        <div><b>Risk Note:</b> Clustered high-impact prints can widen spreads around the minute of release.</div>
+      `;
       if (!events.length) {
         listEl.innerHTML = `<li class="calendar-empty">No events match current filters.</li>`;
         return;
@@ -939,6 +1104,7 @@
     };
 
     const setState = (chipClass, chipText, events, source, isError = false) => {
+      skeletonEl.style.display = 'none';
       chipEl.classList.remove('warn', 'down');
       if (chipClass) chipEl.classList.add(chipClass);
       chipEl.textContent = chipText;
@@ -947,6 +1113,7 @@
         listEl.innerHTML = `<li class="calendar-empty">Calendar feeds currently unavailable. Please check back shortly.</li>`;
         analysisEl.textContent = 'Analyst view: Macro board temporarily unavailable; keep risk lower around scheduled sessions.';
         summaryEl.textContent = 'Summary: no live data';
+        snapshotEl.innerHTML = `<div><b>Window:</b> unavailable</div><div><b>Volatility Bias:</b> unknown</div><div><b>Focus Pair:</b> --</div><div><b>Risk Note:</b> Use defensive sizing until feed normalizes.</div>`;
         return;
       }
       analysisEl.textContent = `Analyst view: ${buildAnalysis(events)}`;
@@ -961,6 +1128,7 @@
 
     for (const base of [...new Set(candidates.map((u) => String(u).replace(/\/+$/, '')))]) {
       try {
+        skeletonEl.style.display = 'grid';
         const res = await withTimeout(fetch(`${base}/calendar`), 12000, 'calendar worker');
         if (!res.ok) continue;
         const json = await res.json();
@@ -979,9 +1147,14 @@
   }
 
   async function loadUpstoxMarketData() {
-    const gridEl = document.getElementById('marketGrid');
+    const segmentIndices = document.getElementById('segmentIndices');
+    const segmentStocksOptions = document.getElementById('segmentStocksOptions');
+    const segmentBonds = document.getElementById('segmentBonds');
+    const segmentCurrency = document.getElementById('segmentCurrency');
+    const segmentCommodities = document.getElementById('segmentCommodities');
+    const skeletonEl = document.getElementById('marketSegmentsSkeleton');
     const updatedEl = document.getElementById('marketUpdated');
-    if (!gridEl || !updatedEl) return false;
+    if (!segmentIndices || !segmentStocksOptions || !segmentBonds || !segmentCurrency || !segmentCommodities || !skeletonEl || !updatedEl) return false;
 
     const candidates = [
       // Quotes/global are served by the stable Upstox proxy.
@@ -994,44 +1167,72 @@
       return x.toLocaleString('en-IN', { maximumFractionDigits: 2 });
     };
     const now = () => new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const renderCards = (el, items) => {
+      if (!items.length) {
+        el.innerHTML = '<div class="market-seg-empty">No live instruments for this segment right now.</div>';
+        return;
+      }
+      el.innerHTML = items.map((c) => {
+        const isUp = Number(c.change) >= 0;
+        const sign = isUp ? '+' : '';
+        return `
+          <div class="market-card">
+            <div class="market-symbol">${String(c.symbol || '--').replace(/</g, '&lt;')}</div>
+            <div class="market-price">${fmtNum(c.price)}</div>
+            <div class="market-change ${isUp ? 'up' : 'down'}">${sign}${Number(c.change || 0).toFixed(2)}%</div>
+          </div>
+        `;
+      }).join('');
+    };
 
     for (const base of [...new Set(candidates.map((u) => String(u).replace(/\/+$/, '')))]) {
       try {
+        skeletonEl.style.display = 'grid';
         const qRes = await withTimeout(fetch(`${base}/quotes`), 12000, 'upstox quotes');
         if (!qRes.ok) continue;
         const qJson = await qRes.json();
 
-        const localCards = [];
+        const segments = {
+          indices: [],
+          stocksOptions: [],
+          bonds: [],
+          currency: [],
+          commodities: [],
+        };
         const data = qJson?.data || {};
         for (const [instrument, val] of Object.entries(data)) {
-          const symbol = instrument.split('|')[1] || instrument;
+          const symbol = instrument.split(':')[1] || instrument.split('|')[1] || instrument;
           const last = Number(val?.last_price ?? val?.ltp ?? val?.ohlc?.close);
           const prev = Number(val?.ohlc?.close ?? val?.prev_close_price ?? 0);
           if (!Number.isFinite(last)) continue;
           const pct = prev ? ((last - prev) / prev) * 100 : 0;
-          localCards.push({ symbol, price: last, change: pct });
+          const card = { symbol, price: last, change: pct };
+          const k = String(instrument).toUpperCase();
+          if (k.includes('INDEX') || symbol.toUpperCase().includes('NIFTY')) segments.indices.push(card);
+          else if (k.includes('BSE') || symbol.includes('GSEC') || symbol.includes('BOND')) segments.bonds.push(card);
+          else if (k.includes('CDS') || symbol.includes('USDINR') || symbol.includes('EURINR')) segments.currency.push(card);
+          else if (k.includes('MCX') || symbol.includes('GOLD') || symbol.includes('SILVER') || symbol.includes('CRUDE')) segments.commodities.push(card);
+          else segments.stocksOptions.push(card);
         }
-
-        const cards = localCards.slice(0, 10);
-        if (!cards.length) continue;
-
-        gridEl.innerHTML = cards.map((c) => {
-          const isUp = Number(c.change) >= 0;
-          const sign = isUp ? '+' : '';
-          return `
-            <div class="market-card">
-              <div class="market-symbol">${String(c.symbol || '--').replace(/</g, '&lt;')}</div>
-              <div class="market-price">${fmtNum(c.price)}</div>
-              <div class="market-change ${isUp ? 'up' : 'down'}">${sign}${Number(c.change || 0).toFixed(2)}%</div>
-            </div>
-          `;
-        }).join('');
+        const hasAny = Object.values(segments).some((arr) => arr.length);
+        if (!hasAny) continue;
+        renderCards(segmentIndices, segments.indices.slice(0, 6));
+        renderCards(segmentStocksOptions, segments.stocksOptions.slice(0, 6));
+        renderCards(segmentBonds, segments.bonds.slice(0, 4));
+        renderCards(segmentCurrency, segments.currency.slice(0, 4));
+        renderCards(segmentCommodities, segments.commodities.slice(0, 4));
+        skeletonEl.style.display = 'none';
         updatedEl.textContent = `Updated: ${now()}`;
         return true;
       } catch (_) {}
     }
 
-    gridEl.innerHTML = '<div class="market-empty">Market data is currently unavailable.</div>';
+    renderCards(segmentIndices, []);
+    renderCards(segmentStocksOptions, []);
+    renderCards(segmentBonds, []);
+    renderCards(segmentCurrency, []);
+    renderCards(segmentCommodities, []);
+    skeletonEl.style.display = 'none';
     updatedEl.textContent = `Updated: ${now()}`;
     return false;
   }
@@ -1039,13 +1240,19 @@
   function initForexCalendarControls() {
     const refreshEl = document.getElementById('forexCalendarRefresh');
     const filterEl = document.getElementById('forexCalendarCountryFilter');
+    const titleFilterEl = document.getElementById('forexCalendarTitleFilter');
+    const impactEl = document.getElementById('forexCalendarImpactFilter');
+    const sortEl = document.getElementById('forexCalendarSort');
     const limitEl = document.getElementById('forexCalendarLimit');
     const tzEl = document.getElementById('forexCalendarTimezone');
-    if (!refreshEl || !filterEl || !limitEl || !tzEl) return;
+    if (!refreshEl || !filterEl || !titleFilterEl || !impactEl || !sortEl || !limitEl || !tzEl) return;
     if (!refreshEl.dataset.bound) {
       refreshEl.dataset.bound = '1';
       refreshEl.addEventListener('click', () => loadForexFactoryData().catch(() => false));
       filterEl.addEventListener('input', () => loadForexFactoryData().catch(() => false));
+      titleFilterEl.addEventListener('input', () => loadForexFactoryData().catch(() => false));
+      impactEl.addEventListener('change', () => loadForexFactoryData().catch(() => false));
+      sortEl.addEventListener('change', () => loadForexFactoryData().catch(() => false));
       limitEl.addEventListener('change', () => loadForexFactoryData().catch(() => false));
       tzEl.addEventListener('change', () => loadForexFactoryData().catch(() => false));
     }
