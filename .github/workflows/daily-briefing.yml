@@ -49,4 +49,5 @@ jobs:
           git config --global user.email "bot@blogspro.in"
           git add briefings/ articles/ index.html sitemap.xml
           git commit -m "chore: automated daily financial briefing [skip ci]" || echo "No changes to commit"
+          git pull --rebase origin main
           git push
