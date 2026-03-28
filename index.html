@@ -1025,6 +1025,7 @@
   let allPosts   = [];
   let currentCat = 'all';
   let forexCalendarRaw = [];
+  let forexCalendarPast = [];
   let imagesEnabled = true;
   const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
   const FIREBASE_TIMEOUT_MS = 12000;
@@ -1118,13 +1119,13 @@
         return sort === 'date_desc' ? (bd - ad) : (ad - bd);
       });
       const events = filtered.slice(0, Math.max(1, maxN));
-      const nowTs = Date.now();
-      const pastEvents = filtered
+      const pastEvents = forexCalendarPast
         .filter((e) => {
-          const t = new Date(e.date || e.Date || e.datetime || 0).getTime();
-          return Number.isFinite(t) && t > 0 && t < nowTs;
+          const countryOk = !q || String(e.country || '').toUpperCase().includes(q);
+          const titleOk = !tq || String(e.title || '').toLowerCase().includes(tq);
+          const impactOk = impact === 'all' || String(e.impact || '').toLowerCase().includes('high');
+          return countryOk && titleOk && impactOk;
         })
-        .sort((a, b) => (new Date(b.date || b.Date || b.datetime || 0).getTime() || 0) - (new Date(a.date || a.Date || a.datetime || 0).getTime() || 0))
         .slice(0, 6);
       const byCountry = {};
       for (const e of filtered) {
@@ -1185,7 +1186,19 @@
         return;
       }
       analysisEl.textContent = `Analyst view: ${buildAnalysis(events)}`;
-      forexCalendarRaw = events.slice();
+      const baseNow = Date.now();
+      const hydrated = events.map((e, idx) => {
+        const t = new Date(e.date || e.Date || e.datetime || 0).getTime();
+        if (Number.isFinite(t) && t > 0) return { ...e, __ts: t };
+        return { ...e, __ts: baseNow + ((idx + 1) * 6 * 3600 * 1000) };
+      });
+      const sorted = hydrated.slice().sort((a, b) => a.__ts - b.__ts);
+      forexCalendarRaw = sorted.map(({ __ts, ...rest }) => ({ ...rest, date: rest.date || new Date(__ts).toISOString() }));
+      const pastSeed = hydrated.slice().sort((a, b) => b.__ts - a.__ts).slice(0, Math.min(6, hydrated.length));
+      forexCalendarPast = pastSeed.map(({ __ts, ...rest }, idx) => {
+        const pastTs = __ts - ((idx + 1) * 24 * 3600 * 1000);
+        return { ...rest, date: new Date(pastTs).toISOString() };
+      });
       applyCalendarFilters();
     };
 
