@@ -148,34 +148,24 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
             
             <div class="chart-container" style="margin-top: 3rem;">
                 <div class="tradingview-widget-container" style="height:100%;width:100%">
-                    <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
-                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
-                    {
-                    "symbols": [ [ "${symbol}|1D" ] ],
-                    "chartOnly": false,
-                    "width": "100%",
-                    "height": "100%",
-                    "locale": "en",
-                    "colorTheme": "dark",
-                    "autosize": true,
-                    "showVolume": false,
-                    "showMA": false,
-                    "hideDateRanges": false,
-                    "hideMarketStatus": false,
-                    "hideSymbolLogo": false,
-                    "scalePosition": "right",
-                    "scaleMode": "Normal",
-                    "fontFamily": "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
-                    "fontSize": "10",
-                    "noOverlays": false,
-                    "valuesTracking": "1",
-                    "changeMode": "price-and-percent",
-                    "chartType": "area",
-                    "headerFontSize": "medium",
-                    "lineWidth": 2,
-                    "lineType": 0,
-                    "dateRanges": [ "1d", "1m", "3m", "12m", "all" ]
-                    }
+                    <div id="tradingview_auto" style="height:100%;width:100%"></div>
+                    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+                    <script type="text/javascript">
+                    new TradingView.widget({
+                        "autosize": true,
+                        "symbol": "${symbol}",
+                        "interval": "D",
+                        "timezone": "Asia/Kolkata",
+                        "theme": "dark",
+                        "style": "2",
+                        "locale": "en",
+                        "toolbar_bg": "#f1f3f6",
+                        "enable_publishing": false,
+                        "hide_top_toolbar": true,
+                        "hide_legend": true,
+                        "save_image": false,
+                        "container_id": "tradingview_auto"
+                    });
                     </script>
                 </div>
             </div>
