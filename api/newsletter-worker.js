@@ -99,7 +99,7 @@ export default {
         const raw = await teRes.json();
         const events = (Array.isArray(raw) ? raw : [])
           .filter((e) => e && e.Event && e.Country && String(e.Country).toLowerCase().includes('india'))
-          .slice(0, 20)
+          .slice(0, 80)
           .map((e) => ({
             title: e.Event,
             country: 'IND',

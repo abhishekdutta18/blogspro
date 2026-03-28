@@ -1061,9 +1061,9 @@
       </div>
     </div>
     <div class="india-qoq-panel">
-      <div class="india-qoq-title" id="indiaQoqTitle">India Event QoQ Chart</div>
+      <div class="india-qoq-title" id="indiaQoqTitle">India Event Value Chart</div>
       <div class="qoq-bars" id="indiaQoqBars">
-        <div class="calendar-empty">Click an India event card to view QoQ trend.</div>
+        <div class="calendar-empty">Click an India event card to view value comparison.</div>
       </div>
     </div>
   </div>
@@ -1683,30 +1683,32 @@
 
       return { holdProb, cutProb, hikeProb, inrPressure, confidence, topSector, topSurprises, sectorHits, weekdayHits, regimeTag, thresholdAlert, breadth };
     };
-    const buildQoqSeries = (event) => {
+    const buildEventValueSeries = (event) => {
       const prev = numFrom(event.previous);
       const fcst = numFrom(event.forecast);
       const act = numFrom(event.actual);
-      const base = Number.isFinite(prev) ? prev : (Number.isFinite(fcst) ? fcst : (Number.isFinite(act) ? act : 100));
-      const q1 = base * 0.94;
-      const q2 = base * 0.98;
-      const q3 = base;
-      const q4 = Number.isFinite(act) ? act : (Number.isFinite(fcst) ? fcst : base * 1.01);
-      return [
-        { label: 'Q-3', value: q1 },
-        { label: 'Q-2', value: q2 },
-        { label: 'Q-1', value: q3 },
-        { label: 'Q0', value: q4 },
-      ];
+      const series = [];
+      if (Number.isFinite(prev)) series.push({ label: 'Previous', value: prev });
+      if (Number.isFinite(fcst)) series.push({ label: 'Forecast', value: fcst });
+      if (Number.isFinite(act)) series.push({ label: 'Actual', value: act });
+      if (Number.isFinite(act) && Number.isFinite(fcst)) {
+        series.push({ label: 'Surprise', value: act - fcst });
+      }
+      return series;
     };
     const renderQoq = (event) => {
-      const series = buildQoqSeries(event);
-      const max = Math.max(...series.map((s) => s.value), 1);
-      qoqTitleEl.textContent = `India Event QoQ Chart · ${event.title || 'Selected Event'}`;
+      const series = buildEventValueSeries(event);
+      if (!series.length) {
+        qoqTitleEl.textContent = `India Event Value Chart · ${event.title || 'Selected Event'}`;
+        qoqBarsEl.innerHTML = '<div class="calendar-empty">No numeric values available for this event.</div>';
+        return;
+      }
+      const maxAbs = Math.max(...series.map((s) => Math.abs(s.value)), 1);
+      qoqTitleEl.textContent = `India Event Value Chart · ${event.title || 'Selected Event'}`;
       qoqBarsEl.innerHTML = series.map((s) => `
         <div class="qoq-col">
           <div class="qoq-val">${fmtNum(s.value)}</div>
-          <div class="qoq-bar-wrap"><div class="qoq-bar" style="height:${Math.max(6, Math.round((s.value / max) * 72))}px"></div></div>
+          <div class="qoq-bar-wrap"><div class="qoq-bar" style="height:${Math.max(6, Math.round((Math.abs(s.value) / maxAbs) * 72))}px;opacity:${s.value < 0 ? 0.7 : 1}"></div></div>
           <div class="qoq-lbl">${s.label}</div>
         </div>
       `).join('');
@@ -1830,8 +1832,8 @@
     gaugeNoteEl.textContent = 'Macro inputs unavailable';
     sectorBarsEl.innerHTML = '<div class="sector-row"><div class="sector-label">Banks</div><div class="sector-track"><div class="sector-fill" style="width:0%"></div></div></div>';
     explainEl.innerHTML = '<div><b>Desk Snapshot:</b> waiting for India macro feed to calculate detailed diagnostics.</div>';
-    qoqTitleEl.textContent = 'India Event QoQ Chart';
-    qoqBarsEl.innerHTML = '<div class="calendar-empty">QoQ chart unavailable until events load.</div>';
+    qoqTitleEl.textContent = 'India Event Value Chart';
+    qoqBarsEl.innerHTML = '<div class="calendar-empty">Value chart unavailable until events load.</div>';
     return false;
   }
 
