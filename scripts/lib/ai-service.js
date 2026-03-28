@@ -10,7 +10,7 @@ async function generateGroqContent(prompt) {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            model: "llama-3-8b-8192", // Switched to 8B for higher TPD/RPM limits (Sovereign Synthesis)
+            model: "llama-3.1-8b-instant", // Corrected model name for high-throughput synthesis
             messages: [{ role: "user", content: prompt }],
             temperature: 0.2
         })
