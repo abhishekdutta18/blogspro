@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 const path = require("path");
 const fs = require("fs");
-const { fetchEconomicCalendar, fetchMultiAssetData, fetchIndianNews, fetchGlobalNews, fetchGlobalMarkets, fetchMacroPulse, fetchUpstoxData } = require(path.join(__dirname, "lib", "data-fetchers"));
-const { askAI } = require(path.join(__dirname, "lib", "ai-service"));
-const { getBaseTemplate } = require(path.join(__dirname, "lib", "templates"));
+const { fetchEconomicCalendar, fetchMultiAssetData, fetchIndianNews, fetchGlobalNews, fetchGlobalMarkets, fetchMacroPulse, fetchUpstoxData } = require("./lib/data-fetchers.js");
+const { askAI } = require("./lib/ai-service.js");
+const { getBaseTemplate } = require("./lib/templates.js");
 const fetch = require("node-fetch");
 
 async function fetchWithTimeout(url, options = {}, timeout = 15000) {
