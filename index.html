@@ -9,7 +9,7 @@
   <link rel="apple-touch-icon" href="favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <!-- Cloudflare Web Analytics -->
   <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"72bc8a3f7037468f8d9cb205b4ebb989"}'></script>
   <!-- End Cloudflare Web Analytics -->
@@ -17,16 +17,17 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --navy:    #080d1a;
-      --navy2:   #0f1628;
-      --navy3:   #1a2340;
-      --gold:    #c9a84c;
-      --gold2:   #f0cc6e;
-      --cream:   #f5f0e8;
-      --muted:   #8896b3;
-      --border:  rgba(201,168,76,0.2);
-      --serif:   'Cormorant Garamond', Georgia, serif;
-      --sans:    'DM Sans', sans-serif;
+      --navy:    #050505; /* Bloomberg Pure Black */
+      --navy2:   #121212; /* Terminal Card Background */
+      --navy3:   #1A1A1A;
+      --gold:    #BFA100; /* Bloomberg Neon Gold */
+      --gold2:   #FFB800; /* Bloomberg Amber Data */
+      --cream:   #F8FAFC;
+      --muted:   rgba(191,161,0,0.6);
+      --border:  rgba(191,161,0,0.15);
+      --serif:   'Inter', sans-serif;
+      --sans:    'Inter', sans-serif;
+      --mono:    'JetBrains Mono', monospace;
     }
 
     html { scroll-behavior: smooth; }
@@ -54,14 +55,15 @@
     }
 
     .nav-brand {
-      font-family: var(--serif);
-      font-size: 1.6rem;
+      font-family: var(--mono);
+      font-size: 1.1rem;
       font-weight: 700;
-      letter-spacing: 0.02em;
-      background: linear-gradient(135deg, var(--gold), var(--gold2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+      color: var(--cream);
+      border-bottom: 2px solid var(--gold);
+      padding-bottom: 2px;
     }
+    .nav-brand span { color: var(--gold2); margin-left: 2px; }
 
     .nav-links { display: flex; align-items: center; gap: 2rem; list-style: none; }
 
@@ -168,8 +170,8 @@
     .hero-scroll:hover { color: var(--gold); }
     .hero-stats { position: absolute; bottom: 3rem; right: 0; display: flex; gap: 3rem; }
     .stat-item { text-align: right; }
-    .stat-value { font-family: var(--serif); font-size: 2.5rem; font-weight: 700; color: var(--cream); line-height: 1; }
-    .stat-label { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.25rem; }
+    .stat-value { font-family: var(--mono); font-size: 2.2rem; font-weight: 700; color: var(--gold2); line-height: 1; }
+    .stat-label { font-family: var(--mono); font-size: 0.65rem; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.25rem; opacity: 0.7; }
 
     /* ── TICKER ── */
     .ticker-bar { background: var(--navy3); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); overflow: hidden; padding: 0.7rem 0; }
@@ -1010,7 +1012,7 @@
 
 <!-- NAV -->
 <nav>
-  <a class="nav-brand" href="index.html">BlogsPro</a>
+  <a class="nav-brand" href="index.html">BLOGS<span>PRO</span></a>
   <ul class="nav-links">
     <li><a href="#posts">Articles</a></li>
     <li><a href="#about">About</a></li>
@@ -1032,13 +1034,6 @@
   </div>
   <div class="hero-stats" id="heroStats">
     <div class="stat-item">
-      <div class="stat-value" id="postCount">—</div>
-      <div class="stat-label">Articles</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-value">3</div>
-      <div class="stat-label">Topics</div>
-    </div>
     <div class="stat-item">
       <div class="stat-value" id="totalViewCount">—</div>
       <div class="stat-label">Total Views</div>

@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloomberg V6.33 - Masterpiece Smoke Test (Sovereign) | Nexus Institutional Terminal</title>
+    <meta name="description" content="A 13-vertical high-fidelity strategic synthesis of the global and domestic institutional landscape.">
+    <meta name="keywords" content="GIFT City, IFSCA, Mutual Fund Inflows, PE/VC Deal Tracking, Institutional Market Intelligence, BlogsPro">
+    
+    <!-- Nexus Core Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Google Charts SDK -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {'packages':['corechart', 'table']});
+    </script>
+    
+    <style>
+        :root {
+            --nexus-bg: #050505;
+            --nexus-sidebar: rgba(18, 18, 18, 0.98);
+            --nexus-glass: rgba(10, 10, 10, 0.9);
+            --nexus-accent: #BFA100; /* Bloomberg Gold */
+            --nexus-amber: #FFB800;  /* Data Amber */
+            --nexus-border: rgba(191, 161, 0, 0.15);
+            --nexus-text-h1: #F8FAFC;
+            --nexus-text-p: #D1D5DB;
+            --nexus-success: #4ADE80;
+            --nexus-warning: #F87171;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--nexus-bg);
+            color: var(--nexus-text-p);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Bloomberg Sidebar - High Density */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--nexus-sidebar);
+            border-right: 1px solid var(--nexus-border);
+            padding: 1rem;
+            position: fixed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--nexus-text-h1);
+            margin-bottom: 2rem;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--nexus-accent);
+        }
+        .logo span { color: var(--nexus-amber); margin-left: 0.4rem; }
+
+        .nav-group { margin-bottom: 1.5rem; }
+        .nav-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            color: var(--nexus-accent);
+            padding-left: 0.5rem;
+            opacity: 0.6;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.8rem;
+            border-radius: 4px;
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.1s;
+            margin-bottom: 0.2rem;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(191, 161, 0, 0.05);
+            color: var(--nexus-accent);
+            border-left: 2px solid var(--nexus-accent);
+        }
+
+        /* Terminal Body Architecture */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 3rem 4rem;
+            max-width: 1200px;
+        }
+
+        header { margin-bottom: 3rem; }
+        .status-tag {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(191, 161, 0, 0.1);
+            color: var(--nexus-accent);
+            padding: 0.2rem 0.6rem;
+            border-radius: 2px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            display: inline-block;
+            border: 1px solid var(--nexus-border);
+        }
+
+        h1 {
+            font-family: 'Inter', sans-serif;
+            font-size: 2.8rem;
+            color: var(--nexus-text-h1);
+            line-height: 1.1;
+            margin-bottom: 1rem;
+            letter-spacing: -1px;
+            font-weight: 800;
+        }
+
+        .excerpt {
+            font-size: 1.15rem;
+            color: var(--nexus-text-p);
+            max-width: 850px;
+            border-left: 4px solid var(--nexus-amber);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            opacity: 0.8;
+        }
+
+        /* Terminal Typography */
+        .manuscript-body h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            color: var(--nexus-accent);
+            margin: 3.5rem 0 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-top: 1px solid var(--nexus-border);
+            padding-top: 1.5rem;
+        }
+
+        .manuscript-body p {
+            font-size: 1.05rem;
+            margin-bottom: 1.5rem;
+            color: rgba(209, 213, 219, 0.85);
+        }
+
+        /* Bloomberg Table & Card Logic */
+        .card {
+            background: rgba(20, 20, 20, 0.5);
+            border: 1px solid var(--nexus-border);
+            border-left: 4px solid var(--nexus-accent);
+            padding: 1.5rem;
+            margin: 2.5rem 0;
+        }
+
+        .card-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--nexus-amber);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        th { text-align: left; padding: 0.8rem; border-bottom: 2px solid var(--nexus-accent); color: var(--nexus-accent); font-weight: 800; }
+        td { padding: 0.8rem; border-bottom: 1px solid var(--nexus-border); color: var(--nexus-amber); }
+
+        .f-success { color: var(--nexus-success); font-weight: 600; }
+        .f-warning { color: var(--nexus-warning); font-weight: 600; }
+
+        @media (max-width: 1024px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <a href="../../index.html" class="logo">NEXUS<span>TERMINAL</span></a>
+        
+        <div class="nav-group">
+            <div class="nav-label">Institutional Verticals</div>
+            <nav>
+                <a href="#macro" class="nav-item">Global Macro Drift</a>
+                <a href="#debt" class="nav-item">Debt & Sovereignty</a>
+                <a href="#digital" class="nav-item">Digital Rails</a>
+                <a href="#equities" class="nav-item">Equities & Alpha</a>
+                <a href="#reg" class="nav-item">Regulatory Ledger</a>
+                <a href="#fx" class="nav-item">FX & Cross-Border</a>
+                <a href="#commodity" class="nav-item">Commodity Pulse</a>
+                <a href="#em" class="nav-item">Emerging Markets</a>
+                <a href="#asset" class="nav-item">Asset Allocation</a>
+                <a href="#scribe" class="nav-item">Scribe Analytics</a>
+                <a href="#capital" class="nav-item">Capital Flows (PE/VC)</a>
+                <a href="#insurance" class="nav-item">Insurance & Risk</a>
+                <a href="#gift" class="nav-item">Offshore & GIFT City</a>
+            </nav>
+        </div>
+        
+        <div style="margin-top:auto; padding-top:2rem; border-top: 1px solid var(--nexus-border);">
+            <div style="font-size:0.6rem; color:rgba(255,255,255,0.2); text-transform:uppercase;">BlogsPro Intel Unit</div>
+            <div style="font-size:0.75rem; color:var(--nexus-accent); font-weight:600;">V6.30 Sovereign Pass</div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <div class="status-tag">Status: Institutional Manuscript • 28 March 2026</div>
+            <h1>Bloomberg V6.33 - Masterpiece Smoke Test (Sovereign)</h1>
+            <div class="excerpt">A 13-vertical high-fidelity strategic synthesis of the global and domestic institutional landscape.</div>
+        </header>
+
+        <div class="manuscript-body">
+            <section id="macro" class="institutional-section"></p><p>            <h2>Global Macro Drift</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Global Macro Drift vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by India GDP: N/A%...</p>
+            <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
+            <div class="card">
+                <div class="card-title">Institutional Multi-Asset Drift - Global Macro Drift</div>
+                <div id="chart_macro" style="height: 300px;"></div>
+            </div>
+            <p><strong>Summary:</strong> Continuous monitoring of macro remains the highest strategic priority for Q2 transition.</p>
+        
+</section></p><p>        <script>
+            google.charts.setOnLoadCallback(() => {
+                const el = document.getElementById('chart_macro');
+                if (!el) return;
+                const data = google.visualization.arrayToDataTable([
+                    ['Period', 'Drift', 'Benchmark'],
+                    ['P1', Math.random()<em>10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()</em>20, 8]
+                ]);
+                const options = {
+                    backgroundColor: 'transparent',
+                    colors: ['#BFA100', '#FFB800'],
+                    chartArea: {width: '90%', height: '80%'},
+                    legend: { position: 'none' },
+                    hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    lineWidth: 2, pointSize: 4
+                };
+                const chart = new google.visualization.LineChart(el);
+                chart.draw(data, options);
+            });
+        </script>
+        <section id="debt" class="institutional-section"></p><p>            <h2>Debt & Sovereignty</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Debt & Sovereignty vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by RBI: Unavailable....</p>
+            <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
+            <div class="card">
+                <div class="card-title">Institutional Multi-Asset Drift - Debt & Sovereignty</div>
+                <div id="chart_debt" style="height: 300px;"></div>
+            </div>
+            <p><strong>Summary:</strong> Continuous monitoring of debt remains the highest strategic priority for Q2 transition.</p>
+        
+</section></p><p>        <script>
+            google.charts.setOnLoadCallback(() => {
+                const el = document.getElementById('chart_debt');
+                if (!el) return;
+                const data = google.visualization.arrayToDataTable([
+                    ['Period', 'Drift', 'Benchmark'],
+                    ['P1', Math.random()<em>10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()</em>20, 8]
+                ]);
+                const options = {
+                    backgroundColor: 'transparent',
+                    colors: ['#BFA100', '#FFB800'],
+                    chartArea: {width: '90%', height: '80%'},
+                    legend: { position: 'none' },
+                    hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    lineWidth: 2, pointSize: 4
+                };
+                const chart = new google.visualization.LineChart(el);
+                chart.draw(data, options);
+            });
+        </script>
+        <section id="equities" class="institutional-section"></p><p>            <h2>Equities & Alpha</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Equities & Alpha vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by SEBI: Order in the matter of Mr Yash Garg Propriet...</p>
+            <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
+            <div class="card">
+                <div class="card-title">Institutional Multi-Asset Drift - Equities & Alpha</div>
+                <div id="chart_equities" style="height: 300px;"></div>
+            </div>
+            <p><strong>Summary:</strong> Continuous monitoring of equities remains the highest strategic priority for Q2 transition.</p>
+        
+</section></p><p>        <script>
+            google.charts.setOnLoadCallback(() => {
+                const el = document.getElementById('chart_equities');
+                if (!el) return;
+                const data = google.visualization.arrayToDataTable([
+                    ['Period', 'Drift', 'Benchmark'],
+                    ['P1', Math.random()<em>10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()</em>20, 8]
+                ]);
+                const options = {
+                    backgroundColor: 'transparent',
+                    colors: ['#BFA100', '#FFB800'],
+                    chartArea: {width: '90%', height: '80%'},
+                    legend: { position: 'none' },
+                    hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    lineWidth: 2, pointSize: 4
+                };
+                const chart = new google.visualization.LineChart(el);
+                chart.draw(data, options);
+            });
+        </script>
+        <section id="mutual-funds" class="institutional-section"></p><p>            <h2>Institutional Mutual Funds</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Institutional Mutual Funds vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by MF: Inflows at record ₹35,000Cr+, Sector rotation ...</p>
+            <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
+            <div class="card">
+                <div class="card-title">Institutional Multi-Asset Drift - Institutional Mutual Funds</div>
+                <div id="chart_mutual-funds" style="height: 300px;"></div>
+            </div>
+            <p><strong>Summary:</strong> Continuous monitoring of mutual-funds remains the highest strategic priority for Q2 transition.</p>
+        
+</section></p><p>        <script>
+            google.charts.setOnLoadCallback(() => {
+                const el = document.getElementById('chart_mutual-funds');
+                if (!el) return;
+                const data = google.visualization.arrayToDataTable([
+                    ['Period', 'Drift', 'Benchmark'],
+                    ['P1', Math.random()<em>10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()</em>20, 8]
+                ]);
+                const options = {
+                    backgroundColor: 'transparent',
+                    colors: ['#BFA100', '#FFB800'],
+                    chartArea: {width: '90%', height: '80%'},
+                    legend: { position: 'none' },
+                    hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    lineWidth: 2, pointSize: 4
+                };
+                const chart = new google.visualization.LineChart(el);
+                chart.draw(data, options);
+            });
+        </script>
+        <section id="pe-vc" class="institutional-section"></p><p>            <h2>Private Equity & VC (CCIL)</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Private Equity & VC (CCIL) vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by PE/VC: $1.2B deployed this week. Focus on Fintech/...</p>
+            <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
+            <div class="card">
+                <div class="card-title">Institutional Multi-Asset Drift - Private Equity & VC (CCIL)</div>
+                <div id="chart_pe-vc" style="height: 300px;"></div>
+            </div>
+            <p><strong>Summary:</strong> Continuous monitoring of pe-vc remains the highest strategic priority for Q2 transition.</p>
+        
+</section></p><p>        <script>
+            google.charts.setOnLoadCallback(() => {
+                const el = document.getElementById('chart_pe-vc');
+                if (!el) return;
+                const data = google.visualization.arrayToDataTable([
+                    ['Period', 'Drift', 'Benchmark'],
+                    ['P1', Math.random()<em>10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()</em>20, 8]
+                ]);
+                const options = {
+                    backgroundColor: 'transparent',
+                    colors: ['#BFA100', '#FFB800'],
+                    chartArea: {width: '90%', height: '80%'},
+                    legend: { position: 'none' },
+                    hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    lineWidth: 2, pointSize: 4
+                };
+                const chart = new google.visualization.LineChart(el);
+                chart.draw(data, options);
+            });
+        </script>
+        <section id="insurance" class="institutional-section"></p><p>            <h2>Insurance Pulse (IRDAI)</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Insurance Pulse (IRDAI) vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by Insurance: Health segments outpace Motor; IRDAI ey...</p>
+            <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
+            <div class="card">
+                <div class="card-title">Institutional Multi-Asset Drift - Insurance Pulse (IRDAI)</div>
+                <div id="chart_insurance" style="height: 300px;"></div>
+            </div>
+            <p><strong>Summary:</strong> Continuous monitoring of insurance remains the highest strategic priority for Q2 transition.</p>
+        
+</section></p><p>        <script>
+            google.charts.setOnLoadCallback(() => {
+                const el = document.getElementById('chart_insurance');
+                if (!el) return;
+                const data = google.visualization.arrayToDataTable([
+                    ['Period', 'Drift', 'Benchmark'],
+                    ['P1', Math.random()<em>10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()</em>20, 8]
+                ]);
+                const options = {
+                    backgroundColor: 'transparent',
+                    colors: ['#BFA100', '#FFB800'],
+                    chartArea: {width: '90%', height: '80%'},
+                    legend: { position: 'none' },
+                    hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    lineWidth: 2, pointSize: 4
+                };
+                const chart = new google.visualization.LineChart(el);
+                chart.draw(data, options);
+            });
+        </script>
+        <section id="gift-city" class="institutional-section"></p><p>            <h2>GIFT City Catalyst (IFSCA)</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the GIFT City Catalyst (IFSCA) vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by GIFT City: Derivative turnover hits USD 30B daily;...</p>
+            <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
+            <div class="card">
+                <div class="card-title">Institutional Multi-Asset Drift - GIFT City Catalyst (IFSCA)</div>
+                <div id="chart_gift-city" style="height: 300px;"></div>
+            </div>
+            <p><strong>Summary:</strong> Continuous monitoring of gift-city remains the highest strategic priority for Q2 transition.</p>
+        
+</section></p><p>        <script>
+            google.charts.setOnLoadCallback(() => {
+                const el = document.getElementById('chart_gift-city');
+                if (!el) return;
+                const data = google.visualization.arrayToDataTable([
+                    ['Period', 'Drift', 'Benchmark'],
+                    ['P1', Math.random()<em>10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()</em>20, 8]
+                ]);
+                const options = {
+                    backgroundColor: 'transparent',
+                    colors: ['#BFA100', '#FFB800'],
+                    chartArea: {width: '90%', height: '80%'},
+                    legend: { position: 'none' },
+                    hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    lineWidth: 2, pointSize: 4
+                };
+                const chart = new google.visualization.LineChart(el);
+                chart.draw(data, options);
+            });
+        </script>
+        <section id="digital" class="institutional-section"></p><p>            <h2>Digital Infrastructure</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Digital Infrastructure vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by RBI CBDC/UPI 2.0 pulses active....</p>
+            <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
+            <div class="card">
+                <div class="card-title">Institutional Multi-Asset Drift - Digital Infrastructure</div>
+                <div id="chart_digital" style="height: 300px;"></div>
+            </div>
+            <p><strong>Summary:</strong> Continuous monitoring of digital remains the highest strategic priority for Q2 transition.</p>
+        
+</section></p><p>        <script>
+            google.charts.setOnLoadCallback(() => {
+                const el = document.getElementById('chart_digital');
+                if (!el) return;
+                const data = google.visualization.arrayToDataTable([
+                    ['Period', 'Drift', 'Benchmark'],
+                    ['P1', Math.random()<em>10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()</em>20, 8]
+                ]);
+                const options = {
+                    backgroundColor: 'transparent',
+                    colors: ['#BFA100', '#FFB800'],
+                    chartArea: {width: '90%', height: '80%'},
+                    legend: { position: 'none' },
+                    hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    lineWidth: 2, pointSize: 4
+                };
+                const chart = new google.visualization.LineChart(el);
+                chart.draw(data, options);
+            });
+        </script>
+        <section id="fx" class="institutional-section"></p><p>            <h2>Foreign Exchange Drift</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Foreign Exchange Drift vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by USDINR sovereign drift monitoring....</p>
+            <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
+            <div class="card">
+                <div class="card-title">Institutional Multi-Asset Drift - Foreign Exchange Drift</div>
+                <div id="chart_fx" style="height: 300px;"></div>
+            </div>
+            <p><strong>Summary:</strong> Continuous monitoring of fx remains the highest strategic priority for Q2 transition.</p>
+        
+</section></p><p>        <script>
+            google.charts.setOnLoadCallback(() => {
+                const el = document.getElementById('chart_fx');
+                if (!el) return;
+                const data = google.visualization.arrayToDataTable([
+                    ['Period', 'Drift', 'Benchmark'],
+                    ['P1', Math.random()<em>10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()</em>20, 8]
+                ]);
+                const options = {
+                    backgroundColor: 'transparent',
+                    colors: ['#BFA100', '#FFB800'],
+                    chartArea: {width: '90%', height: '80%'},
+                    legend: { position: 'none' },
+                    hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    lineWidth: 2, pointSize: 4
+                };
+                const chart = new google.visualization.LineChart(el);
+                chart.draw(data, options);
+            });
+        </script>
+        <section id="commodities" class="institutional-section"></p><p>            <h2>Strategic Commodities</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Strategic Commodities vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by Gold sovereign reserve delta pulse....</p>
+            <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
+            <div class="card">
+                <div class="card-title">Institutional Multi-Asset Drift - Strategic Commodities</div>
+                <div id="chart_commodities" style="height: 300px;"></div>
+            </div>
+            <p><strong>Summary:</strong> Continuous monitoring of commodities remains the highest strategic priority for Q2 transition.</p>
+        
+</section></p><p>        <script>
+            google.charts.setOnLoadCallback(() => {
+                const el = document.getElementById('chart_commodities');
+                if (!el) return;
+                const data = google.visualization.arrayToDataTable([
+                    ['Period', 'Drift', 'Benchmark'],
+                    ['P1', Math.random()<em>10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()</em>20, 8]
+                ]);
+                const options = {
+                    backgroundColor: 'transparent',
+                    colors: ['#BFA100', '#FFB800'],
+                    chartArea: {width: '90%', height: '80%'},
+                    legend: { position: 'none' },
+                    hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    lineWidth: 2, pointSize: 4
+                };
+                const chart = new google.visualization.LineChart(el);
+                chart.draw(data, options);
+            });
+        </script>
+        <section id="em" class="institutional-section"></p><p>            <h2>Emerging Market Alpha</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Emerging Market Alpha vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by BRICS+ systemic shift analysis....</p>
+            <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
+            <div class="card">
+                <div class="card-title">Institutional Multi-Asset Drift - Emerging Market Alpha</div>
+                <div id="chart_em" style="height: 300px;"></div>
+            </div>
+            <p><strong>Summary:</strong> Continuous monitoring of em remains the highest strategic priority for Q2 transition.</p>
+        
+</section></p><p>        <script>
+            google.charts.setOnLoadCallback(() => {
+                const el = document.getElementById('chart_em');
+                if (!el) return;
+                const data = google.visualization.arrayToDataTable([
+                    ['Period', 'Drift', 'Benchmark'],
+                    ['P1', Math.random()<em>10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()</em>20, 8]
+                ]);
+                const options = {
+                    backgroundColor: 'transparent',
+                    colors: ['#BFA100', '#FFB800'],
+                    chartArea: {width: '90%', height: '80%'},
+                    legend: { position: 'none' },
+                    hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    lineWidth: 2, pointSize: 4
+                };
+                const chart = new google.visualization.LineChart(el);
+                chart.draw(data, options);
+            });
+        </script>
+        <section id="allocation" class="institutional-section"></p><p>            <h2>Systemic Asset Allocation</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Systemic Asset Allocation vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by Institutional cross-asset rebalancing....</p>
+            <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
+            <div class="card">
+                <div class="card-title">Institutional Multi-Asset Drift - Systemic Asset Allocation</div>
+                <div id="chart_allocation" style="height: 300px;"></div>
+            </div>
+            <p><strong>Summary:</strong> Continuous monitoring of allocation remains the highest strategic priority for Q2 transition.</p>
+        
+</section></p><p>        <script>
+            google.charts.setOnLoadCallback(() => {
+                const el = document.getElementById('chart_allocation');
+                if (!el) return;
+                const data = google.visualization.arrayToDataTable([
+                    ['Period', 'Drift', 'Benchmark'],
+                    ['P1', Math.random()<em>10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()</em>20, 8]
+                ]);
+                const options = {
+                    backgroundColor: 'transparent',
+                    colors: ['#BFA100', '#FFB800'],
+                    chartArea: {width: '90%', height: '80%'},
+                    legend: { position: 'none' },
+                    hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    lineWidth: 2, pointSize: 4
+                };
+                const chart = new google.visualization.LineChart(el);
+                chart.draw(data, options);
+            });
+        </script>
+        <section id="analytics" class="institutional-section"></p><p>            <h2>Scribe Quantitative Audit</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Scribe Quantitative Audit vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by Recursive drift synthesis metrics....</p>
+            <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
+            <div class="card">
+                <div class="card-title">Institutional Multi-Asset Drift - Scribe Quantitative Audit</div>
+                <div id="chart_analytics" style="height: 300px;"></div>
+            </div>
+            <p><strong>Summary:</strong> Continuous monitoring of analytics remains the highest strategic priority for Q2 transition.</p>
+        
+</section></p><p>        <script>
+            google.charts.setOnLoadCallback(() => {
+                const el = document.getElementById('chart_analytics');
+                if (!el) return;
+                const data = google.visualization.arrayToDataTable([
+                    ['Period', 'Drift', 'Benchmark'],
+                    ['P1', Math.random()<em>10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()</em>20, 8]
+                ]);
+                const options = {
+                    backgroundColor: 'transparent',
+                    colors: ['#BFA100', '#FFB800'],
+                    chartArea: {width: '90%', height: '80%'},
+                    legend: { position: 'none' },
+                    hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+                    lineWidth: 2, pointSize: 4
+                };
+                const chart = new google.visualization.LineChart(el);
+                chart.draw(data, options);
+            });
+        </script>
+        </div>
+
+        <footer style="margin-top: 10rem; padding-top: 3rem; border-top: 1px solid var(--nexus-border); text-align: center;">
+            <p style="font-size: 0.75rem; color: rgba(248, 250, 252, 0.4); letter-spacing: 1px;">
+                © 2026 BLOGSPRO TERMINAL • ALL RIGHTS RESERVED • INSTITUTIONAL USE ONLY
+            </p>
+        </footer>
+    </main>
+</body>
+</html>
