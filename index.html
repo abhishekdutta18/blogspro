@@ -1052,7 +1052,10 @@
   <div class="feed-status">
     <div class="feed-status-head">
       <div class="feed-status-label">India Macro Events</div>
-      <div class="feed-status-chip" id="indiaFeedChip">Syncing</div>
+      <div style="display:flex;align-items:center;gap:0.45rem;flex-wrap:wrap;justify-content:flex-end">
+        <div class="calendar-meta" id="indiaHeaderDateTime">Date/Time: --</div>
+        <div class="feed-status-chip" id="indiaFeedChip">Syncing</div>
+      </div>
     </div>
     <div class="calendar-meta" id="indiaCalendarMeta">Source: Syncing · Updated: --</div>
     <div class="calendar-analysis" id="indiaCalendarAnalysis">Analyst view will appear after data loads.</div>
@@ -1651,7 +1654,8 @@
     const explainEl = document.getElementById('indiaDeskExplain');
     const qoqTitleEl = document.getElementById('indiaQoqTitle');
     const qoqBarsEl = document.getElementById('indiaQoqBars');
-    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !probBarsEl || !gaugeEl || !gaugeNoteEl || !sectorBarsEl || !explainEl || !qoqTitleEl || !qoqBarsEl) return false;
+    const headerDateTimeEl = document.getElementById('indiaHeaderDateTime');
+    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !probBarsEl || !gaugeEl || !gaugeNoteEl || !sectorBarsEl || !explainEl || !qoqTitleEl || !qoqBarsEl || !headerDateTimeEl) return false;
 
     const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
     const fmtDate = (raw) => {
@@ -1660,6 +1664,7 @@
       return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     };
     const nowStamp = () => new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const headerStamp = () => new Date().toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     const indiaView = (e) => {
       const t = String(e.title || '').toLowerCase();
       if (t.includes('cpi') || t.includes('wpi') || t.includes('inflation')) return 'Analyst view: Inflation trajectory guides RBI reaction function, front-end yields, and rate-sensitive equity sectors. A print above forecast usually hardens rates expectations and can pressure duration-heavy pockets.';
@@ -1836,9 +1841,17 @@
       const min = Math.min(...seriesAll.map((s) => s.value));
       const max = Math.max(...seriesAll.map((s) => s.value));
       const span = Math.max(1e-6, max - min);
-      const padPct = Math.max(0.08, Math.min(0.25, 20 / Math.max(20, Math.abs(max))));
-      const yMin = min - (span * padPct);
-      const yMax = max + (span * padPct);
+      const basePad = span * 0.18;
+      let yMin = min - basePad;
+      let yMax = max + basePad;
+      if (Math.abs(yMax - yMin) < 1e-6) {
+        yMin -= 1;
+        yMax += 1;
+      }
+      const magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(Math.abs(yMin), Math.abs(yMax), 1))));
+      const tickUnit = Math.max(0.01, magnitude / 5);
+      yMin = Math.floor(yMin / tickUnit) * tickUnit;
+      yMax = Math.ceil(yMax / tickUnit) * tickUnit;
       const ySpan = Math.max(1e-6, yMax - yMin);
       const x = (i) => pad.l + ((innerW * i) / Math.max(1, seriesAll.length - 1));
       const y = (v) => pad.t + (innerH * (1 - ((v - yMin) / ySpan)));
@@ -1882,8 +1895,9 @@
       qoqBarsEl.innerHTML = `${svgLineChart(history, forecastPoint)}<div class="linechart-note">Historical line: last 12 months by quarter. Dotted extension: next-quarter forecast.</div>`;
     };
 
-    const render = () => {
+      const render = () => {
       const events = indiaCalendarRaw.slice();
+      headerDateTimeEl.textContent = `Date/Time: ${headerStamp()}`;
       summaryEl.textContent = `Summary: ${events.length} India events tracked`;
       const topImpact = events.filter((e) => String(e.impact || '').toLowerCase().includes('high')).length;
       analysisEl.textContent = `Analyst view: ${topImpact} high-impact India releases are on radar; prioritize CPI/RBI prints for rate-sensitive positioning.`;
@@ -1956,17 +1970,6 @@
           <div class="sector-track"><div class="sector-fill" style="width:${Math.round((v / maxSector) * 100)}%"></div></div>
         </div>
       `).join('');
-      const weekdayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      const weekdayMax = Math.max(1, ...weekdayOrder.map((d) => m.weekdayHits[d] || 0));
-      sectorBarsEl.innerHTML += `
-        <div class="desk-chart-title" style="margin-top:0.5rem">Event Heatmap (Day of Week)</div>
-        ${weekdayOrder.map((d) => `
-          <div class="sector-row">
-            <div class="sector-label">${d}</div>
-            <div class="sector-track"><div class="sector-fill" style="width:${Math.round(((m.weekdayHits[d] || 0) / weekdayMax) * 100)}%"></div></div>
-          </div>
-        `).join('')}
-      `;
       listEl.innerHTML = events.map((e, idx) => `
         <li class="calendar-item india-event-card" data-india-idx="${idx}">
           <div class="calendar-item-head">
@@ -2019,6 +2022,7 @@
         }
         indiaCalendarRaw = deduped;
         chipEl.textContent = 'Live';
+        headerDateTimeEl.textContent = `Date/Time: ${headerStamp()}`;
         metaEl.textContent = `Source: India Macro Feed · Events: ${indiaCalendarRaw.length} · Updated: ${nowStamp()}`;
         render();
         return true;
@@ -2027,6 +2031,7 @@
 
     chipEl.classList.add('down');
     chipEl.textContent = 'Down';
+    headerDateTimeEl.textContent = `Date/Time: ${headerStamp()}`;
     indiaCalendarHistoryRaw = [];
     metaEl.textContent = `Source: India Macro Feed · Events: 0 · Updated: ${nowStamp()}`;
     analysisEl.textContent = 'Analyst view: India macro feed unavailable right now.';
