@@ -1567,7 +1567,8 @@
     return false;
   }
 
-  async function loadUpstoxMarketData() {
+  async function loadUpstoxMarketData(opts = {}) {
+    const { showLoading = false } = opts;
     const segmentIndices = document.getElementById('segmentIndices');
     const segmentStocksOptions = document.getElementById('segmentStocksOptions');
     const segmentBonds = document.getElementById('segmentBonds');
@@ -1767,9 +1768,12 @@
       }).join('');
     };
 
+    if (showLoading) {
+      skeletonEl.style.display = 'grid';
+    }
+
     for (const base of [...new Set(candidates.map((u) => String(u).replace(/\/+$/, '')))]) {
       try {
-        skeletonEl.style.display = 'grid';
         const qRes = await withTimeout(fetch(`${base}/quotes?t=${Date.now()}`, { cache: 'no-store' }), 12000, 'upstox quotes');
         if (!qRes.ok) continue;
         const qJson = await qRes.json();
@@ -1827,17 +1831,21 @@
         renderCards(segmentCommodities, segments.commodities.slice(0, 14), 'commodities');
         renderCards(segmentCrypto, segments.crypto.slice(0, 16), 'crypto');
         skeletonEl.style.display = 'none';
+        segmentIndices.dataset.loaded = '1';
         updatedEl.textContent = `Updated: ${now()}`;
         return true;
       } catch (_) {}
     }
 
-    renderCards(segmentIndices, [], 'indices');
-    renderCards(segmentStocksOptions, [], 'stocksOptions');
-    renderCards(segmentBonds, [], 'bonds');
-    renderCards(segmentCurrency, [], 'currency');
-    renderCards(segmentCommodities, [], 'commodities');
-    renderCards(segmentCrypto, [], 'crypto');
+    if (!segmentIndices.dataset.loaded) {
+      renderCards(segmentIndices, [], 'indices');
+      renderCards(segmentStocksOptions, [], 'stocksOptions');
+      renderCards(segmentBonds, [], 'bonds');
+      renderCards(segmentCurrency, [], 'currency');
+      renderCards(segmentCommodities, [], 'commodities');
+      renderCards(segmentCrypto, [], 'crypto');
+      segmentIndices.dataset.loaded = '1';
+    }
     skeletonEl.style.display = 'none';
     updatedEl.textContent = `Updated: ${now()}`;
     return false;
@@ -2701,7 +2709,7 @@
     const aboutOk = await loadAbout().catch(() => false);
     const forexOk = await loadForexFactoryData().catch(() => false);
     const indiaOk = await loadIndiaCalendarData().catch(() => false);
-    const marketOk = await loadUpstoxMarketData().catch(() => false);
+    const marketOk = await loadUpstoxMarketData({ showLoading: true }).catch(() => false);
     const allOk = settingsOk && postsOk && aboutOk && forexOk && indiaOk && marketOk;
     setIntegrationStatus(
       allOk ? 'online' : 'degraded',
@@ -2711,7 +2719,7 @@
       marketRefreshTimer = setInterval(() => {
         if (document.hidden || marketRefreshInFlight) return;
         marketRefreshInFlight = true;
-        loadUpstoxMarketData()
+        loadUpstoxMarketData({ showLoading: false })
           .catch(() => false)
           .finally(() => { marketRefreshInFlight = false; });
       }, 200);
