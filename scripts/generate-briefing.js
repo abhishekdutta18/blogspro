@@ -37,17 +37,22 @@ async function generateBriefing() {
     GL: ${glNews}
     `;
 
-    const prompt = `You are a Sharp Indo-Global Market Pulse Analyst. 
-    Write a ${frequency === 'hourly' ? "high-speed snap" : "comprehensive daily briefing"} (HTML).
-    Tone: Institutional, sharp, forward-looking.
-    Include a Markdown table for market data summary.
-    DATA: ${liveDataBlock}`;
+    const prompt = `You are a Senior Fintech Market Analyst for BlogsPro. 
+    Write a sharp, institutional-grade ${frequency} market pulse (HTML).
+    
+    CRITICAL SEO INSTRUCTIONS:
+    1. Start with exactly one <h2> tag containing a unique, punchy, and keyword-rich title for this specific hour/day (e.g., "Nifty Tests 22K Support Amidst Global Tech Sell-off" instead of "Market Summary").
+    2. Provide a 1-sentence analytical excerpt (max 160 chars) at the very top, wrapped in a <details id="meta-excerpt" style="display:none"> tag.
+    
+    MARKET CONTEXT: ${staticDataBlock}`;
 
     try {
         const content = await askAI(prompt);
         const titleMatch = content.match(/<h2[^>]*>(.*?)<\/h2>/i);
+        const excerptMatch = content.match(/<details id="meta-excerpt"[^>]*>(.*?)<\/details>/i);
+        
         const title = titleMatch ? titleMatch[1].trim() : `Briefing — ${dateLabel}`;
-        const excerpt = "Sharp Indo-Global market insights and regulatory updates.";
+        const excerpt = excerptMatch ? excerptMatch[1].trim() : "Sharp Indo-Global market insights and regulatory updates.";
         
         const fileName = `briefing-${today}.html`;
         const fullHtml = getBaseTemplate({ 

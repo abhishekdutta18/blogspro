@@ -1,9 +1,8 @@
 User-agent: *
 Allow: /
-Disallow: /admin.html
-Disallow: /dashboard.html
-Disallow: /account.html
-Disallow: /deploy.html
-Disallow: /sitemap_generator.html
+Allow: /briefings/
+Allow: /articles/
+Allow: /posts/
 
+# Sitemap location
 Sitemap: https://blogspro.in/sitemap.xml

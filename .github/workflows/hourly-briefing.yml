@@ -40,11 +40,14 @@ jobs:
           NOTIFICATION_WEBHOOK: ${{ secrets.WEBHOOK_SECRET }}
         run: node scripts/generate-briefing.js --freq=hourly
 
+      - name: Update Sitemap
+        run: node scripts/generate-sitemap.js
+
       - name: Commit and Push
         run: |
           git config --global user.name "BlogsPro Bot"
           git config --global user.email "bot@blogspro.in"
-          git add briefings/ index.html
+          git add briefings/ index.html sitemap.xml robots.txt
           git commit -m "chore: automated hourly market pulse [skip ci]" || echo "No changes to commit"
           git pull --rebase origin main
           git push

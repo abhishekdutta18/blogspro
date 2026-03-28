@@ -10,6 +10,39 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title} — BlogsPro ${type.toUpperCase()}</title>
     <meta name="description" content="${excerpt}">
+    <link rel="canonical" href="${canonical}">
+    
+    <!-- OpenGraph / Facebook -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="${canonical}">
+    <meta property="og:title" content="${title} — BlogsPro">
+    <meta property="og:description" content="${excerpt}">
+    <meta property="og:image" content="https://blogspro.in/assets/og-preview.png">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="${canonical}">
+    <meta name="twitter:title" content="${title} — BlogsPro">
+    <meta name="twitter:description" content="${excerpt}">
+    <meta name="twitter:image" content="https://blogspro.in/assets/og-preview.png">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "${title.replace(/"/g, '&quot;')}",
+      "description": "${excerpt.replace(/"/g, '&quot;')}",
+      "author": {"@type": "Organization", "name": "BlogsPro Intelligence"},
+      "datePublished": "${new Date().toISOString()}",
+      "image": "https://blogspro.in/assets/og-preview.png",
+      "publisher": {
+        "@type": "Organization",
+        "name": "BlogsPro",
+        "logo": { "@type": "ImageObject", "url": "https://blogspro.in/assets/logo.png" }
+      }
+    }
+    </script>
     <style>
         :root { --navy:#080d1a; --gold:#c9a84c; --gold2:#f0cc6e; --cream:#f5f0e8; --muted:#8896b3; --serif:'Cormorant Garamond',serif; --sans:'DM Sans',sans-serif; }
         body { background: var(--navy); color: var(--cream); font-family: var(--sans); margin: 0; line-height: 1.6; }

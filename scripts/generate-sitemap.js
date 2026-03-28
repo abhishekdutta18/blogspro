@@ -76,13 +76,21 @@ async function generateSitemap() {
           const lastMod = stats.mtime.toISOString().split('T')[0];
           const pathSegments = relPath.split('/').filter(s => s !== '..');
           const loc = `${DOMAIN}/${pathSegments.join('/')}/${file}`;
+          
           if (!urls.includes(loc)) {
+            let freq = 'weekly';
+            let priority = '0.7';
+            
+            if (relPath.includes('hourly')) { freq = 'hourly'; priority = '1.0'; }
+            else if (relPath.includes('daily')) { freq = 'daily'; priority = '0.9'; }
+            else if (relPath.includes('weekly')) { freq = 'weekly'; priority = '0.8'; }
+            
             urls += `
   <url>
     <loc>${loc}</loc>
     <lastmod>${lastMod}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <changefreq>${freq}</changefreq>
+    <priority>${priority}</priority>
   </url>`;
           }
         });

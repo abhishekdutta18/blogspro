@@ -34,15 +34,20 @@ async function generateArticle() {
 
     const prompt = `You are a Strategic Fintech & Policy Architect for BlogsPro. 
     Write a ${frequency === 'weekly' ? "Weekly Strategic deep-dive" : "Monthly Macro Outlook"} (HTML).
-    Tone: Thought-leadership, structural analysis, forward-looking.
-    Include specific policy implications and long-term targets.
+    
+    CRITICAL SEO INSTRUCTIONS:
+    1. Start with exactly one <h2> tag containing a unique, structural title (e.g., "RBI Digital Rupee Pivot: Analyzing the 2026 Sandbox Roadmap").
+    2. Provide a 1-sentence analytical excerpt (max 160 chars) at the very top, wrapped in a <details id="meta-excerpt" style="display:none"> tag.
+    
     REGULATORY DATA: ${staticDataBlock}`;
 
     try {
         const content = await askAI(prompt);
         const titleMatch = content.match(/<h2[^>]*>(.*?)<\/h2>/i);
+        const excerptMatch = content.match(/<details id="meta-excerpt"[^>]*>(.*?)<\/details>/i);
+        
         const title = titleMatch ? titleMatch[1].trim() : `Strategic Outlook — ${dateLabel}`;
-        const excerpt = "Strategic deep-dive for institutional and professional investors.";
+        const excerpt = excerptMatch ? excerptMatch[1].trim() : "Strategic deep-dive for institutional and professional investors.";
         
         const fileName = `article-${today}.html`;
         const fullHtml = getBaseTemplate({ 
