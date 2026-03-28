@@ -186,7 +186,7 @@ jobs:
         run: |
           git config --global user.name "BlogsPro Engine"
           git config --global user.email "engine@blogspro.in"
-          git add posts/*.html posts/index.json sitemap.xml
+          git add posts/*.html posts/index.json p/*.html sitemap.xml
           git commit -m "🤖 auto-seo: update static posts and sitemap [skip ci]" || echo "No changes to commit"
           
           # Retry loop for push (up to 3 attempts with rebase)
