@@ -10,7 +10,7 @@ async function generateGroqContent(prompt) {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
+            model: "llama-3-8b-8192", // Switched to 8B for higher TPD/RPM limits (Sovereign Synthesis)
             messages: [{ role: "user", content: prompt }],
             temperature: 0.2
         })
@@ -18,7 +18,7 @@ async function generateGroqContent(prompt) {
     const data = await res.json();
     if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
     console.error("❌ Groq API Fail Details:", JSON.stringify(data));
-    throw new Error(`Groq API Error: ${data.error?.message || "Unknown error"}`);
+    throw new Error(`Groq API Error: ${data.error?.message || "Rate limit or exhaustion"}`);
 }
 
 async function generateKimiContent(prompt) {
@@ -69,12 +69,13 @@ async function generateOpenRouterContent(prompt) {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            model: "meta-llama/llama-3-70b-instruct",
+            model: "meta-llama/llama-3-8b-instruct:free", // Resilient fallback
             messages: [{ role: "user", content: prompt }]
         })
     });
     const data = await res.json();
     if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
+    console.error("❌ OpenRouter Fail Details:", JSON.stringify(data));
     throw new Error("OpenRouter failed.");
 }
 
