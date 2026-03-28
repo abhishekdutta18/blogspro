@@ -64,6 +64,15 @@ async function generateArticle() {
     let fullContent = "";
     let lastSummary = "Institutional baseline established.";
 
+    const cleanAIResponse = (text) => {
+        return text
+            .replace(/```[a-z]*\n/gi, "") // Remove starting code blocks
+            .replace(/```/g, "")          // Remove ending code blocks
+            .replace(/^Here is the chapter.*:$/gi, "") // Remove AI conversational fluff
+            .replace(/^In this chapter.*:$/gi, "")
+            .trim();
+    };
+
     try {
         console.log(`🏰 Starting Recursive Synthesis for ${frequency.toUpperCase()} tome...`);
 
@@ -71,32 +80,43 @@ async function generateArticle() {
             const v = verticals[i];
             console.log(`✍️ Scribing Vertical ${i+1}/${verticals.length}: ${v.name}...`);
 
-            // Filter news for this specific vertical to ensure news-dependent logic
             const verticalNews = universal.split('|')
                 .filter(news => v.keywords.some(k => news.toUpperCase().includes(k.toUpperCase())))
                 .slice(0, 8)
                 .join(' | ');
 
-            const scribePrompt = `You are a Senior Institutional Analyst at Bloomberg for BlogsPro Intelligence.
-            
+            const scribePrompt = `You are a Senior Institutional Analyst at Bloomberg.
             CONTEXT:
             - Data Flux: ${v.data}
-            - Institutional Anchor: ${macro.summary.substring(0, 500)}...
-            - Global News Pulse: ${verticalNews || "Systemic drift mapping via macro context."}
-            - Narrative Flow (Continuity): ${lastSummary}
+            - Anchor: ${macro.summary}
+            - Global News: ${verticalNews || "Systemic drift mapping via macro context."}
+            - Flow: ${lastSummary}
             
             STRICT INSTRUCTION:
-            1. Write a 1,500-2,000 word deep-dive chapter with Bloomberg-level authority and data density.
-            2. Theme: '${v.name}'. Analyze the 'Second-Order Effects' of every data point.
-            3. Apply '3-Dimensional Synthesis': For every news item, provide an Audit, a Risk Assessment, and a Strategic Forecast.
-            4. Formatting: Use <h2> for the main section title (Must be '${v.name}').
-            5. Integrated Visuals (Google Charts): Insert a DIV with class 'card' containing an Amber title and an empty DIV with a unique ID (e.g., <div id="chart_${v.id}"></div>).
-            6. Style: Professional, cold, data-backed, institutional.`;
+            1. Write a 1,500-2,000 word chapter for '${v.name}'. Cold, data-backed high-density tone.
+            2. Formatting: Use <h2> for '${v.name}'. Insert <div class="card"><div id="chart_${v.id}"></div></div>.
+            3. NO MARKDOWN CODE BLOCKS. Output pure HTML body snippets only.`;
 
-            const chapter = await askAI(scribePrompt);
+            // Stage 1: Narrative Scribing
+            let rawChapter = await askAI(scribePrompt);
+            
+            // Stage 2: Gemini Sanitizer Pass
+            console.log(`🧹 Sanitizing Vertical ${i+1}/${verticals.length}...`);
+            const sanitizerPrompt = `Clean this HTML for a Bloomberg Terminal. 
+            - REMOVE all markdown backticks (e.g. \`\`\`).
+            - Fix any half-closed tags or invalid HTML.
+            - Ensure the ID 'chart_${v.id}' is preserved in the div.
+            - Format the text specifically as cold, professional institutional blocks.
+            
+            CONTENT TO SANITIZE:
+            ${rawChapter}`;
+            
+            let chapter = await askAI(sanitizerPrompt);
+            chapter = cleanAIResponse(chapter);
+
             fullContent += `\n<section id="${v.id}" class="institutional-section">\n${chapter}\n</section>\n`;
             
-            // Inject Bloomberg Chart Logic for this section
+            // Stage 3: Technical Chart Injection (Hardcoded, NOT AI-generated)
             fullContent += `
             <script>
                 google.charts.setOnLoadCallback(() => {
@@ -104,7 +124,7 @@ async function generateArticle() {
                     if (!el) return;
                     const data = google.visualization.arrayToDataTable([
                         ['Period', 'Drift', 'Benchmark'],
-                        ['P1', Math.random()*10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()*20, 8]
+                        ['P1', ${Math.random()*10}, 5], ['P2', ${Math.random()*15}, 7], ['P3', ${Math.random()*12}, 6], ['P4', ${Math.random()*20}, 8]
                     ]);
                     const options = {
                         backgroundColor: 'transparent',
@@ -121,12 +141,11 @@ async function generateArticle() {
             </script>
             `;
             
-            // Extract a summary for the next pass
-            lastSummary = `Previous chapter concluded a deep dive into ${v.name}, highlighting key regulatory shifts and market exposure.`;
+            lastSummary = `Previous chapter concluded a deep dive into ${v.name}, highlighting key regulatory shifts and market exposure for sovereign debt and capital flows.`;
         }
 
         console.log("🔍 Running SEO Auditor...");
-        const metaRes = await askAI(`Analyze this institutional manuscript and return JSON only: {"description": "1-sentence strategic summary", "keywords": "5 finance keywords"}\n\nCONTENT: ${fullContent.substring(0, 3000)}`);
+        const metaRes = await askAI(`Analyze this institutional manuscript and return JSON only: {"description": "1-sentence summary", "keywords": "5 finance terms"}\n\nCONTENT: ${fullContent.substring(0, 3000)}`);
         const meta = JSON.parse(metaRes.match(/\{.*?\}/s)?.[0] || '{"description": "Institutional Strategy", "keywords": "finance, rbi"}');
 
         const titleMatch = fullContent.match(/<h2[^>]*>(.*?)<\/h2>/i) || fullContent.match(/<h3[^>]*>(.*?)<\/h3>/i);
