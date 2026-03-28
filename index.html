@@ -2680,7 +2680,8 @@
       // 3. Unify & Sort (The Sovereign Grid)
       allPosts = [...firestorePosts, ...aiPosts].sort((a, b) => b.timestamp - a.timestamp);
 
-      document.getElementById('postCount').textContent = allPosts.length;
+      const postCountEl = document.getElementById('postCount');
+      if (postCountEl) postCountEl.textContent = allPosts.length;
       const totalViews = firestorePosts.reduce((sum, p) => sum + (p.views || 0), 0);
       const tvEl = document.getElementById('totalViewCount');
       if (tvEl) tvEl.textContent = fmtViews(totalViews);
