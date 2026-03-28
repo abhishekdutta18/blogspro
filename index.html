@@ -1843,18 +1843,11 @@
       crypto: 12,
     };
     const padCards = (items, segmentKey) => {
+      // If we have any live data, show only that — never mix live with stale fallback
+      if (items.length > 0) return items;
+      // Only use fallback when the API returned nothing for this segment
       const target = segmentTargetCount[segmentKey] || 6;
-      const fallback = fallbackBySegment[segmentKey] || [];
-      const out = items.slice(0, target);
-      const seen = new Set(out.map((x) => String(x?.symbol || '').toUpperCase()));
-      for (const f of fallback) {
-        if (out.length >= target) break;
-        const k = String(f?.symbol || '').toUpperCase();
-        if (!k || seen.has(k)) continue;
-        seen.add(k);
-        out.push(f);
-      }
-      return out;
+      return (fallbackBySegment[segmentKey] || []).slice(0, target);
     };
     const isIndiaMarketHours = () => {
       const d = new Date();
