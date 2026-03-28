@@ -2710,7 +2710,7 @@
       marketRefreshTimer = setInterval(() => {
         if (document.hidden) return;
         loadUpstoxMarketData().catch(() => false);
-      }, 30000);
+      }, 200);
     }
   })();
 </script>
