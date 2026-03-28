@@ -67,6 +67,17 @@ async function generateArticle() {
             });
         }
 
+        if (process.env.TELEGRAM_TOKEN && process.env.TELEGRAM_TO) {
+            console.log(`📡 Dispatching ${frequency} Article alert to Telegram...`);
+            const tgTitle = frequency === 'weekly' ? `🗞️ <b>STRATEGIC WEEKLY</b>` : `📚 <b>MONTHLY OUTLOOK</b>`;
+            const text = `${tgTitle}\n\n<b>${title}</b>\n\n${excerpt}\n\n🔗 <a href="https://blogspro.in/articles/${frequency}/${fileName}">Read Full Strategic Report</a>`;
+            
+            await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: process.env.TELEGRAM_TO, text, parse_mode: "HTML" })
+            });
+        }
+
         console.log(`🏁 Article Success: ${fileName}`);
     } catch (e) {
         console.error("❌ Article Fail:", e);

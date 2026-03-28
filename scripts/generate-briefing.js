@@ -72,6 +72,17 @@ async function generateBriefing() {
             });
         }
 
+        if (process.env.TELEGRAM_TOKEN && process.env.TELEGRAM_TO) {
+            console.log(`📡 Dispatching ${frequency} Pulse to Telegram...`);
+            const tgTitle = frequency === 'hourly' ? `🕒 <b>HOURLY PULSE</b>` : `📅 <b>DAILY BRIEFING</b>`;
+            const text = `${tgTitle}\n\n<b>${title}</b>\n\n${excerpt}\n\n🔗 <a href="https://blogspro.in/briefings/${frequency}/${fileName}">Read Full Terminal Report</a>`;
+            
+            await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: process.env.TELEGRAM_TO, text, parse_mode: "HTML" })
+            });
+        }
+
         console.log(`🏁 Briefing Success: ${fileName}`);
     } catch (e) {
         console.error("❌ Briefing Fail:", e);
