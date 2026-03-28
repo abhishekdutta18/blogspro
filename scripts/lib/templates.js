@@ -34,11 +34,15 @@ function parseMD(md) {
 }
 
 function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, freq, fileName, rel = "../../", pairId = "179", sentimentScore = 50, priceInfo = { last: "0", high: "0", low: "0" } }) {
+    const isHourly = freq === 'hourly';
+    const isDaily = freq === 'daily';
+    const isWeekly = freq === 'weekly';
+    const isMonthly = freq === 'monthly';
+
     const sentimentLabel = sentimentScore > 75 ? "EXTREME BULLISH" : (sentimentScore < 25 ? "EXTREME BEARISH" : (sentimentScore > 55 ? "BULLISH" : (sentimentScore < 45 ? "BEARISH" : "NEUTRAL")));
     const sentimentColor = sentimentScore > 75 ? "#22c55e" : (sentimentScore < 25 ? "#ef4444" : "#eab308");
     const gaugeRotation = (sentimentScore / 100) * 180 - 90; 
     
-    // DUAL CHART LOGIC: Static Sparkline Fallback
     const lastNum = parseFloat(priceInfo.last.replace(/,/g,'')) || 100;
     const lowNum = parseFloat(priceInfo.low.replace(/,/g,'')) || lastNum * 0.95;
     const highNum = parseFloat(priceInfo.high.replace(/,/g,'')) || lastNum * 1.05;
@@ -52,170 +56,146 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, finalKit, type, f
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} — BlogsPro ${type.toUpperCase()}</title>
+    <title>${title} — BlogsPro ${freq.toUpperCase()}</title>
     <meta name="description" content="${excerpt}">
     <link rel="canonical" href="${canonical}">
-    
-    <!-- OpenGraph / Facebook -->
-    <meta property="og:type" content="article">
-    <meta property="og:url" content="${canonical}">
-    <meta property="og:title" content="${title} — BlogsPro">
-    <meta property="og:description" content="${excerpt}">
-    <meta property="og:image" content="https://blogspro.in/assets/og-preview.png">
-
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="${canonical}">
-    <meta name="twitter:title" content="${title} — BlogsPro">
-    <meta name="twitter:description" content="${excerpt}">
-    <meta name="twitter:image" content="https://blogspro.in/assets/og-preview.png">
-
-    <!-- JSON-LD Structured Data -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "BlogPosting",
-      "headline": "${title.replace(/"/g, '&quot;')}",
-      "description": "${excerpt.replace(/"/g, '&quot;')}",
-      "author": {"@type": "Organization", "name": "BlogsPro Intelligence"},
-      "datePublished": "${new Date().toISOString()}",
-      "image": "https://blogspro.in/assets/og-preview.png",
-      "publisher": {
-        "@type": "Organization",
-        "name": "BlogsPro",
-        "logo": { "@type": "ImageObject", "url": "https://blogspro.in/assets/logo.png" }
-      }
-    }
-    </script>
     <style>
-        :root { --navy:#080d1a; --gold:#c9a84c; --gold2:#f0cc6e; --cream:#f5f0e8; --muted:#8896b3; --serif:'Cormorant Garamond',serif; --sans:'DM Sans',sans-serif; }
-        body { background: var(--navy); color: var(--cream); font-family: var(--sans); margin: 0; line-height: 1.6; }
+        :root { 
+            --navy:#080d1a; --gold:#c9a84c; --gold2:#f0cc6e; --cream:#f5f0e8; --muted:#8896b3; 
+            --serif:'Cormorant Garamond',serif; --sans:'DM Sans',sans-serif; --mono:'Space Mono', monospace;
+            --accent: ${sentimentColor};
+        }
+        body { background: var(--navy); color: var(--cream); font-family: var(--sans); margin: 0; line-height: 1.6; transition: 0.3s ease; }
+        
+        /* Frequency Variants */
+        .variant-hourly { --bg-paper: rgba(255,255,255,0.03); --font-body: var(--mono); font-size: 0.9rem; }
+        .variant-daily { --bg-paper: linear-gradient(180deg, rgba(201,168,76,0.05) 0%, transparent 100%); }
+        .variant-weekly { --bg-paper: transparent; max-width: 900px !important; }
+        .variant-monthly { --bg-paper: rgba(201,168,76,0.08); background: #0c1221; }
+
         nav { position: sticky; top: 0; background: rgba(8,13,26,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(201,168,76,0.2); padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; z-index: 100; }
         .brand { font-family: var(--serif); font-size: 1.5rem; font-weight: 700; color: var(--gold); text-decoration: none; }
-        .article-container { max-width: 800px; margin: 0 auto; padding: 4rem 2rem; }
-        .meta { color: var(--gold); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1rem; display: block; letter-spacing: 0.1em; }
-        h1 { font-family: var(--serif); font-size: clamp(2.2rem, 5vw, 3.8rem); line-height: 1.1; margin-bottom: 1.5rem; }
-        .content h2 { font-family: var(--serif); color: var(--gold); font-size: 2rem; margin: 3.5rem 0 1.2rem; border-left: 4px solid var(--gold); padding-left: 1rem; }
-        .content h3 { font-family: var(--serif); color: var(--gold2); font-size: 1.5rem; margin: 2.5rem 0 1rem; }
-        .content table { width: 100%; border-collapse: collapse; margin: 2rem 0; font-size: 0.95rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(201,168,76,0.1); border-radius: 8px; overflow: hidden; }
-        .content th { background: rgba(201,168,76,0.1); color: var(--gold); text-align: left; padding: 1rem; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; border-bottom: 2px solid var(--gold); }
-        .content td { padding: 1rem; border-bottom: 1px solid rgba(201,168,76,0.05); }
-        .content tr:nth-child(even) { background: rgba(255,255,255,0.01); }
-        .content tr:hover { background: rgba(201,168,76,0.05); }
-        .table-container { overflow-x: auto; margin: 2rem 0; border-radius: 12px; border: 1px solid rgba(201,168,76,0.15); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .article-container { max-width: 800px; margin: 0 auto; padding: 4rem 2rem; background: var(--bg-paper); border-radius: 0 0 24px 24px; }
         
-        /* Premium Dashboard Components */
-        .command-center { position: relative; background: linear-gradient(145deg, rgba(201,168,76,0.08), rgba(8,13,26,0.5)); border: 1px solid rgba(201,168,76,0.2); border-radius: 16px; padding: 2.5rem; margin: 2rem 0 4rem; backdrop-filter: blur(20px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
-        .live-blinker { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.7rem; font-weight: 900; color: #ef4444; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 2rem; }
-        .live-blinker::before { content: ""; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; animation: blink 1s infinite; box-shadow: 0 0 10px #ef4444; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-
-        .gauge-wrap { position: relative; width: 140px; height: 75px; flex-shrink: 0; }
-        .gauge-arc { width: 140px; height: 140px; border: 15px solid rgba(255,255,255,0.05); border-radius: 50%; border-bottom-color: transparent; border-left-color: transparent; transform: rotate(-45deg); position: absolute; }
-        .gauge-color { width: 140px; height: 140px; border: 15px solid transparent; border-radius: 50%; border-top-color: ${sentimentColor}; border-right-color: ${sentimentColor}; transform: rotate(-45deg); position: absolute; filter: drop-shadow(0 0 5px ${sentimentColor}); }
-        .gauge-needle { position: absolute; bottom: 0; left: 50%; width: 4px; height: 60px; background: var(--cream); border-radius: 4px; transform-origin: bottom center; transform: translateX(-50%) rotate(${gaugeRotation}deg); transition: 1s cubic-bezier(0.17, 0.67, 0.83, 0.67); }
-        .gauge-center { position: absolute; bottom: -5px; left: 50%; width: 14px; height: 14px; background: var(--gold); border-radius: 50%; transform: translateX(-50%); border: 2px solid var(--navy); }
-        .sentiment-label { text-align: center; margin-top: 0.5rem; font-size: 0.75rem; font-weight: 800; color: ${sentimentColor}; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
-
-        .dashboard-grid { display: grid; grid-template-columns: 140px 1fr; gap: 3rem; align-items: start; }
-        .chart-container { width: 100%; height: 480px; border-radius: 12px; border: 1px solid rgba(201,168,76,0.15); overflow: hidden; position: relative; background: #000; box-shadow: inset 0 0 40px rgba(0,0,0,0.5); }
-        .chart-container::after { content: "INSTITUTIONAL TECHNICALS"; position: absolute; bottom: 10px; right: 10px; font-size: 10px; color: var(--gold); font-weight: 900; opacity: 0.4; letter-spacing: 0.1em; }
-
-        .static-sparkline { width: 100%; height: 60px; filter: drop-shadow(0 0 5px ${sentimentColor}); opacity: 0.6; pointer-events: none; }
+        .meta { color: var(--gold); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1rem; display: block; letter-spacing: 0.2em; }
+        h1 { font-family: var(--serif); font-size: clamp(2.2rem, 6vw, 4rem); line-height: 1.1; margin-bottom: 1.5rem; letter-spacing: -0.02em; }
         
-        @media (max-width: 600px) {
-            .dashboard-grid { grid-template-columns: 1fr; gap: 2rem; }
-            .command-center { padding: 1.5rem; }
-            .chart-container { height: 320px; }
+        .variant-hourly h1 { font-family: var(--mono); text-transform: uppercase; font-size: 2.2rem; }
+        .variant-monthly h1 { font-family: var(--serif); border-bottom: 2px solid var(--gold); padding-bottom: 1.5rem; }
+
+        .content h2 { font-family: var(--serif); color: var(--gold); font-size: 2.2rem; margin: 4rem 0 1.5rem; position: relative; }
+        .content h2::after { content: ""; position: absolute; left: 0; bottom: -8px; width: 60px; height: 4px; background: var(--accent); }
+        .content p { font-size: 1.15rem; opacity: 0.9; margin-bottom: 2rem; }
+        
+        /* Table Styles */
+        .table-container { overflow-x: auto; margin: 3rem 0; border-radius: 12px; border: 1px solid rgba(201,168,76,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.5); background: rgba(0,0,0,0.2); }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: rgba(201,168,76,0.1); color: var(--gold); padding: 1.2rem; text-align: left; font-size: 0.75rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
+        td { padding: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 1rem; }
+        
+        /* Terminal Components */
+        .command-center { position: relative; background: #000; border: 1px solid rgba(201,168,76,0.3); border-radius: 16px; padding: 2.5rem; margin: 3rem 0; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
+        .live-tag { display: inline-block; padding: 4px 12px; background: #ef4444; color: white; border-radius: 4px; font-size: 0.65rem; font-weight: 900; margin-bottom: 1.5rem; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        .dashboard-grid { display: grid; grid-template-columns: 180px 1fr; gap: 3rem; align-items: center; }
+        .gauge-wrap { position: relative; width: 160px; height: 85px; }
+        .gauge-needle { position: absolute; bottom: 0; left: 50%; width: 5px; height: 75px; background: #fff; border-radius: 5px; transform-origin: bottom center; transform: translateX(-50%) rotate(${gaugeRotation}deg); transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); }
+        
+        .chart-box { height: ${isHourly ? '320px' : '520px'}; border-radius: 12px; overflow: hidden; margin-top: 2rem; border: 1px solid rgba(255,255,255,0.1); }
+        
+        .social-bar { margin-top: 5rem; padding-top: 2rem; border-top: 1px solid rgba(201,168,76,0.2); display: flex; justify-content: space-between; align-items: center; }
+        .cta-btn { background: var(--gold); color: var(--navy); padding: 1rem 2rem; border-radius: 8px; font-weight: 800; text-decoration: none; display: inline-block; transition: 0.3s; }
+        .cta-btn:hover { background: var(--gold2); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(201,168,76,0.4); }
+
+        @media (max-width: 768px) {
+            .dashboard-grid { grid-template-columns: 1fr; text-align: center; }
+            .gauge-wrap { margin: 0 auto; }
             .article-container { padding: 2rem 1rem; }
-            nav { padding: 0 1rem; }
-            h1 { font-size: 2.2rem; }
         }
-
-        .audio-summary { margin: 3rem 0; padding: 2.5rem; background: linear-gradient(to right, rgba(201,168,76,0.08), transparent); border: 1px solid var(--gold); border-radius: 16px; }
-        .audio-player { width: 100%; margin-top: 1rem; filter: sepia(20%) saturate(70%) grayscale(1) contrast(99%) invert(12%); }
-        .share-btn { background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); color: var(--gold); padding: 0.6rem 1.2rem; border-radius: 4px; font-size: 0.85rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: 0.2s; }
-        .share-btn:hover { background: var(--gold); color: var(--navy); }
-        .footer-actions { margin-top: 4rem; padding-top: 2rem; border-top: 1px solid rgba(201,168,76,0.1); display: flex; gap: 1rem; }
     </style>
 </head>
-<body>
+<body class="variant-${freq}">
     <nav>
         <a href="${rel}index.html" class="brand">BlogsPro</a>
-        <a href="${rel}index.html" style="color:var(--muted);text-decoration:none;font-size:0.8rem;">← Back</a>
+        <div style="display:flex;gap:1.5rem;align-items:center;">
+            <span style="font-size:0.7rem;color:var(--gold);font-weight:900;">${freq.toUpperCase()} TERMINAL</span>
+            <a href="${rel}index.html" style="color:var(--muted);text-decoration:none;font-size:0.8rem;">← Home</a>
+        </div>
     </nav>
+
     <article class="article-container">
-        <div class="live-blinker">Live Terminal Status: Optimal</div>
         <header>
-            <span class="meta">${type.toUpperCase()} • ${dateLabel}</span>
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <span class="meta">${isHourly ? '⚡ Intraday' : (isMonthly ? '🏛️ Institutional' : '📉 Market')} • ${dateLabel}</span>
+                ${isHourly ? '<div class="live-tag">LIVE TERMINAL</div>' : ''}
+            </div>
             <h1>${title}</h1>
-            <p style="font-size:1.3rem;color:var(--muted);font-style:italic;line-height:1.4">${excerpt}</p>
+            <p style="font-size:1.4rem; color:var(--muted); font-style: italic; line-height: 1.4; border-left: 4px solid var(--accent); padding-left: 1.5rem; margin: 2rem 0;">
+                ${excerpt}
+            </p>
         </header>
 
         <section class="command-center">
             <div class="dashboard-grid">
                 <div>
+                    <div style="text-align:center; margin-bottom: 1rem; font-size: 0.7rem; font-weight: 900; color: var(--muted); letter-spacing: 0.2em;">SENTIMENT PULSE</div>
                     <div class="gauge-wrap">
-                        <div class="gauge-arc"></div>
-                        <div class="gauge-color"></div>
-                        <div class="gauge-needle"></div>
-                        <div class="gauge-center"></div>
-                    </div>
-                    <div class="sentiment-label">${sentimentLabel}</div>
-                </div>
-                <div style="border-left: 1px solid rgba(201,168,76,0.15); padding-left: 2.5rem;">
-                    <div style="font-size: 0.75rem; color: var(--gold); font-weight: 800; margin-bottom: 0.5rem;">STRATEGIC INTEL</div>
-                    <div style="font-size: 0.95rem; color: var(--cream);">Synthesizing real-time regulatory ingestion with multi-asset global macro trends.</div>
-                    
-                    <!-- Static Sparkline Reliability Layer -->
-                    <div style="margin-top: 1rem;">
-                        <svg class="static-sparkline" viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <path d="${sparkPath}" fill="none" stroke="${sentimentColor}" stroke-width="2" stroke-linecap="round" />
+                        <svg viewBox="0 0 200 100" style="width:100%; height:100%;">
+                            <path d="M 20 90 A 80 80 0 0 1 180 90" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="20" />
+                            <path d="M 20 90 A 80 80 0 0 1 180 90" fill="none" stroke="url(#sentiment-grad)" stroke-width="20" stroke-dasharray="251" stroke-dashoffset="${251 - (sentimentScore/100)*251}" />
+                            <defs>
+                                <linearGradient id="sentiment-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#ef4444" />
+                                    <stop offset="50%" style="stop-color:#eab308" />
+                                    <stop offset="100%" style="stop-color:#22c55e" />
+                                </linearGradient>
+                            </defs>
                         </svg>
-                        <div style="display:flex; justify-content: space-between; font-size: 0.65rem; color: var(--muted); margin-top: -10px;">
-                            <span>L: ${priceInfo.low}</span>
-                            <span>LAST: ${priceInfo.last}</span>
-                            <span>H: ${priceInfo.high}</span>
-                        </div>
+                        <div class="gauge-needle"></div>
+                    </div>
+                    <div style="text-align: center; margin-top: 1rem; font-size: 0.8rem; font-weight: 900; color: var(--accent);">${sentimentLabel}</div>
+                </div>
+                <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 2rem;">
+                    <div style="font-size: 0.7rem; color: var(--gold); font-weight: 900; margin-bottom: 0.5rem; letter-spacing: 0.1em;">TERMINAL ALPHA</div>
+                    <div style="font-size: 1rem; color: var(--cream); margin-bottom: 1.5rem;">${isHourly ? 'Intraday technicals synthesized from NSE/BSE and Crypto liquidity streams.' : 'Institutional outlook mapping regulatory shifts against global macro drifts.'}</div>
+                    
+                    <svg width="100%" height="40" viewBox="0 0 100 40" preserveAspectRatio="none">
+                        <path d="${sparkPath}" fill="none" stroke="var(--accent)" stroke-width="2" />
+                    </svg>
+                    <div style="display:flex; justify-content: space-between; font-size: 0.6rem; color: var(--muted); margin-top: 5px;">
+                        <span>L: ${priceInfo.low}</span>
+                        <span style="color:var(--accent)">LAST: ${priceInfo.last}</span>
+                        <span>H: ${priceInfo.high}</span>
                     </div>
                 </div>
             </div>
-            
-            <div class="chart-container" style="margin-top: 3rem;">
+
+            <div class="chart-box">
                 <iframe 
-                    src="https://www.investing.com/common/technical_chart.php?pair_id=${pairId}&height=480&width=800&interval=300&style=candle" 
-                    width="100%" 
-                    height="100%" 
-                    frameborder="0" 
-                    allowtransparency="true" 
-                    marginwidth="0" 
-                    marginheight="0" 
-                    scrolling="no"
-                    style="border-radius: 8px;">
+                    src="https://www.investing.com/common/technical_chart.php?pair_id=${pairId}&height=${isHourly ? '320' : '520'}&width=800&interval=${isHourly ? '60' : 'daily'}&style=candle" 
+                    width="100%" height="100%" frameborder="0" allowtransparency="true" scrolling="no">
                 </iframe>
             </div>
         </section>
-        ${finalKit?.audioScript ? `
-        <div class="audio-summary">
-            <h3 style="margin-top:0;color:var(--gold);">🔊 AI Audio Summary</h3>
-            <p style="font-size:0.95rem;color:var(--muted);">${finalKit.audioScript}</p>
-            <audio controls class="audio-player">
-                <source src="${finalKit.audioUrl || '#'}" type="audio/mpeg">
-                Your browser does not support the audio element.
-            </audio>
-        </div>` : ''}
-        <div class="content"><p>${parseMD(content)}</p></div>
-        <div class="footer-actions">
-            <button class="share-btn" onclick="navigator.share({title: '${title}', url: window.location.href})">📤 Share Report</button>
-            <a href="mailto:compliance@blogspro.in?subject=Report Abuse: ${fileName}" class="share-btn" style="opacity:0.6">🚩 Report Analysis</a>
-        </div>
+
+        <div class="content">${parseMD(content)}</div>
+
         ${finalKit?.pollQuestion ? `
-        <section style="margin-top:4rem;padding:2rem;background:rgba(201,168,76,0.05);border-radius:8px;">
-            <h3 style="color:var(--gold);margin-top:0;">🗳️ Poll: ${finalKit.pollQuestion}</h3>
-            <div style="display:flex;gap:1rem;margin-top:1rem;">
-                ${(finalKit.pollOptions || []).map(opt => `<button class="share-btn" onclick="alert('Thanks!')">${opt}</button>`).join('')}
+        <section style="margin: 5rem 0; padding: 3rem; background: rgba(201,168,76,0.05); border: 1px solid var(--gold); border-radius: 16px;">
+            <h3 style="margin-top:0; color:var(--gold); font-family:var(--serif); font-size: 1.8rem;">🗳️ Strategic Poll</h3>
+            <p style="font-size:1.1rem; color:var(--muted); margin-bottom: 2rem;">${finalKit.pollQuestion}</p>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                ${(finalKit.pollOptions || []).map(opt => `<button class="cta-btn" style="background:rgba(255,255,255,0.05); color:var(--gold); border: 1px solid var(--gold);" onclick="this.style.background='var(--gold)'; this.style.color='var(--navy)'; alert('Vote registered!')">${opt}</button>`).join('')}
             </div>
         </section>` : ''}
+
+        <footer class="social-bar">
+            <div>
+                <a href="#" class="cta-btn" onclick="navigator.share({title: '${title}', url: window.location.href})">📤 Share Report</a>
+            </div>
+            <div style="font-size: 0.7rem; color: var(--muted); letter-spacing: 0.1em;">© ${new Date().getFullYear()} BLOGSPRO INTELLIGENCE UNIT</div>
+        </footer>
     </article>
 </body>
 </html>`;

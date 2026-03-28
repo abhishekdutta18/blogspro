@@ -123,11 +123,12 @@ async function generateArticle() {
         }
 
         if (process.env.TELEGRAM_TOKEN && process.env.TELEGRAM_TO) {
-            const tgTitle = `<b>STRATEGIC REPORT: ${frequency.toUpperCase()}</b>`;
-            const text = `${tgTitle}\n\n<b>${title}</b>\n\n${excerpt}\n\n🔗 <a href="https://blogspro.in/articles/${frequency}/${fileName}">Deep-Dive Analysis</a>`;
+            const tgTitle = `📑 *STRATEGIC REPORT: ${frequency.toUpperCase()}*`;
+            const tgText = `${tgTitle}\n\n*${title}*\n\n${excerpt}\n\n🔗 Full Analysis: https://blogspro.in/articles/${frequency}/${fileName}`;
+            
             await fetchWithTimeout(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ chat_id: process.env.TELEGRAM_TO, text, parse_mode: "HTML" })
+                body: JSON.stringify({ chat_id: process.env.TELEGRAM_TO, text: tgText, parse_mode: "Markdown" })
             }).catch(() => {});
         }
 

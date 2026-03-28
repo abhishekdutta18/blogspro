@@ -1170,6 +1170,11 @@
   </div>
 </div>
 
+    <!-- ══════════════ STRATEGIC INTEL HUB ══════════════ -->
+    <div class="market-wrap" style="margin-top: 2rem; margin-bottom: 0;">
+      <div id="intel-hub-root"></div>
+    </div>
+
 <!-- INDIA CALENDAR -->
 <div class="feed-status-wrap calendar-page">
   <div class="feed-status">
@@ -1350,6 +1355,7 @@
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { initIntelHub } from "./js/intel-hub.js";
 
   const firebaseConfig = {
     apiKey:            "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
@@ -2586,6 +2592,7 @@
 
   // ── Auth nav ───────────────────────────────────
   onAuthStateChanged(auth, async user => {
+    initIntelHub();
     const slot       = document.getElementById('navAuthSlot');
     const footerLink = document.getElementById('footerAuthLink');
 
@@ -2918,9 +2925,7 @@
   }
 
   (async () => {
-    startMarketAutoRefresh();
-    initForexCalendarControls();
-    const settingsOk = await loadSiteSettings().catch(() => false);
+    await loadSiteSettings().catch(() => false);
     const postsOk = await loadPosts().catch(() => false);
     const aboutOk = await loadAbout().catch(() => false);
     const forexOk = await loadForexFactoryData().catch(() => false);

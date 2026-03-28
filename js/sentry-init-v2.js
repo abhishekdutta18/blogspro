@@ -83,8 +83,18 @@
     window.trackEvent   = function(name, data) {
       Sentry.addBreadcrumb({ message: name, data: data, level: "info" });
     };
+
+    // BlogsPro Intelligence Pulse Tracking
+    window.trackPulse = function(freq, status, metadata = {}) {
+      Sentry.withScope((scope) => {
+        scope.setTag("pulseFrequency", freq);
+        scope.setTag("ingestionStatus", status);
+        scope.setContext("pulse_metadata", metadata);
+        Sentry.captureMessage(`Pulse Sync: ${freq.toUpperCase()} - ${status}`, "info");
+      });
+    };
     
-    console.log('[Sentry] Unified configuration initialized (Full Bundle + 100% sampling)');
+    console.log('[Sentry] BlogsPro Intelligence V4.0 Observability Active');
   }
 
   function loadScript(url) {
