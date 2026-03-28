@@ -97,8 +97,8 @@ async function generateBriefing() {
         return text
             .replace(/```[a-z]*\n/gi, "") // Remove starting code blocks
             .replace(/```/g, "")          // Remove ending code blocks
-            .replace(/^Here is the pulse.*:$/gi, "") // Remove AI conversational fluff
-            .replace(/^In this pulse.*:$/gi, "")
+            .replace(/^(Here is|In this|This is).*?:/gim, "") // Remove AI conversational fluff
+            .replace(/^Strategic Pulse.*?2026/gim, "") // Remove redundant title headers
             .trim();
     };
 
@@ -200,14 +200,13 @@ async function generateBriefing() {
             `;
         });
 
-        const finalContent = content + injectionScript;
-
         // Generate Web Version
         const fullHtml = getBaseTemplate({ 
-            title, excerpt, content: finalContent, dateLabel, 
+            title, excerpt, content, dateLabel, 
             finalKit, type: "briefing", freq: frequency, fileName, pairId, sentimentScore, priceInfo,
             seoDescription: seoData.description,
-            seoKeywords: seoData.keywords
+            seoKeywords: seoData.keywords,
+            scripts: injectionScript
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         

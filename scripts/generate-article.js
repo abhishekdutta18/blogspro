@@ -62,6 +62,7 @@ async function generateArticle() {
     const targetWords = isMonthly ? 50000 : 10000;
     
     let fullContent = "";
+    let allScripts = "";
     let lastSummary = "Institutional baseline established.";
 
     const cleanAIResponse = (text) => {
@@ -115,30 +116,30 @@ async function generateArticle() {
 
             fullContent += `\n<section id="${v.id}" class="institutional-section">\n${chapter}\n</section>\n`;
             
-            // Stage 3: Technical Chart Injection (Hardcoded, NOT AI-generated)
-            fullContent += `
-            <script>
-                google.charts.setOnLoadCallback(() => {
-                    const el = document.getElementById('chart_${v.id}');
-                    if (!el) return;
-                    const data = google.visualization.arrayToDataTable([
-                        ['Period', 'Drift', 'Benchmark'],
-                        ['P1', ${Math.random()*10}, 5], ['P2', ${Math.random()*15}, 7], ['P3', ${Math.random()*12}, 6], ['P4', ${Math.random()*20}, 8]
-                    ]);
-                    const options = {
-                        backgroundColor: 'transparent',
-                        colors: ['#BFA100', '#FFB800'],
-                        chartArea: {width: '90%', height: '80%'},
-                        legend: { position: 'none' },
-                        hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
-                        vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
-                        lineWidth: 2, pointSize: 4
-                    };
-                    const chart = new google.visualization.LineChart(el);
-                    chart.draw(data, options);
-                });
-            </script>
-            `;
+            const script = `
+<script>
+    google.charts.setOnLoadCallback(() => {
+        const el = document.getElementById('chart_${v.id}');
+        if (!el) return;
+        const data = google.visualization.arrayToDataTable([
+            ['Period', 'Drift', 'Benchmark'],
+            ['P1', ${Math.random()*10}, 5], ['P2', ${Math.random()*15}, 7], ['P3', ${Math.random()*12}, 6], ['P4', ${Math.random()*20}, 8]
+        ]);
+        const options = {
+            backgroundColor: 'transparent',
+            colors: ['#BFA100', '#FFB800'],
+            chartArea: {width: '90%', height: '80%'},
+            legend: { position: 'none' },
+            hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+            vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
+            lineWidth: 2, pointSize: 4
+        };
+        const chart = new google.visualization.LineChart(el);
+        chart.draw(data, options);
+    });
+</script>
+`;
+            allScripts += script;
             
             lastSummary = `Previous chapter concluded a deep dive into ${v.name}, highlighting key regulatory shifts and market exposure for sovereign debt and capital flows.`;
         }
@@ -166,7 +167,8 @@ async function generateArticle() {
             }, 
             type: "article", freq: frequency, fileName, pairId, sentimentScore, priceInfo,
             seoDescription: meta.description,
-            seoKeywords: meta.keywords
+            seoKeywords: meta.keywords,
+            scripts: allScripts
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         

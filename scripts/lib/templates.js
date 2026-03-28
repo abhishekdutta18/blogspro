@@ -4,16 +4,72 @@ function parseMD(md) {
     if (!md) return "";
     
     // 1. Aggressive Metadata Shield (Purge AI markers from UI)
-    let cleanMd = md
+    let processed = md
         .replace(/SENTIMENT_SCORE:\s*[\d\w\[\]\/\-\s]*/gi, '')
         .replace(/PRICE_INFO:\s*[\d\w\:\.\,\|\s\[\]\(\)\-\%]*/gi, '')
+        .replace(/Weekend Price Info:\s*[\d\w\:\.\,\|\s\[\]\(\)\-\%]*/gi, '')
         .replace(/Question:\s*(.*?)(?=\n|$)/gi, '')
         .replace(/Options:\s*[\s\w\.\,\d\-]*/gi, '')
-        .replace(/\n\d+\.\s.*?\n/g, '\n') // Remove numbered list options (if they follow 'Options:')
+        .replace(/Weekend Poll:.*$/gim, '')
+        .replace(/Poll:.*$/gim, '')
+        .replace(/Interactive Metrics:.*$/gim, '')
+        .replace(/Risk Warning:.*$/gim, '')
+        .replace(/\n\d+\.\s.*?\n/g, '\n') // Remove numbered list options
         .replace(/--- SYSTEM CONTEXT ---[\s\S]*?--- UNIVERSAL NEWS ---/gi, '') // Strip system context leaks
         .trim();
 
-    let html = cleanMd
+    // 2. Robust Institutional Table Parser (Prioritized before P-wrapping)
+    const lines = processed.split('\n');
+    let inTable = false;
+    let tableHtml = "";
+    let midStage = "";
+
+    lines.forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('|')) {
+            if (trimmed.includes('---')) return;
+
+            const cols = trimmed.split('|')
+                .map(c => c.trim())
+                .filter((c, i, a) => i > 0 && i < a.length - 1);
+            
+            if (cols.length < 2) {
+                if (inTable) {
+                    tableHtml += '</tbody></table></div>';
+                    midStage += tableHtml + '\n';
+                    inTable = false;
+                    tableHtml = "";
+                }
+                midStage += line + '\n';
+                return;
+            }
+
+            if (!inTable) {
+                inTable = true;
+                tableHtml = '<div class="table-container"><table><thead><tr>' + 
+                            cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+            } else {
+                tableHtml += '<tr>' + cols.map(c => {
+                    let content = c;
+                    if (c.includes('+') || c.includes('▲')) content = `<span style="color:#22c55e;">▲ ${c.replace(/[\+\^▲]/g,'')}</span>`;
+                    else if (c.includes('-') || c.includes('▼')) content = `<span style="color:#ef4444;">▼ ${c.replace(/[\-\▼]/g,'')}</span>`;
+                    return `<td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${content}</td>`;
+                }).join('') + '</tr>';
+            }
+        } else {
+            if (inTable) {
+                tableHtml += '</tbody></table></div>';
+                midStage += tableHtml + '\n';
+                inTable = false;
+                tableHtml = "";
+            }
+            midStage += line + '\n';
+        }
+    });
+    if (inTable) midStage += tableHtml + '</tbody></table></div>';
+
+    // 3. Narrative Styling & Layout
+    let finalHtml = midStage
         .replace(/### (.*$)/gim, '<h3>$1</h3>')
         .replace(/## (.*$)/gim, '<h2>$1</h2>')
         .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
@@ -21,51 +77,14 @@ function parseMD(md) {
         .replace(/^\- (.*$)/gim, '<li>$1</li>')
         .replace(/\n\n/gim, '</p><p>')
         .replace(/<li>/g, '<ul><li>').replace(/<\/li>/g, '</li></ul>').replace(/<\/ul><ul>/g, '');
-
-    // 2. Robust Institutional Table Parser (Regaining 100% Data Fidelity)
-    // Matches blocks starting with | Header | and | --- | 
-    const lines = html.split('\n');
-    let inTable = false;
-    let tableHtml = "";
-    let processedHtml = "";
-
-    lines.forEach(line => {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
-            const cols = trimmed.split('|').map(c => c.trim()).filter((c, i, a) => i > 0 && i < a.length - 1);
-            if (!inTable) {
-                inTable = true;
-                tableHtml = '<div class="table-container"><table><thead><tr>' + 
-                            cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
-            } else if (trimmed.includes('---')) {
-                // Skip separator row
-            } else {
-                tableHtml += '<tr>' + cols.map(c => {
-                    let cell = c;
-                    if (c.includes('+') || c.includes('▲')) cell = `<span style="color:#22c55e;font-weight:700;">▲ ${c.replace(/[\+\^▲]/g,'')}</span>`;
-                    else if (c.includes('-') || c.includes('▼')) cell = `<span style="color:#ef4444;font-weight:700;">▼ ${c.replace(/[\-\▼]/g,'')}</span>`;
-                    return `<td style="font-family: monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${cell}</td>`;
-                }).join('') + '</tr>';
-            }
-        } else {
-            if (inTable) {
-                tableHtml += '</tbody></table></div>';
-                processedHtml += tableHtml;
-                inTable = false;
-                tableHtml = "";
-            }
-            processedHtml += line + '\n';
-        }
-    });
-    if (inTable) processedHtml += tableHtml + '</tbody></table></div>';
     
-    return processedHtml
+    return finalHtml
         .replace(/<p><\/p>/g, '')  // Cleanup empty tags
         .replace(/<\/p><p>\s*$/g, '')
         .trim();
 }
 
-function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileName, rel = "../../", sentimentScore = 50, priceInfo = { last: "0", high: "0", low: "0" } }) {
+function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileName, rel = "../../", sentimentScore = 50, priceInfo = { last: "0", high: "0", low: "0" }, scripts = "" }) {
     const seoDescription = excerpt || "BlogsPro Institutional Strategic Manuscript - 13-Vertical Recursive Market Synthesis.";
     const seoKeywords = "GIFT City, IFSCA, Mutual Fund Inflows, PE/VC Deal Tracking, Institutional Market Intelligence, BlogsPro";
     
@@ -323,6 +342,7 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
             </p>
         </footer>
     </main>
+    ${scripts || ''}
 </body>
 </html>`;
 }
