@@ -31,9 +31,7 @@ async function generateBriefing() {
     CALENDAR: ${calendar.text}
     MACRO: ${macro.summary}
     MULTI-ASSET: ${markets.summary}
-    `;
-
-    const regulatoryContext = `
+    
     NEWS:
     IN: ${inNews}
     GL: ${glNews}
