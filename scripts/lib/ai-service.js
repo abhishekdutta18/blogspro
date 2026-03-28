@@ -49,6 +49,7 @@ async function generateGeminiContent(prompt) {
         const result = await model.generateContent(prompt);
         return result.response.text();
     } catch (e) {
+        console.error("❌ Gemini API Fail Details:", e.message);
         if (e.message.includes("404")) {
             const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
             const result = await model.generateContent(prompt);
@@ -84,26 +85,38 @@ async function askAI(prompt, config = {}) {
     
     // Try Groq
     if (process.env.GROQ_API_KEY) {
-        try { return await generateGroqContent(prompt); }
-        catch (e) { console.warn("⚠️ Groq failed, fallback..."); }
-    }
-    
-    // Try Kimi
-    if (process.env.KIMI_API_KEY) {
-        try { return await generateKimiContent(prompt); }
-        catch (e) { console.warn("⚠️ Kimi failed, fallback..."); }
+        try { 
+            console.log("🚀 Attempting Groq (Llama-3.1-8B)...");
+            return await generateGroqContent(prompt); 
+        }
+        catch (e) { console.warn(`⚠️ Groq failed: ${e.message}`); }
     }
     
     // Try Gemini
     if (process.env.GEMINI_API_KEY) {
-        try { return await generateGeminiContent(prompt); }
-        catch (e) { console.warn("⚠️ Gemini failed, fallback..."); }
+        try { 
+            console.log("🚀 Attempting Gemini (1.5-Flash)...");
+            return await generateGeminiContent(prompt); 
+        }
+        catch (e) { console.warn(`⚠️ Gemini failed: ${e.message}`); }
+    }
+
+    // Try Kimi
+    if (process.env.KIMI_API_KEY) {
+        try { 
+            console.log("🚀 Attempting Kimi...");
+            return await generateKimiContent(prompt); 
+        }
+        catch (e) { console.warn(`⚠️ Kimi failed: ${e.message}`); }
     }
     
     // Try OpenRouter
     if (process.env.OPENROUTER_KEY) {
-        try { return await generateOpenRouterContent(prompt); }
-        catch (e) { console.warn("⚠️ OpenRouter failed."); }
+        try { 
+            console.log("🚀 Attempting OpenRouter...");
+            return await generateOpenRouterContent(prompt); 
+        }
+        catch (e) { console.warn(`⚠️ OpenRouter failed: ${e.message}`); }
     }
     
     throw new Error("All AI engines exhausted.");

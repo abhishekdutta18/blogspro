@@ -86,7 +86,7 @@ async function generateArticle() {
             - Narrative Flow (Continuity): ${lastSummary}
             
             STRICT INSTRUCTION:
-            1. Write a 3,500-4,000 word deep-dive chapter with Bloomberg-level authority and data density.
+            1. Write a 1,500-2,000 word deep-dive chapter with Bloomberg-level authority and data density.
             2. Theme: '${v.name}'. Analyze the 'Second-Order Effects' of every data point.
             3. Apply '3-Dimensional Synthesis': For every news item, provide an Audit, a Risk Assessment, and a Strategic Forecast.
             4. Formatting: Use <h2> for the main section title (Must be '${v.name}').
