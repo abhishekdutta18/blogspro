@@ -176,6 +176,33 @@
     .ticker-tag { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
     .ticker-sep { color: var(--muted); }
 
+    /* ── DATA FEED STATUS ── */
+    .feed-status-wrap { max-width: 1200px; margin: 0 auto; padding: 0.9rem 2rem 0; }
+    .feed-status {
+      background: var(--navy2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--gold);
+      padding: 0.65rem 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+    .feed-status-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+    .feed-status-text { font-size: 0.78rem; color: var(--muted); }
+    .feed-status-chip {
+      font-size: 0.62rem;
+      color: #86efac;
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.35);
+      padding: 0.18rem 0.5rem;
+      border-radius: 999px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
     /* ── SECTION ── */
     section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
     .section-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 3rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
@@ -385,6 +412,7 @@
       .about-avatar-wrap { width: 80px; height: 80px; flex-shrink: 0; margin-bottom: 0; }
       .about-avatar-initial { font-size: 2rem; }
       .about-socials { justify-content: flex-start; }
+      .feed-status-wrap { padding: 0.75rem 1rem 0; }
     }
   </style>
   <!-- Sentry Error Tracking v10.44.0 -->
@@ -478,6 +506,17 @@
     <span class="ticker-tag">Risk</span><span class="ticker-sep">·</span>
     <span class="ticker-tag">Digital Banking</span><span class="ticker-sep">·</span>
     <span class="ticker-tag">Open Finance</span><span class="ticker-sep">·</span>
+  </div>
+</div>
+
+<!-- FEED STATUS -->
+<div class="feed-status-wrap">
+  <div class="feed-status">
+    <div>
+      <div class="feed-status-label">Data Feed Status</div>
+      <div class="feed-status-text">ForexFactory Calendar primary with TradingEconomics fallback.</div>
+    </div>
+    <div class="feed-status-chip">Resilient Mode</div>
   </div>
 </div>
 
