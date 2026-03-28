@@ -34,49 +34,55 @@ async function generateBriefing() {
     console.log(`🚀 Starting Global Intelligence Engine (${frequency})...`);
     
     const [calendar, markets, sentiment, inNews, glNews, instNews, upstox, global, macro] = await Promise.all([
-        fetchEconomicCalendar(),
-        fetchMultiAssetData(),
-        fetchSentimentData(),
-        fetchIndianNews(),
-        fetchGlobalNews(),
-        fetchInstitutionalNews(),
-        fetchUpstoxData(),
-        fetchGlobalMarkets(),
-        fetchMacroPulse()
+        fetchEconomicCalendar(), fetchMultiAssetData(), fetchSentimentData(),
+        fetchIndianNews(), fetchGlobalNews(), fetchInstitutionalNews(),
+        fetchUpstoxData(), fetchGlobalMarkets(), fetchMacroPulse()
     ]);
 
+    const mkt = require("./lib/data-fetchers.js").getMarketContext();
+
     const marketContext = `
-    DASHBOARD:
+    --- SYSTEM CONTEXT ---
+    TIME_IST: ${mkt.timestamp}
+    DAY: ${mkt.day}
+    MARKET_STATUS: ${mkt.status}
+    NOTE: ${mkt.note}
+    
+    --- DATA FEEDS ---
     SENTIMENT: ${sentiment.summary}
-    UPSTOX: ${upstox.summary}
+    UPSTOX (Last Close): ${upstox.summary}
     GLOBAL_INDICES: ${global.summary}
     CALENDAR: ${calendar.text}
     MACRO: ${macro.summary}
     MULTI_ASSET: ${markets.summary}
     
-    NEWS_STREAMS:
+    --- NEWS STREAMS ---
     DOMESTIC: ${inNews}
     GLOBAL: ${glNews}
     INSTITUTIONAL: ${instNews}
     `;
 
     const prompt = `You are a Lead Quant Strategist for BlogsPro Intelligence Terminal.
-    Write a high-fidelity, institutional-grade ${frequency} market pulse (HTML).
+    Write a high-fidelity ${frequency} market pulse (HTML).
     
+    TEMPORAL GUIDANCE:
+    - Current DOW is ${mkt.day}. Status: ${mkt.status}.
+    ${mkt.isWeekend ? "- IMPORTANT: Markets are CLOSED. Focus on WEEKEND WRAP and WEEKLY PREP. Do NOT suggest intraday long/short trades." : "- Markets are ACTIVE. Focus on LIVE EXECUTION and PIVOTS."}
+
     STRATEGIC REQUIREMENTS:
-    - Tone: Sharp, authoritative, data-driven.
-    - Focus: ${frequency === 'hourly' ? 'Intraday volatility, Pivots, and technical liquidity zones.' : 'Session transitions, macro-catalysts, and sectoral rotation.'}
-    - Analysis: Synthesize how the institutional news and sentiment (${sentiment.label}) impact the domestic NIFTY trend.
+    1. Tone: Sharp, authoritative, data-driven.
+    2. Focus: ${frequency === 'hourly' ? 'Volatility pivots, technical liquidity, and global macro drifts.' : 'Session transitions, sectoral rotation, and institutional catalysts.'}
+    3. Grounding: You MUST reference specific news items from the feeds above to back your analysis.
+    4. Sentiment: Map how global greed/fear (${sentiment.label}) correlates with Indian FPI/DII flows.
 
     CRITICAL VISUAL INSTRUCTIONS:
-    1. Start with exactly one <h2> tag (e.g., "The Morning Pivot", "Closing Bell Alpha").
-    2. Provide a 1-sentence analytical excerpt wrapped in <details id="meta-excerpt" style="display:none">.
-    3. MANDATORY: Include a Markdown table: "| Indicator | Level | Change | Trend |".
-    4. DATA SECTION: Comment on the Sectoral Rotation (IT vs Bank vs Auto) using the multi-asset data provided.
-    5. INTERACTIVE: End with "SENTIMENT_SCORE: [0-100]" and "PRICE_INFO: [Last, High, Low]".
-    6. Include a poll: "Question: [Text]" and "Options: [Opt1, Opt2, Opt3]".
+    - Start with exactly one <h2> tag.
+    - Provide a 1-sentence analytical excerpt wrapped in <details id="meta-excerpt" style="display:none">.
+    - MANDATORY: Include a Markdown table with at least 5 rows: "| Metric | Observation | Alpha Impact |".
+    - End with "SENTIMENT_SCORE: [0-100]" and "PRICE_INFO: [Last, High, Low]".
+    - Include a poll: "Question: [Text]" and "Options: [Opt1, Opt2, Opt3]".
 
-    MARKET DATASET: ${marketContext}`;
+    DATASET: ${marketContext}`;
 
     // Dynamic Symbol Detection
     let pairId = "179"; // Nifty 50

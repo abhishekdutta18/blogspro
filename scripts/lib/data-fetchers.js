@@ -7,6 +7,27 @@ const fetch = require("node-fetch");
 // Identity Layer: Institutional User-Agent to prevent 403/406/429 blocks
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) BlogsPro-Intelligence/4.0 (contact@blogspro.in)";
 
+function getMarketContext() {
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istTime = new Date(now.getTime() + istOffset);
+    const day = istTime.getUTCDay(); // 0: Sun, 6: Sat
+    const hour = istTime.getUTCHours();
+    const min = istTime.getUTCMinutes();
+    
+    const isWeekend = (day === 0 || day === 6);
+    const isMarketHours = !isWeekend && (hour > 9 || (hour === 9 && min >= 15)) && (hour < 15 || (hour === 15 && min <= 30));
+    const status = isWeekend ? "WEEKEND_CLOSED" : (isMarketHours ? "LIVE_TRADING" : "POST_MARKET_CLOSED");
+    
+    return {
+        timestamp: istTime.toISOString(),
+        day: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day],
+        status,
+        isWeekend,
+        note: isWeekend ? "Indian NSE/BSE Markets are currently CLOSED for the weekend." : (isMarketHours ? "Indian Markets are actively TRADING." : "Indian Markets are CLOSED (Outside 09:15-15:30 IST).")
+    };
+}
+
 async function fetchWithTimeout(url, options = {}, timeout = 12000) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
@@ -199,5 +220,6 @@ async function fetchUpstoxData() {
 module.exports = {
     fetchEconomicCalendar, fetchMultiAssetData, fetchSentimentData,
     fetchIndianNews, fetchGlobalNews, fetchInstitutionalNews, fetchGlobalMarkets,
-    fetchRBIData, fetchSEBIData, fetchCCILData, fetchMacroPulse, fetchUpstoxData
+    fetchRBIData, fetchSEBIData, fetchCCILData, fetchMacroPulse, fetchUpstoxData,
+    getMarketContext
 };

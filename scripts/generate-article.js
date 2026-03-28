@@ -34,18 +34,18 @@ async function generateArticle() {
     console.log(`🚀 Starting Global Strategic Article Engine (${frequency})...`);
     
     const [rbi, sebi, ccil, macro, global, sentiment, instNews, markets] = await Promise.all([
-        fetchRBIData(),
-        fetchSEBIData(),
-        fetchCCILData(),
-        fetchMacroPulse(),
-        fetchGlobalMarkets(),
-        fetchSentimentData(),
-        fetchInstitutionalNews(),
-        fetchMultiAssetData()
+        fetchRBIData(), fetchSEBIData(), fetchCCILData(), fetchMacroPulse(),
+        fetchGlobalMarkets(), fetchSentimentData(), fetchInstitutionalNews(), fetchMultiAssetData()
     ]);
 
+    const mkt = require("./lib/data-fetchers.js").getMarketContext();
+
     const regulatoryContext = `
-    INSTITUTIONAL METRICS:
+    --- SYSTEM CONTEXT ---
+    TIME_IST: ${mkt.timestamp}
+    STATUS: ${mkt.status}
+    
+    --- INSTITUTIONAL METRICS ---
     RBI: ${rbi.summary}
     SEBI: ${sebi.summary}
     CCIL: ${ccil.summary}
@@ -54,7 +54,7 @@ async function generateArticle() {
     SENTIMENT: ${sentiment.summary}
     SECTORAL: ${markets.summary}
     
-    INSTITUTIONAL CIRCULARS:
+    --- INSTITUTIONAL CIRCULARS ---
     ${instNews}
     `;
 
@@ -62,16 +62,20 @@ async function generateArticle() {
     Write a high-fidelity ${frequency === 'weekly' ? 'Weekly Strategic Analysis' : 'Monthly Macro Roadmap'} (HTML).
     
     CORE OBJECTIVE:
-    Synthesize the latest regulatory circulars (RBI/SEBI) with sectoral rotation data. 
-    Explain the "Big Picture" for institutional and professional practitioners.
+    Synthesize the latest regulatory circulars (RBI/SEBI) with global macro trends. 
+    Explain the "Big Picture" structural shifts for institutional and professional practitioners.
+    
+    TEMPORAL GUIDANCE:
+    - Today is ${mkt.day}. 
+    - ${mkt.isWeekend ? "Markets are CLOSED. Focus on retrospective performance and next-week positioning." : "Markets are ACTIVE. Focus on immediate pulse and trend continuation."}
 
     CRITICAL VISUAL INSTRUCTIONS:
-    1. Start with exactly one <h2> tag (e.g., "The Strategic Pivot", "Regulatory Horizon").
-    2. Provide a 1-sentence analytical excerpt wrapped in <details id="meta-excerpt" style="display:none">.
-    3. MANDATORY: Include a Markdown table with at least 5 rows: "| Variable | Current | Change | Risk Level |".
-    4. ANALYSIS: Deep-dive into the interaction between global macro sentiment (${sentiment.label}) and Indian sectoral trends.
-    5. INTERACTIVE: End with "SENTIMENT_SCORE: [0-100]" and "PRICE_INFO: [Last, High, Low]".
-    6. Include a poll: "Question: [Text]" and "Options: [Opt1, Opt2, Opt3]".
+    - Start with exactly one <h2> tag.
+    - Provide a 1-sentence analytical excerpt wrapped in <details id="meta-excerpt" style="display:none">.
+    - MANDATORY: Include a Markdown table with at least 5 rows: "| Variable | Current | Strategic Outlook | Risk |".
+    - ANALYSIS: Deep-dive into the interaction between regulatory shifts (Circulars) and market sentiment (${sentiment.label}).
+    - End with "SENTIMENT_SCORE: [0-100]" and "PRICE_INFO: [Last, High, Low]".
+    - Include a poll: "Question: [Text]" and "Options: [Opt1, Opt2, Opt3]".
 
     DATASET: ${regulatoryContext}`;
 
