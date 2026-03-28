@@ -1351,6 +1351,7 @@
   let indiaCalendarHistoryRaw = [];
   let indiaQoqChart = null;
   let marketRefreshTimer = null;
+  let marketRefreshInFlight = false;
   let imagesEnabled = true;
   const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
   const FIREBASE_TIMEOUT_MS = 12000;
@@ -1587,7 +1588,7 @@
       if (!Number.isFinite(x)) return '--';
       return x.toLocaleString('en-IN', { maximumFractionDigits: 2 });
     };
-    const now = () => new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const now = () => new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const fallbackBySegment = {
       indices: [
         { symbol: 'Nifty 50', price: 22819.60, change: -0.86 },
@@ -1769,7 +1770,7 @@
     for (const base of [...new Set(candidates.map((u) => String(u).replace(/\/+$/, '')))]) {
       try {
         skeletonEl.style.display = 'grid';
-        const qRes = await withTimeout(fetch(`${base}/quotes`), 12000, 'upstox quotes');
+        const qRes = await withTimeout(fetch(`${base}/quotes?t=${Date.now()}`, { cache: 'no-store' }), 12000, 'upstox quotes');
         if (!qRes.ok) continue;
         const qJson = await qRes.json();
 
@@ -2708,8 +2709,11 @@
     );
     if (!marketRefreshTimer) {
       marketRefreshTimer = setInterval(() => {
-        if (document.hidden) return;
-        loadUpstoxMarketData().catch(() => false);
+        if (document.hidden || marketRefreshInFlight) return;
+        marketRefreshInFlight = true;
+        loadUpstoxMarketData()
+          .catch(() => false)
+          .finally(() => { marketRefreshInFlight = false; });
       }, 200);
     }
   })();
