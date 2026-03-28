@@ -745,7 +745,7 @@
       padding: 0.45rem;
     }
     .market-seg-skeleton {
-      display: grid;
+      display: none !important;
       gap: 0.4rem;
     }
     .market-seg-skeleton .cal-skel { height: 10px; }
@@ -1769,7 +1769,7 @@
     };
 
     if (showLoading) {
-      skeletonEl.style.display = 'grid';
+      skeletonEl.style.display = 'none';
     }
 
     for (const base of [...new Set(candidates.map((u) => String(u).replace(/\/+$/, '')))]) {
