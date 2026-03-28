@@ -1356,7 +1356,7 @@
   let marketRefreshTimer = null;
   let marketRefreshInFlight = false;
   let marketRefreshTick = 0;
-  let marketAbortController = null;
+  let marketNextFetchAt = 0;
   let imagesEnabled = true;
   const LOCAL_IMAGES_KEY = 'bp_site_images_enabled';
   const FIREBASE_TIMEOUT_MS = 12000;
@@ -1573,7 +1573,7 @@
   }
 
   async function loadUpstoxMarketData(opts = {}) {
-    const { showLoading = false, signal } = opts;
+    const { showLoading = false } = opts;
     const segmentIndices = document.getElementById('segmentIndices');
     const segmentStocksOptions = document.getElementById('segmentStocksOptions');
     const segmentBonds = document.getElementById('segmentBonds');
@@ -1600,7 +1600,7 @@
         'matic-network'
       ];
       const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd&include_24hr_change=true`;
-      const res = await withTimeout(fetch(`${url}&t=${Date.now()}`, { cache: 'no-store', signal }), 12000, 'coingecko crypto');
+      const res = await withTimeout(fetch(`${url}&t=${Date.now()}`, { cache: 'no-store' }), 12000, 'coingecko crypto');
       if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status}`);
       const json = await res.json();
       const map = [
@@ -1815,10 +1815,10 @@
     for (const base of [...new Set(candidates.map((u) => String(u).replace(/\/+$/, '')))]) {
       try {
         let qJson = null;
-        const qRes = await withTimeout(fetch(`${base}/quotes?t=${Date.now()}`, { cache: 'no-store', signal }), 12000, 'upstox quotes');
+        const qRes = await withTimeout(fetch(`${base}/quotes?t=${Date.now()}`, { cache: 'no-store' }), 12000, 'upstox quotes');
         if (qRes.ok) qJson = await qRes.json();
         if (!qJson || !qJson.data || !Object.keys(qJson.data).length) {
-          const gRes = await withTimeout(fetch(`${base}/global?t=${Date.now()}`, { cache: 'no-store', signal }), 12000, 'upstox global');
+          const gRes = await withTimeout(fetch(`${base}/global?t=${Date.now()}`, { cache: 'no-store' }), 12000, 'upstox global');
           if (gRes.ok) qJson = await gRes.json();
         }
         if (!qJson || !qJson.data || !Object.keys(qJson.data).length) continue;
@@ -1883,9 +1883,7 @@
         segmentIndices.dataset.loaded = '1';
         updatedEl.textContent = `Updated: ${now()} · Tick ${marketRefreshTick}`;
         return true;
-      } catch (err) {
-        if (err?.name === 'AbortError') return false;
-      }
+      } catch (_) {}
     }
 
     if (!segmentIndices.dataset.loaded) {
@@ -2772,11 +2770,15 @@
         marketRefreshTick += 1;
         const updatedEl = document.getElementById('marketUpdated');
         if (updatedEl) updatedEl.textContent = `Polling: ${now()} · Tick ${marketRefreshTick}`;
-        try {
-          if (marketAbortController) marketAbortController.abort();
-        } catch (_) {}
-        marketAbortController = new AbortController();
-        loadUpstoxMarketData({ showLoading: false, signal: marketAbortController.signal }).catch(() => false);
+        if (marketRefreshInFlight) return;
+        if (Date.now() < marketNextFetchAt) return;
+        marketRefreshInFlight = true;
+        loadUpstoxMarketData({ showLoading: false })
+          .catch(() => false)
+          .finally(() => {
+            marketRefreshInFlight = false;
+            marketNextFetchAt = Date.now() + 1200;
+          });
       }, 200);
     }
   })();
