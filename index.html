@@ -271,6 +271,49 @@
       line-height: 1.45;
     }
     .calendar-kv b { color: var(--cream); font-weight: 600; }
+    .desk-charts {
+      margin-top: 0.55rem;
+      display: grid;
+      gap: 0.5rem;
+    }
+    .desk-chart {
+      border: 1px solid rgba(136,150,179,0.2);
+      border-radius: 4px;
+      padding: 0.45rem;
+      background: rgba(8,13,26,0.35);
+    }
+    .desk-chart-title {
+      font-size: 0.58rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+      font-weight: 600;
+    }
+    .prob-bars { display: grid; gap: 0.25rem; }
+    .prob-row { display: grid; grid-template-columns: 52px 1fr 34px; gap: 0.35rem; align-items: center; }
+    .prob-label { font-size: 0.62rem; color: var(--muted); }
+    .prob-track { height: 7px; border-radius: 999px; background: rgba(136,150,179,0.2); overflow: hidden; }
+    .prob-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--gold), #e9d08a); }
+    .prob-val { font-size: 0.62rem; color: var(--cream); text-align: right; }
+    .gauge-wrap { display: grid; grid-template-columns: 56px 1fr; gap: 0.45rem; align-items: center; }
+    .gauge {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: conic-gradient(#22c55e 0deg, #22c55e var(--g, 180deg), rgba(136,150,179,0.2) var(--g, 180deg), rgba(136,150,179,0.2) 360deg);
+      display: grid; place-items: center;
+    }
+    .gauge::after {
+      content: "";
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--navy2);
+      border: 1px solid rgba(136,150,179,0.2);
+    }
+    .gauge-note { font-size: 0.62rem; color: var(--muted); line-height: 1.35; }
+    .sector-bars { display: grid; gap: 0.25rem; }
+    .sector-row { display: grid; grid-template-columns: 56px 1fr; gap: 0.35rem; align-items: center; }
+    .sector-label { font-size: 0.62rem; color: var(--muted); }
+    .sector-track { height: 6px; border-radius: 999px; background: rgba(136,150,179,0.2); overflow: hidden; }
+    .sector-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #8fb5ff, #5e8fff); }
     .calendar-skeleton {
       list-style: none;
       margin: 0;
@@ -938,6 +981,23 @@
           <div><b>Focus:</b> CPI / RBI / Growth</div>
           <div><b>Risk Note:</b> Waiting for incoming India events.</div>
         </div>
+        <div class="desk-charts">
+          <div class="desk-chart">
+            <div class="desk-chart-title">RBI Probability</div>
+            <div class="prob-bars" id="indiaProbBars"></div>
+          </div>
+          <div class="desk-chart">
+            <div class="desk-chart-title">INR Pressure Gauge</div>
+            <div class="gauge-wrap">
+              <div class="gauge" id="indiaInrGauge"></div>
+              <div class="gauge-note" id="indiaInrGaugeNote">Waiting for macro inputs…</div>
+            </div>
+          </div>
+          <div class="desk-chart">
+            <div class="desk-chart-title">Sector Impact</div>
+            <div class="sector-bars" id="indiaSectorBars"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1457,7 +1517,11 @@
     const analysisEl = document.getElementById('indiaCalendarAnalysis');
     const summaryEl = document.getElementById('indiaCalendarSummary');
     const snapshotEl = document.getElementById('indiaCalendarSnapshot');
-    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl) return false;
+    const probBarsEl = document.getElementById('indiaProbBars');
+    const gaugeEl = document.getElementById('indiaInrGauge');
+    const gaugeNoteEl = document.getElementById('indiaInrGaugeNote');
+    const sectorBarsEl = document.getElementById('indiaSectorBars');
+    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !probBarsEl || !gaugeEl || !gaugeNoteEl || !sectorBarsEl) return false;
 
     const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
     const fmtDate = (raw) => {
@@ -1539,6 +1603,28 @@
         <div><b>Surprise Tracker:</b> ${surpriseText}</div>
         <div><b>Confidence Score:</b> ${m.confidence}/100 data completeness</div>
       `;
+      probBarsEl.innerHTML = [
+        { label: 'Hold', val: m.holdProb },
+        { label: 'Hike', val: m.hikeProb },
+        { label: 'Cut', val: m.cutProb }
+      ].map((p) => `
+        <div class="prob-row">
+          <div class="prob-label">${p.label}</div>
+          <div class="prob-track"><div class="prob-fill" style="width:${Math.max(0, Math.min(100, p.val))}%"></div></div>
+          <div class="prob-val">${Math.round(p.val)}%</div>
+        </div>
+      `).join('');
+      const gaugePct = Math.max(0, Math.min(100, 50 + (m.inrPressure * 10)));
+      const gaugeDeg = Math.round((gaugePct / 100) * 360);
+      gaugeEl.style.setProperty('--g', `${gaugeDeg}deg`);
+      gaugeNoteEl.textContent = `Pressure score ${pctStr(m.inrPressure)} (${gaugePct >= 55 ? 'INR downside bias' : gaugePct <= 45 ? 'INR stable/firm bias' : 'neutral zone'})`;
+      const maxSector = Math.max(1, ...Object.values(m.sectorHits));
+      sectorBarsEl.innerHTML = Object.entries(m.sectorHits).map(([k, v]) => `
+        <div class="sector-row">
+          <div class="sector-label">${k}</div>
+          <div class="sector-track"><div class="sector-fill" style="width:${Math.round((v / maxSector) * 100)}%"></div></div>
+        </div>
+      `).join('');
       listEl.innerHTML = events.map((e) => `
         <li class="calendar-item">
           <div class="calendar-item-head">
@@ -1584,6 +1670,10 @@
     analysisEl.textContent = 'Analyst view: India macro feed unavailable right now.';
     summaryEl.textContent = 'Summary: no live data';
     listEl.innerHTML = '<li class="calendar-empty">India calendar unavailable.</li>';
+    probBarsEl.innerHTML = '<div class="prob-row"><div class="prob-label">Hold</div><div class="prob-track"><div class="prob-fill" style="width:0%"></div></div><div class="prob-val">0%</div></div>';
+    gaugeEl.style.setProperty('--g', `180deg`);
+    gaugeNoteEl.textContent = 'Macro inputs unavailable';
+    sectorBarsEl.innerHTML = '<div class="sector-row"><div class="sector-label">Banks</div><div class="sector-track"><div class="sector-fill" style="width:0%"></div></div></div>';
     return false;
   }
 
