@@ -433,7 +433,7 @@
     }
     .market-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 0.5rem;
     }
     .market-segments {
@@ -1252,28 +1252,70 @@
       indices: [
         { symbol: 'Nifty 50', price: 22819.60, change: -0.86 },
         { symbol: 'Nifty Bank', price: 52274.60, change: -2.67 },
+        { symbol: 'Sensex', price: 75124.28, change: -0.61 },
+        { symbol: 'Nifty Midcap', price: 50874.22, change: 0.33 },
+        { symbol: 'Nifty IT', price: 36942.90, change: 0.58 },
+        { symbol: 'Nifty Auto', price: 21984.42, change: -0.22 },
+        { symbol: 'Nifty Pharma', price: 20114.80, change: 0.47 },
+        { symbol: 'Nifty PSU Bank', price: 7124.10, change: 1.11 },
       ],
       stocksOptions: [
         { symbol: 'RELIANCE', price: 2940.25, change: 0.42 },
         { symbol: 'HDFCBANK', price: 1622.40, change: -0.18 },
+        { symbol: 'ICICIBANK', price: 1114.85, change: 0.44 },
+        { symbol: 'INFY', price: 1528.35, change: -0.27 },
+        { symbol: 'TCS', price: 4012.60, change: 0.13 },
+        { symbol: 'SBIN', price: 768.10, change: 0.76 },
+        { symbol: 'BHARTIARTL', price: 1279.95, change: -0.06 },
+        { symbol: 'LT', price: 3721.55, change: 0.22 },
+        { symbol: 'BANKNIFTY CE', price: 412.40, change: 3.12 },
+        { symbol: 'NIFTY PE', price: 286.15, change: -2.24 },
       ],
       bonds: [
         { symbol: 'India 10Y G-Sec', price: 100.15, change: -0.04 },
         { symbol: 'India 5Y G-Sec', price: 99.74, change: 0.03 },
+        { symbol: 'India 14Y G-Sec', price: 98.88, change: -0.02 },
+        { symbol: 'SDL 2033', price: 97.61, change: 0.01 },
+        { symbol: 'T-Bill 364D', price: 99.22, change: 0.02 },
+        { symbol: 'Corp AAA 5Y', price: 101.07, change: 0.00 },
       ],
       currency: [
         { symbol: 'USDINR', price: 83.12, change: 0.11 },
         { symbol: 'EURINR', price: 90.43, change: -0.07 },
+        { symbol: 'GBPINR', price: 105.66, change: -0.12 },
+        { symbol: 'JPYINR', price: 0.56, change: 0.08 },
+        { symbol: 'DXY', price: 104.28, change: -0.14 },
+        { symbol: 'USDEUR', price: 0.92, change: 0.05 },
       ],
       commodities: [
         { symbol: 'MCX Gold', price: 68420.00, change: 0.29 },
         { symbol: 'MCX Crude', price: 6821.00, change: -0.41 },
+        { symbol: 'MCX Silver', price: 79044.00, change: 0.62 },
+        { symbol: 'MCX Natural Gas', price: 211.30, change: -1.08 },
+        { symbol: 'Brent', price: 84.72, change: 0.18 },
+        { symbol: 'Copper', price: 835.45, change: 0.39 },
       ],
     };
-    const renderCards = (el, items, segmentKey) => {
-      if (!items.length) {
-        items = fallbackBySegment[segmentKey] || [];
+    const segmentTargetCount = {
+      indices: 8,
+      stocksOptions: 10,
+      bonds: 6,
+      currency: 6,
+      commodities: 6,
+    };
+    const padCards = (items, segmentKey) => {
+      const target = segmentTargetCount[segmentKey] || 6;
+      const fallback = fallbackBySegment[segmentKey] || [];
+      const out = items.slice(0, target);
+      let i = 0;
+      while (out.length < target && fallback.length) {
+        out.push(fallback[i % fallback.length]);
+        i += 1;
       }
+      return out;
+    };
+    const renderCards = (el, items, segmentKey) => {
+      items = padCards(items, segmentKey);
       el.innerHTML = items.map((c) => {
         const isUp = Number(c.change) >= 0;
         const sign = isUp ? '+' : '';
@@ -1318,11 +1360,11 @@
         }
         const hasAny = Object.values(segments).some((arr) => arr.length);
         if (!hasAny) continue;
-        renderCards(segmentIndices, segments.indices.slice(0, 6), 'indices');
-        renderCards(segmentStocksOptions, segments.stocksOptions.slice(0, 6), 'stocksOptions');
-        renderCards(segmentBonds, segments.bonds.slice(0, 4), 'bonds');
-        renderCards(segmentCurrency, segments.currency.slice(0, 4), 'currency');
-        renderCards(segmentCommodities, segments.commodities.slice(0, 4), 'commodities');
+        renderCards(segmentIndices, segments.indices.slice(0, 12), 'indices');
+        renderCards(segmentStocksOptions, segments.stocksOptions.slice(0, 16), 'stocksOptions');
+        renderCards(segmentBonds, segments.bonds.slice(0, 10), 'bonds');
+        renderCards(segmentCurrency, segments.currency.slice(0, 10), 'currency');
+        renderCards(segmentCommodities, segments.commodities.slice(0, 10), 'commodities');
         skeletonEl.style.display = 'none';
         updatedEl.textContent = `Updated: ${now()}`;
         return true;
