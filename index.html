@@ -202,6 +202,16 @@
       text-transform: uppercase;
       white-space: nowrap;
     }
+    .feed-status-chip.warn {
+      color: #f0cc6e;
+      background: rgba(240,204,110,0.1);
+      border-color: rgba(240,204,110,0.35);
+    }
+    .feed-status-chip.down {
+      color: #fca5a5;
+      background: rgba(239,68,68,0.1);
+      border-color: rgba(239,68,68,0.35);
+    }
 
     /* ── SECTION ── */
     section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
@@ -514,9 +524,9 @@
   <div class="feed-status">
     <div>
       <div class="feed-status-label">Data Feed Status</div>
-      <div class="feed-status-text">ForexFactory Calendar primary with TradingEconomics fallback.</div>
+      <div class="feed-status-text" id="forexFeedText">Loading ForexFactory calendar data…</div>
     </div>
-    <div class="feed-status-chip">Resilient Mode</div>
+    <div class="feed-status-chip warn" id="forexFeedChip">Syncing</div>
   </div>
 </div>
 
@@ -658,6 +668,57 @@
         timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
       }),
     ]).finally(() => clearTimeout(timer));
+  }
+
+  async function loadForexFactoryData() {
+    const textEl = document.getElementById('forexFeedText');
+    const chipEl = document.getElementById('forexFeedChip');
+    if (!textEl || !chipEl) return false;
+
+    const setState = (chipClass, chipText, bodyText) => {
+      chipEl.classList.remove('warn', 'down');
+      if (chipClass) chipEl.classList.add(chipClass);
+      chipEl.textContent = chipText;
+      textEl.textContent = bodyText;
+    };
+
+    const extractHighImpact = (xml) => {
+      const doc = new DOMParser().parseFromString(xml, 'application/xml');
+      const events = [...doc.querySelectorAll('event')].map((e) => ({
+        title: (e.querySelector('title')?.textContent || '').trim(),
+        country: (e.querySelector('country')?.textContent || '').trim(),
+        impact: (e.querySelector('impact')?.textContent || '').trim().toLowerCase(),
+      }));
+      return events
+        .filter((e) => e.title && e.country && e.impact.includes('high'))
+        .slice(0, 3);
+    };
+
+    try {
+      const ffRes = await withTimeout(fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.xml'), 10000, 'ForexFactory calendar');
+      if (!ffRes.ok) throw new Error(`ForexFactory HTTP ${ffRes.status}`);
+      const ffXml = await ffRes.text();
+      const topEvents = extractHighImpact(ffXml);
+      if (!topEvents.length) throw new Error('No high impact events in ForexFactory feed');
+      setState(null, 'Live', `ForexFactory: ${topEvents.map((e) => `${e.title} (${e.country})`).join(' • ')}`);
+      return true;
+    } catch (_) {
+      try {
+        const teRes = await withTimeout(fetch('https://api.tradingeconomics.com/calendar?c=guest:guest&f=json'), 10000, 'TradingEconomics fallback');
+        if (!teRes.ok) throw new Error(`TradingEconomics HTTP ${teRes.status}`);
+        const teJson = await teRes.json();
+        const topEvents = (Array.isArray(teJson) ? teJson : [])
+          .filter((e) => e && e.Event && e.Country && Number(e.Importance || 0) >= 2)
+          .slice(0, 3)
+          .map((e) => `${e.Event} (${e.Country})`);
+        if (!topEvents.length) throw new Error('No high impact fallback events');
+        setState('warn', 'Fallback', `TradingEconomics: ${topEvents.join(' • ')}`);
+        return true;
+      } catch (_) {
+        setState('down', 'Down', 'Calendar feeds currently unavailable. Please check back shortly.');
+        return false;
+      }
+    }
   }
 
   function isPermissionDenied(err) {
@@ -1017,7 +1078,8 @@
     const settingsOk = await loadSiteSettings().catch(() => false);
     const postsOk = await loadPosts().catch(() => false);
     const aboutOk = await loadAbout().catch(() => false);
-    const allOk = settingsOk && postsOk && aboutOk;
+    const forexOk = await loadForexFactoryData().catch(() => false);
+    const allOk = settingsOk && postsOk && aboutOk && forexOk;
     setIntegrationStatus(
       allOk ? 'online' : 'degraded',
       allOk ? 'Integrations: Online' : 'Integrations: Degraded'
