@@ -1,52 +1,6 @@
 [
   {
     "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.926Z",
-    "task": "Scribe Analytics",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.928Z",
-    "task": "Equities & Alpha",
-    "failures": [
-      "TONE VIOLATION: Excessive conversational fluff detected. Use raw institutional data blocks.",
-      "Insufficient data density (Found 1-2 metrics, need at least 5 for terminal depth)."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.929Z",
-    "task": "FX & Cross-Border",
-    "failures": [
-      "Insufficient data density (Found 1-2 metrics, need at least 5 for terminal depth)."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.930Z",
-    "task": "Global Macro Drift",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.931Z",
-    "task": "Debt & Sovereignty",
-    "failures": [
-      "COLD TONE VIOLATION: Conversational fluff detected. Use Bloomberg-style blocks only.",
-      "Insufficient data density (Found 1-2 metrics, need at least 5 for terminal depth)."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.932Z",
-    "task": "Global Macro Drift",
-    "failures": [
-      "TONE VIOLATION: Excessive conversational fluff detected. Use raw institutional data blocks."
-    ]
-  },
-  {
-    "type": "SUCCESS",
     "timestamp": "2026-03-29T06:11:41.933Z",
     "task": "Insurance & Risk",
     "pattern": "Bloomberg-style data density achieved on first pass."
@@ -11280,6 +11234,74 @@
   {
     "type": "FAILURE",
     "timestamp": "2026-03-29T18:31:20.616Z",
+    "task": "DAILY_BRIEFING_HOURLY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT",
+      "QA_CITATION_DEFICIT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:38:02.111Z",
+    "task": "Briefing",
+    "failures": [
+      "Missing analytical <details> excerpt.",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:39:12.589Z",
+    "task": "Briefing",
+    "failures": [
+      "Missing analytical <details> excerpt.",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:39:54.826Z",
+    "task": "Briefing",
+    "failures": [
+      "Missing analytical <details> excerpt.",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:40:05.095Z",
+    "task": "DAILY_BRIEFING_HOURLY_PRE",
+    "failures": [
+      "Missing <details id=\"meta-excerpt\"> envelope.",
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Insufficient data density (Found 2 metrics, need at least 5 for terminal depth).",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:40:05.099Z",
+    "task": "DAILY_BRIEFING_HOURLY_POST",
+    "failures": [
+      "Missing <details id=\"meta-excerpt\"> envelope.",
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Insufficient data density (Found 2 metrics, need at least 5 for terminal depth).",
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:40:05.101Z",
     "task": "DAILY_BRIEFING_HOURLY_CORRECTIONS",
     "failures": [
       "QA_SYSTEM_ARTIFACT",
