@@ -130,11 +130,15 @@ async function generateGeminiContent(prompt) {
  * use regex to at least strip the most dangerous system leakage.
  */
 function localRegexAudit(content) {
-    console.log("🛠️ Applying Emergency Local Regex Audit...");
+    console.log("🛠️ Applying Ultra-Hardened Emergency Local Regex Audit...");
     return content
+        // Strip common system instruction blocks
+        .replace(/REMOVE all markdown backticks[\s\S]*?institutional blocks\./gi, '')
+        .replace(/CONTENT: Clean this institutional market report for terminal delivery\./gi, '')
         .replace(/<rule-check>[\s\S]*?<\/rule-check>/gi, '')
         .replace(/--- SYSTEM CONTEXT ---[\s\S]*?--- (TOP NEWS|KEY DATA|UNIVERSAL NEWS) ---[\s\S]*?\n\s*\n/gi, '')
         .replace(/JSON must use DOUBLE QUOTES[^\n]*/gi, '')
+        .replace(/^(Here is|In this|This is|Below is|Clean this|As an institutional)[^\n]*/gim, '')
         .trim();
 }
 
