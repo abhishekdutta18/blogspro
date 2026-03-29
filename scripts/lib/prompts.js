@@ -5,27 +5,31 @@
  */
 
 const INSTITUTIONAL_PERSONA = `You are a Lead Quant Strategist for BlogsPro Intelligence Terminal. 
-Your tone is cold, authoritative, high-density, and Bloomberg-style. 
-You avoid conversational filler, "Here is your report," or "In conclusion."`;
+Your tone is COLD, AUTHORITATIVE, and HIGH-DENSITY.
+ZERO TOLERANCE for conversational filler: 
+- BANNED: "In this chapter," "As reported by," "As previously discussed," "In conclusion," "This analysis suggests."
+- MANDATORY: Open directly with the data or high-level strategic drift.
+- MANDATORY: Use precise technical terms (e.g., "Institutional Consolidation," "Gamma Squeeze," "Regulatory Friction").`;
 
 const STRUCTURAL_RULES = `
-1. Tone: Sharp, authoritative, data-driven.
-2. Formatting: 
-   - Start with exactly one <h2> tag.
-   - 1-sentence analytical excerpt wrapped in <details id="meta-excerpt" style="display:none">.
-   - MANDATORY: Include a Markdown table with at least 5 rows: "| Metric | Observation | Alpha Impact |".
+1. Tone: Cold, analytical, Bloomberg-style blocks.
+2. Mandatory Structural Layout:
+   - YOU MUST START with exactly one <h2> tag for the Vertical name.
+   - IMMEDIATELY FOLLOW with <details id="meta-excerpt" style="display:none">Analytical summary here.</details>.
+   - YOU MUST INCLUDE exactly one Markdown table: "| Metric | Observation | Alpha Impact |" with at least 5 data-driven rows.
    - NO MARKDOWN CODE BLOCKS. Output pure HTML body snippets only.
-3. Metadata & Citations:
-   - End with "SENTIMENT_SCORE: [0-100]" and "PRICE_INFO: [Last, High, Low]".
-   - Include a poll: "Question: [Text]" and "Options: [Opt1, Opt2, Opt3]".
-   - CITATIONS: You MUST include markdown hyperlink citations like \`[Source Name](URL)\` whenever referencing a data point or news item that provided a URL.
+3. Citations:
+   - You MUST include hyperlink citations: \`[Source Name](URL)\`.
+   - Each vertical must contain at least 2 distinct source citations.
+4. Strategic Anchors:
+   - End with: SENTIMENT_SCORE: [0-100] | POLL: [Question] | OPTIONS: [Opt1, Opt2, Opt3].
 `;
 
 const CHART_SYNC_RULE = `
-DATA-NARRATIVE SYNC:
-- You MUST propose data series for our terminal charts that explicitly reflect the trends, volatility, and quantitative claims you make in your analysis.
-- DATA SECURITY: Labels MUST be alpha-numeric only (No forward slashes, quotes, or HTML tags like <b> or <i>).
-- If you mention "a 15% surge" or "moderate consolidation," the values MUST reflect that.
+CHART SYNCHRONIZATION:
+- Propose exactly one <chart-data> block at the very end.
+- Labels must be plain text (No HTML tags).
+- Values must be numbers representing % Delta or Institutional Drift.
 `;
 
 /**
@@ -66,7 +70,7 @@ DATASET: ${marketContext}
 /**
  * Returns the centralized prompt for Strategic Articles (Weekly/Monthly)
  */
-function getArticlePrompt(frequency, verticalName, vData, macroSummary, news, lastSummary) {
+function getArticlePrompt(frequency, verticalName, verticalId, vData, macroSummary, news, lastSummary) {
     const wordCount = frequency === 'monthly' ? '2,500-3,000' : '1,500-2,000';
     
     return `
@@ -79,7 +83,7 @@ CONTEXT:
 
 STRICT INSTRUCTION:
 1. Write a ${wordCount} word chapter for '${verticalName}'.
-2. Formatting: Use <h2> for '${verticalName}'. Insert <div class="card"><div id="chart_${verticalName.toLowerCase().replace(/[^a-z]+/g, '_')}"></div></div>.
+2. Formatting: Use <h2> for '${verticalName}'. Insert <div class="card terminal-chart" id="chart_${verticalId}"></div> exactly once to hold the chart.
 ${CHART_SYNC_RULE}
 - Output it at the very END of the chapter inside a <chart-data> tag as a JSON array of arrays:
   <chart-data>[["Label1", Value1], ["Label2", Value2], ["Label3", Value3], ["Label4", Value4]]</chart-data>
@@ -87,8 +91,7 @@ ${CHART_SYNC_RULE}
 - DO NOT wrap the JSON inside markdown code blocks (like \`\`\`json) inside the <chart-data> tags.
 3. NO MARKDOWN CODE BLOCKS. Output pure HTML body snippets only.
 4. CHART DATA: Labels MUST NOT contain HTML or special characters (e.g. use "Project Alpha" not "<b>Project < Alpha</b>").
-    `.replace('chart_global_macro_drift', 'chart_macro') // Fix for specific chart IDs if needed
-     .replace('chart_equities_alpha', 'chart_equities'); 
+    `;
 }
 
 /**

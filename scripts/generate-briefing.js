@@ -110,6 +110,22 @@ async function generateBriefing() {
 
         const validateBriefing = (html) => {
             const failures = [];
+            
+            // Structural Scribe Check
+            if (!/<h1|h2/i.test(html)) failures.push("Missing primary institutional header (H1/H2).");
+            if (!/details id="meta-excerpt"/i.test(html)) failures.push("Missing analytical <details> excerpt.");
+            
+            // Institutional Cold Tone: Fluff Detection
+            const fluffRegex = /In this pulse|As reported by|In conclusion|analysis suggests|discussed in the previous|anchor for this chapter|here is the|let's look at|dive into|delve into/i;
+            if (fluffRegex.test(html)) {
+                const match = html.match(fluffRegex)[0];
+                failures.push(`COLD TONE VIOLATION: Conversational fluff detected ("${match}"). Use Bloomberg-style blocks only.`);
+            }
+
+            // Citations: Need at least 2 distinct URL links
+            const citations = (html.match(/\[[^\]]+\]\([^)]+\)/g) || []).length;
+            if (citations < 2) failures.push(`Verification failure (Found ${citations} hyperlinked citations, need at least 2 distinct sources).`);
+
             const chartDataMatch = html.match(/<chart-data>(.*?)<\/chart-data>/s);
             if (!chartDataMatch) {
                 failures.push("Missing <chart-data> JSON tag at the end.");
@@ -143,16 +159,18 @@ async function generateBriefing() {
                 
                 const failures = validateBriefing(sanitized);
                 if (failures.length === 0) {
-                    rl.logFeedback("Briefing", successOnFirstTry ? [] : []);
+                    if (successOnFirstTry) {
+                        rl.logSuccess("Briefing", "Perfect structural execution");
+                    }
                     return sanitized;
                 }
                 
                 console.warn(`⚠️ Briefing Auditor Rejected (Attempt ${attempts+1}/3). Failures: ${failures.join(', ')}`);
                 attemptContent = sanitized;
                 lastFailures = failures;
+                rl.logFailure("Briefing", failures); // Log every failure for reinforcement
                 attempts++;
             }
-            rl.logFeedback("Briefing", lastFailures);
             console.error(`❌ Auditor loop exhausted for Briefing. Proceeding in Lenient Mode.`);
             return attemptContent;
         };

@@ -68,7 +68,8 @@ async function prepareForPrint(page) {
                 max-width: none !important; 
                 width: 100% !important;
             }
-            h1, h2, h3, h4, strong { color: #000000 !important; page-break-after: avoid; }
+            h1, h3, h4, strong { color: #000000 !important; page-break-after: avoid; }
+            h2 { color: #000000 !important; page-break-before: always; page-break-after: avoid; margin-top: 2rem !important; }
             p, li { color: #333333 !important; orphans: 3; widows: 3; line-height: 1.5; }
             
             /* High Contrast Cards & Charts for Print */

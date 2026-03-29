@@ -2,11 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 const LEDGER_PATH = path.join(__dirname, '../../knowledge/ai-feedback.json');
+const MAX_ENTRIES = 1500;
 
-/**
- * 🧠 Reinforcement Ledger Manager
- * Tracks past AI failures to prevent them in future runs.
- */
 class ReinforcementSystem {
     constructor() {
         this.ledger = [];
@@ -16,71 +13,94 @@ class ReinforcementSystem {
     load() {
         try {
             if (fs.existsSync(LEDGER_PATH)) {
-                const data = fs.readFileSync(LEDGER_PATH, 'utf8');
-                this.ledger = JSON.parse(data);
+                this.ledger = JSON.parse(fs.readFileSync(LEDGER_PATH, 'utf8'));
             }
         } catch (e) {
-            console.error('🧠 [RL] Failed to load ledger:', e.message);
             this.ledger = [];
         }
     }
 
     save() {
         try {
-            // Sliding window: keep last 50 events
-            if (this.ledger.length > 50) this.ledger = this.ledger.slice(-50);
-            
-            // Ensure directory exists
+            if (this.ledger.length > MAX_ENTRIES) this.ledger = this.ledger.slice(-MAX_ENTRIES);
             const dir = path.dirname(LEDGER_PATH);
             if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            
             fs.writeFileSync(LEDGER_PATH, JSON.stringify(this.ledger, null, 2), 'utf8');
-        } catch (e) {
-            console.error('🧠 [RL] Failed to save ledger:', e.message);
-        }
+        } catch (e) {}
     }
 
-    logFeedback(task, failures) {
-        const entry = {
+    logSuccess(task, pattern) {
+        this.ledger.push({
+            type: 'SUCCESS',
             timestamp: new Date().toISOString(),
-            task: task,
-            success: failures.length === 0,
-            failures: failures || []
-        };
-        this.ledger.push(entry);
+            task,
+            pattern: pattern || 'Perfect structural execution'
+        });
         this.save();
     }
 
-    /**
-     * Analyzes the ledger to find recurring issues.
-     * Returns a string to be prepended to the AI prompt.
-     */
+    logFailure(task, failures) {
+        this.ledger.push({
+            type: 'FAILURE',
+            timestamp: new Date().toISOString(),
+            task,
+            failures: failures || []
+        });
+        this.save();
+    }
+
+    getGoldStandard() {
+        return `
+[GOLD STANDARD EXAMPLE - COPY THIS STRUCTURE]
+<h2>Global Macro Drift</h2>
+<details id="meta-excerpt" style="display:none">DXY volatility pivots as Fed signals termination of the tightening cycle, triggering institutional capital rotation.</details>
+
+The current macro-economic landscape reflects a significant systemic shift...
+
+| Metric | Observation | Alpha Impact |
+|:-------|:------------|:-------------|
+| DXY Index | 104.2 (Consolidating) | Bearish for EM FX |
+| US 10Y Yield | 4.25% (Yield Drift) | Tightening Credit Spreads |
+| FII Inflow | $2.4B (Weekly) | Nifty Liquidity Support |
+| Brent Crude | $82.5 (Stable) | Inflationary Moderation |
+| India GDP | 7.2% (Institutional) | Sovereign Premium Hike |
+
+SENTIMENT_SCORE: 82 | POLL: Best hedge? | OPTIONS: Gold, USD, BTC
+<chart-data>[["DXY", 104], ["10Y", 4.25], ["GDP", 7.2]]</chart-data>
+`;
+    }
+
     getReinforcementContext() {
-        // Count failure types in the last 20 events
-        const recent = this.ledger.slice(-20);
+        const recent = this.ledger.slice(-500);
         const failureCounts = {};
-        
+        const successes = [];
+
         recent.forEach(entry => {
-            entry.failures.forEach(f => {
-                failureCounts[f] = (failureCounts[f] || 0) + 1;
-            });
+            if (entry.type === 'FAILURE') {
+                entry.failures.forEach(f => {
+                    failureCounts[f] = (failureCounts[f] || 0) + 1;
+                });
+            } else {
+                successes.push(entry.task);
+            }
         });
 
         const topMistakes = Object.entries(failureCounts)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 3)
-            .map(([f, count]) => `⚠️ Frequency: ${count}x | Problem: ${f}`);
+            .slice(0, 3);
 
-        if (topMistakes.length === 0) return "";
+        let context = "\n[REINFORCEMENT LEARNING: SYSTEM MEMORY]\n";
+        
+        if (topMistakes.length > 0) {
+            context += "CRITICAL MISTAKES TO AVOID (Based on recent rejections):\n";
+            topMistakes.forEach(([f, count]) => {
+                context += `- REJECTED ${count}x recently for: ${f}\n`;
+            });
+        }
 
-        return `
-[REINFORCEMENT LEARNING — LESSONS FROM PREVIOUS SESSIONS]
-In the most recent generation attempts, your outputs were REJECTED for these specific reasons.
-DO NOT repeat these mistakes in the current task:
-${topMistakes.map(m => `- ${m}`).join('\n')}
+        context += this.getGoldStandard();
 
-STRICT COMPLIANCE REQUIRED.
-`;
+        return context;
     }
 }
 

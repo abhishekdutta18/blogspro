@@ -83,31 +83,44 @@ async function generateArticle() {
         return text
             .replace(/```[a-z]*\n/gi, "") // Remove starting code blocks
             .replace(/```/g, "")          // Remove ending code blocks
-            .replace(/^(Here is|In this) (chapter|pulse|report).*:$/gim, "") // Remove AI conversational fluff
+            .replace(/^(Here is|In this|Sure|Please|This) (chapter|pulse|report|analysis|is).*:?$/gim, "") // Remove AI conversational fluff
+            .replace(/I have updated.*$/gim, "")
+            .replace(/I will now.*$/gim, "")
             .trim();
     };
 
     const validateContent = (content) => {
-        const checks = {
-            hasH2: /<h2/i.test(content),
-            hasDetails: /<details id="meta-excerpt"/i.test(content),
-            hasTable: /\|.*Metric.*\|/.test(content),
-            hasChartData: /<chart-data>([\s\S]*?)<\/chart-data>/.test(content),
-            hasCitations: /\[.*?\]\(http/i.test(content) || /URL:\s*http/i.test(content)
-        };
-        
         const failures = [];
-        if (!checks.hasH2) failures.push("Missing exactly one <h2> header tag.");
-        if (!checks.hasDetails) failures.push("Missing <details id=\"meta-excerpt\">.</details> wrapper for the 1-sentence excerpt.");
-        if (!checks.hasTable) failures.push("Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.");
-        if (!checks.hasCitations) failures.push("Missing URL citations [Source Name](URL) reflecting the data feeds.");
         
-        if (!checks.hasChartData) {
+        // Structural Presence
+        if (!/<h2/i.test(content)) failures.push("Missing exactly one <h2> header tag.");
+        if (!/<details id="meta-excerpt"/i.test(content)) failures.push("Missing <details id=\"meta-excerpt\"> envelope.");
+        if (!/\|.*Metric.*\|/.test(content)) failures.push("Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.");
+        
+        // Data Density Check
+        const tableRows = (content.match(/\|[^|]+\|[^|]+\|[^|]+\|/g) || []).length;
+        if (tableRows < 3) failures.push(`Insufficient data density (Found ${tableRows} metrics, need at least 5 for terminal depth).`);
+
+        // Institutional Cold Tone: Fluff Detection
+        const fluffRegex = /In this chapter|As reported by|In conclusion|analysis suggests|discussed in the previous|anchor for this chapter|here is the|let's look at|dive into|delve into/i;
+        if (fluffRegex.test(content)) {
+            const match = content.match(fluffRegex)[0];
+            failures.push(`TONE VIOLATION: Excessive conversational fluff detected ("${match}"). Use raw institutional data blocks.`);
+        }
+
+        // Verification Check: Citations
+        const citations = (content.match(/\[[^\]]+\]\([^)]+\)/g) || []).length;
+        if (citations < 2) failures.push(`Verification failure (Found ${citations} hyperlinked citations, need at least 2 distinct sources).`);
+
+        // Chart Data Extraction & Validation
+        const chartMatch = content.match(/<chart-data>([\s\S]*?)<\/chart-data>/);
+        if (!chartMatch) {
             failures.push("Missing <chart-data> JSON array tag at the very end.");
         } else {
-            const raw = content.match(/<chart-data>([\s\S]*?)<\/chart-data>/)[1].trim();
+            const raw = chartMatch[1].trim();
             try { JSON.parse(raw); } catch(e) { failures.push("The text inside <chart-data> is not valid JSON."); }
         }
+
         return failures;
     };
 
@@ -133,18 +146,18 @@ async function generateArticle() {
             const failures = validateContent(sanitized);
             if (failures.length === 0) {
                 // Log Success for the Reinforcement Loop
-                rl.logFeedback(vName, successOnFirstTry ? [] : []); // Success on first try logs empty failures
+                if (successOnFirstTry) {
+                    rl.logSuccess(vName, "Perfect structural execution");
+                }
                 return sanitized;
             }
             
             console.warn(`⚠️ Auditor rejected ${vName} (Attempt ${attempts+1}/3). Failures: ${failures.join(', ')}`);
             chapter = sanitized; 
             lastFailures = failures;
+            rl.logFailure(vName, failures); // Log every failure for reinforcement
             attempts++;
         }
-        
-        // Log Failure for the Reinforcement Loop
-        rl.logFeedback(vName, lastFailures);
         
         console.error(`❌ Auditor loop exhausted for ${vName}. Proceeding in Lenient Mode.`);
         return chapter; 
@@ -162,7 +175,7 @@ async function generateArticle() {
                 .slice(0, 8)
                 .join(' | ');
 
-            const scribePrompt = getArticlePrompt(frequency, v.name, v.data, macro.summary, verticalNews, lastSummary);
+            const scribePrompt = getArticlePrompt(frequency, v.name, v.id, v.data, macro.summary, verticalNews, lastSummary);
 
             // Execute Stage 1 & 2 via the Auditor Loop
             let chapter = await executeAuditedGeneration(scribePrompt, frequency, v.name);
