@@ -121,10 +121,10 @@ async function fetchSentimentData() {
 // 1. MEGA-FEED DICTIONARY (Universal Institutional Streams)
 const UNIVERSAL_FEEDS = {
     YAHOO_FINANCE: "https://finance.yahoo.com/news/rssindex",
-    BUSINESS_STANDARD: "https://www.business-standard.com/rss/latest.rss",
+    BUSINESS_STANDARD: "https://news.google.com/rss/search?q=site%3Abusiness-standard.com+markets&hl=en-IN&gl=IN&ceid=IN:en",
     ECONOMIC_TIMES: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms",
     CNBC_MARKETS: "https://search.cnbc.com/rs/search/all/view.rss?partnerId=2000&keywords=markets",
-    PIB_INDIA: "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=1",
+    PIB_INDIA: "https://news.google.com/rss/search?q=site%3Apib.gov.in+finance+OR+economy&hl=en-IN&gl=IN&ceid=IN:en",
     NPCI_NEWS: "https://news.google.com/rss/search?q=NPCI+OR+UPI+OR+BHIM+site%3Anpci.org.in&hl=en-IN&gl=IN&ceid=IN:en",
     REUTERS_PROXY: "https://news.google.com/rss/search?q=site%3Areuters.com+business+OR+finance&hl=en-US&gl=US&ceid=US:en",
     BLOOMBERG_PROXY: "https://news.google.com/rss/search?q=site%3Abloomberg.com+markets+OR+economy&hl=en-US&gl=US&ceid=US:en",

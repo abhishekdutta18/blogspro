@@ -5,51 +5,69 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function generateGroqContent(prompt) {
     if (!process.env.GROQ_API_KEY) throw new Error("GROQ_API_KEY missing.");
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            model: "llama-3.1-8b-instant", // Corrected model name for high-throughput synthesis
-            messages: [{ role: "user", content: prompt }],
-            temperature: 0.2
-        })
-    });
-    const data = await res.json();
-    if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    
-    if (data.error && data.error.code === "rate_limit_exceeded") {
-        const waitMatch = data.error.message.match(/try again in ([\d.]+)s/);
-        const waitMs = waitMatch ? (parseFloat(waitMatch[1]) * 1000) + 1000 : 10000;
-        console.warn(`⏳ Groq TPM Limit. Waiting ${waitMs}ms...`);
-        await sleep(waitMs);
-        return generateGroqContent(prompt); // Recursive retry
-    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+    try {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+                "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "llama-3.1-8b-instant", // Corrected model name for high-throughput synthesis
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.2
+            })
+        });
+        const data = await res.json();
+        if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
+        
+        if (data.error && data.error.code === "rate_limit_exceeded") {
+            const waitMatch = data.error.message.match(/try again in ([\d.]+)s/);
+            const waitMs = waitMatch ? (parseFloat(waitMatch[1]) * 1000) + 1000 : 10000;
+            console.warn(`⏳ Groq TPM Limit. Waiting ${waitMs}ms...`);
+            await sleep(waitMs);
+            return generateGroqContent(prompt); // Recursive retry
+        }
 
-    console.error("❌ Groq API Fail Details:", JSON.stringify(data));
-    throw new Error(`Groq API Error: ${data.error?.message || "Rate limit or exhaustion"}`);
+        console.error("❌ Groq API Fail Details:", JSON.stringify(data));
+        throw new Error(`Groq API Error: ${data.error?.message || "Rate limit or exhaustion"}`);
+    } catch (err) {
+        throw err;
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 async function generateKimiContent(prompt) {
     if (!process.env.KIMI_API_KEY) throw new Error("KIMI_API_KEY missing.");
-    const res = await fetch("https://api.moonshot.cn/v1/chat/completions", {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${process.env.KIMI_API_KEY}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            model: "moonshot-v1-8k",
-            messages: [{ role: "user", content: prompt }],
-            temperature: 0.3
-        })
-    });
-    const data = await res.json();
-    if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    console.error("❌ Kimi API Fail Details:", JSON.stringify(data));
-    throw new Error(`Kimi API Error: ${data.error?.message || "Unknown error"}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+    try {
+        const res = await fetch("https://api.moonshot.cn/v1/chat/completions", {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+                "Authorization": `Bearer ${process.env.KIMI_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "moonshot-v1-8k",
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.3
+            })
+        });
+        const data = await res.json();
+        if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
+        console.error("❌ Kimi API Fail Details:", JSON.stringify(data));
+        throw new Error(`Kimi API Error: ${data.error?.message || "Unknown error"}`);
+    } catch (err) {
+        throw err;
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 async function generateGeminiContent(prompt) {
@@ -69,23 +87,32 @@ async function generateGeminiContent(prompt) {
 
 async function generateOpenRouterContent(prompt) {
     if (!process.env.OPENROUTER_KEY) throw new Error("OPENROUTER_KEY missing.");
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${process.env.OPENROUTER_KEY}`,
-            "HTTP-Referer": "https://blogspro.in",
-            "X-Title": "BlogsPro AI",
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            model: "meta-llama/llama-3-8b-instruct:free", // Resilient fallback
-            messages: [{ role: "user", content: prompt }]
-        })
-    });
-    const data = await res.json();
-    if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    console.error("❌ OpenRouter Fail Details:", JSON.stringify(data));
-    throw new Error("OpenRouter failed.");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+    try {
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+                "Authorization": `Bearer ${process.env.OPENROUTER_KEY}`,
+                "HTTP-Referer": "https://blogspro.in",
+                "X-Title": "BlogsPro AI",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "meta-llama/llama-3-8b-instruct:free", // Resilient fallback
+                messages: [{ role: "user", content: prompt }]
+            })
+        });
+        const data = await res.json();
+        if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
+        console.error("❌ OpenRouter Fail Details:", JSON.stringify(data));
+        throw new Error("OpenRouter failed.");
+    } catch (err) {
+        throw err;
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 let generatePoolIndex = 0;
