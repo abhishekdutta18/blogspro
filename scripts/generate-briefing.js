@@ -99,6 +99,8 @@ async function generateBriefing() {
             .replace(/```/g, "")          // Remove ending code blocks
             .replace(/^(Here is|In this|This is).*?:/gim, "") // Remove AI conversational fluff
             .replace(/^Strategic Pulse.*?2026/gim, "") // Remove redundant title headers
+            .replace(/<rule-check>.*?<\/rule-check>/gs, "") // Strip leaked rule-check tags
+            .replace(/<chart-data>.*?<\/chart-data>/gs, "") // Strip any raw chart-data leakage from stage1
             .trim();
     };
 
@@ -182,7 +184,9 @@ async function generateBriefing() {
         if (isDaily) {
             console.log("📑 Generating Stage 1: Strategic Recap...");
             const stage1Prompt = `${prompt}\n\nSTRICT INSTRUCTION: Concise RECAP of the last 24 hours. Target 500 words max. Raw data blocks only.`;
-            let stage1Raw = await askAI(stage1Prompt, { role: 'generate' });
+            let stage1Raw = cleanAIResponse(await askAI(stage1Prompt, { role: 'generate' }));
+            // Strip any chart-data or rule-check artifacts from the recap before merging
+            stage1Raw = stage1Raw.replace(/<chart-data>.*?<\/chart-data>/gs, '').replace(/<rule-check>.*?<\/rule-check>/gs, '').trim();
             
             console.log("📑 Generating Stage 2: Predictive Alpha...");
             const stage2Prompt = `${prompt}\n\nSTRICT INSTRUCTION: Focus on PREDICTION and RISK for the next 48 hours. Connect the data points. Target 1,500 words. Include the final poll and interactive metrics.`;
@@ -203,9 +207,13 @@ async function generateBriefing() {
         seoDescription = seoData.description;
         seoKeywords = seoData.keywords;
 
-        // Extract Briefing Chart Data proposed by AI
+        // Extract Briefing Chart Data proposed by AI (use last chart-data block from Stage 2)
         const chartDataMatch = content.match(/<chart-data>(.*?)<\/chart-data>/s);
         let proposedData = { sentiment: [], macro: [], multi_asset: [] };
+        
+        // Strip ALL chart-data blocks from content before injecting containers
+        content = content.replace(/<chart-data>.*?<\/chart-data>/gs, '');
+        content = content.replace(/<rule-check>.*?<\/rule-check>/gs, ''); // strip any rule-check leakage
         
         const briefingChartContainers = `
 <div id="chart_sentiment" class="terminal-chart" style="width:100%;height:180px;margin:1.5rem 0;background:rgba(20,20,20,0.3);border:1px solid rgba(191,161,0,0.1);border-left:3px solid #BFA100;"></div>

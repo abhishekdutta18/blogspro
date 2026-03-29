@@ -97,7 +97,6 @@ The current macro-economic landscape reflects a significant systemic shift...
 
 SENTIMENT_SCORE: 82 | POLL: Best hedge? | OPTIONS: Gold, USD, BTC
 <chart-data>[["DXY", 104.0], ["10Y", 4.25], ["GDP", 7.20]]</chart-data>
-<rule-check>JSON must use DOUBLE QUOTES (") for strings. No single quotes allowed. No trailing commas.</rule-check>
 `;
     }
 
@@ -134,6 +133,16 @@ SENTIMENT_SCORE: 82 | POLL: Best hedge? | OPTIONS: Gold, USD, BTC
         }
 
         context += this.getGoldStandard();
+
+        // HARD-CODED INSTITUTIONAL LESSONS (From PDF QA Inspection, 2026-03-29)
+        context += `
+[CRITICAL PRODUCTION RULES - NON-NEGOTIABLE]:
+1. NEVER include <rule-check> tags in your output. These are internal system tags only.
+2. NEVER output raw JSON objects like {"sentiment": [...]} in the article body. Chart data ONLY goes inside <chart-data> tags at the very end.
+3. The <chart-data> block MUST appear only ONCE, at the very end of your output, after all prose.
+4. DO NOT copy or repeat any system prompt text ("JSON must use DOUBLE QUOTES") into the article.
+5. All markdown hyperlinks [text](url) MUST be used for citations. Do not embed raw URLs.
+`;
 
         return context;
     }
