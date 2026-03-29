@@ -146,6 +146,81 @@ async function generateOpenRouterContent(prompt) {
     }
 }
 
+async function generateMistralContent(prompt) {
+    if (!process.env.MISTRAL_API_KEY) throw new Error("MISTRAL_API_KEY missing.");
+    try {
+        const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "mistral-small-latest",
+                messages: [{ role: "user", content: prompt }]
+            })
+        });
+        const data = await res.json();
+        if (data && data.choices) return data.choices[0].message.content;
+        throw new Error("Mistral failed");
+    } catch (e) { throw e; }
+}
+
+async function generateCerebrasContent(prompt) {
+    if (!process.env.CEREBRAS_API_KEY) throw new Error("CEREBRAS_API_KEY missing.");
+    try {
+        const res = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${process.env.CEREBRAS_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "llama3.1-8b",
+                messages: [{ role: "user", content: prompt }]
+            })
+        });
+        const data = await res.json();
+        if (data && data.choices) return data.choices[0].message.content;
+        throw new Error("Cerebras failed");
+    } catch (e) { throw e; }
+}
+
+async function generateCloudflareContent(prompt) {
+    if (!process.env.CF_ACCOUNT_ID || !process.env.CF_API_TOKEN) throw new Error("Cloudflare credentials missing.");
+    try {
+        const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${process.env.CF_API_TOKEN}` },
+            body: JSON.stringify({ messages: [{ role: "user", content: prompt }] })
+        });
+        const data = await res.json();
+        if (data && data.result) return data.result.response;
+        throw new Error("Cloudflare AI failed");
+    } catch (e) { throw e; }
+}
+
+async function generateGithubContent(prompt) {
+    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+    if (!token) throw new Error("GITHUB_TOKEN missing.");
+    try {
+        const res = await fetch("https://models.inference.ai.azure.com/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [{ role: "user", content: prompt }]
+            })
+        });
+        const data = await res.json();
+        if (data && data.choices) return data.choices[0].message.content;
+        throw new Error("GitHub Models failed");
+    } catch (e) { throw e; }
+}
+
 let generatePoolIndex = 0;
 const failedProviders = new Set();
 
@@ -156,6 +231,10 @@ async function askAI(prompt, options = { role: 'generate' }) {
     if (process.env.GROQ_API_KEY) generatePool.push({ name: 'Groq', fn: generateGroqContent });
     if (process.env.KIMI_API_KEY) generatePool.push({ name: 'Kimi', fn: generateKimiContent });
     if (process.env.OPENROUTER_KEY) generatePool.push({ name: 'OpenRouter', fn: generateOpenRouterContent });
+    if (process.env.MISTRAL_API_KEY) generatePool.push({ name: 'Mistral', fn: generateMistralContent });
+    if (process.env.CEREBRAS_API_KEY) generatePool.push({ name: 'Cerebras', fn: generateCerebrasContent });
+    if (process.env.CF_ACCOUNT_ID && process.env.CF_API_TOKEN) generatePool.push({ name: 'Cloudflare', fn: generateCloudflareContent });
+    if (process.env.GITHUB_TOKEN || process.env.GH_TOKEN) generatePool.push({ name: 'GitHub', fn: generateGithubContent });
     
     // If role is audit, we explicitly want Gemini first for precision formatting
     if (options.role === 'audit' && process.env.GEMINI_API_KEY) {

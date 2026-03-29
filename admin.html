@@ -225,6 +225,40 @@ function onModelChange(val) {
         <button onclick="location.reload()" class="v2-btn-top" style="flex:1; font-size:9px;">Refresh Status</button>
       </div>
     </div>
+    
+    <!-- Autonomous AI Operations (New) -->
+    <div class="stat-card" style="margin-bottom:1.5rem; border-top: 2px solid var(--emerald);">
+      <div class="saas-panel-header" style="padding-bottom:1rem">
+        <h3 style="color:var(--emerald)">Autonomous AI Operations</h3>
+        <div style="font-size:0.6rem; color:var(--muted); text-transform:uppercase">GitHub Action Dispatcher</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:0.75rem;">
+        <div class="form-row" style="margin:0">
+          <label class="form-label" style="font-size:0.7rem; color:var(--muted)">GitHub Personal Access Token (PAT)</label>
+          <input type="password" id="ghPatInput" class="v2-f-input" placeholder="ghp_xxxxxxxxxxxx" style="font-size:0.8rem" />
+          <p style="font-size:0.6rem; color:var(--muted); margin-top:0.2rem">Required for UI-to-GitHub triggering. Stored only in your browser.</p>
+        </div>
+        
+        <button id="btnTerminalDispatch" onclick="triggerTerminalDispatch()" class="v2-gen-btn" style="background:var(--emerald); border-color:var(--emerald); padding:0.6rem; font-size:0.8rem;">
+          ⚡ Trigger Weekly Pipeline
+        </button>
+
+        <!-- Timer/Progress Overlay -->
+        <div id="dispatchTimerContainer" style="display:none; margin-top:0.5rem; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); padding:0.8rem; border-radius:4px;">
+           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem">
+              <span id="dispatchStatusText" style="font-size:0.75rem; color:var(--emerald); font-weight:600">Pipeline in progress...</span>
+              <span id="dispatchElapsed" style="font-family:monospace; font-size:0.8rem; color:var(--gold)">00:00</span>
+           </div>
+           <div style="height:4px; background:var(--navy3); border-radius:2px; overflow:hidden">
+              <div id="dispatchFill" style="height:100%; background:var(--emerald); width:0%; transition:width 1s linear"></div>
+           </div>
+           <div style="display:flex; justify-content:space-between; margin-top:0.4rem">
+             <span style="font-size:0.65rem; color:var(--muted)">Est. completion: ~15m</span>
+             <a id="dispatchRunLink" href="#" target="_blank" style="display:none; font-size:0.65rem; color:var(--blue2); text-decoration:none">View Logs ↗</a>
+           </div>
+        </div>
+      </div>
+    </div>
     <div class="table-wrap">
       <div class="table-header"><span class="table-title">Recent Posts</span></div>
       <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Author</th><th>Views</th><th>Date</th><th>Actions</th></tr></thead>
@@ -1503,5 +1537,6 @@ function onModelChange(val) {
       }
     });
   </script>
+  <script type="module" src="js/terminal-dispatch.js"></script>
 </body>
 </html>

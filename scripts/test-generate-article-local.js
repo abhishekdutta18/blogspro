@@ -74,7 +74,7 @@ async function testArticleGeneration() {
                     colors: ['#BFA100'],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
                     legend: { 
-                        position: 'top', 
+                        position: 'bottom', 
                         alignment: 'center',
                         textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
                     },

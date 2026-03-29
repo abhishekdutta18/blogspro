@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlogsPro | RL-Terminal-Alpha</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bloom-bg: #0A0A0B;
+            --bloom-panel: #141417;
+            --bloom-border: #2A2A2E;
+            --bloom-accent: #FFB800;
+            --bloom-success: #00FF94;
+            --bloom-fail: #FF4D4D;
+            --bloom-text: #E0E0E0;
+            --bloom-muted: #666666;
+            --bloom-glass: rgba(255, 255, 255, 0.03);
+        }
+
+        body {
+            background-color: var(--bloom-bg);
+            color: var(--bloom-text);
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Header / Ticker --- */
+        header {
+            background: var(--bloom-panel);
+            border-bottom: 2px solid var(--bloom-accent);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .logo-sect {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+
+        .logo-sect h1 {
+            font-size: 1.2rem;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: 1px;
+            color: var(--bloom-accent);
+        }
+
+        .logo-sect span {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--bloom-muted);
+            text-transform: uppercase;
+        }
+
+        .live-ticker {
+            display: flex;
+            gap: 2rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        .ticker-item {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .ticker-label { color: var(--bloom-muted); }
+        .ticker-value { color: var(--bloom-text); }
+        .ticker-value.up { color: var(--bloom-success); }
+        .ticker-value.down { color: var(--bloom-fail); }
+
+        /* --- Main Layout --- */
+        main {
+            display: grid;
+            grid-template-columns: 350px 1fr 400px;
+            grid-template-rows: 1fr 300px;
+            gap: 1px;
+            background: var(--bloom-border);
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .panel {
+            background: var(--bloom-panel);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid var(--bloom-border);
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--bloom-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* --- Vertical Matrix (Left) --- */
+        .vertical-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .v-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.6rem 0.8rem;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        .v-item:hover { background: rgba(255,255,255,0.02); }
+
+        .v-name { color: var(--bloom-text); }
+        .v-stats { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; }
+        .v-rate { padding: 2px 6px; border-radius: 3px; font-weight: bold; }
+
+        /* --- CORS Warning --- */
+        .cors-warning {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 77, 77, 0.95);
+            color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            z-index: 1000;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            display: none;
+            max-width: 500px;
+        }
+
+        .cors-warning h2 { margin-top: 0; color: white; }
+        .cors-warning code { background: rgba(0,0,0,0.2); padding: 2px 4px; border-radius: 3px; }
+
+        /* --- Terminal / Feed (Center) --- */
+        .terminal-container {
+            flex: 1;
+            background: #000;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            overflow-y: auto;
+            color: #AAA;
+        }
+
+        .term-line { margin-bottom: 0.4rem; border-left: 2px solid transparent; padding-left: 0.5rem; }
+        .term-line.success { border-left-color: var(--bloom-success); color: var(--bloom-success); }
+        .term-line.fail { border-left-color: var(--bloom-fail); color: var(--bloom-fail); }
+        .term-line.syntax-warn { border-left-color: var(--bloom-accent); color: var(--bloom-accent); }
+        .term-ts { color: #555; margin-right: 0.5rem; }
+        .term-task { color: var(--bloom-accent); font-weight: bold; margin-right: 0.5rem; }
+
+        /* --- Logic/Gold Standard (Right Upper) --- */
+        .gold-standard {
+            padding: 1.5rem;
+            font-size: 0.8rem;
+            line-height: 1.6;
+        }
+
+        pre {
+            background: #000;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            color: var(--bloom-success);
+            font-size: 0.75rem;
+            border: 1px solid var(--bloom-border);
+        }
+
+        /* --- Analytics (Bottom Panels) --- */
+        .analytics-grid {
+            grid-column: 1 / span 3;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1px;
+            background: var(--bloom-border);
+        }
+
+        .chart-wrap {
+            background: var(--bloom-panel);
+            padding: 1.5rem;
+            height: 250px;
+        }
+
+        /* --- Animations --- */
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 148, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 255, 148, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 148, 0); }
+        }
+
+        .active-glow {
+            width: 8px;
+            height: 8px;
+            background: var(--bloom-success);
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+            animation: pulse-green 2s infinite;
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--bloom-border); }
+    </style>
+</head>
+<body>
+
+    <div id="cors-modal" class="cors-warning">
+        <h2>⚠️ SECURITY BLOCK</h2>
+        <p>Browser security (CORS) is blocking access to the local data files.</p>
+        <p>To fix this, you <strong>must</strong> start the local server:</p>
+        <pre style="text-align: left; color: white;">node scripts/serve-rl.js</pre>
+        <p>Then open: <br><a href="http://localhost:8080/rl-terminal.html" style="color: #FFB800; font-weight: bold;">http://localhost:8080/rl-terminal.html</a></p>
+    </div>
+
+    <header>
+        <div class="logo-sect">
+            <h1>BLOGSPRO</h1>
+            <span>RL System Alpha v2.0</span>
+        </div>
+        <div class="live-ticker" id="heartbeat-ticker">
+            <div class="ticker-item">
+                <span class="ticker-label">STATUS:</span>
+                <span class="ticker-value" id="hb-status"><span class="active-glow"></span>CONNECTED</span>
+            </div>
+            <div class="ticker-item">
+                <span class="ticker-label">ITERATION:</span>
+                <span class="ticker-value" id="hb-iter">0 / 0</span>
+            </div>
+            <div class="ticker-item">
+                <span class="ticker-label">ALPHA_RATE:</span>
+                <span class="ticker-value up" id="hb-rate">0.0%</span>
+            </div>
+            <div class="ticker-item">
+                <span class="ticker-label">UPTIME:</span>
+                <span class="ticker-value" id="hb-time">00:00:00</span>
+            </div>
+        </div>
+        <div>
+            <button onclick="syncData()" style="background: var(--bloom-accent); border:none; padding: 0.4rem 1rem; font-family: 'Outfit'; font-weight:700; font-size: 0.7rem; border-radius: 2px; cursor: pointer;">SYNC LEDGER</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Left: Vertical Performance -->
+        <div class="panel">
+            <div class="panel-header">
+                System Vertical Matrix
+                <span>Accuracy %</span>
+            </div>
+            <div class="vertical-list" id="v-list">
+                <!-- Data injection -->
+            </div>
+        </div>
+
+        <!-- Center: Live Feed -->
+        <div class="panel">
+            <div class="panel-header">Institutional Synthesis Feed</div>
+            <div class="terminal-container" id="terminal">
+                <div class="term-line">Initializing synthesis feed...</div>
+                <div class="term-line">Waiting for pipeline pulse...</div>
+            </div>
+        </div>
+
+        <!-- Right: Optimization Targets -->
+        <div class="panel">
+            <div class="panel-header">Optimization Target: Masterpiece</div>
+            <div class="gold-standard">
+                <p style="margin-top:0; color: var(--bloom-muted); font-size: 0.7rem;">THE BLOOMBERG MASTERPIECE V2</p>
+                <p>Objective: Eliminate conversational fluff and ensure 100% structural fidelity in financial terminal blocks.</p>
+                <pre>
+&lt;h2&gt;Global Macro Drift&lt;/h2&gt;
+&lt;details id="meta-excerpt"&gt;...&lt;/details&gt;
+
+| Metric | Observation | Impact |
+|:-------|:------------|:-------|
+| DXY    | 104.2       | Bearish|
+
+&lt;chart-data&gt;[[l,v]]&lt;/chart-data&gt;</pre>
+                <div id="error-donut-container" style="height: 150px; margin-top: 2rem;">
+                     <canvas id="errorDonut"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom: Analytics -->
+        <div class="analytics-grid">
+            <div class="chart-wrap">
+                <div class="panel-header" style="margin-bottom: 1rem; background:none; border:none; padding: 0;">Performance Curve</div>
+                <canvas id="mainCurve"></canvas>
+            </div>
+            <div class="chart-wrap">
+                <div class="panel-header" style="margin-bottom: 1rem; background:none; border:none; padding: 0;">Vertical Success Distribution</div>
+                <canvas id="barVerticals"></canvas>
+            </div>
+            <div class="chart-wrap">
+                <div class="panel-header" style="margin-bottom: 1rem; background:none; border:none; padding: 0;">System Latency Pulse (Sim)</div>
+                <canvas id="latencyPulse"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let mainChart, barChart, donutChart, pulseChart;
+        let lastSyncTime = Date.now();
+
+        async function syncData() {
+            try {
+                // Fetch Ledger
+                const resp = await fetch('knowledge/ai-feedback.json');
+                if (!resp.ok) throw new Error('Network response was not ok');
+                const data = await resp.json();
+                
+                // Fetch Heartbeat
+                const hbResp = await fetch('knowledge/rl-heartbeat.json');
+                if (!hbResp.ok) throw new Error('Heartbeat was not ok');
+                const hb = await hbResp.json();
+
+                document.getElementById('cors-modal').style.display = 'none';
+                updateUI(data, hb);
+            } catch (e) {
+                console.warn("Sync failed - pipeline might be idle or CORS blocked:", e);
+                if (window.location.protocol === 'file:') {
+                    document.getElementById('cors-modal').style.display = 'block';
+                }
+            }
+        }
+
+        function updateUI(ledger, hb) {
+            // Update Heartbeat UI
+            if (hb) {
+                document.getElementById('hb-status').innerHTML = hb.active ? '<span class="active-glow"></span>ACTIVE' : 'IDLE';
+                document.getElementById('hb-iter').innerText = `${hb.current} / ${hb.total}`;
+                document.getElementById('hb-rate').innerText = hb.rate + '%';
+                document.getElementById('hb-rate').className = `ticker-value ${hb.rate > 80 ? 'up' : 'down'}`;
+                
+                const diff = (Date.now() - new Date(hb.timestamp).getTime()) / 1000;
+                if (diff < 30) {
+                     document.getElementById('hb-status').innerHTML = '<span class="active-glow"></span>ACTIVE_LIVE';
+                }
+            }
+
+            // Update Vertical Matrix
+            const verticals = {};
+            ledger.forEach(d => {
+                if (!verticals[d.task]) verticals[d.task] = { s: 0, f: 0 };
+                if (d.type === 'SUCCESS') verticals[d.task].s++; else verticals[d.task].f++;
+            });
+
+            const vList = document.getElementById('v-list');
+            vList.innerHTML = '';
+            Object.keys(verticals).sort().forEach(v => {
+                const s = verticals[v].s;
+                const f = verticals[v].f;
+                const rate = ((s / (s+f)) * 100).toFixed(0);
+                const color = rate > 90 ? '#00FF94' : (rate > 70 ? '#FFB800' : '#FF4D4D');
+
+                vList.innerHTML += `
+                    <div class="v-item">
+                        <span class="v-name">${v}</span>
+                        <div class="v-stats">
+                            <span style="color: #666">${s}S / ${f}F</span>
+                            <span class="v-rate" style="background: ${color}22; color: ${color}">${rate}%</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Update Terminal Feed
+            const term = document.getElementById('terminal');
+            const newLines = ledger.slice(-20).reverse();
+            term.innerHTML = '';
+            newLines.forEach(l => {
+                const ts = new Date(l.timestamp).toLocaleTimeString();
+                let statusMsg = l.type === 'SUCCESS' ? (l.pattern || 'VERIFIED') : l.failures.join(', ');
+                let classType = l.type.toLowerCase();
+                if (statusMsg.includes('JSON_SYNTAX_ERROR')) {
+                    statusMsg = `[SYNTAX_WARN]: ${statusMsg}`;
+                    classType = 'syntax-warn'; // We'll add this CSS
+                }
+
+                term.innerHTML += `
+                    <div class="term-line ${classType}">
+                        <span class="term-ts">[${ts}]</span>
+                        <span class="term-task">${l.task}</span>
+                        <span>${statusMsg}</span>
+                    </div>
+                `;
+            });
+
+            renderCharts(ledger);
+        }
+
+        function renderCharts(data) {
+            const ctxCurve = document.getElementById('mainCurve').getContext('2d');
+            const ctxBar = document.getElementById('barVerticals').getContext('2d');
+            const ctxDonut = document.getElementById('errorDonut').getContext('2d');
+            const ctxPulse = document.getElementById('latencyPulse').getContext('2d');
+
+            // 1. Success Curve (last 100)
+            const curveLabels = data.slice(-100).map((_, i) => i);
+            let runningSum = 0;
+            const curveData = data.slice(-100).map(d => {
+                if (d.type === 'SUCCESS') runningSum++;
+                return runningSum;
+            });
+
+            if (mainChart) mainChart.destroy();
+            mainChart = new Chart(ctxCurve, {
+                type: 'line',
+                data: {
+                    labels: curveLabels,
+                    datasets: [{
+                        label: 'Total Verified Patterns',
+                        data: curveData,
+                        borderColor: '#FFB800',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: true,
+                        backgroundColor: 'rgba(255, 184, 0, 0.05)'
+                    }]
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        x: { display: false }, 
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666' } } 
+                    } 
+                }
+            });
+
+            // 2. Vertical Bar
+            const vLabels = Object.keys(data.reduce((acc, d) => ({...acc, [d.task]: 1}), {}));
+            const vData = vLabels.map(l => data.filter(d => d.task === l && d.type === 'SUCCESS').length);
+
+            if (barChart) barChart.destroy();
+            barChart = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: vLabels.map(l => l.substring(0, 10)),
+                    datasets: [{ data: vData, backgroundColor: '#00FF94', borderRadius: 2 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#666', font: { size: 9 } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666' } }
+                    }
+                }
+            });
+
+            // 3. Error Donut
+            const failures = {};
+            data.forEach(d => {
+                if (d.type === 'FAILURE' && d.failures) {
+                    d.failures.forEach(f => {
+                        const type = f.split(':')[0];
+                        failures[type] = (failures[type] || 0) + 1;
+                    });
+                }
+            });
+            const fLabels = Object.keys(failures).slice(0, 5);
+            const fData = fLabels.map(l => failures[l]);
+
+            if (donutChart) donutChart.destroy();
+            donutChart = new Chart(ctxDonut, {
+                type: 'doughnut',
+                data: {
+                    labels: fLabels,
+                    datasets: [{ 
+                        data: fData, 
+                        backgroundColor: ['#FF4D4D', '#FFB800', '#00FF94', '#4D9BFF', '#A04DFF'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'right', labels: { color: '#666', font: { size: 10 } } } 
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            // 4. Latency Pulse (Random Visualizer)
+            const pulseLabels = [...Array(30).keys()];
+            const pulseData = pulseLabels.map(() => Math.random() * 5 + 2);
+            if (pulseChart) pulseChart.destroy();
+            pulseChart = new Chart(ctxPulse, {
+                type: 'line',
+                data: {
+                    labels: pulseLabels,
+                    datasets: [{ data: pulseData, borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.4 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { display: false }, y: { display: false } }
+                }
+            });
+        }
+
+        // Start Clock
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('hb-time').innerText = now.toTimeString().split(' ')[0];
+        }, 1000);
+
+        syncData();
+        setInterval(syncData, 5000);
+    </script>
+</body>
+</html>

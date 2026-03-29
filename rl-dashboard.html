@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlogsPro | terminal-RL-pulse</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --nexus-bg: #050505;
+            --nexus-card: rgba(20, 20, 23, 0.7);
+            --nexus-accent: #BFA100;
+            --nexus-success: #00FF9D;
+            --nexus-fail: #FF4D4D;
+            --nexus-text: #F0F0F0;
+            --nexus-muted: rgba(240, 240, 240, 0.4);
+            --nexus-border: rgba(191,161,0,0.1);
+            --nexus-glass: rgba(255, 255, 255, 0.03);
+        }
+
+        body {
+            background: var(--nexus-bg);
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(191, 161, 0, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 255, 157, 0.02) 0%, transparent 50%);
+            color: var(--nexus-text);
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid var(--nexus-border);
+            padding-bottom: 1.5rem;
+        }
+
+        .brand h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -2px;
+            background: linear-gradient(to right, #BFA100, #F0E68C);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand p {
+            margin: 0;
+            color: var(--nexus-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .status-pill {
+            background: rgba(0, 255, 157, 0.1);
+            color: var(--nexus-success);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            border: 1px solid rgba(0, 255, 157, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .glass-card {
+            background: var(--nexus-card);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--nexus-border);
+            padding: 2rem;
+            border-radius: 12px;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(191,161,0,0.3);
+        }
+
+        .stat-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 3rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--nexus-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        .chart-container {
+            background: var(--nexus-card);
+            border: 1px solid var(--nexus-border);
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .logs-panel {
+            background: var(--nexus-card);
+            border: 1px solid var(--nexus-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            max-height: 800px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        .log-entry:hover {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .log-type {
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+        }
+
+        .type-success { background: rgba(0, 255, 157, 0.1); color: var(--nexus-success); }
+        .type-failure { background: rgba(255, 77, 77, 0.1); color: var(--nexus-fail); }
+
+        .log-ts {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--nexus-muted);
+            font-size: 0.7rem;
+        }
+
+        .log-task {
+            font-weight: 600;
+            color: var(--nexus-accent);
+        }
+
+        .log-details {
+            color: var(--nexus-text);
+            opacity: 0.8;
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+        }
+
+        .fail-tag {
+            color: var(--nexus-fail);
+            display: block;
+            font-size: 0.75rem;
+            margin-top: 0.2rem;
+        }
+
+        .refresh-btn {
+            background: transparent;
+            color: var(--nexus-accent);
+            border: 1px solid var(--nexus-accent);
+            padding: 0.6rem 1.5rem;
+            border-radius: 4px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .refresh-btn:hover {
+            background: var(--nexus-accent);
+            color: black;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--nexus-border);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <div class="brand">
+                <p>Institutional Synthesis Pipeline</p>
+                <h1>Deep RL Observer</h1>
+            </div>
+            <div class="controls">
+                <div class="status-pill">Active Training Pulse</div>
+                <button class="refresh-btn" onclick="updateDashboard()">Sync Ledger</button>
+            </div>
+        </header>
+
+        <div class="summary-stats">
+            <div class="glass-card">
+                <div id="val-total" class="stat-val">0</div>
+                <div class="stat-label">Total Iterations</div>
+            </div>
+            <div class="glass-card">
+                <div id="val-success" class="stat-val" style="color: var(--nexus-success)">0</div>
+                <div class="stat-label">Verified Patterns</div>
+            </div>
+            <div class="glass-card">
+                <div id="val-fail" class="stat-val" style="color: var(--nexus-fail)">0</div>
+                <div class="stat-label">Rejected Models</div>
+            </div>
+            <div class="glass-card">
+                <div id="val-rate" class="stat-val">0%</div>
+                <div class="stat-label">Model Accuracy</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="visuals">
+                <div class="chart-container">
+                    <div class="stat-label" style="margin-bottom: 1.5rem">Vertical Performance Matrix</div>
+                    <canvas id="verticalChart" height="250"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="stat-label" style="margin-bottom: 1.5rem">Failure Weight Analysis</div>
+                    <canvas id="failureChart" height="200"></canvas>
+                </div>
+            </div>
+
+            <div class="logs">
+                <div class="stat-label" style="margin-bottom: 1rem; display: flex; justify-content: space-between;">
+                    Real-time Pipeline
+                    <span id="log-count" style="color: var(--nexus-muted)">Showing last 50</span>
+                </div>
+                <div id="log-list" class="logs-panel">
+                    <!-- Logs injection -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let vChart, fChart;
+
+        async function updateDashboard() {
+            try {
+                const response = await fetch('knowledge/ai-feedback.json');
+                const data = await response.json();
+                renderStats(data);
+                renderCharts(data);
+                renderLogs(data);
+            } catch (e) {
+                console.error("Ledger Sync Failure:", e);
+            }
+        }
+
+        function renderStats(data) {
+            const total = data.length;
+            const success = data.filter(d => d.type === 'SUCCESS').length;
+            const fail = total - success;
+            const rate = total > 0 ? ((success / total) * 100).toFixed(1) : 0;
+
+            document.getElementById('val-total').innerText = total.toLocaleString();
+            document.getElementById('val-success').innerText = success.toLocaleString();
+            document.getElementById('val-fail').innerText = fail.toLocaleString();
+            document.getElementById('val-rate').innerText = rate + '%';
+        }
+
+        function renderCharts(data) {
+            // Processing Vertical Data
+            const verticals = {};
+            data.forEach(d => {
+                if (!verticals[d.task]) verticals[d.task] = { success: 0, fail: 0 };
+                if (d.type === 'SUCCESS') verticals[d.task].success++;
+                else verticals[d.task].fail++;
+            });
+
+            const labels = Object.keys(verticals);
+            const successData = labels.map(l => verticals[l].success);
+            const failData = labels.map(l => verticals[l].fail);
+
+            if (vChart) vChart.destroy();
+            vChart = new Chart(document.getElementById('verticalChart'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Success', data: successData, backgroundColor: '#00FF9D', borderRadius: 4 },
+                        { label: 'Failure', data: failData, backgroundColor: '#FF4D4D', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { stacked: true, grid: { display: false }, ticks: { color: '#888', font: { family: 'Outfit', size: 10 } } },
+                        y: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Processing Failure Types
+            const failures = {};
+            data.forEach(d => {
+                if (d.type === 'FAILURE' && d.failures) {
+                    d.failures.forEach(f => {
+                        failures[f.split(':')[0]] = (failures[f.split(':')[0]] || 0) + 1;
+                    });
+                }
+            });
+
+            const fLabels = Object.keys(failures).sort((a,b) => failures[b] - failures[a]).slice(0, 5);
+            const fData = fLabels.map(l => failures[l]);
+
+            if (fChart) fChart.destroy();
+            fChart = new Chart(document.getElementById('failureChart'), {
+                type: 'pie',
+                data: {
+                    labels: fLabels,
+                    datasets: [{
+                        data: fData,
+                        backgroundColor: ['#EBC934', '#EB9334', '#EB5B34', '#EB3434', '#EB34C3'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    plugins: { 
+                        legend: { position: 'right', labels: { color: '#888', font: { family: 'Outfit', size: 11 } } } 
+                    }
+                }
+            });
+        }
+
+        function renderLogs(data) {
+            const list = document.getElementById('log-list');
+            list.innerHTML = '';
+            data.slice(-50).reverse().forEach(d => {
+                const ts = new Date(d.timestamp).toLocaleTimeString();
+                const details = d.type === 'SUCCESS' ? (d.pattern || 'Structural Fidelity Confirmed') : d.failures.join(', ');
+                
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.innerHTML = `
+                    <div class="log-header">
+                        <span class="log-type type-${d.type.toLowerCase()}">${d.type}</span>
+                        <span class="log-ts">${ts}</span>
+                    </div>
+                    <div class="log-task">${d.task}</div>
+                    <div class="log-details">${details}</div>
+                `;
+                list.appendChild(entry);
+            });
+        }
+
+        updateDashboard();
+        setInterval(updateDashboard, 10000);
+    </script>
+</body>
+</html>
