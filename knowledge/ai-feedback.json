@@ -1,49 +1,5 @@
 [
   {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.917Z",
-    "task": "Equities & Alpha",
-    "failures": [
-      "The text inside <chart-data> is not valid JSON.",
-      "COLD TONE VIOLATION: Conversational fluff detected. Use Bloomberg-style blocks only."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.919Z",
-    "task": "Offshore & GIFT City",
-    "failures": [
-      "Verification failure (Found 0-1 citations, need at least 2 distinct sources)."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.921Z",
-    "task": "Regulatory Ledger",
-    "failures": [
-      "Verification failure (Found 0-1 citations, need at least 2 distinct sources).",
-      "The text inside <chart-data> is not valid JSON."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.922Z",
-    "task": "Commodity Pulse",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.923Z",
-    "task": "Regulatory Ledger",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.924Z",
-    "task": "Debt & Sovereignty",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
     "type": "SUCCESS",
     "timestamp": "2026-03-29T06:11:41.926Z",
     "task": "Scribe Analytics",
@@ -11260,6 +11216,70 @@
   {
     "type": "FAILURE",
     "timestamp": "2026-03-29T18:27:58.299Z",
+    "task": "DAILY_BRIEFING_HOURLY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT",
+      "QA_CITATION_DEFICIT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:31:18.737Z",
+    "task": "Briefing",
+    "failures": [
+      "COLD TONE VIOLATION: Conversational fluff detected (\"In conclusion\"). Use Bloomberg-style blocks only.",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:31:19.424Z",
+    "task": "Briefing",
+    "failures": [
+      "COLD TONE VIOLATION: Conversational fluff detected (\"In conclusion\"). Use Bloomberg-style blocks only.",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:31:20.011Z",
+    "task": "Briefing",
+    "failures": [
+      "COLD TONE VIOLATION: Conversational fluff detected (\"In conclusion\"). Use Bloomberg-style blocks only.",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:31:20.609Z",
+    "task": "DAILY_BRIEFING_HOURLY_PRE",
+    "failures": [
+      "TONE VIOLATION: Excessive conversational fluff detected (\"In conclusion\"). Use raw institutional data blocks.",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:31:20.613Z",
+    "task": "DAILY_BRIEFING_HOURLY_POST",
+    "failures": [
+      "TONE VIOLATION: Excessive conversational fluff detected (\"In conclusion\"). Use raw institutional data blocks.",
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:31:20.616Z",
     "task": "DAILY_BRIEFING_HOURLY_CORRECTIONS",
     "failures": [
       "QA_SYSTEM_ARTIFACT",
