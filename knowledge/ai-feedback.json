@@ -1,33 +1,5 @@
 [
   {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.888Z",
-    "task": "Digital Rails",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.889Z",
-    "task": "Digital Rails",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.890Z",
-    "task": "Asset Allocation",
-    "failures": [
-      "Insufficient data density (Found 1-2 metrics, need at least 5 for terminal depth)."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.893Z",
-    "task": "FX & Cross-Border",
-    "failures": [
-      "COLD TONE VIOLATION: Conversational fluff detected. Use Bloomberg-style blocks only."
-    ]
-  },
-  {
     "type": "FAILURE",
     "timestamp": "2026-03-29T06:11:41.894Z",
     "task": "Scribe Analytics",
@@ -11191,6 +11163,47 @@
     "task": "QA_GATE_PRE_RENDER",
     "failures": [
       "QA_SYSTEM_ARTIFACT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T17:53:56.399Z",
+    "task": "Briefing",
+    "failures": [
+      "COLD TONE VIOLATION: Conversational fluff detected (\"As reported by\"). Use Bloomberg-style blocks only.",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T17:53:59.255Z",
+    "task": "Briefing",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T17:54:03.276Z",
+    "task": "Briefing",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T17:54:03.997Z",
+    "task": "QA_GATE_PRE_RENDER",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT",
+      "QA_CITATION_DEFICIT"
     ],
     "preview": null
   }
