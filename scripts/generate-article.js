@@ -152,7 +152,18 @@ async function generateArticle() {
             const scribePrompt = getArticlePrompt(frequency, v.name, v.id, v.data, macro.summary, verticalNews, lastSummary);
 
             // Execute Stage 1 & 2 via the Auditor Loop
-            let chapter = await executeAuditedGeneration(scribePrompt, frequency, v.name);
+            const chapterContent = await executeAuditedGeneration(scribePrompt, frequency, v.name);
+            
+            // Phase 4: Institutional Swarm Review (High-Fidelity Consensus)
+            let chapter = "";
+            try {
+                console.log(`🕵️ Swarm reviewing '${v.name}' for institutional consensus...`);
+                // Perform the review using the MiroFish CLI bridge
+                chapter = await askAI(chapterContent, { role: 'swarm_qa', freq: frequency });
+            } catch (e) {
+                console.warn(`⚠️ Swarm review failed: ${e.message}. Falling back to standard output.`);
+                chapter = chapterContent;
+            }
 
             // Extract Chart Data Proposed by AI
             const chartDataMatch = chapter.match(/<chart-data>(.*?)<\/chart-data>/s);

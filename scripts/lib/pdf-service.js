@@ -6,8 +6,8 @@ const fs = require('fs');
  * Institutional PDF Generator (BlogsPro V1.0)
  * Converts high-fidelity HTML terminal reports into professional PDFs.
  */
-async function generatePDF(htmlPath) {
-    console.log(`📑 Generating Institutional PDF for: ${path.basename(htmlPath)}...`);
+async function generatePDF(htmlPath, frequency = 'daily') {
+    console.log(`📑 Generating Institutional PDF for: ${path.basename(htmlPath)} (${frequency.toUpperCase()})...`);
     const pdfPath = htmlPath.replace('.html', '.pdf');
     
     let browser;
@@ -26,10 +26,13 @@ async function generatePDF(htmlPath) {
         // Inject print-specific styles to ensure the terminal look translates well to paper
         await page.addStyleTag({
             content: `
-                body { background: #000 !important; color: #fff !important; }
-                .terminal-chart { break-inside: avoid; border: 1px solid rgba(191,161,0,0.3) !important; }
-                header, footer { border-color: #BFA100 !important; }
-                a { color: #BFA100 !important; text-decoration: none !important; }
+                body { background: #FFFFFF !important; color: #000000 !important; font-family: 'Inter', system-ui, sans-serif !important; }
+                .main-content { padding: 40px !important; }
+                .terminal-card, .terminal-chart { break-inside: avoid; border: 1px solid #E5E7EB !important; background: #FFFFFF !important; margin-bottom: 2rem !important; }
+                header, footer { border-color: #111827 !important; color: #111827 !important; }
+                h1, h2, h3 { color: #111827 !important; }
+                .excerpt { border-left: 4px solid #111827 !important; color: #374151 !important; font-style: italic !important; }
+                a { color: #2563EB !important; text-decoration: underline !important; }
                 @page { size: A4; margin: 1cm; }
             `
         });
@@ -41,10 +44,10 @@ async function generatePDF(htmlPath) {
             path: pdfPath,
             format: 'A4',
             printBackground: true,
-            margin: { top: '1cm', right: '1cm', bottom: '1cm', left: '1cm' },
+            margin: { top: '1.5cm', right: '1cm', bottom: '1.5cm', left: '1cm' },
             displayHeaderFooter: true,
-            headerTemplate: '<div style="font-size: 10px; color: #BFA100; margin-left: 1cm;">BlogsPro Terminal — Institutional Briefing</div>',
-            footerTemplate: '<div style="font-size: 10px; color: #BFA100; margin-left: 1cm; width: 100%; text-align: right; margin-right: 1cm;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>'
+            headerTemplate: `<div style="font-size: 8px; color: #6B7280; width: 100%; text-align: center;">BlogsPro Intellectual Unit — ${frequency.toUpperCase()} Institutional Research Manuscript</div>`,
+            footerTemplate: '<div style="font-size: 8px; color: #6B7280; width: 100%; text-align: center; border-top: 1px solid #E5E7EB; padding-top: 5px;">© 2026 BlogsPro Terminal • Confidential • Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>'
         });
 
         console.log(`✅ PDF Generated Successfully: ${path.basename(pdfPath)}`);

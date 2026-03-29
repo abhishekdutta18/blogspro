@@ -2,6 +2,7 @@ const {
     fetchUniversalNews, fetchRBIData, fetchSEBIData, 
     fetchMultiAssetData, fetchMacroPulse, fetchUpstoxData 
 } = require("./lib/data-fetchers.js");
+const { askAI } = require("./lib/ai-service.js");
 
 async function audit() {
     console.log("🔍 AGENTIC DATA AUDIT STARTING...");
@@ -41,6 +42,14 @@ async function audit() {
 
         console.log("\n--- [4] DOMESTIC TERMINAL (Upstox) ---");
         if (upstox.status === 'fulfilled') console.log(`✅ Pulse: ${upstox.value.summary}`);
+
+        console.log("\n--- [5] AI CONSENSUS (Gemini 3.1 Fleet) ---");
+        try {
+            const aiTest = await askAI("Test institutional pulse. Respond with 1 word: ACTIVE.", { role: 'audit' });
+            console.log(`✅ Gemini Status: ${aiTest}`);
+        } catch (e) {
+            console.error(`❌ Gemini Fail: ${e.message}`);
+        }
 
         console.log("\n🏁 AUDIT COMPLETE.");
     } catch (e) {

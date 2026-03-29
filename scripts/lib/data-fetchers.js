@@ -9,22 +9,35 @@ const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) BlogsPro-Intelligence/4.0 
 
 function getMarketContext() {
     const now = new Date();
+    // Use UTC for global session logic
+    const hour = now.getUTCHours();
+    
+    // Global Session Logic (UTC)
+    // Asia: 00:00 - 09:00 UTC (Tokyo/Hong Kong/Singapore)
+    // Europe: 08:00 - 16:00 UTC (London/Frankfurt)
+    // Americas: 13:00 - 21:00 UTC (New York/Chicago)
+    
+    let session = "ASIAN (TOKYO/HK/SG)";
+    let sessionStatus = "LIVE";
+    
+    if (hour >= 8 && hour < 13) session = "EUROPEAN (LONDON/FRANKFURT)";
+    else if (hour >= 13 && hour < 21) session = "AMERICAN (NEW YORK/CHICAGO)";
+    else if (hour >= 21 || hour < 0) session = "POST-AMERICAS / PRE-ASIA";
+    
     const istOffset = 5.5 * 60 * 60 * 1000;
     const istTime = new Date(now.getTime() + istOffset);
     const day = istTime.getUTCDay(); // 0: Sun, 6: Sat
-    const hour = istTime.getUTCHours();
-    const min = istTime.getUTCMinutes();
-    
     const isWeekend = (day === 0 || day === 6);
-    const isMarketHours = !isWeekend && (hour > 9 || (hour === 9 && min >= 15)) && (hour < 15 || (hour === 15 && min <= 30));
-    const status = isWeekend ? "CLOSED (WEEKEND)" : (isMarketHours ? "LIVE (MARKET ACTIVE)" : "CLOSED (POST-MARKET)");
+    
+    const status = isWeekend ? "CLOSED (WEEKEND)" : `LIVE (${session})`;
     
     return {
         timestamp: istTime.toISOString(),
         day: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day],
         status,
+        session,
         isWeekend,
-        note: isWeekend ? "Indian NSE/BSE Markets are currently CLOSED for the weekend." : (isMarketHours ? "Indian Markets are actively TRADING." : "Indian Markets are CLOSED (Outside 09:15-15:30 IST).")
+        note: isWeekend ? "Global Markets are currently CLOSED for the weekend." : `Main Session: ${session}.`
     };
 }
 
@@ -88,15 +101,22 @@ async function fetchMultiAssetData() {
     };
 
     try {
-        const [globalIndices, commodities, treasuries, indiaIndices, sectors] = await Promise.all([
-            fetchScanner("forex", ["FX_IDC:USDINR", "TVC:DXY", "TVC:VIX", "TVC:NI225", "TVC:HSI", "TVC:DAX"]),
-            fetchScanner("cfd", ["OANDA:XAUUSD", "OANDA:XAGUSD", "OANDA:BRENT_USD", "OANDA:WTICO_USD", "OANDA:COPPER_USD"]),
-            fetchScanner("cfd", ["TVC:US10Y", "TVC:US02Y", "TVC:DE10Y", "TVC:JP10Y"]),
-            fetchScanner("india", ["NSE_INDEX:NIFTY_50", "NSE_INDEX:NIFTY_BANK", "BSE_INDEX:SENSEX", "NSE_INDEX:INDIA_VIX"]),
-            fetchScanner("india", ["NSE:RELIANCE", "NSE:SBIN", "NSE:ADANIENT", "NSE:TCS", "NSE:HDFCBANK", "NSE:INFY"])
+        const [americas, europe, asia, commodities, forex, bonds, crypto, india] = await Promise.all([
+            fetchScanner("america", ["AMEX:SPY", "NASDAQ:QQQ", "CBOE:VIX", "NASDAQ:AAPL", "NASDAQ:MSFT", "NASDAQ:NVDA", "NASDAQ:TSLA", "NASDAQ:GOOGL"]),
+            fetchScanner("europe", ["INDEX:DAX", "INDEX:SX5E", "INDEX:UKX", "INDEX:CAC", "LSE:HSBA", "Euronext:MC"]),
+            fetchScanner("asia", ["INDEX:NKY", "INDEX:HSI", "INDEX:AS51", "INDEX:STI", "KRX:005930"]),
+            fetchScanner("cfd", ["OANDA:XAUUSD", "OANDA:XAGUSD", "OANDA:BRENT_USD", "OANDA:WTICO_USD", "OANDA:XCUUSD", "OANDA:NATGAS_USD", "OANDA:WHEAT_USD", "OANDA:CORN_USD"]),
+            fetchScanner("forex", ["FX_IDC:DXY", "FX:EURUSD", "FX:USDJPY", "FX:GBPUSD", "FX:AUDUSD", "FX:USDCAD", "FX_IDC:USDINR"]),
+            fetchScanner("cfd", ["TVC:US10Y", "TVC:US02Y", "TVC:DE10Y", "TVC:JP10Y", "TVC:IN10Y", "TVC:GB10Y"]),
+            fetchScanner("crypto", ["COINBASE:BTCUSD", "COINBASE:ETHUSD", "BINANCE:SOLUSDT", "BINANCE:BNBUSDT", "BINANCE:ADAUSDT"]),
+            fetchScanner("india", ["NSE_INDEX:NIFTY_50", "NSE_INDEX:NIFTY_BANK", "BSE_INDEX:SENSEX", "NSE:RELIANCE", "NSE:HDFCBANK", "NSE:SBIN", "NSE:TCS", "NSE:ICICIBANK"])
         ]);
 
-        const allData = [...(globalIndices.data || []), ...(commodities.data || []), ...(treasuries.data || []), ...(indiaIndices.data || []), ...(sectors.data || [])].filter(i => i && i.d);
+        const allData = [
+            ...(americas.data || []), ...(europe.data || []), ...(asia.data || []), 
+            ...(commodities.data || []), ...(forex.data || []), ...(bonds.data || []),
+            ...(crypto.data || []), ...(india.data || [])
+        ].filter(i => i && i.d);
         const summary = allData.map(item => {
             const [close, chg, desc] = item.d;
             return `${desc}: ${close.toFixed(2)} (${chg.toFixed(2)}%)`;
@@ -120,34 +140,63 @@ async function fetchSentimentData() {
 
 // 1. MEGA-FEED DICTIONARY (Universal Institutional Streams)
 const UNIVERSAL_FEEDS = {
+    BLOOMBERG_GLOBAL: "https://news.google.com/rss/search?q=site%3Abloomberg.com+finance&hl=en-US&gl=US&ceid=US:en",
+    FT_WORLD: "https://news.google.com/rss/search?q=site%3Aft.com+markets&hl=en-US&gl=US&ceid=US:en",
+    WSJ_BUSINESS: "https://news.google.com/rss/search?q=site%3Awsj.com+finance&hl=en-US&gl=US&ceid=US:en",
+    CNBC_WORLD: "https://news.google.com/rss/search?q=site%3Acnbc.com+markets&hl=en-US&gl=US&ceid=US:en",
+    REUTERS_GLOBAL: "https://news.google.com/rss/search?q=site%3Areuters.com+finance&hl=en-US&gl=US&ceid=US:en",
+    NIKKEI_ASIA: "https://news.google.com/rss/search?q=site%3Aasia.nikkei.com+economy&hl=en-US&gl=US&ceid=US:en",
     YAHOO_FINANCE: "https://finance.yahoo.com/news/rssindex",
-    BUSINESS_STANDARD: "https://news.google.com/rss/search?q=site%3Abusiness-standard.com+markets&hl=en-IN&gl=IN&ceid=IN:en",
-    ECONOMIC_TIMES: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms",
-    CNBC_MARKETS: "https://search.cnbc.com/rs/search/all/view.rss?partnerId=2000&keywords=markets",
-    PIB_INDIA: "https://news.google.com/rss/search?q=site%3Apib.gov.in+finance+OR+economy&hl=en-IN&gl=IN&ceid=IN:en",
-    NPCI_NEWS: "https://news.google.com/rss/search?q=NPCI+OR+UPI+OR+BHIM+site%3Anpci.org.in&hl=en-IN&gl=IN&ceid=IN:en",
-    REUTERS_PROXY: "https://news.google.com/rss/search?q=site%3Areuters.com+business+OR+finance&hl=en-US&gl=US&ceid=US:en",
-    BLOOMBERG_PROXY: "https://news.google.com/rss/search?q=site%3Abloomberg.com+markets+OR+economy&hl=en-US&gl=US&ceid=US:en",
-    INVESTING_COM: "https://news.google.com/rss/search?q=site%3Ainvesting.com+analysis&hl=en-US&gl=US&ceid=US:en",
-    GIFT_CITY_NEWS: "https://news.google.com/rss/search?q=GIFT+City+OR+IFSCA+OR+NSE+IX&hl=en-IN&gl=IN&ceid=IN:en",
-    INSURANCE_NEWS: "https://news.google.com/rss/search?q=IRDAI+OR+Insurance+penetration+India&hl=en-IN&gl=IN&ceid=IN:en"
+    ECONOMIC_TIMES: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"
 };
+
+/**
+ * High-Fidelity NewsData.io Integration (V2 - Serverless Native)
+ * Pulls directly from institutional sources via JSON API.
+ */
+async function fetchNewsData() {
+    const key = process.env.NEWS_API_KEY;
+    if (!key) return [];
+    
+    try {
+        console.log("🔍 Consulting NewsData.io for Global Macro Pulse...");
+        // Targeted: World, English, Business/Top/Politics
+        const url = `https://newsdata.io/api/1/news?apikey=${key}&category=business,top,politics&language=en`;
+        const res = await fetchWithTimeout(url);
+        const json = await res.json();
+        
+        if (json.status === "success" && json.results) {
+            return json.results.slice(0, 10).map(item => 
+                `${item.source_id.toUpperCase()} | ${item.title} (URL: ${item.link})`
+            );
+        }
+    } catch (e) {
+        console.warn("⚠️ NewsData Outage/Limit:", e.message);
+    }
+    return [];
+}
 
 async function fetchUniversalNews() {
     const parser = new RSSParser({ headers: { "User-Agent": UA } });
+    
+    // Step 1: Fetch RSS Primary Aggregation (High Fidelity)
     const keys = Object.keys(UNIVERSAL_FEEDS);
     const results = await Promise.allSettled(keys.map(key => parser.parseURL(UNIVERSAL_FEEDS[key])));
     
     let masterNews = [];
     results.forEach((res, idx) => {
-        const source = keys[idx];
+        const source = keys[idx].replace(/_/g, ' ');
         if (res.status === 'fulfilled') {
-            const items = res.value.items.slice(0, 5).map(i => `[${source}] ${i.title} (URL: ${i.link})`);
+            const items = res.value.items.slice(0, 5).map(i => `${source} | ${i.title} (URL: ${i.link})`);
             masterNews.push(...items);
-        } else {
-            console.warn(`⚠️ Feed Failure: ${source}`);
         }
     });
+
+    // Step 2: NewsData.io Fallback (Only if RSS is critically low)
+    if (masterNews.length < 5) {
+        const newsDataResults = await fetchNewsData();
+        masterNews.push(...newsDataResults);
+    }
 
     return masterNews.length > 0 ? masterNews.join(' | ') : "Universal News: No recent pulses.";
 }
@@ -181,14 +230,45 @@ async function fetchCCILData() {
 
 async function fetchMacroPulse() {
     try {
-        const res = await fetch("https://api.worldbank.org/v2/country/IND/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=1");
-        const json = await res.json();
-        const val = json?.[1]?.[0]?.value?.toFixed(2);
-        if (val) return { summary: `India GDP: ${val}%`, raw: { gdp: val } };
-        throw new Error("Invalid WorldBank Data");
+        const [indiaGDP, usCPI, euGDP] = await Promise.all([
+            fetch("https://api.worldbank.org/v2/country/IND/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=1").then(r => r.json()),
+            fetch("https://api.worldbank.org/v2/country/USA/indicator/FP.CPI.TOTL.ZG?format=json&per_page=1").then(r => r.json()),
+            fetch("https://api.worldbank.org/v2/country/EMU/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=1").then(r => r.json())
+        ]);
+        
+        const iVal = indiaGDP?.[1]?.[0]?.value?.toFixed(2);
+        const uVal = usCPI?.[1]?.[0]?.value?.toFixed(2);
+        const eVal = euGDP?.[1]?.[0]?.value?.toFixed(2);
+        
+        return { 
+            summary: `Global Macro: India GDP ${iVal}%, US CPI ${uVal}%, EU GDP ${eVal}%`, 
+            raw: { india: iVal, us: uVal, eu: eVal } 
+        };
     } catch (e) { 
-        return { summary: "India GDP: 7.2% (Institutional Est.)", raw: { gdp: "7.2" } }; 
+        return { summary: "Global Macro: Institutional estimates prioritized.", raw: {} }; 
     }
+}
+
+async function fetchCentralBankPulse() {
+    const parser = new RSSParser({ headers: { "User-Agent": UA } });
+    const feeds = {
+        FED: "https://www.federalreserve.gov/feeds/press_all.xml",
+        ECB: "https://www.ecb.europa.eu/rss/press.xml",
+        BoE: "https://www.bankofengland.co.uk/rss/news"
+    };
+    
+    try {
+        const results = await Promise.allSettled(Object.keys(feeds).map(k => parser.parseURL(feeds[k])));
+        let summary = [];
+        results.forEach((res, idx) => {
+            const bank = Object.keys(feeds)[idx];
+            if (res.status === 'fulfilled') {
+                const latest = res.value.items[0];
+                summary.push(`${bank}: ${latest.title}`);
+            }
+        });
+        return { summary: summary.join(' | '), raw: results };
+    } catch (e) { return { summary: "Central Banks: Watching liquidity pivots.", raw: [] }; }
 }
 
 async function fetchUpstoxData() {
@@ -248,5 +328,6 @@ module.exports = {
     fetchEconomicCalendar, fetchMultiAssetData, fetchSentimentData,
     fetchRBIData, fetchSEBIData, fetchCCILData, fetchMacroPulse, fetchUpstoxData,
     fetchUniversalNews, getMarketContext,
-    fetchMFData, fetchPEVCData, fetchInsuranceData, fetchGIFTCityData
+    fetchMFData, fetchPEVCData, fetchInsuranceData, fetchGIFTCityData,
+    fetchCentralBankPulse
 };

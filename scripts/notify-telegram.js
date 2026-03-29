@@ -45,23 +45,44 @@ async function notifyTelegram() {
 
         const latest = index[0];
         const title = latest.title;
-        const fileName = latest.fileName;
-        const excerpt = latest.excerpt || "New institutional strategic analysis available on the terminal.";
+        const htmlFileName = latest.fileName;
+        const pdfFileName = htmlFileName.replace(".html", ".pdf");
+        const pdfPath = path.join(__dirname, "..", type, frequency, pdfFileName);
+        const excerpt = latest.excerpt || "Institutional Strategic Analysis Manuscript. (Terminal login required for full interactive charts).";
 
         const tgTitle = type === 'articles' ? `📑 *STRATEGIC REPORT: ${frequency.toUpperCase()}*` : `📑 *INTELLIGENCE PULSE: ${frequency.toUpperCase()}*`;
         const linkPrefix = type === 'articles' ? `articles/${frequency}` : `briefings/${frequency}`;
-        const tgText = `${tgTitle}\n\n*${title}*\n\n🔗 View Report: https://blogspro.in/${linkPrefix}/${fileName}`;
+        const tgCaption = `${tgTitle}\n\n*${title}*\n\n🔹 *Executive Abstract:*\n${excerpt}\n\n🔗 *Full Interactive Terminal:* https://blogspro.in/${linkPrefix}/${htmlFileName}`;
 
-        const res = await fetchWithTimeout(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: process.env.TELEGRAM_TO, text: tgText, parse_mode: "Markdown" })
-        });
+        if (fs.existsSync(pdfPath)) {
+            console.log(`📎 Attaching Institutional PDF: ${pdfFileName}`);
+            const FormData = require("form-data");
+            const form = new FormData();
+            form.append("chat_id", dest);
+            form.append("document", fs.createReadStream(pdfPath));
+            form.append("caption", tgCaption);
+            form.append("parse_mode", "Markdown");
 
-        if (res.ok) {
-            console.log(`✅ Telegram Notification Sent: ${title}`);
+            const res = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendDocument`, {
+                method: "POST",
+                body: form
+            });
+
+            if (res.ok) {
+                console.log(`✅ Telegram Document Sent: ${title}`);
+            } else {
+                const err = await res.json();
+                console.error(`❌ Telegram API Error:`, err);
+            }
         } else {
-            console.error(`❌ Telegram API Error: ${res.status}`);
+            console.warn(`⚠️ PDF not found, falling back to text notification: ${pdfFileName}`);
+            const tgText = `${tgTitle}\n\n*${title}*\n\n${excerpt}\n\n🔗 View Report: https://blogspro.in/${linkPrefix}/${htmlFileName}`;
+            const res = await fetchWithTimeout(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: dest, text: tgText, parse_mode: "Markdown" })
+            });
+            if (res.ok) console.log(`✅ Telegram Text Notification Sent: ${title}`);
         }
     } catch (e) {
         console.error("❌ Notification Failure:", e);

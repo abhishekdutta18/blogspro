@@ -1,11 +1,5 @@
 [
   {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.933Z",
-    "task": "Insurance & Risk",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
     "type": "FAILURE",
     "timestamp": "2026-03-29T06:11:41.934Z",
     "task": "Equities & Alpha",
@@ -11243,10 +11237,9 @@
   },
   {
     "type": "FAILURE",
-    "timestamp": "2026-03-29T18:38:02.111Z",
+    "timestamp": "2026-03-29T19:23:10.335Z",
     "task": "Briefing",
     "failures": [
-      "Missing analytical <details> excerpt.",
       "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
       "Missing <chart-data> JSON tag at the end."
     ],
@@ -11254,59 +11247,539 @@
   },
   {
     "type": "FAILURE",
-    "timestamp": "2026-03-29T18:39:12.589Z",
+    "timestamp": "2026-03-29T19:24:01.095Z",
     "task": "Briefing",
     "failures": [
-      "Missing analytical <details> excerpt.",
-      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
-      "Missing <chart-data> JSON tag at the end."
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources)."
     ],
     "preview": null
   },
   {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T18:39:54.826Z",
+    "type": "SUCCESS",
+    "timestamp": "2026-03-29T19:24:59.689Z",
     "task": "Briefing",
-    "failures": [
-      "Missing analytical <details> excerpt.",
-      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
-      "Missing <chart-data> JSON tag at the end."
-    ],
+    "pattern": "Perfect structural execution",
     "preview": null
   },
   {
     "type": "FAILURE",
-    "timestamp": "2026-03-29T18:40:05.095Z",
-    "task": "DAILY_BRIEFING_HOURLY_PRE",
+    "timestamp": "2026-03-29T19:25:15.962Z",
+    "task": "DAILY_BRIEFING_DAILY_PRE",
     "failures": [
-      "Missing <details id=\"meta-excerpt\"> envelope.",
-      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
-      "Insufficient data density (Found 2 metrics, need at least 5 for terminal depth).",
-      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
       "Missing <chart-data> JSON array tag at the very end."
     ],
     "preview": null
   },
   {
     "type": "FAILURE",
-    "timestamp": "2026-03-29T18:40:05.099Z",
-    "task": "DAILY_BRIEFING_HOURLY_POST",
+    "timestamp": "2026-03-29T19:25:15.968Z",
+    "task": "DAILY_BRIEFING_DAILY_POST",
     "failures": [
-      "Missing <details id=\"meta-excerpt\"> envelope.",
-      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
-      "Insufficient data density (Found 2 metrics, need at least 5 for terminal depth).",
       "Missing <chart-data> JSON array tag at the very end."
     ],
     "preview": null
   },
   {
     "type": "FAILURE",
-    "timestamp": "2026-03-29T18:40:05.101Z",
-    "task": "DAILY_BRIEFING_HOURLY_CORRECTIONS",
+    "timestamp": "2026-03-29T19:25:15.972Z",
+    "task": "DAILY_BRIEFING_DAILY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "SUCCESS",
+    "timestamp": "2026-03-29T19:31:16.351Z",
+    "task": "Briefing",
+    "pattern": "Perfect structural execution",
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:31:28.312Z",
+    "task": "DAILY_BRIEFING_DAILY_PRE",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:31:28.328Z",
+    "task": "DAILY_BRIEFING_DAILY_POST",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:31:28.332Z",
+    "task": "DAILY_BRIEFING_DAILY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:41:12.872Z",
+    "task": "Briefing",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources)."
+    ],
+    "preview": null
+  },
+  {
+    "type": "SUCCESS",
+    "timestamp": "2026-03-29T19:43:08.723Z",
+    "task": "Briefing",
+    "pattern": "Perfect structural execution",
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:43:18.102Z",
+    "task": "DAILY_BRIEFING_DAILY_PRE",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:43:18.112Z",
+    "task": "DAILY_BRIEFING_DAILY_POST",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:43:18.117Z",
+    "task": "DAILY_BRIEFING_DAILY_CORRECTIONS",
     "failures": [
       "QA_SYSTEM_ARTIFACT",
       "QA_CITATION_DEFICIT"
     ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:52:10.279Z",
+    "task": "Briefing",
+    "failures": [
+      "JSON inside <chart-data> must have 'sentiment', 'macro', and 'multi_asset' keys formatted as arrays."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:52:46.221Z",
+    "task": "DAILY_BRIEFING_DAILY_PRE",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:52:46.231Z",
+    "task": "DAILY_BRIEFING_DAILY_POST",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:52:46.238Z",
+    "task": "DAILY_BRIEFING_DAILY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT",
+      "QA_CITATION_DEFICIT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "SUCCESS",
+    "timestamp": "2026-03-29T19:57:32.541Z",
+    "task": "Briefing",
+    "pattern": "Perfect structural execution",
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:57:41.574Z",
+    "task": "DAILY_BRIEFING_DAILY_PRE",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:57:41.584Z",
+    "task": "DAILY_BRIEFING_DAILY_POST",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:57:41.593Z",
+    "task": "DAILY_BRIEFING_DAILY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT",
+      "QA_CITATION_DEFICIT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T19:59:35.538Z",
+    "task": "Briefing",
+    "failures": [
+      "JSON_SYNTAX_ERROR: Unexpected token 'u', ...\"\"US CPI\", undefined]\"... is not valid JSON"
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:00:13.277Z",
+    "task": "DAILY_BRIEFING_DAILY_PRE",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:00:13.287Z",
+    "task": "DAILY_BRIEFING_DAILY_POST",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:00:13.292Z",
+    "task": "DAILY_BRIEFING_DAILY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "SUCCESS",
+    "timestamp": "2026-03-29T20:11:30.270Z",
+    "task": "Briefing",
+    "pattern": "Perfect structural execution",
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:11:40.210Z",
+    "task": "DAILY_BRIEFING_DAILY_PRE",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:11:40.228Z",
+    "task": "DAILY_BRIEFING_DAILY_POST",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:11:40.232Z",
+    "task": "DAILY_BRIEFING_DAILY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "SUCCESS",
+    "timestamp": "2026-03-29T20:30:37.793Z",
+    "task": "Briefing",
+    "pattern": "Perfect structural execution",
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:30:44.991Z",
+    "task": "DAILY_BRIEFING_DAILY_PRE",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:30:45.001Z",
+    "task": "DAILY_BRIEFING_DAILY_POST",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:30:45.007Z",
+    "task": "DAILY_BRIEFING_DAILY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:34:20.434Z",
+    "task": "Briefing",
+    "failures": [
+      "Missing analytical <details> excerpt.",
+      "JSON inside <chart-data> must have 'sentiment', 'macro', and 'multi_asset' keys formatted as arrays."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:34:53.717Z",
+    "task": "Briefing",
+    "failures": [
+      "Missing analytical <details> excerpt."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:35:16.179Z",
+    "task": "Briefing",
+    "failures": [
+      "Missing analytical <details> excerpt."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:35:23.172Z",
+    "task": "DAILY_BRIEFING_DAILY_PRE",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:35:23.183Z",
+    "task": "DAILY_BRIEFING_DAILY_POST",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:35:23.187Z",
+    "task": "DAILY_BRIEFING_DAILY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "SUCCESS",
+    "timestamp": "2026-03-29T20:39:09.929Z",
+    "task": "Briefing",
+    "pattern": "Perfect structural execution",
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:39:17.317Z",
+    "task": "DAILY_BRIEFING_HOURLY_PRE",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:39:17.324Z",
+    "task": "DAILY_BRIEFING_HOURLY_POST",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:39:17.329Z",
+    "task": "DAILY_BRIEFING_HOURLY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:41:28.807Z",
+    "task": "Briefing",
+    "failures": [
+      "Missing analytical <details> excerpt."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:42:05.983Z",
+    "task": "Briefing",
+    "failures": [
+      "Missing analytical <details> excerpt."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:42:35.442Z",
+    "task": "Briefing",
+    "failures": [
+      "Missing analytical <details> excerpt."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:42:44.303Z",
+    "task": "DAILY_BRIEFING_DAILY_PRE",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:42:44.313Z",
+    "task": "DAILY_BRIEFING_DAILY_POST",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:42:44.318Z",
+    "task": "DAILY_BRIEFING_DAILY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "SUCCESS",
+    "timestamp": "2026-03-29T20:44:48.220Z",
+    "task": "Briefing",
+    "pattern": "Perfect structural execution",
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:45:00.312Z",
+    "task": "DAILY_BRIEFING_WEEKLY_PRE",
+    "failures": [
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Insufficient data density (Found 1 metrics, need at least 5 for terminal depth).",
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:45:00.321Z",
+    "task": "DAILY_BRIEFING_WEEKLY_POST",
+    "failures": [
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Insufficient data density (Found 1 metrics, need at least 5 for terminal depth).",
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:45:00.326Z",
+    "task": "DAILY_BRIEFING_WEEKLY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "SUCCESS",
+    "timestamp": "2026-03-29T20:47:09.247Z",
+    "task": "Briefing",
+    "pattern": "Perfect structural execution",
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:47:17.589Z",
+    "task": "DAILY_BRIEFING_MONTHLY_PRE",
+    "failures": [
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Insufficient data density (Found 1 metrics, need at least 5 for terminal depth).",
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:47:17.599Z",
+    "task": "DAILY_BRIEFING_MONTHLY_POST",
+    "failures": [
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Insufficient data density (Found 1 metrics, need at least 5 for terminal depth).",
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T20:47:17.603Z",
+    "task": "DAILY_BRIEFING_MONTHLY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "SUCCESS",
+    "timestamp": "2026-03-29T20:53:06.452Z",
+    "task": "Briefing",
+    "pattern": "Perfect structural execution",
+    "preview": null
+  },
+  {
+    "type": "SUCCESS",
+    "timestamp": "2026-03-29T20:53:16.109Z",
+    "task": "DAILY_BRIEFING_HOURLY_PRE",
+    "pattern": "All 6 institutional quality rules passed.",
+    "preview": null
+  },
+  {
+    "type": "SUCCESS",
+    "timestamp": "2026-03-29T20:56:31.738Z",
+    "task": "Briefing",
+    "pattern": "Perfect structural execution",
     "preview": null
   }
 ]

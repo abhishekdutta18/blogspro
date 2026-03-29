@@ -4,7 +4,8 @@ const fs = require("fs");
 const { 
     fetchEconomicCalendar, fetchMultiAssetData, fetchSentimentData, 
     fetchUniversalNews, fetchUpstoxData, fetchMacroPulse,
-    fetchMFData, fetchPEVCData, fetchInsuranceData, fetchGIFTCityData
+    fetchMFData, fetchPEVCData, fetchInsuranceData, fetchGIFTCityData,
+    fetchCentralBankPulse
 } = require("./lib/data-fetchers.js");
 const { askAI } = require("./lib/ai-service.js");
 const { getBaseTemplate } = require("./lib/templates.js");
@@ -57,14 +58,15 @@ async function generateBriefing() {
 
     console.log(`🚀 Starting Global Intelligence Engine (${frequency})...`);
     
-    const [calendar, markets, sentiment, universalRaw, upstox, macro, mf, pevc, ins, gift] = await Promise.all([
+    const [calendar, markets, sentiment, universalRaw, upstox, macro, mf, pevc, ins, gift, centralBanks] = await Promise.all([
         fetchEconomicCalendar(), fetchMultiAssetData(), fetchSentimentData(),
         fetchUniversalNews(), fetchUpstoxData(), fetchMacroPulse(),
-        fetchMFData(), fetchPEVCData(), fetchInsuranceData(), fetchGIFTCityData()
+        fetchMFData(), fetchPEVCData(), fetchInsuranceData(), fetchGIFTCityData(),
+        fetchCentralBankPulse()
     ]);
 
-    // PRE-PROCESSING: Aggressive Trimming for Groq/TPM Limits
-    const universal = universalRaw.split('|').slice(0, 3).join(' | '); // Limit to top 3 stories only
+    // PRE-PROCESSING: Aggressive Trimming for Groq/TPM Limits (Increased for Gemini 3.1 Citation Fidelity)
+    const universal = universalRaw.split('|').slice(0, 10).join(' | '); 
 
     const mkt = require("./lib/data-fetchers.js").getMarketContext();
 
@@ -74,35 +76,41 @@ async function generateBriefing() {
     TIME_IST: ${mkt.timestamp} | DAY: ${mkt.day} | STATUS: ${mkt.status}
     
     --- KEY DATA ---
+    CENTRAL_BANKS: ${centralBanks.summary}
     SENTIMENT: ${(sentiment.summary || '').substring(0, 200)}
-    MULTI_ASSET: ${(markets.summary || '').substring(0, 200)}
+    MULTI_ASSET: ${(markets.summary || '').substring(0, 300)}
     MACRO: ${(macro.summary || '').substring(0, 200)}
     CALENDAR: ${(calendar.text || '').substring(0, 200)}
     
     --- TOP NEWS ---
-    ${universal.substring(0, 500)}
+    ${universal.substring(0, 600)}
     `;
 
     const prompt = getBriefingPrompt(frequency, marketContext, mkt);
 
-    // Dynamic Symbol Detection
-    let pairId = "179"; // Nifty 50
-    if (frequency === 'hourly' && marketContext.includes('USDINR')) pairId = "160";
+    // Dynamic Symbol Detection (Global Priority)
+    let pairId = "1"; // S&P 500 (Baseline)
+    if (frequency === 'hourly' && marketContext.includes('NASDAQ')) pairId = "2";
     if (marketContext.includes('BTC')) pairId = "1057391";
-    if (marketContext.includes('Bank Nifty')) pairId = "44301";
+    if (marketContext.includes('NIFTY')) pairId = "179";
 
     const isDaily = frequency === 'daily';
     const isHourly = frequency === 'hourly';
 
-    const cleanAIResponse = (text) => {
-        return text
+    const cleanAIResponse = (text, keepTags = false) => {
+        let cleaned = text
             .replace(/```[a-z]*\n/gi, "") // Remove starting code blocks
             .replace(/```/g, "")          // Remove ending code blocks
             .replace(/^(Here is|In this|This is).*?:/gim, "") // Remove AI conversational fluff
             .replace(/^Strategic Pulse.*?2026/gim, "") // Remove redundant title headers
             .replace(/<rule-check>.*?<\/rule-check>/gs, "") // Strip leaked rule-check tags
-            .replace(/<chart-data>.*?<\/chart-data>/gs, "") // Strip any raw chart-data leakage from stage1
             .trim();
+        
+        // Only strip chart-data if NOT in audit/keepTags mode
+        if (!keepTags) {
+            cleaned = cleaned.replace(/<chart-data>.*?<\/chart-data>/gs, "");
+        }
+        return cleaned;
     };
 
     try {
@@ -128,7 +136,7 @@ async function generateBriefing() {
             const citations = (html.match(/\[[^\]]+\]\([^)]+\)/g) || []).length;
             if (citations < 2) failures.push(`Verification failure (Found ${citations} hyperlinked citations, need at least 2 distinct sources).`);
 
-            const chartDataMatch = html.match(/<chart-data>(.*?)<\/chart-data>/s);
+            const chartDataMatch = html.match(/<chart-data>([\s\S]*?)<\/chart-data>/i);
             if (!chartDataMatch) {
                 failures.push("Missing <chart-data> JSON tag at the end.");
             } else {
@@ -149,7 +157,8 @@ async function generateBriefing() {
                 : generationPrompt;
 
             const lessonPrompt = rl.getReinforcementContext() + "\n" + trimmedPrompt;
-            let attemptContent = await askAI(lessonPrompt, { role: 'generate' });
+            // Institutional Force: Daily Pulse MUST use the primary 3.1 fleet for structural fidelity
+            let attemptContent = await askAI(lessonPrompt, { role: 'generate', model: 'gemini-3.1-pro-preview' });
             let attempts = 0;
             let lastFailures = [];
             let successOnFirstTry = true;
@@ -161,15 +170,19 @@ async function generateBriefing() {
                     sanPrompt += `\n\n[SYSTEM REJECTION]: Your previous output failed structural requirements. FIX THESE EXACT ISSUES in the rewrite:\n${lastFailures.map(f => "- " + f).join("\n")}`;
                 }
                 
-                let sanitized = await askAI(sanPrompt, { role: 'audit' });
-                sanitized = sanitizeJSON(cleanAIResponse(sanitized));
+                let sanitized = await askAI(sanPrompt, { role: 'audit', model: 'gemini-3.1-pro-preview' });
+                // CRITICAL: Protect tags during audit validation. 
+                // We use cleanAIResponse(sanitized, true) to keep tags, 
+                // but we skip the full sanitizeJSON step to prevent stripping during verification.
+                const auditBody = cleanAIResponse(sanitized, true); 
                 
-                const failures = validateBriefing(sanitized);
+                const failures = validateBriefing(auditBody);
                 if (failures.length === 0) {
+                    console.log(`✅ Institutional Briefing (Stage 2) Sanitized & Approved.`);
                     if (successOnFirstTry) {
                         rl.logSuccess("Briefing", "Perfect structural execution");
                     }
-                    return sanitized;
+                    return sanitizeJSON(auditBody);
                 }
                 
                 console.warn(`⚠️ Briefing Auditor Rejected (Attempt ${attempts+1}/3). Failures: ${failures.join(', ')}`);
@@ -178,7 +191,7 @@ async function generateBriefing() {
                 rl.logFailure("Briefing", failures); // Log every failure for reinforcement
                 attempts++;
             }
-            console.error(`❌ Auditor loop exhausted for Briefing. Proceeding in Lenient Mode.`);
+            console.error(`❌ Auditor loop exhausted for Briefing. Proceeding with best-effort content.`);
             return attemptContent;
         };
 
@@ -186,17 +199,29 @@ async function generateBriefing() {
             console.log("📑 Generating Stage 1: Strategic Recap...");
             const stage1Prompt = `${prompt}\n\nSTRICT INSTRUCTION: Concise RECAP of the last 24 hours. Target 500 words max. Raw data blocks only.`;
             let stage1Raw = cleanAIResponse(await askAI(stage1Prompt, { role: 'generate' }));
-            // Strip any chart-data or rule-check artifacts from the recap before merging
             stage1Raw = stage1Raw.replace(/<chart-data>.*?<\/chart-data>/gs, '').replace(/<rule-check>.*?<\/rule-check>/gs, '').trim();
             
+            console.log("📑 Generating Specialized Intelligence via MiroFish Swarm...");
+            const { generateMiroForecast } = require("./lib/mirofish-qa-service.js");
+            const generalForecast = await generateMiroForecast(marketContext, "general");
+            const giftCityForecast = await generateMiroForecast(giftCityData, "gift_city");
+
             console.log("📑 Generating Stage 2: Predictive Alpha...");
-            const stage2Prompt = `${prompt}\n\nSTRICT INSTRUCTION: Focus on PREDICTION and RISK for the next 48 hours. Connect the data points. Target 1,500 words. Include the final poll and interactive metrics.`;
+            const stage2Prompt = `${prompt}\n\nSTRICT INSTRUCTION: Focus on PREDICTION and RISK for the next 48 hours. Interperse [[CHART_SENTIMENT]], [[CHART_MACRO]], and [[CHART_MULTI_ASSET]] markers within the analysis where they support the narrative.`;
             let stage2Audited = await executeAuditedBriefing(stage2Prompt, true);
             
-            content = `${stage1Raw}\n<hr style="border:1px solid var(--gold); opacity:0.2; margin:4rem 0;">\n${stage2Audited}`;
+            const miroFishPillars = `
+<h2 id="miro-general">MIROFISH INTELLIGENCE FORECAST</h2>
+<div class="card">${generalForecast || "Simulation pending data validation..."}</div>
+
+<h2 id="miro-gift">GIFT CITY INTELLIGENCE PULSE</h2>
+<div class="card">${giftCityForecast || "Offshore arbitrage simulation pending session sync..."}</div>
+            `;
+
+            content = `${stage1Raw}\n<hr style="border:1px solid var(--gold); opacity:0.1; margin:3rem 0;">\n${miroFishPillars}\n${stage2Audited}`;
         } else {
             console.log(`📑 Generating Pulse Analysis (${frequency})...`);
-            const verbosePrompt = `${prompt}\n\nSTRICT INSTRUCTION: Provide absolute granular detail. Target ${isHourly ? '700' : '1500'} words of high-density analysis.`;
+            const verbosePrompt = `${prompt}\n\nSTRICT INSTRUCTION: Provide absolute granular detail with [[CHART_MACRO]] markers.`;
             content = await executeAuditedBriefing(verbosePrompt, false);
         }
 
@@ -208,51 +233,54 @@ async function generateBriefing() {
         seoDescription = seoData.description;
         seoKeywords = seoData.keywords;
 
-        // Extract Briefing Chart Data proposed by AI (use last chart-data block from Stage 2)
-        const chartDataMatch = content.match(/<chart-data>(.*?)<\/chart-data>/s);
-        let proposedData = { sentiment: [], macro: [], multi_asset: [] };
-        
-        // Strip ALL chart-data blocks from content before injecting containers
-        content = content.replace(/<chart-data>.*?<\/chart-data>/gs, '');
-        content = content.replace(/<rule-check>.*?<\/rule-check>/gs, ''); // strip any rule-check leakage
-        
-        const briefingChartContainers = `
-<div id="chart_sentiment" class="terminal-chart" style="width:100%;height:180px;margin:1.5rem 0;background:rgba(20,20,20,0.3);border:1px solid rgba(191,161,0,0.1);border-left:3px solid #BFA100;"></div>
-<div id="chart_macro" class="terminal-chart" style="width:100%;height:180px;margin:1.5rem 0;background:rgba(20,20,20,0.3);border:1px solid rgba(191,161,0,0.1);border-left:3px solid #BFA100;"></div>
-<div id="chart_multi_asset" class="terminal-chart" style="width:100%;height:180px;margin:1.5rem 0;background:rgba(20,20,20,0.3);border:1px solid rgba(191,161,0,0.1);border-left:3px solid #BFA100;"></div>
-        `;
+        // Extract Briefing Chart Data proposed by AI
+        const chartDataMatch = content.match(/<chart-data>([\s\S]*?)<\/chart-data>/i);
+        let proposedData = {
+            sentiment: [["09:00", 45], ["11:00", 52], ["13:00", 48], ["15:00", 55]],
+            macro: [["09:00", 12], ["11:00", 11], ["13:00", 13], ["15:00", 12]],
+            multi_asset: [["09:00", 5], ["11:00", 8], ["13:00", 6], ["15:00", 9]]
+        };
 
         if (chartDataMatch) {
             try { 
                 const parsed = JSON.parse(chartDataMatch[1].trim());
                 if (parsed.sentiment && parsed.macro && parsed.multi_asset) {
                     proposedData = parsed;
-                } else {
-                    throw new Error("Invalid structure");
                 }
-            } catch (e) { 
-                console.warn("⚠️ AI Briefing Data Corrupt — Using institutional baseline.");
-                proposedData = {
-                    sentiment: [["09:00", 45], ["11:00", 52], ["13:00", 48], ["15:00", 55]],
-                    macro: [["09:00", 12], ["11:00", 11], ["13:00", 13], ["15:00", 12]],
-                    multi_asset: [["09:00", 5], ["11:00", 8], ["13:00", 6], ["15:00", 9]]
-                };
-            }
-            content = content.replace(/<chart-data>.*?<\/chart-data>/s, briefingChartContainers);
-        } else {
-            // Force baseline charts for briefings to ensure high-fidelity UI
-            proposedData = {
-                sentiment: [["09:00", 45], ["11:00", 52], ["13:00", 48], ["15:00", 55]],
-                macro: [["09:00", 12], ["11:00", 11], ["13:00", 13], ["15:00", 12]],
-                multi_asset: [["09:00", 5], ["11:00", 8], ["13:00", 6], ["15:00", 9]]
-            };
-            content += briefingChartContainers;
+            } catch (e) { console.warn("⚠️ AI Briefing Data Corrupt — Using institutional baseline."); }
+        }
+        
+        const sentimentChart = `<div id="chart_sentiment" class="terminal-chart" style="width:100%;height:180px;margin:1.5rem 0;background:#050505;border:1px solid rgba(191,161,0,0.1);border-left:3px solid #BFA100;"></div>`;
+        const macroChart = `<div id="chart_macro" class="terminal-chart" style="width:100%;height:180px;margin:1.5rem 0;background:#050505;border:1px solid rgba(191,161,0,0.1);border-left:3px solid #BFA100;"></div>`;
+        const multiChart = `<div id="chart_multi_asset" class="terminal-chart" style="width:100%;height:180px;margin:1.5rem 0;background:#050505;border:1px solid rgba(191,161,0,0.1);border-left:3px solid #BFA100;"></div>`;
+
+        // Deterministic Marker Replacement
+        let markerFound = false;
+        content = content.replace(/\[\[CHART_SENTIMENT\]\]/gi, () => { markerFound = true; return sentimentChart; });
+        content = content.replace(/\[\[CHART_MACRO\]\]/gi, () => { markerFound = true; return macroChart; });
+        content = content.replace(/\[\[CHART_MULTI_ASSET\]\]/gi, () => { markerFound = true; return multiChart; });
+
+        // Fallback for non-marker content
+        if (!markerFound) {
+            content += `<div id="anchor_scribe" style="height:1px;"></div>` + sentimentChart + macroChart + multiChart;
         }
 
         const titleMatch = content.match(/<h2[^>]*>(.*?)<\/h2>/i);
         const excerptMatch = content.match(/<details id="meta-excerpt"[^>]*>(.*?)<\/details>/i);
         
-        const title = titleMatch ? titleMatch[1].trim() : `Strategic Pulse — ${dateLabel}`;
+        const freqLabel = frequency.charAt(0).toUpperCase() + frequency.slice(1);
+        const rawTitle = titleMatch ? titleMatch[1].trim() : `${freqLabel} Strategic Pulse — ${dateLabel}`;
+        
+        // Ensure the title prefix is correct (e.g. "Hourly Pulse: [Title]")
+        const title = rawTitle.toLowerCase().includes(frequency.toLowerCase()) 
+            ? rawTitle 
+            : `${freqLabel} Pulse: ${rawTitle}`;
+
+        // Strip the first H2 from content to prevent duplication with the H1 in the template
+        if (titleMatch) {
+            content = content.replace(titleMatch[0], "");
+        }
+
         const excerpt = excerptMatch ? excerptMatch[1].trim() : "Institutional-grade synthesis of global macro and domestic sectoral rotation.";
         
         const sentimentMatch = content.match(/SENTIMENT_SCORE:\s*(\d+)/i);
@@ -290,24 +318,24 @@ async function generateBriefing() {
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Period');
                 data.addColumn('number', label);
-                data.addRows(rawData);
+                data.addRows(rawData.map(r => [r[0], Number(r[1])]));
 
                 const options = {
-                    backgroundColor: 'transparent',
+                    backgroundColor: '#050505',
                     colors: [color],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
-                    legend: { position: 'bottom', alignment: 'center', textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} },
+                    legend: { position: 'bottom', alignment: 'center', textStyle: {color: '#9CA3AF', fontSize: 10} },
                     hAxis: { 
                         title: 'Intraday Session Period',
-                        textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 
+                        textStyle: {color: '#9CA3AF', fontSize: 10}, 
                         titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
-                        gridlines: {color: 'rgba(191,161,0,0.1)'} 
+                        gridlines: {color: '#1A1A1A'} 
                     },
                     vAxis: { 
                         title: label + ' % Delta',
-                        textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 
+                        textStyle: {color: '#9CA3AF', fontSize: 10}, 
                         titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
-                        gridlines: {color: 'rgba(191,161,0,0.1)'} 
+                        gridlines: {color: '#1A1A1A'} 
                     },
                     lineWidth: 3, pointSize: 6
                 };
@@ -345,14 +373,15 @@ async function generateBriefing() {
         
         // Generate PDF Version
         try {
-            await generatePDF(briefingFilePath);
+            await generatePDF(briefingFilePath, frequency);
         } catch (pdfErr) {
             console.error("⚠️ PDF creation failed (skipping):", pdfErr.message);
         }
         
         // Generate & Dispatch Email Version (Safe Template - No JS)
         const emailHtml = require("./lib/templates.js").getEmailTemplate({
-            title, excerpt, content, dateLabel, priceInfo
+            title, excerpt, content, dateLabel, priceInfo,
+            fileName: fileName, freq: "briefing"
         });
 
         const indexPath = path.join(targetDir, "index.json");

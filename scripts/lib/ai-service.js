@@ -1,7 +1,31 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fetch = require("node-fetch");
+const fs = require("fs");
+const path = require("path");
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Zero-dependency Environment Loader
+ * Consolidates keys from project root into process.env
+ */
+function loadEnv() {
+    const envPath = path.join(__dirname, "../../.env");
+    if (fs.existsSync(envPath)) {
+        const env = fs.readFileSync(envPath, "utf8");
+        env.split("\n").forEach(line => {
+            const [k, v] = line.split("=");
+            if (k && v && !process.env[k.trim()]) {
+                process.env[k.trim()] = v.trim();
+            }
+        });
+        // Institutional Bridging
+        if (process.env.GEMINI_KEY && !process.env.GEMINI_API_KEY) {
+            process.env.GEMINI_API_KEY = process.env.GEMINI_KEY;
+        }
+    }
+}
+loadEnv();
 
 async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile") {
     if (!process.env.GROQ_API_KEY) throw new Error("GROQ_API_KEY missing.");
@@ -82,13 +106,14 @@ async function generateKimiContent(prompt) {
 
 async function generateGeminiContent(prompt) {
     if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing.");
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    // Mandatory v1beta for Gemini 3.1 and March 2026 fleet
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, { apiVersion: 'v1beta' });
     
     // Try newest stable models for March 2026 — 1.5 and 2.0 series are now retired
     const models = [
-        "models/gemini-3.1-pro-preview", 
-        "models/gemini-2.5-flash", 
-        "models/gemini-3.1-flash-lite-preview"
+        "gemini-3.1-pro-preview", 
+        "gemini-2.5-flash", 
+        "gemini-3.1-flash-lite-preview"
     ];
     
     for (const modelName of models) {
@@ -153,7 +178,7 @@ async function generateOpenRouterContent(prompt) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "meta-llama/llama-3-8b-instruct:free", // Resilient fallback
+                model: "meta-llama/llama-3.1-8b-instruct", // Resilient fallback
                 messages: [{ role: "user", content: prompt }]
             })
         });
@@ -222,6 +247,44 @@ async function generateCloudflareContent(prompt) {
     } catch (e) { throw e; }
 }
 
+async function generateTogetherContent(prompt) {
+    if (!process.env.TOGETHER_KEY) throw new Error("TOGETHER_KEY missing.");
+    return generateOpenAICompatible(prompt, "together", "https://api.together.xyz/v1/chat/completions", process.env.TOGETHER_KEY, "meta-llama/Llama-3-8b-chat-hf");
+}
+
+async function generateDeepInfraContent(prompt) {
+    if (!process.env.DEEPINFRA_KEY) throw new Error("DEEPINFRA_KEY missing.");
+    return generateOpenAICompatible(prompt, "deepinfra", "https://api.deepinfra.com/v1/openai/chat/completions", process.env.DEEPINFRA_KEY, "meta-llama/Meta-Llama-3-8B-Instruct");
+}
+
+async function generateOpenAICompatible(prompt, name, url, key, model) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+                "Authorization": `Bearer ${key}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model,
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.2
+            })
+        });
+        const data = await res.json();
+        if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
+        console.error(`❌ ${name} Fail Details:`, JSON.stringify(data));
+        throw new Error(`${name} failed.`);
+    } catch (err) {
+        throw err;
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
 async function generateGithubContent(prompt) {
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
     if (!token) throw new Error("GITHUB_TOKEN missing.");
@@ -250,23 +313,55 @@ const failedProviders = new Set();
 async function askAI(prompt, options = { role: 'generate' }) {
     console.log(`📝 Prompt prepared. Length: ${prompt.length} chars. Role: ${options.role}`);
     
-    const generatePool = [];
-    console.log("🛠️ AI Service environment check:");
-    console.log(`   - Gemini Key: ${process.env.GEMINI_API_KEY ? 'Present' : 'MISSING'}`);
-    console.log(`   - Groq Key: ${process.env.GROQ_API_KEY ? 'Present' : 'MISSING'}`);
-    console.log(`   - OpenRouter Key: ${process.env.OPENROUTER_KEY ? 'Present' : 'MISSING'}`);
-    console.log(`   - Mistral Key: ${process.env.MISTRAL_API_KEY ? 'Present' : 'MISSING'}`);
-    console.log(`   - Cerebras Key: ${process.env.CEREBRAS_API_KEY ? 'Present' : 'MISSING'}`);
-    console.log(`   - Cloudflare: ${process.env.CF_ACCOUNT_ID && process.env.CF_API_TOKEN ? 'Present' : 'MISSING'}`);
-    console.log(`   - GitHub Token: ${process.env.GITHUB_TOKEN || process.env.GH_TOKEN ? 'Present' : 'MISSING'}`);
+    // 0. MirorFish Swarm QA - Specialized Serverless Switch
+    if (options.role === 'swarm_qa') {
+        try {
+            const { runSwarmAudit } = require("./mirofish-qa-service.js");
+            console.log("🕵️  Handoff to MiroFish Swarm QA CLI...");
+            return await runSwarmAudit(prompt, options.freq || "daily");
+        } catch (e) {
+            console.warn(`⚠️ Swarm QA Bridge failed: ${e.message}. Falling back to standard Auditor...`);
+            options.role = 'audit'; 
+        }
+    }
 
-    if (process.env.GROQ_API_KEY) generatePool.push({ name: 'Groq', fn: generateGroqContent });
-    if (process.env.KIMI_API_KEY) generatePool.push({ name: 'Kimi', fn: generateKimiContent });
-    if (process.env.OPENROUTER_KEY) generatePool.push({ name: 'OpenRouter', fn: generateOpenRouterContent });
-    if (process.env.MISTRAL_API_KEY) generatePool.push({ name: 'Mistral', fn: generateMistralContent });
-    if (process.env.CEREBRAS_API_KEY) generatePool.push({ name: 'Cerebras', fn: generateCerebrasContent });
-    if (process.env.CF_ACCOUNT_ID && process.env.CF_API_TOKEN) generatePool.push({ name: 'Cloudflare', fn: generateCloudflareContent });
-    if (process.env.GITHUB_TOKEN || process.env.GH_TOKEN) generatePool.push({ name: 'GitHub', fn: generateGithubContent });
+    const generatePool = [];
+    const activeKeys = {
+        Gemini: process.env.GEMINI_KEY || process.env.GEMINI_API_KEY || process.env.LLM_API_KEY,
+        Groq: process.env.GROQ_KEY || process.env.GROQ_API_KEY,
+        OpenRouter: process.env.OPENROUTER_KEY || process.env.OPENROUTER_API_KEY,
+        Mistral: process.env.MISTRAL_KEY || process.env.MISTRAL_API_KEY,
+        Together: process.env.TOGETHER_KEY,
+        DeepInfra: process.env.DEEPINFRA_KEY,
+        Cloudflare: process.env.CF_API_TOKEN && process.env.CF_ACCOUNT_ID,
+        GitHub: process.env.GITHUB_TOKEN || process.env.GH_TOKEN
+    };
+
+    console.log("🛠️ AI Service environment check:");
+    Object.keys(activeKeys).forEach(k => {
+        if (activeKeys[k]) console.log(`   - ${k}: ✅ Present`);
+    });
+
+    if (activeKeys.Gemini) {
+        process.env.GEMINI_API_KEY = activeKeys.Gemini;
+        generatePool.push({ name: 'Gemini', fn: generateGeminiContent });
+    }
+    if (activeKeys.Groq) {
+        process.env.GROQ_API_KEY = activeKeys.Groq;
+        generatePool.push({ name: 'Groq', fn: generateGroqContent });
+    }
+    if (activeKeys.OpenRouter) {
+        process.env.OPENROUTER_KEY = activeKeys.OpenRouter;
+        generatePool.push({ name: 'OpenRouter', fn: generateOpenRouterContent });
+    }
+    if (activeKeys.Mistral) {
+        process.env.MISTRAL_API_KEY = activeKeys.Mistral;
+        generatePool.push({ name: 'Mistral', fn: generateMistralContent });
+    }
+    if (activeKeys.Together) generatePool.push({ name: 'Together', fn: generateTogetherContent });
+    if (activeKeys.DeepInfra) generatePool.push({ name: 'DeepInfra', fn: generateDeepInfraContent });
+    if (activeKeys.Cloudflare) generatePool.push({ name: 'Cloudflare', fn: generateCloudflareContent });
+    if (activeKeys.GitHub) generatePool.push({ name: 'GitHub', fn: generateGithubContent });
     
     console.log(`🌊 Active pool size: ${generatePool.length} providers`);
     

@@ -118,11 +118,11 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
     <style>
         :root {
             --nexus-bg: #050505;
-            --nexus-sidebar: rgba(18, 18, 18, 0.98);
-            --nexus-glass: rgba(10, 10, 10, 0.9);
+            --nexus-sidebar: #0A0A0A;
+            --nexus-glass: rgba(5, 5, 5, 0.95);
             --nexus-accent: #BFA100; /* Bloomberg Gold */
             --nexus-amber: #FFB800;  /* Data Amber */
-            --nexus-border: rgba(191, 161, 0, 0.15);
+            --nexus-border: rgba(191, 161, 0, 0.2);
             --nexus-text-h1: #F8FAFC;
             --nexus-text-p: #D1D5DB;
             --nexus-success: #4ADE80;
@@ -169,7 +169,7 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
             padding-bottom: 1rem;
             border-bottom: 2px solid var(--nexus-accent);
         }
-        .logo span { color: var(--nexus-amber); margin-left: 0.4rem; }
+        .logo span { color: var(--nexus-amber); margin-left: 0.2rem; }
 
         .nav-group { margin-bottom: 1.5rem; }
         .nav-label {
@@ -267,18 +267,19 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
 
         /* Bloomberg Table & Card Logic */
         .card {
-            background: rgba(20, 20, 20, 0.5);
+            background: #0A0A0A;
             border: 1px solid var(--nexus-border);
             border-left: 4px solid var(--nexus-accent);
             padding: 1.5rem;
             margin: 2.5rem 0;
+            color: var(--nexus-text-p);
         }
 
         .card-title {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.8rem;
             font-weight: 700;
-            color: var(--nexus-amber);
+            color: var(--nexus-accent);
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 1.5rem;
@@ -292,7 +293,7 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
         }
 
         th { text-align: left; padding: 0.8rem; border-bottom: 2px solid var(--nexus-accent); color: var(--nexus-accent); font-weight: 800; }
-        td { padding: 0.8rem; border-bottom: 1px solid var(--nexus-border); color: var(--nexus-amber); }
+        td { padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--nexus-text-p); }
 
         .f-success { color: var(--nexus-success); font-weight: 600; }
         .f-warning { color: var(--nexus-warning); font-weight: 600; }
@@ -325,7 +326,7 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
 </head>
 <body>
     <aside class="sidebar">
-        <a href="${rel}index.html" class="logo">NEXUS<span>TERMINAL</span></a>
+        <a href="${rel}index.html" class="logo">BlogsPro<span>Intelligence</span></a>
         
         <div class="nav-group">
             <div class="nav-label">Institutional Verticals</div>
@@ -354,7 +355,7 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
 
     <main class="main-content">
         <header>
-            <div class="status-tag">Status: Institutional Manuscript • ${dateLabel}</div>
+            <div class="status-tag">Status: ${freq.toUpperCase()} Institutional Manuscript • ${dateLabel}</div>
             <h1>${title}</h1>
             <div class="excerpt">${excerpt}</div>
         </header>
@@ -364,6 +365,11 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
         </div>
 
         <footer style="margin-top: 10rem; padding-top: 3rem; border-top: 1px solid var(--nexus-border); text-align: center;">
+            <div style="margin-bottom: 2rem;">
+                <a href="${fileName.replace('.html', '.pdf')}" class="btn-nexus" style="text-decoration:none; display:inline-block; padding: 12px 24px; border: 1px solid #BFA100; color: #BFA100; font-family: 'Courier New', Courier, monospace; font-size: 12px; text-transform: uppercase;">
+                    ⬇ Download Manuscript (PDF)
+                </a>
+            </div>
             <p style="font-size: 0.75rem; color: rgba(248, 250, 252, 0.4); letter-spacing: 1px;">
                 © ${new Date().getFullYear()} BLOGSPRO TERMINAL • ALL RIGHTS RESERVED • INSTITUTIONAL USE ONLY
             </p>
@@ -374,7 +380,7 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
 </html>`;
 }
 
-function getEmailTemplate({ title, excerpt, content, dateLabel, priceInfo = { last: "N/A", high: "N/A", low: "N/A" } }) {
+function getEmailTemplate({ title, excerpt, content, dateLabel, fileName, freq, priceInfo = { last: "N/A", high: "N/A", low: "N/A" } }) {
     // 100% Email Safe Institutional Blueprint
     return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -397,7 +403,7 @@ function getEmailTemplate({ title, excerpt, content, dateLabel, priceInfo = { la
                     <tr>
                         <td style="padding: 20px 40px 10px 40px;">
                             <span style="font-family: 'Courier New', Courier, monospace; font-size: 10px; color: #BFA100; letter-spacing: 1px; text-transform: uppercase;">
-                                INSTITUTIONAL BRIEFING • ${dateLabel}
+                                ${freq.toUpperCase()} INSTITUTIONAL BRIEFING • ${dateLabel}
                             </span>
                         </td>
                     </tr>
@@ -421,6 +427,15 @@ function getEmailTemplate({ title, excerpt, content, dateLabel, priceInfo = { la
                             <div class="content-body">
                                 ${parseMD(content)}
                             </div>
+                        </td>
+                    </tr>
+                    <!-- PDF Download -->
+                    <tr>
+                        <td align="center" style="padding: 10px 40px 30px 40px;">
+                            <a href="https://blogspro.in/${freq === 'briefing' ? 'briefings' : 'articles'}/${freq === 'briefing' ? 'daily' : 'weekly'}/${fileName.replace('.html', '.pdf')}" 
+                               style="background-color: #121212; border: 1px solid #BFA100; color: #BFA100; padding: 15px 25px; text-decoration: none; font-family: 'Courier New', Courier, monospace; font-size: 14px; font-weight: bold; display: inline-block;">
+                                ⬇ INSTITUTIONAL RESEARCH MANUSCRIPT (PDF)
+                            </a>
                         </td>
                     </tr>
                     <!-- Market Pulse -->
