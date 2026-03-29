@@ -52,6 +52,8 @@ function parseMD(md) {
             } else {
                 tableHtml += '<tr>' + cols.map(c => {
                     let content = c;
+                    // Convert markdown links inside table cells
+                    content = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
                     if (c.includes('+') || c.includes('▲')) content = `<span style="color:#22c55e;">▲ ${c.replace(/[\+\^▲]/g,'')}</span>`;
                     else if (c.includes('-') || c.includes('▼')) content = `<span style="color:#ef4444;">▼ ${c.replace(/[\-\▼]/g,'')}</span>`;
                     return `<td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${content}</td>`;
@@ -73,6 +75,8 @@ function parseMD(md) {
     let finalHtml = midStage
         .replace(/### (.*$)/gim, '<h3>$1</h3>')
         .replace(/## (.*$)/gim, '<h2>$1</h2>')
+        // Markdown hyperlinks [text](url) → <a> — MUST run before bold/italic
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
         .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/gim, '<em>$1</em>')
         .replace(/^\- (.*$)/gim, '<li>$1</li>');
@@ -294,6 +298,24 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
         .f-warning { color: var(--nexus-warning); font-weight: 600; }
 
         .table-container { overflow-x: auto; margin: 2rem 0; }
+
+        /* Institutional Hyperlinks */
+        .manuscript-body a {
+            color: var(--nexus-amber);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(191, 161, 0, 0.3);
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .manuscript-body a:hover {
+            color: #fff;
+            border-bottom-color: var(--nexus-amber);
+        }
+        td a {
+            color: var(--nexus-amber);
+            text-decoration: none;
+            border-bottom: 1px dotted rgba(191,161,0,0.5);
+        }
+        td a:hover { color: #fff; }
 
         @media (max-width: 1024px) {
             .sidebar { display: none; }
