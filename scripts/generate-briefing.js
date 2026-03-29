@@ -12,6 +12,7 @@ const { getBriefingPrompt, getSanitizerPrompt } = require("./lib/prompts.js");
 const rl = require("./lib/reinforcement.js");
 const { sanitizeJSON } = require("./lib/sanitizer.js");
 const { generatePDF } = require("./lib/pdf-service.js");
+const { applyContentCorrections } = require("./lib/content-corrector.js");
 const fetch = require("node-fetch");
 
 async function fetchWithTimeout(url, options = {}, timeout = 15000) {
@@ -317,6 +318,17 @@ async function generateBriefing() {
     });
 </script>
 `;
+
+        // ── QA GATE: Content Correction Pass (before HTML/PDF) ───────────────
+        console.log("🔬 Running Content QA Gate...");
+        const { content: correctedContent, corrections } = applyContentCorrections(content);
+        content = correctedContent;
+        if (corrections.length > 0) {
+            console.log(`✅ QA Gate applied ${corrections.length} correction(s):`);
+            corrections.forEach(c => console.log(`   → ${c}`));
+        } else {
+            console.log("✅ QA Gate: Content passed all checks — no corrections needed.");
+        }
 
         // Generate Web Version
         const fullHtml = getBaseTemplate({ 

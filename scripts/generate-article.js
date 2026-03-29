@@ -13,6 +13,7 @@ const { validateContent } = require("./lib/validator.js");
 const rl = require("./lib/reinforcement.js");
 const { sanitizeJSON } = require("./lib/sanitizer.js");
 const { generatePDF } = require("./lib/pdf-service.js");
+const { applyContentCorrections } = require("./lib/content-corrector.js");
 const fetch = require("node-fetch");
 
 async function fetchWithTimeout(url, options = {}, timeout = 15000) {
@@ -242,6 +243,17 @@ async function generateArticle() {
 
         const datestr = new Date().toISOString().split('T')[0];
         const fileName = `strategy-${datestr}-${frequency}-${Date.now()}.html`;
+        // ── QA GATE: Content Correction Pass (before HTML/PDF) ───────────────
+        console.log("🔬 Running Content QA Gate...");
+        const { content: correctedFullContent, corrections: articleCorrections } = applyContentCorrections(fullContent);
+        fullContent = correctedFullContent;
+        if (articleCorrections.length > 0) {
+            console.log(`✅ QA Gate applied ${articleCorrections.length} correction(s):`);
+            articleCorrections.forEach(c => console.log(`   → ${c}`));
+        } else {
+            console.log("✅ QA Gate: Article passed all checks — no corrections needed.");
+        }
+
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content: fullContent, dateLabel, 
             finalKit: {
