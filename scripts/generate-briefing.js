@@ -56,11 +56,14 @@ async function generateBriefing() {
 
     console.log(`🚀 Starting Global Intelligence Engine (${frequency})...`);
     
-    const [calendar, markets, sentiment, universal, upstox, macro, mf, pevc, ins, gift] = await Promise.all([
+    const [calendar, markets, sentiment, universalRaw, upstox, macro, mf, pevc, ins, gift] = await Promise.all([
         fetchEconomicCalendar(), fetchMultiAssetData(), fetchSentimentData(),
         fetchUniversalNews(), fetchUpstoxData(), fetchMacroPulse(),
         fetchMFData(), fetchPEVCData(), fetchInsuranceData(), fetchGIFTCityData()
     ]);
+
+    // PRE-PROCESSING: Aggressive Trimming for Groq/TPM Limits
+    const universal = universalRaw.split('|').slice(0, 5).join(' | '); // Limit to 5 top stories
 
     const mkt = require("./lib/data-fetchers.js").getMarketContext();
 
@@ -143,9 +146,9 @@ async function generateBriefing() {
         };
 
         const executeAuditedBriefing = async (generationPrompt, isDaily) => {
-            // Trim prompt to avoid Groq size limits (Target ~15k chars max)
-            const trimmedPrompt = generationPrompt.length > 15000 
-                ? generationPrompt.substring(0, 15000) + "\n[Context Truncated for Efficiency]"
+            // Aggressive Trim for Groq (Target < 8k chars for safety)
+            const trimmedPrompt = generationPrompt.length > 8000 
+                ? generationPrompt.substring(0, 8000) + "\n[Context Truncated for Groq TPM Safety]"
                 : generationPrompt;
 
             const lessonPrompt = rl.getReinforcementContext() + "\n" + trimmedPrompt;
