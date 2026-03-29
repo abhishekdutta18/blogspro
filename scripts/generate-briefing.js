@@ -140,9 +140,21 @@ async function generateBriefing() {
         let proposedData = { sentiment: [], macro: [], multi_asset: [] };
         if (chartDataMatch) {
             try { 
-                proposedData = JSON.parse(chartDataMatch[1].trim());
-                content = content.replace(/<chart-data>.*?<\/chart-data>/s, ""); // Purge from UI
-            } catch (e) { console.error("Chart data parse fail", e); }
+                const parsed = JSON.parse(chartDataMatch[1].trim());
+                if (parsed.sentiment && parsed.macro && parsed.multi_asset) {
+                    proposedData = parsed;
+                } else {
+                    throw new Error("Invalid structure");
+                }
+            } catch (e) { 
+                console.warn("⚠️ AI Briefing Data Corrupt — Using institutional baseline.");
+                proposedData = {
+                    sentiment: [["09:00", 45], ["11:00", 52], ["13:00", 48], ["15:00", 55]],
+                    macro: [["09:00", 12], ["11:00", 11], ["13:00", 13], ["15:00", 12]],
+                    multi_asset: [["09:00", 5], ["11:00", 8], ["13:00", 6], ["15:00", 9]]
+                };
+            }
+            content = content.replace(/<chart-data>.*?<\/chart-data>/s, ""); // Purge from UI
         }
 
         const titleMatch = content.match(/<h2[^>]*>(.*?)<\/h2>/i);
@@ -171,53 +183,49 @@ async function generateBriefing() {
         
         // Final Chart Injection Logic (Briefing Parity with Article Engine)
         const briefingCharts = [
-            { id: "sentiment", label: "Sentiment Drift" },
-            { id: "macro", label: "Macro Flux" },
-            { id: "multi_asset", label: "Multi-Asset Alpha" }
+            { id: "sentiment", label: "Sentiment Drift", data: proposedData.sentiment },
+            { id: "macro", label: "Macro Flux", data: proposedData.macro },
+            { id: "multi_asset", label: "Multi-Asset Alpha", data: proposedData.multi_asset }
         ];
 
-        let injectionScript = "";
-        briefingCharts.forEach(c => {
-            const dataPts = proposedData[c.id] || [['P1', 50], ['P2', 55], ['P3', 45], ['P4', 60]];
-            injectionScript += `
-            <script>
-                google.charts.setOnLoadCallback(() => {
-                    const el = document.getElementById('chart_${c.id}');
-                    if (!el) return;
-                    const data = new google.visualization.DataTable();
-                    data.addColumn('string', 'Period');
-                    data.addColumn('number', '${c.label}');
-                    data.addRows(${JSON.stringify(dataPts)});
+        const globalBriefingScript = `
+<script>
+    google.charts.setOnLoadCallback(() => {
+        const render = (containerId, label, rawData, color) => {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            try {
+                const data = new google.visualization.DataTable();
+                data.addColumn('string', 'Period');
+                data.addColumn('number', label);
+                data.addRows(rawData);
 
-                    const options = {
-                        backgroundColor: 'transparent',
-                        colors: ['#BFA100'],
-                        chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
-                        legend: { 
-                            position: 'top', 
-                            alignment: 'center',
-                            textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
-                        },
-                        hAxis: { 
-                            title: 'Intraday Session Period',
-                            textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 
-                            titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
-                            gridlines: {color: 'rgba(191,161,0,0.1)'} 
-                        },
-                        vAxis: { 
-                            title: c.label + ' % Delta',
-                            textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 
-                            titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
-                            gridlines: {color: 'rgba(191,161,0,0.1)'} 
-                        },
-                        lineWidth: 3, pointSize: 6
-                    };
-                    const chart = new google.visualization.AreaChart(el);
-                    chart.draw(data, options);
-                });
-            </script>
-            `;
-        });
+                const options = {
+                    backgroundColor: 'transparent',
+                    colors: [color],
+                    chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
+                    legend: { position: 'top', alignment: 'center', textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} },
+                    hAxis: { 
+                        title: 'Intraday Session Period',
+                        textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 
+                        titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                        gridlines: {color: 'rgba(191,161,0,0.1)'} 
+                    },
+                    vAxis: { 
+                        title: label + ' % Delta',
+                        textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 
+                        titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                        gridlines: {color: 'rgba(191,161,0,0.1)'} 
+                    },
+                    lineWidth: 3, pointSize: 6
+                };
+                new google.visualization.AreaChart(el).draw(data, options);
+            } catch (err) { console.error("Chart Render Fail:", containerId, err); }
+        };
+        ${briefingCharts.map(c => `render('chart_${c.id}', '${c.label}', ${JSON.stringify(c.data)}, '#BFA100');`).join('\n        ')}
+    });
+</script>
+`;
 
         // Generate Web Version
         const fullHtml = getBaseTemplate({ 
@@ -225,7 +233,7 @@ async function generateBriefing() {
             finalKit, type: "briefing", freq: frequency, fileName, pairId, sentimentScore, priceInfo,
             seoDescription: seoData.description,
             seoKeywords: seoData.keywords,
-            scripts: injectionScript
+            scripts: globalBriefingScript
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         

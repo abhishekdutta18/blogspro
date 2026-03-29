@@ -23,6 +23,7 @@ const STRUCTURAL_RULES = `
 const CHART_SYNC_RULE = `
 DATA-NARRATIVE SYNC:
 - You MUST propose data series for our terminal charts that explicitly reflect the trends, volatility, and quantitative claims you make in your analysis.
+- DATA SECURITY: Labels MUST be alpha-numeric only (No forward slashes, quotes, or HTML tags like <b> or <i>).
 - If you mention "a 15% surge" or "moderate consolidation," the values MUST reflect that.
 `;
 
@@ -82,6 +83,7 @@ ${CHART_SYNC_RULE}
   <chart-data>[["Label1", Value1], ["Label2", Value2], ["Label3", Value3], ["Label4", Value4]]</chart-data>
   (Values should be numbers representing the % Delta or Drift).
 3. NO MARKDOWN CODE BLOCKS. Output pure HTML body snippets only.
+4. CHART DATA: Labels MUST NOT contain HTML or special characters (e.g. use "Project Alpha" not "<b>Project < Alpha</b>").
     `.replace('chart_global_macro_drift', 'chart_macro') // Fix for specific chart IDs if needed
      .replace('chart_equities_alpha', 'chart_equities'); 
 }

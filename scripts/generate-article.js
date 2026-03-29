@@ -114,31 +114,41 @@ async function generateArticle() {
             const chartDataMatch = chapter.match(/<chart-data>(.*?)<\/chart-data>/s);
             let proposedData = "[['P1', 5], ['P2', 8], ['P3', 6], ['P4', 10]]"; // Fallback
             if (chartDataMatch) {
-                proposedData = chartDataMatch[1].trim();
+                const rawData = chartDataMatch[1].trim();
+                try {
+                    // Pre-verify that it's a valid Data Table array of arrays
+                    const parsed = JSON.parse(rawData);
+                    if (Array.isArray(parsed)) {
+                        proposedData = JSON.stringify(parsed);
+                    } else {
+                        throw new Error("Not an array");
+                    }
+                } catch (e) {
+                    console.warn(`⚠️ Malformed chart data for ${v.id}. Falling back.`);
+                    proposedData = "[['P1', 5], ['P2', 8], ['P3', 6], ['P4', 10]]";
+                }
                 chapter = chapter.replace(/<chart-data>.*?<\/chart-data>/s, ""); // Purge tag from UI
             }
 
             fullContent += `\n<section id="${v.id}" class="institutional-section">\n${chapter}\n</section>\n`;
             
-            allScripts += `
-<script>
-    google.charts.setOnLoadCallback(() => {
-        const el = document.getElementById('chart_${v.id}');
-        if (!el) return;
-        const data = new google.visualization.DataTable();
-        data.addColumn('string', 'Period');
-        data.addColumn('number', 'Institutional Drift %');
-        data.addRows(${proposedData});
+            // Build a registry of data for the single global script
+            allScripts += `chartRegistry['chart_${v.id}'] = { label: '${v.name}', data: ${proposedData} };\n`;
+            
+            lastSummary = `Previous chapter concluded a deep dive into ${v.name}, highlighting key regulatory shifts and market exposure for sovereign debt and capital flows.`;
+        }
 
-        const options = {
+        const globalChartScript = `
+<script>
+    const chartRegistry = {};
+    ${allScripts}
+    
+    google.charts.setOnLoadCallback(() => {
+        const optionsTemplate = {
             backgroundColor: 'transparent',
             colors: ['#BFA100'],
             chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
-            legend: { 
-                position: 'top', 
-                alignment: 'center',
-                textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
-            },
+            legend: { position: 'top', alignment: 'center', textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} },
             hAxis: { 
                 title: 'Observation Period (Bloomberg Terminal)',
                 textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 
@@ -153,14 +163,27 @@ async function generateArticle() {
             },
             lineWidth: 3, pointSize: 6
         };
-        const chart = new google.visualization.AreaChart(el);
-        chart.draw(data, options);
+
+        Object.keys(chartRegistry).forEach(containerId => {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            try {
+                const config = chartRegistry[containerId];
+                const data = new google.visualization.DataTable();
+                data.addColumn('string', 'Period');
+                data.addColumn('number', config.label);
+                data.addRows(config.data);
+
+                const opt = {...optionsTemplate};
+                opt.vAxis.title = config.label + ' %';
+                
+                const chart = new google.visualization.AreaChart(el);
+                chart.draw(data, opt);
+            } catch (err) { console.error("Chart Render Fail:", containerId, err); }
+        });
     });
 </script>
 `;
-            
-            lastSummary = `Previous chapter concluded a deep dive into ${v.name}, highlighting key regulatory shifts and market exposure for sovereign debt and capital flows.`;
-        }
 
         console.log("🔍 Running SEO Auditor...");
         const metaRes = await askAI(`Analyze this institutional manuscript and return JSON only: {"description": "1-sentence summary", "keywords": "5 finance terms"}\n\nCONTENT: ${fullContent.substring(0, 3000)}`);
@@ -186,7 +209,7 @@ async function generateArticle() {
             type: "article", freq: frequency, fileName, pairId, sentimentScore, priceInfo,
             seoDescription: meta.description,
             seoKeywords: meta.keywords,
-            scripts: allScripts
+            scripts: globalChartScript
         });
         fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
         
