@@ -88,46 +88,54 @@ async function generateOpenRouterContent(prompt) {
     throw new Error("OpenRouter failed.");
 }
 
-async function askAI(prompt, config = {}) {
-    console.log(`📝 Prompt prepared. Length: ${prompt.length} chars.`);
+let generatePoolIndex = 0;
+
+async function askAI(prompt, options = { role: 'generate' }) {
+    console.log(`📝 Prompt prepared. Length: ${prompt.length} chars. Role: ${options.role}`);
     
-    // Try Groq
-    if (process.env.GROQ_API_KEY) {
-        try { 
-            console.log("🚀 Attempting Groq (Llama-3.1-8B)...");
-            return await generateGroqContent(prompt); 
+    const generatePool = [];
+    if (process.env.GROQ_API_KEY) generatePool.push({ name: 'Groq', fn: generateGroqContent });
+    if (process.env.KIMI_API_KEY) generatePool.push({ name: 'Kimi', fn: generateKimiContent });
+    if (process.env.OPENROUTER_KEY) generatePool.push({ name: 'OpenRouter', fn: generateOpenRouterContent });
+    
+    // If role is audit, we explicitly want Gemini first for precision formatting
+    if (options.role === 'audit' && process.env.GEMINI_API_KEY) {
+        try {
+            console.log("🔍 Auditing/Sanitizing via Gemini (1.5-Flash)...");
+            return await generateGeminiContent(prompt);
+        } catch (e) {
+            console.warn(`⚠️ Gemini Auditor failed: ${e.message}. Falling back to pool.`);
         }
-        catch (e) { console.warn(`⚠️ Groq failed: ${e.message}`); }
     }
     
-    // Try Gemini
-    if (process.env.GEMINI_API_KEY) {
-        try { 
-            console.log("🚀 Attempting Gemini (1.5-Flash)...");
-            return await generateGeminiContent(prompt); 
-        }
-        catch (e) { console.warn(`⚠️ Gemini failed: ${e.message}`); }
+    if (generatePool.length === 0) {
+        if (process.env.GEMINI_API_KEY) return await generateGeminiContent(prompt);
+        throw new Error("All AI engines exhausted or keys missing.");
     }
 
-    // Try Kimi
-    if (process.env.KIMI_API_KEY) {
-        try { 
-            console.log("🚀 Attempting Kimi...");
-            return await generateKimiContent(prompt); 
+    // Round Robin Load Balancer
+    const startIdx = generatePoolIndex % generatePool.length;
+    
+    for (let i = 0; i < generatePool.length; i++) {
+        const idx = (startIdx + i) % generatePool.length;
+        const model = generatePool[idx];
+        try {
+            console.log(`🚀 Attempting Load-Balanced Generation via ${model.name}...`);
+            const res = await model.fn(prompt);
+            generatePoolIndex++; // iterate for next call
+            return res;
+        } catch (e) {
+            console.warn(`⚠️ ${model.name} failed: ${e.message}. Rotating to next...`);
         }
-        catch (e) { console.warn(`⚠️ Kimi failed: ${e.message}`); }
+    }
+
+    // Ultimate fallback for generation
+    if (process.env.GEMINI_API_KEY && options.role === 'generate') {
+         console.log("🚀 Attempting Ultimate Fallback via Gemini...");
+         return await generateGeminiContent(prompt);
     }
     
-    // Try OpenRouter
-    if (process.env.OPENROUTER_KEY) {
-        try { 
-            console.log("🚀 Attempting OpenRouter...");
-            return await generateOpenRouterContent(prompt); 
-        }
-        catch (e) { console.warn(`⚠️ OpenRouter failed: ${e.message}`); }
-    }
-    
-    throw new Error("All AI engines exhausted.");
+    throw new Error("All AI engines exhausted in load balancer.");
 }
 
 module.exports = { askAI };

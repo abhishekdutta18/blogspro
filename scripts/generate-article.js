@@ -86,6 +86,57 @@ async function generateArticle() {
             .trim();
     };
 
+    const validateContent = (content) => {
+        const checks = {
+            hasH2: /<h2/i.test(content),
+            hasDetails: /<details id="meta-excerpt"/i.test(content),
+            hasTable: /\|.*Metric.*\|/.test(content),
+            hasChartData: /<chart-data>([\s\S]*?)<\/chart-data>/.test(content),
+            hasCitations: /\[.*?\]\(http/i.test(content) || /URL:\s*http/i.test(content)
+        };
+        
+        const failures = [];
+        if (!checks.hasH2) failures.push("Missing exactly one <h2> header tag.");
+        if (!checks.hasDetails) failures.push("Missing <details id=\"meta-excerpt\">.</details> wrapper for the 1-sentence excerpt.");
+        if (!checks.hasTable) failures.push("Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.");
+        if (!checks.hasCitations) failures.push("Missing URL citations [Source Name](URL) reflecting the data feeds.");
+        
+        if (!checks.hasChartData) {
+            failures.push("Missing <chart-data> JSON array tag at the very end.");
+        } else {
+            const raw = content.match(/<chart-data>([\s\S]*?)<\/chart-data>/)[1].trim();
+            try { JSON.parse(raw); } catch(e) { failures.push("The text inside <chart-data> is not valid JSON."); }
+        }
+        return failures;
+    };
+
+    const executeAuditedGeneration = async (scribePrompt, frequency, vName) => {
+        let chapter = await askAI(scribePrompt, { role: 'generate' });
+        let attempts = 0;
+        let lastFailures = [];
+        
+        while (attempts < 3) {
+            let sanPrompt = getSanitizerPrompt(chapter);
+            if (attempts > 0) {
+                sanPrompt += `\n\n[SYSTEM REJECTION]: Your previous output failed structural requirements. FIX THESE EXACT ISSUES in the rewrite:\n${lastFailures.map(f => "- " + f).join("\n")}`;
+            }
+            
+            let sanitized = await askAI(sanPrompt, { role: 'audit' });
+            sanitized = cleanAIResponse(sanitized);
+            
+            const failures = validateContent(sanitized);
+            if (failures.length === 0) return sanitized; 
+            
+            console.warn(`⚠️ Auditor rejected ${vName} (Attempt ${attempts+1}/3). Failures: ${failures.join(', ')}`);
+            chapter = sanitized; 
+            lastFailures = failures;
+            attempts++;
+        }
+        
+        console.error(`❌ Auditor loop exhausted for ${vName}. Proceeding in Lenient Mode.`);
+        return chapter; 
+    };
+
     try {
         console.log(`🏰 Starting Recursive Synthesis for ${frequency.toUpperCase()} tome...`);
 
@@ -100,15 +151,8 @@ async function generateArticle() {
 
             const scribePrompt = getArticlePrompt(frequency, v.name, v.data, macro.summary, verticalNews, lastSummary);
 
-            // Stage 1: Narrative Scribing
-            let rawChapter = await askAI(scribePrompt);
-            
-            // Stage 2: Gemini Sanitizer Pass
-            console.log(`🧹 Sanitizing Vertical ${i+1}/${verticals.length}...`);
-            const sanitizerPrompt = getSanitizerPrompt(rawChapter);
-            
-            let chapter = await askAI(sanitizerPrompt);
-            chapter = cleanAIResponse(chapter);
+            // Execute Stage 1 & 2 via the Auditor Loop
+            let chapter = await executeAuditedGeneration(scribePrompt, frequency, v.name);
 
             // Extract Chart Data Proposed by AI
             const chartDataMatch = chapter.match(/<chart-data>(.*?)<\/chart-data>/s);

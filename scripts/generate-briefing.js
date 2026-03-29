@@ -107,33 +107,71 @@ async function generateBriefing() {
         let seoDescription = "";
         let seoKeywords = "";
 
+        const validateBriefing = (html) => {
+            const failures = [];
+            const chartDataMatch = html.match(/<chart-data>(.*?)<\/chart-data>/s);
+            if (!chartDataMatch) {
+                failures.push("Missing <chart-data> JSON tag at the end.");
+            } else {
+                try {
+                    const parsed = JSON.parse(chartDataMatch[1].trim());
+                    if (!parsed.sentiment || !parsed.macro || !parsed.multi_asset) {
+                        failures.push("JSON inside <chart-data> must have 'sentiment', 'macro', and 'multi_asset' keys formatted as arrays.");
+                    }
+                } catch(e) { failures.push("Text inside <chart-data> is not valid JSON."); }
+            }
+            return failures;
+        };
+
+        const executeAuditedBriefing = async (generationPrompt, isDaily) => {
+            let attemptContent = await askAI(generationPrompt, { role: 'generate' });
+            let attempts = 0;
+            let lastFailures = [];
+            
+            while (attempts < 3) {
+                let sanPrompt = getSanitizerPrompt(attemptContent);
+                if (attempts > 0) {
+                    sanPrompt += `\n\n[SYSTEM REJECTION]: Your previous output failed structural requirements. FIX THESE EXACT ISSUES in the rewrite:\n${lastFailures.map(f => "- " + f).join("\n")}`;
+                }
+                
+                let sanitized = await askAI(sanPrompt, { role: 'audit' });
+                sanitized = cleanAIResponse(sanitized);
+                
+                const failures = validateBriefing(sanitized);
+                if (failures.length === 0) return sanitized;
+                
+                console.warn(`⚠️ Briefing Auditor Rejected (Attempt ${attempts+1}/3). Failures: ${failures.join(', ')}`);
+                attemptContent = sanitized;
+                lastFailures = failures;
+                attempts++;
+            }
+            console.error(`❌ Auditor loop exhausted for Briefing. Proceeding in Lenient Mode.`);
+            return attemptContent;
+        };
+
         if (isDaily) {
             console.log("📑 Generating Stage 1: Strategic Recap...");
             const stage1Prompt = `${prompt}\n\nSTRICT INSTRUCTION: Focus purely on RECAP of the last 24 hours. Be extremely verbose. Target 1,500 words. Do NOT include a conclusion yet.`;
-            let stage1Raw = await askAI(stage1Prompt);
+            let stage1Raw = await askAI(stage1Prompt, { role: 'generate' });
             
             console.log("📑 Generating Stage 2: Predictive Alpha...");
             const stage2Prompt = `${prompt}\n\nSTRICT INSTRUCTION: Focus on PREDICTION and RISK for the next 48 hours. Connect the data points. Target 1,500 words. Include the final poll and interactive metrics.`;
-            let stage2Raw = await askAI(stage2Prompt);
+            let stage2Audited = await executeAuditedBriefing(stage2Prompt, true);
             
-            content = `${stage1Raw}\n<hr style="border:1px solid var(--gold); opacity:0.2; margin:4rem 0;">\n${stage2Raw}`;
+            content = `${stage1Raw}\n<hr style="border:1px solid var(--gold); opacity:0.2; margin:4rem 0;">\n${stage2Audited}`;
         } else {
             console.log(`📑 Generating Pulse Analysis (${frequency})...`);
             const verbosePrompt = `${prompt}\n\nSTRICT INSTRUCTION: Provide absolute granular detail. Target ${isHourly ? '700' : '1500'} words of high-density analysis.`;
-            content = await askAI(verbosePrompt);
+            content = await executeAuditedBriefing(verbosePrompt, false);
         }
-
-        // Multi-Pass Pass 2: Sanitizer
-        console.log("🧹 Sanitizing Briefing Content...");
-        const sanitizerPrompt = getSanitizerPrompt(content);
-        content = await askAI(sanitizerPrompt);
-        content = cleanAIResponse(content);
 
         // Pass 3: SEO Audit
         console.log("🔍 Running SEO Audit Pass...");
         const seoPrompt = `Analyze this market report and return JSON only: {"description": "1-sentence summary", "keywords": "5-10 comma separated keywords"}\n\nREPORT: ${content.substring(0, 2000)}`;
-        const seoDataRaw = await askAI(seoPrompt);
+        const seoDataRaw = await askAI(seoPrompt, { role: 'audit' });
         const seoData = JSON.parse(seoDataRaw.match(/\{.*?\}/s)?.[0] || '{"description": "Institutional market pulse", "keywords": "fintech, strategy"}');
+        seoDescription = seoData.description;
+        seoKeywords = seoData.keywords;
 
         // Extract Briefing Chart Data proposed by AI
         const chartDataMatch = content.match(/<chart-data>(.*?)<\/chart-data>/s);

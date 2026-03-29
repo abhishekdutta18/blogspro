@@ -16,16 +16,22 @@ async function prepareForPrint(page) {
         document.querySelectorAll('.manuscript-body script').forEach(el => el.remove());
 
         // 2. Remove AI hallucinated SVGs that conflict with Google Charts
-        document.querySelectorAll('.manuscript-body svg').forEach(el => el.remove());
+        document.querySelectorAll('.manuscript-body svg:not([aria-label="A chart."])').forEach(el => el.remove());
 
-        // 3. Remove duplicate chart divisions
-        const seenIds = new Set();
+        // 3. Remove duplicate chart divisions but KEEP the real ones
+        // Real charts injected by the pipeline have class "terminal-chart"
         document.querySelectorAll('.manuscript-body div[id^="chart_"]').forEach(el => {
-            if (seenIds.has(el.id)) {
-                el.remove(); // Remove duplicate injected card
+            if (!el.classList.contains('terminal-chart')) {
+                // This is a fake AI hallucinated duplicate container, remove it.
+                el.remove(); 
             } else {
-                seenIds.add(el.id);
-                el.innerHTML = ''; // Clear AI text inside it so Google charts can render clean
+                // This is the real terminal chart container. Ensure it's empty so SDK can draw there.
+                // Note: Google Charts usually removes existing children, but let's be safe.
+                if (el.children.length > 0 && el.children[0].tagName === 'SVG') {
+                    // Do nothing, SDK already rendered here
+                } else {
+                    el.innerHTML = ''; 
+                }
             }
         });
 
@@ -36,9 +42,7 @@ async function prepareForPrint(page) {
             }
         });
         
-        // 5. Convert any orphaned </em> or strange tags
-        
-        // 6. Inject Print-Friendly Standardized Styling
+        // 5. Inject Print-Friendly Standardized Styling
         const style = document.createElement('style');
         style.textContent = `
             @page { margin: 1.5cm; }
@@ -66,24 +70,27 @@ async function prepareForPrint(page) {
             }
             h1, h2, h3, h4, strong { color: #000000 !important; page-break-after: avoid; }
             p, li { color: #333333 !important; orphans: 3; widows: 3; line-height: 1.5; }
-            table { width: 100% !important; border-collapse: collapse !important; color: #000 !important; margin: 15px 0 !important; }
-            th { border-bottom: 2px solid #000 !important; color: #000 !important; padding: 5px !important; text-align: left !important; }
-            td { border-bottom: 1px solid #CCC !important; color: #111 !important; padding: 5px !important; }
             
             /* High Contrast Cards & Charts for Print */
             .card { 
-                background: #F9FAFB !important; 
-                border: 1px solid #D1D5DB !important; 
-                border-left: 4px solid #111827 !important;
-                padding: 1rem !important;
+                background: #FFFFFF !important; 
+                border: 0 !important;
+                padding: 0 !important;
                 margin: 2rem 0 !important;
                 page-break-inside: avoid;
             }
             .terminal-chart { 
                 background: #FFFFFF !important; 
                 min-height: 250px !important;
+                page-break-inside: avoid;
             }
             
+            /* Table Formatting for Print */
+            .table-container { margin: 1.5rem 0 !important; page-break-inside: avoid; }
+            table { width: 100% !important; border-collapse: collapse !important; color: #000 !important; }
+            th { border-bottom: 2px solid #000 !important; color: #000 !important; padding: 8px !important; text-align: left !important; background-color: #F8FAFC !important; }
+            td { border-bottom: 1px solid #E5E7EB !important; color: #111 !important; padding: 8px !important; }
+
             /* Ensure Google Charts Text is Black in Print */
             svg text {
                 fill: #000000 !important;
@@ -98,9 +105,6 @@ async function prepareForPrint(page) {
 
     // Emulate standard print media
     await page.emulateMediaType('print');
-    
-    // Wait for internal network tasks and charts
-    await new Promise(r => setTimeout(r, 4000));
 }
 
 async function generatePDFs() {
@@ -114,14 +118,18 @@ async function generatePDFs() {
     const browser = await puppeteer.launch({ headless: "new" });
     const outputDir = '/Users/nandadulaldutta/.gemini/antigravity/brain/e6ec49bb-f90f-4b55-a43a-5dfcb780edf8';
 
-    console.log("Generating Clean Weekly PDF from:", weeklyHtml);
+    console.log("Generating Unbreakable HTML+Charts Weekly PDF from:", weeklyHtml);
     const page = await browser.newPage();
     // Use desktop viewport to ensure charts render wide
     await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 2 });
     
+    // Wait for network idle to ensure Google Charts SDK completely finishes drawing
     await page.goto(`file://${weeklyHtml}`, { waitUntil: 'networkidle0', timeout: 60000 });
     
     await prepareForPrint(page);
+    
+    // Safety sleep just to make absolutely sure any chart animations finish
+    await new Promise(r => setTimeout(r, 3000));
 
     const outPath = path.join(outputDir, 'BlogsPro_Weekly_Briefing_Clean.pdf');
     await page.pdf({ 
