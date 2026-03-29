@@ -22,6 +22,8 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm install
+      - name: Install Puppeteer Browser
+        run: npx puppeteer browsers install chrome
       - name: Generate Daily Briefing
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
