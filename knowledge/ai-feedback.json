@@ -1,52 +1,6 @@
 [
   {
     "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.912Z",
-    "task": "Offshore & GIFT City",
-    "failures": [
-      "The text inside <chart-data> is not valid JSON."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.913Z",
-    "task": "FX & Cross-Border",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.913Z",
-    "task": "Capital Flows (PE/VC)",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.914Z",
-    "task": "Asset Allocation",
-    "failures": [
-      "The text inside <chart-data> is not valid JSON.",
-      "Verification failure (Found 0-1 citations, need at least 2 distinct sources)."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.915Z",
-    "task": "Capital Flows (PE/VC)",
-    "failures": [
-      "Missing analytical <details> envelope.",
-      "Verification failure (Found 0-1 citations, need at least 2 distinct sources)."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.916Z",
-    "task": "Regulatory Ledger",
-    "failures": [
-      "TONE VIOLATION: Excessive conversational fluff detected. Use raw institutional data blocks."
-    ]
-  },
-  {
-    "type": "FAILURE",
     "timestamp": "2026-03-29T06:11:41.917Z",
     "task": "Equities & Alpha",
     "failures": [
@@ -11247,6 +11201,65 @@
   {
     "type": "FAILURE",
     "timestamp": "2026-03-29T18:26:39.938Z",
+    "task": "DAILY_BRIEFING_HOURLY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT",
+      "QA_CITATION_DEFICIT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:27:56.626Z",
+    "task": "Briefing",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:27:57.222Z",
+    "task": "Briefing",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:27:57.801Z",
+    "task": "Briefing",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:27:58.293Z",
+    "task": "DAILY_BRIEFING_HOURLY_PRE",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:27:58.296Z",
+    "task": "DAILY_BRIEFING_HOURLY_POST",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:27:58.299Z",
     "task": "DAILY_BRIEFING_HOURLY_CORRECTIONS",
     "failures": [
       "QA_SYSTEM_ARTIFACT",
