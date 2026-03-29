@@ -3,7 +3,7 @@ const fetch = require("node-fetch");
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function generateGroqContent(prompt) {
+async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile") {
     if (!process.env.GROQ_API_KEY) throw new Error("GROQ_API_KEY missing.");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
@@ -16,20 +16,23 @@ async function generateGroqContent(prompt) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "llama-3.1-8b-instant", // Corrected model name for high-throughput synthesis
+                model,
                 messages: [{ role: "user", content: prompt }],
-                temperature: 0.2
+                temperature: 0.2,
+                max_tokens: 4096
             })
         });
         const data = await res.json();
         if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
         
-        if (data.error && data.error.code === "rate_limit_exceeded") {
-            const waitMatch = data.error.message.match(/try again in ([\d.]+)s/);
-            const waitMs = waitMatch ? (parseFloat(waitMatch[1]) * 1000) + 1000 : 10000;
-            console.warn(`⏳ Groq Rate Limit (TPM/RPM). Error: ${data.error.message}`);
-            // Do NOT recurse in CI; throw so the load balancer can try Gemini/Kimi immediately.
-            throw new Error(`RATE_LIMIT:${waitMs}`);
+        if (data.error && (data.error.code === "rate_limit_exceeded" || data.error.message?.includes('Request too large'))) {
+            console.warn(`⏳ Groq Rate/Size Limit. Error: ${data.error.message}`);
+            // If 70b is too large, fall back to 8b
+            if (model === "llama-3.3-70b-versatile") {
+                console.log("🔄 70b too large, falling back to 8b-instant...");
+                return generateGroqContent(prompt, "llama-3.1-8b-instant");
+            }
+            throw new Error(`RATE_LIMIT:10000`);
         }
 
         console.error("❌ Groq API Fail Details:", JSON.stringify(data));
@@ -181,13 +184,13 @@ async function askAI(prompt, options = { role: 'generate' }) {
         }
     }
 
-    // Ultimate fallback for generation
-    if (process.env.GEMINI_API_KEY && options.role === 'generate') {
-         console.log("🚀 Attempting Ultimate Fallback via Gemini...");
-         return await generateGeminiContent(prompt);
+    // Ultimate fallback for generation: Gemini (any role)
+    if (process.env.GEMINI_API_KEY) {
+        console.log("🚀 Attempting Ultimate Fallback via Gemini...");
+        return await generateGeminiContent(prompt);
     }
     
-    throw new Error("All AI engines exhausted in load balancer.");
+    throw new Error("All AI engines exhausted. Check GEMINI_API_KEY/GROQ_API_KEY secrets in GitHub Actions.");
 }
 
 module.exports = { askAI };

@@ -63,29 +63,23 @@ async function generateBriefing() {
     ]);
 
     // PRE-PROCESSING: Aggressive Trimming for Groq/TPM Limits
-    const universal = universalRaw.split('|').slice(0, 5).join(' | '); // Limit to 5 top stories
+    const universal = universalRaw.split('|').slice(0, 3).join(' | '); // Limit to top 3 stories only
 
     const mkt = require("./lib/data-fetchers.js").getMarketContext();
 
+    // SLIM DATA CONTEXT: Only essential fields for prompt efficiency
     const marketContext = `
     --- SYSTEM CONTEXT ---
-    TIME_IST: ${mkt.timestamp}
-    DAY: ${mkt.day}
-    MARKET_STATUS: ${mkt.status}
+    TIME_IST: ${mkt.timestamp} | DAY: ${mkt.day} | STATUS: ${mkt.status}
     
-    --- DATA FEEDS ---
-    SENTIMENT: ${sentiment.summary}
-    UPSTOX: ${upstox.summary}
-    MULTI_ASSET: ${markets.summary}
-    MACRO: ${macro.summary}
-    MUTUAL_FUNDS: ${mf.summary}
-    PRIVATE_CAPITAL: ${pevc.summary}
-    INSURANCE_RISK: ${ins.summary}
-    GIFT_CITY: ${gift.summary}
-    CALENDAR: ${calendar.text}
+    --- KEY DATA ---
+    SENTIMENT: ${(sentiment.summary || '').substring(0, 200)}
+    MULTI_ASSET: ${(markets.summary || '').substring(0, 200)}
+    MACRO: ${(macro.summary || '').substring(0, 200)}
+    CALENDAR: ${(calendar.text || '').substring(0, 200)}
     
-    --- UNIVERSAL NEWS (Yahoo Finance, Business Standard, Reuters, CNBC) ---
-    ${universal}
+    --- TOP NEWS ---
+    ${universal.substring(0, 500)}
     `;
 
     const prompt = getBriefingPrompt(frequency, marketContext, mkt);
@@ -187,7 +181,7 @@ async function generateBriefing() {
 
         if (isDaily) {
             console.log("📑 Generating Stage 1: Strategic Recap...");
-            const stage1Prompt = `${prompt}\n\nSTRICT INSTRUCTION: Focus purely on RECAP of the last 24 hours. Be extremely verbose. Target 1,500 words. Do NOT include a conclusion yet.`;
+            const stage1Prompt = `${prompt}\n\nSTRICT INSTRUCTION: Concise RECAP of the last 24 hours. Target 500 words max. Raw data blocks only.`;
             let stage1Raw = await askAI(stage1Prompt, { role: 'generate' });
             
             console.log("📑 Generating Stage 2: Predictive Alpha...");
