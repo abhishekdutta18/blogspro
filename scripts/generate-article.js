@@ -113,21 +113,21 @@ async function generateArticle() {
             // Extract Chart Data Proposed by AI
             const chartDataMatch = chapter.match(/<chart-data>(.*?)<\/chart-data>/s);
             let proposedData = "[['P1', 5], ['P2', 8], ['P3', 6], ['P4', 10]]"; // Fallback
+            
+            const chartContainer = `<div id="chart_${v.id}" class="terminal-chart" style="width:100%;height:220px;margin:2.5rem 0;background:rgba(20,20,20,0.3);border:1px solid rgba(191,161,0,0.15);border-left:3px solid var(--nexus-accent);"></div>`;
+
             if (chartDataMatch) {
                 const rawData = chartDataMatch[1].trim();
                 try {
-                    // Pre-verify that it's a valid Data Table array of arrays
                     const parsed = JSON.parse(rawData);
-                    if (Array.isArray(parsed)) {
-                        proposedData = JSON.stringify(parsed);
-                    } else {
-                        throw new Error("Not an array");
-                    }
+                    if (Array.isArray(parsed)) proposedData = JSON.stringify(parsed);
                 } catch (e) {
                     console.warn(`⚠️ Malformed chart data for ${v.id}. Falling back.`);
-                    proposedData = "[['P1', 5], ['P2', 8], ['P3', 6], ['P4', 10]]";
                 }
-                chapter = chapter.replace(/<chart-data>.*?<\/chart-data>/s, ""); // Purge tag from UI
+                chapter = chapter.replace(/<chart-data>.*?<\/chart-data>/s, chartContainer);
+            } else {
+                // Ensure every vertical has a chart target for V6.44 uniformity
+                chapter += `\n${chartContainer}`;
             }
 
             fullContent += `\n<section id="${v.id}" class="institutional-section">\n${chapter}\n</section>\n`;

@@ -27,6 +27,9 @@ async function notifyTelegram() {
         return;
     }
 
+    const dest = String(process.env.TELEGRAM_TO);
+    console.log(`📡 Targeting Chat ID: *******${dest.slice(-4)}`);
+
     try {
         const indexPath = path.join(__dirname, "..", type, frequency, "index.json");
         if (!fs.existsSync(indexPath)) {

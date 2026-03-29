@@ -5,6 +5,8 @@ function parseMD(md) {
     
     // 1. Aggressive Metadata Shield (Purge AI markers from UI)
     let processed = md
+        .replace(/<chart-data>[\s\S]*?<\/chart-data>/gi, '') // Strip chart blocks
+        .replace(/\[\s*\[\s*".*?"\s*,\s*\d+\s*\]\s*(,\s*\[\s*".*?"\s*,\s*\d+\s*\]\s*)*\s*\]/g, '') // Strip raw JSON arrays if they leak
         .replace(/SENTIMENT_SCORE:\s*[\d\w\[\]\/\-\s]*/gi, '')
         .replace(/PRICE_INFO:\s*[\d\w\:\.\,\|\s\[\]\(\)\-\%]*/gi, '')
         .replace(/Weekend Price Info:\s*[\d\w\:\.\,\|\s\[\]\(\)\-\%]*/gi, '')

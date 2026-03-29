@@ -138,6 +138,13 @@ async function generateBriefing() {
         // Extract Briefing Chart Data proposed by AI
         const chartDataMatch = content.match(/<chart-data>(.*?)<\/chart-data>/s);
         let proposedData = { sentiment: [], macro: [], multi_asset: [] };
+        
+        const briefingChartContainers = `
+<div id="chart_sentiment" class="terminal-chart" style="width:100%;height:180px;margin:1.5rem 0;background:rgba(20,20,20,0.3);border:1px solid rgba(191,161,0,0.1);border-left:3px solid #BFA100;"></div>
+<div id="chart_macro" class="terminal-chart" style="width:100%;height:180px;margin:1.5rem 0;background:rgba(20,20,20,0.3);border:1px solid rgba(191,161,0,0.1);border-left:3px solid #BFA100;"></div>
+<div id="chart_multi_asset" class="terminal-chart" style="width:100%;height:180px;margin:1.5rem 0;background:rgba(20,20,20,0.3);border:1px solid rgba(191,161,0,0.1);border-left:3px solid #BFA100;"></div>
+        `;
+
         if (chartDataMatch) {
             try { 
                 const parsed = JSON.parse(chartDataMatch[1].trim());
@@ -154,7 +161,15 @@ async function generateBriefing() {
                     multi_asset: [["09:00", 5], ["11:00", 8], ["13:00", 6], ["15:00", 9]]
                 };
             }
-            content = content.replace(/<chart-data>.*?<\/chart-data>/s, ""); // Purge from UI
+            content = content.replace(/<chart-data>.*?<\/chart-data>/s, briefingChartContainers);
+        } else {
+            // Force baseline charts for briefings to ensure high-fidelity UI
+            proposedData = {
+                sentiment: [["09:00", 45], ["11:00", 52], ["13:00", 48], ["15:00", 55]],
+                macro: [["09:00", 12], ["11:00", 11], ["13:00", 13], ["15:00", 12]],
+                multi_asset: [["09:00", 5], ["11:00", 8], ["13:00", 6], ["15:00", 9]]
+            };
+            content += briefingChartContainers;
         }
 
         const titleMatch = content.match(/<h2[^>]*>(.*?)<\/h2>/i);

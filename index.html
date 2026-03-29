@@ -50,9 +50,12 @@
       background: rgba(8,13,26,0.92);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
-      padding: 0 2rem;
+    }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto; width: 100%;
       display: flex; align-items: center; justify-content: space-between;
       height: 68px;
+      padding: 0 2rem;
     }
 
     .nav-brand {
@@ -183,7 +186,7 @@
     .ticker-sep { color: var(--muted); }
 
     /* ── FOREX CALENDAR ── */
-    .feed-status-wrap { max-width: 1200px; margin: 0 auto; padding: 0.9rem 2rem 0; }
+    .feed-status-wrap { max-width: 1200px; margin: 0 auto; padding: 2rem 2rem 0; margin-bottom: 2rem; }
     .feed-status {
       background: var(--navy2);
       border: 1px solid var(--border);
@@ -583,7 +586,7 @@
       color: var(--muted);
       padding: 0.2rem 0 0.1rem;
     }
-    .market-wrap { max-width: 1200px; margin: 0 auto; padding: 0.9rem 2rem 0; }
+    .market-wrap { max-width: 1200px; margin: 0 auto; padding: 2rem 2rem 0; margin-bottom: 2rem; }
     .market-box {
       background: var(--navy2);
       border: 1px solid var(--border);
@@ -770,7 +773,7 @@
     }
 
     /* ── SECTION ── */
-    section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
+    section { padding: 4rem 2rem; max-width: 1200px; margin: 0 auto; }
     .section-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 3rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
     .section-title { font-family: var(--serif); font-size: 2.2rem; font-weight: 700; letter-spacing: -0.01em; }
     .section-link { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); display: flex; align-items: center; gap: 0.4rem; transition: gap 0.2s; }
@@ -816,7 +819,7 @@
     }
     .about-inner {
       max-width: 1200px; margin: 0 auto;
-      padding: 5rem 2rem;
+      padding: 4rem 2rem;
       display: grid;
       grid-template-columns: 280px 1fr;
       gap: 5rem;
@@ -921,7 +924,8 @@
     .empty-state p { font-size: 1rem; }
 
     /* ── FOOTER ── */
-    footer { border-top: 1px solid var(--border); padding: 3rem 2rem; max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; }
+    footer { border-top: 1px solid var(--border); background: var(--navy); }
+    .footer-inner { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; width: 100%; }
     .footer-brand { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .footer-copy { font-size: 0.8rem; color: var(--muted); }
     .footer-links { display: flex; gap: 1.5rem; list-style: none; }
@@ -1020,15 +1024,17 @@
 
 <!-- NAV -->
 <nav>
-  <a class="nav-brand" href="index.html">BLOGS<span>PRO</span></a>
-  <ul class="nav-links">
-    <li><a href="#posts">Articles</a></li>
-    <li><a href="#about">About</a></li>
-    <li><button class="theme-btn-nav" id="themeBtn" onclick="toggleTheme()">☀️</button></li>
-    <li id="navAuthSlot">
-      <a href="login.html" class="nav-cta">Login</a>
-    </li>
-  </ul>
+  <div class="nav-inner">
+    <a class="nav-brand" href="index.html">BLOGS<span>PRO</span></a>
+    <ul class="nav-links">
+      <li><a href="#posts">Articles</a></li>
+      <li><a href="#about">About</a></li>
+      <li><button class="theme-btn-nav" id="themeBtn" onclick="toggleTheme()">☀️</button></li>
+      <li id="navAuthSlot">
+        <a href="login.html" class="nav-cta">Login</a>
+      </li>
+    </ul>
+  </div>
 </nav>
 
 <!-- HERO -->
@@ -1172,7 +1178,7 @@
 </div>
 
     <!-- ══════════════ STRATEGIC INTEL HUB ══════════════ -->
-    <div class="market-wrap" style="margin-top: 2rem; margin-bottom: 0;">
+    <div class="market-wrap">
       <div id="intel-hub-root"></div>
     </div>
 
@@ -1331,11 +1337,13 @@
 
 <!-- FOOTER -->
 <footer>
-  <span class="footer-brand">BlogsPro</span>
-  <span class="footer-copy">© <span id="year"></span> BlogsPro. All rights reserved.</span>
-  <ul class="footer-links">
-    <li><a href="login.html" id="footerAuthLink">Login</a></li>
-  </ul>
+  <div class="footer-inner">
+    <span class="footer-brand">BlogsPro</span>
+    <span class="footer-copy">© <span id="year"></span> BlogsPro. All rights reserved.</span>
+    <ul class="footer-links">
+      <li><a href="login.html" id="footerAuthLink">Login</a></li>
+    </ul>
+  </div>
 </footer>
 <div class="integration-badge" id="integrationBadge">
   <span class="integration-badge-dot"></span>
