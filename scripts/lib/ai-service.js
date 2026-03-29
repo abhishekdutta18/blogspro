@@ -84,8 +84,8 @@ async function generateGeminiContent(prompt) {
     if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing.");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
-    // Try newest stable models first — gemini-2.0-flash is the current v1beta default
-    const models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"];
+    // Try newest stable models first
+    const models = ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
     
     for (const modelName of models) {
         try {
@@ -228,6 +228,15 @@ async function askAI(prompt, options = { role: 'generate' }) {
     console.log(`📝 Prompt prepared. Length: ${prompt.length} chars. Role: ${options.role}`);
     
     const generatePool = [];
+    console.log("🛠️ AI Service environment check:");
+    console.log(`   - Gemini Key: ${process.env.GEMINI_API_KEY ? 'Present' : 'MISSING'}`);
+    console.log(`   - Groq Key: ${process.env.GROQ_API_KEY ? 'Present' : 'MISSING'}`);
+    console.log(`   - OpenRouter Key: ${process.env.OPENROUTER_KEY ? 'Present' : 'MISSING'}`);
+    console.log(`   - Mistral Key: ${process.env.MISTRAL_API_KEY ? 'Present' : 'MISSING'}`);
+    console.log(`   - Cerebras Key: ${process.env.CEREBRAS_API_KEY ? 'Present' : 'MISSING'}`);
+    console.log(`   - Cloudflare: ${process.env.CF_ACCOUNT_ID && process.env.CF_API_TOKEN ? 'Present' : 'MISSING'}`);
+    console.log(`   - GitHub Token: ${process.env.GITHUB_TOKEN || process.env.GH_TOKEN ? 'Present' : 'MISSING'}`);
+
     if (process.env.GROQ_API_KEY) generatePool.push({ name: 'Groq', fn: generateGroqContent });
     if (process.env.KIMI_API_KEY) generatePool.push({ name: 'Kimi', fn: generateKimiContent });
     if (process.env.OPENROUTER_KEY) generatePool.push({ name: 'OpenRouter', fn: generateOpenRouterContent });
@@ -235,6 +244,8 @@ async function askAI(prompt, options = { role: 'generate' }) {
     if (process.env.CEREBRAS_API_KEY) generatePool.push({ name: 'Cerebras', fn: generateCerebrasContent });
     if (process.env.CF_ACCOUNT_ID && process.env.CF_API_TOKEN) generatePool.push({ name: 'Cloudflare', fn: generateCloudflareContent });
     if (process.env.GITHUB_TOKEN || process.env.GH_TOKEN) generatePool.push({ name: 'GitHub', fn: generateGithubContent });
+    
+    console.log(`🌊 Active pool size: ${generatePool.length} providers`);
     
     // If role is audit, we explicitly want Gemini first for precision formatting
     if (options.role === 'audit' && process.env.GEMINI_API_KEY) {
