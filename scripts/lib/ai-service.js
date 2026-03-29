@@ -84,8 +84,16 @@ async function generateGeminiContent(prompt) {
     if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing.");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
-    // Try newest stable models first
-    const models = ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
+    // Try newest stable models first — added variants for different API versions
+    const models = [
+        "gemini-2.0-flash", 
+        "gemini-2.0-flash-exp",
+        "gemini-1.5-flash-latest", 
+        "gemini-1.5-flash", 
+        "gemini-1.5-pro-latest",
+        "gemini-1.5-pro", 
+        "gemini-pro"
+    ];
     
     for (const modelName of models) {
         try {
@@ -247,19 +255,24 @@ async function askAI(prompt, options = { role: 'generate' }) {
     
     console.log(`🌊 Active pool size: ${generatePool.length} providers`);
     
-    // If role is audit, we explicitly want Gemini first for precision formatting
+    // If role is audit, we explicitly want Gemini first for precision formatting (but now with fallback)
     if (options.role === 'audit' && process.env.GEMINI_API_KEY) {
         try {
             console.log("🔍 Auditing/Sanitizing via Gemini (1.5-Flash)...");
             return await generateGeminiContent(prompt);
         } catch (e) {
-            console.warn(`⚠️ Gemini Auditor failed: ${e.message}. Falling back to pool.`);
+            console.warn(`⚠️ Gemini Auditor failed: ${e.message}. Falling back to general pool for audit...`);
+            // Continue below to the general pool loop
         }
     }
     
     if (generatePool.length === 0) {
-        if (process.env.GEMINI_API_KEY) return await generateGeminiContent(prompt);
-        throw new Error("All AI engines exhausted or keys missing.");
+        // One last-ditch attempt at Gemini if no other keys are present
+        if (process.env.GEMINI_API_KEY) {
+            console.log("🚀 Attempting Last-Ditch Fallback via Gemini...");
+            return await generateGeminiContent(prompt);
+        }
+        throw new Error("All AI engines exhausted or keys missing. Please check your GitHub Secrets (GEMINI, GROQ, etc.).");
     }
 
     // Round Robin Load Balancer
