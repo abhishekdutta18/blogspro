@@ -121,7 +121,21 @@ async function generateGeminiContent(prompt) {
             throw err;
         }
     }
-    throw new Error("All Gemini models not found or quota exhausted.");
+    console.warn("🛑 ALL Gemini models failed/not found. Using local regex-based audit as emergency fallback.");
+    return localRegexAudit(prompt);
+}
+
+/**
+ * Emergency Fallback: If no LLM is available to audit/sanitize, 
+ * use regex to at least strip the most dangerous system leakage.
+ */
+function localRegexAudit(content) {
+    console.log("🛠️ Applying Emergency Local Regex Audit...");
+    return content
+        .replace(/<rule-check>[\s\S]*?<\/rule-check>/gi, '')
+        .replace(/--- SYSTEM CONTEXT ---[\s\S]*?--- (TOP NEWS|KEY DATA|UNIVERSAL NEWS) ---[\s\S]*?\n\s*\n/gi, '')
+        .replace(/JSON must use DOUBLE QUOTES[^\n]*/gi, '')
+        .trim();
 }
 
 async function generateOpenRouterContent(prompt) {
@@ -225,7 +239,8 @@ async function generateGithubContent(prompt) {
         });
         const data = await res.json();
         if (data && data.choices) return data.choices[0].message.content;
-        throw new Error("GitHub Models failed");
+        console.error("❌ GitHub Models Fail Details:", JSON.stringify(data));
+        throw new Error(`GitHub Models failed: ${data.error?.message || 'Unknown'}`);
     } catch (e) { throw e; }
 }
 
