@@ -27,9 +27,9 @@ async function generateGroqContent(prompt) {
         if (data.error && data.error.code === "rate_limit_exceeded") {
             const waitMatch = data.error.message.match(/try again in ([\d.]+)s/);
             const waitMs = waitMatch ? (parseFloat(waitMatch[1]) * 1000) + 1000 : 10000;
-            console.warn(`⏳ Groq TPM Limit. Waiting ${waitMs}ms...`);
-            await sleep(waitMs);
-            return generateGroqContent(prompt); // Recursive retry
+            console.warn(`⏳ Groq Rate Limit (TPM/RPM). Error: ${data.error.message}`);
+            // Do NOT recurse in CI; throw so the load balancer can try Gemini/Kimi immediately.
+            throw new Error(`RATE_LIMIT:${waitMs}`);
         }
 
         console.error("❌ Groq API Fail Details:", JSON.stringify(data));
@@ -153,6 +153,11 @@ async function askAI(prompt, options = { role: 'generate' }) {
             return res;
         } catch (e) {
             console.warn(`⚠️ ${model.name} failed: ${e.message}. Rotating to next...`);
+            if (e.message.startsWith('RATE_LIMIT:')) {
+                const waitMs = parseInt(e.message.split(':')[1]) || 5000;
+                // Optional: sleep a tiny bit to avoid hammering next provider too fast
+                await sleep(500);
+            }
         }
     }
 
