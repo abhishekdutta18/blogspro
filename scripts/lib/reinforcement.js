@@ -1,3 +1,17 @@
+/**
+ * BlogsPro Reinforcement Learning System (reinforcement.js)
+ * ==========================================================
+ * Phase 3 of the 3-system quality pipeline:
+ *
+ *   [1] AUDITOR (validator.js)   — validates content, logs failures HERE
+ *   [2] QA GATE (corrector.js)   — auto-corrects, logs correction codes HERE
+ *   [3] THIS FILE (RL ledger)    — aggregates all events, surfaces top mistakes
+ *                                   into every future AI generation prompt
+ *
+ * This creates a self-improving loop: the more generations run,
+ * the more specific the model warnings become, until QA corrections → 0.
+ */
+
 const fs = require('fs');
 const path = require('path');
 
@@ -153,6 +167,24 @@ SENTIMENT_SCORE: 82 | POLL: Best hedge? | OPTIONS: Gold, USD, BTC
 `;
 
         return context;
+    }
+    /**
+     * Returns a quick pipeline health summary from the last N ledger entries.
+     * Used by generators to log/report QA Gate effectiveness.
+     */
+    getAuditSummary(lookback = 50) {
+        const recent = this.ledger.slice(-lookback);
+        const qaCycles = recent.filter(e => e.task && e.task.includes('QA_GATE'));
+        const passes = qaCycles.filter(e => e.type === 'SUCCESS').length;
+        const fails  = qaCycles.filter(e => e.type === 'FAILURE').length;
+        const total  = passes + fails;
+        return {
+            total,
+            passes,
+            fails,
+            passRate: total > 0 ? ((passes / total) * 100).toFixed(1) + '%' : 'N/A',
+            ledgerSize: this.ledger.length
+        };
     }
 }
 

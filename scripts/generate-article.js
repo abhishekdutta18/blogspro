@@ -243,16 +243,19 @@ async function generateArticle() {
 
         const datestr = new Date().toISOString().split('T')[0];
         const fileName = `strategy-${datestr}-${frequency}-${Date.now()}.html`;
-        // ── QA GATE: Content Correction Pass (before HTML/PDF) ───────────────
-        console.log("🔬 Running Content QA Gate...");
-        const { content: correctedFullContent, corrections: articleCorrections } = applyContentCorrections(fullContent);
+        // ── QA GATE: 3-System Integrated Correction Pipeline ─────────────────
+        console.log("🔬 Running Integrated QA Pipeline (Auditor → QA Gate → Re-Audit → RL)...");
+        const { content: correctedFullContent, corrections: articleCorrections, passedReAudit: articlePassed } = applyContentCorrections(fullContent, `STRATEGY_ARTICLE_${frequency.toUpperCase()}`);
         fullContent = correctedFullContent;
         if (articleCorrections.length > 0) {
-            console.log(`✅ QA Gate applied ${articleCorrections.length} correction(s):`);
-            articleCorrections.forEach(c => console.log(`   → ${c}`));
+            console.log(`✅ QA Gate applied ${articleCorrections.length} correction(s). Re-audit: ${articlePassed ? 'PASSED ✅' : 'RESIDUAL ISSUES ⚠️'}`);
         } else {
-            console.log("✅ QA Gate: Article passed all checks — no corrections needed.");
+            console.log("✅ QA Pipeline: Article passed all Auditor checks — no corrections needed.");
         }
+        // Log pipeline health summary
+        const rl = require('./lib/reinforcement.js');
+        const auditSummary = rl.getAuditSummary(50);
+        console.log(`📊 [RL Pipeline Health] QA Pass Rate: ${auditSummary.passRate} (${auditSummary.passes}/${auditSummary.total} cycles) | Ledger: ${auditSummary.ledgerSize} entries`);
 
         const fullHtml = getBaseTemplate({ 
             title, excerpt, content: fullContent, dateLabel, 

@@ -319,16 +319,18 @@ async function generateBriefing() {
 </script>
 `;
 
-        // ── QA GATE: Content Correction Pass (before HTML/PDF) ───────────────
-        console.log("🔬 Running Content QA Gate...");
-        const { content: correctedContent, corrections } = applyContentCorrections(content);
+        // ── QA GATE: 3-System Integrated Correction Pipeline ─────────────────
+        console.log("🔬 Running Integrated QA Pipeline (Auditor → QA Gate → Re-Audit → RL)...");
+        const { content: correctedContent, corrections, passedReAudit } = applyContentCorrections(content, `DAILY_BRIEFING_${frequency.toUpperCase()}`);
         content = correctedContent;
         if (corrections.length > 0) {
-            console.log(`✅ QA Gate applied ${corrections.length} correction(s):`);
-            corrections.forEach(c => console.log(`   → ${c}`));
+            console.log(`✅ QA Gate applied ${corrections.length} correction(s). Re-audit: ${passedReAudit ? 'PASSED ✅' : 'RESIDUAL ISSUES ⚠️'}`);
         } else {
-            console.log("✅ QA Gate: Content passed all checks — no corrections needed.");
+            console.log("✅ QA Pipeline: Content passed all Auditor checks — no corrections needed.");
         }
+        // Log pipeline health summary
+        const auditSummary = rl.getAuditSummary(50);
+        console.log(`📊 [RL Pipeline Health] QA Pass Rate: ${auditSummary.passRate} (${auditSummary.passes}/${auditSummary.total} cycles) | Ledger: ${auditSummary.ledgerSize} entries`);
 
         // Generate Web Version
         const fullHtml = getBaseTemplate({ 
