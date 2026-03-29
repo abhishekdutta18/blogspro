@@ -72,16 +72,29 @@ async function generateKimiContent(prompt) {
 
 async function generateGeminiContent(prompt) {
     if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing.");
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
     try {
-        // Use gemini-1.5-flash-latest for best compatibility
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const result = await model.generateContent(prompt);
-        return result.response.text();
-    } catch (e) {
-        console.error("❌ Gemini API Fail Details:", e.message);
-        // Fallback or retry logic can go here if needed
-        throw e;
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+        const res = await fetch(url, {
+            method: "POST",
+            signal: controller.signal,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.2 }
+            })
+        });
+        const data = await res.json();
+        if (data && data.candidates && data.candidates.length > 0) {
+            return data.candidates[0].content.parts[0].text;
+        }
+        console.error("❌ Gemini Fetch Detail:", JSON.stringify(data));
+        throw new Error(`Gemini API Error: ${data.error?.message || "Empty response"}`);
+    } catch (err) {
+        throw err;
+    } finally {
+        clearTimeout(timeout);
     }
 }
 
@@ -116,6 +129,7 @@ async function generateOpenRouterContent(prompt) {
 }
 
 let generatePoolIndex = 0;
+const failedProviders = new Set();
 
 async function askAI(prompt, options = { role: 'generate' }) {
     console.log(`📝 Prompt prepared. Length: ${prompt.length} chars. Role: ${options.role}`);
@@ -146,6 +160,9 @@ async function askAI(prompt, options = { role: 'generate' }) {
     for (let i = 0; i < generatePool.length; i++) {
         const idx = (startIdx + i) % generatePool.length;
         const model = generatePool[idx];
+        
+        if (failedProviders.has(model.name)) continue;
+
         try {
             console.log(`🚀 Attempting Load-Balanced Generation via ${model.name}...`);
             const res = await model.fn(prompt);
@@ -153,9 +170,15 @@ async function askAI(prompt, options = { role: 'generate' }) {
             return res;
         } catch (e) {
             console.warn(`⚠️ ${model.name} failed: ${e.message}. Rotating to next...`);
+            
+            // If it's an Auth error, blacklist this provider for the rest of the job
+            if (e.message.includes('Authentication') || e.message.includes('401') || e.message.includes('not found')) {
+                console.error(`🚫 Blacklisting ${model.name} due to terminal authentication/config failure.`);
+                failedProviders.add(model.name);
+            }
+
             if (e.message.startsWith('RATE_LIMIT:')) {
                 const waitMs = parseInt(e.message.split(':')[1]) || 5000;
-                // Optional: sleep a tiny bit to avoid hammering next provider too fast
                 await sleep(500);
             }
         }
