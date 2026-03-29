@@ -25,11 +25,18 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile") {
         const data = await res.json();
         if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
         
-        if (data.error && (data.error.code === "rate_limit_exceeded" || data.error.message?.includes('Request too large'))) {
+        if (data.error && (data.error.code === "rate_limit_exceeded" || data.error.message?.includes('Request too large') || data.error.message?.includes('Rate limit'))) {
             console.warn(`⏳ Groq Rate/Size Limit. Error: ${data.error.message}`);
-            // If 70b is too large, fall back to 8b
+            // If 70b is too large or rate limited, wait the specified time then fall back to 8b
             if (model === "llama-3.3-70b-versatile") {
-                console.log("🔄 70b too large, falling back to 8b-instant...");
+                const waitMatch = data.error.message.match(/try again in ([\d.]+)s/);
+                const waitMs = waitMatch ? Math.ceil(parseFloat(waitMatch[1]) * 1000) + 500 : 3000;
+                if (waitMs < 15000) {
+                    await sleep(waitMs);
+                    console.log(`🔄 Falling back to 8b-instant after ${waitMs}ms wait...`);
+                } else {
+                    console.log(`🔄 70b TPM limit high, falling back to 8b-instant immediately...`);
+                }
                 return generateGroqContent(prompt, "llama-3.1-8b-instant");
             }
             throw new Error(`RATE_LIMIT:10000`);
@@ -77,8 +84,8 @@ async function generateGeminiContent(prompt) {
     if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing.");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
-    // Fallback list for the most stable models
-    const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro"];
+    // Try newest stable models first — gemini-2.0-flash is the current v1beta default
+    const models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"];
     
     for (const modelName of models) {
         try {
@@ -86,16 +93,27 @@ async function generateGeminiContent(prompt) {
             const model = genAI.getGenerativeModel({ model: modelName });
             const result = await model.generateContent(prompt);
             const response = await result.response;
+            console.log(`✅ Gemini ${modelName} succeeded.`);
             return response.text();
         } catch (err) {
-            if (err.message.includes('404') || err.message.includes('not found')) {
+            if (err.message.includes('404') || err.message.includes('not found') || err.message.includes('NOT_FOUND')) {
                 console.warn(`⚠️ Gemini ${modelName} not found. Rotating to next...`);
                 continue;
+            }
+            // Rate limit — wait and retry same model once
+            if (err.message.includes('429') || err.message.includes('quota') || err.message.includes('RESOURCE_EXHAUSTED')) {
+                console.warn(`⏳ Gemini ${modelName} rate limited. Waiting 5s...`);
+                await sleep(5000);
+                try {
+                    const model2 = genAI.getGenerativeModel({ model: modelName });
+                    const result2 = await model2.generateContent(prompt);
+                    return result2.response.text();
+                } catch (e2) { continue; }
             }
             throw err;
         }
     }
-    throw new Error("All Gemini models (flash/pro) not found or endpoint failure.");
+    throw new Error("All Gemini models not found or quota exhausted.");
 }
 
 async function generateOpenRouterContent(prompt) {
