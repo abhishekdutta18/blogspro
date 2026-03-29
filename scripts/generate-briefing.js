@@ -11,6 +11,7 @@ const { getBaseTemplate } = require("./lib/templates.js");
 const { getBriefingPrompt, getSanitizerPrompt } = require("./lib/prompts.js");
 const rl = require("./lib/reinforcement.js");
 const { sanitizeJSON } = require("./lib/sanitizer.js");
+const { generatePDF } = require("./lib/pdf-service.js");
 const fetch = require("node-fetch");
 
 async function fetchWithTimeout(url, options = {}, timeout = 15000) {
@@ -315,7 +316,15 @@ async function generateBriefing() {
             seoKeywords: seoData.keywords,
             scripts: globalBriefingScript
         });
-        fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
+        const briefingFilePath = path.join(targetDir, fileName);
+        fs.writeFileSync(briefingFilePath, fullHtml);
+        
+        // Generate PDF Version
+        try {
+            await generatePDF(briefingFilePath);
+        } catch (pdfErr) {
+            console.error("⚠️ PDF creation failed (skipping):", pdfErr.message);
+        }
         
         // Generate & Dispatch Email Version (Safe Template - No JS)
         const emailHtml = require("./lib/templates.js").getEmailTemplate({

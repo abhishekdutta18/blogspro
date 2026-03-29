@@ -12,6 +12,7 @@ const { getArticlePrompt, getSanitizerPrompt } = require("./lib/prompts.js");
 const { validateContent } = require("./lib/validator.js");
 const rl = require("./lib/reinforcement.js");
 const { sanitizeJSON } = require("./lib/sanitizer.js");
+const { generatePDF } = require("./lib/pdf-service.js");
 const fetch = require("node-fetch");
 
 async function fetchWithTimeout(url, options = {}, timeout = 15000) {
@@ -253,7 +254,15 @@ async function generateArticle() {
             seoKeywords: meta.keywords,
             scripts: globalChartScript
         });
-        fs.writeFileSync(path.join(targetDir, fileName), fullHtml);
+        const articleFilePath = path.join(targetDir, fileName);
+        fs.writeFileSync(articleFilePath, fullHtml);
+
+        // Generate PDF Version
+        try {
+            await generatePDF(articleFilePath);
+        } catch (pdfErr) {
+            console.error("⚠️ PDF creation failed (skipping):", pdfErr.message);
+        }
         
         const indexPath = path.join(targetDir, "index.json");
         let index = fs.existsSync(indexPath) ? JSON.parse(fs.readFileSync(indexPath, "utf-8")) : [];
