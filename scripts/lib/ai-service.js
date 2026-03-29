@@ -72,29 +72,16 @@ async function generateKimiContent(prompt) {
 
 async function generateGeminiContent(prompt) {
     if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing.");
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
     try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`;
-        const res = await fetch(url, {
-            method: "POST",
-            signal: controller.signal,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { temperature: 0.2 }
-            })
-        });
-        const data = await res.json();
-        if (data && data.candidates && data.candidates.length > 0) {
-            return data.candidates[0].content.parts[0].text;
-        }
-        console.error("❌ Gemini Fetch Detail:", JSON.stringify(data));
-        throw new Error(`Gemini API Error: ${data.error?.message || "Empty response"}`);
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        return response.text();
     } catch (err) {
-        throw err;
-    } finally {
-        clearTimeout(timeout);
+        console.error("❌ Gemini SDK Fail Details:", err.message);
+        throw new Error(`Gemini API Error: ${err.message}`);
     }
 }
 

@@ -1,6 +1,9 @@
 name: Manual Terminal Dispatch
 
 on:
+  schedule:
+    # Run every Friday at 12:00 PM UTC (5:30 PM IST)
+    - cron: '0 12 * * 5'
   workflow_dispatch:
     inputs:
       frequency:
@@ -33,6 +36,8 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm install
+      - name: Install Puppeteer Browser
+        run: npx puppeteer browsers install chrome
       - name: Execute Autonomous Briefing/Article
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
