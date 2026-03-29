@@ -2,16 +2,16 @@
  * BlogsPro Institutional Content QA Gate
  * ----------------------------------------
  * Runs on ALL AI-generated content BEFORE HTML & PDF creation.
- * Enforces 6 non-negotiable quality standards:
- *   1. Strip all internal system artifacts (rule-check, raw JSON, prompt text)
- *   2. Convert bare URLs to labelled markdown hyperlinks
- *   3. Ensure at least 2 distinct hyperlinked sources
- *   4. Validate and fix chart-data JSON syntax
- *   5. Strip any leaked system context / AI preamble
- *   6. Normalise whitespace and strip empty tags
+ * Enforces 6 non-negotiable quality standards AND communicates
+ * every correction back to the RL system as a logged failure so
+ * the model is penalized in future generation prompts.
+ *
+ * FEEDBACK LOOP:
+ *   AI Output → QA Gate (corrects) → RL Ledger (logs failures) → Future Prompts (warn model)
  */
 
 const { sanitizeJSON } = require('./sanitizer.js');
+const rl = require('./reinforcement.js');
 
 // Known authoritative financial sources for auto-labelling bare URLs
 const SOURCE_LABELS = {
@@ -120,6 +120,31 @@ function applyContentCorrections(rawContent) {
         .replace(/<h2>\s*<\/h2>/g, '')  // remove empty headers
         .replace(/<p>\s*<\/p>/g, '')    // remove empty paragraphs
         .trim();
+
+    // ── RL FEEDBACK: Log corrections into the Reinforcement Ledger ────────────
+    // Map each human-readable correction to its machine-readable RL failure code
+    const correctionCodeMap = {
+        'Stripped system artifacts / prompt leakage': 'QA_SYSTEM_ARTIFACT',
+        'Fixed chart-data JSON syntax': 'QA_CHART_JSON_INVALID',
+        'Removed': 'QA_DUPLICATE_CHART_DATA', // prefix match
+        'Converted bare URLs to markdown hyperlinks': 'QA_BARE_URL',
+        'Added fallback citations': 'QA_CITATION_DEFICIT', // prefix match
+    };
+
+    const rlFailureCodes = corrections.map(c => {
+        for (const [key, code] of Object.entries(correctionCodeMap)) {
+            if (c.startsWith(key)) return code;
+        }
+        return `QA_UNKNOWN: ${c}`;
+    });
+
+    if (rlFailureCodes.length > 0) {
+        // Log as a FAILURE with specific codes — feeds back into future generation prompts
+        rl.logFailure('QA_GATE_PRE_RENDER', rlFailureCodes);
+    } else {
+        // Content was clean — log as a SUCCESS to reinforce good model behaviour
+        rl.logSuccess('QA_GATE_PRE_RENDER', 'Content passed all 6 QA checks without correction');
+    }
 
     return { content: text, corrections };
 }

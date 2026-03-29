@@ -125,10 +125,18 @@ SENTIMENT_SCORE: 82 | POLL: Best hedge? | OPTIONS: Gold, USD, BTC
             context += "CRITICAL MISTAKES TO AVOID (Based on recent rejections):\n";
             topMistakes.forEach(([f, count]) => {
                 let formattedF = f;
-                if (f.includes('JSON_SYNTAX_ERROR')) {
-                    formattedF = "INVALID JSON_SYNTAX: You are using single quotes or missing double quotes around labels (e.g., use [[\"Label\", 10]] not [[Label, 10]]). Use strictly valid JSON.";
+                if (f.includes('JSON_SYNTAX_ERROR') || f === 'QA_CHART_JSON_INVALID') {
+                    formattedF = 'CHART-DATA JSON SYNTAX: Your <chart-data> blocks contain invalid JSON (single quotes, missing quotes, trailing commas). Use ONLY double-quoted strings: [["Label", 10]] not \'Label\' or [Label, 10].';
+                } else if (f === 'QA_SYSTEM_ARTIFACT') {
+                    formattedF = 'SYSTEM ARTIFACT LEAKAGE: You included <rule-check> tags, raw JSON objects {}, or system prompt instructions in the article body. These are NEVER to appear in output.';
+                } else if (f === 'QA_BARE_URL') {
+                    formattedF = 'BARE URL: You included a raw URL (https://...) without a markdown label. ALWAYS use [Source Name](url) format e.g. [Reuters](https://reuters.com/...)';
+                } else if (f === 'QA_CITATION_DEFICIT') {
+                    formattedF = 'CITATION DEFICIT: Your article had fewer than 2 distinct hyperlinked sources. Include at least 2 markdown citations from DIFFERENT domains e.g. [Reuters](...) and [RBI](...)';
+                } else if (f === 'QA_DUPLICATE_CHART_DATA') {
+                    formattedF = 'DUPLICATE CHART-DATA: You emitted <chart-data> blocks more than once. Place exactly ONE <chart-data> block at the very end of your response.';
                 }
-                context += `- REJECTED ${count}x recently for: ${formattedF}\n`;
+                context += `- AUTO-CORRECTED ${count}x by QA Gate for: ${formattedF}\n`;
             });
         }
 
