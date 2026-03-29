@@ -143,7 +143,12 @@ async function generateBriefing() {
         };
 
         const executeAuditedBriefing = async (generationPrompt, isDaily) => {
-            const lessonPrompt = rl.getReinforcementContext() + "\n" + generationPrompt;
+            // Trim prompt to avoid Groq size limits (Target ~15k chars max)
+            const trimmedPrompt = generationPrompt.length > 15000 
+                ? generationPrompt.substring(0, 15000) + "\n[Context Truncated for Efficiency]"
+                : generationPrompt;
+
+            const lessonPrompt = rl.getReinforcementContext() + "\n" + trimmedPrompt;
             let attemptContent = await askAI(lessonPrompt, { role: 'generate' });
             let attempts = 0;
             let lastFailures = [];

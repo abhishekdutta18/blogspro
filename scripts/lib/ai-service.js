@@ -73,16 +73,26 @@ async function generateKimiContent(prompt) {
 async function generateGeminiContent(prompt) {
     if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing.");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
-    try {
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        return response.text();
-    } catch (err) {
-        console.error("❌ Gemini SDK Fail Details:", err.message);
-        throw new Error(`Gemini API Error: ${err.message}`);
+    // Fallback list for the most stable models
+    const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro"];
+    
+    for (const modelName of models) {
+        try {
+            console.log(`🔍 Attempting Gemini via ${modelName}...`);
+            const model = genAI.getGenerativeModel({ model: modelName });
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            return response.text();
+        } catch (err) {
+            if (err.message.includes('404') || err.message.includes('not found')) {
+                console.warn(`⚠️ Gemini ${modelName} not found. Rotating to next...`);
+                continue;
+            }
+            throw err;
+        }
     }
+    throw new Error("All Gemini models (flash/pro) not found or endpoint failure.");
 }
 
 async function generateOpenRouterContent(prompt) {
