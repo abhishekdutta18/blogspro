@@ -9,7 +9,9 @@ const {
 const { askAI } = require("./lib/ai-service.js");
 const { getBaseTemplate } = require("./lib/templates.js");
 const { getArticlePrompt, getSanitizerPrompt } = require("./lib/prompts.js");
+const { validateContent } = require("./lib/validator.js");
 const rl = require("./lib/reinforcement.js");
+const { sanitizeJSON } = require("./lib/sanitizer.js");
 const fetch = require("node-fetch");
 
 async function fetchWithTimeout(url, options = {}, timeout = 15000) {
@@ -89,40 +91,6 @@ async function generateArticle() {
             .trim();
     };
 
-    const validateContent = (content) => {
-        const failures = [];
-        
-        // Structural Presence
-        if (!/<h2/i.test(content)) failures.push("Missing exactly one <h2> header tag.");
-        if (!/<details id="meta-excerpt"/i.test(content)) failures.push("Missing <details id=\"meta-excerpt\"> envelope.");
-        if (!/\|.*Metric.*\|/.test(content)) failures.push("Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.");
-        
-        // Data Density Check
-        const tableRows = (content.match(/\|[^|]+\|[^|]+\|[^|]+\|/g) || []).length;
-        if (tableRows < 3) failures.push(`Insufficient data density (Found ${tableRows} metrics, need at least 5 for terminal depth).`);
-
-        // Institutional Cold Tone: Fluff Detection
-        const fluffRegex = /In this chapter|As reported by|In conclusion|analysis suggests|discussed in the previous|anchor for this chapter|here is the|let's look at|dive into|delve into/i;
-        if (fluffRegex.test(content)) {
-            const match = content.match(fluffRegex)[0];
-            failures.push(`TONE VIOLATION: Excessive conversational fluff detected ("${match}"). Use raw institutional data blocks.`);
-        }
-
-        // Verification Check: Citations
-        const citations = (content.match(/\[[^\]]+\]\([^)]+\)/g) || []).length;
-        if (citations < 2) failures.push(`Verification failure (Found ${citations} hyperlinked citations, need at least 2 distinct sources).`);
-
-        // Chart Data Extraction & Validation
-        const chartMatch = content.match(/<chart-data>([\s\S]*?)<\/chart-data>/);
-        if (!chartMatch) {
-            failures.push("Missing <chart-data> JSON array tag at the very end.");
-        } else {
-            const raw = chartMatch[1].trim();
-            try { JSON.parse(raw); } catch(e) { failures.push("The text inside <chart-data> is not valid JSON."); }
-        }
-
-        return failures;
-    };
 
     const executeAuditedGeneration = async (scribePrompt, frequency, vName) => {
         // Prepend Lessons Learned from past failures
@@ -141,7 +109,7 @@ async function generateArticle() {
             }
             
             let sanitized = await askAI(sanPrompt, { role: 'audit' });
-            sanitized = cleanAIResponse(sanitized);
+            sanitized = sanitizeJSON(cleanAIResponse(sanitized));
             
             const failures = validateContent(sanitized);
             if (failures.length === 0) {

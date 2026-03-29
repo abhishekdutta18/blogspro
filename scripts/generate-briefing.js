@@ -10,6 +10,7 @@ const { askAI } = require("./lib/ai-service.js");
 const { getBaseTemplate } = require("./lib/templates.js");
 const { getBriefingPrompt, getSanitizerPrompt } = require("./lib/prompts.js");
 const rl = require("./lib/reinforcement.js");
+const { sanitizeJSON } = require("./lib/sanitizer.js");
 const fetch = require("node-fetch");
 
 async function fetchWithTimeout(url, options = {}, timeout = 15000) {
@@ -135,7 +136,7 @@ async function generateBriefing() {
                     if (!parsed.sentiment || !parsed.macro || !parsed.multi_asset) {
                         failures.push("JSON inside <chart-data> must have 'sentiment', 'macro', and 'multi_asset' keys formatted as arrays.");
                     }
-                } catch(e) { failures.push("Text inside <chart-data> is not valid JSON."); }
+                } catch(e) { failures.push(`JSON_SYNTAX_ERROR: ${e.message}`); }
             }
             return failures;
         };
@@ -155,7 +156,7 @@ async function generateBriefing() {
                 }
                 
                 let sanitized = await askAI(sanPrompt, { role: 'audit' });
-                sanitized = cleanAIResponse(sanitized);
+                sanitized = sanitizeJSON(cleanAIResponse(sanitized));
                 
                 const failures = validateBriefing(sanitized);
                 if (failures.length === 0) {

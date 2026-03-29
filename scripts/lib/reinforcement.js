@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const LEDGER_PATH = path.join(__dirname, '../../knowledge/ai-feedback.json');
+const HEARTBEAT_PATH = path.join(__dirname, '../../knowledge/rl-heartbeat.json');
 const MAX_ENTRIES = 1500;
 
 class ReinforcementSystem {
@@ -29,22 +30,51 @@ class ReinforcementSystem {
         } catch (e) {}
     }
 
-    logSuccess(task, pattern) {
+    updateHeartbeat(current, total, totalSuccess, totalFail) {
+        try {
+            const hb = {
+                active: true,
+                timestamp: new Date().toISOString(),
+                current,
+                total,
+                totalSuccess,
+                totalFail,
+                rate: total > 0 ? ((totalSuccess / current) * 100).toFixed(1) : 0
+            };
+            const dir = path.dirname(HEARTBEAT_PATH);
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+            fs.writeFileSync(HEARTBEAT_PATH, JSON.stringify(hb, null, 2), 'utf8');
+        } catch (e) {}
+    }
+
+    stopHeartbeat() {
+        try {
+            if (fs.existsSync(HEARTBEAT_PATH)) {
+                const hb = JSON.parse(fs.readFileSync(HEARTBEAT_PATH, 'utf8'));
+                hb.active = false;
+                fs.writeFileSync(HEARTBEAT_PATH, JSON.stringify(hb, null, 2), 'utf8');
+            }
+        } catch (e) {}
+    }
+
+    logSuccess(task, pattern, output) {
         this.ledger.push({
             type: 'SUCCESS',
             timestamp: new Date().toISOString(),
             task,
-            pattern: pattern || 'Perfect structural execution'
+            pattern: pattern || 'Perfect structural execution',
+            preview: output ? output.substring(0, 500) : null
         });
         this.save();
     }
 
-    logFailure(task, failures) {
+    logFailure(task, failures, output) {
         this.ledger.push({
             type: 'FAILURE',
             timestamp: new Date().toISOString(),
             task,
-            failures: failures || []
+            failures: failures || [],
+            preview: output ? output.substring(0, 500) : null
         });
         this.save();
     }
@@ -66,7 +96,8 @@ The current macro-economic landscape reflects a significant systemic shift...
 | India GDP | 7.2% (Institutional) | Sovereign Premium Hike |
 
 SENTIMENT_SCORE: 82 | POLL: Best hedge? | OPTIONS: Gold, USD, BTC
-<chart-data>[["DXY", 104], ["10Y", 4.25], ["GDP", 7.2]]</chart-data>
+<chart-data>[["DXY", 104.0], ["10Y", 4.25], ["GDP", 7.20]]</chart-data>
+<rule-check>JSON must use DOUBLE QUOTES (") for strings. No single quotes allowed. No trailing commas.</rule-check>
 `;
     }
 
@@ -94,7 +125,11 @@ SENTIMENT_SCORE: 82 | POLL: Best hedge? | OPTIONS: Gold, USD, BTC
         if (topMistakes.length > 0) {
             context += "CRITICAL MISTAKES TO AVOID (Based on recent rejections):\n";
             topMistakes.forEach(([f, count]) => {
-                context += `- REJECTED ${count}x recently for: ${f}\n`;
+                let formattedF = f;
+                if (f.includes('JSON_SYNTAX_ERROR')) {
+                    formattedF = "INVALID JSON_SYNTAX: You are using single quotes or missing double quotes around labels (e.g., use [[\"Label\", 10]] not [[Label, 10]]). Use strictly valid JSON.";
+                }
+                context += `- REJECTED ${count}x recently for: ${formattedF}\n`;
             });
         }
 
