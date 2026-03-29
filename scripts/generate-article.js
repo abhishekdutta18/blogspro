@@ -191,7 +191,7 @@ async function generateArticle() {
             backgroundColor: 'transparent',
             colors: ['#BFA100'],
             chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
-            legend: { position: 'top', alignment: 'center', textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} },
+            legend: { position: 'bottom', alignment: 'center', textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} },
             hAxis: { 
                 title: 'Observation Period (Bloomberg Terminal)',
                 textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 

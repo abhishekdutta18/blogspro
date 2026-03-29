@@ -287,7 +287,7 @@ async function generateBriefing() {
                     backgroundColor: 'transparent',
                     colors: [color],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
-                    legend: { position: 'top', alignment: 'center', textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} },
+                    legend: { position: 'bottom', alignment: 'center', textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} },
                     hAxis: { 
                         title: 'Intraday Session Period',
                         textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 
