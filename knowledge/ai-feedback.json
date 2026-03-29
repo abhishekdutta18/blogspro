@@ -1,33 +1,5 @@
 [
   {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.894Z",
-    "task": "Scribe Analytics",
-    "failures": [
-      "Missing analytical <details> envelope."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.895Z",
-    "task": "Emerging Markets",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.896Z",
-    "task": "Capital Flows (PE/VC)",
-    "failures": [
-      "Verification failure (Found 0-1 citations, need at least 2 distinct sources)."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.897Z",
-    "task": "Offshore & GIFT City",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
     "type": "SUCCESS",
     "timestamp": "2026-03-29T06:11:41.898Z",
     "task": "Equities & Alpha",
@@ -11200,6 +11172,47 @@
   {
     "type": "FAILURE",
     "timestamp": "2026-03-29T17:54:03.997Z",
+    "task": "QA_GATE_PRE_RENDER",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT",
+      "QA_CITATION_DEFICIT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T17:56:12.513Z",
+    "task": "Briefing",
+    "failures": [
+      "COLD TONE VIOLATION: Conversational fluff detected (\"As reported by\"). Use Bloomberg-style blocks only.",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T17:56:15.279Z",
+    "task": "Briefing",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T17:56:18.035Z",
+    "task": "Briefing",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T17:56:21.730Z",
     "task": "QA_GATE_PRE_RENDER",
     "failures": [
       "QA_SYSTEM_ARTIFACT",
