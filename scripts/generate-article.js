@@ -9,6 +9,7 @@ const {
 const { askAI } = require("./lib/ai-service.js");
 const { getBaseTemplate } = require("./lib/templates.js");
 const { getArticlePrompt, getSanitizerPrompt } = require("./lib/prompts.js");
+const rl = require("./lib/reinforcement.js");
 const fetch = require("node-fetch");
 
 async function fetchWithTimeout(url, options = {}, timeout = 15000) {
@@ -111,13 +112,18 @@ async function generateArticle() {
     };
 
     const executeAuditedGeneration = async (scribePrompt, frequency, vName) => {
-        let chapter = await askAI(scribePrompt, { role: 'generate' });
+        // Prepend Lessons Learned from past failures
+        const lessonPrompt = rl.getReinforcementContext() + "\n" + scribePrompt;
+        
+        let chapter = await askAI(lessonPrompt, { role: 'generate' });
         let attempts = 0;
         let lastFailures = [];
+        let successOnFirstTry = true;
         
         while (attempts < 3) {
             let sanPrompt = getSanitizerPrompt(chapter);
             if (attempts > 0) {
+                successOnFirstTry = false;
                 sanPrompt += `\n\n[SYSTEM REJECTION]: Your previous output failed structural requirements. FIX THESE EXACT ISSUES in the rewrite:\n${lastFailures.map(f => "- " + f).join("\n")}`;
             }
             
@@ -125,13 +131,20 @@ async function generateArticle() {
             sanitized = cleanAIResponse(sanitized);
             
             const failures = validateContent(sanitized);
-            if (failures.length === 0) return sanitized; 
+            if (failures.length === 0) {
+                // Log Success for the Reinforcement Loop
+                rl.logFeedback(vName, successOnFirstTry ? [] : []); // Success on first try logs empty failures
+                return sanitized;
+            }
             
             console.warn(`⚠️ Auditor rejected ${vName} (Attempt ${attempts+1}/3). Failures: ${failures.join(', ')}`);
             chapter = sanitized; 
             lastFailures = failures;
             attempts++;
         }
+        
+        // Log Failure for the Reinforcement Loop
+        rl.logFeedback(vName, lastFailures);
         
         console.error(`❌ Auditor loop exhausted for ${vName}. Proceeding in Lenient Mode.`);
         return chapter; 

@@ -9,6 +9,7 @@ const {
 const { askAI } = require("./lib/ai-service.js");
 const { getBaseTemplate } = require("./lib/templates.js");
 const { getBriefingPrompt, getSanitizerPrompt } = require("./lib/prompts.js");
+const rl = require("./lib/reinforcement.js");
 const fetch = require("node-fetch");
 
 async function fetchWithTimeout(url, options = {}, timeout = 15000) {
@@ -124,13 +125,16 @@ async function generateBriefing() {
         };
 
         const executeAuditedBriefing = async (generationPrompt, isDaily) => {
-            let attemptContent = await askAI(generationPrompt, { role: 'generate' });
+            const lessonPrompt = rl.getReinforcementContext() + "\n" + generationPrompt;
+            let attemptContent = await askAI(lessonPrompt, { role: 'generate' });
             let attempts = 0;
             let lastFailures = [];
+            let successOnFirstTry = true;
             
             while (attempts < 3) {
                 let sanPrompt = getSanitizerPrompt(attemptContent);
                 if (attempts > 0) {
+                    successOnFirstTry = false;
                     sanPrompt += `\n\n[SYSTEM REJECTION]: Your previous output failed structural requirements. FIX THESE EXACT ISSUES in the rewrite:\n${lastFailures.map(f => "- " + f).join("\n")}`;
                 }
                 
@@ -138,13 +142,17 @@ async function generateBriefing() {
                 sanitized = cleanAIResponse(sanitized);
                 
                 const failures = validateBriefing(sanitized);
-                if (failures.length === 0) return sanitized;
+                if (failures.length === 0) {
+                    rl.logFeedback("Briefing", successOnFirstTry ? [] : []);
+                    return sanitized;
+                }
                 
                 console.warn(`⚠️ Briefing Auditor Rejected (Attempt ${attempts+1}/3). Failures: ${failures.join(', ')}`);
                 attemptContent = sanitized;
                 lastFailures = failures;
                 attempts++;
             }
+            rl.logFeedback("Briefing", lastFailures);
             console.error(`❌ Auditor loop exhausted for Briefing. Proceeding in Lenient Mode.`);
             return attemptContent;
         };
