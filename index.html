@@ -1137,18 +1137,16 @@
         <div class="desk-charts">
           <div class="desk-chart">
             <div class="desk-chart-title">Country Event Mix</div>
-            <div class="prob-bars" id="forexCountryMixBars"></div>
+            <div id="forexCountryMixChart" style="height: 220px;"></div>
           </div>
           <div class="desk-chart">
             <div class="desk-chart-title">Surprise Dispersion</div>
-            <div class="sector-bars" id="forexSurpriseBars"></div>
+            <div id="forexSurpriseChart" style="height: 220px;"></div>
           </div>
           <div class="desk-chart">
-            <div class="desk-chart-title">Session Risk Heat</div>
-            <div class="gauge-wrap">
-              <div class="gauge" id="forexSessionGauge"></div>
-              <div class="gauge-note" id="forexSessionGaugeNote">Awaiting event timings…</div>
-            </div>
+            <div class="desk-chart-title">Forex Session Risk Heat</div>
+            <div id="forexSessionGaugeChart" style="height: 120px; display: flex; justify-content: center; align-items: center; padding-top: 10px;"></div>
+            <div class="prob-val" id="forexSessionGaugeNote">Session Risk Heat: --</div>
           </div>
         </div>
         <div class="desk-explain" id="forexDeskExplain">
@@ -1206,18 +1204,16 @@
         <div class="desk-charts">
           <div class="desk-chart">
             <div class="desk-chart-title">RBI Probability</div>
-            <div class="prob-bars" id="indiaProbBars"></div>
+            <div id="indiaProbChart" style="height: 220px;"></div>
           </div>
           <div class="desk-chart">
             <div class="desk-chart-title">INR Pressure Gauge</div>
-            <div class="gauge-wrap">
-              <div class="gauge" id="indiaInrGauge"></div>
-              <div class="gauge-note" id="indiaInrGaugeNote">Waiting for macro inputs…</div>
-            </div>
+            <div id="indiaInrGaugeChart" style="height: 120px; display: flex; justify-content: center; align-items: center; padding-top: 10px;"></div>
+            <div class="prob-val" id="indiaInrGaugeNote">INR Pressure Gauge: --</div>
           </div>
           <div class="desk-chart">
             <div class="desk-chart-title">Sector Impact</div>
-            <div class="sector-bars" id="indiaSectorBars"></div>
+            <div id="indiaSectorChart" style="height: 220px;"></div>
           </div>
         </div>
         <div class="desk-explain" id="indiaDeskExplain">
@@ -1230,9 +1226,7 @@
     </div>
     <div class="india-qoq-panel">
       <div class="india-qoq-title" id="indiaQoqTitle">India QoQ Historical Trend</div>
-      <div class="qoq-bars" id="indiaQoqBars">
-        <div class="calendar-empty">Click an India event card to view QoQ line trend.</div>
-      </div>
+      <div id="indiaQoqChart" style="height: 280px;"></div>
     </div>
   </div>
 </div>
@@ -1350,9 +1344,35 @@
 
 <!-- FIREBASE -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
-<!-- Google Charts -->
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-<script type="text/javascript">google.charts.load('current', { packages: ['corechart'] });</script>
+<script type="text/javascript">
+  google.charts.load('current', { packages: ['corechart', 'gauge'] });
+  const CHART_THEME = {
+    backgroundColor: 'transparent',
+    fontName: 'JetBrains Mono',
+    colors: ['#BFA100', '#FFB800', '#D4AF37', '#8A6D3B'],
+    legend: { 
+      position: 'top', 
+      alignment: 'center',
+      textStyle: { color: 'rgba(191,161,0,0.8)', fontSize: 10 } 
+    },
+    chartArea: { left: 60, right: 20, top: 40, bottom: 60, width: '85%', height: '70%' },
+    hAxis: {
+      title: 'Observation Period',
+      textStyle: { color: 'rgba(191,161,0,0.6)', fontSize: 9 },
+      titleTextStyle: { color: 'rgba(191,161,0,0.8)', fontSize: 10, italic: true },
+      gridlines: { color: 'rgba(191,161,0,0.1)' },
+      baselineColor: 'rgba(191,161,0,0.3)'
+    },
+    vAxis: {
+      title: 'Value Drift %',
+      textStyle: { color: 'rgba(191,161,0,0.6)', fontSize: 9 },
+      titleTextStyle: { color: 'rgba(191,161,0,0.8)', fontSize: 10, italic: true },
+      gridlines: { color: 'rgba(191,161,0,0.1)' },
+      baselineColor: 'rgba(191,161,0,0.3)'
+    }
+  };
+</script>
 <script type="module">
   import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, collection, doc, getDocs, getDoc, query, where, addDoc }
@@ -1445,9 +1465,9 @@
     const analysisEl = document.getElementById('forexCalendarAnalysis');
     const summaryEl = document.getElementById('forexCalendarSummary');
     const snapshotEl = document.getElementById('forexCalendarSnapshot');
-    const countryMixBarsEl = document.getElementById('forexCountryMixBars');
-    const surpriseBarsEl = document.getElementById('forexSurpriseBars');
-    const sessionGaugeEl = document.getElementById('forexSessionGauge');
+    const countryMixChartEl = document.getElementById('forexCountryMixChart');
+    const surpriseChartEl = document.getElementById('forexSurpriseChart');
+    const sessionGaugeChartEl = document.getElementById('forexSessionGaugeChart');
     const sessionGaugeNoteEl = document.getElementById('forexSessionGaugeNote');
     const deskExplainEl = document.getElementById('forexDeskExplain');
     const pastListEl = document.getElementById('forexCalendarPastList');
@@ -1458,7 +1478,7 @@
     const limitEl = document.getElementById('forexCalendarLimit');
     const tzEl = document.getElementById('forexCalendarTimezone');
     const skeletonEl = document.getElementById('forexCalendarSkeleton');
-    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !countryMixBarsEl || !surpriseBarsEl || !sessionGaugeEl || !sessionGaugeNoteEl || !deskExplainEl || !pastListEl || !filterEl || !titleFilterEl || !impactEl || !sortEl || !limitEl || !tzEl || !skeletonEl) return false;
+    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !countryMixChartEl || !surpriseChartEl || !sessionGaugeChartEl || !sessionGaugeNoteEl || !deskExplainEl || !pastListEl || !filterEl || !titleFilterEl || !impactEl || !sortEl || !limitEl || !tzEl || !skeletonEl) return false;
 
     const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
     const fmtDate = (raw, mode = 'local') => {
@@ -1539,18 +1559,20 @@
         <div><b>Focus Pair:</b> ${topCountry?.[0] === 'USD' ? 'EURUSD / USDJPY' : topCountry?.[0] === 'GBP' ? 'GBPUSD / EURGBP' : topCountry?.[0] === 'AUD' ? 'AUDUSD / AUDJPY' : 'DXY + majors'}</div>
         <div><b>Risk Note:</b> Clustered high-impact prints can widen spreads around the minute of release.</div>
       `;
-      const topCountries = Object.entries(byCountry).sort((a, b) => b[1] - a[1]).slice(0, 4);
-      const totalCountry = Math.max(1, topCountries.reduce((s, [, n]) => s + Number(n || 0), 0));
-      countryMixBarsEl.innerHTML = topCountries.map(([c, n]) => {
-        const pct = Math.round((Number(n || 0) / totalCountry) * 100);
-        return `
-          <div class="prob-row">
-            <div class="prob-label">${esc(c)}</div>
-            <div class="prob-track"><div class="prob-fill" style="width:${pct}%"></div></div>
-            <div class="prob-val">${pct}%</div>
-          </div>
-        `;
-      }).join('') || '<div class="calendar-empty">No country mix available.</div>';
+      const topCountries = Object.entries(byCountry).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      if (window.google && google.visualization) {
+        const data = google.visualization.arrayToDataTable([
+          ['Country', 'Events'],
+          ...topCountries.map(([c, n]) => [c, n])
+        ]);
+        const options = { 
+          ...CHART_THEME, 
+          pieHole: 0.4, 
+          chartArea: { width: '90%', height: '70%' },
+          legend: { position: 'bottom', textStyle: { color: 'rgba(191,161,0,0.8)', fontSize: 9 } }
+        };
+        new google.visualization.PieChart(document.getElementById('forexCountryMixChart')).draw(data, options);
+      }
 
       const surpriseRows = filtered
         .map((e) => {
@@ -1562,17 +1584,19 @@
         .filter(Boolean)
         .sort((a, b) => b.s - a.s)
         .slice(0, 4);
-      const maxS = Math.max(0.01, ...surpriseRows.map((x) => x.s));
-      surpriseBarsEl.innerHTML = surpriseRows.map((r) => {
-        const pct = Math.max(8, Math.round((r.s / maxS) * 100));
-        return `
-          <div class="prob-row">
-            <div class="prob-label">${esc(r.title.slice(0, 28))}</div>
-            <div class="prob-track"><div class="prob-fill" style="width:${pct}%"></div></div>
-            <div class="prob-val">${r.s.toFixed(2)}</div>
-          </div>
-        `;
-      }).join('') || '<div class="calendar-empty">Need Actual and Forecast values to compute surprises.</div>';
+      if (window.google && google.visualization && surpriseRows.length) {
+        const data = google.visualization.arrayToDataTable([
+          ['Event', 'Surprise'],
+          ...surpriseRows.map(r => [r.title.slice(0, 15), r.s])
+        ]);
+        const options = { 
+          ...CHART_THEME, 
+          hAxis: { ...CHART_THEME.hAxis, title: 'Event Dispersion' },
+          vAxis: { ...CHART_THEME.vAxis, title: 'Absolute Surprise' },
+          legend: { position: 'none' }
+        };
+        new google.visualization.BarChart(document.getElementById('forexSurpriseChart')).draw(data, options);
+      }
 
       const sess = { asia: 0, europe: 0, us: 0 };
       filtered.forEach((e) => {
@@ -1587,7 +1611,20 @@
       const peakMap = { asia: 'Asia session', europe: 'Europe session', us: 'US session' };
       const totalSess = Math.max(1, sess.asia + sess.europe + sess.us);
       const heat = Math.round((Number(peak[1] || 0) / totalSess) * 100);
-      sessionGaugeEl.innerHTML = `<span style="width:${Math.max(5, heat)}%"></span>`;
+      if (window.google && google.visualization) {
+        const data = google.visualization.arrayToDataTable([
+          ['Label', 'Value'],
+          ['Risk', heat]
+        ]);
+        const options = {
+          width: 120, height: 120,
+          redFrom: 75, redTo: 100,
+          yellowFrom: 50, yellowTo: 75,
+          minorTicks: 5,
+          greenColor: '#BFA100', yellowColor: '#FFB800', redColor: '#ef4444'
+        };
+        new google.visualization.Gauge(document.getElementById('forexSessionGaugeChart')).draw(data, options);
+      }
       sessionGaugeNoteEl.textContent = `${peakMap[peak[0]] || 'Session'} concentration: ${heat}% of tracked releases`;
       deskExplainEl.innerHTML = `
         <div><b>Country Event Mix:</b> ${topCountries.map(([c, n]) => `${c} (${n})`).join(', ') || 'No mix available'}.</div>
@@ -2098,15 +2135,15 @@
     const analysisEl = document.getElementById('indiaCalendarAnalysis');
     const summaryEl = document.getElementById('indiaCalendarSummary');
     const snapshotEl = document.getElementById('indiaCalendarSnapshot');
-    const probBarsEl = document.getElementById('indiaProbBars');
-    const gaugeEl = document.getElementById('indiaInrGauge');
-    const gaugeNoteEl = document.getElementById('indiaInrGaugeNote');
-    const sectorBarsEl = document.getElementById('indiaSectorBars');
+    const probChartEl = document.getElementById('indiaProbChart');
+    const inrGaugeChartEl = document.getElementById('indiaInrGaugeChart');
+    const inrGaugeNoteEl = document.getElementById('indiaInrGaugeNote');
+    const sectorChartEl = document.getElementById('indiaSectorChart');
     const explainEl = document.getElementById('indiaDeskExplain');
     const qoqTitleEl = document.getElementById('indiaQoqTitle');
-    const qoqBarsEl = document.getElementById('indiaQoqBars');
+    const qoqChartEl = document.getElementById('indiaQoqChart');
     const headerDateTimeEl = document.getElementById('indiaHeaderDateTime');
-    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !probBarsEl || !gaugeEl || !gaugeNoteEl || !sectorBarsEl || !explainEl || !qoqTitleEl || !qoqBarsEl || !headerDateTimeEl) return false;
+    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !probChartEl || !inrGaugeChartEl || !inrGaugeNoteEl || !sectorChartEl || !explainEl || !qoqTitleEl || !qoqChartEl || !headerDateTimeEl) return false;
 
     const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
     const fmtDate = (raw) => {
@@ -2315,38 +2352,17 @@
       dataTable.addRows(rows);
 
       const options = {
-        backgroundColor: 'transparent',
-        chartArea: { left: 48, top: 16, right: 12, bottom: 36, width: '100%', height: '75%' },
-        legend: { position: 'none' },
-        curveType: 'function',
-        lineWidth: 2,
+        ...CHART_THEME,
+        chartArea: { ...CHART_THEME.chartArea, left: 60 },
         series: {
-          0: { color: '#d8b95e', pointSize: 4, pointShape: 'circle' },
-          ...(hasForecast ? { 1: { color: '#8fb5ff', pointSize: 4, lineDashStyle: [6, 4] } } : {})
+          0: { color: '#BFA100', areaOpacity: 0.1, lineWidth: 3 },
+          ...(hasForecast ? { 1: { color: '#FFB800', lineDashStyle: [4, 4], pointSize: 5 } } : {})
         },
-        annotations: {
-          textStyle: { fontSize: 9, color: '#e9d08a', bold: true },
-          stem: { color: 'transparent', length: 4 }
-        },
-        hAxis: {
-          title: 'Quarter',
-          titleTextStyle: { color: '#c9d2ea', fontSize: 10, bold: true },
-          textStyle: { color: '#9aa4bd', fontSize: 10 },
-          gridlines: { color: 'rgba(136,150,179,0.12)' },
-          baselineColor: 'rgba(136,150,179,0.35)'
-        },
-        vAxis: {
-          title: 'Value',
-          titleTextStyle: { color: '#c9d2ea', fontSize: 10, bold: true },
-          textStyle: { color: '#9aa4bd', fontSize: 10 },
-          gridlines: { color: 'rgba(136,150,179,0.18)' },
-          baselineColor: 'rgba(136,150,179,0.35)',
-          viewWindowMode: 'pretty'
-        },
-        tooltip: { textStyle: { color: '#1a1a2e', fontSize: 11 } }
+        hAxis: { ...CHART_THEME.hAxis, title: 'Quarterly Period' },
+        vAxis: { ...CHART_THEME.vAxis, title: 'Institutional Delta %' }
       };
 
-      indiaQoqChart = new google.visualization.LineChart(chartEl);
+      indiaQoqChart = new google.visualization.AreaChart(chartEl);
       indiaQoqChart.draw(dataTable, options);
       return true;
     };
@@ -2418,28 +2434,48 @@
         <div><b>Key Event Breakdown</b></div>
         ${keyEventDetails}
       `;
-      probBarsEl.innerHTML = [
-        { label: 'Hold', val: m.holdProb },
-        { label: 'Hike', val: m.hikeProb },
-        { label: 'Cut', val: m.cutProb }
-      ].map((p) => `
-        <div class="prob-row">
-          <div class="prob-label">${p.label}</div>
-          <div class="prob-track"><div class="prob-fill" style="width:${Math.max(0, Math.min(100, p.val))}%"></div></div>
-          <div class="prob-val">${Math.round(p.val)}%</div>
-        </div>
-      `).join('');
+      if (window.google && google.visualization) {
+        // RBI Probability ColumnChart
+        const probData = google.visualization.arrayToDataTable([
+          ['Scenario', 'Probability'],
+          ['Hold', m.holdProb], ['Hike', m.hikeProb], ['Cut', m.cutProb]
+        ]);
+        new google.visualization.ColumnChart(document.getElementById('indiaProbChart')).draw(probData, {
+          ...CHART_THEME,
+          hAxis: { ...CHART_THEME.hAxis, title: 'Policy Catalyst' },
+          vAxis: { ...CHART_THEME.vAxis, title: 'Confidence %' },
+          legend: { position: 'top', alignment: 'center' }
+        });
+
+        // INR Pressure Gauge
+        const inrData = google.visualization.arrayToDataTable([
+          ['Label', 'Value'],
+          ['INR Stress', Math.max(0, 50 + (m.inrPressure * 10))]
+        ]);
+        const gaugeOpts = {
+          width: 120, height: 120,
+          redFrom: 70, redTo: 100,
+          yellowFrom: 40, yellowTo: 70,
+          minorTicks: 5,
+          greenColor: '#BFA100', yellowColor: '#FFB800', redColor: '#ef4444'
+        };
+        new google.visualization.Gauge(document.getElementById('indiaInrGaugeChart')).draw(inrData, gaugeOpts);
+
+        // Sector Impact BarChart
+        const sectorData = google.visualization.arrayToDataTable([
+          ['Sector', 'Sensitivity'],
+          ...Object.entries(m.sectorHits).map(([k, v]) => [k, v])
+        ]);
+        new google.visualization.BarChart(document.getElementById('indiaSectorChart')).draw(sectorData, {
+          ...CHART_THEME,
+          hAxis: { ...CHART_THEME.hAxis, title: 'Institutional Exposure Score' },
+          vAxis: { ...CHART_THEME.vAxis, title: 'Sector High-Density Vertical' },
+          legend: { position: 'top', alignment: 'center' }
+        });
+      }
+
       const gaugePct = Math.max(0, Math.min(100, 50 + (m.inrPressure * 10)));
-      const gaugeDeg = Math.round((gaugePct / 100) * 360);
-      gaugeEl.style.setProperty('--g', `${gaugeDeg}deg`);
-      gaugeNoteEl.textContent = `Pressure score ${pctStr(m.inrPressure)} (${gaugePct >= 55 ? 'INR downside bias' : gaugePct <= 45 ? 'INR stable/firm bias' : 'neutral zone'})`;
-      const maxSector = Math.max(1, ...Object.values(m.sectorHits));
-      sectorBarsEl.innerHTML = Object.entries(m.sectorHits).map(([k, v]) => `
-        <div class="sector-row">
-          <div class="sector-label">${k}</div>
-          <div class="sector-track"><div class="sector-fill" style="width:${Math.round((v / maxSector) * 100)}%"></div></div>
-        </div>
-      `).join('');
+      indiaInrGaugeNoteEl.textContent = `Stress Score: ${pctStr(m.inrPressure)} (${gaugePct >= 60 ? 'Downside Risk' : gaugePct <= 40 ? 'Stability Bias' : 'Neutral Corridor'})`;
       listEl.innerHTML = events.map((e, idx) => `
         <li class="calendar-item india-event-card" data-india-idx="${idx}">
           <div class="calendar-item-head">

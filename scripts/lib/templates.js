@@ -72,8 +72,8 @@ function parseMD(md) {
     let finalHtml = midStage
         .replace(/### (.*$)/gim, '<h3>$1</h3>')
         .replace(/## (.*$)/gim, '<h2>$1</h2>')
-        .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-        .replace(/\*(.*)\*/gim, '<em>$1</em>')
+        .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/gim, '<em>$1</em>')
         .replace(/^\- (.*$)/gim, '<li>$1</li>')
         .replace(/\n\n/gim, '</p><p>')
         .replace(/<li>/g, '<ul><li>').replace(/<\/li>/g, '</li></ul>').replace(/<\/ul><ul>/g, '');

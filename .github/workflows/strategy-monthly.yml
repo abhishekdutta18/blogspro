@@ -1,0 +1,54 @@
+name: Strategy Monthly
+
+on:
+  schedule:
+    - cron: '30 05 1 * *' # 11:00 AM IST 1st
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  strategy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: strategy-monthly-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm install
+      - name: Generate Monthly Macro Outlook
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
+          NEWS_API_KEY: ${{ secrets.API_KEY_NEWS }}
+          NEWSLETTER_WORKER_URL: ${{ secrets.NEWSLETTER_WORKER_URL }}
+          NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
+          UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_TO: ${{ secrets.TELEGRAM_CHAT_ID }}
+          NOTIFICATION_WEBHOOK: ${{ secrets.WEBHOOK_SECRET }}
+        run: node scripts/generate-article.js --freq=monthly
+      - name: Commit and Push
+        run: |
+          git config --global user.name "BlogsPro Bot"
+          git config --global user.email "bot@blogspro.in"
+          git add articles/ index.html sitemap.xml
+          git commit -m "chore: monthly strategy update [skip ci]" || echo "No changes"
+          for i in {1..3}; do
+            git pull --rebase origin main
+            git push && exit 0
+            sleep 10
+          done
+      - name: Notify Socials
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_TO: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node scripts/notify-telegram.js --freq=monthly

@@ -1,0 +1,73 @@
+name: Manual Terminal Dispatch
+
+on:
+  workflow_dispatch:
+    inputs:
+      frequency:
+        description: 'Analysis Frequency to Trigger'
+        required: true
+        default: 'daily'
+        type: choice
+        options:
+          - hourly
+          - daily
+          - weekly
+          - monthly
+      force:
+        description: 'Force Regeneration (ignores existing files)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm install
+      - name: Execute Autonomous Briefing/Article
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
+          NEWS_API_KEY: ${{ secrets.API_KEY_NEWS }}
+          NEWSLETTER_WORKER_URL: ${{ secrets.NEWSLETTER_WORKER_URL }}
+          NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
+          UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_TO: ${{ secrets.TELEGRAM_CHAT_ID }}
+          NOTIFICATION_WEBHOOK: ${{ secrets.WEBHOOK_SECRET }}
+        run: |
+          FREQ="${{ github.event.inputs.frequency }}"
+          FORCE_FLAG="${{ github.event.inputs.force == 'true' && '--force' || '' }}"
+          
+          if [ "$FREQ" == "hourly" ] || [ "$FREQ" == "daily" ]; then
+            node scripts/generate-briefing.js --freq=$FREQ $FORCE_FLAG
+          else
+            node scripts/generate-article.js --freq=$FREQ $FORCE_FLAG
+          fi
+      - name: Commit and Push
+        run: |
+          git config --global user.name "BlogsPro Bot"
+          git config --global user.email "bot@blogspro.in"
+          git add briefings/ articles/ index.html sitemap.xml
+          git commit -m "chore: manual terminal dispatch [skip ci]" || echo "No changes"
+          for i in {1..3}; do
+            git pull --rebase origin main
+            git push && exit 0
+            sleep 10
+          done
+      - name: Notify Socials
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_TO: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node scripts/notify-telegram.js --freq=${{ github.event.inputs.frequency }}

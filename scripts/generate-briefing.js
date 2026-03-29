@@ -8,6 +8,7 @@ const {
 } = require("./lib/data-fetchers.js");
 const { askAI } = require("./lib/ai-service.js");
 const { getBaseTemplate } = require("./lib/templates.js");
+const { getBriefingPrompt, getSanitizerPrompt } = require("./lib/prompts.js");
 const fetch = require("node-fetch");
 
 async function fetchWithTimeout(url, options = {}, timeout = 15000) {
@@ -25,11 +26,30 @@ async function fetchWithTimeout(url, options = {}, timeout = 15000) {
 
 async function generateBriefing() {
     const frequency = process.argv.find(a => a.startsWith('--freq='))?.split('=')[1] || 'daily';
+    const force = process.argv.includes('--force');
     const now = new Date();
     const dateLabel = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     const today = now.toISOString().split('T')[0];
     const targetDir = path.join(__dirname, "..", "briefings", frequency);
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+
+    // 0. IDEMPOTENCY CHECK (Ghost Prevention)
+    const indexPath = path.join(targetDir, "index.json");
+    if (fs.existsSync(indexPath) && !force) {
+        const index = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+        const exists = index.some(entry => {
+            if (frequency === 'hourly') {
+                const entryHour = new Date(entry.timestamp).getHours();
+                return entry.date === today && entryHour === now.getHours();
+            }
+            return entry.date === today;
+        });
+
+        if (exists) {
+            console.log(`⚠️ SKIPPING: ${frequency.toUpperCase()} pulse already exists for ${today}${frequency === 'hourly' ? ' (Hour: ' + now.getHours() + ')' : ''}. Use --force to override.`);
+            return;
+        }
+    }
 
     console.log(`🚀 Starting Global Intelligence Engine (${frequency})...`);
     
@@ -62,27 +82,7 @@ async function generateBriefing() {
     ${universal}
     `;
 
-    const prompt = `You are a Lead Quant Strategist for BlogsPro Intelligence Terminal.
-    Write a high-fidelity ${frequency} market pulse (HTML).
-    
-    TEMPORAL GUIDANCE:
-    - Current DOW is ${mkt.day}. Status: ${mkt.status}.
-    ${mkt.isWeekend ? "- IMPORTANT: Markets are CLOSED. Focus on WEEKEND WRAP and WEEKLY PREP. Do NOT suggest intraday long/short trades." : "- Markets are ACTIVE. Focus on LIVE EXECUTION and PIVOTS."}
-
-    STRATEGIC REQUIREMENTS:
-    1. Tone: Sharp, authoritative, data-driven.
-    2. Focus: ${frequency === 'hourly' ? 'Volatility pivots, technical liquidity, and global macro drifts.' : 'Session transitions, sectoral rotation, and institutional catalysts.'}
-    3. Grounding: You MUST reference specific news items from the feeds above to back your analysis.
-    4. Sentiment: Map how global greed/fear (${sentiment.label}) correlates with Indian FPI/DII flows.
-
-    CRITICAL VISUAL INSTRUCTIONS:
-    - Start with exactly one <h2> tag.
-    - Provide a 1-sentence analytical excerpt wrapped in <details id="meta-excerpt" style="display:none">.
-    - MANDATORY: Include a Markdown table with at least 5 rows: "| Metric | Observation | Alpha Impact |".
-    - End with "SENTIMENT_SCORE: [0-100]" and "PRICE_INFO: [Last, High, Low]".
-    - Include a poll: "Question: [Text]" and "Options: [Opt1, Opt2, Opt3]".
-
-    DATASET: ${marketContext}`;
+    const prompt = getBriefingPrompt(frequency, marketContext, mkt);
 
     // Dynamic Symbol Detection
     let pairId = "179"; // Nifty 50
@@ -125,14 +125,7 @@ async function generateBriefing() {
 
         // Multi-Pass Pass 2: Sanitizer
         console.log("🧹 Sanitizing Briefing Content...");
-        const sanitizerPrompt = `Clean this market briefing for institutional delivery.
-        - REMOVE all markdown backticks (\`\`\`).
-        - Fix mismatching tags and invalid HTML.
-        - Ensure metrics (SENTIMENT_SCORE, PRICE_INFO) are preserved at the bottom.
-        - Tone: Cold, Bloomberg-style institutional blocks.
-        
-        CONTENT:
-        ${content}`;
+        const sanitizerPrompt = getSanitizerPrompt(content);
         content = await askAI(sanitizerPrompt);
         content = cleanAIResponse(content);
 
@@ -141,6 +134,16 @@ async function generateBriefing() {
         const seoPrompt = `Analyze this market report and return JSON only: {"description": "1-sentence summary", "keywords": "5-10 comma separated keywords"}\n\nREPORT: ${content.substring(0, 2000)}`;
         const seoDataRaw = await askAI(seoPrompt);
         const seoData = JSON.parse(seoDataRaw.match(/\{.*?\}/s)?.[0] || '{"description": "Institutional market pulse", "keywords": "fintech, strategy"}');
+
+        // Extract Briefing Chart Data proposed by AI
+        const chartDataMatch = content.match(/<chart-data>(.*?)<\/chart-data>/s);
+        let proposedData = { sentiment: [], macro: [], multi_asset: [] };
+        if (chartDataMatch) {
+            try { 
+                proposedData = JSON.parse(chartDataMatch[1].trim());
+                content = content.replace(/<chart-data>.*?<\/chart-data>/s, ""); // Purge from UI
+            } catch (e) { console.error("Chart data parse fail", e); }
+        }
 
         const titleMatch = content.match(/<h2[^>]*>(.*?)<\/h2>/i);
         const excerptMatch = content.match(/<details id="meta-excerpt"[^>]*>(.*?)<\/details>/i);
@@ -175,25 +178,41 @@ async function generateBriefing() {
 
         let injectionScript = "";
         briefingCharts.forEach(c => {
+            const dataPts = proposedData[c.id] || [['P1', 50], ['P2', 55], ['P3', 45], ['P4', 60]];
             injectionScript += `
             <script>
                 google.charts.setOnLoadCallback(() => {
                     const el = document.getElementById('chart_${c.id}');
                     if (!el) return;
-                    const data = google.visualization.arrayToDataTable([
-                        ['Period', 'Drift', 'Benchmark'],
-                        ['P1', ${Math.random()*10}, 5], ['P2', ${Math.random()*15}, 7], ['P3', ${Math.random()*12}, 6], ['P4', ${Math.random()*20}, 8]
-                    ]);
+                    const data = new google.visualization.DataTable();
+                    data.addColumn('string', 'Period');
+                    data.addColumn('number', '${c.label}');
+                    data.addRows(${JSON.stringify(dataPts)});
+
                     const options = {
                         backgroundColor: 'transparent',
-                        colors: ['#BFA100', '#FFB800'],
-                        chartArea: {width: '90%', height: '80%'},
-                        legend: { position: 'none' },
-                        hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
-                        vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
-                        lineWidth: 2, pointSize: 4
+                        colors: ['#BFA100'],
+                        chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
+                        legend: { 
+                            position: 'top', 
+                            alignment: 'center',
+                            textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
+                        },
+                        hAxis: { 
+                            title: 'Intraday Session Period',
+                            textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 
+                            titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                            gridlines: {color: 'rgba(191,161,0,0.1)'} 
+                        },
+                        vAxis: { 
+                            title: c.label + ' % Delta',
+                            textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 
+                            titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                            gridlines: {color: 'rgba(191,161,0,0.1)'} 
+                        },
+                        lineWidth: 3, pointSize: 6
                     };
-                    const chart = new google.visualization.LineChart(el);
+                    const chart = new google.visualization.AreaChart(el);
                     chart.draw(data, options);
                 });
             </script>

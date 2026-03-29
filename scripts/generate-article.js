@@ -8,6 +8,7 @@ const {
 } = require("./lib/data-fetchers.js");
 const { askAI } = require("./lib/ai-service.js");
 const { getBaseTemplate } = require("./lib/templates.js");
+const { getArticlePrompt, getSanitizerPrompt } = require("./lib/prompts.js");
 const fetch = require("node-fetch");
 
 async function fetchWithTimeout(url, options = {}, timeout = 15000) {
@@ -25,11 +26,23 @@ async function fetchWithTimeout(url, options = {}, timeout = 15000) {
 
 async function generateArticle() {
     const frequency = process.argv.find(a => a.startsWith('--freq='))?.split('=')[1] || 'weekly';
+    const force = process.argv.includes('--force');
     const now = new Date();
     const dateLabel = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     const today = now.toISOString().split('T')[0];
     const targetDir = path.join(__dirname, "..", "articles", frequency);
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+
+    // 0. IDEMPOTENCY CHECK (Ghost Prevention)
+    const indexPath = path.join(targetDir, "index.json");
+    if (fs.existsSync(indexPath) && !force) {
+        const index = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+        const exists = index.some(entry => entry.date === today); // Simple date match for weekly/monthly
+        if (exists) {
+            console.log(`⚠️ SKIPPING: ${frequency.toUpperCase()} article already exists for ${today}. Use --force to override.`);
+            return;
+        }
+    }
 
     console.log(`🚀 Starting Global Strategic Article Engine (${frequency})...`);
     
@@ -85,61 +98,66 @@ async function generateArticle() {
                 .slice(0, 8)
                 .join(' | ');
 
-            const scribePrompt = `You are a Senior Institutional Analyst at Bloomberg.
-            CONTEXT:
-            - Data Flux: ${v.data}
-            - Anchor: ${macro.summary}
-            - Global News: ${verticalNews || "Systemic drift mapping via macro context."}
-            - Flow: ${lastSummary}
-            
-            STRICT INSTRUCTION:
-            1. Write a 1,500-2,000 word chapter for '${v.name}'. Cold, data-backed high-density tone.
-            2. Formatting: Use <h2> for '${v.name}'. Insert <div class="card"><div id="chart_${v.id}"></div></div>.
-            3. NO MARKDOWN CODE BLOCKS. Output pure HTML body snippets only.`;
+            const scribePrompt = getArticlePrompt(frequency, v.name, v.data, macro.summary, verticalNews, lastSummary);
 
             // Stage 1: Narrative Scribing
             let rawChapter = await askAI(scribePrompt);
             
             // Stage 2: Gemini Sanitizer Pass
             console.log(`🧹 Sanitizing Vertical ${i+1}/${verticals.length}...`);
-            const sanitizerPrompt = `Clean this HTML for a Bloomberg Terminal. 
-            - REMOVE all markdown backticks (e.g. \`\`\`).
-            - Fix any half-closed tags or invalid HTML.
-            - Ensure the ID 'chart_${v.id}' is preserved in the div.
-            - Format the text specifically as cold, professional institutional blocks.
-            
-            CONTENT TO SANITIZE:
-            ${rawChapter}`;
+            const sanitizerPrompt = getSanitizerPrompt(rawChapter);
             
             let chapter = await askAI(sanitizerPrompt);
             chapter = cleanAIResponse(chapter);
 
+            // Extract Chart Data Proposed by AI
+            const chartDataMatch = chapter.match(/<chart-data>(.*?)<\/chart-data>/s);
+            let proposedData = "[['P1', 5], ['P2', 8], ['P3', 6], ['P4', 10]]"; // Fallback
+            if (chartDataMatch) {
+                proposedData = chartDataMatch[1].trim();
+                chapter = chapter.replace(/<chart-data>.*?<\/chart-data>/s, ""); // Purge tag from UI
+            }
+
             fullContent += `\n<section id="${v.id}" class="institutional-section">\n${chapter}\n</section>\n`;
             
-            const script = `
+            allScripts += `
 <script>
     google.charts.setOnLoadCallback(() => {
         const el = document.getElementById('chart_${v.id}');
         if (!el) return;
-        const data = google.visualization.arrayToDataTable([
-            ['Period', 'Drift', 'Benchmark'],
-            ['P1', ${Math.random()*10}, 5], ['P2', ${Math.random()*15}, 7], ['P3', ${Math.random()*12}, 6], ['P4', ${Math.random()*20}, 8]
-        ]);
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Period');
+        data.addColumn('number', 'Institutional Drift %');
+        data.addRows(${proposedData});
+
         const options = {
             backgroundColor: 'transparent',
-            colors: ['#BFA100', '#FFB800'],
-            chartArea: {width: '90%', height: '80%'},
-            legend: { position: 'none' },
-            hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
-            vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
-            lineWidth: 2, pointSize: 4
+            colors: ['#BFA100'],
+            chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
+            legend: { 
+                position: 'top', 
+                alignment: 'center',
+                textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
+            },
+            hAxis: { 
+                title: 'Observation Period (Bloomberg Terminal)',
+                textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 
+                titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                gridlines: {color: 'rgba(191,161,0,0.1)'} 
+            },
+            vAxis: { 
+                title: 'Institutional Drift %',
+                textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 
+                titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                gridlines: {color: 'rgba(191,161,0,0.1)'} 
+            },
+            lineWidth: 3, pointSize: 6
         };
-        const chart = new google.visualization.LineChart(el);
+        const chart = new google.visualization.AreaChart(el);
         chart.draw(data, options);
     });
 </script>
 `;
-            allScripts += script;
             
             lastSummary = `Previous chapter concluded a deep dive into ${v.name}, highlighting key regulatory shifts and market exposure for sovereign debt and capital flows.`;
         }

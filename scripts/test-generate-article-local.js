@@ -8,7 +8,7 @@ const {
 const { getBaseTemplate } = require("./lib/templates.js");
 
 async function testArticleGeneration() {
-    console.log("🏛️  Starting Bloomberg V6.33 Smoke Test...");
+    console.log("🏛️  Starting BlogsPro V6.40 High-Fidelity Smoke Test...");
     
     // 1. Data Ingestion (Parity)
     const [macro, rbi, sebi, mf, pevc, ins, gift] = await Promise.all([
@@ -36,6 +36,7 @@ async function testArticleGeneration() {
     const dateLabel = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
     // 2. Mock Recursive Synthesis (V6.33 Persona)
+    let allScripts = "";
     console.log("🖋️  Synthesizing 13 Experts (Mocked Scribe)...");
     for (const v of verticals) {
         const mockChapter = `
@@ -47,29 +48,51 @@ async function testArticleGeneration() {
                 <div id="chart_${v.id}" style="height: 300px;"></div>
             </div>
             <p><strong>Summary:</strong> Continuous monitoring of ${v.id} remains the highest strategic priority for Q2 transition.</p>
+            <chart-data>[["Q1", ${5 + Math.random()*2}], ["Q2", ${7 + Math.random()*3}], ["Q3", ${6 + Math.random()*2}], ["Q4", ${10 + Math.random()*5}]]</chart-data>
         `;
-        fullContent += `<section id="${v.id}" class="institutional-section">\n${mockChapter}\n</section>\n`;
+        const chartDataMatch = mockChapter.match(/<chart-data>(.*?)<\/chart-data>/s);
+        let proposedData = "[['P1', 5], ['P2', 8], ['P3', 6], ['P4', 10]]";
+        if (chartDataMatch) {
+            proposedData = chartDataMatch[1].trim();
+        }
+
+        fullContent += `<section id="${v.id}" class="institutional-section">\n${mockChapter.replace(/<chart-data>.*?<\/chart-data>/s, "")}\n</section>\n`;
         
-        // Inject Bloomberg Chart logic
-        fullContent += `
+        // Inject Bloomberg Chart logic into segregated scripts
+        allScripts += `
         <script>
             google.charts.setOnLoadCallback(() => {
                 const el = document.getElementById('chart_${v.id}');
                 if (!el) return;
-                const data = google.visualization.arrayToDataTable([
-                    ['Period', 'Drift', 'Benchmark'],
-                    ['P1', Math.random()*10, 5], ['P2', Math.random()*15, 7], ['P3', Math.random()*12, 6], ['P4', Math.random()*20, 8]
-                ]);
+                const data = new google.visualization.DataTable();
+                data.addColumn('string', 'Period');
+                data.addColumn('number', 'Institutional Drift %');
+                data.addRows(${proposedData});
+
                 const options = {
                     backgroundColor: 'transparent',
-                    colors: ['#BFA100', '#FFB800'],
-                    chartArea: {width: '90%', height: '80%'},
-                    legend: { position: 'none' },
-                    hAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
-                    vAxis: { textStyle: {color: '#BFA100', fontSize: 10}, gridlines: {color: 'rgba(191,161,0,0.1)'} },
-                    lineWidth: 2, pointSize: 4
+                    colors: ['#BFA100'],
+                    chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
+                    legend: { 
+                        position: 'top', 
+                        alignment: 'center',
+                        textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
+                    },
+                    hAxis: { 
+                        title: 'Observation Period (Bloomberg V6.40)',
+                        textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 
+                        titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                        gridlines: {color: 'rgba(191,161,0,0.1)'} 
+                    },
+                    vAxis: { 
+                        title: 'Institutional Drift Delta %',
+                        textStyle: {color: 'rgba(191,161,0,0.6)', fontSize: 10}, 
+                        titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                        gridlines: {color: 'rgba(191,161,0,0.1)'} 
+                    },
+                    lineWidth: 3, pointSize: 6
                 };
-                const chart = new google.visualization.LineChart(el);
+                const chart = new google.visualization.AreaChart(el);
                 chart.draw(data, options);
             });
         </script>
@@ -77,7 +100,7 @@ async function testArticleGeneration() {
     }
 
     // 3. Template Wrapping (V6.33 Bloomberg)
-    const title = "Bloomberg V6.33 - Masterpiece Smoke Test (Sovereign)";
+    const title = "Bloomberg V6.40 - Masterpiece Smoke Test (Sovereign)";
     const excerpt = "A 13-vertical high-fidelity strategic synthesis of the global and domestic institutional landscape.";
     
     // Pass mock SEO data
@@ -86,7 +109,8 @@ async function testArticleGeneration() {
         type: "article", freq: "weekly", freqLabel: "Weekly Strategic Manor",
         sentimentScore: 72, priceInfo: { last: "24,000", high: "24,150", low: "23,900" },
         seoDescription: "High-fidelity Bloomberg V6.33 terminal article test.",
-        seoKeywords: "bloomberg, fintech, nexus, strategy"
+        seoKeywords: "bloomberg, fintech, nexus, strategy",
+        scripts: allScripts
     });
 
     const fileName = "bloomberg-smoke-test.html";
