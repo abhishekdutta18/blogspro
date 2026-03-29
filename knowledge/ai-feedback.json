@@ -1,25 +1,5 @@
 [
   {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.880Z",
-    "task": "Debt & Sovereignty",
-    "failures": [
-      "Missing exactly one <h2> header tag."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.881Z",
-    "task": "Commodity Pulse",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.882Z",
-    "task": "FX & Cross-Border",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
     "type": "SUCCESS",
     "timestamp": "2026-03-29T06:11:41.883Z",
     "task": "Asset Allocation",
@@ -11166,6 +11146,36 @@
   {
     "type": "FAILURE",
     "timestamp": "2026-03-29T17:46:58.880Z",
+    "task": "Briefing",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T17:50:37.110Z",
+    "task": "Briefing",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T17:50:39.835Z",
+    "task": "Briefing",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T17:50:42.340Z",
     "task": "Briefing",
     "failures": [
       "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
