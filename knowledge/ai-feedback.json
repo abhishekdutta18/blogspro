@@ -1,46 +1,6 @@
 [
   {
     "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.898Z",
-    "task": "Equities & Alpha",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.899Z",
-    "task": "Equities & Alpha",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.900Z",
-    "task": "Regulatory Ledger",
-    "failures": [
-      "Verification failure (Found 0-1 citations, need at least 2 distinct sources)."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.901Z",
-    "task": "Asset Allocation",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.902Z",
-    "task": "Commodity Pulse",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.903Z",
-    "task": "Digital Rails",
-    "failures": [
-      "Insufficient data density (Found 1-2 metrics, need at least 5 for terminal depth)."
-    ]
-  },
-  {
-    "type": "SUCCESS",
     "timestamp": "2026-03-29T06:11:41.905Z",
     "task": "Scribe Analytics",
     "pattern": "Bloomberg-style data density achieved on first pass."
@@ -11217,6 +11177,65 @@
     "failures": [
       "QA_SYSTEM_ARTIFACT",
       "QA_CITATION_DEFICIT"
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:23:31.045Z",
+    "task": "Briefing",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:23:31.550Z",
+    "task": "Briefing",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:23:31.971Z",
+    "task": "Briefing",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON tag at the end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:23:32.478Z",
+    "task": "DAILY_BRIEFING_HOURLY_PRE",
+    "failures": [
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources).",
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:23:32.482Z",
+    "task": "DAILY_BRIEFING_HOURLY_POST",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T18:23:32.484Z",
+    "task": "DAILY_BRIEFING_HOURLY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT",
+      "QA_BARE_URL"
     ],
     "preview": null
   }
