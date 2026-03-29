@@ -84,15 +84,11 @@ async function generateGeminiContent(prompt) {
     if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing.");
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
-    // Try newest stable models first — added variants with 'models/' prefix to fix 404s
+    // Try newest stable models for March 2026 — 1.5 and 2.0 series are now retired
     const models = [
-        "models/gemini-2.0-flash", 
-        "models/gemini-2.0-flash-exp",
-        "models/gemini-1.5-flash-latest", 
-        "models/gemini-1.5-flash", 
-        "models/gemini-1.5-pro-latest",
-        "models/gemini-1.5-pro", 
-        "models/gemini-pro"
+        "models/gemini-3.1-pro-preview", 
+        "models/gemini-2.5-flash", 
+        "models/gemini-3.1-flash-lite-preview"
     ];
     
     for (const modelName of models) {
