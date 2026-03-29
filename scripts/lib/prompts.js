@@ -83,7 +83,13 @@ CONTEXT:
 
 STRICT INSTRUCTION:
 1. Write a ${wordCount} word chapter for '${verticalName}'.
-2. Formatting: Use <h2> for '${verticalName}'. Insert <div class="card terminal-chart" id="chart_${verticalId}"></div> exactly once to hold the chart.
+2. Mandatory Structural Layout:
+   - START with exactly one (1) <h2>${verticalName}</h2> tag. No preamble.
+   - Insert <div class="card terminal-chart" id="chart_${verticalId}"></div> exactly once in the body.
+3. CITATION MANDATE: 
+   - You MUST include at least 2 distinct hyperlink citations in this format: [Institutional Source](https://example.com/data).
+4. TABLE MANDATE:
+   - Include exactly one Markdown table: "| Phase | Observation | Implications |" with at least 5 rows of data.
 ${CHART_SYNC_RULE}
 - Output it at the very END of the chapter inside a <chart-data> tag as a JSON array of arrays:
   <chart-data>[["Label1", Value1], ["Label2", Value2], ["Label3", Value3], ["Label4", Value4]]</chart-data>
