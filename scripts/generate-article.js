@@ -227,9 +227,12 @@ async function generateArticle() {
         fs.writeFileSync(indexPath, JSON.stringify(index.slice(0, 50), null, 2));
 
         if (process.env.NEWSLETTER_WORKER_URL && (isMonthly || frequency === 'weekly')) {
+            const emailHtml = require("./lib/templates.js").getEmailTemplate({
+                title, excerpt, content: fullContent, dateLabel, priceInfo
+            });
             await fetchWithTimeout(process.env.NEWSLETTER_WORKER_URL, {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ subject: title, html: fullHtml, secret: process.env.NEWSLETTER_SECRET })
+                body: JSON.stringify({ subject: title, html: emailHtml, secret: process.env.NEWSLETTER_SECRET })
             }).catch(() => {});
         }
 

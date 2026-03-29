@@ -24,7 +24,7 @@
       --gold:    #BFA100; /* Bloomberg Neon Gold */
       --gold2:   #FFB800; /* Bloomberg Amber Data */
       --cream:   #F8FAFC;
-      --muted:   rgba(191,161,0,0.6);
+      --muted:   #9CA3AF;
       --border:  rgba(191,161,0,0.15);
       --serif:   'Inter', sans-serif;
       --sans:    'Inter', sans-serif;
@@ -72,7 +72,7 @@
     .nav-links { display: flex; align-items: center; gap: 2rem; list-style: none; }
 
     .nav-links a {
-      font-size: 0.85rem; font-weight: 500;
+      font-size: 1.0rem; font-weight: 500;
       letter-spacing: 0.08em; text-transform: uppercase;
       color: var(--muted); transition: color 0.2s;
     }
@@ -80,7 +80,7 @@
 
     .nav-cta {
       background: var(--gold); color: var(--navy) !important;
-      padding: 0.45rem 1.1rem; border-radius: 3px;
+      padding: 0.6rem 1.1rem; border-radius: 3px;
       font-weight: 600 !important; transition: background 0.2s !important;
     }
     .nav-cta:hover { background: var(--gold2) !important; }
@@ -95,7 +95,7 @@
 
     .theme-btn-nav {
       background: transparent; border: 1px solid var(--border); color: var(--muted);
-      width: 32px; height: 32px; border-radius: 50%; font-size: 0.85rem;
+      width: 32px; height: 32px; border-radius: 50%; font-size: 1.0rem;
       cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;
     }
     .theme-btn-nav:hover { border-color: var(--gold); color: var(--gold); }
@@ -106,12 +106,12 @@
       background: linear-gradient(135deg, var(--gold), var(--navy3));
       border: 1.5px solid var(--border);
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.78rem; font-weight: 700; color: var(--navy);
+      font-size: 0.95rem; font-weight: 700; color: var(--navy);
       overflow: hidden; flex-shrink: 0;
     }
     .nav-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-    .nav-user-name { font-size: 0.85rem; font-weight: 500; color: var(--cream); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .nav-admin-tag { background: var(--gold); color: var(--navy); padding: 0.35rem 0.9rem; border-radius: 3px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; transition: background 0.2s; }
+    .nav-user-name { font-size: 1.0rem; font-weight: 500; color: var(--cream); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nav-admin-tag { background: var(--gold); color: var(--navy); padding: 0.35rem 0.9rem; border-radius: 3px; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.06em; transition: background 0.2s; }
     .nav-admin-tag:hover { background: var(--gold2) !important; }
     .nav-dropdown {
       position: absolute; top: calc(100% + 0.6rem); right: 0;
@@ -122,7 +122,7 @@
     }
     .nav-dropdown.open { display: flex; }
     .nav-dropdown a, .nav-dropdown button {
-      padding: 0.7rem 1rem; font-size: 0.82rem; color: var(--muted);
+      padding: 0.7rem 1rem; font-size: 1.0rem; color: var(--muted);
       background: transparent; border: none; text-align: left;
       font-family: var(--sans); cursor: pointer; transition: all 0.15s;
       border-bottom: 1px solid rgba(201,168,76,0.08);
@@ -146,7 +146,7 @@
         radial-gradient(ellipse 40% 60% at 20% 80%, rgba(37,99,235,0.06) 0%, transparent 60%);
     }
     .hero-label {
-      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.2em;
+      font-size: 0.9rem; font-weight: 600; letter-spacing: 0.2em;
       text-transform: uppercase; color: var(--gold); margin-bottom: 1.5rem;
       display: flex; align-items: center; gap: 0.75rem;
     }
@@ -165,24 +165,24 @@
     .hero-actions { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
     .btn-primary {
       background: var(--gold); color: var(--navy);
-      padding: 0.85rem 2rem; border-radius: 3px;
+      padding: 1.1rem 2rem; border-radius: 3px;
       font-weight: 600; font-size: 0.9rem; letter-spacing: 0.04em;
       transition: all 0.2s; border: none; cursor: pointer;
     }
     .btn-primary:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(201,168,76,0.3); }
-    .hero-scroll { color: var(--muted); font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; transition: color 0.2s; }
+    .hero-scroll { color: var(--muted); font-size: 1.0rem; display: flex; align-items: center; gap: 0.8rem; transition: color 0.2s; }
     .hero-scroll:hover { color: var(--gold); }
     .hero-stats { position: absolute; bottom: 3rem; right: 0; display: flex; gap: 3rem; }
     .stat-item { text-align: right; }
     .stat-value { font-family: var(--mono); font-size: 2.2rem; font-weight: 700; color: var(--gold2); line-height: 1; }
-    .stat-label { font-family: var(--mono); font-size: 0.65rem; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.25rem; opacity: 0.7; }
+    .stat-label { font-family: var(--mono); font-size: 0.8rem; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.25rem; opacity: 0.7; }
 
     /* ── TICKER ── */
     .ticker-bar { background: var(--navy3); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); overflow: hidden; padding: 0.7rem 0; }
     .ticker-inner { display: flex; gap: 4rem; animation: ticker 28s linear infinite; white-space: nowrap; }
     .ticker-inner:hover { animation-play-state: paused; }
     @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-    .ticker-tag { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+    .ticker-tag { font-size: 0.9rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
     .ticker-sep { color: var(--muted); }
 
     /* ── FOREX CALENDAR ── */
@@ -201,9 +201,9 @@
       margin-bottom: 0.55rem;
       flex-wrap: wrap;
     }
-    .feed-status-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+    .feed-status-label { font-size: 0.85rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
     .feed-status-chip {
-      font-size: 0.62rem;
+      font-size: 0.8rem;
       color: #86efac;
       background: rgba(34,197,94,0.1);
       border: 1px solid rgba(34,197,94,0.35);
@@ -239,7 +239,7 @@
       gap: 0.9rem;
     }
     .calendar-meta {
-      font-size: 0.68rem;
+      font-size: 0.85rem;
       color: var(--muted);
       margin-bottom: 0.55rem;
       display: flex;
@@ -247,14 +247,14 @@
       flex-wrap: wrap;
     }
     .calendar-analysis {
-      font-size: 0.76rem;
+      font-size: 0.95rem;
       color: var(--muted);
       margin-bottom: 0.35rem;
       line-height: 1.5;
     }
     .calendar-tools {
       display: flex;
-      gap: 0.55rem;
+      gap: 0.8rem;
       flex-wrap: wrap;
       margin-bottom: 0.45rem;
     }
@@ -265,7 +265,7 @@
       background: rgba(15,22,40,0.6);
     }
     .calendar-mini-title {
-      font-size: 0.64rem;
+      font-size: 0.8rem;
       color: var(--gold);
       letter-spacing: 0.1em;
       text-transform: uppercase;
@@ -274,8 +274,8 @@
     }
     .calendar-kv {
       display: grid;
-      gap: 0.35rem;
-      font-size: 0.73rem;
+      gap: 0.65rem;
+      font-size: 0.9rem;
       color: var(--muted);
       line-height: 1.45;
     }
@@ -283,29 +283,29 @@
     .desk-charts {
       margin-top: 0.55rem;
       display: grid;
-      gap: 0.5rem;
+      gap: 0.8rem;
     }
     .desk-chart {
       border: 1px solid rgba(136,150,179,0.2);
       border-radius: 4px;
-      padding: 0.45rem;
+      padding: 0.6rem;
       background: rgba(8,13,26,0.35);
     }
     .desk-chart-title {
-      font-size: 0.58rem;
+      font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--muted);
       margin-bottom: 0.3rem;
       font-weight: 600;
     }
-    .prob-bars { display: grid; gap: 0.25rem; }
-    .prob-row { display: grid; grid-template-columns: 52px 1fr 34px; gap: 0.35rem; align-items: center; }
-    .prob-label { font-size: 0.62rem; color: var(--muted); }
+    .prob-bars { display: grid; gap: 0.5rem; }
+    .prob-row { display: grid; grid-template-columns: 52px 1fr 34px; gap: 0.65rem; align-items: center; }
+    .prob-label { font-size: 0.8rem; color: var(--muted); }
     .prob-track { height: 7px; border-radius: 999px; background: rgba(136,150,179,0.2); overflow: hidden; }
     .prob-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--gold), #e9d08a); }
-    .prob-val { font-size: 0.62rem; color: var(--cream); text-align: right; }
-    .gauge-wrap { display: grid; grid-template-columns: 56px 1fr; gap: 0.45rem; align-items: center; }
+    .prob-val { font-size: 0.8rem; color: var(--cream); text-align: right; }
+    .gauge-wrap { display: grid; grid-template-columns: 56px 1fr; gap: 0.75rem; align-items: center; }
     .gauge {
       width: 56px; height: 56px; border-radius: 50%;
       background: conic-gradient(#22c55e 0deg, #22c55e var(--g, 180deg), rgba(136,150,179,0.2) var(--g, 180deg), rgba(136,150,179,0.2) 360deg);
@@ -317,21 +317,21 @@
       background: var(--navy2);
       border: 1px solid rgba(136,150,179,0.2);
     }
-    .gauge-note { font-size: 0.62rem; color: var(--muted); line-height: 1.35; }
-    .sector-bars { display: grid; gap: 0.25rem; }
-    .sector-row { display: grid; grid-template-columns: 56px 1fr; gap: 0.35rem; align-items: center; }
-    .sector-label { font-size: 0.62rem; color: var(--muted); }
+    .gauge-note { font-size: 0.8rem; color: var(--muted); line-height: 1.35; }
+    .sector-bars { display: grid; gap: 0.5rem; }
+    .sector-row { display: grid; grid-template-columns: 56px 1fr; gap: 0.65rem; align-items: center; }
+    .sector-label { font-size: 0.8rem; color: var(--muted); }
     .sector-track { height: 6px; border-radius: 999px; background: rgba(136,150,179,0.2); overflow: hidden; }
     .sector-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #8fb5ff, #5e8fff); }
     .desk-explain {
       margin-top: 0.55rem;
       border: 1px dashed rgba(136,150,179,0.3);
       border-radius: 4px;
-      padding: 0.45rem;
-      font-size: 0.64rem;
+      padding: 0.6rem;
+      font-size: 0.8rem;
       color: var(--muted);
       display: grid;
-      gap: 0.25rem;
+      gap: 0.5rem;
       line-height: 1.4;
     }
     .india-qoq-panel {
@@ -340,7 +340,7 @@
       padding-top: 0.6rem;
     }
     .india-qoq-title {
-      font-size: 0.64rem;
+      font-size: 0.8rem;
       text-transform: uppercase;
       letter-spacing: 0.09em;
       color: var(--gold);
@@ -354,7 +354,7 @@
       overflow: hidden;
       border: 1px solid rgba(136,150,179,0.2);
       border-radius: 4px;
-      padding: 0.4rem;
+      padding: 0.6rem;
       background: rgba(8,13,26,0.35);
     }
     .qoq-chart-wrap {
@@ -371,11 +371,11 @@
     .linechart-wrap {
       width: 100%;
       display: grid;
-      gap: 0.35rem;
+      gap: 0.65rem;
     }
     .linechart-svg {
       width: 100%;
-      height: 130px;
+      height: 160px;
       display: block;
     }
     .line-axis {
@@ -421,7 +421,7 @@
       fill: var(--muted);
     }
     .linechart-note {
-      font-size: 0.6rem;
+      font-size: 0.75rem;
       color: var(--muted);
       line-height: 1.4;
     }
@@ -430,12 +430,12 @@
       margin: 0;
       padding: 0;
       display: grid;
-      gap: 0.5rem;
+      gap: 0.8rem;
     }
     .calendar-skel-row {
       display: grid;
       grid-template-columns: 72px 1fr 135px 52px;
-      gap: 0.5rem;
+      gap: 0.8rem;
       align-items: center;
     }
     .calendar-past-wrap {
@@ -444,7 +444,7 @@
       padding-top: 0.55rem;
     }
     .calendar-past-title {
-      font-size: 0.62rem;
+      font-size: 0.8rem;
       letter-spacing: 0.09em;
       text-transform: uppercase;
       color: var(--gold);
@@ -465,9 +465,9 @@
       border-radius: 4px;
       padding: 0.75rem;
       display: grid;
-      gap: 0.5rem;
+      gap: 0.8rem;
       min-height: 90px;
-      font-size: 0.7rem;
+      font-size: 0.85rem;
       color: var(--muted);
     }
     .cal-skel {
@@ -485,7 +485,7 @@
       background: rgba(15,22,40,0.9);
       border: 1px solid var(--border);
       color: var(--cream);
-      font-size: 0.68rem;
+      font-size: 0.85rem;
       letter-spacing: 0.04em;
       border-radius: 4px;
       padding: 0.36rem 0.55rem;
@@ -498,7 +498,7 @@
       color: var(--gold);
     }
     .calendar-summary {
-      font-size: 0.7rem;
+      font-size: 0.85rem;
       color: var(--muted);
       margin-bottom: 0.35rem;
       display: flex;
@@ -509,20 +509,20 @@
       background: rgba(15,22,40,0.95);
       border: 1px solid rgba(136,150,179,0.22);
       border-radius: 4px;
-      padding: 0.85rem;
+      padding: 1.1rem;
       display: grid;
-      gap: 0.55rem;
-      min-height: 122px;
-      font-size: 0.78rem;
+      gap: 0.8rem;
+      min-height: 160px;
+      font-size: 0.95rem;
     }
     .calendar-item-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 0.4rem;
+      gap: 0.65rem;
     }
     .calendar-country {
-      font-size: 0.66rem;
+      font-size: 0.85rem;
       letter-spacing: 0.11em;
       text-transform: uppercase;
       color: var(--gold);
@@ -534,14 +534,14 @@
       overflow: visible;
     }
     .calendar-date {
-      font-size: 0.68rem;
+      font-size: 0.85rem;
       color: var(--muted);
       letter-spacing: 0.04em;
       text-align: left;
     }
     .calendar-impact {
       text-align: left;
-      font-size: 0.62rem;
+      font-size: 0.8rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: #f0cc6e;
@@ -549,7 +549,7 @@
     .calendar-view {
       display: block;
       color: var(--muted);
-      font-size: 0.66rem;
+      font-size: 0.85rem;
       line-height: 1.35;
       margin-top: 0.18rem;
       white-space: normal;
@@ -557,7 +557,7 @@
     .calendar-points {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.3rem;
+      gap: 0.5rem;
       margin-top: 0.2rem;
     }
     .calendar-point {
@@ -568,21 +568,21 @@
       min-height: 42px;
     }
     .calendar-point-label {
-      font-size: 0.56rem;
+      font-size: 0.75rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--muted);
       margin-bottom: 0.1rem;
     }
     .calendar-point-value {
-      font-size: 0.67rem;
+      font-size: 0.85rem;
       color: var(--cream);
       font-weight: 600;
       line-height: 1.25;
       word-break: break-word;
     }
     .calendar-empty {
-      font-size: 0.78rem;
+      font-size: 0.95rem;
       color: var(--muted);
       padding: 0.2rem 0 0.1rem;
     }
@@ -602,21 +602,21 @@
       flex-wrap: wrap;
     }
     .market-title {
-      font-size: 0.68rem;
+      font-size: 0.85rem;
       font-weight: 700;
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--gold);
     }
     .market-updated {
-      font-size: 0.66rem;
+      font-size: 0.85rem;
       color: var(--muted);
     }
     .market-grid {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 0.45rem;
-      padding: 0.5rem;
+      gap: 0.75rem;
+      padding: 0.7rem;
     }
     @media (max-width: 1400px) {
       .market-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -638,7 +638,7 @@
       border-top: none;
     }
     .market-segment-title {
-      font-size: 0.62rem;
+      font-size: 0.8rem;
       text-transform: uppercase;
       letter-spacing: 0.09em;
       color: var(--gold);
@@ -653,19 +653,19 @@
       background: rgba(15,22,40,0.88);
       padding: 0.5rem 0.55rem;
       display: grid;
-      gap: 0.22rem;
-      min-height: 92px;
+      gap: 0.45rem;
+      min-height: 120px;
     }
     .market-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 0.35rem;
+      gap: 0.65rem;
     }
     .market-head-left {
       display: flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.65rem;
       min-width: 0;
     }
     .market-logo {
@@ -675,13 +675,13 @@
       border: 1px solid rgba(136,150,179,0.35);
       display: grid;
       place-items: center;
-      font-size: 0.55rem;
+      font-size: 0.7rem;
       color: var(--cream);
       background: rgba(8,13,26,0.7);
       flex-shrink: 0;
     }
     .market-symbol {
-      font-size: 0.63rem;
+      font-size: 0.8rem;
       color: var(--cream);
       letter-spacing: 0.05em;
       text-transform: uppercase;
@@ -691,7 +691,7 @@
       white-space: nowrap;
     }
     .market-status {
-      font-size: 0.5rem;
+      font-size: 0.7rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       border: 1px solid rgba(136,150,179,0.35);
@@ -709,7 +709,7 @@
       border-color: rgba(252,165,165,0.5);
     }
     .market-code {
-      font-size: 0.55rem;
+      font-size: 0.7rem;
       color: var(--muted);
       letter-spacing: 0.06em;
       text-transform: uppercase;
@@ -721,7 +721,7 @@
       line-height: 1.1;
     }
     .market-change {
-      font-size: 0.62rem;
+      font-size: 0.8rem;
       font-weight: 600;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -730,7 +730,7 @@
     .market-change.up { color: #86efac; }
     .market-change.down { color: #fca5a5; }
     .market-extra {
-      font-size: 0.58rem;
+      font-size: 0.75rem;
       color: var(--muted);
       letter-spacing: 0.03em;
       text-align: left;
@@ -739,7 +739,7 @@
       text-overflow: ellipsis;
     }
     .market-extra2 {
-      font-size: 0.55rem;
+      font-size: 0.7rem;
       color: #8fa1c6;
       letter-spacing: 0.03em;
       text-align: left;
@@ -748,25 +748,25 @@
       text-overflow: ellipsis;
     }
     .market-empty {
-      font-size: 0.78rem;
+      font-size: 0.95rem;
       color: var(--muted);
       padding: 0.25rem 0;
     }
     .market-seg-empty {
-      font-size: 0.7rem;
+      font-size: 0.85rem;
       color: var(--muted);
       border: 1px dashed rgba(136,150,179,0.25);
       border-radius: 4px;
-      padding: 0.45rem;
+      padding: 0.6rem;
     }
     .market-seg-skeleton {
       display: none !important;
-      gap: 0.4rem;
+      gap: 0.65rem;
     }
     .market-seg-skeleton .cal-skel { height: 10px; }
     @media (max-width: 760px) {
       .market-row {
-        min-height: 84px;
+        min-height: 110px;
       }
       .market-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .market-row { min-height: 84px; }
@@ -776,12 +776,12 @@
     section { padding: 4rem 2rem; max-width: 1200px; margin: 0 auto; }
     .section-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 3rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
     .section-title { font-family: var(--serif); font-size: 2.2rem; font-weight: 700; letter-spacing: -0.01em; }
-    .section-link { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); display: flex; align-items: center; gap: 0.4rem; transition: gap 0.2s; }
+    .section-link { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); display: flex; align-items: center; gap: 0.65rem; transition: gap 0.2s; }
     .section-link:hover { gap: 0.7rem; }
 
     /* ── FILTERS ── */
     .filters { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2.5rem; }
-    .filter-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 0.45rem 1rem; border-radius: 2px; font-family: var(--sans); font-size: 0.78rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+    .filter-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 0.6rem 1rem; border-radius: 2px; font-family: var(--sans); font-size: 0.95rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
     .filter-btn:hover, .filter-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
 
     /* ── GRID ── */
@@ -791,20 +791,20 @@
     .post-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 0; background: linear-gradient(180deg, var(--gold), transparent); transition: height 0.3s; }
     .post-card:hover { border-color: var(--border); background: #131d38; }
     .post-card:hover::before { height: 100%; }
-    .post-category { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 1rem; }
+    .post-category { font-size: 0.85rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 1rem; }
     .post-title { font-family: var(--serif); font-size: 1.45rem; font-weight: 600; line-height: 1.3; margin-bottom: 0.8rem; transition: color 0.2s; }
     .post-card:hover .post-title { color: var(--gold2); }
     .post-excerpt { font-size: 0.88rem; color: var(--muted); line-height: 1.65; margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
     .post-meta { display: flex; align-items: center; justify-content: space-between; padding-top: 1.2rem; border-top: 1px solid var(--border); }
-    .post-date { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.04em; }
-    .post-read-time { font-size: 0.72rem; color: var(--gold); letter-spacing: 0.06em; }
-    .post-views { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 0.25rem; }
+    .post-date { font-size: 0.9rem; color: var(--muted); letter-spacing: 0.04em; }
+    .post-read-time { font-size: 0.9rem; color: var(--gold); letter-spacing: 0.06em; }
+    .post-views { font-size: 0.9rem; color: var(--muted); letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 0.5rem; }
 
     /* ── FEATURED ── */
     .post-card.featured { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; padding: 3rem; }
     .featured-body { display: flex; flex-direction: column; justify-content: center; }
     .featured .post-title { font-size: 2.4rem; font-weight: 700; line-height: 1.15; }
-    .featured-badge { display: inline-block; background: var(--gold); color: var(--navy); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; padding: 0.25rem 0.6rem; border-radius: 2px; margin-bottom: 1rem; }
+    .featured-badge { display: inline-block; background: var(--gold); color: var(--navy); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; padding: 0.25rem 0.6rem; border-radius: 2px; margin-bottom: 1rem; }
     .featured-visual { border-radius: 4px; overflow: hidden; min-height: 260px; position: relative; }
     .featured-visual-img img { width: 100%; height: 100%; min-height: 260px; object-fit: cover; display: block; border-radius: 4px; transition: transform 0.4s ease; }
     .post-card.featured:hover .featured-visual-img img { transform: scale(1.03); }
@@ -845,26 +845,26 @@
       margin-bottom: 0.3rem;
     }
     .about-tagline {
-      font-size: 0.82rem; color: var(--gold);
+      font-size: 1.0rem; color: var(--gold);
       letter-spacing: 0.08em; text-transform: uppercase;
       font-weight: 500; margin-bottom: 1.5rem;
     }
     .about-socials { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
     .about-social-link {
-      display: flex; align-items: center; gap: 0.35rem;
+      display: flex; align-items: center; gap: 0.65rem;
       background: var(--navy3);
       border: 1px solid var(--border);
       color: var(--muted);
       padding: 0.4rem 0.8rem;
       border-radius: 3px;
-      font-size: 0.75rem;
+      font-size: 0.9rem;
       font-weight: 500;
       transition: all 0.2s;
     }
     .about-social-link:hover { border-color: var(--gold); color: var(--gold); }
     .about-content-col {}
     .about-label {
-      font-size: 0.68rem; font-weight: 600;
+      font-size: 0.85rem; font-weight: 600;
       letter-spacing: 0.18em; text-transform: uppercase;
       color: var(--gold); margin-bottom: 1rem;
       display: flex; align-items: center; gap: 0.75rem;
@@ -887,7 +887,7 @@
       margin-top: 2rem;
     }
     .about-mission-label {
-      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em;
+      font-size: 0.8rem; font-weight: 700; letter-spacing: 0.15em;
       text-transform: uppercase; color: var(--gold); margin-bottom: 0.6rem;
     }
     .about-mission-text {
@@ -906,7 +906,7 @@
     .newsletter h2 { font-family: var(--serif); font-size: 2.5rem; font-weight: 700; margin-bottom: 0.8rem; }
     .newsletter p { color: var(--muted); font-size: 1rem; margin-bottom: 2rem; }
     .newsletter-form { display: flex; gap: 0.75rem; max-width: 440px; margin: 0 auto; }
-    .newsletter-form input { flex: 1; background: var(--navy); border: 1px solid var(--border); color: var(--cream); padding: 0.85rem 1rem; border-radius: 3px; font-family: var(--sans); font-size: 0.9rem; outline: none; transition: border-color 0.2s; }
+    .newsletter-form input { flex: 1; background: var(--navy); border: 1px solid var(--border); color: var(--cream); padding: 1.1rem 1rem; border-radius: 3px; font-family: var(--sans); font-size: 0.9rem; outline: none; transition: border-color 0.2s; }
     .newsletter-form input::placeholder { color: var(--muted); }
     .newsletter-form input:focus { border-color: var(--gold); }
 
@@ -927,9 +927,9 @@
     footer { border-top: 1px solid var(--border); background: var(--navy); }
     .footer-inner { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; width: 100%; }
     .footer-brand { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .footer-copy { font-size: 0.8rem; color: var(--muted); }
+    .footer-copy { font-size: 0.95rem; color: var(--muted); }
     .footer-links { display: flex; gap: 1.5rem; list-style: none; }
-    .footer-links a { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.2s; }
+    .footer-links a { font-size: 0.95rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.2s; }
     .footer-links a:hover { color: var(--gold); }
 
     /* ── INTEGRATION BADGE ── */
@@ -940,13 +940,13 @@
       z-index: 300;
       display: inline-flex;
       align-items: center;
-      gap: 0.45rem;
+      gap: 0.75rem;
       border: 1px solid var(--border);
       background: rgba(8,13,26,0.9);
       color: var(--muted);
       padding: 0.42rem 0.65rem;
       border-radius: 999px;
-      font-size: 0.7rem;
+      font-size: 0.85rem;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       backdrop-filter: blur(8px);
@@ -1187,7 +1187,7 @@
   <div class="feed-status">
     <div class="feed-status-head">
       <div class="feed-status-label">India Macro Events</div>
-      <div style="display:flex;align-items:center;gap:0.45rem;flex-wrap:wrap;justify-content:flex-end">
+      <div style="display:flex;align-items:center;gap: 0.75rem;flex-wrap:wrap;justify-content:flex-end">
         <div class="calendar-meta" id="indiaHeaderDateTime">Date/Time: --</div>
         <div class="feed-status-chip" id="indiaFeedChip">Syncing</div>
       </div>
@@ -1331,14 +1331,14 @@
         <span id="subBtnSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
       </button>
     </form>
-    <div id="subMsg" style="display:none;margin-top:1.2rem;padding:0.85rem 1.2rem;border-radius:3px;font-size:0.88rem;font-weight:500"></div>
+    <div id="subMsg" style="display:none;margin-top:1.2rem;padding: 1.1rem 1.2rem;border-radius:3px;font-size:0.88rem;font-weight:500"></div>
   </div>
 </section>
 
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
-    <span class="footer-brand">BlogsPro</span>
+    <a class="nav-brand" href="index.html" style="text-decoration: none;">BLOGS<span>PRO</span></a>
     <span class="footer-copy">© <span id="year"></span> BlogsPro. All rights reserved.</span>
     <ul class="footer-links">
       <li><a href="login.html" id="footerAuthLink">Login</a></li>
@@ -2330,9 +2330,9 @@
     };
     const renderQoqGoogleChart = (history, forecastPoint) => {
       if (!window.google || !window.google.visualization) return false;
-      qoqBarsEl.innerHTML = '<div id="indiaQoqGoogleChart" style="width:100%;height:190px"></div>';
-      qoqBarsEl.style.height = '220px';
-      qoqBarsEl.style.maxHeight = '220px';
+      qoqChartEl.innerHTML = '<div id="indiaQoqGoogleChart" style="width:100%;height:190px"></div>';
+      qoqChartEl.style.height = '220px';
+      qoqChartEl.style.maxHeight = '220px';
       const chartEl = document.getElementById('indiaQoqGoogleChart');
       if (!chartEl) return false;
       if (indiaQoqChart) indiaQoqChart.clearChart();
@@ -2378,14 +2378,14 @@
       const { history, forecastPoint } = buildQoqHistorySeries(event, indiaCalendarHistoryRaw);
       if (!history.length) {
         qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
-        qoqBarsEl.innerHTML = '<div class="calendar-empty">No numeric values available for this event.</div>';
+        qoqChartEl.innerHTML = '<div class="calendar-empty">No numeric values available for this event.</div>';
         return;
       }
       qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
       if (renderQoqGoogleChart(history, forecastPoint)) {
         // Chart rendered by renderQoqGoogleChart.
       } else {
-        qoqBarsEl.innerHTML = '<div class="calendar-empty">Chart library unavailable. Please refresh.</div>';
+        qoqChartEl.innerHTML = '<div class="calendar-empty">Chart library unavailable. Please refresh.</div>';
       }
     };
 
@@ -2483,7 +2483,7 @@
       }
 
       const gaugePct = Math.max(0, Math.min(100, 50 + (m.inrPressure * 10)));
-      indiaInrGaugeNoteEl.textContent = `Stress Score: ${pctStr(m.inrPressure)} (${gaugePct >= 60 ? 'Downside Risk' : gaugePct <= 40 ? 'Stability Bias' : 'Neutral Corridor'})`;
+      inrGaugeNoteEl.textContent = `Stress Score: ${pctStr(m.inrPressure)} (${gaugePct >= 60 ? 'Downside Risk' : gaugePct <= 40 ? 'Stability Bias' : 'Neutral Corridor'})`;
       listEl.innerHTML = events.map((e, idx) => `
         <li class="calendar-item india-event-card" data-india-idx="${idx}">
           <div class="calendar-item-head">
@@ -2551,13 +2551,13 @@
     analysisEl.textContent = 'Analyst view: India macro feed unavailable right now.';
     summaryEl.textContent = 'Summary: no live data';
     listEl.innerHTML = '<li class="calendar-empty">India calendar unavailable.</li>';
-    probBarsEl.innerHTML = '<div class="prob-row"><div class="prob-label">Hold</div><div class="prob-track"><div class="prob-fill" style="width:0%"></div></div><div class="prob-val">0%</div></div>';
-    gaugeEl.style.setProperty('--g', `180deg`);
-    gaugeNoteEl.textContent = 'Macro inputs unavailable';
-    sectorBarsEl.innerHTML = '<div class="sector-row"><div class="sector-label">Banks</div><div class="sector-track"><div class="sector-fill" style="width:0%"></div></div></div>';
+    probChartEl.innerHTML = '';
+    inrGaugeChartEl.innerHTML = '';
+    inrGaugeNoteEl.textContent = 'Macro inputs unavailable';
+    sectorChartEl.innerHTML = '';
     explainEl.innerHTML = '<div><b>Desk Snapshot:</b> waiting for India macro feed to calculate detailed diagnostics.</div>';
     qoqTitleEl.textContent = 'India QoQ Historical Trend';
-    qoqBarsEl.innerHTML = '<div class="calendar-empty">QoQ line chart unavailable until events load.</div>';
+    qoqChartEl.innerHTML = '<div class="calendar-empty">QoQ line chart unavailable until events load.</div>';
     return false;
   }
 
@@ -2949,10 +2949,10 @@
     try {
       await addDoc(collection(db, 'subscribers'), { email, createdAt: new Date() });
       document.getElementById('emailInput').value = '';
-      msg.style.cssText = 'display:block;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#86efac;margin-top:1.2rem;padding:0.85rem 1.2rem;border-radius:3px;font-size:0.88rem;font-weight:500';
+      msg.style.cssText = 'display:block;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#86efac;margin-top:1.2rem;padding: 1.1rem 1.2rem;border-radius:3px;font-size:0.88rem;font-weight:500';
       msg.textContent = "✓ You're on the list! We'll be in touch.";
     } catch(err) {
-      msg.style.cssText = 'display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;margin-top:1.2rem;padding:0.85rem 1.2rem;border-radius:3px;font-size:0.88rem;font-weight:500';
+      msg.style.cssText = 'display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;margin-top:1.2rem;padding: 1.1rem 1.2rem;border-radius:3px;font-size:0.88rem;font-weight:500';
       msg.textContent = err.code === 'permission-denied' ? '✕ Subscription blocked — check Firestore rules.' : '✕ Something went wrong. Please try again.';
     }
     btn.disabled = false; btnText.style.display = 'inline'; spinner.style.display = 'none';

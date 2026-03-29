@@ -16,7 +16,6 @@ function parseMD(md) {
         .replace(/Poll:.*$/gim, '')
         .replace(/Interactive Metrics:.*$/gim, '')
         .replace(/Risk Warning:.*$/gim, '')
-        .replace(/\n\d+\.\s.*?\n/g, '\n') // Remove numbered list options
         .replace(/--- SYSTEM CONTEXT ---[\s\S]*?--- UNIVERSAL NEWS ---/gi, '') // Strip system context leaks
         .trim();
 
@@ -76,14 +75,18 @@ function parseMD(md) {
         .replace(/## (.*$)/gim, '<h2>$1</h2>')
         .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/gim, '<em>$1</em>')
-        .replace(/^\- (.*$)/gim, '<li>$1</li>')
-        .replace(/\n\n/gim, '</p><p>')
-        .replace(/<li>/g, '<ul><li>').replace(/<\/li>/g, '</li></ul>').replace(/<\/ul><ul>/g, '');
+        .replace(/^\- (.*$)/gim, '<li>$1</li>');
+        
+    finalHtml = finalHtml.split('\n\n').map(block => {
+        block = block.trim();
+        if (!block) return '';
+        if (block.startsWith('<div') || block.startsWith('<h') || block.startsWith('<ul') || block.startsWith('<li')) {
+            return block;
+        }
+        return '<p>' + block + '</p>';
+    }).join('\n');
     
-    return finalHtml
-        .replace(/<p><\/p>/g, '')  // Cleanup empty tags
-        .replace(/<\/p><p>\s*$/g, '')
-        .trim();
+    return finalHtml.replace(/<li>/g, '<ul><li>').replace(/<\/li>/g, '</li></ul>').replace(/<\/ul>\s*<ul>/g, '').trim();
 }
 
 function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileName, rel = "../../", sentimentScore = 50, priceInfo = { last: "0", high: "0", low: "0" }, scripts = "" }) {

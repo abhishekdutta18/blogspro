@@ -15,9 +15,10 @@ const STRUCTURAL_RULES = `
    - 1-sentence analytical excerpt wrapped in <details id="meta-excerpt" style="display:none">.
    - MANDATORY: Include a Markdown table with at least 5 rows: "| Metric | Observation | Alpha Impact |".
    - NO MARKDOWN CODE BLOCKS. Output pure HTML body snippets only.
-3. Metadata:
+3. Metadata & Citations:
    - End with "SENTIMENT_SCORE: [0-100]" and "PRICE_INFO: [Last, High, Low]".
    - Include a poll: "Question: [Text]" and "Options: [Opt1, Opt2, Opt3]".
+   - CITATIONS: You MUST include markdown hyperlink citations like \`[Source Name](URL)\` whenever referencing a data point or news item that provided a URL.
 `;
 
 const CHART_SYNC_RULE = `
@@ -50,12 +51,13 @@ ${temporalGuidance}
 STRATEGIC REQUIREMENTS:
 ${STRUCTURAL_RULES}
 - ${focus}
-- Grounding: You MUST reference specific news items from the feeds above to back your analysis.
+- Grounding: You MUST reference specific news items from the feeds above to back your analysis using hyperlink citations.
 - Sentiment Mapping: Map how global greed/fear correlates with Indian FPI/DII flows.
 
 ${CHART_SYNC_RULE}
 - Output 3 separate data series (Sentiment, Macro, Multi-Asset) at the very end inside a single <chart-data> tag as a JSON object:
   <chart-data>{ "sentiment": [[L,V],[L,V],[L,V],[L,V]], "macro": [[L,V],[L,V],[L,V],[L,V]], "multi_asset": [[L,V],[L,V],[L,V],[L,V]] }</chart-data>
+- DO NOT wrap the JSON inside markdown code blocks (like \`\`\`json) inside the <chart-data> tags.
 
 DATASET: ${marketContext}
     `;
@@ -82,6 +84,7 @@ ${CHART_SYNC_RULE}
 - Output it at the very END of the chapter inside a <chart-data> tag as a JSON array of arrays:
   <chart-data>[["Label1", Value1], ["Label2", Value2], ["Label3", Value3], ["Label4", Value4]]</chart-data>
   (Values should be numbers representing the % Delta or Drift).
+- DO NOT wrap the JSON inside markdown code blocks (like \`\`\`json) inside the <chart-data> tags.
 3. NO MARKDOWN CODE BLOCKS. Output pure HTML body snippets only.
 4. CHART DATA: Labels MUST NOT contain HTML or special characters (e.g. use "Project Alpha" not "<b>Project < Alpha</b>").
     `.replace('chart_global_macro_drift', 'chart_macro') // Fix for specific chart IDs if needed

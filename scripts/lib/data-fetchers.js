@@ -142,7 +142,7 @@ async function fetchUniversalNews() {
     results.forEach((res, idx) => {
         const source = keys[idx];
         if (res.status === 'fulfilled') {
-            const items = res.value.items.slice(0, 5).map(i => `[${source}] ${i.title}`);
+            const items = res.value.items.slice(0, 5).map(i => `[${source}] ${i.title} (URL: ${i.link})`);
             masterNews.push(...items);
         } else {
             console.warn(`⚠️ Feed Failure: ${source}`);
@@ -157,7 +157,7 @@ async function fetchRBIData() {
     try {
         const feed = await parser.parseURL("https://www.rbi.org.in/pressreleases_rss.xml");
         const items = feed.items.slice(0, 3);
-        return { summary: `RBI: ${items.map(i => i.title).join(' | ')}`, docs: items.map(i => ({ title: i.title, url: i.link })) };
+        return { summary: `RBI: ${items.map(i => `${i.title} (URL: ${i.link})`).join(' | ')}`, docs: items.map(i => ({ title: i.title, url: i.link })) };
     } catch (e) { return { summary: "RBI: Unavailable.", docs: [] }; }
 }
 
@@ -166,7 +166,7 @@ async function fetchSEBIData() {
     try {
         const feed = await parser.parseURL("https://www.sebi.gov.in/sebirss.xml");
         const items = feed.items.slice(0, 3);
-        return { summary: `SEBI: ${items.map(i => i.title).join(' | ')}`, docs: items.map(i => ({ title: i.title, url: i.link })) };
+        return { summary: `SEBI: ${items.map(i => `${i.title} (URL: ${i.link})`).join(' | ')}`, docs: items.map(i => ({ title: i.title, url: i.link })) };
     } catch (e) { return { summary: "SEBI: Unavailable.", docs: [] }; }
 }
 
