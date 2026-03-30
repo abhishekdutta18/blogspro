@@ -22,4 +22,4 @@ function sanitizeJSON(content) {
     return content.replace(chartMatch[1], "\n" + raw + "\n");
 }
 
-module.exports = { sanitizeJSON };
+export { sanitizeJSON };

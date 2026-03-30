@@ -19,9 +19,9 @@
  *   → validator.js     : uses validateContent() pre- and post-correction
  */
 
-const { sanitizeJSON } = require('./sanitizer.js');
-const rl = require('./reinforcement.js');
-const { validateContent, isContentClean } = require('./validator.js');
+import { sanitizeJSON } from './sanitizer.js';
+import * as rl from './reinforcement.js';
+import { validateContent, isContentClean } from './validator.js';
 
 // ── Source Label Registry (for converting bare URLs) ─────────────────────────
 const SOURCE_LABELS = {
@@ -183,4 +183,4 @@ function applyContentCorrections(rawContent, task = 'QA_GATE_PRE_RENDER') {
     return { content: text, corrections, passedReAudit };
 }
 
-module.exports = { applyContentCorrections };
+export { applyContentCorrections };

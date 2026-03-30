@@ -16,7 +16,7 @@ const STRUCTURAL_RULES = `
 2. Mandatory Structural Layout:
    - PILLAR 1: Exactly one <h2>VERTICAL_NAME</h2>.
    - DATA METADATA: FOLLOW THE H2 with <details id="meta-excerpt" style="display:none">Executive Abstract: High-density institutional summary.</details>.
-   - DATA SUMMARY: Include at least TWO Markdown tables: "| Metric | Observation | Alpha Impact |" with 5+ data-driven rows.
+   - CONDITIONAL TABLES: Output Markdown tables ONLY if *new* or *significant* data is found in the provided context pool. If no fresh quantitative drift is detected, prioritize narrative-heavy technical synthesis. ALL tables must be high-density (5+ relevant rows).
    - Markers: Intersperse markers [[CHART_SENTIMENT]], [[CHART_MACRO]], and [[CHART_MULTI_ASSET]].
    - Citations: [SOURCE | Title](URL) format. Minimum 4 citations per chapter.
 3. Density: NO MARKDOWN CODE BLOCKS. Output pure HTML snippets only.

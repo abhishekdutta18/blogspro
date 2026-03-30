@@ -41,6 +41,14 @@ service = "blogspro-templates"
 binding = "KV"
 id = "9caa7afdf7e94adb99cecf221275d63d"
 
+[[env.pulse.durable_objects.bindings]]
+name = "MANUSCRIPT_DO"
+class_name = "ManuscriptAggregator"
+
+[[env.pulse.analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "swarm_telemetry"
+
 [env.pulse.triggers]
 crons = ["0 * * * *", "0 4 * * *", "0 5 * * 1", "0 6 1 * *"]
 
@@ -108,3 +116,48 @@ bucket_name = "blogspro-assets"
 [[env.seo.kv_namespaces]]
 binding = "KV"
 id = "9caa7afdf7e94adb99cecf221275d63d"
+
+# --- MIRO SYNC BRIDGE ---
+[env.miro-sync]
+name = "blogspro-miro-sync"
+main = "scripts/miro-sync-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+[[env.miro-sync.durable_objects.bindings]]
+name = "MIRO_SYNC_DO"
+class_name = "MiroSync"
+
+[[env.miro-sync.r2_buckets]]
+binding = "snapshots"
+bucket_name = "blogspro-affine-snapshots"
+
+# --- MANUSCRIPT AGGREGATOR WORKER ---
+[env.manuscript]
+name = "blogspro-manuscript"
+main = "scripts/manuscript-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+[[env.manuscript.durable_objects.bindings]]
+name = "MANUSCRIPT_DO"
+class_name = "ManuscriptAggregator"
+
+[durable_objects]
+bindings = [
+  { name = "MIRO_SYNC_DO", class_name = "MiroSync" },
+  { name = "INGESTOR_DO", class_name = "DataIngestor" },
+  { name = "MANUSCRIPT_DO", class_name = "ManuscriptAggregator" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["MiroSync"]
+
+[[migrations]]
+tag = "v2"
+new_classes = ["DataIngestor"]
+
+[[migrations]]
+tag = "v3"
+new_classes = ["ManuscriptAggregator"]

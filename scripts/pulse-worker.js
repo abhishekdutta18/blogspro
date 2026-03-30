@@ -86,10 +86,12 @@ async function orchestrateSwarm(frequency, type, env) {
   semanticDigest.megaPool = megaPool;
 
   // 3. REASONING TIER: Execute Multi-Agent Swarm (Hierarchical Multi-Swarm Loop)
-  const swarmResult = await executeMultiAgentSwarm(frequency, semanticDigest, megaPool.historical, type, env);
+  const jobId = `swarm-${frequency}-${Date.now()}`;
+  const swarmResult = await executeMultiAgentSwarm(frequency, semanticDigest, megaPool.historical, type, env, jobId);
 
   // 4. GOVERNANCE TIER: Hand off to Auditor for Rules & Citations
   console.log("⚖️ [Pulse] Calling Auditor Worker for Governance & Sign-off...");
+  const verticalName = type === 'article' ? "Institutional Strategic Manuscript" : "Intelligence Pulse";
   const auditRes = await env.AUDITOR.fetch(new Request("https://audit/verify", {
     method: "POST",
     headers: { "X-Swarm-Token": swarmToken },

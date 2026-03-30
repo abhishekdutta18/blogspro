@@ -1,50 +1,64 @@
-const { askAI } = require("./ai-service.js");
+import { askAI } from "./ai-service.js";
 
 /**
- * MiroFish AI-Persona Swarm (Serverless Version)
- * Replaces the Python CLI dependency with a high-fidelity multi-agent LLM simulation.
+ * MiroFish AI-Persona Swarm (Serverless V4.0)
+ * ===========================================
+ * High-fidelity 10-Agent Institutional Consensus Engine.
+ * Replaces simple single-persona simulations with a deep multi-role spectrum.
  */
 
-const SWARM_SYSTEM_PROMPT = `
-You are the MiroFish Intelligence Swarm, a consensus-driven engine consisting of 5 Virtual Institutional Agents:
-1. BULL: Optimized for growth catalysts and liquidity expansion.
-2. BEAR: Optimized for systemic risks and technical breakdowns.
-3. MACRO: Integrated global policy, rates, and secondary market impacts.
-4. QUANT: Statistical volatility, arbitrage flow, and gamma pivots.
-5. GEOPOLITICAL: Supply chain friction, sovereign risk, and energy security.
+const MIROFISH_SWARM_PERSONAS = [
+  { id: "bull", role: "Growth/Liquidity Strategist", focus: "Catalysts and expansion" },
+  { id: "bear", role: "Tail Risk Analyst", focus: "Systemic breakdowns and technical failures" },
+  { id: "macro", role: "Global Macro Analyst", focus: "Monetary policy and secondary market rates" },
+  { id: "quant", role: "Derivative & Vol Strategist", focus: "Flow dynamics and gamma pivots" },
+  { id: "geopolitical", role: "Sovereign Risk Specialist", focus: "Sanctions, supply chains, and energy" },
+  { id: "cio", role: "Chief Investment Officer", focus: "Strategic Asset Allocation (SAA) and duration" },
+  { id: "risk", role: "Stress-Test Manager", focus: "Liquidity VaR and counterparty solvency" },
+  { id: "retail", role: "Sentiment & Flow Analyst", focus: "MF inflows and retail euphoria/capitulation" },
+  { id: "gift", role: "Offshore Hub Specialist", focus: "GIFT City arbitrage and basis compression" },
+  { id: "fintech", role: "Digital Rails Analyst", focus: "UPI, Cards, and Payment ecosystem throughput" }
+];
 
-TASK:
-Analyze the provided Market Context. 
-Each agent must provide a brief INTERNAL CRITIQUE, followed by a FINAL CONSENSUS FORECAST.
+const MIROFISH_PROTOCOL = `
+You are the MiroFish Institutional Consensus Engine. 
+MISSION: Conduct a simulated 10-Agent swarm review to identify strategic alpha.
 
-FORMAT:
-- AGENT CRITIQUES: (Internal-only logic drift)
-- CONSENSUS SCORE: [0-100] (0 = Systemic Collapse, 100 = Parabolic Expansion)
+PROCEDURE:
+1. INTERNAL DEBATE: Each of the 10 following agents must critique the market pulse:
+   - Bull, Bear, Macro, Quant, Geopolitical, CIO, Risk, Retail, GIFT City, and Fintech.
+2. CONSENSUS FILTER: Aggregate their findings into a single 'MiroFish Strategic Outlook'.
+
+OUTPUT FORMAT:
+- CONSENSUS SCORE: [0-100]
+- DRIFT: [Extremely Bullish | Neutral | Risk-Off | Defensive]
 - FORECAST: (authoritative, high-density terminal briefing block)
 `;
 
 async function generateMiroForecast(marketContext, env = null) {
-  console.log("🚀 [Serverless Swarm] Simulating MiroFish Consensus...");
+  console.log("🚀 [MiroFish 4.0] Executing 10-Agent Consensus Swarm...");
   
   const prompt = `
-${SWARM_SYSTEM_PROMPT}
+${MIROFISH_PROTOCOL}
 
 MARKET CONTEXT:
 ${marketContext}
 
-Generate the Swarm forecast now. Focus on GIFT City and India Domestic institutional pivots.
+Generate the final consolidated forecast now. Be cold, authoritative, and data-dense.
 `;
 
   try {
-    const result = await askAI(prompt, { role: 'generate', env });
+    const result = await askAI(prompt, { 
+      role: 'generate', 
+      env,
+      model: 'claude-3.5-sonnet' // Preference for nuanced consensus simulation
+    });
     
-    // Extract the forecast portion (Simple implementation: return the whole thing or split)
-    // We want to return a professional block that fits into the main briefing.
     return result;
   } catch (e) {
-    console.error("❌ Swarm Simulation Failed:", e.message);
+    console.error("❌ MiroFish Swarm Failed:", e.message);
     return "MiroFish Intelligence: Swarm consensus temporarily decoupled. Standard institutional monitoring active.";
   }
 }
 
-module.exports = { generateMiroForecast };
+export { generateMiroForecast, MIROFISH_SWARM_PERSONAS };

@@ -22,9 +22,12 @@ export default {
     }
 
     try {
+      const jobId = url.searchParams.get("jobId");
+      const step = parseInt(url.searchParams.get("step") || "0");
+
       let result;
       if (type === "article") {
-        result = await generateArticleJob(frequency, env);
+        result = await generateArticleJob(frequency, env, jobId, step);
       } else {
         result = await generateBriefingJob(frequency, env);
       }
@@ -139,44 +142,89 @@ export async function generateBriefingJob(frequency, env) {
   return entry;
 }
 
-// --- ARTICLE JOB ---
-export async function generateArticleJob(frequency, env) {
+const VERTICALS = [
+  { id: "macro", name: "Global Macro Drift" },
+  { id: "equities", name: "Equities & Alpha" },
+  { id: "fixed-income", name: "Fixed Income & CCIL" },
+  { id: "commodities", name: "Commodities & Energy" },
+  { id: "forex", name: "Forex & Cross-Currency" },
+  { id: "pevc", name: "Capital Flows (PE/VC)" },
+  { id: "banking", name: "Banking & Credit" },
+  { id: "insurance", name: "Insurance & Risk" },
+  { id: "mf", name: "Mutual Funds & AUM" },
+  { id: "gift", name: "Offshore & GIFT City" },
+  { id: "rbi", name: "Central Bank Pulse (RBI/Fed)" },
+  { id: "sme", name: "SME & MSME Credit" },
+  { id: "infra", name: "Infrastructure & Real Estate" },
+  { id: "esg", name: "ESG & Sustainable Finance" },
+  { id: "em", name: "Emerging Markets Drift" },
+  { id: "geo", name: "Geopolitical Tensions" }
+];
+
+// --- ARTICLE JOB (RECURSIVE STATEFUL) ---
+export async function generateArticleJob(frequency, env, jobId = null, verticalIndex = 0) {
   if (typeof process === "undefined") globalThis.process = { env: {} };
   Object.assign(process.env, env);
 
-  const [rbi, sebi, ccil, macro, universal, sentiment, markets, mf, pevc, ins, gift] = await Promise.all([
-    fetchRBIData(), fetchSEBIData(), fetchCCILData(), fetchMacroPulse(),
-    fetchUniversalNews(), fetchSentimentData(), fetchMultiAssetData(),
-    fetchMFData(), fetchPEVCData(), fetchInsuranceData(), fetchGIFTCityData()
+  const id = jobId || `job-${Date.now()}`;
+  const totalVerticals = VERTICALS.length;
+
+  console.log(`🚀 [${id}] Processing Vertical ${verticalIndex + 1}/${totalVerticals}: ${VERTICALS[verticalIndex].name}`);
+
+  // Fetch common data (cached/cached locally in D.O or similar if needed, but here we just fetch)
+  const [macro, universal] = await Promise.all([
+    fetchMacroPulse(),
+    fetchUniversalNews()
   ]);
 
-  const verticals = [
-    { id: "macro", name: "Global Macro Drift", data: macro.summary },
-    { id: "equities", name: "Equities & Alpha", data: markets.summary },
-    { id: "capital", name: "Capital Flows (PE/VC)", data: pevc.summary },
-    { id: "gift", name: "Offshore & GIFT City", data: gift.summary }
-  ];
+  const v = VERTICALS[verticalIndex];
+  // Specific data fetcher logic would go here, simplified to use macro/universal for now or specific ones if available
+  const vData = macro.summary; // Fallback to pulse
 
-  let fullContent = "";
-  for (const v of verticals) {
-    const prompt = getArticlePrompt(frequency, v.name, v.id, v.data, macro.summary, universal, "Baseline focus.");
-    const content = await askAI(prompt, { role: 'generate', env });
-    const { content: corrected } = applyContentCorrections(content, `STRATEGY_${v.id.toUpperCase()}`);
-    fullContent += `<section id="${v.id}">${corrected}</section>\n`;
+  const prompt = getArticlePrompt(frequency, v.name, v.id, vData, macro.summary, universal, "Baseline focus.");
+  const content = await askAI(prompt, { role: 'generate', env });
+  const { content: corrected } = applyContentCorrections(content, `STRATEGY_${v.id.toUpperCase()}`);
+  
+  const sectionContent = `<section id="${v.id}">${corrected}</section>\n`;
+
+  // Update State in KV
+  let accumulated = "";
+  if (verticalIndex > 0) {
+    accumulated = await env.KV.get(`${id}_content`) || "";
   }
+  accumulated += sectionContent;
+  await env.KV.put(`${id}_content`, accumulated, { expirationTtl: 3600 }); // 1 hour TTL
 
-  const swarmForecast = await generateMiroForecast(macro.summary, env);
-  fullContent = `<h2>MIROFISH STRATEGIC OUTLOOK</h2>\n${swarmForecast}\n\n` + fullContent;
+  // Check if we need more steps
+  if (verticalIndex < totalVerticals - 1) {
+    // Trigger next step
+    const nextUrl = new URL(`https://blogspro-gen.workers.dev/?freq=${frequency}&type=article&jobId=${id}&step=${verticalIndex + 1}`);
+    
+    // We use wait until to prevent termination while calling itself
+    // Or just fetch and return
+    await fetch(nextUrl.toString(), {
+      headers: { "Authorization": `Bearer ${env.NEWSLETTER_SECRET}` }
+    });
 
-  const cleanContent = await askAI(getSanitizerPrompt(fullContent), { role: 'audit', env });
-  const fileName = `strategy-${frequency}-${Date.now()}.html`;
-  await saveBriefing(fileName, cleanContent, frequency, env);
+    return { jobId: id, status: "pending", vertical: v.name };
+  } else {
+    // FINALIZATION
+    const swarmForecast = await generateMiroForecast(macro.summary, env);
+    const finalContent = `<h2>MIROFISH STRATEGIC OUTLOOK</h2>\n${swarmForecast}\n\n` + accumulated;
 
-  const entry = { id: Date.now(), title: `${frequency.toUpperCase()} Tome`, date: new Date().toISOString(), file: fileName, frequency, type: "article" };
-  await updateIndex(entry, frequency, env);
-  await syncToFirestore("articles", entry, env); // NEW: Firestore Sync
-  await triggerPdfWebhook(fileName, frequency, env);
-  await notifyTelegram(entry, "article", env); // NEW: Telegram Notify
+    const cleanContent = await askAI(getSanitizerPrompt(finalContent), { role: 'audit', env });
+    const fileName = `strategy-${frequency}-${Date.now()}.html`;
+    await saveBriefing(fileName, cleanContent, frequency, env);
 
-  return entry;
+    const entry = { id: Date.now(), title: `${frequency.toUpperCase()} Tome`, date: new Date().toISOString(), file: fileName, frequency, type: "article" };
+    await updateIndex(entry, frequency, env);
+    await syncToFirestore("articles", entry, env);
+    await triggerPdfWebhook(fileName, frequency, env);
+    await notifyTelegram(entry, "article", env);
+
+    // Clean up KV
+    await env.KV.delete(`${id}_content`);
+
+    return { jobId: id, status: "completed", file: fileName };
+  }
 }

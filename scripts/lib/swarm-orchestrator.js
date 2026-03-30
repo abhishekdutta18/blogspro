@@ -14,15 +14,25 @@ import {
  * ultra-high-density institutional manuscripts (up to 25k words).
  */
 
-export async function executeMultiAgentSwarm(frequency, semanticDigest, historicalData, type, env) {
+export async function executeMultiAgentSwarm(frequency, semanticDigest, historicalData, type, env, jobId = null) {
   const isArticle = type === 'article';
-  
-  // 1. SELECT SCALE (Hierarchical vs Single-Shot)
-  // If Article (Weekly/Monthly), execute 16 specialized sub-swarms.
-  // If Briefing (Hourly/Daily), execute a single consolidated micro-swarm.
   const targetVerticals = isArticle ? VERTICALS : [{ id: "consolidated", name: "Institutional Pulse" }];
   
-  console.log(`🐝 [Swarm] Starting Hierarchical Orchestration [Scale: ${targetVerticals.length} Swarms]`);
+  const id = jobId || `swarm-${Date.now()}`;
+  const startTime = Date.now();
+  console.log(`🐝 [Swarm] Starting Hierarchical Orchestration [ID: ${id}] [Scale: ${targetVerticals.length} Swarms]`);
+
+  // --- 1. INITIALIZE DURABLE OBJECT ---
+  let manuscriptDO = null;
+  if (isArticle && env.MANUSCRIPT_DO) {
+    const doId = env.MANUSCRIPT_DO.idFromName(id);
+    manuscriptDO = env.MANUSCRIPT_DO.get(doId);
+    
+    await manuscriptDO.fetch(new Request("https://do/initialize", {
+      method: "POST",
+      body: JSON.stringify({ jobId: id, frequency, verticalIds: targetVerticals.map(v => v.id) })
+    }));
+  }
   
   let combinedChapters = "";
 
@@ -42,6 +52,14 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
       env,
       model: 'llama-3.3-70b'
     });
+
+    // UPDATE DURABLE OBJECT FOR PROGRESS
+    if (manuscriptDO) {
+      await manuscriptDO.fetch(new Request("https://do/update", {
+        method: "POST",
+        body: JSON.stringify({ verticalId: vertical.id, content: chapterDraft })
+      }));
+    }
 
     combinedChapters += `\n\n${chapterDraft}`;
   }
@@ -73,12 +91,27 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
   }));
 
   const { html, wordCount } = await templateRes.json();
-  console.log(`✅ [Swarm] Hierarchical Pass Complete. Total Words: ${wordCount}`);
+  const latency = Date.now() - startTime;
+  console.log(`✅ [Swarm] Hierarchical Pass Complete. Total Words: ${wordCount} [Latency: ${latency}ms]`);
+
+  // --- 5. LOG INSTITUTIONAL TELEMETRY ---
+  if (env.ANALYTICS) {
+    try {
+      env.ANALYTICS.writeDataPoint({
+        blobs: [id, frequency, type, isArticle ? "hierarchical" : "micro"],
+        doubles: [wordCount, latency, 0], // Consensus score can be added later
+        indexes: [id]
+      });
+      console.log("🛰 [Swarm] Telemetry Dispatched to Cloudflare Analytics Engine.");
+    } catch (err) {
+      console.warn("⚠️ Telemetry failed:", err.message);
+    }
+  }
 
   return {
     final: html,
     wordCount,
     raw: polishedManuscript,
-    research: "Summarized in Manuscript"
+    jobId: id
   };
 }
