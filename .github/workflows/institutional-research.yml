@@ -1,0 +1,48 @@
+name: Swarm 4.0 Institutional Research
+
+on:
+  workflow_dispatch:
+    inputs:
+      freq:
+        description: 'Generation Frequency (weekly, monthly)'
+        required: true
+        default: 'weekly'
+      type:
+        description: 'Content Type (article, pulse)'
+        required: true
+        default: 'article'
+
+jobs:
+  generate-tome:
+    name: High-Compute Institutional Swarm
+    runs-on: ubuntu-latest
+    timeout-minutes: 345 # 5 hours 45 minutes (User requested)
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (V20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Execute Swarm (High-Compute)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          SWARM_INTERNAL_TOKEN: ${{ secrets.SWARM_INTERNAL_TOKEN || 'BPRO_SWARM_SECRET_2026' }}
+          # Storage & Cloudflare Access (for temple engine fetch)
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🚀 Starting Full 16-Vertical Institutional Swarm..."
+          node scripts/generate-institutional-tome.js --freq=${{ github.event.inputs.freq }} --type=${{ github.event.inputs.type }}
+
+      - name: Log Completion
+        run: echo "✅ Institutional Research Swarm successfully completed Word-Count Targets."

@@ -20,8 +20,8 @@ export class DataIngestor {
     // Start the alarm loop if not already running
     const alarm = await this.state.storage.getAlarm();
     if (alarm === null) {
-      await this.state.storage.setAlarm(Date.now() + 5000);
-      return new Response(JSON.stringify({ status: "alarm_set", nextPulseMs: 5000 }), {
+      await this.state.storage.setAlarm(Date.now() + 60000);
+      return new Response(JSON.stringify({ status: "alarm_set", nextPulseMs: 60000 }), {
         status: 200,
         headers: { "Content-Type": "application/json" }
       });
@@ -55,8 +55,8 @@ export class DataIngestor {
       console.error("❌ [Ingestor] Pulse Failed:", e.message);
     }
 
-    // Schedule next pulse in 5 seconds
-    await this.state.storage.setAlarm(Date.now() + 5000);
+    // Schedule next pulse in 60 seconds
+    await this.state.storage.setAlarm(Date.now() + 60000);
   }
 
   async performIngestion() {

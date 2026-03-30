@@ -41,7 +41,7 @@ function getMarketContext() {
     };
 }
 
-async function fetchWithTimeout(url, options = {}, timeout = 12000) {
+async function fetchWithTimeout(url, options = {}, timeout = 30000) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     try {

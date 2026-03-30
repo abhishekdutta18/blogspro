@@ -21,8 +21,16 @@ export default {
     const type = url.searchParams.get("type") || "briefing";
 
     try {
-      const result = await orchestrateSwarm(frequency, type, env);
-      return new Response(JSON.stringify({ status: "success", result }), {
+      // NON-BLOCKING TRIGGER: Return 202 immediately and run swarm in background
+      ctx.waitUntil(orchestrateSwarm(frequency, type, env));
+      
+      return new Response(JSON.stringify({ 
+        status: "accepted", 
+        message: `Swarm triggered for ${frequency} ${type}. Check MiroSync for real-time updates.`,
+        frequency,
+        type
+      }), {
+        status: 202,
         headers: { "Content-Type": "application/json" }
       });
     } catch (e) {
@@ -85,8 +93,44 @@ async function orchestrateSwarm(frequency, type, env) {
   // Inject Mega-Pool context into digest for the Swarm
   semanticDigest.megaPool = megaPool;
 
-  // 3. REASONING TIER: Execute Multi-Agent Swarm (Hierarchical Multi-Swarm Loop)
+  // 3. REASONING TIER: Dispatch or Execute Multi-Agent Swarm
   const jobId = `swarm-${frequency}-${Date.now()}`;
+  
+  // High-Compute Bridge: Distribute heavy articles to GitHub Actions (5h 45m limit)
+  if (type === 'article') {
+    console.log("🚀 [Pulse] Dispatching Institutional Swarm to High-Compute GH Action...");
+    const ghToken = env.GH_TOKEN || env.GITHUB_TOKEN;
+    if (!ghToken) {
+      throw new Error("GH_TOKEN missing. Cannot dispatch high-compute swarm.");
+    }
+
+    const repo = "abhishekdutta18/blogspro";
+    const workflowId = "institutional-research.yml";
+    
+    const dispatchRes = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/${workflowId}/dispatches`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${ghToken}`,
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "BlogsPro-Swarm-Orchestrator"
+      },
+      body: JSON.stringify({
+        ref: "main",
+        inputs: { freq: frequency, type: type }
+      })
+    });
+
+    if (!dispatchRes.ok) {
+      const err = await dispatchRes.text();
+      console.error("❌ GitHub Dispatch Fail:", err);
+      throw new Error(`Failed to dispatch high-compute swarm: ${err}`);
+    }
+
+    console.log("✅ [Pulse] High-Compute Swarm Dispatched. Monitor GitHub Actions for Tome completion.");
+    return { status: "dispatched", jobId, workflow: workflowId };
+  }
+
+  // Briefing Tier: Standard In-Worker Swarm (Fast, Low-Compute)
   const swarmResult = await executeMultiAgentSwarm(frequency, semanticDigest, megaPool.historical, type, env, jobId);
 
   // 4. GOVERNANCE TIER: Hand off to Auditor for Rules & Citations

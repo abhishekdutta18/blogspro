@@ -6,7 +6,7 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile") {
     if (!process.env.GROQ_API_KEY) throw new Error("GROQ_API_KEY missing.");
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    const timeout = setTimeout(() => controller.abort(), 120000);
     try {
         const res = await _fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
@@ -54,7 +54,7 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile") {
 async function generateKimiContent(prompt) {
     if (!process.env.KIMI_API_KEY) throw new Error("KIMI_API_KEY missing.");
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    const timeout = setTimeout(() => controller.abort(), 120000);
     try {
         const res = await _fetch("https://api.moonshot.cn/v1/chat/completions", {
             method: "POST",
@@ -85,12 +85,12 @@ async function generateGeminiContent(prompt) {
     // Mandatory v1beta for Gemini 3.1 and March 2026 fleet
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, { apiVersion: 'v1beta' });
     
-    // Prioritize Gemini Free Tier models as requested
+    // Restore verified working models for the March 2026 fleet
     const models = [
-        "gemini-1.5-flash-latest",
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-8b",
-        "gemini-1.5-pro-latest" // Fallback
+        "gemini-3.1-pro-preview", 
+        "gemini-2.5-flash", 
+        "gemini-3.1-flash-lite-preview",
+        "gemini-1.5-flash" // Legacy fallback
     ];
     
     for (const modelName of models) {
@@ -143,7 +143,7 @@ function localRegexAudit(content) {
 async function generateOpenRouterContent(prompt) {
     if (!process.env.OPENROUTER_KEY) throw new Error("OPENROUTER_KEY missing.");
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    const timeout = setTimeout(() => controller.abort(), 120000);
     try {
         const res = await _fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
@@ -236,7 +236,7 @@ async function generateDeepInfraContent(prompt) {
 
 async function generateOpenAICompatible(prompt, name, url, key, model) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    const timeout = setTimeout(() => controller.abort(), 120000);
     try {
         const res = await _fetch(url, {
             method: "POST",
