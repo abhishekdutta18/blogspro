@@ -85,11 +85,12 @@ async function generateGeminiContent(prompt) {
     // Mandatory v1beta for Gemini 3.1 and March 2026 fleet
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, { apiVersion: 'v1beta' });
     
-    // Try newest stable models for March 2026 — 1.5 and 2.0 series are now retired
+    // Prioritize Gemini Free Tier models as requested
     const models = [
-        "gemini-3.1-pro-preview", 
-        "gemini-2.5-flash", 
-        "gemini-3.1-flash-lite-preview"
+        "gemini-1.5-flash-latest",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-8b",
+        "gemini-1.5-pro-latest" // Fallback
     ];
     
     for (const modelName of models) {
@@ -312,13 +313,13 @@ export async function askAI(prompt, options = { role: 'generate' }) {
         if (activeKeys[k]) console.log(`   - ${k}: ✅ Present`);
     });
 
-    if (activeKeys.Gemini) {
-        process.env.GEMINI_API_KEY = activeKeys.Gemini;
-        generatePool.push({ name: 'Gemini', fn: generateGeminiContent });
-    }
     if (activeKeys.Groq) {
         process.env.GROQ_API_KEY = activeKeys.Groq;
         generatePool.push({ name: 'Groq', fn: generateGroqContent });
+    }
+    if (activeKeys.Gemini) {
+        process.env.GEMINI_API_KEY = activeKeys.Gemini;
+        generatePool.push({ name: 'Gemini', fn: generateGeminiContent });
     }
     if (activeKeys.OpenRouter) {
         process.env.OPENROUTER_KEY = activeKeys.OpenRouter;
@@ -336,14 +337,11 @@ export async function askAI(prompt, options = { role: 'generate' }) {
     console.log(`🌊 Active pool size: ${generatePool.length} providers`);
     
     // If role is audit, we explicitly want Gemini first for precision formatting (but now with fallback)
-    if (options.role === 'audit' && process.env.GEMINI_API_KEY) {
-        try {
-            console.log("🔍 Auditing/Sanitizing via Gemini (1.5-Flash)...");
-            return await generateGeminiContent(prompt);
-        } catch (e) {
-            console.warn(`⚠️ Gemini Auditor failed: ${e.message}. Falling back to general pool for audit...`);
-            // Continue below to the general pool loop
-        }
+    // If role is audit, we now prefer the general pool (Groq first) for lower latency 
+    // but Gemini remains the high-fidelity fallback for precision sanitization
+    if (options.role === 'audit') {
+        console.log("🔍 Running Institutional Audit...");
+        // Auditor logic follows standard pool rules unless we want to force specify a model.
     }
     
     if (generatePool.length === 0) {

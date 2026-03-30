@@ -129,7 +129,17 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
 
         .nav-item { display: block; padding: 0.6rem 0.8rem; color: rgba(255,255,255,0.6); text-decoration: none; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; border-left: 2px solid transparent; }
         .nav-item:hover { background: rgba(191, 161, 0, 0.05); color: var(--nexus-accent); border-left: 2px solid var(--nexus-accent); }
-    </nav>
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <a href="/" class="logo">BLOGS<span>PRO</span></a>
+        <nav>
+            <a href="#" class="nav-item">STRATEGIC PULSE</a>
+            <a href="#" class="nav-item">INSTITUTIONAL FLOWS</a>
+            <a href="#" class="nav-item">ALPHA ROTATION</a>
+            <a href="#" class="nav-item">QUANTITATIVE DESK</a>
+        </nav>
     </aside>
 
     <main class="main-content">

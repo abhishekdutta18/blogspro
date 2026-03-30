@@ -143,6 +143,20 @@ compatibility_flags = [ "nodejs_compat" ]
 name = "MANUSCRIPT_DO"
 class_name = "ManuscriptAggregator"
 
+# --- MIROFISH WORKER ---
+[env.mirofish]
+name = "blogspro-mirofish"
+main = "scripts/mirofish-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+[env.mirofish.vars]
+SWARM_INTERNAL_TOKEN = "BPRO_SWARM_SECRET_2026"
+
+[[env.mirofish.durable_objects.bindings]]
+name = "MIRO_SYNC_DO"
+class_name = "MiroSync"
+
 [durable_objects]
 bindings = [
   { name = "MIRO_SYNC_DO", class_name = "MiroSync" },

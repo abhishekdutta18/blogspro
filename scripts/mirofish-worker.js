@@ -26,8 +26,32 @@ export default {
 
       const forecast = await generateMiroForecast(marketContext, env);
 
+      // Institutional Intelligence Bridge to Affine
+      let syncStatus = "skipped";
+      if (env.MIRO_SYNC_DO) {
+        try {
+          const id = env.MIRO_SYNC_DO.idFromName('global-swarm-bridge');
+          const obj = env.MIRO_SYNC_DO.get(id);
+          const pushReq = new Request("https://sync/push", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              content: forecast, 
+              source: `MiroFish Swarm | Task: ${task || 'Pulse Foresight'}` 
+            })
+          });
+          const syncRes = await obj.fetch(pushReq);
+          if (syncRes.ok) syncStatus = "synchronized";
+          console.log(`📡 [MiroFish] Sync Status: ${syncStatus}`);
+        } catch (syncErr) {
+          console.warn("⚠️ MiroSync Push Failed:", syncErr.message);
+          syncStatus = "failed";
+        }
+      }
+
       return new Response(JSON.stringify({ 
         status: "success", 
+        syncStatus,
         forecast,
         timestamp: new Date().toISOString()
       }), {

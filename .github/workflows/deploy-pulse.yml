@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: [data-hub, relevance, auditor, seo, pulse]
+        environment: [data-hub, relevance, auditor, seo, pulse, miro-sync, mirofish]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -48,7 +48,7 @@ jobs:
           OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
           SWARM_INTERNAL_TOKEN: ${{ secrets.SWARM_INTERNAL_TOKEN || 'BPRO_SWARM_SECRET_2026' }}
         run: |
-          for env in data-hub relevance auditor seo pulse; do
+          for env in data-hub relevance auditor seo pulse miro-sync mirofish; do
             echo "🔐 Pushing secrets to $env..."
             echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY -e $env || true
             echo "$GROQ_API_KEY" | npx wrangler secret put GROQ_API_KEY -e $env || true

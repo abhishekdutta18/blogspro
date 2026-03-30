@@ -46,6 +46,40 @@ export class MiroSync {
       });
     }
 
+    // Handle high-performance internal push from Swarm workers
+    if (url.pathname === '/push' && request.method === 'POST') {
+      try {
+        const { content, source } = await request.json();
+        const text = this.doc.getText('miro-consensus');
+        const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+        
+        // Block-based append with institutional markers
+        const formattedEntry = `\n\n═══════════════════════════════════════\n🕵️ SOURCE: ${source || 'MiroFish Consensus'}\n📅 DATE: ${timestamp}\n═══════════════════════════════════════\n\n${content}\n\n`;
+        
+        text.insert(text.length, formattedEntry);
+        
+        // Persist the full state
+        const update = Y.encodeStateAsUpdate(this.doc);
+        await this.state.storage.put('doc', update);
+
+        // Broadcast update to all active Affine/WebSocket clients
+        const encoder = encoding.createEncoder();
+        encoding.writeUint8(encoder, 0); // messageSync
+        sync.writeUpdate(encoder, update);
+        this.broadcast(encoding.toUint8Array(encoder));
+
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ success: false, error: err.message }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
     return new Response('MiroSync Active', { status: 200 });
   }
 
