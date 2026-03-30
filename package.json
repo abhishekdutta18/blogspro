@@ -1,6 +1,7 @@
 {
   "name": "blogspro-ai-pipeline",
   "version": "1.0.0",
+  "type": "module",
   "description": "Automated AI financial content pipeline for blogspro.in",
   "main": "scripts/generate-article.js",
   "scripts": {
@@ -13,10 +14,10 @@
     "figma-js": "^1.16.1-0",
     "google-charts": "^2.0.0",
     "node-fetch": "^2.7.0",
-    "rss-parser": "^3.13.0",
     "upstox-js-sdk": "^2.23.0"
   },
   "devDependencies": {
-    "puppeteer": "^24.40.0"
+    "puppeteer": "^24.40.0",
+    "wrangler": "^3.107.0"
   }
 }

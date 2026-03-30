@@ -1,0 +1,80 @@
+name: BlogsPro PDF Generator (Worker Hook)
+
+on:
+  repository_dispatch:
+    types: [generate-pdf]
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/node-utils/setup-node@v4
+        with:
+          node-version: '20'
+
+          # Install dependencies for Puppeteer
+      - name: Install Dependencies
+        run: |
+          npm install puppeteer node-fetch
+
+      - name: Generate PDF from R2 HTML
+        env:
+          R2_BUCKET_URL: "https://assets.blogspro.in" # User should set this to their R2 public URL or use a signed URL
+          FILE_NAME: ${{ github.event.client_payload.fileName }}
+          FREQUENCY: ${{ github.event.client_payload.frequency }}
+          CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: "blogspro-assets"
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+        run: |
+          node -e "
+          const puppeteer = require('puppeteer');
+          const fs = require('fs');
+          const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+          
+          async function run() {
+            const s3 = new S3Client({
+              region: 'auto',
+              endpoint: process.env.R2_ENDPOINT,
+              credentials: {
+                accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID,
+                secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY,
+              },
+            });
+
+            console.log('Fetching HTML from R2:', process.env.FILE_NAME);
+            const getObj = await s3.send(new GetObjectCommand({
+              Bucket: process.env.R2_BUCKET_NAME,
+              Key: 'briefings/' + process.env.FILE_NAME,
+            }));
+            const html = await getObj.Body.transformToString();
+
+            const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+            const page = await browser.newPage();
+            await page.setContent(html, { waitUntil: 'networkidle0' });
+            
+            const pdfName = process.env.FILE_NAME.replace('.html', '.pdf');
+            await page.pdf({
+              path: pdfName,
+              format: 'A4',
+              printBackground: true,
+              margin: { top: '30px', bottom: '30px', left: '30px', right: '30px' }
+            });
+
+            console.log('Uploading PDF to R2:', pdfName);
+            await s3.send(new PutObjectCommand({
+              Bucket: process.env.R2_BUCKET_NAME,
+              Key: 'briefings/' + pdfName,
+              Body: fs.readFileSync(pdfName),
+              ContentType: 'application/pdf'
+            }));
+
+            await browser.close();
+            console.log('✅ PDF Generation Complete.');
+          }
+          run().catch(err => { console.error(err); process.exit(1); });
+          "

@@ -1,3 +1,8 @@
+import { db } from './config.js';
+import { 
+    collection, query, orderBy, limit, getDocs 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 /**
  * BlogsPro Strategic Intelligence Hub
  * Fetches and renders the latest AI-generated market pulses & articles on the homepage.
@@ -7,18 +12,19 @@ export async function initIntelHub() {
     if (!hubContainer) return;
 
     try {
-        // 1. Fetch Latest Briefing & Article Indexes (Root-Relative Paths)
-        const [dailyRes, hourlyRes, weeklyRes, monthlyRes] = await Promise.all([
-            fetch('/briefings/daily/index.json').then(r => r.ok ? r.json() : []),
-            fetch('/briefings/hourly/index.json').then(r => r.ok ? r.json() : []),
-            fetch('/articles/weekly/index.json').then(r => r.ok ? r.json() : []),
-            fetch('/articles/monthly/index.json').then(r => r.ok ? r.json() : [])
+        // 1. Fetch Latest Briefing & Article from Firestore (Real-time Serverless)
+        const [pulseSnap, articleSnap] = await Promise.all([
+            getDocs(query(collection(db, 'pulse_briefings'), orderBy('date', 'desc'), limit(10))),
+            getDocs(query(collection(db, 'articles'), orderBy('date', 'desc'), limit(10)))
         ]);
 
-        const latestDaily = dailyRes[0];
-        const latestHourly = hourlyRes[0];
-        const latestWeekly = weeklyRes[0];
-        const latestMonthly = monthlyRes[0];
+        const pulseDocs = pulseSnap.docs.map(d => d.data());
+        const articleDocs = articleSnap.docs.map(d => d.data());
+
+        const latestDaily = pulseDocs.find(p => p.frequency === 'daily') || pulseDocs[0];
+        const latestHourly = pulseDocs.find(p => p.frequency === 'hourly');
+        const latestWeekly = articleDocs.find(a => a.frequency === 'weekly') || articleDocs[0];
+        const latestMonthly = articleDocs.find(a => a.frequency === 'monthly');
 
         if (!latestDaily && !latestHourly && !latestWeekly && !latestMonthly) {
             hubContainer.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--muted)">Waiting for first AI Intelligence pulse...</div>';
@@ -29,20 +35,20 @@ export async function initIntelHub() {
         
         // 2. Update Global Terminal Stats
         updateHeroStats({
-            posts: dailyRes.length + hourlyRes.length + weeklyRes.length + monthlyRes.length,
+            posts: pulseDocs.length + articleDocs.length,
             experts: 13,
-            version: "V6.33"
+            version: "V6.5-SERVERLESS"
         });
         
         if (window.trackPulse) {
             window.trackPulse('hub', 'loaded', { 
-                daily: latestDaily?.fileName, 
-                monthly: latestMonthly?.fileName 
+                daily: latestDaily?.file, 
+                monthly: latestMonthly?.file 
             });
         }
     } catch (err) {
-        console.error('[IntelHub] Failed to load:', err);
-        hubContainer.innerHTML = '<div style="padding:1rem;color:#fca5a5;font-size:0.8rem">⚠️ Briefing Terminal Offline</div>';
+        console.error('[IntelHub] Failed to load from Firestore:', err);
+        hubContainer.innerHTML = '<div style="padding:1rem;color:#fca5a5;font-size:0.8rem">⚠️ Briefing Terminal Offline (Sync Error)</div>';
     }
 }
 

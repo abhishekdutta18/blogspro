@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hourly Pulse: GLOBAL MACRO STRATEGY | Nexus Institutional Terminal</title>
+    <meta name="description" content="Executive Abstract: Extreme Fear reading (9) triggers VIX expansion to 31.05. SPY/QQQ institutional unwinding accelerates ahead of Fed Powell pivot. Global regulatory friction limits capital deployment.">
+    <meta name="keywords" content="GIFT City, IFSCA, Mutual Fund Inflows, PE/VC Deal Tracking, Institutional Market Intelligence, BlogsPro">
+    
+    <!-- Nexus Core Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Google Charts SDK -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {'packages':['corechart', 'table']});
+    </script>
+    
+    <style>
+        :root {
+            --nexus-bg: #050505;
+            --nexus-sidebar: #0A0A0A;
+            --nexus-glass: rgba(5, 5, 5, 0.95);
+            --nexus-accent: #BFA100; /* Bloomberg Gold */
+            --nexus-amber: #FFB800;  /* Data Amber */
+            --nexus-border: rgba(191, 161, 0, 0.2);
+            --nexus-text-h1: #F8FAFC;
+            --nexus-text-p: #D1D5DB;
+            --nexus-success: #4ADE80;
+            --nexus-warning: #F87171;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--nexus-bg);
+            color: var(--nexus-text-p);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Bloomberg Sidebar - High Density */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--nexus-sidebar);
+            border-right: 1px solid var(--nexus-border);
+            padding: 1rem;
+            position: fixed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--nexus-text-h1);
+            margin-bottom: 2rem;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--nexus-accent);
+        }
+        .logo span { color: var(--nexus-amber); margin-left: 0.2rem; }
+
+        .nav-group { margin-bottom: 1.5rem; }
+        .nav-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            color: var(--nexus-accent);
+            padding-left: 0.5rem;
+            opacity: 0.6;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.8rem;
+            border-radius: 4px;
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.1s;
+            margin-bottom: 0.2rem;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(191, 161, 0, 0.05);
+            color: var(--nexus-accent);
+            border-left: 2px solid var(--nexus-accent);
+        }
+
+        /* Terminal Body Architecture */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 3rem 4rem;
+            max-width: 1200px;
+        }
+
+        header { margin-bottom: 3rem; }
+        .status-tag {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(191, 161, 0, 0.1);
+            color: var(--nexus-accent);
+            padding: 0.2rem 0.6rem;
+            border-radius: 2px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            display: inline-block;
+            border: 1px solid var(--nexus-border);
+        }
+
+        h1 {
+            font-family: 'Inter', sans-serif;
+            font-size: 2.8rem;
+            color: var(--nexus-text-h1);
+            line-height: 1.1;
+            margin-bottom: 1rem;
+            letter-spacing: -1px;
+            font-weight: 800;
+        }
+
+        .excerpt {
+            font-size: 1.15rem;
+            color: var(--nexus-text-p);
+            max-width: 850px;
+            border-left: 4px solid var(--nexus-amber);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            opacity: 0.8;
+        }
+
+        /* Terminal Typography */
+        .manuscript-body h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            color: var(--nexus-accent);
+            margin: 3.5rem 0 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-top: 1px solid var(--nexus-border);
+            padding-top: 1.5rem;
+        }
+
+        .manuscript-body p {
+            font-size: 1.05rem;
+            margin-bottom: 1.5rem;
+            color: rgba(209, 213, 219, 0.85);
+        }
+
+        /* Bloomberg Table & Card Logic */
+        .card {
+            background: #0A0A0A;
+            border: 1px solid var(--nexus-border);
+            border-left: 4px solid var(--nexus-accent);
+            padding: 1.5rem;
+            margin: 2.5rem 0;
+            color: var(--nexus-text-p);
+        }
+
+        .card-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--nexus-accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        th { text-align: left; padding: 0.8rem; border-bottom: 2px solid var(--nexus-accent); color: var(--nexus-accent); font-weight: 800; }
+        td { padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--nexus-text-p); }
+
+        .f-success { color: var(--nexus-success); font-weight: 600; }
+        .f-warning { color: var(--nexus-warning); font-weight: 600; }
+
+        .table-container { overflow-x: auto; margin: 2rem 0; }
+
+        /* Institutional Hyperlinks */
+        .manuscript-body a {
+            color: var(--nexus-amber);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(191, 161, 0, 0.3);
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .manuscript-body a:hover {
+            color: #fff;
+            border-bottom-color: var(--nexus-amber);
+        }
+        td a {
+            color: var(--nexus-amber);
+            text-decoration: none;
+            border-bottom: 1px dotted rgba(191,161,0,0.5);
+        }
+        td a:hover { color: #fff; }
+
+        @media (max-width: 1024px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <a href="../../index.html" class="logo">BlogsPro<span>Intelligence</span></a>
+        
+        <div class="nav-group">
+            <div class="nav-label">Institutional Verticals</div>
+            <nav>
+                <a href="#macro" class="nav-item">Global Macro Drift</a>
+                <a href="#debt" class="nav-item">Debt & Sovereignty</a>
+                <a href="#digital" class="nav-item">Digital Rails</a>
+                <a href="#equities" class="nav-item">Equities & Alpha</a>
+                <a href="#reg" class="nav-item">Regulatory Ledger</a>
+                <a href="#fx" class="nav-item">FX & Cross-Border</a>
+                <a href="#commodity" class="nav-item">Commodity Pulse</a>
+                <a href="#em" class="nav-item">Emerging Markets</a>
+                <a href="#asset" class="nav-item">Asset Allocation</a>
+                <a href="#scribe" class="nav-item">Scribe Analytics</a>
+                <a href="#capital" class="nav-item">Capital Flows (PE/VC)</a>
+                <a href="#insurance" class="nav-item">Insurance & Risk</a>
+                <a href="#gift" class="nav-item">Offshore & GIFT City</a>
+            </nav>
+        </div>
+        
+        <div style="margin-top:auto; padding-top:2rem; border-top: 1px solid var(--nexus-border);">
+            <div style="font-size:0.6rem; color:rgba(255,255,255,0.2); text-transform:uppercase;">BlogsPro Intel Unit</div>
+            <div style="font-size:0.75rem; color:var(--nexus-accent); font-weight:600;">V6.30 Sovereign Pass</div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <div class="status-tag">Status: HOURLY Institutional Manuscript • 30 March 2026</div>
+            <h1>Hourly Pulse: GLOBAL MACRO STRATEGY</h1>
+            <div class="excerpt">Executive Abstract: Extreme Fear reading (9) triggers VIX expansion to 31.05. SPY/QQQ institutional unwinding accelerates ahead of Fed Powell pivot. Global regulatory friction limits capital deployment.</div>
+        </header>
+
+        <div class="manuscript-body">
+            <p><details id="meta-excerpt" style="display:none">Executive Abstract: Extreme Fear reading (9) triggers VIX expansion to 31.05. SPY/QQQ institutional unwinding accelerates ahead of Fed Powell pivot. Global regulatory friction limits capital deployment.</details></p>
+<p>VIX explosion to 31.05 (+13.16%) enforces a severe mechanical risk-off rotation across North American equities. Institutional liquidity is draining rapidly, reflected in the extreme standard deviations of State Street SPDR S&P 500 ETF (634.09, -1.71%) and Invesco QQQ Trust (562.58, -1.95%). The Fear & Greed Index collapse to a baseline of 9 (Extreme Fear) operates as a hard systemic signal for systemic deleveraging, forcing systematic funds to aggressively bid downside protection ahead of Fed Chair Powell's impending address. Macro correlations are breaking under the weight of active regulatory friction and institutional shadow liquidity demands. <div id="chart_macro"></div></p>
+<p>Systemic sovereign crackdowns and shadow banking vulnerabilities compound the current equity flight. Institutional capital routing faces elevated cross-border execution friction, directly evidenced by <a href="https://news.google.com/rss/articles/CBMirgFBVV95cUxNRmVXS0JjUW5ueEYtdkcydDJtcmV2NmpMdkR3U1FEOUV5QUlRY3A4RlR6VkhTZWFTa1lRR2lCVU1fR0NNQkhfdzNyVnpFNlg3WW90S2hyNlR3bEcxejNSMFVvYkNLZmc3ZUtCLTdXb3g5NTZadWdkT3hLWktJR211U1VvX3RXQ2J3czlmRUJXSkFuRFNudjAwM2hEZU82eVRleW5NNmdiV2N2U1FUVkE?oc=5" target="_blank" rel="noopener noreferrer">BLOOMBERG GLOBAL | Inside ‘Project Eagle,’ JPMorgan’s High-Wire Act to Fund EA Deal</a>. Concurrently, Asian systemic credit risk premiums are repricing violently following targeted sovereign enforcement, documented in <a href="https://news.google.com/rss/articles/CBMiswFBVV95cUxNeFp6V2h0SmF3NGJXS0FCVkFHTWVOaEwxWDRQbTMtWTdoNk" target="_blank" rel="noopener noreferrer">BLOOMBERG GLOBAL | China Probes NFRA Vice Minister in Expanding Finance Crackdown</a>.</p>
+<div class="table-container"><table><thead><tr><th>Metric</th><th>Observation</th><th>Alpha Impact</th></tr></thead><tbody><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">CBOE VIX</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#22c55e;">▲ 31.05 (13.16%)</span></td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Broad Gamma Squeeze</td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">SPDR S&P 500 ETF</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ 634.09 (1.71%)</span></td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Systematic Deleveraging</td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Tesla (TSLA)</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ 361.83 (2.76%)</span></td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ HighBeta Liquidation</span></td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Fear & Greed Index</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">9.0 (Extreme Fear)</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Max Volatility Premium</td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Fed Section 23A</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Morgan Stanley Exemption</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Shadow Liquidity Relief</td></tr></tbody></table></div>
+<h2>INDIA DOMESTIC PULSE</h2>
+<p>Global equity contraction generates immediate spillover vectors into emerging market architecture, isolating Indian sovereign yield dynamics. Geopolitical fragmentation and dollar illiquidity enforce a defensive posture for foreign institutional inflows. With US CPI and EU GDP printing undefined macro latency, emerging market FX desks are utilizing terminal short-dated options to hedge cross-asset contagion. The divergence in trans-Atlantic monetary frameworks exerts asymmetrical pressure on domestic sovereign bond profiles. <div id="chart_macro"></div></p>
+<p>The structural vulnerability of EM liquidity pools is amplified by central bank mandate transitions in developed markets. The European Central Bank's explicit recognition of cross-border capital friction, outlined in <a href="https://www.ecb.europa.eu/press/key/date/2026/html/index.en.html" target="_blank" rel="noopener noreferrer">ECB | Monetary policy in times of geopolitical fragmentation</a>, signals a prolonged period of elevated risk premiums for Asian equities. Concurrently, technical adjustments in sovereign credit facilities, as documented in <a href="https://www.bankofengland.co.uk/markets/market-notices/2026/march/update-to-discount-window-facility-pricing" target="_blank" rel="noopener noreferrer">BoE | Update to Discount Window Facility pricing – Market Notice 27 March 2026</a>, confirm institutional baseline shifting away from risk-on emerging market exposure toward high-grade, short-duration defensive nodes.</p>
+<p>|</p>
+        </div>
+
+        <footer style="margin-top: 10rem; padding-top: 3rem; border-top: 1px solid var(--nexus-border); text-align: center;">
+            <div style="margin-bottom: 2rem;">
+                <a href="pulse-2026-03-29-hourly-1774817596107.pdf" class="btn-nexus" style="text-decoration:none; display:inline-block; padding: 12px 24px; border: 1px solid #BFA100; color: #BFA100; font-family: 'Courier New', Courier, monospace; font-size: 12px; text-transform: uppercase;">
+                    ⬇ Download Manuscript (PDF)
+                </a>
+            </div>
+            <p style="font-size: 0.75rem; color: rgba(248, 250, 252, 0.4); letter-spacing: 1px;">
+                © 2026 BLOGSPRO TERMINAL • ALL RIGHTS RESERVED • INSTITUTIONAL USE ONLY
+            </p>
+        </footer>
+    </main>
+    
+<script>
+    google.charts.setOnLoadCallback(() => {
+        const render = (containerId, label, rawData, color) => {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            try {
+                const data = new google.visualization.DataTable();
+                data.addColumn('string', 'Period');
+                data.addColumn('number', label);
+                data.addRows(rawData.map(r => [r[0], Number(r[1])]));
+
+                const options = {
+                    backgroundColor: '#050505',
+                    colors: [color],
+                    chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
+                    legend: { position: 'bottom', alignment: 'center', textStyle: {color: '#9CA3AF', fontSize: 10} },
+                    hAxis: { 
+                        title: 'Intraday Session Period',
+                        textStyle: {color: '#9CA3AF', fontSize: 10}, 
+                        titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                        gridlines: {color: '#1A1A1A'} 
+                    },
+                    vAxis: { 
+                        title: label + ' % Delta',
+                        textStyle: {color: '#9CA3AF', fontSize: 10}, 
+                        titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                        gridlines: {color: '#1A1A1A'} 
+                    },
+                    lineWidth: 3, pointSize: 6
+                };
+                new google.visualization.AreaChart(el).draw(data, options);
+            } catch (err) { console.error("Chart Render Fail:", containerId, err); }
+        };
+        render('chart_sentiment', 'Sentiment Drift', [["Fear_Greed","9.0"],["VIX_Spike","13.16"],["Put_Call_Ratio","1.85"],["Liquidity_Drain",-2.1]], '#BFA100');
+        render('chart_macro', 'Macro Flux', [["Fed_Intervention","1.0"],["US_Yield_Drift","4.15"],["EM_Risk_Premium","3.40"],["Geopolitics_Friction","5.20"]], '#BFA100');
+        render('chart_multi_asset', 'Multi-Asset Alpha', [["SPY",-1.71],["QQQ",-1.95],["MSFT",-2.51],["TSLA",-2.76]], '#BFA100');
+    });
+</script>
+
+</body>
+</html>

@@ -1,5 +1,5 @@
 /**
- * BlogsPro Intelligence Terminal - Centralized Writing Logic (V6.42)
+ * BlogsPro Intelligence Terminal - Centralized Writing Logic (V4.20)
  * All institutional personas, structural requirements, and frequency-specific 
  * prompts are managed here to ensure a unified "Single Source of Truth."
  */
@@ -14,114 +14,143 @@ ZERO TOLERANCE for conversational filler:
 const STRUCTURAL_RULES = `
 1. Tone: Cold, analytical, Bloomberg-style blocks.
 2. Mandatory Structural Layout:
-   - PILLAR 1: YOU MUST INCLUDE exactly one <h2>GLOBAL MACRO STRATEGY</h2>.
-   - PILLAR 2: YOU MUST INCLUDE exactly one <h2>INDIA DOMESTIC PULSE</h2>.
-   - DATA METADATA: IMMEDIATELY FOLLOW THE FIRST H2 with <details id="meta-excerpt" style="display:none">Executive Abstract: High-density institutional summary (max 300 chars). NO FILLER.</details>.
-   - DATA SUMMARY: YOU MUST INCLUDE exactly one Markdown table: "| Metric | Observation | Alpha Impact |" with at least 5 data-driven rows (using the expanded Mega-Pool data).
-   - Headers/Lists format: [SOURCE | Title](URL).
-   - NO MARKDOWN CODE BLOCKS. Output pure HTML body snippets only.
-3. Citations:
-   - You MUST include hyperlink citations in [SOURCE | Title](URL) format.
-   - Each pillar must contain at least 2 distinct source citations.
-4. Strategic Anchors:
-   - End with: SENTIMENT_SCORE: [0-100] | POLL: [Question] | OPTIONS: [Opt1, Opt2, Opt3].
+   - PILLAR 1: Exactly one <h2>VERTICAL_NAME</h2>.
+   - DATA METADATA: FOLLOW THE H2 with <details id="meta-excerpt" style="display:none">Executive Abstract: High-density institutional summary.</details>.
+   - DATA SUMMARY: Include at least TWO Markdown tables: "| Metric | Observation | Alpha Impact |" with 5+ data-driven rows.
+   - Markers: Intersperse markers [[CHART_SENTIMENT]], [[CHART_MACRO]], and [[CHART_MULTI_ASSET]].
+   - Citations: [SOURCE | Title](URL) format. Minimum 4 citations per chapter.
+3. Density: NO MARKDOWN CODE BLOCKS. Output pure HTML snippets only.
 `;
 
 const CHART_SYNC_RULE = `
 CHART SYNCHRONIZATION:
 - Propose exactly one <chart-data> block at the very end.
-- Labels must be plain text (No HTML tags).
 - Values must be numbers representing % Delta or Institutional Drift.
 `;
 
-/**
- * Returns the centralized prompt for Briefings (Hourly/Daily)
- */
+const VERTICALS = [
+    { id: "macro", name: "Global Macro & Cross-Asset Drift" },
+    { id: "banking", name: "Banking & Institutional Treasury" },
+    { id: "cards", name: "Cards & Payments Ecosystem" },
+    { id: "equities", name: "Equities & Alpha Rotation" },
+    { id: "debt", name: "Debt & Sovereign Credit" },
+    { id: "fx", name: "FX & Cross-Border Flows" },
+    { id: "digital", name: "Digital Assets & Infrastructure" },
+    { id: "reg", name: "Regulatory Ledger & Compliance" },
+    { id: "commodity", name: "Commodity & Resource Pulse" },
+    { id: "em", name: "Emerging Markets (EM) Alpha" },
+    { id: "asset", name: "Asset Allocation & Risk-Parity" },
+    { id: "scribe", name: "Scribe Analytics & Sentiment" },
+    { id: "capital", name: "Capital Flows (PE/VC/M&A)" },
+    { id: "insurance", name: "Insurance & Reinsurance Risk" },
+    { id: "gift", name: "Offshore Hub (GIFT City)" },
+    { id: "payment", name: "Fintech & Payment Rails" }
+];
+
 function getBriefingPrompt(frequency, marketContext, mktInfo) {
-    const temporalGuidance = `
-TEMPORAL GUIDANCE:
-- Current DOW is ${mktInfo.day}. Status: ${mktInfo.status}.
-${mktInfo.isWeekend ? "- IMPORTANT: Markets are CLOSED. Focus on WEEKEND WRAP and WEEKLY PREP. Do NOT suggest intraday long/short trades." : "- Markets are ACTIVE. Focus on LIVE EXECUTION and PIVOTS."}
-    `;
-
-    const focus = frequency === 'hourly' 
-        ? 'Focus on volatility pivots, technical liquidity, and global macro drifts.' 
-        : 'Focus on session transitions, sectoral rotation, and institutional catalysts.';
-
+    const wordTarget = frequency === 'hourly' ? '200-500' : '600-1500';
     return `
 ${INSTITUTIONAL_PERSONA}
-Write a high-fidelity ${frequency} market pulse (HTML).
-
-${temporalGuidance}
+Write a high-fidelity ${frequency} market pulse (HTML). Target length: ${wordTarget} words.
 
 STRATEGIC ANALYSIS DATASET: 
 ${marketContext}
 
-${focus}
-- Sentiment Mapping: Map how global greed/fear correlates with institutional capital flows and risk-on/risk-off transitions.
-- Multi-Asset Mega-Pool: Analyze correlations across the Big 50 pool (AAPL, Reliance, Gold, Brent, DXY, US10Y, BTC, ETH).
-
 --- MANDATORY STRUCTURAL OUTPUT REQUIREMENTS ---
 ${STRUCTURAL_RULES}
-- Grounding: You MUST reference specific news items using the [SOURCE | Title](URL) hyperlink format.
-
---- FINAL MANDATORY TAGS (MUST BE AT THE VERY END) ---
 ${CHART_SYNC_RULE}
-- Output 3 separate data series (Sentiment, Macro, Multi-Asset) at the very end inside a single <chart-data> tag as a JSON object:
-  <chart-data>{ "sentiment": [[L,V],[L,V],[L,V],[L,V]], "macro": [[L,V],[L,V],[L,V],[L,V]], "multi_asset": [[L,V],[L,V],[L,V],[L,V]] }</chart-data>
-- DO NOT wrap the JSON inside markdown code blocks.
+- Output inside <chart-data>{ "sentiment": [...], "macro": [...] }</chart-data>
 `;
 }
 
-/**
- * Returns the centralized prompt for Strategic Articles (Weekly/Monthly)
- */
 function getArticlePrompt(frequency, verticalName, verticalId, vData, macroSummary, news, lastSummary) {
-    const wordCount = frequency === 'monthly' ? '2,500-3,000' : '1,500-2,000';
-    
+    const targetLength = frequency === 'monthly' ? '2,000-3,000' : '1,500-2,000';
+    // Note: For hierarchical multi-swarm, this is PER CHAPTER. 
+    // Total article length will be (Chapters * targetLength) to reach the 15k/25k targets.
+
     return `
 ${INSTITUTIONAL_PERSONA}
-CONTEXT DATA:
-- Data Flux: ${vData}
-- Anchor: ${macroSummary}
-- Global News: ${news || "Systemic drift mapping via macro context."}
-- Flow: ${lastSummary}
+ROLE: QUANT STRATEGIST (Vertical Analyst)
+TASK: Write a ${targetLength}-word DEEP-RESEARCH CHAPTER for '${verticalName}'.
 
---- MANDATORY CHAPTER STRUCTURE ---
-1. Write a ${wordCount} word chapter for '${verticalName}'.
-2. Layout:
-   - START with exactly one (1) <h2>${verticalName}</h2> tag. No preamble.
-   - Insert <div class="card terminal-chart" id="chart_${verticalId}"></div> exactly once in the body.
-3. CITATION MANDATE: [Institutional Source](URL).
-4. TABLE MANDATE: Include exactly one Markdown table: "| Phase | Observation | Implications |" with 5+ rows.
+CONTEXT:
+Vertical Data: ${vData}
+Macro Anchor: ${macroSummary}
+News Stream: ${news}
 
---- FINAL MANDATORY CHART DATA (Literal Last Token) ---
+--- MANDATORY CHAPTER REQUIREMENT ---
+1. START with <h2>${verticalName}</h2>.
+2. Include at least TWO high-density data tables.
+3. Use extremely technical, quantitative language. No fluff.
+4. Inject exactly one <div class="card terminal-chart" id="chart_${verticalId}"></div>.
+
+--- FINAL CHART DATA ---
 ${CHART_SYNC_RULE}
-- Output inside a <chart-data> tag as a JSON array of arrays:
-  <chart-data>[["Label1", Value1], ["Label2", Value2], ["Label3", Value3], ["Label4", Value4]]</chart-data>
-- DO NOT wrap in markdown backticks.
-- Pure HTML snippets only. NO Markdown code blocks.
+<chart-data>[["Label", Value], ...]</chart-data>
 `;
 }
 
-/**
- * Standard Sanitization Prompt
- */
+function getResearcherPrompt(frequency, dataSnapshot, historicalData) {
+    return `
+${INSTITUTIONAL_PERSONA}
+ROLE: LEAD MACRO RESEARCHER
+TASK: Deep-mine the ${frequency} market snapshot vs historical baselines.
+GOAL: Provide the Drafter with enough granular data to write 2,500 words of analysis per vertical.
+
+DATA:
+Current Snapshot: ${JSON.stringify(dataSnapshot)}
+Historical Baseline: ${JSON.stringify(historicalData)}
+
+OUTPUT: Comprehensive raw intelligence brief. Focus on divergence, correlations, and hidden risks.
+`;
+}
+
+function getDrafterPrompt(frequency, researchBrief, verticalName) {
+    return `
+${INSTITUTIONAL_PERSONA}
+ROLE: QUANTITATIVE DRAFTER
+TASK: Draft a high-density institutional manuscript segment for '${verticalName}'.
+MANDATORY LENGTH: Minimum 2,000 words for this specific segment. 
+Expand on every technical detail. Use data tables to drive the narrative.
+
+RESEARCH:
+${researchBrief}
+
+${STRUCTURAL_RULES}
+`;
+}
+
+function getEditorPrompt(rawDraft, frequency) {
+    const totalTarget = frequency === 'monthly' ? '25,000' : (frequency === 'weekly' ? '15,000' : '1,500');
+    return `
+${INSTITUTIONAL_PERSONA}
+ROLE: CHIEF INSTITUTIONAL EDITOR
+TASK: Harden the draft. Ensure it meets the institutional gold standard.
+MANDATORY: DO NOT TRUNCATE. 
+The final merged manuscript must be approximately ${totalTarget} words of dense analysis.
+
+DRAFT:
+${rawDraft}
+
+OUTPUT: Final sanitized HTML snippet.
+`;
+}
+
 function getSanitizerPrompt(content) {
-    return `Clean this institutional market report for terminal delivery.
-- REMOVE all markdown backticks (\`\`\`).
-- Fix mismatching tags and invalid HTML.
-- MANDATORY: Preserve the <chart-data> JSON tag at the very end. DO NOT REMOVE IT.
-- MANDATORY: Preserve all hyperlinked citations [Source Name](URL) in the body.
-- Ensure the ID 'chart_*' is preserved in the div cards.
-- Tone: Cold, Bloomberg-style institutional blocks.
+    return `Tone: Cold, Bloomberg-style institutional blocks.
+REMOVE all markdown backticks. Fix broken HTML tags. 
+PRESERVE all <chart-data> and <table> elements.
 
 CONTENT:
 ${content}`;
 }
 
-module.exports = {
+export {
+    VERTICALS,
     getBriefingPrompt,
     getArticlePrompt,
-    getSanitizerPrompt
+    getSanitizerPrompt,
+    getResearcherPrompt,
+    getDrafterPrompt,
+    getEditorPrompt
 };

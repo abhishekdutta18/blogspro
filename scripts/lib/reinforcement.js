@@ -1,96 +1,113 @@
 /**
- * BlogsPro Reinforcement Learning System (reinforcement.js)
+ * BlogsPro Reinforcement Learning System (Serverless Version)
  * ==========================================================
- * Phase 3 of the 3-system quality pipeline:
- *
- *   [1] AUDITOR (validator.js)   — validates content, logs failures HERE
- *   [2] QA GATE (corrector.js)   — auto-corrects, logs correction codes HERE
- *   [3] THIS FILE (RL ledger)    — aggregates all events, surfaces top mistakes
- *                                   into every future AI generation prompt
- *
- * This creates a self-improving loop: the more generations run,
- * the more specific the model warnings become, until QA corrections → 0.
+ * Aggregates all quality events into Cloudflare KV ledger.
  */
 
-const fs = require('fs');
-const path = require('path');
-
-const LEDGER_PATH = path.join(__dirname, '../../knowledge/ai-feedback.json');
-const HEARTBEAT_PATH = path.join(__dirname, '../../knowledge/rl-heartbeat.json');
-const MAX_ENTRIES = 1500;
+const MAX_ENTRIES = 500;
+const COLLECTION = 'ai_reinforcement_ledger';
 
 class ReinforcementSystem {
     constructor() {
         this.ledger = [];
-        this.load();
     }
 
-    load() {
+    /**
+     * Sync a single entry to Firestore (REST)
+     */
+    async syncEntry(entry, env) {
+        if (!env || !env.FIREBASE_PROJECT_ID) return;
+        
+        const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/${COLLECTION}`;
+        
+        // Transform to Firestore format
+        const fields = {
+            type: { stringValue: entry.type },
+            timestamp: { timestampValue: entry.timestamp },
+            task: { stringValue: entry.task },
+            pattern: { stringValue: entry.pattern || "" },
+            preview: { stringValue: entry.preview ? entry.preview.substring(0, 1000) : "" }
+        };
+
+        if (entry.failures && Array.isArray(entry.failures)) {
+            fields.failures = { arrayValue: { values: entry.failures.map(f => ({ stringValue: f })) } };
+        }
+
         try {
-            if (fs.existsSync(LEDGER_PATH)) {
-                this.ledger = JSON.parse(fs.readFileSync(LEDGER_PATH, 'utf8'));
-            }
+            await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ fields })
+            });
         } catch (e) {
-            this.ledger = [];
+            console.error("⚠️ RL Sync Fail:", e.message);
         }
     }
 
-    save() {
-        try {
-            if (this.ledger.length > MAX_ENTRIES) this.ledger = this.ledger.slice(-MAX_ENTRIES);
-            const dir = path.dirname(LEDGER_PATH);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            fs.writeFileSync(LEDGER_PATH, JSON.stringify(this.ledger, null, 2), 'utf8');
-        } catch (e) {}
-    }
+    /**
+     * Load recent ledger entries from Firestore (REST runQuery)
+     */
+    async load(env = null) {
+        if (!env || !env.FIREBASE_PROJECT_ID) return;
 
-    updateHeartbeat(current, total, totalSuccess, totalFail) {
-        try {
-            const hb = {
-                active: true,
-                timestamp: new Date().toISOString(),
-                current,
-                total,
-                totalSuccess,
-                totalFail,
-                rate: total > 0 ? ((totalSuccess / current) * 100).toFixed(1) : 0
-            };
-            const dir = path.dirname(HEARTBEAT_PATH);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            fs.writeFileSync(HEARTBEAT_PATH, JSON.stringify(hb, null, 2), 'utf8');
-        } catch (e) {}
-    }
-
-    stopHeartbeat() {
-        try {
-            if (fs.existsSync(HEARTBEAT_PATH)) {
-                const hb = JSON.parse(fs.readFileSync(HEARTBEAT_PATH, 'utf8'));
-                hb.active = false;
-                fs.writeFileSync(HEARTBEAT_PATH, JSON.stringify(hb, null, 2), 'utf8');
+        const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery`;
+        const query = {
+            structuredQuery: {
+                from: [{ collectionId: COLLECTION }],
+                orderBy: [{ field: { fieldPath: 'timestamp' }, direction: 'DESCENDING' }],
+                limit: MAX_ENTRIES
             }
-        } catch (e) {}
+        };
+
+        try {
+            const res = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(query)
+            });
+            const results = await res.json();
+            
+            this.ledger = (results || [])
+                .filter(r => r.document)
+                .map(r => {
+                    const fields = r.document.fields;
+                    return {
+                        type: fields.type?.stringValue,
+                        timestamp: fields.timestamp?.timestampValue,
+                        task: fields.task?.stringValue,
+                        pattern: fields.pattern?.stringValue,
+                        failures: fields.failures?.arrayValue?.values?.map(v => v.stringValue) || [],
+                        preview: fields.preview?.stringValue
+                    };
+                });
+        } catch (e) {
+            console.error("⚠️ RL Load Fail:", e.message);
+        }
     }
 
-    logSuccess(task, pattern, output) {
-        this.ledger.push({
+
+    async logSuccess(task, pattern, output, env = null) {
+        const entry = {
             type: 'SUCCESS',
             timestamp: new Date().toISOString(),
             task,
             pattern: pattern || 'Perfect structural execution',
-            preview: output ? output.substring(0, 500) : null
-        });
-        this.save();
+            preview: output ? output.substring(0, 1000) : null
+        };
+        this.ledger.push(entry);
+        if (env) await this.syncEntry(entry, env);
     }
 
-    logFailure(task, failures, output) {
-        this.ledger.push({
+    async logFailure(task, failures, output, env = null) {
+        const entry = {
             type: 'FAILURE',
             timestamp: new Date().toISOString(),
             task,
             failures: failures || [],
-            preview: output ? output.substring(0, 500) : null
-        });
-        this.save();
+            preview: output ? output.substring(0, 1000) : null
+        };
+        this.ledger.push(entry);
+        if (env) await this.syncEntry(entry, env);
     }
 
     getGoldStandard() {
@@ -114,18 +131,16 @@ SENTIMENT_SCORE: 82 | POLL: Best hedge? | OPTIONS: Gold, USD, BTC
 `;
     }
 
-    getReinforcementContext() {
+    async getReinforcementContext(env = null) {
+        await this.load(env);
         const recent = this.ledger.slice(-500);
         const failureCounts = {};
-        const successes = [];
 
         recent.forEach(entry => {
             if (entry.type === 'FAILURE') {
-                entry.failures.forEach(f => {
+                (entry.failures || []).forEach(f => {
                     failureCounts[f] = (failureCounts[f] || 0) + 1;
                 });
-            } else {
-                successes.push(entry.task);
             }
         });
 
@@ -155,8 +170,6 @@ SENTIMENT_SCORE: 82 | POLL: Best hedge? | OPTIONS: Gold, USD, BTC
         }
 
         context += this.getGoldStandard();
-
-        // HARD-CODED INSTITUTIONAL LESSONS (From PDF QA Inspection, 2026-03-29)
         context += `
 [CRITICAL PRODUCTION RULES - NON-NEGOTIABLE]:
 1. NEVER include <rule-check> tags in your output. These are internal system tags only.
@@ -165,14 +178,11 @@ SENTIMENT_SCORE: 82 | POLL: Best hedge? | OPTIONS: Gold, USD, BTC
 4. DO NOT copy or repeat any system prompt text ("JSON must use DOUBLE QUOTES") into the article.
 5. All markdown hyperlinks [text](url) MUST be used for citations. Do not embed raw URLs.
 `;
-
         return context;
     }
-    /**
-     * Returns a quick pipeline health summary from the last N ledger entries.
-     * Used by generators to log/report QA Gate effectiveness.
-     */
-    getAuditSummary(lookback = 50) {
+
+    async getAuditSummary(lookback = 50, env = null) {
+        await this.load(env);
         const recent = this.ledger.slice(-lookback);
         const qaCycles = recent.filter(e => e.task && e.task.includes('QA_GATE'));
         const passes = qaCycles.filter(e => e.type === 'SUCCESS').length;
@@ -188,4 +198,5 @@ SENTIMENT_SCORE: 82 | POLL: Best hedge? | OPTIONS: Gold, USD, BTC
     }
 }
 
-module.exports = new ReinforcementSystem();
+const rl = new ReinforcementSystem();
+export { rl as default, ReinforcementSystem };

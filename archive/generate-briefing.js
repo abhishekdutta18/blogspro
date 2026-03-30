@@ -82,6 +82,12 @@ async function generateBriefing() {
     MACRO: ${(macro.summary || '').substring(0, 200)}
     CALENDAR: ${(calendar.text || '').substring(0, 200)}
     
+    --- INSTITUTIONAL VERTICALS ---
+    MUTUAL_FUNDS: ${mf.summary}
+    PE_VC_STARTUPS: ${pevc.summary}
+    INSURANCE: ${ins.summary}
+    GIFT_CITY: ${gift.summary}
+
     --- TOP NEWS ---
     ${universal.substring(0, 600)}
     `;
@@ -204,7 +210,7 @@ async function generateBriefing() {
             console.log("📑 Generating Specialized Intelligence via MiroFish Swarm...");
             const { generateMiroForecast } = require("./lib/mirofish-qa-service.js");
             const generalForecast = await generateMiroForecast(marketContext, "general");
-            const giftCityForecast = await generateMiroForecast(giftCityData, "gift_city");
+            const giftCityForecast = await generateMiroForecast(gift.summary, "gift_city");
 
             console.log("📑 Generating Stage 2: Predictive Alpha...");
             const stage2Prompt = `${prompt}\n\nSTRICT INSTRUCTION: Focus on PREDICTION and RISK for the next 48 hours. Interperse [[CHART_SENTIMENT]], [[CHART_MACRO]], and [[CHART_MULTI_ASSET]] markers within the analysis where they support the narrative.`;

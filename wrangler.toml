@@ -1,15 +1,110 @@
-name = "blogspro-upstox"
-main = "api/newsletter-worker.js"
-compatibility_date = "2024-02-15"
-account_id = "b3f4edff1fdc616f329e7d7cb6698307"
-
 [vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
 
-# Secrets - must be set via: wrangler secret put
-# RESEND_API_KEY - Get from https://resend.com/api-keys
-# NEWSLETTER_SECRET - Arbitrary string to authenticate frontend requests (use: openssl rand -base64 32)
+# --- PULSE ORCHESTRATOR ---
+[env.pulse]
+name = "blogspro-pulse"
+main = "scripts/pulse-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
 
-# blogspro-upstox configuration
-# Deploy with: wrangler deploy -c wrangler.upstox.toml (or separate file)
-# For now, adding as a secondary environment or separate config is preferred for multiple workers.
+[env.pulse.vars]
+FIREBASE_PROJECT_ID = "blogspro-ai"
+BASE_URL = "https://blogspro.in"
+SWARM_INTERNAL_TOKEN = "BPRO_SWARM_SECRET_2026"
+
+[[env.pulse.services]]
+binding = "DATA_HUB"
+service = "blogspro-data-hub"
+
+[[env.pulse.services]]
+binding = "RELEVANCE"
+service = "blogspro-relevance"
+
+[[env.pulse.services]]
+binding = "AUDITOR"
+service = "blogspro-auditor"
+
+[[env.pulse.services]]
+binding = "SEO_MANAGER"
+service = "blogspro-seo"
+
+[[env.pulse.r2_buckets]]
+binding = "BLOOMBERG_ASSETS"
+bucket_name = "blogspro-assets"
+
+[[env.pulse.services]]
+binding = "TEMPLATE_ENGINE"
+service = "blogspro-templates"
+
+[[env.pulse.kv_namespaces]]
+binding = "KV"
+id = "9caa7afdf7e94adb99cecf221275d63d"
+
+[env.pulse.triggers]
+crons = ["0 * * * *", "0 4 * * *", "0 5 * * 1", "0 6 1 * *"]
+
+# --- TEMPLATE ENGINE WORKER ---
+[env.templates]
+name = "blogspro-templates"
+main = "scripts/template-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+# --- DATA HUB WORKER ---
+[env.data-hub]
+name = "blogspro-data-hub"
+main = "scripts/data-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+[env.data-hub.vars]
+SWARM_INTERNAL_TOKEN = "BPRO_SWARM_SECRET_2026"
+
+[[env.data-hub.r2_buckets]]
+binding = "BLOOMBERG_ASSETS"
+bucket_name = "blogspro-assets"
+
+[[env.data-hub.kv_namespaces]]
+binding = "KV"
+id = "9caa7afdf7e94adb99cecf221275d63d"
+
+# --- RELEVANCE WORKER ---
+[env.relevance]
+name = "blogspro-relevance"
+main = "scripts/relevance-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+[env.relevance.vars]
+SWARM_INTERNAL_TOKEN = "BPRO_SWARM_SECRET_2026"
+
+# --- AUDITOR WORKER ---
+[env.auditor]
+name = "blogspro-auditor"
+main = "scripts/auditor-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+[env.auditor.vars]
+FIREBASE_PROJECT_ID = "blogspro-ai"
+SWARM_INTERNAL_TOKEN = "BPRO_SWARM_SECRET_2026"
+
+# --- SEO MANAGER WORKER ---
+[env.seo]
+name = "blogspro-seo"
+main = "scripts/seo-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+[env.seo.vars]
+BASE_URL = "https://blogspro.in"
+SWARM_INTERNAL_TOKEN = "BPRO_SWARM_SECRET_2026"
+
+[[env.seo.r2_buckets]]
+binding = "BLOOMBERG_ASSETS"
+bucket_name = "blogspro-assets"
+
+[[env.seo.kv_namespaces]]
+binding = "KV"
+id = "9caa7afdf7e94adb99cecf221275d63d"

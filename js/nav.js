@@ -2,7 +2,7 @@
 // nav.js — Navigation, view switching
 // ═══════════════════════════════════════════════
 import { state }                   from './state.js';
-import { loadAll, renderPostsTable } from './posts.js';
+import { loadAll, renderPostsTable, loadIntelligence } from './posts.js';
 import { loadUsers }               from './users.js';
 import { loadSubscribers }         from './subscribers.js';
 import { populateAnalyzeSelect }   from './seo-page.js';
@@ -22,11 +22,12 @@ export function showView(name) {
   });
 
   // Per-view load hooks
-  if (name === 'posts')       renderPostsTable(state.allPosts, 'allPostsBody');
-  if (name === 'users')       loadUsers();
-  if (name === 'account')     loadAdminAccount();
-  if (name === 'subscribers') loadSubscribers();
-  if (name === 'seotools')    populateAnalyzeSelect();
+  if (name === 'posts')        renderPostsTable(state.allPosts, 'allPostsBody');
+  if (name === 'intelligence') loadIntelligence();
+  if (name === 'users')        loadUsers();
+  if (name === 'account')      loadAdminAccount();
+  if (name === 'subscribers')  loadSubscribers();
+  if (name === 'seotools')     populateAnalyzeSelect();
 
   // Float button + drawer: only show on editor view
   const floatBtn = document.getElementById('aiFloatBtn');

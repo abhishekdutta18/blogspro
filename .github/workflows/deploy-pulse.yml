@@ -1,0 +1,84 @@
+name: Deploy Swarm 4.0 hierarchy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - 'wrangler.toml'
+  workflow_dispatch:
+
+jobs:
+  deploy-swarm:
+    name: Deploy Industrial Swarm Tiers
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [data-hub, relevance, auditor, seo, pulse]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install
+
+      - name: Deploy Tier [${{ matrix.environment }}]
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          environment: ${{ matrix.environment }}
+          command: deploy
+
+  push-swarm-secrets:
+    name: Push Governance Secrets
+    needs: deploy-swarm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Push Secrets to All Tiers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
+          SWARM_INTERNAL_TOKEN: ${{ secrets.SWARM_INTERNAL_TOKEN || 'BPRO_SWARM_SECRET_2026' }}
+        run: |
+          for env in data-hub relevance auditor seo pulse; do
+            echo "🔐 Pushing secrets to $env..."
+            echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY -e $env || true
+            echo "$GROQ_API_KEY" | npx wrangler secret put GROQ_API_KEY -e $env || true
+            echo "$OPENROUTER_KEY" | npx wrangler secret put OPENROUTER_KEY -e $env || true
+            echo "$SWARM_INTERNAL_TOKEN" | npx wrangler secret put SWARM_INTERNAL_TOKEN -e $env || true
+          done
+          echo "✓ Industrial Swarm 4.0 secrets synchronized."
+
+  trigger-swarm:
+    name: Autonomous Swarm Initialization
+    needs: [deploy-swarm, push-swarm-secrets]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger All Frequencies
+        env:
+          SWARM_TOKEN: ${{ secrets.SWARM_INTERNAL_TOKEN || 'BPRO_SWARM_SECRET_2026' }}
+          BASE_URL: "https://blogspro-pulse.abhishekdutta18.workers.dev"
+        run: |
+          echo "🎯 Initializing Swarm 4.0 Frequencies..."
+          
+          echo "⚡ Triggering HOURLY Pulse..."
+          curl -s -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=hourly"
+          
+          echo "📅 Triggering DAILY Pulse..."
+          curl -s -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=daily"
+          
+          echo "🗓️ Triggering WEEKLY Strategic Article..."
+          curl -s -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=weekly&type=article"
+          
+          echo "📊 Triggering MONTHLY Strategic Manuscript..."
+          curl -s -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=monthly&type=article"
+          
+          echo "🏁 Swarm Initialization Complete."

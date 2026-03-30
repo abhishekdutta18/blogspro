@@ -1,38 +1,14 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const fetch = require("node-fetch");
-const fs = require("fs");
-const path = require("path");
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import _fetch from "node-fetch";
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-/**
- * Zero-dependency Environment Loader
- * Consolidates keys from project root into process.env
- */
-function loadEnv() {
-    const envPath = path.join(__dirname, "../../.env");
-    if (fs.existsSync(envPath)) {
-        const env = fs.readFileSync(envPath, "utf8");
-        env.split("\n").forEach(line => {
-            const [k, v] = line.split("=");
-            if (k && v && !process.env[k.trim()]) {
-                process.env[k.trim()] = v.trim();
-            }
-        });
-        // Institutional Bridging
-        if (process.env.GEMINI_KEY && !process.env.GEMINI_API_KEY) {
-            process.env.GEMINI_API_KEY = process.env.GEMINI_KEY;
-        }
-    }
-}
-loadEnv();
 
 async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile") {
     if (!process.env.GROQ_API_KEY) throw new Error("GROQ_API_KEY missing.");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
     try {
-        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        const res = await _fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             signal: controller.signal,
             headers: {
@@ -80,7 +56,7 @@ async function generateKimiContent(prompt) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
     try {
-        const res = await fetch("https://api.moonshot.cn/v1/chat/completions", {
+        const res = await _fetch("https://api.moonshot.cn/v1/chat/completions", {
             method: "POST",
             signal: controller.signal,
             headers: {
@@ -168,7 +144,7 @@ async function generateOpenRouterContent(prompt) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
     try {
-        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        const res = await _fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             signal: controller.signal,
             headers: {
@@ -196,7 +172,7 @@ async function generateOpenRouterContent(prompt) {
 async function generateMistralContent(prompt) {
     if (!process.env.MISTRAL_API_KEY) throw new Error("MISTRAL_API_KEY missing.");
     try {
-        const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+        const res = await _fetch("https://api.mistral.ai/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}`,
@@ -216,7 +192,7 @@ async function generateMistralContent(prompt) {
 async function generateCerebrasContent(prompt) {
     if (!process.env.CEREBRAS_API_KEY) throw new Error("CEREBRAS_API_KEY missing.");
     try {
-        const res = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+        const res = await _fetch("https://api.cerebras.ai/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${process.env.CEREBRAS_API_KEY}`,
@@ -236,7 +212,7 @@ async function generateCerebrasContent(prompt) {
 async function generateCloudflareContent(prompt) {
     if (!process.env.CF_ACCOUNT_ID || !process.env.CF_API_TOKEN) throw new Error("Cloudflare credentials missing.");
     try {
-        const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct`, {
+        const res = await _fetch(`https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct`, {
             method: "POST",
             headers: { "Authorization": `Bearer ${process.env.CF_API_TOKEN}` },
             body: JSON.stringify({ messages: [{ role: "user", content: prompt }] })
@@ -261,7 +237,7 @@ async function generateOpenAICompatible(prompt, name, url, key, model) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
     try {
-        const res = await fetch(url, {
+        const res = await _fetch(url, {
             method: "POST",
             signal: controller.signal,
             headers: {
@@ -289,7 +265,7 @@ async function generateGithubContent(prompt) {
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
     if (!token) throw new Error("GITHUB_TOKEN missing.");
     try {
-        const res = await fetch("https://models.inference.ai.azure.com/chat/completions", {
+        const res = await _fetch("https://models.inference.ai.azure.com/chat/completions", {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${token}`,
@@ -310,19 +286,13 @@ async function generateGithubContent(prompt) {
 let generatePoolIndex = 0;
 const failedProviders = new Set();
 
-async function askAI(prompt, options = { role: 'generate' }) {
+export async function askAI(prompt, options = { role: 'generate' }) {
     console.log(`📝 Prompt prepared. Length: ${prompt.length} chars. Role: ${options.role}`);
     
     // 0. MirorFish Swarm QA - Specialized Serverless Switch
     if (options.role === 'swarm_qa') {
-        try {
-            const { runSwarmAudit } = require("./mirofish-qa-service.js");
-            console.log("🕵️  Handoff to MiroFish Swarm QA CLI...");
-            return await runSwarmAudit(prompt, options.freq || "daily");
-        } catch (e) {
-            console.warn(`⚠️ Swarm QA Bridge failed: ${e.message}. Falling back to standard Auditor...`);
-            options.role = 'audit'; 
-        }
+        console.warn("⚠️ MiroFish Swarm QA (CLI version) is not supported in Workers. Falling back to specialized persona simulation...");
+        options.role = 'generate'; // We use the swarm persona logic in the worker instead
     }
 
     const generatePool = [];
@@ -424,4 +394,5 @@ async function askAI(prompt, options = { role: 'generate' }) {
     throw new Error("All AI engines exhausted. Check GEMINI_API_KEY/GROQ_API_KEY secrets in GitHub Actions.");
 }
 
-module.exports = { askAI };
+// Simplified ESM export
+export default { askAI };

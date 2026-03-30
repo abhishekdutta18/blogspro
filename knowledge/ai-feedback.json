@@ -1,502 +1,6 @@
 [
   {
     "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.934Z",
-    "task": "Equities & Alpha",
-    "failures": [
-      "Insufficient data density (Found 1-2 metrics, need at least 5 for terminal depth).",
-      "Verification failure (Found 0-1 citations, need at least 2 distinct sources)."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.934Z",
-    "task": "Scribe Analytics",
-    "failures": [
-      "Missing exactly one <h2> header tag."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.935Z",
-    "task": "FX & Cross-Border",
-    "failures": [
-      "Missing analytical <details> envelope.",
-      "Missing exactly one <h2> header tag."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.936Z",
-    "task": "Regulatory Ledger",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.937Z",
-    "task": "Offshore & GIFT City",
-    "failures": [
-      "The text inside <chart-data> is not valid JSON.",
-      "COLD TONE VIOLATION: Conversational fluff detected. Use Bloomberg-style blocks only."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.939Z",
-    "task": "FX & Cross-Border",
-    "failures": [
-      "TONE VIOLATION: Excessive conversational fluff detected. Use raw institutional data blocks."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.941Z",
-    "task": "Global Macro Drift",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.950Z",
-    "task": "Equities & Alpha",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.951Z",
-    "task": "Global Macro Drift",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.954Z",
-    "task": "Insurance & Risk",
-    "failures": [
-      "TONE VIOLATION: Excessive conversational fluff detected. Use raw institutional data blocks.",
-      "TONE VIOLATION: Excessive conversational fluff detected. Use raw institutional data blocks."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.956Z",
-    "task": "Emerging Markets",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.957Z",
-    "task": "Scribe Analytics",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.958Z",
-    "task": "Insurance & Risk",
-    "failures": [
-      "COLD TONE VIOLATION: Conversational fluff detected. Use Bloomberg-style blocks only.",
-      "COLD TONE VIOLATION: Conversational fluff detected. Use Bloomberg-style blocks only."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.960Z",
-    "task": "FX & Cross-Border",
-    "failures": [
-      "Missing exactly one <h2> header tag."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.962Z",
-    "task": "Commodity Pulse",
-    "failures": [
-      "Verification failure (Found 0-1 citations, need at least 2 distinct sources)."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.963Z",
-    "task": "Equities & Alpha",
-    "failures": [
-      "TONE VIOLATION: Excessive conversational fluff detected. Use raw institutional data blocks.",
-      "The text inside <chart-data> is not valid JSON."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.963Z",
-    "task": "Digital Rails",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.964Z",
-    "task": "Regulatory Ledger",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.965Z",
-    "task": "Offshore & GIFT City",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.966Z",
-    "task": "Regulatory Ledger",
-    "failures": [
-      "COLD TONE VIOLATION: Conversational fluff detected. Use Bloomberg-style blocks only."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.967Z",
-    "task": "Asset Allocation",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.968Z",
-    "task": "Offshore & GIFT City",
-    "failures": [
-      "TONE VIOLATION: Excessive conversational fluff detected. Use raw institutional data blocks."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.971Z",
-    "task": "Emerging Markets",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.972Z",
-    "task": "Regulatory Ledger",
-    "failures": [
-      "TONE VIOLATION: Excessive conversational fluff detected. Use raw institutional data blocks."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.973Z",
-    "task": "Global Macro Drift",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.974Z",
-    "task": "Emerging Markets",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.975Z",
-    "task": "Digital Rails",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.976Z",
-    "task": "Emerging Markets",
-    "failures": [
-      "Missing exactly one <h2> header tag."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.978Z",
-    "task": "Offshore & GIFT City",
-    "failures": [
-      "Insufficient data density (Found 1-2 metrics, need at least 5 for terminal depth)."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.979Z",
-    "task": "Scribe Analytics",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.980Z",
-    "task": "Debt & Sovereignty",
-    "failures": [
-      "Insufficient data density (Found 1-2 metrics, need at least 5 for terminal depth)."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.981Z",
-    "task": "Commodity Pulse",
-    "failures": [
-      "Insufficient data density (Found 1-2 metrics, need at least 5 for terminal depth).",
-      "COLD TONE VIOLATION: Conversational fluff detected. Use Bloomberg-style blocks only."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.982Z",
-    "task": "Regulatory Ledger",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.983Z",
-    "task": "Scribe Analytics",
-    "failures": [
-      "Insufficient data density (Found 1-2 metrics, need at least 5 for terminal depth)."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.985Z",
-    "task": "Digital Rails",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.988Z",
-    "task": "Commodity Pulse",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.990Z",
-    "task": "Commodity Pulse",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.991Z",
-    "task": "Debt & Sovereignty",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.993Z",
-    "task": "Commodity Pulse",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.995Z",
-    "task": "Insurance & Risk",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.996Z",
-    "task": "Asset Allocation",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.997Z",
-    "task": "Regulatory Ledger",
-    "failures": [
-      "Missing exactly one <h2> header tag."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:41.998Z",
-    "task": "Asset Allocation",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:41.999Z",
-    "task": "Insurance & Risk",
-    "failures": [
-      "TONE VIOLATION: Excessive conversational fluff detected. Use raw institutional data blocks."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:42.000Z",
-    "task": "Asset Allocation",
-    "failures": [
-      "Insufficient data density (Found 1-2 metrics, need at least 5 for terminal depth).",
-      "The text inside <chart-data> is not valid JSON."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.001Z",
-    "task": "Regulatory Ledger",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.002Z",
-    "task": "Commodity Pulse",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:42.003Z",
-    "task": "Scribe Analytics",
-    "failures": [
-      "Verification failure (Found 0-1 citations, need at least 2 distinct sources)."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:42.004Z",
-    "task": "Equities & Alpha",
-    "failures": [
-      "COLD TONE VIOLATION: Conversational fluff detected. Use Bloomberg-style blocks only."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.006Z",
-    "task": "Debt & Sovereignty",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.009Z",
-    "task": "Asset Allocation",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.010Z",
-    "task": "Capital Flows (PE/VC)",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.011Z",
-    "task": "Insurance & Risk",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.012Z",
-    "task": "Debt & Sovereignty",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.013Z",
-    "task": "Offshore & GIFT City",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.014Z",
-    "task": "Scribe Analytics",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:42.015Z",
-    "task": "Debt & Sovereignty",
-    "failures": [
-      "Missing exactly one <h2> header tag.",
-      "COLD TONE VIOLATION: Conversational fluff detected. Use Bloomberg-style blocks only."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:42.016Z",
-    "task": "Digital Rails",
-    "failures": [
-      "Missing analytical <details> envelope.",
-      "Missing exactly one <h2> header tag."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.017Z",
-    "task": "Emerging Markets",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.018Z",
-    "task": "Scribe Analytics",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:42.019Z",
-    "task": "Capital Flows (PE/VC)",
-    "failures": [
-      "Insufficient data density (Found 1-2 metrics, need at least 5 for terminal depth).",
-      "TONE VIOLATION: Excessive conversational fluff detected. Use raw institutional data blocks."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.020Z",
-    "task": "Capital Flows (PE/VC)",
-    "pattern": "H2 found. Excerpt found. Table count: 6 rows. Citations: 3. Chart: valid JSON."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.021Z",
-    "task": "Debt & Sovereignty",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.022Z",
-    "task": "Debt & Sovereignty",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:42.026Z",
-    "task": "Debt & Sovereignty",
-    "failures": [
-      "Verification failure (Found 0-1 citations, need at least 2 distinct sources).",
-      "Missing analytical <details> envelope."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.027Z",
-    "task": "Offshore & GIFT City",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:42.028Z",
-    "task": "Commodity Pulse",
-    "failures": [
-      "COLD TONE VIOLATION: Conversational fluff detected. Use Bloomberg-style blocks only."
-    ]
-  },
-  {
-    "type": "FAILURE",
-    "timestamp": "2026-03-29T06:11:42.029Z",
-    "task": "Scribe Analytics",
-    "failures": [
-      "Verification failure (Found 0-1 citations, need at least 2 distinct sources)."
-    ]
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.030Z",
-    "task": "FX & Cross-Border",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.031Z",
-    "task": "Insurance & Risk",
-    "pattern": "Bloomberg-style data density achieved on first pass."
-  },
-  {
-    "type": "SUCCESS",
-    "timestamp": "2026-03-29T06:11:42.032Z",
-    "task": "Regulatory Ledger",
-    "pattern": "Perfect structural execution - Cold tone verified."
-  },
-  {
-    "type": "FAILURE",
     "timestamp": "2026-03-29T06:11:42.033Z",
     "task": "Scribe Analytics",
     "failures": [
@@ -11780,6 +11284,174 @@
     "timestamp": "2026-03-29T20:56:31.738Z",
     "task": "Briefing",
     "pattern": "Perfect structural execution",
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T21:47:26.791Z",
+    "task": "Global Macro Drift",
+    "failures": [
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T21:49:07.277Z",
+    "task": "Debt & Sovereignty",
+    "failures": [
+      "Missing <details id=\"meta-excerpt\"> envelope.",
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Insufficient data density (Found 0 metrics, need at least 5 for terminal depth)."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T21:50:38.180Z",
+    "task": "Digital Rails",
+    "failures": [
+      "Missing <details id=\"meta-excerpt\"> envelope.",
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Insufficient data density (Found 0 metrics, need at least 5 for terminal depth).",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources)."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T21:51:20.369Z",
+    "task": "Equities & Alpha",
+    "failures": [
+      "Missing <details id=\"meta-excerpt\"> envelope.",
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources)."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T21:52:21.136Z",
+    "task": "Regulatory Ledger",
+    "failures": [
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources)."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T21:54:25.281Z",
+    "task": "FX & Cross-Border",
+    "failures": [
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Insufficient data density (Found 0 metrics, need at least 5 for terminal depth)."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T21:55:35.893Z",
+    "task": "Commodity Pulse",
+    "failures": [
+      "Missing <details id=\"meta-excerpt\"> envelope.",
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Insufficient data density (Found 0 metrics, need at least 5 for terminal depth).",
+      "Verification failure (Found 1 hyperlinked citations, need at least 2 distinct sources)."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T21:56:41.583Z",
+    "task": "Emerging Markets",
+    "failures": [
+      "Missing exactly one <h2> header tag.",
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources)."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T21:57:38.482Z",
+    "task": "Asset Allocation",
+    "failures": [
+      "Missing <details id=\"meta-excerpt\"> envelope.",
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Insufficient data density (Found 0 metrics, need at least 5 for terminal depth).",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources)."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T21:58:38.017Z",
+    "task": "Scribe Analytics",
+    "failures": [
+      "Missing <details id=\"meta-excerpt\"> envelope.",
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Insufficient data density (Found 0 metrics, need at least 5 for terminal depth).",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources)."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T22:01:14.888Z",
+    "task": "Capital Flows (PE/VC)",
+    "failures": [
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Insufficient data density (Found 0 metrics, need at least 5 for terminal depth)."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T22:02:18.752Z",
+    "task": "Insurance & Risk",
+    "failures": [
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Insufficient data density (Found 0 metrics, need at least 5 for terminal depth).",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources)."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T22:03:25.180Z",
+    "task": "Offshore & GIFT City",
+    "failures": [
+      "Missing the Markdown table with '| Metric | Observation | Alpha Impact |'.",
+      "Verification failure (Found 0 hyperlinked citations, need at least 2 distinct sources)."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T22:03:44.572Z",
+    "task": "STRATEGY_ARTICLE_WEEKLY_PRE",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T22:03:44.580Z",
+    "task": "STRATEGY_ARTICLE_WEEKLY_POST",
+    "failures": [
+      "Missing <chart-data> JSON array tag at the very end."
+    ],
+    "preview": null
+  },
+  {
+    "type": "FAILURE",
+    "timestamp": "2026-03-29T22:03:44.586Z",
+    "task": "STRATEGY_ARTICLE_WEEKLY_CORRECTIONS",
+    "failures": [
+      "QA_SYSTEM_ARTIFACT"
+    ],
     "preview": null
   }
 ]

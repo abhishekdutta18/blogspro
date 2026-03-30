@@ -267,3 +267,47 @@ export async function deletePost(id) {
   catch(e) { showToast('Delete failed.','error'); }
 }
 window.deletePost = deletePost;
+
+/**
+ * INTELLIGENCE SWARM MONITORING
+ * Loads real-time serverless pipeline data
+ */
+export async function loadIntelligence() {
+    const pulseBody = document.getElementById('swarmPulseBody');
+    const articleBody = document.getElementById('swarmArticleBody');
+    const ledgerBody = document.getElementById('swarmLedgerBody');
+
+    if (!pulseBody || !articleBody || !ledgerBody) return;
+
+    pulseBody.innerHTML = '<tr><td colspan="3" class="table-empty">⚡ Syncing Pulses...</td></tr>';
+    articleBody.innerHTML = '<tr><td colspan="3" class="table-empty">⚡ Syncing Tomes...</td></tr>';
+
+    try {
+        const [pulseSnap, articleSnap, ledgerSnap] = await Promise.all([
+            getDocs(query(collection(db, 'pulse_briefings'), orderBy('date', 'desc'), limit(15))),
+            getDocs(query(collection(db, 'articles'), orderBy('date', 'desc'), limit(15))),
+            getDocs(query(collection(db, 'ai_reinforcement_ledger'), orderBy('timestamp', 'desc'), limit(30)))
+        ]);
+
+        pulseBody.innerHTML = pulseSnap.docs.map(doc => {
+            const d = doc.data();
+            return `<tr><td><b>${d.frequency.toUpperCase()}</b></td><td>${d.title}</td><td>${new Date(d.date).toLocaleDateString()}</td></tr>`;
+        }).join('') || '<tr><td colspan="3" class="table-empty">No pulses found.</td></tr>';
+
+        articleBody.innerHTML = articleSnap.docs.map(doc => {
+            const d = doc.data();
+            return `<tr><td><b>${d.frequency.toUpperCase()}</b></td><td>${d.title}</td><td>${new Date(d.date).toLocaleDateString()}</td></tr>`;
+        }).join('') || '<tr><td colspan="3" class="table-empty">No strategic tomes found.</td></tr>';
+
+        ledgerBody.innerHTML = ledgerSnap.docs.map(doc => {
+            const d = doc.data();
+            const ts = d.timestamp?.toDate?.() || new Date(d.timestamp);
+            return `<div>[${ts.toLocaleTimeString()}] <span style="color:var(--emerald)">${d.event || 'LOG'}</span>: ${d.message || JSON.stringify(d)}</div>`;
+        }).join('') || 'Initializing ledger stream...';
+
+    } catch (e) {
+        console.error('loadIntelligence error:', e);
+        showToast('Swarm sync failed: ' + e.message, 'error');
+    }
+}
+window.loadIntelligence = loadIntelligence;

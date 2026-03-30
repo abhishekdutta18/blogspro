@@ -112,6 +112,7 @@ function onModelChange(val) {
     <span class="nav-label">Content</span>
     <div class="nav-item active" data-view="dashboard"><span>◈</span> Dashboard</div>
     <div class="nav-item" data-view="posts"><span>✦</span> All Posts</div>
+    <div class="nav-item" data-view="intelligence"><span>🛰</span> Intelligence Swarm</div>
     <div class="nav-item" data-view="editor" data-clear="1"><span>✎</span> New Post</div>
 
     <span class="nav-label" style="margin-top:1.5rem">AI Tools</span>
@@ -332,6 +333,44 @@ function onModelChange(val) {
     <div class="table-wrap">
       <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Author</th><th>Views</th><th>Date</th><th>Actions</th></tr></thead>
       <tbody id="allPostsBody"><tr><td colspan="7"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ══════════════ INTELLIGENCE SWARM (NEW) ══════════════ -->
+  <div class="view" id="view-intelligence">
+    <div class="page-header">
+      <div><h2>Intelligence Swarm</h2><p>Autonomous Serverless Pipeline Monitoring</p></div>
+      <div style="display:flex;gap:0.6rem">
+        <button onclick="loadIntelligence()" class="v2-btn-top" style="border-color:var(--emerald);color:var(--emerald)">↺ Refresh Swarm</button>
+      </div>
+    </div>
+    
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="saas-panel gold-accent" style="margin:0">
+            <div class="saas-panel-header"><h3>Latest Global Pulses</h3></div>
+            <div class="table-wrap" style="background:transparent; border:none; padding:0">
+                <table style="font-size: 0.75rem;">
+                    <thead><tr><th>Frequency</th><th>Title</th><th>Date</th></tr></thead>
+                    <tbody id="swarmPulseBody"><tr><td colspan="3" class="table-empty">Syncing...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="saas-panel blue-accent" style="margin:0">
+            <div class="saas-panel-header"><h3>Strategic Tomes</h3></div>
+            <div class="table-wrap" style="background:transparent; border:none; padding:0">
+                <table style="font-size: 0.75rem;">
+                    <thead><tr><th>Horizon</th><th>Strategic Title</th><th>Date</th></tr></thead>
+                    <tbody id="swarmArticleBody"><tr><td colspan="3" class="table-empty">Syncing...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="saas-panel purple-accent" style="margin-bottom: 2rem;">
+        <div class="saas-panel-header"><h3>Swarm Reinforcement Ledger</h3><span style="font-size:0.65rem; color:var(--muted)">AI LOGS & FEEDBACK</span></div>
+        <div id="swarmLedgerBody" style="font-family:monospace; font-size:0.7rem; max-height: 300px; overflow-y:auto; color:var(--muted); line-height:1.6; padding:0.5rem; background:rgba(0,0,0,0.2); border-radius:4px;">
+            Initializing ledger stream...
+        </div>
     </div>
   </div>
 

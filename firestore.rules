@@ -171,6 +171,21 @@ service cloud.firestore {
       // Only admin can update site-level settings.
       allow write: if isAdmin();
     }
+    
+    // ── SERVERLESS INTELLIGENCE ──────────────────────────────────────────────
+    match /pulse_briefings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /articles/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /ai_reinforcement_ledger/{docId} {
+      allow read, write: if isAdmin();
+    }
 
   }
 }

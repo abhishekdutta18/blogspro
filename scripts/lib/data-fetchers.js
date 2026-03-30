@@ -1,8 +1,8 @@
-const { XMLParser } = require("fast-xml-parser");
-const RSSParser = require("rss-parser");
-const fs = require("fs");
-const path = require("path");
-const fetch = require("node-fetch");
+import { XMLParser } from "fast-xml-parser";
+import _fetch from "node-fetch";
+
+const _env = typeof process !== "undefined" ? process.env : {};
+
 
 // Identity Layer: Institutional User-Agent to prevent 403/406/429 blocks
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) BlogsPro-Intelligence/4.0 (contact@blogspro.in)";
@@ -45,7 +45,7 @@ async function fetchWithTimeout(url, options = {}, timeout = 12000) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     try {
-        const response = await fetch(url, { 
+        const response = await _fetch(url, { 
             ...options, 
             headers: { "User-Agent": UA, ...(options.headers || {}) },
             signal: controller.signal 
@@ -88,7 +88,7 @@ async function fetchEconomicCalendar() {
 async function fetchMultiAssetData() {
     const fetchScanner = async (market, symbols) => {
         try {
-            const res = await fetch(`https://scanner.tradingview.com/${market}/scan`, {
+            const res = await _fetch(`https://scanner.tradingview.com/${market}/scan`, {
                 method: "POST",
                 headers: { "User-Agent": UA },
                 body: JSON.stringify({
@@ -155,7 +155,7 @@ const UNIVERSAL_FEEDS = {
  * Pulls directly from institutional sources via JSON API.
  */
 async function fetchNewsData() {
-    const key = process.env.NEWS_API_KEY;
+    const key = _env.NEWS_API_KEY;
     if (!key) return [];
     
     try {
@@ -176,18 +176,36 @@ async function fetchNewsData() {
     return [];
 }
 
+async function fetchRSS(url) {
+    try {
+        const response = await fetchWithTimeout(url);
+        if (!response.ok) return [];
+        const xmlData = await response.text();
+        const parser = new XMLParser({ ignoreAttributes: false });
+        const parsed = parser.parse(xmlData);
+        
+        // Handle various RSS/Atom formats
+        const items = parsed?.rss?.channel?.item || parsed?.feed?.entry || [];
+        return (Array.isArray(items) ? items : [items]).map(i => ({
+            title: i.title?.["#text"] || i.title || "Untitled",
+            link: i.link?.["@_href"] || i.link || ""
+        }));
+    } catch (e) {
+        console.warn(`⚠️ RSS Fetch Failure for ${url}:`, e.message);
+        return [];
+    }
+}
+
 async function fetchUniversalNews() {
-    const parser = new RSSParser({ headers: { "User-Agent": UA } });
-    
     // Step 1: Fetch RSS Primary Aggregation (High Fidelity)
     const keys = Object.keys(UNIVERSAL_FEEDS);
-    const results = await Promise.allSettled(keys.map(key => parser.parseURL(UNIVERSAL_FEEDS[key])));
+    const results = await Promise.allSettled(keys.map(key => fetchRSS(UNIVERSAL_FEEDS[key])));
     
     let masterNews = [];
     results.forEach((res, idx) => {
         const source = keys[idx].replace(/_/g, ' ');
         if (res.status === 'fulfilled') {
-            const items = res.value.items.slice(0, 5).map(i => `${source} | ${i.title} (URL: ${i.link})`);
+            const items = res.value.slice(0, 5).map(i => `${source} | ${i.title} (URL: ${i.link})`);
             masterNews.push(...items);
         }
     });
@@ -202,38 +220,35 @@ async function fetchUniversalNews() {
 }
 
 async function fetchRBIData() {
-    const parser = new RSSParser({ headers: { "User-Agent": UA } });
     try {
-        const feed = await parser.parseURL("https://www.rbi.org.in/pressreleases_rss.xml");
-        const items = feed.items.slice(0, 3);
-        return { summary: `RBI: ${items.map(i => `${i.title} (URL: ${i.link})`).join(' | ')}`, docs: items.map(i => ({ title: i.title, url: i.link })) };
+        const items = await fetchRSS("https://www.rbi.org.in/pressreleases_rss.xml");
+        const subset = items.slice(0, 3);
+        return { summary: `RBI: ${subset.map(i => `${i.title} (URL: ${i.link})`).join(' | ')}`, docs: subset };
     } catch (e) { return { summary: "RBI: Unavailable.", docs: [] }; }
 }
 
 async function fetchSEBIData() {
-    const parser = new RSSParser({ headers: { "User-Agent": UA } });
     try {
-        const feed = await parser.parseURL("https://www.sebi.gov.in/sebirss.xml");
-        const items = feed.items.slice(0, 3);
-        return { summary: `SEBI: ${items.map(i => `${i.title} (URL: ${i.link})`).join(' | ')}`, docs: items.map(i => ({ title: i.title, url: i.link })) };
+        const items = await fetchRSS("https://www.sebi.gov.in/sebirss.xml");
+        const subset = items.slice(0, 3);
+        return { summary: `SEBI: ${subset.map(i => `${i.title} (URL: ${i.link})`).join(' | ')}`, docs: subset };
     } catch (e) { return { summary: "SEBI: Unavailable.", docs: [] }; }
 }
 
 async function fetchCCILData() {
-    const parser = new RSSParser({ headers: { "User-Agent": UA } });
     try {
-        const feed = await parser.parseURL("https://www.ccilindia.com/o/rss/Notification-rss");
-        const items = feed.items.slice(0, 3);
-        return { summary: `CCIL: ${items.map(i => i.title).join(' | ')}`, raw: items };
+        const items = await fetchRSS("https://www.ccilindia.com/o/rss/Notification-rss");
+        const subset = items.slice(0, 3);
+        return { summary: `CCIL: ${subset.map(i => i.title).join(' | ')}`, raw: subset };
     } catch (e) { return { summary: "CCIL: Unavailable.", raw: [] }; }
 }
 
 async function fetchMacroPulse() {
     try {
         const [indiaGDP, usCPI, euGDP] = await Promise.all([
-            fetch("https://api.worldbank.org/v2/country/IND/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=1").then(r => r.json()),
-            fetch("https://api.worldbank.org/v2/country/USA/indicator/FP.CPI.TOTL.ZG?format=json&per_page=1").then(r => r.json()),
-            fetch("https://api.worldbank.org/v2/country/EMU/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=1").then(r => r.json())
+            _fetch("https://api.worldbank.org/v2/country/IND/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=1").then(r => r.json()),
+            _fetch("https://api.worldbank.org/v2/country/USA/indicator/FP.CPI.TOTL.ZG?format=json&per_page=1").then(r => r.json()),
+            _fetch("https://api.worldbank.org/v2/country/EMU/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=1").then(r => r.json())
         ]);
         
         const iVal = indiaGDP?.[1]?.[0]?.value?.toFixed(2);
@@ -250,7 +265,6 @@ async function fetchMacroPulse() {
 }
 
 async function fetchCentralBankPulse() {
-    const parser = new RSSParser({ headers: { "User-Agent": UA } });
     const feeds = {
         FED: "https://www.federalreserve.gov/feeds/press_all.xml",
         ECB: "https://www.ecb.europa.eu/rss/press.xml",
@@ -258,12 +272,13 @@ async function fetchCentralBankPulse() {
     };
     
     try {
-        const results = await Promise.allSettled(Object.keys(feeds).map(k => parser.parseURL(feeds[k])));
+        const keys = Object.keys(feeds);
+        const results = await Promise.allSettled(keys.map(k => fetchRSS(feeds[k])));
         let summary = [];
         results.forEach((res, idx) => {
-            const bank = Object.keys(feeds)[idx];
-            if (res.status === 'fulfilled') {
-                const latest = res.value.items[0];
+            const bank = keys[idx];
+            if (res.status === 'fulfilled' && res.value.length > 0) {
+                const latest = res.value[0];
                 summary.push(`${bank}: ${latest.title}`);
             }
         });
@@ -273,7 +288,7 @@ async function fetchCentralBankPulse() {
 
 async function fetchUpstoxData() {
     try {
-        const res = await fetch("https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/quotes");
+        const res = await _fetch("https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/quotes");
         const json = await res.json();
         if (json.status === "success") {
             const d = json.data;
@@ -324,10 +339,11 @@ async function fetchGIFTCityData() {
     };
 }
 
-module.exports = {
+export {
     fetchEconomicCalendar, fetchMultiAssetData, fetchSentimentData,
     fetchRBIData, fetchSEBIData, fetchCCILData, fetchMacroPulse, fetchUpstoxData,
     fetchUniversalNews, getMarketContext,
     fetchMFData, fetchPEVCData, fetchInsuranceData, fetchGIFTCityData,
     fetchCentralBankPulse
 };
+

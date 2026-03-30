@@ -16,7 +16,7 @@
  *   ← generate-article.js   : calls in the executeAuditedGeneration loop
  */
 
-const rl = require('./reinforcement.js');
+import rl from './reinforcement.js';
 
 const fluffRegex = /In this chapter|As reported by|In conclusion|analysis suggests|discussed in the previous|anchor for this chapter|here is the|let's look at|dive into|delve into/i;
 
@@ -83,4 +83,5 @@ function isContentClean(content) {
     return validateContent(content, { logToRL: false }).length === 0;
 }
 
-module.exports = { validateContent, isContentClean };
+export { validateContent, isContentClean };
+export default { validateContent, isContentClean };
