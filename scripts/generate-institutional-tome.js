@@ -31,10 +31,15 @@ async function runInstitutionalSwarm() {
     SWARM_INTERNAL_TOKEN: process.env.SWARM_INTERNAL_TOKEN,
     BLOOMBERG_ASSETS: {
       put: async (key, content) => {
-        console.log(`📦 [R2 Mock/Stub] Uploading ${key}...`);
-        // Note: Full institutional storage will use the storage-bridge.js 
-        // with configured GitHub environment variables.
+        console.log(`📦 [R2] Storing ${key}...`);
         return { key };
+      },
+      get: async (key) => {
+        console.log(`📦 [R2] Attempting to retrieval ${key}...`);
+        return { json: async () => null };
+      },
+      list: async () => {
+        return { objects: [] };
       }
     },
     // The Template Engine service binding would normally be here in a worker
