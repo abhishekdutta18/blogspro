@@ -47,12 +47,14 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
           SWARM_INTERNAL_TOKEN: ${{ secrets.SWARM_INTERNAL_TOKEN || 'BPRO_SWARM_SECRET_2026' }}
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           for env in data-hub relevance auditor seo pulse miro-sync mirofish; do
             echo "🔐 Pushing secrets to $env..."
             echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY -e $env || true
             echo "$GROQ_API_KEY" | npx wrangler secret put GROQ_API_KEY -e $env || true
             echo "$OPENROUTER_KEY" | npx wrangler secret put OPENROUTER_KEY -e $env || true
+            echo "$GH_PAT" | npx wrangler secret put GH_TOKEN -e $env || true
             echo "$SWARM_INTERNAL_TOKEN" | npx wrangler secret put SWARM_INTERNAL_TOKEN -e $env || true
           done
           echo "✓ Industrial Swarm 4.0 secrets synchronized."

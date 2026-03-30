@@ -39,7 +39,7 @@ jobs:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           SWARM_INTERNAL_TOKEN: ${{ secrets.SWARM_INTERNAL_TOKEN || 'BPRO_SWARM_SECRET_2026' }}
           # Storage & Cloudflare Access (for temple engine fetch)
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           echo "🚀 Starting Full 16-Vertical Institutional Swarm..."
           node scripts/generate-institutional-tome.js --freq=${{ github.event.inputs.freq }} --type=${{ github.event.inputs.type }}
