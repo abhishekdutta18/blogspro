@@ -1,0 +1,23 @@
+# BlogsPro Local Dev Environment Variables
+# =========================================
+# Copy this to .dev.vars and fill in your real keys for local `wrangler dev` testing.
+# .dev.vars is git-ignored — never commit real keys.
+#
+# To use: cp .dev.vars.example .dev.vars
+# Then: wrangler dev --env pulse
+
+GEMINI_API_KEY=your-gemini-key-here
+GROQ_API_KEY=your-groq-key-here
+OPENROUTER_KEY=your-openrouter-key-here
+MISTRAL_API_KEY=your-mistral-key-here
+CEREBRAS_API_KEY=your-cerebras-key-here
+TOGETHER_KEY=your-together-key-here
+DEEPINFRA_KEY=your-deepinfra-key-here
+NEWS_API_KEY=your-newsapi-key-here
+TELEGRAM_TOKEN=your-telegram-bot-token
+TELEGRAM_TO=your-telegram-chat-id
+GH_TOKEN=your-github-pat
+GH_REPO=abhishekdutta18/blogspro
+FIREBASE_PROJECT_ID=your-firebase-project-id
+NEWSLETTER_SECRET=your-newsletter-secret
+SWARM_INTERNAL_TOKEN=your-swarm-token
