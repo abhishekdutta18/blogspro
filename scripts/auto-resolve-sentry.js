@@ -1,5 +1,5 @@
 // scripts/auto-resolve-sentry.js
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 // This script runs on a GitHub Actions schedule to pull unresolved Sentry issues.
 // It creates a GitHub Issue containing the stack trace, which is designed to trigger an AI coding agent (like Antigravity or Sweep) to automatically formulate a PR to resolve it.
 
@@ -30,7 +30,7 @@ async function discoverSentryEnvironment() {
   CURRENT_SENTRY_ORG = target.organization.slug;
   CURRENT_SENTRY_PROJECT = target.slug;
   
-  console.log(`📡 Discovered Sentry Environment: Org=${CURRENT_SENTRY_ORG}, Project=${CURRENT_SENTRY_PROJECT}`);
+  console.log(`ð¡ Discovered Sentry Environment: Org=${CURRENT_SENTRY_ORG}, Project=${CURRENT_SENTRY_PROJECT}`);
 }
 
 async function fetchUnresolvedIssues() {
@@ -101,7 +101,7 @@ async function createGitHubIssue(sentryIssue) {
           + `**Culprit:** ${sentryIssue.culprit || 'Unknown'}\n`
           + `**Sentry Link:** [View Full Trace in Sentry](${sentryIssue.permalink || 'N/A'})\n\n`
           + `---\n`
-          + `### 🤖 Automated AI Resolution Request\n`
+          + `### ð¤ Automated AI Resolution Request\n`
           + `*Agent Prompt: Please analyze the provided error details, investigate the source code in this repository that roughly matches the culprit above, propose a logic fix, and open a Pull Request to resolve this bug natively.*`,
       labels: ["bug", "sentry-alert", "auto-fix"]
     })
@@ -134,16 +134,16 @@ async function main() {
       
       const exists = await checkExistingIssue(issue.title);
       if (exists) {
-        console.log(`↳ Skipped: GitHub Issue already exists for "${issue.title}". Pending code resolution.`);
-        console.log(`↳ Auto-closing stale Sentry ticket: ${issue.id}`);
+        console.log(`â³ Skipped: GitHub Issue already exists for "${issue.title}". Pending code resolution.`);
+        console.log(`â³ Auto-closing stale Sentry ticket: ${issue.id}`);
         await resolveSentryIssue(issue.id);
         continue;
       }
       
       const ghIssue = await createGitHubIssue(issue);
-      console.log(`↳ Successfully created tracking Issue: ${ghIssue.html_url}`);
+      console.log(`â³ Successfully created tracking Issue: ${ghIssue.html_url}`);
       
-      console.log(`↳ Marking Sentry ticket as resolved...`);
+      console.log(`â³ Marking Sentry ticket as resolved...`);
       await resolveSentryIssue(issue.id);
     }
     
