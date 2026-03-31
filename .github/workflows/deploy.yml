@@ -196,7 +196,7 @@ jobs:
           # Retry loop for push (up to 5 attempts with robust rebase)
           for i in {1..5}; do
             git pull --rebase --autostash origin main
-            git push && exit 0
+            git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" main && exit 0
             echo "⚠️ Push rejected (Attempt $i), retrying in 10s..."
             sleep 10
           done
