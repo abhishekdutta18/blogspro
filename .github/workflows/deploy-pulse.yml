@@ -10,30 +10,50 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Wave 1: Base Data Providers and Durable Object Home
-  deploy-base:
-    name: 🌊 Wave 1: Base Tiers
+  # Wave 0: MiroSync (Durable Object Home) - Must exist before anything else binds to it
+  deploy-mirosync:
+    name: 🌊 Wave 0: MiroSync
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        environment: [miro-sync, data-hub, relevance, auditor, seo, templates]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: 'npm'
-      
       - name: Install dependencies
         run: npm install
+      - name: Deploy MiroSync
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerConfigPath: 'wrangler.miro-sync.toml'
+          wranglerVersion: '3.114.17'
 
+  # Wave 1: Base Data Providers
+  deploy-base:
+    name: 🌊 Wave 1: Base Tiers
+    needs: deploy-mirosync
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [data-hub, relevance, auditor, seo, templates]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm install
       - name: Deploy Tier [${{ matrix.environment }}]
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --env ${{ matrix.environment }} --config ${{ matrix.environment == 'miro-sync' && 'wrangler.miro-sync.toml' || 'wrangler.toml' }}
+          environment: ${{ matrix.environment }}
+          wranglerConfigPath: 'wrangler.toml'
           wranglerVersion: '3.114.17'
 
   # Wave 2: Pulse Orchestrator (Depends on Data Hub, Relevance, etc.)
@@ -49,19 +69,19 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm install
-
       - name: Deploy Pulse Tier
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --env pulse --config wrangler.toml
+          environment: pulse
+          wranglerConfigPath: 'wrangler.toml'
           wranglerVersion: '3.114.17'
 
   # Wave 3: MiroFish Discovery (Depends on MiroSync DOs)
   deploy-discovery:
     name: 🌊 Wave 3: MiroFish Discovery
-    needs: deploy-base
+    needs: deploy-mirosync
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -71,13 +91,13 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm install
-
       - name: Deploy MiroFish Tier
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --env mirofish --config wrangler.toml
+          environment: mirofish
+          wranglerConfigPath: 'wrangler.toml'
           wranglerVersion: '3.114.17'
 
   push-swarm-secrets:
@@ -98,15 +118,15 @@ jobs:
         run: |
           for env in data-hub relevance auditor seo pulse miro-sync mirofish; do
             echo "🔐 Pushing secrets to $env..."
-            # Check if using split config for miro-sync
             CONF="wrangler.toml"
-            [ "$env" = "miro-sync" ] && CONF="wrangler.miro-sync.toml"
+            OPTS="--env $env"
+            [ "$env" = "miro-sync" ] && CONF="wrangler.miro-sync.toml" && OPTS=""
             
-            echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY --env $env --config $CONF || true
-            echo "$GROQ_API_KEY" | npx wrangler secret put GROQ_API_KEY --env $env --config $CONF || true
-            echo "$OPENROUTER_KEY" | npx wrangler secret put OPENROUTER_KEY --env $env --config $CONF || true
-            echo "$GH_PAT" | npx wrangler secret put GH_TOKEN --env $env --config $CONF || true
-            echo "$SWARM_INTERNAL_TOKEN" | npx wrangler secret put SWARM_INTERNAL_TOKEN --env $env --config $CONF || true
+            echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY $OPTS --config $CONF || true
+            echo "$GROQ_API_KEY" | npx wrangler secret put GROQ_API_KEY $OPTS --config $CONF || true
+            echo "$OPENROUTER_KEY" | npx wrangler secret put OPENROUTER_KEY $OPTS --config $CONF || true
+            echo "$GH_PAT" | npx wrangler secret put GH_TOKEN $OPTS --config $CONF || true
+            echo "$SWARM_INTERNAL_TOKEN" | npx wrangler secret put SWARM_INTERNAL_TOKEN $OPTS --config $CONF || true
           done
           echo "✓ Industrial Swarm 4.0 secrets synchronized."
 
