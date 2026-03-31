@@ -2,8 +2,8 @@ name: "Sentry Error Auto-Resolver"
 
 on:
   schedule:
-    - cron: '0 * * * *' # Run at minute 0 of every hour
-  workflow_dispatch: # Allow manual triggering from GitHub UI
+    - cron: '0 * * * *'
+  workflow_dispatch:
 
 jobs:
   auto-resolve:
@@ -14,12 +14,15 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          
+
+      - name: Install dependencies
+        run: npm install
+
       - name: Pull Unresolved Sentry Issues
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
