@@ -1,3 +1,6 @@
+# BlogsPro 5.0 - Multi-Tier Swarm Configuration
+# ============================================
+
 [vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
 
@@ -17,7 +20,6 @@ GROQ_MODEL = "llama-3.3-70b-versatile"
 GEMINI_MODEL = "gemini-1.5-pro"
 MISTRAL_MODEL = "mistral-large-latest"
 SENTRY_DSN = "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336"
-# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env pulse')
 
 [[env.pulse.services]]
 binding = "DATA_HUB"
@@ -39,14 +41,20 @@ service = "blogspro-templates"
 binding = "SEO_MANAGER"
 service = "blogspro-seo"
 
-[[env.pulse.durable_objects.bindings]]
-name = "MANUSCRIPT_DO"
-class_name = "ManuscriptAggregator"
-script_name = "blogspro-manuscript"
-
+# Pulse consumes DOs from Miro-Sync
 [[env.pulse.durable_objects.bindings]]
 name = "MIRO_SYNC_DO"
 class_name = "MiroSync"
+script_name = "blogspro-miro-sync"
+
+[[env.pulse.durable_objects.bindings]]
+name = "INGESTOR_DO"
+class_name = "DataIngestor"
+script_name = "blogspro-miro-sync"
+
+[[env.pulse.durable_objects.bindings]]
+name = "MANUSCRIPT_DO"
+class_name = "ManuscriptAggregator"
 script_name = "blogspro-miro-sync"
 
 [[env.pulse.analytics_engine_datasets]]
@@ -54,132 +62,17 @@ binding = "ANALYTICS"
 dataset = "swarm_telemetry"
 
 [env.pulse.triggers]
-crons = ["0 * * * *", "0 4 * * *", "0 5 * * 1", "0 6 1 * *"]
+crons = ["0 * * * *", "15 4 * * *"]
 
-# --- TRIALS ORCHESTRATOR (Mirrored/Staging) ---
-[env.trials]
-name = "blogspro-trials"
-main = "scripts/pulse-worker.js"
-compatibility_date = "2024-12-30"
-compatibility_flags = [ "nodejs_compat" ]
-
-[env.trials.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
-BASE_URL = "https://trials.blogspro.in"
-PROJECT_DOMAIN = "blogspro.in"
-GROQ_MODEL = "llama-3.3-70b-versatile"
-GEMINI_MODEL = "gemini-1.5-flash"
-MISTRAL_MODEL = "mistral-small-latest"
-# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env trials')
-
-[[env.trials.services]]
-binding = "DATA_HUB"
-service = "blogspro-data-hub"
-
-[[env.trials.services]]
-binding = "RELEVANCE"
-service = "blogspro-relevance"
-
-[[env.trials.services]]
-binding = "AUDITOR"
-service = "blogspro-auditor"
-
-[[env.trials.services]]
-binding = "SEO_MANAGER"
-service = "blogspro-seo"
-
-[[env.trials.services]]
-binding = "TEMPLATE_ENGINE"
-service = "blogspro-templates"
-
-[[env.trials.durable_objects.bindings]]
-name = "MANUSCRIPT_DO"
-class_name = "ManuscriptAggregator"
-script_name = "blogspro-manuscript"
-
-[[env.trials.durable_objects.bindings]]
-name = "MIRO_SYNC_DO"
-class_name = "MiroSync"
-script_name = "blogspro-miro-sync"
-
-[[env.trials.durable_objects.bindings]]
-name = "INGESTOR_DO"
-class_name = "DataIngestor"
-script_name = "blogspro-miro-sync"
-
-[[env.trials.analytics_engine_datasets]]
-binding = "ANALYTICS"
-dataset = "swarm_telemetry"
-
-# No crons for trials to save compute/quota
-
-# --- TEMPLATE ENGINE WORKER ---
-[env.templates]
-name = "blogspro-templates"
-main = "scripts/template-worker.js"
-compatibility_date = "2024-12-30"
-compatibility_flags = [ "nodejs_compat" ]
-
-# --- DATA HUB WORKER ---
-[env.data-hub]
-name = "blogspro-data-hub"
-main = "scripts/data-worker.js"
-compatibility_date = "2024-12-30"
-compatibility_flags = [ "nodejs_compat" ]
-
-[env.data-hub.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
-# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env data-hub')
-
-# --- RELEVANCE WORKER ---
-[env.relevance]
-name = "blogspro-relevance"
-main = "scripts/relevance-worker.js"
-compatibility_date = "2024-12-30"
-compatibility_flags = [ "nodejs_compat" ]
-
-[env.relevance.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
-SENTRY_DSN = "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336"
-# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env relevance')
-
-# --- AUDITOR WORKER ---
-[env.auditor]
-name = "blogspro-auditor"
-main = "scripts/auditor-worker.js"
-compatibility_date = "2024-12-30"
-compatibility_flags = [ "nodejs_compat" ]
-
-[env.auditor.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
-SENTRY_DSN = "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336"
-# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env auditor')
-
-# --- SEO MANAGER WORKER ---
-[env.seo]
-name = "blogspro-seo"
-main = "scripts/seo-worker.js"
-compatibility_date = "2024-12-30"
-compatibility_flags = [ "nodejs_compat" ]
-
-[env.seo.vars]
-BASE_URL = "https://blogspro.in"
-FIREBASE_PROJECT_ID = "blogspro-ai"
-# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env seo')
-
-# --- MIRO SYNC BRIDGE ---
+# --- MIRO SYNC BRIDGE (Durable Object Home) ---
 [env.miro-sync]
 name = "blogspro-miro-sync"
 main = "scripts/miro-sync-worker.js"
 compatibility_date = "2024-12-30"
 compatibility_flags = [ "nodejs_compat" ]
-smart_placement = true
 
 [env.miro-sync.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
-# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env miro-sync')
 
 [[env.miro-sync.durable_objects.bindings]]
 name = "MIRO_SYNC_DO"
@@ -197,16 +90,12 @@ class_name = "ManuscriptAggregator"
 binding = "snapshots"
 bucket_name = "blogspro-affine-snapshots"
 
-# --- MANUSCRIPT AGGREGATOR WORKER ---
-[env.manuscript]
-name = "blogspro-manuscript"
-main = "scripts/manuscript-worker.js"
-compatibility_date = "2024-12-30"
-compatibility_flags = [ "nodejs_compat" ]
-
-[[env.manuscript.durable_objects.bindings]]
-name = "MANUSCRIPT_DO"
-class_name = "ManuscriptAggregator"
+[env.miro-sync.durable_objects]
+bindings = [
+  { name = "MIRO_SYNC_DO", class_name = "MiroSync" },
+  { name = "INGESTOR_DO", class_name = "DataIngestor" },
+  { name = "MANUSCRIPT_DO", class_name = "ManuscriptAggregator" }
+]
 
 # --- NEWSLETTER WORKER ---
 [env.newsletter]
@@ -222,20 +111,47 @@ main = "scripts/mirofish-worker.js"
 compatibility_date = "2024-12-30"
 compatibility_flags = [ "nodejs_compat" ]
 
-[env.mirofish.vars]
-# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env mirofish')
-
 [[env.mirofish.durable_objects.bindings]]
 name = "MIRO_SYNC_DO"
 class_name = "MiroSync"
+script_name = "blogspro-miro-sync"
 
-[durable_objects]
-bindings = [
-  { name = "MIRO_SYNC_DO", class_name = "MiroSync" },
-  { name = "INGESTOR_DO", class_name = "DataIngestor" },
-  { name = "MANUSCRIPT_DO", class_name = "ManuscriptAggregator" }
-]
+# --- DATA HUB WORKER ---
+[env.data-hub]
+name = "blogspro-data-hub"
+main = "scripts/data-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
 
+# --- RELEVANCE WORKER ---
+[env.relevance]
+name = "blogspro-relevance"
+main = "scripts/relevance-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+# --- AUDITOR WORKER ---
+[env.auditor]
+name = "blogspro-auditor"
+main = "scripts/auditor-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+# --- SEO MANAGER WORKER ---
+[env.seo]
+name = "blogspro-seo"
+main = "scripts/seo-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+# --- TEMPLATE ENGINE ---
+[env.templates]
+name = "blogspro-templates"
+main = "scripts/template-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+# --- GLOBAL MIGRATIONS (Must be at top level but referenced by DOs) ---
 [[migrations]]
 tag = "v1"
 new_classes = ["MiroSync"]
