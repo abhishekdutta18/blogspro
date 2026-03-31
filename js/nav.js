@@ -23,10 +23,10 @@ export function showView(name) {
 
   // Per-view load hooks
   if (name === 'posts')        renderPostsTable(state.allPosts, 'allPostsBody');
-  if (name === 'intelligence') loadIntelligence();
+  if (name === 'intelligence') { loadIntelligence(); if (window.updateSwarmTelemetry) window.updateSwarmTelemetry(); }
   if (name === 'users')        loadUsers();
   if (name === 'account')      loadAdminAccount();
-  if (name === 'subscribers')  loadSubscribers();
+  if (name === 'subscribers-list') loadSubscribers();
   if (name === 'seotools')     populateAnalyzeSelect();
 
   // Float button + drawer: only show on editor view

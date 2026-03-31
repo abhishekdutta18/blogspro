@@ -732,13 +732,22 @@ window._onModelChange = (val) => {
   const info = document.getElementById('modelWarning');
   if (!info) return;
   if (val === 'auto') {
-    info.textContent = '⚡ Auto tries DeepSeek V3 → Gemini → Qwen → Llama in order.';
+    info.innerHTML = '⚡ Auto tries <b>DeepSeek V3</b> → <b>Gemini</b> → <b>SambaNova</b> → <b>Llama</b> in order.';
     info.style.color = 'var(--muted)';
   } else if (val === 'auto-free') {
-    info.textContent = '✦ Uses best available free models via OpenRouter (No credits needed).';
+    info.innerHTML = '✦ Uses best available <b>Free Models</b> via OpenRouter & HF (No credits needed).';
     info.style.color = 'var(--gold)';
+  } else if (val === 'sambanova') {
+    info.innerHTML = '🚀 <b>SambaNova</b>: Llama 3.3 70B @ 400+ t/s. Highest fidelity reasoning.';
+    info.style.color = 'var(--gold)';
+  } else if (val === 'cerebras') {
+    info.innerHTML = '⚡ <b>Cerebras</b>: Qwen 3 (235B). Sub-second inference for tactical audits.';
+    info.style.color = 'var(--azure)';
+  } else if (val === 'hf-router') {
+    info.innerHTML = '🤗 <b>HF Router</b>: Serverless open-source fleet (Meta/Mistral/Qwen).';
+    info.style.color = 'var(--emerald)';
   } else {
-    info.textContent = `🚀 Using ${val.charAt(0).toUpperCase() + val.slice(1)} specifically.`;
+    info.innerHTML = `🚀 Using <b>${val.charAt(0).toUpperCase() + val.slice(1)}</b> specifically for this task.`;
     info.style.color = 'var(--cream)';
   }
 };
