@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fetch from 'node-fetch';
 
 // ESM path resolution
 const __filename = fileURLToPath(import.meta.url);
