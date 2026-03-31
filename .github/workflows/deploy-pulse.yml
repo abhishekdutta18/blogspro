@@ -10,7 +10,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Wave 0: MiroSync (Durable Object Home)
   deploy-mirosync:
     name: "Wave 0: MiroSync"
     runs-on: "ubuntu-latest"
@@ -30,7 +29,6 @@ jobs:
           wranglerConfigPath: "wrangler.miro-sync.toml"
           wranglerVersion: "3.114.17"
 
-  # Wave 1: Base Data Providers
   deploy-base:
     name: "Wave 1: Base Tiers"
     needs: "deploy-mirosync"
@@ -56,7 +54,6 @@ jobs:
           wranglerConfigPath: "wrangler.toml"
           wranglerVersion: "3.114.17"
 
-  # Wave 2: Pulse Orchestrator
   deploy-orchestrator:
     name: "Wave 2: Pulse Orchestrator"
     needs: "deploy-base"
@@ -78,7 +75,6 @@ jobs:
           wranglerConfigPath: "wrangler.toml"
           wranglerVersion: "3.114.17"
 
-  # Wave 3: MiroFish Discovery
   deploy-discovery:
     name: "Wave 3: MiroFish Discovery"
     needs: "deploy-mirosync"
@@ -106,6 +102,12 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - uses: "actions/checkout@v4"
+      - uses: "actions/setup-node@v4"
+        with:
+          node-version: 24
+          cache: "npm"
+      - name: "Install dependencies"
+        run: "npm install"
       - name: "Push Secrets to All Tiers"
         env:
           CLOUDFLARE_API_TOKEN: "${{ secrets.CLOUDFLARE_API_TOKEN }}"
@@ -113,11 +115,11 @@ jobs:
           GEMINI_API_KEY: "${{ secrets.GEMINI_API_KEY }}"
           GROQ_API_KEY: "${{ secrets.GROQ_API_KEY }}"
           OPENROUTER_KEY: "${{ secrets.OPENROUTER_KEY }}"
-          SWARM_INTERNAL_TOKEN: "${{ secrets.SWARM_INTERNAL_TOKEN || 'BPRO_SWARM_SECRET_2026' }}"
+          SWARM_INTERNAL_TOKEN: "${{ secrets.SWARM_INTERNAL_TOKEN }}"
           GH_PAT: "${{ secrets.GH_PAT }}"
         run: |
           for env in data-hub relevance auditor seo pulse miro-sync mirofish; do
-            echo "🔐 Pushing secrets to $env..."
+            echo "Pushing secrets to $env..."
             CONF="wrangler.toml"
             OPTS="--env $env"
             if [ "$env" = "miro-sync" ]; then
@@ -130,7 +132,7 @@ jobs:
             echo "$GH_PAT" | npx wrangler secret put GH_TOKEN $OPTS --config $CONF || true
             echo "$SWARM_INTERNAL_TOKEN" | npx wrangler secret put SWARM_INTERNAL_TOKEN $OPTS --config $CONF || true
           done
-          echo "✓ Industrial Swarm 4.0 secrets synchronized."
+          echo "Swarm 4.0 secrets synchronized."
 
   trigger-swarm:
     name: "Autonomous Swarm Initialization"
@@ -139,12 +141,12 @@ jobs:
     steps:
       - name: "Trigger All Frequencies"
         env:
-          SWARM_TOKEN: "${{ secrets.SWARM_INTERNAL_TOKEN || 'BPRO_SWARM_SECRET_2026' }}"
+          SWARM_TOKEN: "${{ secrets.SWARM_INTERNAL_TOKEN }}"
           BASE_URL: "https://blogspro-pulse.abhishekdutta18.workers.dev"
         run: |
-          echo "🎯 Initializing Swarm 4.0 Frequencies..."
-          curl -s -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=hourly"
-          curl -s -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=daily"
-          curl -s -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=weekly&type=article"
-          curl -s -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=monthly&type=article"
-          echo "🏁 Swarm Initialization Complete."
+          echo "Initializing Swarm 4.0 Frequencies..."
+          curl -sf -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=hourly" || echo "hourly trigger attempted"
+          curl -sf -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=daily" || echo "daily trigger attempted"
+          curl -sf -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=weekly&type=article" || echo "weekly trigger attempted"
+          curl -sf -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=monthly&type=article" || echo "monthly trigger attempted"
+          echo "Swarm Initialization Complete."
