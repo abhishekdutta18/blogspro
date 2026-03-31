@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 // chart-builder.js — AI-driven chart + data injection
-// Generates structured data via AI, renders as
-// self-contained inline SVG/HTML with no external deps.
+// Primary render: Google Charts (interactive, themed).
+// Fallback render: self-contained inline SVG/HTML (no external deps).
 // Theme: dark navy bg, gold accents, cream text.
 // ═══════════════════════════════════════════════
 import { callAI } from './ai-core.js';
@@ -21,6 +21,121 @@ const THEME = {
   // Bar palette — cycles through for multi-series
   palette:  ['#c9a84c','#93c5fd','#4ade80','#c4b5fd','#fca5a5','#fdba74','#6ee7b7'],
 };
+
+// Google Charts theme — mirrors THEME above
+const GC_THEME = {
+  backgroundColor: { fill: '#0c1322' },
+  fontName: 'DM Sans',
+  colors: ['#c9a84c','#93c5fd','#4ade80','#c4b5fd','#fca5a5','#fdba74','#6ee7b7'],
+  legend: { textStyle: { color: '#8896b3', fontSize: 11 } },
+  chartArea: { backgroundColor: '#0c1322', left: 60, right: 20, top: 30, bottom: 50 },
+  hAxis: {
+    textStyle: { color: '#8896b3', fontSize: 9 },
+    titleTextStyle: { color: '#8896b3', fontSize: 10, italic: false },
+    gridlines: { color: 'rgba(255,255,255,0.06)' },
+    baselineColor: 'rgba(255,255,255,0.1)',
+  },
+  vAxis: {
+    textStyle: { color: '#8896b3', fontSize: 9 },
+    titleTextStyle: { color: '#8896b3', fontSize: 10, italic: false },
+    gridlines: { color: 'rgba(255,255,255,0.06)' },
+    baselineColor: 'rgba(255,255,255,0.1)',
+  },
+};
+
+// ─────────────────────────────────────────────
+// initBpCharts(containerEl)
+// Scans containerEl for .bp-chart-canvas[data-bp-gchart] divs and
+// renders them with Google Charts. Falls back silently if SDK not ready.
+// Call this after setting editor.innerHTML or any content update.
+// ─────────────────────────────────────────────
+export async function initBpCharts(containerEl = document.body) {
+  // If Google Charts SDK is not yet ready, wait for it (with 5s timeout).
+  // window.bpChartsReady is set in admin.html when google.charts.load() is called.
+  if (!window.google?.visualization) {
+    if (!window.bpChartsReady) return; // SDK not loaded on this page — use SVG fallback
+    try {
+      await Promise.race([window.bpChartsReady, new Promise(r => setTimeout(r, 5000))]);
+    } catch (_) { return; }
+    if (!window.google?.visualization) return;
+  }
+  containerEl.querySelectorAll('.bp-chart-canvas[data-bp-gchart]').forEach(canvas => {
+    try {
+      const data = JSON.parse(canvas.getAttribute('data-bp-gchart'));
+      const fallback = canvas.previousElementSibling; // .bp-chart-fallback
+      _renderGcChart(canvas, data);
+      canvas.style.display = 'block';
+      if (fallback?.classList.contains('bp-chart-fallback')) {
+        fallback.style.display = 'none';
+      }
+    } catch (e) {
+      console.warn('[bp-chart] Google Charts render failed:', e);
+    }
+  });
+}
+
+function _renderGcChart(el, data) {
+  const { type, labels = [], datasets = [], unit = '' } = data;
+  const vis = google.visualization;
+
+  if (type === 'bar') {
+    const multiSeries = datasets.length > 1;
+    const cols = [['string', 'Label'], ...datasets.map(ds => ['number', ds.name || ''])];
+    const rows = labels.map((lbl, i) =>
+      [String(lbl), ...datasets.map(ds => toNum(ds.values[i]) || 0)]
+    );
+    const dt = vis.arrayToDataTable([cols.map(c => ({ type: c[0], label: c[1] })), ...rows]);
+    // arrayToDataTable needs first row as column headers when not using objects
+    const dtFlat = vis.arrayToDataTable([
+      ['Label', ...datasets.map(ds => ds.name || 'Value')],
+      ...labels.map((lbl, i) => [String(lbl), ...datasets.map(ds => toNum(ds.values[i]) || 0)])
+    ]);
+    el.style.height = Math.max(180, labels.length * 36 + 60) + 'px';
+    new vis.BarChart(el).draw(dtFlat, {
+      ...GC_THEME,
+      isStacked: false,
+      bar: { groupWidth: '65%' },
+      legend: multiSeries ? GC_THEME.legend : { position: 'none' },
+      hAxis: { ...GC_THEME.hAxis, title: unit || '' },
+    });
+
+  } else if (type === 'line') {
+    const rows = labels.map((lbl, i) =>
+      [String(lbl), ...datasets.map(ds => toNum(ds.values[i]) || 0)]
+    );
+    const dtFlat = vis.arrayToDataTable([
+      ['Period', ...datasets.map(ds => ds.name || 'Value')],
+      ...rows
+    ]);
+    el.style.height = '220px';
+    new vis.AreaChart(el).draw(dtFlat, {
+      ...GC_THEME,
+      areaOpacity: 0.1,
+      lineWidth: 2,
+      pointSize: 4,
+      legend: datasets.length > 1 ? GC_THEME.legend : { position: 'none' },
+      vAxis: { ...GC_THEME.vAxis, title: unit || '' },
+    });
+
+  } else if (type === 'pie') {
+    const series = datasets[0];
+    if (!series?.values?.length) return;
+    const dtFlat = vis.arrayToDataTable([
+      ['Label', 'Value'],
+      ...labels.map((lbl, i) => [String(lbl), toNum(series.values[i]) || 0])
+    ]);
+    el.style.height = '240px';
+    new vis.PieChart(el).draw(dtFlat, {
+      ...GC_THEME,
+      pieHole: 0.4,
+      chartArea: { ...GC_THEME.chartArea, top: 10, bottom: 10 },
+      legend: { ...GC_THEME.legend, position: 'right' },
+      pieSliceTextStyle: { color: '#f5f0e8', fontSize: 10 },
+    });
+
+  }
+  // stats + table: no Google Charts equivalent — fallback SVG/HTML is kept
+}
 
 // HTML-escape AI-generated strings before injecting into HTML
 function esc(str) {
@@ -418,10 +533,28 @@ function buildDataTable(data) {
 
 // ─────────────────────────────────────────────
 // Shared wrapper — title, subtitle, source
+// Embeds raw chart JSON in data-bp-gchart for Google Charts progressive
+// enhancement. The fallback SVG/HTML is always present for non-JS contexts.
 // ─────────────────────────────────────────────
 function _chartWrapper(data, innerHTML) {
   const chartName = data.name || data.title || 'Data Visualization';
   const chartId = data._chartId || '';
+
+  // Embed chart config for Google Charts rendering (strip internal _chartId)
+  const gcPayload = {
+    type:     data.type,
+    labels:   data.labels,
+    datasets: data.datasets,
+    unit:     data.unit || '',
+    title:    data.title || '',
+    name:     chartName,
+  };
+  // Encode as HTML-safe attribute value (double-quoted attr — escape " inside JSON)
+  const gcAttr = JSON.stringify(gcPayload).replace(/"/g, '&quot;');
+
+  // stats and table have no Google Charts equivalent — no canvas div needed
+  const hasGcVariant = ['bar', 'line', 'pie'].includes(data.type);
+
   return `
 <div class="bp-chart-block" id="${esc(chartId)}" data-chart-name="${esc(chartName)}" style="
   background:${THEME.bg};
@@ -437,7 +570,8 @@ function _chartWrapper(data, innerHTML) {
     <div style="font-size:0.82rem;font-weight:700;color:${THEME.cream};margin-bottom:2px">${esc(data.title || 'Data Visualization')}</div>
     ${data.subtitle ? `<div style="font-size:0.7rem;color:${THEME.muted}">${esc(data.subtitle)}</div>` : ''}
   </div>
-  ${innerHTML}
+  <div class="bp-chart-fallback">${innerHTML}</div>
+  ${hasGcVariant ? `<div class="bp-chart-canvas" data-bp-gchart="${gcAttr}" style="display:none;width:100%"></div>` : ''}
   ${data.source ? `<div style="margin-top:0.8rem;font-size:0.65rem;color:${THEME.muted};border-top:1px solid ${THEME.border};padding-top:0.5rem;font-style:italic">${esc(data.source)}</div>` : ''}
 </div>`;
 }

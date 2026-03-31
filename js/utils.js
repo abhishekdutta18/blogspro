@@ -49,7 +49,7 @@ export function sanitize(html) {
       ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'pre', 'code', 'div', 'span', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'caption',
         // SVG tags used by chart-builder line/pie charts
         'svg', 'path', 'polyline', 'polygon', 'line', 'circle', 'ellipse', 'rect', 'text', 'tspan', 'g', 'defs', 'clipPath', 'use'],
-      ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'style', 'id', 'data-chart-name',
+      ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'style', 'id', 'data-chart-name', 'data-bp-gchart',
         // SVG presentation attributes
         'viewBox', 'xmlns', 'x', 'x1', 'x2', 'y', 'y1', 'y2', 'cx', 'cy', 'r', 'rx', 'ry',
         'width', 'height', 'd', 'points', 'fill', 'fill-opacity', 'stroke', 'stroke-width',

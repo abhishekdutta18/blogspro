@@ -5,7 +5,7 @@ import { callAI, PROVIDER_META }        from './ai-core.js';
 import { sanitize, showToast }          from './config.js';
 import { state }                        from './state.js';
 import { updateWordCount }              from './editor.js';
-import { generateChartForSection }      from './chart-builder.js';
+import { generateChartForSection, initBpCharts } from './chart-builder.js';
 import {
   startTimer, stopTimer, hideTimer, updateProgress,
   timerLog, showRoadmap, setRoadmapStep, hideRoadmap, addTimeReason
@@ -532,6 +532,7 @@ ${_sampleRecentSentences(sectionHTMLs).map(s => `- ${s}`).join("\n")}
       if (editor) {
         editor.innerHTML = sectionHTMLs.join('\n');
         updateWordCount();
+        initBpCharts(editor);
       }
       saveJobState({
         running: true,
@@ -799,6 +800,7 @@ export function initAIWriter() {
     if (editorEl && Array.isArray(pending.sectionHTMLs) && pending.sectionHTMLs.length) {
       editorEl.innerHTML = pending.sectionHTMLs.join('\n');
       updateWordCount();
+      initBpCharts(editorEl);
     }
     const promptEl = document.getElementById('v2TopicPrompt') || document.getElementById('aiPrompt');
     if (promptEl && pending.topic) promptEl.value = pending.topic;
