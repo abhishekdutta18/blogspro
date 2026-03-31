@@ -50,19 +50,22 @@ jobs:
 
       - name: 🛡️ Pre-Flight Security Check
         run: |
-          if [ -z "${{ secrets.GEMINI_KEY }}" ]; then echo "❌ GEMINI_KEY is missing! Swarm cannot start."; exit 1; fi
-          if [ -z "${{ secrets.GROQ_KEY }}" ]; then echo "❌ GROQ_KEY is missing! Swarm cannot start."; exit 1; fi
+          if [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then echo "❌ GEMINI_API_KEY is missing! Swarm cannot start."; exit 1; fi
+          if [ -z "${{ secrets.GROQ_API_KEY }}" ]; then echo "❌ GROQ_API_KEY is missing! Swarm cannot start."; exit 1; fi
           echo "✅ Institutional Intelligence Keys Verified."
 
       - name: 🕵️ Execute Consensus Swarm
         id: swarm
         env:
-          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
-          GROQ_KEY: ${{ secrets.GROQ_KEY }}
+          GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_KEY: ${{ secrets.GROQ_API_KEY }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+          SAMBANOVA_API_KEY: ${{ secrets.SAMBANOVA_API_KEY }}
+          QWEB_API_KEY: ${{ secrets.QWEB_API_KEY }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -145,6 +148,27 @@ jobs:
     runs-on: ubuntu-latest
     # environment: Production
     steps:
+      - name: 🛰️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Install Dependencies
+        run: npm install node-fetch form-data
+
+      - name: 📡 Dispatch Institutional Telegram Notification
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FREQUENCY: ${{ github.event.inputs.freq }}
+          TYPE: ${{ github.event.inputs.type }}
+        run: |
+          # Use the modular notify-telegram.js to send the latest PDF
+          node scripts/notify-telegram.js --freq=$FREQUENCY --type=$TYPE
+
       - name: 🌌 Final Archival Verification
         run: |
           echo "Institutional Manuscript Successfully Archived."
