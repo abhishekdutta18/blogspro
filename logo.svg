@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 38" role="img" aria-label="BlogsPro">
+  <!-- BLOGS in cream -->
+  <text
+    x="0" y="26"
+    font-family="'JetBrains Mono', 'Courier New', Consolas, monospace"
+    font-size="20"
+    font-weight="700"
+    fill="#F8FAFC"
+    letter-spacing="-0.4"
+  >BLOGS</text>
+  <!-- PRO in gold -->
+  <text
+    x="72" y="26"
+    font-family="'JetBrains Mono', 'Courier New', Consolas, monospace"
+    font-size="20"
+    font-weight="700"
+    fill="#FFB800"
+    letter-spacing="-0.4"
+  >PRO</text>
+  <!-- Gold underline -->
+  <rect x="0" y="31" width="150" height="2" rx="1" fill="#BFA100"/>
+</svg>

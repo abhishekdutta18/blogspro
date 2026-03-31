@@ -26,7 +26,7 @@
       --cream:   #F8FAFC;
       --muted:   #9CA3AF;
       --border:  rgba(191,161,0,0.15);
-      --serif:   'Inter', sans-serif;
+      --serif:   'Cormorant Garamond', Georgia, serif;
       --sans:    'Inter', sans-serif;
       --mono:    'JetBrains Mono', monospace;
     }
@@ -186,7 +186,7 @@
     .ticker-sep { color: var(--muted); }
 
     /* ── FOREX CALENDAR ── */
-    .feed-status-wrap { max-width: 1200px; margin: 0 auto; padding: 2rem 2rem 0; margin-bottom: 2rem; }
+    .feed-status-wrap { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem 0; margin-bottom: 3rem; }
     .feed-status {
       background: var(--navy2);
       border: 1px solid var(--border);
@@ -201,7 +201,7 @@
       margin-bottom: 0.55rem;
       flex-wrap: wrap;
     }
-    .feed-status-label { font-size: 0.85rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+    .feed-status-label { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em; text-transform: none; color: var(--cream); }
     .feed-status-chip {
       font-size: 0.8rem;
       color: #86efac;
@@ -262,7 +262,7 @@
       border: 1px solid rgba(136,150,179,0.2);
       border-radius: 4px;
       padding: 0.65rem;
-      background: rgba(15,22,40,0.6);
+      background: var(--navy2);
     }
     .calendar-mini-title {
       font-size: 0.8rem;
@@ -289,7 +289,7 @@
       border: 1px solid rgba(136,150,179,0.2);
       border-radius: 4px;
       padding: 0.6rem;
-      background: rgba(8,13,26,0.35);
+      background: var(--navy);
     }
     .desk-chart-title {
       font-size: 0.75rem;
@@ -506,7 +506,7 @@
       flex-wrap: wrap;
     }
     .calendar-item {
-      background: rgba(15,22,40,0.95);
+      background: var(--navy2);
       border: 1px solid rgba(136,150,179,0.22);
       border-radius: 4px;
       padding: 1.1rem;
@@ -586,7 +586,7 @@
       color: var(--muted);
       padding: 0.2rem 0 0.1rem;
     }
-    .market-wrap { max-width: 1200px; margin: 0 auto; padding: 2rem 2rem 0; margin-bottom: 2rem; }
+    .market-wrap { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem 0; margin-bottom: 3rem; }
     .market-box {
       background: var(--navy2);
       border: 1px solid var(--border);
@@ -602,11 +602,12 @@
       flex-wrap: wrap;
     }
     .market-title {
-      font-size: 0.85rem;
+      font-family: var(--serif);
+      font-size: 1.4rem;
       font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--gold);
+      letter-spacing: -0.01em;
+      text-transform: none;
+      color: var(--cream);
     }
     .market-updated {
       font-size: 0.85rem;
@@ -632,7 +633,7 @@
     }
     .market-segment {
       border-top: 1px solid rgba(136,150,179,0.2);
-      background: rgba(15,22,40,0.62);
+      background: rgba(18,18,18,0.6);
     }
     .market-segment:first-child {
       border-top: none;
@@ -645,12 +646,12 @@
       font-weight: 600;
       padding: 0.5rem 0.65rem;
       border-bottom: 1px solid rgba(136,150,179,0.2);
-      background: rgba(8,13,26,0.65);
+      background: var(--navy);
     }
     .market-row {
       border: 1px solid rgba(136,150,179,0.2);
       border-radius: 4px;
-      background: rgba(15,22,40,0.88);
+      background: var(--navy2);
       padding: 0.5rem 0.55rem;
       display: grid;
       gap: 0.45rem;
@@ -675,13 +676,13 @@
       border: 1px solid rgba(136,150,179,0.35);
       display: grid;
       place-items: center;
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       color: var(--cream);
       background: rgba(8,13,26,0.7);
       flex-shrink: 0;
     }
     .market-symbol {
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       color: var(--cream);
       letter-spacing: 0.05em;
       text-transform: uppercase;
@@ -691,7 +692,7 @@
       white-space: nowrap;
     }
     .market-status {
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       border: 1px solid rgba(136,150,179,0.35);
@@ -709,13 +710,13 @@
       border-color: rgba(252,165,165,0.5);
     }
     .market-code {
-      font-size: 0.7rem;
+      font-size: 0.78rem;
       color: var(--muted);
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }
     .market-price {
-      font-size: 0.9rem;
+      font-size: 1.0rem;
       color: var(--cream);
       font-weight: 600;
       line-height: 1.1;
@@ -739,7 +740,7 @@
       text-overflow: ellipsis;
     }
     .market-extra2 {
-      font-size: 0.7rem;
+      font-size: 0.78rem;
       color: #8fa1c6;
       letter-spacing: 0.03em;
       text-align: left;
@@ -1025,7 +1026,7 @@
 <!-- NAV -->
 <nav>
   <div class="nav-inner">
-    <a class="nav-brand" href="index.html">BLOGS<span>PRO</span></a>
+    <a class="nav-brand" href="index.html"><img src="logo.svg" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto"></a>
     <ul class="nav-links">
       <li><a href="#posts">Articles</a></li>
       <li><a href="#about">About</a></li>
@@ -1047,7 +1048,6 @@
     <a href="#newsletter" class="hero-scroll">Subscribe ↓</a>
   </div>
   <div class="hero-stats" id="heroStats">
-    <div class="stat-item">
     <div class="stat-item">
       <div class="stat-value" id="totalViewCount">—</div>
       <div class="stat-label">Total Views</div>
@@ -1338,7 +1338,7 @@
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
-    <a class="nav-brand" href="index.html" style="text-decoration: none;">BLOGS<span>PRO</span></a>
+    <a class="nav-brand" href="index.html" style="text-decoration: none;"><img src="logo.svg" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto"></a>
     <span class="footer-copy">© <span id="year"></span> BlogsPro. All rights reserved.</span>
     <ul class="footer-links">
       <li><a href="login.html" id="footerAuthLink">Login</a></li>
@@ -1857,16 +1857,16 @@
         { symbol: 'Corp AAA 5Y', price: 101.07, change: 0.00, yield: 7.54 },
       ],
       currency: [
-        { symbol: 'USDINR', price: 83.12, change: 0.11, open: 83.05, high: 83.19, low: 82.98, prev: 83.03, volume: 2541200 },
-        { symbol: 'EURINR', price: 90.43, change: -0.07, open: 90.51, high: 90.62, low: 90.31, prev: 90.49, volume: 1718800 },
-        { symbol: 'GBPINR', price: 105.66, change: -0.12, open: 105.80, high: 105.95, low: 105.54, prev: 105.79, volume: 1185400 },
-        { symbol: 'JPYINR', price: 0.56, change: 0.08, open: 0.56, high: 0.57, low: 0.55, prev: 0.56, volume: 987200 },
-        { symbol: 'USDJPY', price: 151.42, change: -0.21, open: 151.81, high: 151.90, low: 151.31, prev: 151.74, volume: 3189000 },
-        { symbol: 'EURUSD', price: 1.084, change: 0.16, open: 1.081, high: 1.086, low: 1.079, prev: 1.082, volume: 2974300 },
-        { symbol: 'GBPUSD', price: 1.273, change: -0.09, open: 1.276, high: 1.278, low: 1.271, prev: 1.274, volume: 2641200 },
-        { symbol: 'DXY', price: 104.28, change: -0.14, open: 104.42, high: 104.56, low: 104.19, prev: 104.43, volume: 1455500 },
-        { symbol: 'USDCNH', price: 7.214, change: 0.05, open: 7.209, high: 7.221, low: 7.202, prev: 7.210, volume: 1320800 },
-        { symbol: 'AUDUSD', price: 0.662, change: 0.12, open: 0.660, high: 0.664, low: 0.658, prev: 0.661, volume: 1193000 },
+        { symbol: 'USDINR', price: 86.42, change: 0.08, open: 86.35, high: 86.58, low: 86.28, prev: 86.35, volume: 2541200 },
+        { symbol: 'EURINR', price: 93.88, change: -0.11, open: 94.00, high: 94.15, low: 93.72, prev: 93.99, volume: 1718800 },
+        { symbol: 'GBPINR', price: 110.42, change: -0.09, open: 110.52, high: 110.68, low: 110.24, prev: 110.52, volume: 1185400 },
+        { symbol: 'JPYINR', price: 0.574, change: 0.06, open: 0.571, high: 0.576, low: 0.569, prev: 0.571, volume: 987200 },
+        { symbol: 'USDJPY', price: 150.62, change: -0.18, open: 150.90, high: 151.05, low: 150.44, prev: 150.90, volume: 3189000 },
+        { symbol: 'EURUSD', price: 1.086, change: 0.14, open: 1.082, high: 1.088, low: 1.080, prev: 1.084, volume: 2974300 },
+        { symbol: 'GBPUSD', price: 1.278, change: -0.07, open: 1.281, high: 1.283, low: 1.276, prev: 1.280, volume: 2641200 },
+        { symbol: 'DXY', price: 103.84, change: -0.12, open: 103.98, high: 104.10, low: 103.72, prev: 103.96, volume: 1455500 },
+        { symbol: 'USDCNH', price: 7.235, change: 0.04, open: 7.230, high: 7.242, low: 7.226, prev: 7.231, volume: 1320800 },
+        { symbol: 'AUDUSD', price: 0.628, change: 0.10, open: 0.625, high: 0.631, low: 0.622, prev: 0.627, volume: 1193000 },
       ],
       commodities: [
         { symbol: 'MCX Gold (10g)', price: 68420.00, change: 0.29, open: 68240, high: 68635, low: 68195, prev: 68221, volume: 224500 },
@@ -1993,6 +1993,22 @@
         if (Number.isFinite(high) && Number.isFinite(low)) return `Range ${fmtNum(low)} - ${fmtNum(high)}`;
         return `Prev ${Number.isFinite(prev) ? fmtNum(prev) : '--'} · Vol ${Number.isFinite(vol) ? fmtNum(vol) : '--'}`;
       };
+      const pricePrefix = (symbol, key) => {
+        const s = String(symbol || '').toUpperCase();
+        if (key === 'crypto') return '$';
+        if (key === 'stocksOptions') return '₹';
+        if (key === 'bonds') return '₹';
+        if (key === 'indices') return '';
+        if (key === 'currency') return '';
+        if (key === 'commodities') {
+          // MCX instruments are INR-denominated
+          if (s.includes('MCX') || s.includes('GOLD') || s.includes('SILVER') || s.includes('CRUDE') || s.includes('NATGAS')) return '₹';
+          // International benchmarks are USD-denominated
+          if (s.includes('BRENT') || s.includes('WTI') || s.includes('NYMEX') || s.includes('COMEX') || s.includes('LME') || s.includes('ICE')) return '$';
+          return '₹';
+        }
+        return '';
+      };
       const logoGlyph = (symbol, key) => {
         const s = String(symbol || '').toUpperCase();
         if (key === 'crypto') {
@@ -2024,7 +2040,7 @@
               <div class="market-status ${st.cls}">${st.label}</div>
             </div>
             <div class="market-code">SYM ${codeText}</div>
-            <div class="market-price">${fmtNum(c.price)}</div>
+            <div class="market-price">${pricePrefix(symbolText, segmentKey)}${fmtNum(c.price)}</div>
             <div class="market-change ${isUp ? 'up' : 'down'}">${sign}${Number(c.change || 0).toFixed(2)}%</div>
             <div class="market-extra">${detailText(c, segmentKey)}</div>
             <div class="market-extra2">${detailText2(c, segmentKey)}</div>
