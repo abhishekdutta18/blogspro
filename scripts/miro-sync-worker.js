@@ -49,14 +49,18 @@ export class MiroSync {
     // Handle high-performance internal push from Swarm workers
     if (url.pathname === '/push' && request.method === 'POST') {
       try {
-        const { content, source } = await request.json();
         const text = this.doc.getText('miro-consensus');
         const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-        
-        // Block-based append with institutional markers
-        const formattedEntry = `\n\n═══════════════════════════════════════\n🕵️ SOURCE: ${source || 'MiroFish Consensus'}\n📅 DATE: ${timestamp}\n═══════════════════════════════════════\n\n${content}\n\n`;
-        
-        text.insert(text.length, formattedEntry);
+
+        if (source === "SWARM_PROGRESS") {
+          // Progress events are broadcast to all clients but not necessarily added to the main tome text
+          const progressMap = this.doc.getMap('swarm-progress');
+          progressMap.set(request.json().jobId || 'latest', { ...request.json(), timestamp });
+        } else {
+          // Block-based append with institutional markers for the main document
+          const formattedEntry = `\n\n═══════════════════════════════════════\n🕵️ SOURCE: ${source || 'MiroFish Consensus'}\n📅 DATE: ${timestamp}\n═══════════════════════════════════════\n\n${content}\n\n`;
+          text.insert(text.length, formattedEntry);
+        }
         
         // Persist the full state
         const update = Y.encodeStateAsUpdate(this.doc);

@@ -22,15 +22,33 @@ import { dispatchInstitutionalAlert } from "./social-utils.js";
  * ultra-high-density institutional manuscripts (up to 25k words).
  */
 
-async function runConsensusDesk(frequency, semanticDigest, env) {
+async function notifyProgress(env, jobId, data) {
+  if (!env.MIRO_SYNC) return;
+  try {
+    await env.MIRO_SYNC.fetch("https://miro/push", {
+      method: "POST",
+      body: JSON.stringify({
+        source: "SWARM_PROGRESS",
+        jobId,
+        timestamp: Date.now(),
+        ...data
+      })
+    });
+  } catch (e) {
+    console.warn("⚠️ Progress notify failed:", e.message);
+  }
+}
+
+async function runConsensusDesk(frequency, semanticDigest, env, jobId = null) {
   console.log(`🤝 [MiroFish] Launching ${CONSENSUS_PERSONAS.length}-Agent Consensus Swarm...`);
+  await notifyProgress(env, jobId, { stage: "CONSENSUS_START", message: "Launching 10-Agent Consensus Desk..." });
   
   const simulations = await Promise.all(CONSENSUS_PERSONAS.map(async (persona) => {
     try {
       const result = await askAI(getExpertPersonaPrompt(persona, frequency, JSON.stringify(semanticDigest)), {
         role: 'generate',
         env,
-        model: 'llama-3.1-8b-instant' // Use fast/cheap models for individual agents
+        model: 'llama-3.1-8b-instant'
       });
       return `[${persona.name}]: ${result}`;
     } catch (e) {
@@ -39,13 +57,14 @@ async function runConsensusDesk(frequency, semanticDigest, env) {
     }
   }));
 
+  await notifyProgress(env, jobId, { stage: "CONSENSUS_SYNTHESIS", message: "Synthesizing Expert Simulations..." });
   const synthesis = await askAI(getConsensusPrompt(simulations.join("\n\n"), frequency), {
     role: 'edit',
     env,
-    model: 'claude-3.5-sonnet' // High-reasoning for final synthesis
+    model: 'claude-3.5-sonnet'
   });
 
-  // Affine Integration: Push consensus found to the sync bridge
+  // Affine Integration
   if (env.MIRO_SYNC) {
     try {
       await env.MIRO_SYNC.fetch("https://miro/push", {
@@ -72,6 +91,7 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
   const id = jobId || `swarm-${Date.now()}`;
   const startTime = Date.now();
   console.log(`🐝 [Swarm] Starting ${extended ? 'EXTENDED ' : ''}Hierarchical Orchestration [ID: ${id}]`);
+  await notifyProgress(env, id, { stage: "START", message: `Orchestrating ${targetVerticals.length} Vertical Swarms...` });
 
   // --- 1. INITIALIZE DURABLE OBJECT ---
   let manuscriptDO = null;
@@ -87,8 +107,16 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
   
   let combinedChapters = "";
 
-  for (const vertical of targetVerticals) {
+  for (let i = 0; i < targetVerticals.length; i++) {
+    const vertical = targetVerticals[i];
     console.log(`🕵️ [Sub-Swarm] Analyzing Vertical: ${vertical.name}...`);
+    await notifyProgress(env, id, { 
+      stage: "VERTICAL_START", 
+      vertical: vertical.name, 
+      index: i, 
+      total: targetVerticals.length, 
+      message: `Analyzing ${vertical.name}...` 
+    });
     
     // STAGE 1: THE RESEARCHER (Analytic Pass)
     const researchBrief = await askAI(getResearcherPrompt(frequency, semanticDigest, historicalData), {
@@ -107,6 +135,7 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
     // --- DEEP-REFLECT: CRITIC/REFINEMENT PASS (EXTENDED MODE ONLY) ---
     if (extended) {
         console.log(`🧐 [Deep-Reflect] Instituting Dissent: Auditing ${vertical.name}...`);
+        await notifyProgress(env, id, { stage: "CRITIC_START", message: `Deep-Reflect Audit: ${vertical.name}` });
         
         const critique = await askAI(getCriticPrompt(researchBrief, chapterContent), {
             role: 'edit',
@@ -115,6 +144,7 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
         });
 
         console.log(`🖋️ [Deep-Reflect] Reinforcing Manuscript: Expanding ${vertical.name}...`);
+        await notifyProgress(env, id, { stage: "REFINEMENT_START", message: `Reinforcing Manuscript: ${vertical.name}` });
         chapterContent = await askAI(getRefinementPrompt(chapterContent, critique, vertical.name), {
             role: 'generate',
             env,
@@ -131,14 +161,16 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
     }
 
     combinedChapters += `\n\n${chapterContent}`;
+    await notifyProgress(env, id, { stage: "VERTICAL_COMPLETE", vertical: vertical.name });
   }
 
   // STAGE 2.5: THE CONSENSUS DESK (Strategic Drift)
-  const consensusSummary = await runConsensusDesk(frequency, semanticDigest, env);
+  const consensusSummary = await runConsensusDesk(frequency, semanticDigest, env, id);
   combinedChapters = `<h2>SWARM CONSENSUS & TACTICAL SIMULATION</h2>\n${consensusSummary}\n\n${combinedChapters}`;
 
   // STAGE 3: THE CHIEF EDITOR (Harden & Merge)
   console.log("👔 [Swarm] Chief Editor: Merging and Hardening Industrial Pass...");
+  await notifyProgress(env, id, { stage: "EDITOR_START", message: "Finalizing Institutional Hardening..." });
   const polishedManuscript = await askAI(getEditorPrompt(combinedChapters, frequency), {
     role: 'edit',
     env,
@@ -147,6 +179,7 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
 
   // STAGE 3.5: FIDELITY GOVERNOR (Validation & Repair)
   console.log("⚖️ [Swarm] Fidelity Governor: Validating Structural Integrity...");
+  await notifyProgress(env, id, { stage: "GOVERNOR_START", message: "Fidelity Validation active..." });
   const fidelityResult = validateAndRepair(polishedManuscript);
   const finalManuscript = fidelityResult.content;
 

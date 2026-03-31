@@ -133,7 +133,12 @@ async function orchestrateSwarm(frequency, type, env) {
     await reportToSentry(`Institutional Swarm Dispatched: ${frequency} ${type}`, "info", env, { 
       jobId, workflowId, frequency, type 
     });
-    return { status: "dispatched", jobId, workflow: workflowId };
+    return { 
+      status: "dispatched", 
+      jobId, 
+      workflow: workflowId,
+      liveTerminal: `https://${env.PROJECT_DOMAIN || 'blogspro.ai'}/swarm-terminal.html#${jobId}`
+    };
   }
 
   // Briefing Tier: Standard In-Worker Swarm (Fast, Low-Compute)
