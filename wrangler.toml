@@ -147,12 +147,12 @@ compatibility_flags = [ "nodejs_compat" ]
 # --- GLOBAL MIGRATIONS ---
 [[migrations]]
 tag = "v1"
-new_classes = ["MiroSync"]
+new_sqlite_classes = ["MiroSync"]
 
 [[migrations]]
 tag = "v2"
-new_classes = ["DataIngestor"]
+new_sqlite_classes = ["DataIngestor"]
 
 [[migrations]]
 tag = "v3"
-new_classes = ["ManuscriptAggregator"]
+new_sqlite_classes = ["ManuscriptAggregator"]
