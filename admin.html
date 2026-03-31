@@ -339,10 +339,43 @@ function onModelChange(val) {
   <!-- ══════════════ INTELLIGENCE SWARM (NEW) ══════════════ -->
   <div class="view" id="view-intelligence">
     <div class="page-header">
-      <div><h2>Intelligence Swarm</h2><p>Autonomous Serverless Pipeline Monitoring</p></div>
+      <div><h2>Intelligence Swarm v4.6</h2><p>Autonomous Institutional Research & Swarm Orchestration</p></div>
       <div style="display:flex;gap:0.6rem">
         <button onclick="loadIntelligence()" class="v2-btn-top" style="border-color:var(--emerald);color:var(--emerald)">↺ Refresh Swarm</button>
       </div>
+    </div>
+    
+    <!-- Swarm Control Center -->
+    <div class="saas-panel gold-accent" style="margin-bottom: 2rem;">
+        <div class="saas-panel-header"><h3>Swarm Operations</h3><span style="font-size:0.65rem; color:var(--muted)">FORCE DISPATCH PEER NODES</span></div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top:0.5rem">
+            <button onclick="dispatchSwarm('daily')" id="btnDispatchDaily" class="btn-publish" style="background:rgba(201,168,76,0.1); border:1px solid var(--gold); color:var(--gold); display:flex; align-items:center; justify-content:center; gap:0.5rem">
+                <span>🛰</span> Dispatch Daily (Pulse)
+            </button>
+            <button onclick="dispatchSwarm('weekly')" id="btnDispatchWeekly" class="btn-publish" style="background:rgba(59,130,246,0.1); border:1px solid var(--blue2); color:var(--blue2); display:flex; align-items:center; justify-content:center; gap:0.5rem">
+                <span>📚</span> Dispatch Weekly (Tome)
+            </button>
+            <button onclick="dispatchSwarm('manual')" id="btnDispatchManual" class="btn-publish" style="background:rgba(168,85,247,0.1); border:1px solid var(--purple2); color:var(--purple2); display:flex; align-items:center; justify-content:center; gap:0.5rem">
+                <span>🏗</span> Manual Heavy Research
+            </button>
+        </div>
+        <div id="swarmDispatchStatus" style="font-size:0.7rem; color:var(--muted); margin-top:0.8rem; text-align:center">Ready for next instruction.</div>
+    </div>
+
+    <!-- Telemetry & Historical Data -->
+    <div class="saas-grid-2" style="margin-bottom: 2rem;">
+        <div class="saas-panel blue-accent">
+            <div class="saas-panel-header"><h3>Success Reliability</h3></div>
+            <div style="height:220px">
+                <canvas id="swarmSuccessChart"></canvas>
+            </div>
+        </div>
+        <div class="saas-panel purple-accent">
+            <div class="saas-panel-header"><h3>Agent Latency (ms)</h3></div>
+            <div style="height:220px">
+                <canvas id="swarmLatencyChart"></canvas>
+            </div>
+        </div>
     </div>
     
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
@@ -404,13 +437,16 @@ function onModelChange(val) {
                     <option>Professional</option><option>Conversational</option>
                   </select>
                   <select class="v2-quick-input" style="margin:0" id="v2Model" onchange="v2SyncModel(this.value)">
-                    <option value="auto">Auto</option>
-                    <option value="auto-free">OpenRouter Free</option>
-                    <option value="llama">Llama 3.3</option>
-                    <option value="mistral">Mistral</option>
-                    <option value="gemma">Gemma 3</option>
+                    <option value="auto">Auto — Best Balanced</option>
+                    <option value="auto-free">OpenRouter Free ✦</option>
+                    <option value="sambanova">SambaNova (Llama 3.3 70B) ⚡</option>
+                    <option value="cerebras">Cerebras (Qwen 3 235B) 🚀</option>
+                    <option value="qwen">Qwen 2.5 (Alibaba) 🐼</option>
+                    <option value="llama">Llama 3.3 70B (Base)</option>
+                    <option value="mistral">Mistral Small 24B</option>
+                    <option value="gemma">Gemma 3 27B</option>
                     <option value="hermes">Hermes 405B</option>
-                    <option value="qwen">Qwen 3</option>
+                    <option value="hf-router">Hugging Face Router 🤗</option>
                   </select>
                 </div>
                 <!-- Word count preset buttons -->
@@ -1140,8 +1176,8 @@ function onModelChange(val) {
     </div>
   </div>
 
-  <!-- ══════════════ SUBSCRIBERS ══════════════ -->
-  <div class="view" id="view-subscribers">
+  <!-- ══════════════ SUBSCRIBERS LIST ══════════════ -->
+  <div class="view" id="view-subscribers-list">
     <div class="page-header">
       <div><h2>Subscribers</h2><p>Newsletter signups</p></div>
       <button class="btn-publish" style="padding:0.7rem 1.5rem;border-radius:3px" onclick="exportSubscribers()">⬇ Export CSV</button>
@@ -1277,13 +1313,16 @@ function onModelChange(val) {
         <div>
           <span class="drawer-section-label">AI Model</span>
           <select class="form-select" id="modelArticle" style="font-size:0.82rem" onchange="onModelChange(this.value)">
-            <option value="auto" selected>Auto — Best Available</option>
-            <option value="auto-free">OpenRouter Free — Fastest ✦</option>
-            <option value="llama">Llama 3.3 70B — Balanced</option>
-            <option value="mistral">Mistral Small 24B — Fast</option>
-            <option value="gemma">Gemma 3 27B — Google</option>
-            <option value="hermes">Hermes 405B — Large (may be slow)</option>
-            <option value="qwen">Qwen 3 80B — Large (may be slow)</option>
+            <option value="auto" selected>Auto — Best Balanced</option>
+            <option value="auto-free">OpenRouter Free ✦</option>
+            <option value="sambanova">SambaNova (Llama 3.3 70B) ⚡</option>
+            <option value="cerebras">Cerebras (Qwen 3 235B) 🚀</option>
+            <option value="qwen">Qwen 2.5 (Alibaba) 🐼</option>
+            <option value="llama">Llama 3.3 70B (Base)</option>
+            <option value="mistral">Mistral Small 24B</option>
+            <option value="gemma">Gemma 3 27B</option>
+            <option value="hermes">Hermes 405B</option>
+            <option value="hf-router">Hugging Face Router 🤗</option>
           </select>
         </div>
       </div>
