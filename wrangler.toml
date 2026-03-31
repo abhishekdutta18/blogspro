@@ -1,7 +1,5 @@
+[vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
-main = "scripts/pulse-worker.js"
-compatibility_date = "2024-12-30"
-compatibility_flags = [ "nodejs_compat" ]
 
 # --- PULSE ORCHESTRATOR ---
 [env.pulse]
@@ -198,6 +196,13 @@ class_name = "ManuscriptAggregator"
 [[env.miro-sync.r2_buckets]]
 binding = "snapshots"
 bucket_name = "blogspro-affine-snapshots"
+
+# --- MANUSCRIPT AGGREGATOR WORKER ---
+[env.manuscript]
+name = "blogspro-manuscript"
+main = "scripts/manuscript-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
 
 [[env.manuscript.durable_objects.bindings]]
 name = "MANUSCRIPT_DO"
