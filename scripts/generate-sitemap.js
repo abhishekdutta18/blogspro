@@ -1,5 +1,11 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fetch from 'node-fetch';
+
+// ESM path resolution
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PROJECT_ID = 'blogspro-ai';
 const API_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
@@ -67,15 +73,26 @@ async function generateSitemap() {
     }
 
     // Static Pages from briefings and articles (automated AI content)
-    ['../briefings/daily', '../briefings/hourly', '../articles/weekly', '../articles/monthly', '../posts'].forEach(relPath => {
+    const scanPaths = [
+      '../../briefings/daily', 
+      '../../briefings/hourly', 
+      '../../articles/weekly', 
+      '../../articles/monthly', 
+      '../../posts'
+    ];
+
+    scanPaths.forEach(relPath => {
       const dir = path.join(__dirname, relPath);
       if (fs.existsSync(dir)) {
         const files = fs.readdirSync(dir).filter(f => f.endsWith('.html'));
         files.forEach(file => {
           const stats = fs.statSync(path.join(dir, file));
           const lastMod = stats.mtime.toISOString().split('T')[0];
-          const pathSegments = relPath.split('/').filter(s => s !== '..');
-          const loc = `${DOMAIN}/${pathSegments.join('/')}/${file}`;
+          
+          // Construct loc based on the folder name
+          const folderName = path.basename(dir);
+          const parentName = path.basename(path.dirname(dir));
+          const loc = `${DOMAIN}/${parentName}/${folderName}/${file}`;
           
           if (!urls.includes(loc)) {
             let freq = 'weekly';

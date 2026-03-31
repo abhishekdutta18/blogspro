@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config();
 import fs from 'fs';
 import path from 'path';
 import { executeMultiAgentSwarm } from "./lib/swarm-orchestrator.js";
@@ -8,12 +9,17 @@ import { getRecentSnapshots,
   syncToFirestore 
 } from "./lib/storage-bridge.js";
 import { uploadToStorage } from './lib/firebase-service.js';
+import { initNodeSentry, logSwarmBreadcrumb, captureSwarmError } from "./lib/sentry-bridge.js";
 
 async function runInstitutionalSwarm() {
   const frequency = process.argv.find(a => a.startsWith('--freq='))?.split('=')[1] || 'weekly';
   const type = process.argv.find(a => a.startsWith('--type='))?.split('=')[1] || 'article';
   const extended = process.argv.includes('--extended');
   const id = `swarm-${frequency}-${Date.now()}`;
+
+  // 0. INITIALIZE SENTRY (Node.js)
+  initNodeSentry(process.env.SENTRY_DSN, frequency);
+  logSwarmBreadcrumb(`Starting Institutional Batch: ${frequency}`, { id, extended });
 
   // 1. NORMALIZE ENVIRONMENT (Bridge .env keys to Swarm Binders)
   const env = {
@@ -101,10 +107,13 @@ async function runInstitutionalSwarm() {
     // --- 🏺 ARCHIVAL PHASE: Persistent Cloud/Local Storage ---
     try {
         const destination = `${frequency}/${fileName}`;
+        logSwarmBreadcrumb(`Starting Firebase Archival: ${destination}`, { size: result.final.length });
         await uploadToStorage(outPath, destination, 'text/html');
         console.log(`🌐 [Swarm] Archive Phase: Uploaded to Firebase Storage (${destination})`);
+        logSwarmBreadcrumb(`Firebase Archival Successful: ${destination}`);
     } catch (e) {
         console.warn(`⚠️ [Swarm] Firebase Upload Failed:`, e.message);
+        captureSwarmError(e, { stage: 'archival', frequency, fileName });
         // We don't throw here to allow GitHub Output bridge to still run
     }
 

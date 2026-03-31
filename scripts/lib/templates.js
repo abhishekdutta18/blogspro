@@ -1,16 +1,13 @@
 function parseMD(md) {
     if (!md) return "";
     
-    // 1. Structural Preservation (Protecting Industrial Markers)
     let processed = md
-        // We no longer strip chart-data here, as the Template Worker needs to pass it to the UI
         .replace(/SENTIMENT_SCORE:\s*[\d\w\[\]\/\-\s]*/gi, '')
         .replace(/PRICE_INFO:\s*[\d\w\:\.\,\|\s\[\]\(\)\-\%]*/gi, '')
         .replace(/Weekend Price Info:\s*[\d\w\:\.\,\|\s\[\]\(\)\-\%]*/gi, '')
         .replace(/--- SYSTEM CONTEXT ---[\s\S]*?--- UNIVERSAL NEWS ---/gi, '')
         .trim();
 
-    // 2. Industrial Table Parser (High Density Resilience)
     const lines = processed.split('\n');
     let inTable = false;
     let tableHtml = "";
@@ -61,10 +58,11 @@ function parseMD(md) {
     });
     if (inTable) midStage += tableHtml + '</tbody></table></div>';
 
-    // 3. Final HTML Synthesis
     let finalHtml = midStage
-        .replace(/### (.*$)/gim, '<h3>$1</h3>')
-        .replace(/## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^[#\s]*### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/^[#\s]*## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^[#\s]*# (.*$)/gim, '<h1>$1</h1>')
+        .replace(/---/g, '<hr class="institutional-divider">')
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
         .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
         .replace(/^\- (.*$)/gim, '<li>$1</li>');
@@ -72,7 +70,10 @@ function parseMD(md) {
     finalHtml = finalHtml.split('\n\n').map(block => {
         block = block.trim();
         if (!block) return '';
-        if (block.startsWith('<div') || block.startsWith('<h') || block.startsWith('<ul') || block.startsWith('<li')) return block;
+        // 🛡️ Clean up any leaked markdown symbols that are adjacent to HTML tags
+        block = block.replace(/^[#\s]+(<h[1-6])/g, '$1');
+        
+        if (block.startsWith('<div') || block.startsWith('<h') || block.startsWith('<ul') || block.startsWith('<li') || block.startsWith('<hr')) return block;
         return '<p>' + block + '</p>';
     }).join('\n');
     
@@ -83,7 +84,6 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
     const seoDescription = excerpt || "BlogsPro Institutional Strategic Manuscript - 16-Vertical Specialized Market Synthesis.";
     const seoKeywords = "Banking, Cards, Payments, Mutual Fund Inflows, PE/VC Deal Tracking, Institutional Market Intelligence, BlogsPro";
     
-    // Auto-parse content if it's still raw markdown
     const finalBody = content.includes('<h') ? content : parseMD(content);
 
     return `<!DOCTYPE html>
@@ -127,18 +127,38 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
         th { text-align: left; padding: 1rem; background: rgba(191,161,0,0.05); color: var(--nexus-accent); border-bottom: 2px solid var(--nexus-accent); }
         td { padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
-        .nav-item { display: block; padding: 0.6rem 0.8rem; color: rgba(255,255,255,0.6); text-decoration: none; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; border-left: 2px solid transparent; }
+        .nav-item { display: block; padding: 0.6rem 0.8rem; color: rgba(255,255,255,0.6); text-decoration: none; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; border-left: 2px solid transparent; transition: all 0.2s; }
         .nav-item:hover { background: rgba(191, 161, 0, 0.05); color: var(--nexus-accent); border-left: 2px solid var(--nexus-accent); }
+        .nav-item.active { color: var(--nexus-accent); border-left: 2px solid var(--nexus-accent); background: rgba(191, 161, 0, 0.05); }
+
+        .institutional-sector { scroll-margin-top: 4rem; margin-bottom: 6rem; }
+        .institutional-divider { border: 0; border-top: 1px solid var(--nexus-border); margin: 6rem 0; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
     <aside class="sidebar">
         <a href="/" class="logo">BLOGS<span>PRO</span></a>
         <nav>
-            <a href="#" class="nav-item">STRATEGIC PULSE</a>
-            <a href="#" class="nav-item">INSTITUTIONAL FLOWS</a>
-            <a href="#" class="nav-item">ALPHA ROTATION</a>
-            <a href="#" class="nav-item">QUANTITATIVE DESK</a>
+            <div style="font-size: 0.6rem; color: rgba(255,255,255,0.3); margin: 1.5rem 0 0.5rem 0.8rem; letter-spacing: 1px;">CORE TERMINAL</div>
+            <a href="#strategic-pulse" class="nav-item">STRATEGIC PULSE</a>
+            
+            <div style="font-size: 0.6rem; color: rgba(255,255,255,0.3); margin: 1.5rem 0 0.5rem 0.8rem; letter-spacing: 1px;">SWARM VERTICALS</div>
+            <a href="#sector-macro" class="nav-item">GLOBAL MACRO</a>
+            <a href="#sector-banking" class="nav-item">INSTITUTIONAL FLOWS</a>
+            <a href="#sector-cards" class="nav-item">CARDS & PAYMENTS</a>
+            <a href="#sector-equities" class="nav-item">ALPHA ROTATION</a>
+            <a href="#sector-debt" class="nav-item">DEBT & LIQUIDITY</a>
+            <a href="#sector-fx" class="nav-item">FX & CURRENCY</a>
+            <a href="#sector-digital" class="nav-item">DIGITAL ASSETS</a>
+            <a href="#sector-reg" class="nav-item">REGULATORY LEDGER</a>
+            <a href="#sector-commodity" class="nav-item">COMMODITY PULSE</a>
+            <a href="#sector-em" class="nav-item">EMERGING MARKETS</a>
+            <a href="#sector-asset" class="nav-item">ASSET ALLOCATION</a>
+            <a href="#sector-scribe" class="nav-item">SCRIBE ANALYTICS</a>
+            <a href="#sector-capital" class="nav-item">CAPITAL FLOWS</a>
+            <a href="#sector-insurance" class="nav-item">INSURANCE RISK</a>
+            <a href="#sector-gift" class="nav-item">OFFSHORE HUB</a>
+            <a href="#sector-payment" class="nav-item">FINTECH RAILS</a>
         </nav>
     </aside>
 
@@ -157,6 +177,81 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
             © ${new Date().getFullYear()} BLOGSPRO TERMINAL • ALL RIGHTS RESERVED • INSTITUTIONAL USE ONLY
         </footer>
     </main>
+
+    <script>
+        // 🏁 BLOGSPRO CHART ENGINE: Discovery & Rendering
+        google.charts.load('current', {packages: ['corechart', 'bar', 'line']});
+        google.charts.setOnLoadCallback(function() {
+            console.log("📊 [Swarm UI] Google Charts Engine Initialized.");
+            if (typeof renderAllCharts === 'function') renderAllCharts();
+        });
+
+        function renderAllCharts() {
+            var chartTags = document.querySelectorAll('chart-data');
+            console.log("🔍 [Swarm UI] Discovering chart payloads...");
+            
+            chartTags.forEach(function(tag, i) {
+                try {
+                    var payload = JSON.parse(tag.textContent);
+                    var chartId = payload.id || 'dynamic-chart-' + i;
+                    
+                    var container = document.getElementById(chartId);
+                    if (!container) {
+                        container = document.createElement('div');
+                        container.id = chartId;
+                        container.className = 'table-container';
+                        container.style.height = '400px';
+                        container.style.padding = '2rem';
+                        tag.parentNode.insertBefore(container, tag.nextSibling);
+                    } else {
+                        container.style.height = '400px';
+                        container.style.padding = '2rem';
+                    }
+
+                    // 🛠️ DATA NORMALIZATION LAYER: AI-generated payloads are often objects, not 2D arrays.
+                    var chartData = payload.data || payload; 
+                    if (!Array.isArray(chartData)) {
+                        console.log("🛠️ [Swarm UI] Normalizing non-array payload for " + chartId);
+                        // If it's a nested object, look one level deeper
+                        var keys = Object.keys(chartData);
+                        if (keys.length === 1 && typeof chartData[keys[0]] === 'object' && !Array.isArray(chartData[keys[0]])) {
+                            chartData = chartData[keys[0]];
+                        }
+                        
+                        var normalized = [['Metric', 'Value']];
+                        for (var key in chartData) {
+                            if (typeof chartData[key] !== 'object') {
+                                normalized.push([key.replace(/_/g, ' '), chartData[key]]);
+                            }
+                        }
+                        chartData = normalized;
+                    }
+
+                    if (!chartData || chartData.length <= 1) {
+                        throw new Error("Insufficient data for chart rendering.");
+                    }
+
+                    var data = google.visualization.arrayToDataTable(chartData);
+                    var options = {
+                        title: payload.title || 'Institutional Market Metric',
+                        backgroundColor: '#0A0A0A',
+                        hAxis: { textStyle: { color: '#D1D5DB' }, gridlines: { color: '#333' } },
+                        vAxis: { textStyle: { color: '#D1D5DB' }, gridlines: { color: '#333' } },
+                        legend: { textStyle: { color: '#D1D5DB' } },
+                        colors: ['#BFA100', '#FFB800', '#A5B4FC'],
+                        titleTextStyle: { color: '#F8FAFC', fontSize: 14 }
+                    };
+
+                    var chart = (payload.type === 'bar') ? new google.visualization.BarChart(container) 
+                                : new google.visualization.LineChart(container);
+                    chart.draw(data, options);
+                    tag.style.display = 'none';
+                } catch (e) {
+                    console.error("❌ [Swarm UI] Chart Rendering Error:", e);
+                }
+            });
+        }
+    </script>
     ${scripts || ''}
 </body>
 </html>`;

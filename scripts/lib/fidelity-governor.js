@@ -6,6 +6,7 @@
  */
 
 function extractChartData(content) {
+    // Also support <chart-data json="..."> variants if they appear
     const regex = /<chart-data>([\s\S]*?)<\/chart-data>/gi;
     const matches = [];
     let match;
@@ -15,21 +16,15 @@ function extractChartData(content) {
     return matches;
 }
 
-/**
- * Self-Heal common LLM JSON errors:
- * 1. Missing quotes on keys
- * 2. Single quotes instead of double
- * 3. Trailing commas
- * 4. Markdown backticks in JSON
- */
 function selfHealJSON(jsonStr) {
     let healed = jsonStr
         .replace(/```json\n?|```/g, '') // Strip backticks
+        .replace(/\\n/g, ' ')           // Clean newlines
         .replace(/'/g, '"')             // Convert single quotes
         .replace(/,\s*([\}\]])/g, '$1') // Remove trailing commas
         .trim();
     
-    // Add missing quotes to keys if needed
+    // Add missing quotes to keys
     healed = healed.replace(/([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3');
     
     return healed;
@@ -66,16 +61,33 @@ export function validateAndRepair(content) {
     // Ensure all <h2> follow the standard BlogsPro Nexus formatting if not present
     // (This is light sanitization - don't over-repair)
 
-    // 3. MARKDOWN POLLUTION
-    if (repairedContent.includes("```")) {
-        console.warn("⚠️ [Governor] Markdown backticks detected in final output. Stripping...");
-        repairedContent = repairedContent.replace(/```[a-z]*\n?|```/gi, '');
-        status = "repaired";
-    }
+    // 4. ECHO & STRAY SYSTEM CODES (Harden for Swarm 4.2)
+    const echoes = ["INSTITUTIONAL_PERSONA", "QUANTITATIVE DRAFTER", "BUREAU CHIEF", "GLOBAL TEMPORAL GROUNDING", "TASK:", "ROLE:"];
+    echoes.forEach(token => {
+        if (repairedContent.includes(token)) {
+            console.warn(`⚠️ [Governor] System token '${token}' detected. Attempting deep-sanitize...`);
+            const regex = new RegExp(`^.*${token}.*$`, 'gm');
+            repairedContent = repairedContent.replace(regex, '');
+            status = "repaired";
+        }
+    });
+
+    // 5. ROBOTIC FILLER (Human-Readability Pass)
+    const filler = [
+        "In this chapter,", "As an AI,", "Certainly!", "I will now generate", 
+        "In this analysis,", "As documented in", "According to the provided"
+    ];
+    filler.forEach(phrase => {
+        if (repairedContent.includes(phrase)) {
+            console.warn(`⚠️ [Governor] Robotic filler '${phrase}' detected. Stripping...`);
+            repairedContent = repairedContent.replace(new RegExp(phrase, 'gi'), '');
+            status = "repaired";
+        }
+    });
 
     return {
         status,
-        content: repairedContent.trim(),
+        content: repairedContent.trim().replace(/\n{3,}/g, '\n\n'), // Clean whitespace
         errors
     };
 }

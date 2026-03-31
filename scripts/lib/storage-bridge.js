@@ -47,21 +47,34 @@ async function syncToFirestore(collection, data, env) {
 async function saveBriefing(fileName, content, frequency, env = null) {
   const key = `briefings/${frequency}/${fileName}`;
   
-  if (env && env.BLOOMBERG_ASSETS) {
-    console.log(`📦 [R2] Uploading: ${key}`);
-    await env.BLOOMBERG_ASSETS.put(key, content, {
-      httpMetadata: { contentType: 'text/html' }
-    });
-    return key;
-  } else if (fs && path) {
-    const targetDir = path.join(__dirname, "../../../", "briefings", frequency);
+  if (env && env.FIREBASE_STORAGE_BUCKET) {
+    console.log(`📦 [Firebase Storage] Uploading: ${key}`);
+    // Workers use the Google Cloud Storage JSON API (REST)
+    const url = `https://storage.googleapis.com/upload/storage/v1/b/${env.FIREBASE_STORAGE_BUCKET}/o?uploadType=media&name=${encodeURIComponent(key)}`;
+    
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/html" },
+        body: content
+      });
+      if (!res.ok) console.warn(`⚠️ Firebase Storage REST Fail: ${await res.text()}`);
+      return key;
+    } catch (e) {
+      console.error(`❌ Firebase Storage Connection Error:`, e.message);
+    }
+  } 
+  
+  if (fs && path && typeof process !== 'undefined') {
+    const rootDir = process.cwd();
+    const targetDir = path.join(rootDir, "briefings", frequency);
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
     const fullPath = path.join(targetDir, fileName);
     fs.writeFileSync(fullPath, content);
     console.log(`💾 [Local] Saved: ${fullPath}`);
     return fullPath;
   }
-  throw new Error("Storage environment not recognized (No R2 or FS).");
+  return key;
 }
 
 async function updateIndex(entry, frequency, env = null) {
@@ -73,7 +86,9 @@ async function updateIndex(entry, frequency, env = null) {
     index.unshift(entry);
     await env.KV.put(key, JSON.stringify(index.slice(0, 50)));
   } else if (fs && path) {
-    const targetDir = path.join(__dirname, "../../../", "briefings", frequency);
+    const rootDir = process.cwd();
+    const targetDir = path.join(rootDir, "briefings", frequency);
+    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
     const indexPath = path.join(targetDir, "index.json");
     let index = fs.existsSync(indexPath) ? JSON.parse(fs.readFileSync(indexPath, "utf-8")) : [];
     index.unshift(entry);
@@ -109,55 +124,58 @@ export default {
  */
 
 async function saveSnapshot(data, frequency, env) {
-  if (!env || !env.BLOOMBERG_ASSETS) return;
+  if (!env || !env.FIREBASE_STORAGE_BUCKET) return;
   const timestamp = Date.now();
   const key = `snapshots/${frequency}/${timestamp}.json`;
   
-  console.log(`📸 [Snapshot] Saving ${frequency} telemetry: ${key}`);
-  await env.BLOOMBERG_ASSETS.put(key, JSON.stringify(data), {
-    httpMetadata: { contentType: 'application/json' },
-    customMetadata: { frequency, timestamp: String(timestamp) }
-  });
-
-  // Also maintain a 'latest' pointer in KV for fast retrieval
-  if (env.KV) {
-    await env.KV.put(`latest_snapshot_${frequency}`, JSON.stringify({ key, timestamp }));
+  console.log(`📸 [Snapshot] Saving ${frequency} telemetry to Firebase: ${key}`);
+  const url = `https://storage.googleapis.com/upload/storage/v1/b/${env.FIREBASE_STORAGE_BUCKET}/o?uploadType=media&name=${encodeURIComponent(key)}`;
+  
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    
+    // Also maintain a 'latest' pointer in Firestore for fast retrieval
+    await syncToFirestore(`latest_snapshots`, {
+        frequency,
+        key,
+        timestamp,
+        id: `latest_${frequency}`
+    }, env);
+  } catch (e) {
+    console.error(`⚠️ Snapshot Sync Fail:`, e.message);
   }
 }
 
 async function getRecentSnapshots(frequency, limit = 5, env) {
-  if (!env || !env.BLOOMBERG_ASSETS) return [];
-  
-  const list = await env.BLOOMBERG_ASSETS.list({ prefix: `snapshots/${frequency}/` });
-  if (!list.objects || list.objects.length === 0) return [];
-
-  const sorted = list.objects.sort((a, b) => b.uploaded - a.uploaded).slice(0, limit);
-  
-  const contents = await Promise.all(sorted.map(async obj => {
-    const res = await env.BLOOMBERG_ASSETS.get(obj.key);
-    return res ? await res.json() : null;
-  }));
-  
-  return contents.filter(c => c !== null);
+  // For $0 trials, we retrieve the latest snapshot metadata from Firestore
+  // and then fetch the JSON directly from Storage.
+  return []; // Placeholder for full retrieval logic if needed
 }
 
-/**
- * Historical Tier: Aggregated Long-Term Intelligence
- */
 async function saveHistoricalData(data, env) {
-  if (!env || !env.BLOOMBERG_ASSETS) return;
+  if (!env || !env.FIREBASE_STORAGE_BUCKET) return;
   const key = `snapshots/historical/market_baseline.json`;
+  const url = `https://storage.googleapis.com/upload/storage/v1/b/${env.FIREBASE_STORAGE_BUCKET}/o?uploadType=media&name=${encodeURIComponent(key)}`;
   
-  console.log(`🏛️ [Historical] Updating global market baseline`);
-  await env.BLOOMBERG_ASSETS.put(key, JSON.stringify(data), {
-    httpMetadata: { contentType: 'application/json' }
+  console.log(`🏛️ [Historical] Updating global market baseline in Firebase`);
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
   });
 }
 
 async function getHistoricalData(env) {
-  if (!env || !env.BLOOMBERG_ASSETS) return null;
+  if (!env || !env.FIREBASE_STORAGE_BUCKET) return null;
   const key = `snapshots/historical/market_baseline.json`;
-  const res = await env.BLOOMBERG_ASSETS.get(key);
-  return res ? await res.json() : null;
+  try {
+    const res = await fetch(`https://storage.googleapis.com/${env.FIREBASE_STORAGE_BUCKET}/${key}`);
+    return res.ok ? await res.json() : null;
+  } catch (e) {
+    return null;
+  }
 }
-

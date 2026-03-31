@@ -1,5 +1,11 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fetch from 'node-fetch';
+
+// ESM path resolution
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PROJECT_ID = 'blogspro-ai';
 const API_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
@@ -18,7 +24,6 @@ async function buildStaticPosts() {
   let template = fs.readFileSync(templatePath, 'utf8');
 
   // Fix relative paths for files served from /p/ folder
-  // Handles href="css/...", src="js/...", import("./js/...") etc.
   template = template
     .replace(/(href|src)="(?!\/\/|http)(?!.\/)([^"]+)"/g, '$1="../$2"')
     .replace(/import\("\.\/js\//g, 'import("../js/')
@@ -70,7 +75,7 @@ async function buildStaticPosts() {
       const dateIso = doc.createTime || new Date().toISOString();
       const url = `https://blogspro.in/p/${slug}.html`;
 
-      // 1. Hydrate Meta Tags (Markers)
+      // 1. Hydrate Meta Tags
       const metaTags = `
   <title>${title} — BlogsPro</title>
   <meta name="description" content="${excerpt}">
@@ -100,7 +105,7 @@ async function buildStaticPosts() {
 
       let html = template.replace(/<!-- SSG_META_START -->[\s\S]*?<!-- SSG_META_END -->/, `<!-- SSG_META_START -->${metaTags}\n  <!-- SSG_META_END -->`);
 
-      // 2. Inject Static Content (Markers)
+      // 2. Inject Static Content
       const articleHtml = `
         <div class="article-meta-top">
           <span class="article-cat">${category}</span>
@@ -114,17 +119,17 @@ async function buildStaticPosts() {
       
       html = html.replace(/<!-- SSG_CONTENT_START -->[\s\S]*?<!-- SSG_CONTENT_END -->/, `<!-- SSG_CONTENT_START -->${articleHtml}\n  <!-- SSG_CONTENT_END -->`);
 
-      // 3. Force the SPA to load this exact post (Hydration fix)
+      // 3. Force the SPA to load this exact post
       html = html.replace("const id = new URLSearchParams(location.search).get('id');", `const id = "${docId}";`);
 
       const outPath = path.join(outDir, `${slug}.html`);
       
-      // Phase 6: Quick Minification (Basic RegEx)
+      // Minification
       const minifiedHtml = html
-        .replace(/>\s+</g, '><')          // Remove spaces between tags
-        .replace(/\s{2,}/g, ' ')          // Collapse multiple spaces
-        .replace(/\/\*[\s\S]*?\*\//g, '') // Remove CSS comments
-        .replace(/<!--(?![\s\S]*?SSG_)[\s\S]*?-->/g, ''); // Remove non-SSG comments
+        .replace(/>\s+</g, '><')
+        .replace(/\s{2,}/g, ' ')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/<!--(?![\s\S]*?SSG_)[\s\S]*?-->/g, '');
 
       fs.writeFileSync(outPath, minifiedHtml);
       console.log(`✓ Generated: p/${slug}.html`);

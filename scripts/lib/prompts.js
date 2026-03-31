@@ -275,6 +275,56 @@ MANDATORY DELPHI-METHOD SYNTHESIS:
 `;
 }
 
+function getManagerAuditPrompt(manuscript, verticalName, env = {}) {
+    const userCommand = env.MANAGER_COMMAND ? `\n--- SUPREME USER COMMAND ---\n${env.MANAGER_COMMAND}\n----------------------------\n` : "";
+    return `
+${INSTITUTIONAL_PERSONA}
+ROLE: BUREAU CHIEF (Institutional Manager)
+TASK: Audit the research chapter for '${verticalName}' against the GOLD STANDARD.
+${userCommand}
+CRITICAL GATEKEEPER RULES:
+1. HISTORICAL DATA INTEGRITY: Are there at least TWO tables/charts comparing 2026 (Current) to 2025 (LFY) or 2024 (Historical)? (FAIL if no)
+2. ECHO & STRAY CODE DETECTION: Search for prompt leaks (e.g., "You are a...", "ROLE:", "TASK:") or stray markdown code blocks (e.g., \` \` \`). (FAIL if yes)
+3. HUMAN READABILITY: Does the prose flow naturally? Is it free of robotic filler (e.g., "In this analysis...")? (FAIL if yes)
+4. DATA DENSITY: Is every technical claim supported by a specific metric? (FAIL if no)
+5. STRUCTURAL PURITY: Ensure no <chart-data> tags are broken or empty.
+
+CHAPTER TO AUDIT (${verticalName}):
+${manuscript}
+
+OUTPUT FORMAT (JSON ONLY):
+{
+  "score": 0-100,
+  "status": "PASS" | "FAIL",
+  "reason": "Detailed audit log of failures (e.g., 'Missing 2025 comparative table')",
+  "guidance": "MANDATORY COMMANDS: 'Fix the echo in para 2', 'Add 2024/2025 historical table', etc.",
+  "learning_note": "A single sentence explaining the root cause of the failure for the agent's memory.",
+  "penalize": true | false
+}
+`;
+}
+
+function getManagerCorrectionPrompt(brokenBlock, guidance) {
+    return `
+${INSTITUTIONAL_PERSONA}
+ROLE: INDEPENDENT REPAIR AGENT (Code-First)
+TASK: Fix the following broken research block based on the Manager's guidance.
+
+MANDATORY HIERARCHY OF REPAIR:
+1. CODE FIX: Repair all broken HTML, <table>, or <chart-data> tags first. 
+2. ECHO REMOVAL: Strip all prompt leakage (e.g. system instructions).
+3. NARRATIVE REFINEMENT: Rewrite for professional 'human' flow while preserving all technical data.
+
+BROKEN BLOCK:
+${brokenBlock}
+
+MANAGER GUIDANCE:
+${guidance}
+
+OUTPUT: Repaired institutional block (HTML). No conversational intro.
+`;
+}
+
 export {
     VERTICALS,
     CONSENSUS_PERSONAS,
@@ -287,5 +337,7 @@ export {
     getExpertPersonaPrompt,
     getConsensusPrompt,
     getCriticPrompt,
-    getRefinementPrompt
+    getRefinementPrompt,
+    getManagerAuditPrompt,
+    getManagerCorrectionPrompt
 };

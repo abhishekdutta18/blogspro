@@ -1,4 +1,5 @@
 import { askAI } from "./lib/ai-service.js";
+import { initWorkerSentry, captureSwarmError, logSwarmBreadcrumb } from "./lib/sentry-bridge.js";
 
 /**
  * BlogsPro Relevance Worker (V1.0)
@@ -21,8 +22,10 @@ export default {
       return new Response(JSON.stringify({ error: "Access Denied" }), { status: 403 });
     }
 
+    const sentry = initWorkerSentry(request, env);
     try {
       const data = await request.json();
+      logSwarmBreadcrumb(`Semantic Digesting: ${data.frequency}`, { token: token.substring(0, 8) }, sentry);
       console.log(`🧠 [Relevance] Digesting ${data.frequency} snapshot...`);
 
       // 1. Distill News into Impactful Segments
@@ -44,6 +47,7 @@ export default {
         headers: { "Content-Type": "application/json" }
       });
     } catch (e) {
+      captureSwarmError(e, { stage: 'relevance_digestion' }, sentry);
       return new Response(JSON.stringify({ error: e.message }), { 
         status: 500, headers: { "Content-Type": "application/json" } 
       });

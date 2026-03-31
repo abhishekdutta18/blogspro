@@ -1,12 +1,12 @@
-const puppeteer = require('puppeteer');
-const path = require('path');
-const fs = require('fs');
+import puppeteer from 'puppeteer';
+import path from 'path';
+import fs from 'fs';
 
 /**
  * Institutional PDF Generator (BlogsPro V1.0)
  * Converts high-fidelity HTML terminal reports into professional PDFs.
  */
-async function generatePDF(htmlPath, frequency = 'daily') {
+export async function generatePDF(htmlPath, frequency = 'daily') {
     console.log(`📑 Generating Institutional PDF for: ${path.basename(htmlPath)} (${frequency.toUpperCase()})...`);
     const pdfPath = htmlPath.replace('.html', '.pdf');
     
@@ -59,5 +59,3 @@ async function generatePDF(htmlPath, frequency = 'daily') {
         if (browser) await browser.close();
     }
 }
-
-module.exports = { generatePDF };

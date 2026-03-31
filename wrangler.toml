@@ -16,6 +16,7 @@ PROJECT_DOMAIN = "blogspro.ai"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 GEMINI_MODEL = "gemini-1.5-pro"
 MISTRAL_MODEL = "mistral-large-latest"
+SENTRY_DSN = "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336"
 # SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env pulse')
 
 [[env.pulse.services]]
@@ -141,6 +142,7 @@ compatibility_flags = [ "nodejs_compat" ]
 
 [env.relevance.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
+SENTRY_DSN = "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336"
 # SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env relevance')
 
 # --- AUDITOR WORKER ---
@@ -152,6 +154,7 @@ compatibility_flags = [ "nodejs_compat" ]
 
 [env.auditor.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
+SENTRY_DSN = "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336"
 # SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env auditor')
 
 # --- SEO MANAGER WORKER ---

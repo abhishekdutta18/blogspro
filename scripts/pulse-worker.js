@@ -1,5 +1,6 @@
 import { executeMultiAgentSwarm } from "./lib/swarm-orchestrator.js";
 import { getRecentSnapshots, getHistoricalData, saveBriefing, updateIndex, syncToFirestore } from "./lib/storage-bridge.js";
+import { initWorkerSentry, captureSwarmError, logSwarmBreadcrumb } from "./lib/sentry-bridge.js";
 import rl from "./lib/reinforcement.js";
 
 /**
@@ -20,21 +21,33 @@ export default {
     const frequency = url.searchParams.get("freq") || "hourly";
     const type = url.searchParams.get("type") || "briefing";
 
+    const sentry = initWorkerSentry(request, env, ctx);
+    logSwarmBreadcrumb(`Pulse Triggered: ${frequency} ${type}`, { url: request.url }, sentry);
+
     try {
       // NON-BLOCKING TRIGGER: Return 202 immediately and run swarm in background
-      ctx.waitUntil(orchestrateSwarm(frequency, type, env));
+      let localResult = null;
+      if (ctx && ctx.waitUntil) {
+        ctx.waitUntil(orchestrateSwarm(frequency, type, env, sentry));
+      } else {
+        // Local/Direct Execution Support
+        console.log(`📡 [Pulse] Direct Execution (WaitUntil Mocked)`);
+        localResult = await orchestrateSwarm(frequency, type, env, sentry);
+      }
       
       return new Response(JSON.stringify({ 
         status: "accepted", 
-        message: `Swarm triggered for ${frequency} ${type}. Check MiroSync for real-time updates.`,
+        message: `Swarm triggered for ${frequency} ${type}.`,
         frequency,
         type,
+        result: localResult,
         liveTerminal: "https://blogspro-miro-sync.workers.dev/terminal"
       }), {
         status: 202,
         headers: { "Content-Type": "application/json" }
       });
     } catch (e) {
+      captureSwarmError(e, { stage: 'orchestration_start', frequency, type }, sentry);
       return new Response(JSON.stringify({ status: "error", message: e.message }), {
         status: 500, headers: { "Content-Type": "application/json" }
       });
@@ -55,8 +68,9 @@ export default {
   }
 };
 
-async function orchestrateSwarm(frequency, type, env) {
+async function orchestrateSwarm(frequency, type, env, sentry = null) {
   const swarmToken = env.SWARM_INTERNAL_TOKEN;
+  logSwarmBreadcrumb(`Orchestration Phase Start`, { frequency, type }, sentry);
 
   // 1. DATA TIER: Pre-fill Data Rule (Context Mega-Pool)
   console.log("📂 [Pulse] Pre-filling Context Mega-Pool (Hourly, Daily, Weekly, Monthly, Historical)...");
@@ -124,16 +138,12 @@ async function orchestrateSwarm(frequency, type, env) {
     if (!dispatchRes.ok) {
       const err = await dispatchRes.text();
       console.error("❌ GitHub Dispatch Fail:", err);
-      await reportToSentry(`GitHub Dispatch Fail: ${frequency} ${type}`, "error", env, { 
-        jobId, workflowId, error: err 
-      });
+      captureSwarmError(new Error(`GitHub Dispatch Fail: ${err}`), { jobId, workflowId, frequency, type }, sentry);
       throw new Error(`Failed to dispatch high-compute swarm: ${err}`);
     }
 
     console.log("✅ [Pulse] High-Compute Swarm Dispatched. Monitor GitHub Actions for Tome completion.");
-    await reportToSentry(`Institutional Swarm Dispatched: ${frequency} ${type}`, "info", env, { 
-      jobId, workflowId, frequency, type 
-    });
+    logSwarmBreadcrumb(`Institutional Swarm Dispatched`, { jobId, workflowId, frequency, type }, sentry);
     return { 
       status: "dispatched", 
       jobId, 
@@ -189,35 +199,8 @@ async function orchestrateSwarm(frequency, type, env) {
   }
 
   console.log(`🏁 [Pulse] Swarm 4.0 Cycle Complete. [Quality Score: ${auditResult.qualityScore || 'N/A'}]`);
+  logSwarmBreadcrumb(`Cycle Complete`, { jobId, qualityScore: auditResult.qualityScore }, sentry);
   return { ...entry, qualityScore: auditResult.qualityScore };
-}
-
-/**
- * Pro-Grade Sentry Instrumentation (Worker-Native)
- */
-async function reportToSentry(message, level, env, metadata = {}) {
-  const dsn = "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336";
-  const projectId = dsn.split('/').pop();
-  const url = `https://ingest.de.sentry.io/api/${projectId}/store/?sentry_key=${dsn.split('//')[1].split('@')[0]}&sentry_version=7`;
-
-  const event = {
-    message,
-    level,
-    platform: "javascript",
-    environment: "production",
-    timestamp: Date.now() / 1000,
-    tags: { service: "pulse-orchestrator", ...metadata },
-    extra: metadata
-  };
-
-  try {
-    await fetch(url, {
-      method: "POST",
-      body: JSON.stringify(event)
-    });
-  } catch (e) {
-    console.warn("⚠️ Sentry Report Fail:", e.message);
-  }
 }
 
 

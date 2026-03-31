@@ -1,6 +1,7 @@
 import { validateContent } from "./lib/validator.js";
-import { repairTables, injectVisuals, hardenJson } from "./lib/rules-engine.js";
+import { repairTables, injectVisuals, hardenJson, enforceTemporalGrounding } from "./lib/rules-engine.js";
 import { verifyCitations } from "./lib/citation-engine.js";
+import { initWorkerSentry, captureSwarmError, logSwarmBreadcrumb } from "./lib/sentry-bridge.js";
 import rl from "./lib/reinforcement.js";
 
 /**
@@ -25,8 +26,10 @@ export default {
       return new Response(JSON.stringify({ error: "Access Denied" }), { status: 403 });
     }
 
+    const sentry = initWorkerSentry(request, env);
     try {
       const { content, task, metadata } = await request.json();
+      logSwarmBreadcrumb(`Starting Governance Pass: ${task}`, { metadata }, sentry);
       console.log(`🔎 [Auditor] Starting Governance Pass for: ${task}`);
 
       let clean = content;
@@ -35,6 +38,7 @@ export default {
       clean = repairTables(clean);
       clean = injectVisuals(clean, metadata.verticalName, metadata.verticalId);
       clean = hardenJson(clean);
+      clean = enforceTemporalGrounding(clean);
 
       // 2. Source Verification (Citation Engine)
       clean = verifyCitations(clean);
@@ -59,6 +63,7 @@ export default {
         headers: { "Content-Type": "application/json" }
       });
     } catch (e) {
+      captureSwarmError(e, { stage: 'auditor_governance' }, sentry);
       return new Response(JSON.stringify({ error: e.message }), { 
         status: 500, headers: { "Content-Type": "application/json" } 
       });

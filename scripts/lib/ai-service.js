@@ -1,15 +1,21 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import _fetch from "node-fetch";
-import { fetchDynamicNews } from "./data-fetchers.js";
+import Cerebras from "@cerebras/cerebras_cloud_sdk";
+import { fetchDynamicNews, fetchFullPageContent, fetchDocument } from "./data-fetchers.js";
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // --- RESILIENT ENV NORMALIZATION ---
 const normalizeEnv = () => {
-    process.env.GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
+    process.env.GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY || process.env.GOOGLE_API_KEY;
     process.env.GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.GROQ_KEY;
-    process.env.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || process.env.MISTRAL_KEY;
+    process.env.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || process.env.MISTRAL_KEY || process.env.MISTRAL_API_KEY;
     process.env.OPENROUTER_KEY = process.env.OPENROUTER_KEY || process.env.OPENROUTER_API_KEY;
+    process.env.SAMBANOVA_API_KEY = process.env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_KEY;
+    process.env.CEREBRAS_API_KEY = process.env.CEREBRAS_API_KEY || process.env.CEREBRAS_KEY;
+    process.env.HF_TOKEN = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
+    process.env.QWEB_API_KEY = process.env.QWEB_API_KEY || process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY || process.env.QWEB_KEY;
+    process.env.OLLAMA_HOST = process.env.OLLAMA_HOST || "http://localhost:11434";
 };
 normalizeEnv();
 
@@ -182,26 +188,25 @@ async function generateKimiContent(prompt) {
     }
 }
 
-async function generateGeminiContent(prompt, modelName = "gemini-3.1-flash", context = {}) {
-    const key = context?.GEMINI_API_KEY || process.env.GEMINI_KEY || process.env.GEMINI_API_KEY;
+async function generateGeminiContent(prompt, model = "gemini-1.5-flash", context = {}) {
+    // Principal: GEMINI_API_KEY (Institutional Standard)
+    const key = context?.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
     if (!key) throw new Error("GEMINI_API_KEY missing.");
 
-    // Mandatory v1beta for Gemini 3.1 and March 2026 fleet
-    const genAI = new GoogleGenerativeAI(key, { apiVersion: 'v1beta' });
+    // Standard v1 for institutional stability in March 2026
+    const genAI = new GoogleGenerativeAI(key);
     
-    // Default high-fidelity list if incompatible model passed
+    // Default high-fidelity list for March 2026 institutional pass
     let models = [
-        "gemini-3.1-flash", 
-        "gemini-3.1-flash-lite-preview",
-        "gemini-2.5-flash",
-        "gemini-3.1-pro-preview", 
-        "gemini-2.5-pro",
-        "gemini-1.5-flash"
+        "gemini-1.5-flash", 
+        "gemini-2.0-flash-exp",
+        "gemini-1.5-pro",
+        "gemini-1.0-pro"
     ];
 
     // If a specific Gemini model is requested, move it to the front
-    if (modelName?.includes('gemini')) {
-        models = [modelName, ...models.filter(m => m !== modelName)];
+    if (model?.includes('gemini')) {
+        models = [model, ...models.filter(m => m !== model)];
     }
     
     // FREE-TIER THROTTLER: Add a small jittered jitter to stay within RPM limits
@@ -211,43 +216,11 @@ async function generateGeminiContent(prompt, modelName = "gemini-3.1-flash", con
     for (const model of models) {
         try {
             console.log(`🔍 [Gemini-Fleet] Attempting via ${model}...`);
-            // Define Tools (Search + Vision OCR)
-            const tools = [{
-                functionDeclarations: [
-                    {
-                        name: "search_web",
-                        description: "Search the internet for real-time 2026 market data or institutional news.",
-                        parameters: {
-                            type: "OBJECT",
-                            properties: { query: { type: "STRING" } },
-                            required: ["query"]
-                        }
-                    },
-                    {
-                        name: "read_page",
-                        description: "Read the full text content of a specific URL to extract deeper details.",
-                        parameters: {
-                            type: "OBJECT",
-                            properties: { url: { type: "STRING" } },
-                            required: ["url"]
-                        }
-                    },
-                    {
-                        name: "vision_parse",
-                        description: "Extract text, tables, and quantitative data from a PDF or Image URL (OCR).",
-                        parameters: {
-                            type: "OBJECT",
-                            properties: { url: { type: "STRING" } },
-                            required: ["url"]
-                        }
-                    }
-                ]
-            }];
-
-            // 🐝 FREE TIER ENFORCEMENT: Use gemini-1.5-flash for high-density synthesis
-            const modelId = "gemini-1.5-flash";
-            const genAI = new GoogleGenerativeAI(key);
-            const genModel = genAI.getGenerativeModel({ model: modelId, tools });
+            // bees: Using v1beta for all 2026 institutional passes
+            const genAI = new GoogleGenerativeAI(key, { apiVersion: 'v1beta' });
+            const genModel = genAI.getGenerativeModel({ 
+                model: model.includes('gemini') ? model : "gemini-1.5-flash"
+            });
             const chat = genModel.startChat();
             
             // Handle Vision Payload (OCR direct pass)
@@ -263,7 +236,7 @@ async function generateGeminiContent(prompt, modelName = "gemini-3.1-flash", con
             let response = result.response;
             
             // --- TOOL CALL HANDLING LOOP ---
-            const maxCalls = 5; // Increased for multi-step research
+            const maxCalls = 5; 
             let callCount = 0;
             while (response.functionCalls()?.length > 0 && callCount < maxCalls) {
                 callCount++;
@@ -280,13 +253,11 @@ async function generateGeminiContent(prompt, modelName = "gemini-3.1-flash", con
                     } else if (call.name === "vision_parse") {
                         const doc = await fetchDocument(call.args.url);
                         if (doc) {
-                            const visionModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-                            const visionResult = await visionModel.generateContent([
+                            const visionResult = await genModel.generateContent([
                                 `
                                 TASK: Analyze this institutional document for current-year (2026) data.
                                 CHART INJECTION RULE: Scrape every data series, bar chart, or trend line.
                                 If a chart is detected, output a JSON array [["Label", Value], ...] followed by the vertical source title.
-                                Values must be numbers (Institutional Drift or Delta %).
                                 `,
                                 { inlineData: { data: doc.base64, mimeType: doc.mimeType } }
                             ]);
@@ -323,9 +294,18 @@ async function generateGeminiContent(prompt, modelName = "gemini-3.1-flash", con
             console.warn(`❌ [Gemini-Fleet] ${model} encountered unknown error: ${msg}. Rotating...`);
         }
     }
-    console.warn("🛑 [Gemini-Fleet] ALL Gemini models failed. Using local regex-based audit as emergency fallback.");
-    return localRegexAudit(prompt);
+    throw new Error("GEMINI_FLEET_EXHAUSTED");
 }
+
+/**
+ * Echo Detector: Identifies if the AI output is actually the prompt itself.
+ */
+function isEcho(content) {
+    if (!content) return true;
+    const tokens = ["GLOBAL TEMPORAL GROUNDING", "INSTITUTIONAL_PERSONA", "QUANTITATIVE DRAFTER"];
+    return tokens.some(t => content.includes(t));
+}
+
 
 /**
  * Emergency Fallback: If no LLM is available to audit/sanitize, 
@@ -442,7 +422,7 @@ async function generateOpenRouterContent(prompt, model = "anthropic/claude-3.5-s
     const res = await _fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
-            "Authorization": `Bearer ${key}`,
+            "Authorization": `Bearer ${String(key).trim()}`,
             "Content-Type": "application/json",
             "HTTP-Referer": "https://blogspro.ai",
             "X-Title": "BlogsPro Swarm"
@@ -506,6 +486,119 @@ async function generateCloudflareContent(prompt, model = "@cf/meta/llama-3-8b-in
     throw new Error(`Cloudflare AI Error: ${JSON.stringify(data)}`);
 }
 
+async function generateSambaNovaContent(prompt, model = "Meta-Llama-3.1-405B-Instruct-v2", context = {}) {
+    const key = context?.SAMBANOVA_API_KEY || process.env.SAMBANOVA_API_KEY;
+    if (!key) throw new Error("SAMBANOVA_API_KEY missing.");
+
+    // Swarm 5.0: Default to 405B for anchors if no specific model requested
+    const targetModel = model?.includes('405b') ? "Meta-Llama-3.1-405B-Instruct-v2" : "Meta-Llama-3.3-70B-Instruct";
+
+    const res = await _fetch("https://api.sambanova.ai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+            model: targetModel,
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.1
+        })
+    });
+    const data = await res.json();
+    if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
+    throw new Error(`SambaNova Error: ${JSON.stringify(data)}`);
+}
+
+async function generateCerebrasContent(prompt, model = "llama3.1-8b", context = {}) {
+    const key = context?.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY;
+    if (!key) throw new Error("CEREBRAS_API_KEY missing.");
+
+    try {
+        const client = new Cerebras({ apiKey: key });
+        const targetModel = model?.includes('70b') ? "llama3.1-70b" : "llama3.1-8b";
+
+        const completion = await client.chat.completions.create({
+            messages: [{ role: "user", content: prompt }],
+            model: targetModel,
+            max_completion_tokens: 1024,
+            temperature: 0.2,
+            top_p: 1,
+            stream: false
+        });
+
+        if (completion.choices && completion.choices.length > 0) {
+            return completion.choices[0].message.content;
+        }
+        throw new Error("Cerebras returned an empty response.");
+    } catch (err) {
+        if (err.message?.includes('401') || err.message?.includes('Unauthorized') || err.message?.includes('API key not valid')) {
+            throw new Error("CEREBRAS_PERMISSION_DENIED");
+        }
+        throw new Error(`Cerebras Error: ${err.message}`);
+    }
+}
+
+async function generateHuggingFaceContent(prompt, model = "mistralai/Mistral-7B-Instruct-v0.3", context = {}) {
+    const key = context?.HF_TOKEN || process.env.HF_TOKEN;
+    if (!key) throw new Error("HF_TOKEN missing.");
+
+    // MARCH 2026 UPDATE: Using router.huggingface.co for institutional stability
+    const res = await _fetch(`https://router.huggingface.co/hf/v1/chat/completions`, {
+        method: "POST",
+        headers: { 
+            "Authorization": `Bearer ${key}`, 
+            "Content-Type": "application/json" 
+        },
+        body: JSON.stringify({
+            model: model,
+            messages: [{ role: "user", content: prompt }]
+        })
+    });
+    const data = await res.json();
+    if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
+    if (data.error) throw new Error(`HuggingFace Error: ${data.error.message || JSON.stringify(data.error)}`);
+    return JSON.stringify(data);
+}
+
+async function generateQwenContent(prompt, model = "qwen-2.5-72b-instruct", context = {}) {
+    const key = context?.QWEB_API_KEY || process.env.QWEB_API_KEY;
+    if (!key) throw new Error("QWEB_API_KEY missing.");
+
+    // Using OpenAI-compatible DashScope or Together endpoint
+    const res = await _fetch("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+            model: "qwen-2.5-72b-instruct",
+            messages: [{ role: "user", content: prompt }]
+        })
+    });
+    const data = await res.json();
+    if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
+    throw new Error(`Qwen/Qweb Error: ${JSON.stringify(data)}`);
+}
+
+async function generateOllamaContent(prompt, model = "llama3", context = {}) {
+    try {
+        const host = process.env.OLLAMA_HOST || "http://127.0.0.1:11434"; // Use 127.0.0.1 for better Node/DNS stability
+        // MARCH 2026 UPDATE: Using /api/chat for better persona/rule enforcement
+        const res = await _fetch(`${host}/api/chat`, {
+            method: "POST",
+            body: JSON.stringify({
+                model: model || "llama3",
+                messages: [{ role: "user", content: prompt }],
+                stream: false,
+                options: { temperature: 0.1 }
+            })
+        });
+        if (!res.ok) throw new Error(`Ollama Error: Status ${res.status}`);
+        const data = await res.json();
+        if (data.message && data.message.content) return data.message.content;
+    } catch (e) {
+        throw new Error(`Ollama (Local Swarm) Unreachable: ${e.message}`);
+    }
+    throw new Error(`Ollama Error: Service unreachable.`);
+}
+
+
 // --- INSTITUTIONAL AI RESOURCE MANAGER ---
 const ResourceManager = {
     pool: [],
@@ -514,6 +607,8 @@ const ResourceManager = {
     failed: new Set(),
     
     init(env = {}) {
+        if (this.pool.length > 0) return; // Only init once
+        this.failed = new Set();
         const activeKeys = {
             Groq: env.GROQ_API_KEY || process.env.GROQ_API_KEY || process.env.GROQ_KEY,
             Gemini: env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY,
@@ -521,27 +616,37 @@ const ResourceManager = {
             Mistral: env.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY || process.env.MISTRAL_KEY,
             Together: env.TOGETHER_API_KEY || process.env.TOGETHER_KEY,
             DeepInfra: env.DEEPINFRA_API_KEY || process.env.DEEPINFRA_KEY,
+            SambaNova: env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_KEY,
+            Cerebras: env.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY || process.env.CEREBRAS_KEY,
+            HuggingFace: env.HF_TOKEN || process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN,
+            Qweb: env.QWEB_API_KEY || process.env.QWEB_API_KEY || process.env.QWEB_KEY,
+            Ollama: true, // Always check for local Ollama
             Cloudflare: (env.CF_API_TOKEN || process.env.CF_API_TOKEN) && (env.CF_ACCOUNT_ID || process.env.CF_ACCOUNT_ID),
             GitHub: env.GITHUB_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN
         };
 
         this.pool = [];
-        if (activeKeys.Gemini) this.pool.push({ name: 'Gemini', fn: generateGeminiContent, tier: 1 }); 
-        if (activeKeys.Groq) this.pool.push({ name: 'Groq', fn: generateGroqContent, tier: 1 }); 
-        if (activeKeys.Mistral) this.pool.push({ name: 'Mistral', fn: generateMistralContent, tier: 2 });
-        if (activeKeys.Together) this.pool.push({ name: 'Together', fn: generateTogetherContent, tier: 2 });
-        if (activeKeys.DeepInfra) this.pool.push({ name: 'DeepInfra', fn: generateDeepInfraContent, tier: 2 });
-        if (activeKeys.GitHub) this.pool.push({ name: 'GitHub', fn: generateGithubContent, tier: 2 });
-        if (activeKeys.Cloudflare) this.pool.push({ name: 'Cloudflare', fn: generateCloudflareContent, tier: 3 }); 
-        if (activeKeys.OpenRouter) this.pool.push({ name: 'OpenRouter', fn: generateOpenRouterContent, tier: 3 });
+        if (activeKeys.Gemini) this.pool.push({ name: 'Gemini', fn: generateGeminiContent, tier: 1, match: /gemini/i }); 
+        if (activeKeys.Groq) this.pool.push({ name: 'Groq', fn: generateGroqContent, tier: 1, match: /groq/i }); 
+        if (activeKeys.SambaNova) this.pool.push({ name: 'SambaNova', fn: generateSambaNovaContent, tier: 1, match: /samba|llama-3\.3-70b|llama-3\.1-405b/i });
+        if (activeKeys.Cerebras) this.pool.push({ name: 'Cerebras', fn: generateCerebrasContent, tier: 1, match: /cerebras|llama3\.1-8b|llama3\.1-70b/i });
+        if (activeKeys.Qweb) this.pool.push({ name: 'Qweb', fn: generateQwenContent, tier: 1, match: /qwen|qweb/i });
+        if (activeKeys.Mistral) this.pool.push({ name: 'Mistral', fn: generateMistralContent, tier: 2, match: /mistral/i });
+        if (activeKeys.Together) this.pool.push({ name: 'Together', fn: generateTogetherContent, tier: 2, match: /together/i });
+        if (activeKeys.DeepInfra) this.pool.push({ name: 'DeepInfra', fn: generateDeepInfraContent, tier: 2, match: /deepinfra/i });
+        if (activeKeys.GitHub) this.pool.push({ name: 'GitHub', fn: generateGithubContent, tier: 2, match: /github|gpt-4o/i });
+        if (activeKeys.HuggingFace) this.pool.push({ name: 'HuggingFace', fn: generateHuggingFaceContent, tier: 3, match: /huggingface|hf/i });
+        if (activeKeys.Ollama) this.pool.push({ name: 'Ollama', fn: generateOllamaContent, tier: 3, match: /ollama|local/i }); 
+        if (activeKeys.Cloudflare) this.pool.push({ name: 'Cloudflare', fn: generateCloudflareContent, tier: 3, match: /cloudflare/i }); 
+        if (activeKeys.OpenRouter) this.pool.push({ name: 'OpenRouter', fn: generateOpenRouterContent, tier: 3, match: /openrouter/i });
         
         this.pool.forEach(p => this.inflight.set(p.name, 0));
         console.log(`🌐 [AI-Balancer] Pool initialized with ${this.pool.length} providers.`);
     },
 
-    getAvailable(seed = 0) {
+    getAvailable(seed = 0, requestedModel = null) {
         const now = Date.now();
-        const candidates = this.pool.filter(p => {
+        let candidates = this.pool.filter(p => {
             if (this.failed.has(p.name)) return false;
             const cooldown = this.cooldowns.get(p.name);
             if (cooldown && now < cooldown) return false;
@@ -549,6 +654,16 @@ const ResourceManager = {
         });
 
         if (candidates.length === 0) return null;
+
+        // MARCH 2026 UPDATE: Model-Aware Priority
+        // If a specific model or provider hint is in the requested model name, 
+        // filter candidates to only those that match.
+        if (requestedModel) {
+            const explicitMatches = candidates.filter(p => p.match && p.match.test(requestedModel));
+            if (explicitMatches.length > 0) {
+                candidates = explicitMatches;
+            }
+        }
 
         candidates.sort((a, b) => {
             const infA = this.inflight.get(a.name);
@@ -568,7 +683,7 @@ const ResourceManager = {
         if (error.includes('429') || error.includes('rate_limit') || error.includes('TPM') || error.includes('quota')) {
             console.warn(`⏳ [AI-Balancer] ${name} rate limited. Activating 60s cooldown.`);
             this.cooldowns.set(name, Date.now() + 60000);
-        } else if (error.includes('401') || error.includes('Authentication') || error.includes('not found') || error.includes('GEMINI_PERMISSION_DENIED')) {
+        } else if (error.includes('401') || error.includes('Authentication') || error.includes('not found') || error.includes('GEMINI_PERMISSION_DENIED') || error.includes('CEREBRAS_PERMISSION_DENIED')) {
             console.error(`🚫 [AI-Balancer] Blacklisting ${name} due to terminal failure: ${error}`);
             this.failed.add(name);
         }
@@ -578,10 +693,12 @@ const ResourceManager = {
 export async function askAI(prompt, options = {}) {
     const { role = 'generate', model, env = {}, seed = 0 } = options;
     
-    // Initialize pool if needed
-    ResourceManager.init(env);
+    // MARCH 2026: Persistence check — Only init if pool is empty
+    if (ResourceManager.pool.length === 0) {
+        ResourceManager.init(env);
+    }
     
-    const provider = ResourceManager.getAvailable(seed);
+    const provider = ResourceManager.getAvailable(seed, model);
     if (!provider) throw new Error("No available AI providers found.");
 
     ResourceManager.inflight.set(provider.name, ResourceManager.inflight.get(provider.name) + 1);
@@ -590,6 +707,11 @@ export async function askAI(prompt, options = {}) {
 
     try {
         const response = await provider.fn(prompt, model, env); // Pass context bridge
+        
+        if (isEcho(response)) {
+            throw new Error(`ECHO_DETECTED: ${provider.name} echoed the prompt.`);
+        }
+
         ResourceManager.inflight.set(provider.name, ResourceManager.inflight.get(provider.name) - 1);
         return response;
     } catch (err) {

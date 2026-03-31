@@ -1,7 +1,11 @@
-#!/usr/bin/env node
-const fs = require("fs");
-const path = require("path");
-const fetch = require("node-fetch");
+import fs from "fs";
+import path from "path";
+import fetch from "node-fetch";
+import FormData from "form-data";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function fetchWithTimeout(url, options = {}, timeout = 15000) {
     const controller = new AbortController();
@@ -16,77 +20,93 @@ async function fetchWithTimeout(url, options = {}, timeout = 15000) {
     }
 }
 
-async function notifyTelegram() {
-    const frequency = process.argv.find(a => a.startsWith('--freq='))?.split('=')[1] || 'daily';
-    const type = (frequency === 'weekly' || frequency === 'monthly') ? 'articles' : 'briefings';
+/**
+ * Institutional Messenger Logic (BlogsPro 5.0)
+ * -------------------------------------------
+ * Sends PDFs and executive summaries to the user's mobile terminal via Telegram.
+ */
+export async function notifyTelegram(filePath = null, frequency = 'daily', type = 'briefing', env = process.env) {
+    const token = env.TELEGRAM_TOKEN || env.TELEGRAM_BOT_TOKEN;
+    const chatId = env.TELEGRAM_TO || env.TELEGRAM_CHAT_ID;
     
-    console.log(`📡 Sending Telegram Notification for ${frequency.toUpperCase()} (${type})...`);
-
-    if (!process.env.TELEGRAM_TOKEN || !process.env.TELEGRAM_TO) {
-        console.error("❌ Telegram Credentials Missing.");
-        return;
+    if (!token || !chatId) {
+        console.warn("⚠️ Telegram Credentials Missing (TELEGRAM_TOKEN/TELEGRAM_TO). Skipping dispatch.");
+        return { status: "skipped", message: "Missing credentials" };
     }
 
-    const dest = String(process.env.TELEGRAM_TO);
-    console.log(`📡 Targeting Chat ID: *******${dest.slice(-4)}`);
+    console.log(`📡 Sending Telegram Notification for ${frequency.toUpperCase()} (${type})...`);
 
     try {
-        const indexPath = path.join(__dirname, "..", type, frequency, "index.json");
-        if (!fs.existsSync(indexPath)) {
-            console.error(`❌ Index not found: ${indexPath}`);
-            return;
-        }
+        // Resolve file if not provided (fallback to index.json logic)
+        let pdfPath = filePath;
+        let title = "Institutional Briefing";
+        let htmlFileName = "";
+        let excerpt = "Institutional Strategic Analysis Manuscript. (Terminal login required for full interactive charts).";
 
-        const index = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
-        if (index.length === 0) {
-            console.error("❌ Index is empty.");
-            return;
+        if (!pdfPath) {
+            const indexPath = path.join(__dirname, "..", "briefings", frequency, "index.json");
+            if (fs.existsSync(indexPath)) {
+                const index = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+                if (index.length > 0) {
+                    const latest = index[0];
+                    title = latest.title;
+                    htmlFileName = latest.fileName;
+                    pdfPath = path.join(__dirname, "..", "briefings", frequency, htmlFileName.replace(".html", ".pdf"));
+                    excerpt = latest.excerpt || excerpt;
+                }
+            }
+        } else {
+            // Extract title or frequency from filePath if possible
+            title = path.basename(pdfPath, '.pdf').replace('swarm-', '').toUpperCase();
         }
-
-        const latest = index[0];
-        const title = latest.title;
-        const htmlFileName = latest.fileName;
-        const pdfFileName = htmlFileName.replace(".html", ".pdf");
-        const pdfPath = path.join(__dirname, "..", type, frequency, pdfFileName);
-        const excerpt = latest.excerpt || "Institutional Strategic Analysis Manuscript. (Terminal login required for full interactive charts).";
 
         const tgTitle = type === 'articles' ? `📑 *STRATEGIC REPORT: ${frequency.toUpperCase()}*` : `📑 *INTELLIGENCE PULSE: ${frequency.toUpperCase()}*`;
         const linkPrefix = type === 'articles' ? `articles/${frequency}` : `briefings/${frequency}`;
-        const tgCaption = `${tgTitle}\n\n*${title}*\n\n🔹 *Executive Abstract:*\n${excerpt}\n\n🔗 *Full Interactive Terminal:* https://blogspro.in/${linkPrefix}/${htmlFileName}`;
+        const tgCaption = `${tgTitle}\n\n*${title}*\n\n🔹 *Executive Abstract:*\n${excerpt}\n\n🔗 *Full Interactive Terminal:* https://blogspro.in/${linkPrefix}/${htmlFileName || ''}`;
 
-        if (fs.existsSync(pdfPath)) {
-            console.log(`📎 Attaching Institutional PDF: ${pdfFileName}`);
-            const FormData = require("form-data");
+        if (pdfPath && fs.existsSync(pdfPath)) {
+            console.log(`📎 Attaching Institutional PDF: ${path.basename(pdfPath)}`);
             const form = new FormData();
-            form.append("chat_id", dest);
+            form.append("chat_id", String(chatId));
             form.append("document", fs.createReadStream(pdfPath));
             form.append("caption", tgCaption);
             form.append("parse_mode", "Markdown");
 
-            const res = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendDocument`, {
+            const res = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
                 method: "POST",
                 body: form
             });
 
             if (res.ok) {
                 console.log(`✅ Telegram Document Sent: ${title}`);
+                return await res.json();
             } else {
                 const err = await res.json();
                 console.error(`❌ Telegram API Error:`, err);
+                return { status: "error", error: err };
             }
         } else {
-            console.warn(`⚠️ PDF not found, falling back to text notification: ${pdfFileName}`);
-            const tgText = `${tgTitle}\n\n*${title}*\n\n${excerpt}\n\n🔗 View Report: https://blogspro.in/${linkPrefix}/${htmlFileName}`;
-            const res = await fetchWithTimeout(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+            console.warn(`⚠️ PDF not found, falling back to text notification.`);
+            const tgText = `${tgTitle}\n\n*${title}*\n\n${excerpt}\n\n🔗 View Report: https://blogspro.in/${linkPrefix}/${htmlFileName || ''}`;
+            const res = await fetchWithTimeout(`https://api.telegram.org/bot${token}/sendMessage`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ chat_id: dest, text: tgText, parse_mode: "Markdown" })
+                body: JSON.stringify({ chat_id: String(chatId), text: tgText, parse_mode: "Markdown" })
             });
-            if (res.ok) console.log(`✅ Telegram Text Notification Sent: ${title}`);
+            if (res.ok) {
+                console.log(`✅ Telegram Text Notification Sent: ${title}`);
+                return await res.json();
+            }
         }
     } catch (e) {
-        console.error("❌ Notification Failure:", e);
+        console.error("❌ Telegram Dispatch Failure:", e);
+        return { status: "error", message: e.message };
     }
 }
 
-notifyTelegram();
+// Standalone support for CLI
+const isEntryPoint = process.argv[1] === __filename;
+if (isEntryPoint) {
+    const freq = process.argv.find(a => a.startsWith('--freq='))?.split('=')[1] || 'hourly';
+    notifyTelegram(null, freq);
+}

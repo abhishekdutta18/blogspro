@@ -219,6 +219,58 @@ async function fetchUniversalNews() {
     return masterNews.length > 0 ? masterNews.join(' | ') : "Universal News: No recent pulses.";
 }
 
+/**
+ * NEW: Dynamic Research Query Integration (V6.40)
+ * Allows the Swarm to target specific current-year (2026) data for any vertical.
+ */
+async function fetchDynamicNews(query) {
+    const encodedQuery = encodeURIComponent(`${query} 2025 2026 fiscal policy market metrics`);
+    const url = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
+    try {
+        console.log(`🔍 [Research Desk] Fetching Dynamic Pulse: ${query}...`);
+        const items = await fetchRSS(url);
+        if (items.length === 0) return `No current internet pulse for ${query}.`;
+        
+        // Return a rich list of sources for agentic follow-up
+        return items.slice(0, 10).map((i, idx) => 
+            `[SEARCH_RESULT_${idx + 1}] Title: ${i.title} | Source: ${i.link.split('/')[2]} | URL: ${i.link}`
+        ).join('\n');
+    } catch (e) {
+        console.warn(`⚠️ Research Fail for ${query}:`, e.message);
+        return `No current internet pulse for ${query}.`;
+    }
+}
+
+/**
+ * NEW: Deep Read Integration (V6.50)
+ * Allows agents to "read" the text content of a specific page for depth.
+ */
+async function fetchFullPageContent(url) {
+    try {
+        console.log(`📖 [Research Desk] Deep-Reading Page: ${url.substring(0, 50)}...`);
+        const res = await fetchWithTimeout(url, {
+             headers: { "Accept": "text/html" }
+        }, 15000); // 15s timeout for deep read
+        
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const html = await res.text();
+        
+        // Simple heuristic to strip HTML and extract readable text
+        const text = html
+            .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .substring(0, 5000); // Limit to 5k chars for prompt efficiency
+            
+        return text || "Page content empty or unreadable.";
+    } catch (e) {
+        console.warn(`⚠️ Deep Read Fail: ${url}`, e.message);
+        return `Could not read page content: ${e.message}`;
+    }
+}
+
 async function fetchRBIData() {
     try {
         const items = await fetchRSS("https://www.rbi.org.in/pressreleases_rss.xml");
@@ -339,11 +391,30 @@ async function fetchGIFTCityData() {
     };
 }
 
+async function fetchDocument(url) {
+    try {
+        console.log(`👁️ [Data-Pulse] Downloading Document for Vision: ${url.substring(0, 50)}...`);
+        const res = await _fetch(url, {
+            headers: { "User-Agent": UA }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        
+        const buffer = await res.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        const contentType = res.headers.get('content-type') || 'application/pdf';
+        
+        return { base64, mimeType: contentType };
+    } catch (e) {
+        console.warn(`⚠️ Document Fetch Fail: ${url}`, e.message);
+        return null;
+    }
+}
+
 export {
     fetchEconomicCalendar, fetchMultiAssetData, fetchSentimentData,
     fetchRBIData, fetchSEBIData, fetchCCILData, fetchMacroPulse, fetchUpstoxData,
-    fetchUniversalNews, getMarketContext,
+    fetchUniversalNews, fetchDynamicNews, getMarketContext,
     fetchMFData, fetchPEVCData, fetchInsuranceData, fetchGIFTCityData,
-    fetchCentralBankPulse
+    fetchCentralBankPulse, fetchDocument, fetchFullPageContent
 };
 

@@ -1,0 +1,5 @@
+🚀 [Swarm] Initializing BlogsPro Institutional Synthesis [ID: swarm-1774943493174]
+❌ [Swarm] Pipeline Critical Failure: Cannot read properties of undefined (reading 'EXTENDED_MODE')
+TypeError: Cannot read properties of undefined (reading 'EXTENDED_MODE')
+    at executeMultiAgentSwarm (file:///Users/nandadulaldutta/Documents/New%20project/blogspro/scripts/lib/swarm-orchestrator.js:96:26)
+    at runInstitutionalSwarm (file:///Users/nandadulaldutta/Documents/New%20project/blogspro/scripts/generate-institutional-tome.js:81:26)

@@ -24,13 +24,19 @@ export default {
     const force = url.searchParams.get("force") === "true";
 
     try {
-      // 1. Load context from KV if fresh (unless 'force' is true)
-      if (!force && env.KV) {
-        const cached = await env.KV.get(`latest_snapshot_${frequency}`, { type: 'json' });
-        if (cached && (Date.now() - cached.timestamp < 300000)) { // 5 min cache
-           console.log(`⚡ [DataHub] Serving ${frequency} snapshot from cache.`);
-           const res = await env.BLOOMBERG_ASSETS.get(cached.key);
-           return new Response(await res.text(), { headers: { "Content-Type": "application/json" } });
+      // 1. Load context from Firestore if fresh (unless 'force' is true)
+      if (!force && env.FIREBASE_PROJECT_ID) {
+        try {
+          const snapshotMeta = await fetch(`https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/latest_snapshots/latest_${frequency}`).then(r => r.json());
+          
+          if (snapshotMeta.fields && (Date.now() - parseInt(snapshotMeta.fields.timestamp.integerValue) < 300000)) { 
+            console.log(`⚡ [DataHub] Serving ${frequency} snapshot from Firebase.`);
+            const storageUrl = `https://storage.googleapis.com/${env.FIREBASE_STORAGE_BUCKET}/${snapshotMeta.fields.key.stringValue}`;
+            const res = await fetch(storageUrl);
+            return new Response(await res.text(), { headers: { "Content-Type": "application/json" } });
+          }
+        } catch (e) {
+          console.warn(`⚠️ [DataHub] Snapshot Cache Miss: ${e.message}`);
         }
       }
 

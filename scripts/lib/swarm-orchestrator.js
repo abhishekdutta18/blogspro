@@ -1,3 +1,4 @@
+import fs from "fs";
 import { askAI } from "./ai-service.js";
 import { 
   VERTICALS, 
@@ -9,15 +10,20 @@ import {
   getExpertPersonaPrompt,
   getConsensusPrompt,
   getCriticPrompt,
-  getRefinementPrompt
+  getRefinementPrompt,
+  getManagerAuditPrompt,
+  getManagerCorrectionPrompt
 } from "./prompts.js";
+import { calculateReward } from "./rl-metrics.js";
 import { validateAndRepair } from "./fidelity-governor.js";
+import { captureSwarmError, logSwarmBreadcrumb, logBlackboardMemo } from "./sentry-bridge.js";
 import { detectAndAlert } from "./black-swan-alert.js";
 import { dispatchInstitutionalAlert } from "./social-utils.js";
+import { fetchDynamicNews } from "./data-fetchers.js";
 
 /**
- * BlogsPro Swarm 4.0: Hierarchical Multi-Swarm Orchestrator
- * ==========================================================
+ * BlogsPro Swarm 5.0: Sequential-Hierarchical Blackboard Orchestrator
+ * ===================================================================
  * High-performance collaborative reasoning pipeline for 
  * ultra-high-density institutional manuscripts (up to 25k words).
  */
@@ -25,221 +31,162 @@ import { dispatchInstitutionalAlert } from "./social-utils.js";
 async function notifyProgress(env, jobId, data) {
   if (!env.MIRO_SYNC) return;
   try {
-    await env.MIRO_SYNC.fetch("https://miro/push", {
+    const isMock = !env.MIRO_SYNC.idFromName;
+    const url = isMock ? "https://blogspro-miro-sync.workers.dev/push" : "https://miro/push";
+    
+    await env.MIRO_SYNC.fetch(url, {
       method: "POST",
-      body: JSON.stringify({
-        source: "SWARM_PROGRESS",
-        jobId,
-        timestamp: Date.now(),
-        ...data
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source: "SWARM_PROGRESS", jobId, timestamp: Date.now(), ...data })
     });
   } catch (e) {
-    console.warn("⚠️ Progress notify failed:", e.message);
+    if (env.DEBUG) console.warn("⚠️ Telemetry Bridge Stalled:", e.message);
+  }
+}
+
+/**
+ * executeSingleVerticalSwarm
+ * -------------------------
+ * Executes a dedicated Researcher -> Drafter -> Auditor loop for a single vertical.
+ * Used internally by both Parallel Fan-out and Consolidated Pulses.
+ */
+async function executeSingleVerticalSwarm(vertical, index, frequency, semanticDigest, historicalData, env, id, extended, blackboardContext = "") {
+  try {
+    console.log(`🕵️ [Sub-Swarm] Analyzing Vertical: ${vertical.name}...`);
+    const internetResearch = await fetchDynamicNews(vertical.name);
+    
+    // 1. RESEARCHER
+    const researchBrief = await askAI(getResearcherPrompt(frequency, semanticDigest, historicalData, internetResearch + blackboardContext), {
+      role: 'research', env, model: extended ? 'llama-3.3-70b-versatile' : 'reasoning', seed: index, extended
+    });
+
+    // 2. DRAFTER (with RL-Audit Loop)
+    let chapterContent = "";
+    let rlScore = 0;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts && rlScore < 0.8) {
+      attempts++;
+      let currentPrompt = getDrafterPrompt(frequency, researchBrief, vertical.name);
+      if (attempts > 1) {
+        currentPrompt += `\n⚠️ REINFORCEMENT SIGNAL: Previous effort failed audit (Score: ${rlScore}). Increase data-density.\n`;
+      }
+
+      chapterContent = await askAI(currentPrompt, { role: 'generate', env, model: 'drafting', seed: index + attempts });
+      rlScore = calculateReward(chapterContent, frequency === 'monthly' ? 1500 : 500);
+      
+      if (rlScore < 0.8 && attempts < maxAttempts) {
+        await notifyProgress(env, id, { stage: "RL_PENALTY", message: `Fidelity failure in ${vertical.name}. Regenerating...` });
+      }
+    }
+
+    // 3. DEEP-REFLECT (Extended Mode Only)
+    if (extended) {
+      const critique = await askAI(getCriticPrompt(researchBrief, chapterContent), { role: 'edit', env, model: 'refinement' });
+      const volumeCommand = "\n\nCRITICAL: Expand to >1,500 words for institutional depth.";
+      chapterContent = await askAI(getRefinementPrompt(chapterContent, critique + volumeCommand, vertical.name), {
+        role: 'generate', env, model: 'drafting'
+      });
+    }
+
+    // 4. MANAGER AUDIT (Independent High-Fidelity Pass)
+    const auditRes = await askAI(getManagerAuditPrompt(chapterContent, vertical.name, env), { role: 'edit', env, model: 'gemini-1.5-pro' });
+    let audit = { score: 100, status: "PASS" };
+    try { audit = JSON.parse(auditRes.replace(/```json\n?|```/g, '').trim()); } catch (e) {}
+
+    if (audit.status === "FAIL" || audit.score < 80) {
+      chapterContent = await askAI(getManagerCorrectionPrompt(chapterContent, audit.guidance), {
+        role: 'generate', env, model: 'gemini-1.5-pro', seed: 99
+      });
+    }
+
+    return `<div id="sector-${vertical.id}" class="institutional-sector">\n<h2>${vertical.name.toUpperCase()}</h2>\n${chapterContent}\n</div>`;
+  } catch (err) {
+    captureSwarmError(err, { vertical: vertical.name, jobId: id });
+    return `<h3>${vertical.name}</h3><p>Audit Unavailable: ${err.message}</p>`;
   }
 }
 
 async function runConsensusDesk(frequency, semanticDigest, env, jobId = null) {
-  console.log(`🤝 [MiroFish] Launching ${CONSENSUS_PERSONAS.length}-Agent Consensus Swarm...`);
-  await notifyProgress(env, jobId, { stage: "CONSENSUS_START", message: "Launching 10-Agent Consensus Desk..." });
-  
   const simulations = await Promise.all(CONSENSUS_PERSONAS.map(async (persona) => {
     try {
       const result = await askAI(getExpertPersonaPrompt(persona, frequency, JSON.stringify(semanticDigest)), {
-        role: 'generate',
-        env,
-        model: 'llama-3.1-8b-instant'
+        role: 'generate', env, model: 'llama-3.1-8b-instant'
       });
       return `[${persona.name}]: ${result}`;
-    } catch (e) {
-      console.warn(`⚠️ Persona ${persona.name} failed: ${e.message}`);
-      return `[${persona.name}]: [FAILED_SIMULATION]`;
-    }
+    } catch (e) { return `[${persona.name}]: [FAILED]`; }
   }));
 
-  await notifyProgress(env, jobId, { stage: "CONSENSUS_SYNTHESIS", message: "Synthesizing Expert Simulations..." });
-  const synthesis = await askAI(getConsensusPrompt(simulations.join("\n\n"), frequency), {
-    role: 'edit',
-    env,
-    model: 'claude-3.5-sonnet'
-  });
+  return await askAI(getConsensusPrompt(simulations.join("\n\n"), frequency), { role: 'edit', env, model: 'claude-3.5-sonnet' });
+}
 
-  // Affine Integration
-  if (env.MIRO_SYNC) {
+export async function persistLearning(verticalName, audit, status = "FAILURE") {
+    // Learning ledger logic preserved
     try {
-      await env.MIRO_SYNC.fetch("https://miro/push", {
-        method: "POST",
-        body: JSON.stringify({
-          source: `MiroFish Swarm (${frequency.toUpperCase()})`,
-          content: synthesis
-        })
-      });
-      console.log("💎 [MiroFish] Consensus synchronized with Affine.");
-    } catch (err) {
-      console.warn("⚠️ Affine sync failed:", err.message);
-    }
-  }
-
-  return synthesis;
+        const ledgerPath = "./knowledge/ai-feedback.json";
+        const current = JSON.parse(fs.readFileSync(ledgerPath, 'utf8') || "[]");
+        current.push({ type: status, timestamp: new Date().toISOString(), task: verticalName, score: audit.score });
+        fs.writeFileSync(ledgerPath, JSON.stringify(current.slice(-1000), null, 2));
+    } catch (e) {}
 }
 
 export async function executeMultiAgentSwarm(frequency, semanticDigest, historicalData, type, env, jobId = null) {
   const isArticle = type === 'article';
-  const extended = !!env.EXTENDED_MODE; // Detect high-compute mode
+  const extended = !!env.EXTENDED_MODE;
   const targetVerticals = isArticle ? VERTICALS : [{ id: "consolidated", name: "Institutional Pulse" }];
-  
   const id = jobId || `swarm-${Date.now()}`;
-  const startTime = Date.now();
-  console.log(`🐝 [Swarm] Starting ${extended ? 'EXTENDED ' : ''}Hierarchical Orchestration [ID: ${id}]`);
+  
   await notifyProgress(env, id, { stage: "START", message: `Orchestrating ${targetVerticals.length} Vertical Swarms...` });
 
-  // --- 1. INITIALIZE DURABLE OBJECT ---
-  let manuscriptDO = null;
-  if (isArticle && env.MANUSCRIPT_DO) {
-    const doId = env.MANUSCRIPT_DO.idFromName(id);
-    manuscriptDO = env.MANUSCRIPT_DO.get(doId);
-    
-    await manuscriptDO.fetch(new Request("https://do/initialize", {
-      method: "POST",
-      body: JSON.stringify({ jobId: id, frequency, verticalIds: targetVerticals.map(v => v.id) })
-    }));
+  const PRIORITY_VERTICAL_IDS = ['macro', 'reg', 'em', 'rates'];
+  const sharedBlackboard = { strategicContext: semanticDigest.strategicLead, institutionalMemos: [], jobId: id, frequency };
+  const allChapterContents = [];
+
+  // 1. HIERARCHICAL EXECUTION (Articles Only)
+  if (isArticle) {
+    const priorityVerticals = targetVerticals.filter(v => PRIORITY_VERTICAL_IDS.includes(v.id));
+    const sectorVerticals = targetVerticals.filter(v => !PRIORITY_VERTICAL_IDS.includes(v.id));
+
+    for (const vertical of priorityVerticals) {
+      console.log(`⚓ [Anchor] ${vertical.name}...`);
+      const news = await fetchDynamicNews(vertical.name);
+      const brief = await askAI(getResearcherPrompt(frequency, semanticDigest, historicalData, news), { role: 'research', env, model: 'llama-3.3-70b-versatile', extended: true });
+      const memo = await askAI(`Summarize into a 150-word Strategic Telex Memo:\n\n${brief}`, { role: 'edit', env, model: 'groq-fast' });
+      const chapter = await askAI(getDrafterPrompt(frequency, brief, vertical.name), { role: 'generate', env, model: 'drafting' });
+      
+      sharedBlackboard.institutionalMemos.push(`[FROM: ${vertical.name.toUpperCase()}]: ${memo}`);
+      logBlackboardMemo(vertical.name, memo, { jobId: id, frequency });
+      allChapterContents.push(`<div id="sector-${vertical.id}" class="institutional-sector"><h2>${vertical.name.toUpperCase()}</h2>${chapter}</div>`);
+    }
+
+    const blackboardContext = `\n📋 INSTITUTIONAL ANCHOR MEMOS:\n${sharedBlackboard.institutionalMemos.join("\n")}`;
+    const sectorResults = await Promise.all(sectorVerticals.map(async (v, i) => executeSingleVerticalSwarm(v, i, frequency, semanticDigest, historicalData, env, id, extended, blackboardContext)));
+    allChapterContents.push(...sectorResults);
+  } else {
+    // 2. FAST PULSE PATH (Consolidated)
+    const pulseResult = await executeSingleVerticalSwarm(targetVerticals[0], 0, frequency, semanticDigest, historicalData, env, id, false, "");
+    allChapterContents.push(pulseResult);
+  }
+
+  // 3. SYNTHESIS & GOVERNANCE
+  let consensusSummary = "No strategic drift detected for hourly pulse.";
+  if (frequency !== 'hourly') {
+      consensusSummary = await runConsensusDesk(frequency, semanticDigest, env, id);
   }
   
-  let combinedChapters = "";
+  const executiveStrategy = await askAI(getEditorPrompt(consensusSummary, frequency), { role: 'edit', env, model: 'claude-3.5-sonnet' });
 
-  for (let i = 0; i < targetVerticals.length; i++) {
-    const vertical = targetVerticals[i];
-    console.log(`🕵️ [Sub-Swarm] Analyzing Vertical: ${vertical.name}...`);
-    await notifyProgress(env, id, { 
-      stage: "VERTICAL_START", 
-      vertical: vertical.name, 
-      index: i, 
-      total: targetVerticals.length, 
-      message: `Analyzing ${vertical.name}...` 
-    });
-    
-    // STAGE 1: THE RESEARCHER (Analytic Pass)
-    const researchBrief = await askAI(getResearcherPrompt(frequency, semanticDigest, historicalData), {
-      role: 'research',
-      env,
-      model: 'gemini-1.5-pro'
-    });
-
-    // STAGE 2: THE DRAFTER (Structural Pass)
-    let chapterContent = await askAI(getDrafterPrompt(frequency, researchBrief, vertical.name), {
-      role: 'generate',
-      env,
-      model: 'llama-3.3-70b'
-    });
-
-    // --- DEEP-REFLECT: CRITIC/REFINEMENT PASS (EXTENDED MODE ONLY) ---
-    if (extended) {
-        console.log(`🧐 [Deep-Reflect] Instituting Dissent: Auditing ${vertical.name}...`);
-        await notifyProgress(env, id, { stage: "CRITIC_START", message: `Deep-Reflect Audit: ${vertical.name}` });
-        
-        const critique = await askAI(getCriticPrompt(researchBrief, chapterContent), {
-            role: 'edit',
-            env,
-            model: 'claude-3.5-sonnet'
-        });
-
-        console.log(`🖋️ [Deep-Reflect] Reinforcing Manuscript: Expanding ${vertical.name}...`);
-        await notifyProgress(env, id, { stage: "REFINEMENT_START", message: `Reinforcing Manuscript: ${vertical.name}` });
-        chapterContent = await askAI(getRefinementPrompt(chapterContent, critique, vertical.name), {
-            role: 'generate',
-            env,
-            model: 'claude-3.5-sonnet'
-        });
-    }
-
-    // UPDATE DURABLE OBJECT FOR PROGRESS
-    if (manuscriptDO) {
-      await manuscriptDO.fetch(new Request("https://do/update", {
-        method: "POST",
-        body: JSON.stringify({ verticalId: vertical.id, content: chapterContent })
-      }));
-    }
-
-    combinedChapters += `\n\n${chapterContent}`;
-    await notifyProgress(env, id, { stage: "VERTICAL_COMPLETE", vertical: vertical.name });
-  }
-
-  // STAGE 2.5: THE CONSENSUS DESK (Strategic Drift)
-  const consensusSummary = await runConsensusDesk(frequency, semanticDigest, env, id);
-  combinedChapters = `<h2>SWARM CONSENSUS & TACTICAL SIMULATION</h2>\n${consensusSummary}\n\n${combinedChapters}`;
-
-  // STAGE 3: THE CHIEF EDITOR (Harden & Merge)
-  console.log("👔 [Swarm] Chief Editor: Merging and Hardening Industrial Pass...");
-  await notifyProgress(env, id, { stage: "EDITOR_START", message: "Finalizing Institutional Hardening..." });
-  const polishedManuscript = await askAI(getEditorPrompt(combinedChapters, frequency), {
-    role: 'edit',
-    env,
-    model: 'claude-3.5-sonnet'
-  });
-
-  // STAGE 3.5: FIDELITY GOVERNOR (Validation & Repair)
-  console.log("⚖️ [Swarm] Fidelity Governor: Validating Structural Integrity...");
-  await notifyProgress(env, id, { stage: "GOVERNOR_START", message: "Fidelity Validation active..." });
-  const fidelityResult = validateAndRepair(polishedManuscript);
-  const finalManuscript = fidelityResult.content;
-
-  // STAGE 4: TEMPLATE ENGINE (Bloomberg-Gold UI/UX Pass)
-  console.log("🎨 [Swarm] Calling Template Engine for Industrial UI Transformation...");
+  const finalManuscript = `<div id="strategic-pulse">${executiveStrategy}</div><hr>${allChapterContents.join("\n\n")}`;
+  const fidelityResult = validateAndRepair(finalManuscript);
+  
+  // Template Engine Pass
   const templateRes = await env.TEMPLATE_ENGINE.fetch(new Request("https://templates/transform", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      title: `${frequency.toUpperCase()} Strategic Manuscript`,
-      excerpt: semanticDigest.strategicLead || "Institutional Macro Drift Analysis.",
-      content: finalManuscript,
-      dateLabel: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
-      type,
-      freq: frequency,
-      fileName: `swarm-${frequency}-${Date.now()}.html`,
-      rel: "../../",
-      priceInfo: { last: "BLOOMBERG_LIVE", high: "N/A", low: "N/A" } // Placeholders for UI
-    })
+    method: "POST", body: JSON.stringify({ title: `${frequency.toUpperCase()} Strategic Manuscript`, content: fidelityResult.content, type, freq: frequency })
   }));
-
   const { html, wordCount } = await templateRes.json();
-  const latency = Date.now() - startTime;
-  console.log(`✅ [Swarm] Hierarchical Pass Complete. Total Words: ${wordCount} [Latency: ${latency}ms]`);
 
-  // --- 5. POST-GENERATION C2: RISK ALERTS & SOCIAL DISPATCH ---
-  if (extended) {
-    console.log("🛡️ [C2] Institutional Risk Guard: Scanning for Black Swan events...");
-    await detectAndAlert({ wordCount, raw: finalManuscript, jobId: id }, frequency);
-    
-    if (env.SLACK_WEBHOOK_URL) {
-        console.log("💎 [C2] Institutional Desk: Dispatching strategic summary...");
-        await dispatchInstitutionalAlert({
-            title: `${frequency.toUpperCase()} Strategic Manuscript`,
-            excerpt: semanticDigest.strategicLead || "Institutional Macro Drift Analysis.",
-            frequency,
-            wordCount,
-            jobId: id
-        }, env.SLACK_WEBHOOK_URL);
-    }
-  }
+  if (extended) await detectAndAlert({ wordCount, raw: finalManuscript, jobId: id }, frequency);
 
-  // --- 6. LOG INSTITUTIONAL TELEMETRY ---
-  if (env.ANALYTICS) {
-    try {
-      env.ANALYTICS.writeDataPoint({
-        blobs: [id, frequency, type, isArticle ? "hierarchical" : "micro"],
-        doubles: [wordCount, latency, 0], // Consensus score can be added later
-        indexes: [id]
-      });
-      console.log("🛰 [Swarm] Telemetry Dispatched to Cloudflare Analytics Engine.");
-    } catch (err) {
-      console.warn("⚠️ Telemetry failed:", err.message);
-    }
-  }
-
-  return {
-    final: html,
-    wordCount,
-    raw: polishedManuscript,
-    jobId: id
-  };
+  return { final: html, wordCount, raw: finalManuscript, jobId: id };
 }

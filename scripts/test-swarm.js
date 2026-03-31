@@ -9,6 +9,8 @@ import auditorWorker from './auditor-worker.js';
 import seoWorker from './seo-worker.js';
 
 import templateWorker from './template-worker.js';
+import { generatePDF } from './lib/pdf-service.js';
+import { notifyTelegram } from './notify-telegram.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -124,9 +126,9 @@ async function runTest() {
         console.log("✓ [Test] Context Mega-Pool Hydro-Filled.");
 
         console.log("🚀 [Test] Step 2: Triggering Pulse Orchestrator...");
-
+        const mockCtx = {}; // Force Direct Execution in Local Mode
         const pulseUrl = `https://pulse/?freq=${frequency}&type=${type}`;
-        const pulseRes = await pulseWorker.fetch(new Request(pulseUrl), env);
+        const pulseRes = await pulseWorker.fetch(new Request(pulseUrl), env, mockCtx);
         const pulseData = await pulseRes.json();
 
         if (pulseData.status === "error") {
@@ -144,6 +146,25 @@ async function runTest() {
         console.log(`Audit:   VERIFIED & SECURED`);
         console.log("Local assets: /test-output/r2/");
         console.log("-----------------------------------------");
+
+        // --- POST-PROCESSING: PDF & TELEGRAM ---
+        if (result.file && !frequency.includes('test')) {
+            console.log("\n🧪 [Post-Process] Triggering Institutional PDF Generation...");
+            const rootDir = process.cwd();
+            const htmlPath = path.join(rootDir, "briefings", frequency, result.file);
+            
+            if (fs.existsSync(htmlPath)) {
+                try {
+                    const pdfPath = await generatePDF(htmlPath, frequency);
+                    console.log("📡 [Post-Process] Dispatching via Telegram...");
+                    await notifyTelegram(pdfPath, frequency, type, env);
+                } catch (pe) {
+                    console.error("❌ [Post-Process] PDF/Telegram Phase Failed:", pe.message);
+                }
+            } else {
+                console.warn(`⚠️ [Post-Process] HTML file not found at: ${htmlPath}`);
+            }
+        }
 
 
 

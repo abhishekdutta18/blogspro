@@ -51,16 +51,31 @@ async function run() {
     await page.evaluate(() => {
         const style = document.createElement('style');
         style.textContent = `
-            @page { margin: 2cm; size: A4; }
-            body { font-family: 'Mulish', sans-serif; background: white !important; color: black !important; }
-            /* 🚫 Hide Interactive UI Elements */
-            .no-print, .terminal-sidebar, .v2-nav, .mobile-toggle, #sidebar-toggle { display: none !important; }
-            .institutional-sector { page-break-before: always; margin-bottom: 2rem; }
-            h1, h2, h3 { color: #000 !important; }
-            a { color: #0056b3 !important; text-decoration: underline; }
-            table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            .chart-container { width: 100% !important; height: auto !important; page-break-inside: avoid; }
+            @page { margin: 1cm; size: A4; }
+            body { font-family: 'Mulish', sans-serif; background: white !important; color: black !important; margin: 0; padding: 0; }
+            
+            /* 🚫 Layout Reset: Kill web-interactive artifacts */
+            .sidebar, .logo, .terminal-sidebar, .v2-nav, .mobile-toggle, #sidebar-toggle { display: none !important; }
+            .nav-item, nav { display: none !important; }
+            
+            /* 📏 Content Expansion: Use full A4 width */
+            .main-content { margin-left: 0 !important; padding: 2cm !important; max-width: 100% !important; }
+            
+            /* 📊 Table Fidelity: High-Contrast Print Mode */
+            .table-container { background: white !important; border: 1px solid black !important; margin: 1.5rem 0; }
+            table { border-collapse: collapse; width: 100%; color: black !important; }
+            th { border: 1px solid black !important; background: #f0f0f0 !important; color: black !important; font-weight: bold; }
+            td { border: 1px solid #ccc !important; color: black !important; background: white !important; }
+            
+            /* 📉 Chart Fidelity */
+            .chart-container, .terminal-chart { width: 100% !important; height: auto !important; page-break-inside: avoid; border: 1px solid #eee; margin-top: 1cm; }
+            
+            /* 🖋️ Typography & Breaks */
+            h1, h2, h3 { color: black !important; page-break-after: avoid; }
+            .institutional-sector { page-break-before: always; border-top: 2px solid black; padding-top: 1cm; }
+            .institutional-divider { display: none !important; }
+            a { color: #0000EE !important; text-decoration: underline; }
+            p { orphans: 3; widows: 3; line-height: 1.5; }
         `;
         document.head.appendChild(style);
     });
