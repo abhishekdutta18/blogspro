@@ -30,8 +30,8 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          environment: ${{ matrix.environment }}
-          command: deploy
+          command: deploy --env ${{ matrix.environment }} --config ${{ matrix.environment == 'miro-sync' && 'wrangler.miro-sync.toml' || 'wrangler.toml' }}
+          wranglerVersion: '3.114.17'
 
   push-swarm-secrets:
     name: Push Governance Secrets

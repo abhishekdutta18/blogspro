@@ -64,45 +64,6 @@ dataset = "swarm_telemetry"
 [env.pulse.triggers]
 crons = ["0 * * * *", "15 4 * * *"]
 
-# --- MIRO SYNC BRIDGE (Durable Object Home) ---
-[env.miro-sync]
-name = "blogspro-miro-sync"
-main = "scripts/miro-sync-worker.js"
-compatibility_date = "2024-12-30"
-compatibility_flags = [ "nodejs_compat" ]
-
-[env.miro-sync.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
-
-[[env.miro-sync.durable_objects.bindings]]
-name = "MIRO_SYNC_DO"
-class_name = "MiroSync"
-
-[[env.miro-sync.durable_objects.bindings]]
-name = "INGESTOR_DO"
-class_name = "DataIngestor"
-
-[[env.miro-sync.durable_objects.bindings]]
-name = "MANUSCRIPT_DO"
-class_name = "ManuscriptAggregator"
-
-[[env.miro-sync.r2_buckets]]
-binding = "snapshots"
-bucket_name = "blogspro-affine-snapshots"
-
-# --- MICRO-MIGRATIONS (Scoped strictly to the DO script environment) ---
-[[env.miro-sync.migrations]]
-tag = "v1"
-new_sqlite_classes = ["MiroSync"]
-
-[[env.miro-sync.migrations]]
-tag = "v2"
-new_sqlite_classes = ["DataIngestor"]
-
-[[env.miro-sync.migrations]]
-tag = "v3"
-new_sqlite_classes = ["ManuscriptAggregator"]
-
 # --- NEWSLETTER WORKER ---
 [env.newsletter]
 name = "blogspro-newsletter"

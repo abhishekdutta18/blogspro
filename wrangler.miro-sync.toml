@@ -1,0 +1,39 @@
+# BlogsPro 5.0 - MiroSync Strategic Bridge (Durable Object Home)
+# ============================================================
+
+name = "blogspro-miro-sync"
+main = "scripts/miro-sync-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+[vars]
+FIREBASE_PROJECT_ID = "blogspro-ai"
+
+[[durable_objects.bindings]]
+name = "MIRO_SYNC_DO"
+class_name = "MiroSync"
+
+[[durable_objects.bindings]]
+name = "INGESTOR_DO"
+class_name = "DataIngestor"
+
+[[durable_objects.bindings]]
+name = "MANUSCRIPT_DO"
+class_name = "ManuscriptAggregator"
+
+[[r2_buckets]]
+binding = "snapshots"
+bucket_name = "blogspro-affine-snapshots"
+
+# --- STRATEGIC MIGRATIONS (Only for this script/config) ---
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["MiroSync"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["DataIngestor"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["ManuscriptAggregator"]
