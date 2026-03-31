@@ -55,9 +55,9 @@ async function distillNews(rawNews, env) {
   const prompt = `
 ROLE: LEAD SEMANTIC ANALYST
 TASK: Analyze these institutional news headlines. 
-1. Score each for Institutional Impact (0-100).
+1. Score each for Institutional Impact (0-100). Prioritize 2025/2026 fiscal metrics.
 2. Categorize by Vertical (Macro, Tech, India, Asia).
-3. Identify "The Strategic Lead" (The single most important headline).
+3. Identify "The Strategic Lead" (The single most important headline for the 2026 outlook).
 
 HEADLINES:
 ${rawNews}

@@ -28,7 +28,8 @@ export default {
         status: "accepted", 
         message: `Swarm triggered for ${frequency} ${type}. Check MiroSync for real-time updates.`,
         frequency,
-        type
+        type,
+        liveTerminal: "https://blogspro-miro-sync.workers.dev/terminal"
       }), {
         status: 202,
         headers: { "Content-Type": "application/json" }
