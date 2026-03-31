@@ -45,7 +45,17 @@ export function sanitize(html) {
   if (!html) return '';
   // Use DOMPurify if available (loaded in admin.html), fall back to regex for other pages
   if (typeof DOMPurify !== 'undefined') {
-    return DOMPurify.sanitize(html, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'pre', 'code', 'div', 'span', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'style'] });
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'pre', 'code', 'div', 'span', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'caption',
+        // SVG tags used by chart-builder line/pie charts
+        'svg', 'path', 'polyline', 'polygon', 'line', 'circle', 'ellipse', 'rect', 'text', 'tspan', 'g', 'defs', 'clipPath', 'use'],
+      ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'style', 'id', 'data-chart-name',
+        // SVG presentation attributes
+        'viewBox', 'xmlns', 'x', 'x1', 'x2', 'y', 'y1', 'y2', 'cx', 'cy', 'r', 'rx', 'ry',
+        'width', 'height', 'd', 'points', 'fill', 'fill-opacity', 'stroke', 'stroke-width',
+        'stroke-linecap', 'stroke-linejoin', 'opacity', 'text-anchor', 'font-size', 'font-weight',
+        'transform', 'font-style', 'font-family'],
+    });
   }
   // Fallback for pages without DOMPurify
   html = html.replace(/<(script|style|iframe|object|embed|form)[^>]*>[\s\S]*?<\/\1>/gi, '');
