@@ -12,39 +12,33 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: '20'
           cache: 'npm'
+
       - name: Install dependencies
         run: npm install
 
       - name: Deploy to Cloudflare Network
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
         run: |
-          # 1. Standard Deploy
           npx wrangler@3 deploy --env newsletter
-
-          # 2. Push Secrets with Guards
           [ -n "$RESEND_API_KEY" ] && echo "$RESEND_API_KEY" | npx wrangler@3 secret put RESEND_API_KEY --env newsletter || echo "Skipping RESEND_API_KEY"
           [ -n "$NEWSLETTER_SECRET" ] && echo "$NEWSLETTER_SECRET" | npx wrangler@3 secret put NEWSLETTER_SECRET --env newsletter || echo "Skipping NEWSLETTER_SECRET"
-          echo "✓ Newsletter worker secrets pushed"
+          echo "Newsletter worker deployed."
 
   notify-failure:
     needs: deploy
     if: failure()
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     timeout-minutes: 5
     steps:
       - name: Send Telegram Failure Alert
@@ -56,5 +50,5 @@ jobs:
         run: |
           [ -n "$TELEGRAM_BOT_TOKEN" ] && curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -d "chat_id=${TELEGRAM_CHAT_ID}" \
-            -d "text=🚨 [BlogsPro] Newsletter Worker Deploy Failed%0Ahttps://github.com/${REPO}/actions/runs/${RUN_ID}" \
+            -d "text=[BlogsPro] Newsletter Worker Deploy Failed%0Ahttps://github.com/${REPO}/actions/runs/${RUN_ID}" \
             -d "disable_web_page_preview=true" || echo "Telegram not configured"
