@@ -23,9 +23,10 @@ async function syncSecrets() {
     const SECRET_MAP = {
         'CEREBRAS_API_KEY': 'CEREBRAS_API_KEY',
         'SAMBANOVA_API_KEY': 'SAMBANOVA_API_KEY',
+        'HF_TOKEN': 'HF_TOKEN',
+        'QWEB_KEY': 'QWEB_KEY',
         'GEMINI_KEY': 'GEMINI_KEY',
         'GROQ_KEY': 'GROQ_KEY',
-        'MISTRAL_KEY': 'MISTRAL_API_KEY', // Naming variation
         'MISTRAL_API_KEY': 'MISTRAL_API_KEY',
         'OPENROUTER_KEY': 'OPENROUTER_KEY',
         'CF_API_TOKEN': 'CF_API_TOKEN',

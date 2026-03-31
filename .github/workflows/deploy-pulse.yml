@@ -1,127 +1,129 @@
-name: Deploy Swarm 4.0 hierarchy
+name: "Deploy Swarm 4.0 hierarchy"
 
 on:
   push:
-    branches: [main]
+    branches: ["main"]
     paths:
-      - 'scripts/**'
-      - 'wrangler.toml'
-      - 'wrangler.miro-sync.toml'
+      - "scripts/**"
+      - "wrangler.toml"
+      - "wrangler.miro-sync.toml"
   workflow_dispatch:
 
 jobs:
-  # Wave 0: MiroSync (Durable Object Home) - Must exist before anything else binds to it
+  # Wave 0: MiroSync (Durable Object Home)
   deploy-mirosync:
-    name: 🌊 Wave 0: MiroSync
-    runs-on: ubuntu-latest
+    name: "Wave 0: MiroSync"
+    runs-on: "ubuntu-latest"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: "actions/checkout@v4"
+      - uses: "actions/setup-node@v4"
         with:
           node-version: 24
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm install
-      - name: Deploy MiroSync
-        uses: cloudflare/wrangler-action@v3
+          cache: "npm"
+      - name: "Install dependencies"
+        run: "npm install"
+      - name: "Deploy MiroSync"
+        uses: "cloudflare/wrangler-action@v3"
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerConfigPath: 'wrangler.miro-sync.toml'
-          wranglerVersion: '3.114.17'
+          apiToken: "${{ secrets.CLOUDFLARE_API_TOKEN }}"
+          accountId: "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+          wranglerConfigPath: "wrangler.miro-sync.toml"
+          wranglerVersion: "3.114.17"
 
   # Wave 1: Base Data Providers
   deploy-base:
-    name: 🌊 Wave 1: Base Tiers
-    needs: deploy-mirosync
-    runs-on: ubuntu-latest
+    name: "Wave 1: Base Tiers"
+    needs: "deploy-mirosync"
+    runs-on: "ubuntu-latest"
     strategy:
       fail-fast: false
       matrix:
-        environment: [data-hub, relevance, auditor, seo, templates]
+        environment: ["data-hub", "relevance", "auditor", "seo", "templates"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: "actions/checkout@v4"
+      - uses: "actions/setup-node@v4"
         with:
           node-version: 24
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm install
-      - name: Deploy Tier [${{ matrix.environment }}]
-        uses: cloudflare/wrangler-action@v3
+          cache: "npm"
+      - name: "Install dependencies"
+        run: "npm install"
+      - name: "Deploy Tier [${{ matrix.environment }}]"
+        uses: "cloudflare/wrangler-action@v3"
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          environment: ${{ matrix.environment }}
-          wranglerConfigPath: 'wrangler.toml'
-          wranglerVersion: '3.114.17'
+          apiToken: "${{ secrets.CLOUDFLARE_API_TOKEN }}"
+          accountId: "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+          environment: "${{ matrix.environment }}"
+          wranglerConfigPath: "wrangler.toml"
+          wranglerVersion: "3.114.17"
 
-  # Wave 2: Pulse Orchestrator (Depends on Data Hub, Relevance, etc.)
+  # Wave 2: Pulse Orchestrator
   deploy-orchestrator:
-    name: 🌊 Wave 2: Pulse Orchestrator
-    needs: deploy-base
-    runs-on: ubuntu-latest
+    name: "Wave 2: Pulse Orchestrator"
+    needs: "deploy-base"
+    runs-on: "ubuntu-latest"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: "actions/checkout@v4"
+      - uses: "actions/setup-node@v4"
         with:
           node-version: 24
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm install
-      - name: Deploy Pulse Tier
-        uses: cloudflare/wrangler-action@v3
+          cache: "npm"
+      - name: "Install dependencies"
+        run: "npm install"
+      - name: "Deploy Pulse Tier"
+        uses: "cloudflare/wrangler-action@v3"
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          environment: pulse
-          wranglerConfigPath: 'wrangler.toml'
-          wranglerVersion: '3.114.17'
+          apiToken: "${{ secrets.CLOUDFLARE_API_TOKEN }}"
+          accountId: "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+          environment: "pulse"
+          wranglerConfigPath: "wrangler.toml"
+          wranglerVersion: "3.114.17"
 
-  # Wave 3: MiroFish Discovery (Depends on MiroSync DOs)
+  # Wave 3: MiroFish Discovery
   deploy-discovery:
-    name: 🌊 Wave 3: MiroFish Discovery
-    needs: deploy-mirosync
-    runs-on: ubuntu-latest
+    name: "Wave 3: MiroFish Discovery"
+    needs: "deploy-mirosync"
+    runs-on: "ubuntu-latest"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: "actions/checkout@v4"
+      - uses: "actions/setup-node@v4"
         with:
           node-version: 24
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm install
-      - name: Deploy MiroFish Tier
-        uses: cloudflare/wrangler-action@v3
+          cache: "npm"
+      - name: "Install dependencies"
+        run: "npm install"
+      - name: "Deploy MiroFish Tier"
+        uses: "cloudflare/wrangler-action@v3"
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          environment: mirofish
-          wranglerConfigPath: 'wrangler.toml'
-          wranglerVersion: '3.114.17'
+          apiToken: "${{ secrets.CLOUDFLARE_API_TOKEN }}"
+          accountId: "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+          environment: "mirofish"
+          wranglerConfigPath: "wrangler.toml"
+          wranglerVersion: "3.114.17"
 
   push-swarm-secrets:
-    name: Push Governance Secrets
-    needs: [deploy-orchestrator, deploy-discovery]
-    runs-on: ubuntu-latest
+    name: "Push Governance Secrets"
+    needs: ["deploy-orchestrator", "deploy-discovery"]
+    runs-on: "ubuntu-latest"
     steps:
-      - uses: actions/checkout@v4
-      - name: Push Secrets to All Tiers
+      - uses: "actions/checkout@v4"
+      - name: "Push Secrets to All Tiers"
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
-          SWARM_INTERNAL_TOKEN: ${{ secrets.SWARM_INTERNAL_TOKEN || 'BPRO_SWARM_SECRET_2026' }}
-          GH_PAT: ${{ secrets.GH_PAT }}
+          CLOUDFLARE_API_TOKEN: "${{ secrets.CLOUDFLARE_API_TOKEN }}"
+          CLOUDFLARE_ACCOUNT_ID: "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+          GEMINI_API_KEY: "${{ secrets.GEMINI_API_KEY }}"
+          GROQ_API_KEY: "${{ secrets.GROQ_API_KEY }}"
+          OPENROUTER_KEY: "${{ secrets.OPENROUTER_KEY }}"
+          SWARM_INTERNAL_TOKEN: "${{ secrets.SWARM_INTERNAL_TOKEN || 'BPRO_SWARM_SECRET_2026' }}"
+          GH_PAT: "${{ secrets.GH_PAT }}"
         run: |
           for env in data-hub relevance auditor seo pulse miro-sync mirofish; do
             echo "🔐 Pushing secrets to $env..."
             CONF="wrangler.toml"
             OPTS="--env $env"
-            [ "$env" = "miro-sync" ] && CONF="wrangler.miro-sync.toml" && OPTS=""
-            
+            if [ "$env" = "miro-sync" ]; then
+              CONF="wrangler.miro-sync.toml"
+              OPTS=""
+            fi
             echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY $OPTS --config $CONF || true
             echo "$GROQ_API_KEY" | npx wrangler secret put GROQ_API_KEY $OPTS --config $CONF || true
             echo "$OPENROUTER_KEY" | npx wrangler secret put OPENROUTER_KEY $OPTS --config $CONF || true
@@ -131,13 +133,13 @@ jobs:
           echo "✓ Industrial Swarm 4.0 secrets synchronized."
 
   trigger-swarm:
-    name: Autonomous Swarm Initialization
-    needs: [push-swarm-secrets]
-    runs-on: ubuntu-latest
+    name: "Autonomous Swarm Initialization"
+    needs: ["push-swarm-secrets"]
+    runs-on: "ubuntu-latest"
     steps:
-      - name: Trigger All Frequencies
+      - name: "Trigger All Frequencies"
         env:
-          SWARM_TOKEN: ${{ secrets.SWARM_INTERNAL_TOKEN || 'BPRO_SWARM_SECRET_2026' }}
+          SWARM_TOKEN: "${{ secrets.SWARM_INTERNAL_TOKEN || 'BPRO_SWARM_SECRET_2026' }}"
           BASE_URL: "https://blogspro-pulse.abhishekdutta18.workers.dev"
         run: |
           echo "🎯 Initializing Swarm 4.0 Frequencies..."
