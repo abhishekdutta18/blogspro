@@ -90,13 +90,6 @@ class_name = "ManuscriptAggregator"
 binding = "snapshots"
 bucket_name = "blogspro-affine-snapshots"
 
-[env.miro-sync.durable_objects]
-bindings = [
-  { name = "MIRO_SYNC_DO", class_name = "MiroSync" },
-  { name = "INGESTOR_DO", class_name = "DataIngestor" },
-  { name = "MANUSCRIPT_DO", class_name = "ManuscriptAggregator" }
-]
-
 # --- NEWSLETTER WORKER ---
 [env.newsletter]
 name = "blogspro-newsletter"
@@ -151,7 +144,7 @@ main = "scripts/template-worker.js"
 compatibility_date = "2024-12-30"
 compatibility_flags = [ "nodejs_compat" ]
 
-# --- GLOBAL MIGRATIONS (Must be at top level but referenced by DOs) ---
+# --- GLOBAL MIGRATIONS ---
 [[migrations]]
 tag = "v1"
 new_classes = ["MiroSync"]
