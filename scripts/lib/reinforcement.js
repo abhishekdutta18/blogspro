@@ -172,11 +172,11 @@ SENTIMENT_SCORE: 82 | POLL: Best hedge? | OPTIONS: Gold, USD, BTC
         context += this.getGoldStandard();
         context += `
 [CRITICAL PRODUCTION RULES - NON-NEGOTIABLE]:
-1. NEVER include <rule-check> tags in your output. These are internal system tags only.
-2. NEVER output raw JSON objects like {"sentiment": [...]} in the article body. Chart data ONLY goes inside <chart-data> tags at the very end.
-3. The <chart-data> block MUST appear only ONCE, at the very end of your output, after all prose.
-4. DO NOT copy or repeat any system prompt text ("JSON must use DOUBLE QUOTES") into the article.
-5. All markdown hyperlinks [text](url) MUST be used for citations. Do not embed raw URLs.
+1. TOTAL-FIDELITY JSON: Your <chart-data> MUST use "double quotes" for categories and values (e.g. [["USA", 10]] not [USA, 10]). NO trailing commas.
+2. 16-VERTICAL HIERARCHY: Each chapter must start with exactly one <h2> title from the approved list of 16 verticals.
+3. NEVER include <rule-check> tags or system prompt artifacts ("JSON must use DOUBLE QUOTES") in the prose.
+4. The <chart-data> block MUST appear only ONCE, at the very end of your response.
+5. All markdown hyperlinks [text](url) MUST use verified institutional sources (e.g. Bloomberg, Reuters, RBI).
 `;
         return context;
     }

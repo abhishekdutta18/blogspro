@@ -28,7 +28,16 @@ MULTIPLE CHART SYNCHRONIZATION:
 - Propose MULTIPLE <chart-data> blocks (Min 2) at the end of relevant sections.
 - Format: <chart-data>{ "id": "chart_id", "type": "bar|line", "data": [...] }</chart-data>
 - Values must be numbers representing % Delta or Institutional Drift.
+- ⚠️ TOTAL FIDELITY: JSON must use DOUBLE QUOTES. No markdown backticks inside the tag.
 `;
+
+const CONSENSUS_PERSONAS = [
+    { name: "Risk Desk Lead", bias: "BEARISH / SKEPTICAL", focus: "Tail risks, margin pressure, regulatory friction." },
+    { name: "Alpha Strategist", bias: "BULLISH / OPPORTUNISTIC", focus: "Flow divergence, growth catalysts, valuation gaps." },
+    { name: "Macro Quant", bias: "NEUTRAL / DATA-DRIVEN", focus: "Correlations, sigma events, yield curve drift." },
+    { name: "Geopolitical Desk", bias: "SITUATIONAL", focus: "Sovereign risk, policy shifts, trade barriers." },
+    { name: "Flow Desk Senior", bias: "LIQUIDITY-FOCUSED", focus: "Institutional positioning, FPI/DII rotation, dark pool signals." }
+];
 
 const VERTICALS = [
     { id: "macro", name: "Global Macro & Cross-Asset Drift" },
@@ -176,12 +185,46 @@ CONTENT:
 ${content}`;
 }
 
+function getExpertPersonaPrompt(persona, frequency, marketContext) {
+    return `
+${INSTITUTIONAL_PERSONA}
+ROLE: ${persona.name.toUpperCase()} (MiroFish Consensus Agent)
+BIAS: ${persona.bias}
+FOCUS: ${persona.focus}
+
+TASK: Provide a 250-word tactical simulation for the upcoming ${frequency} cycle.
+DATA: ${marketContext}
+
+OUTPUT: High-density strategic simulation. No conversational intro. Start with 'TACTICAL_POSITIONING:'.
+`;
+}
+
+function getConsensusPrompt(simulations, frequency) {
+    return `
+${INSTITUTIONAL_PERSONA}
+ROLE: CHIEF STRATEGIST (Swarm Finalizer)
+TASK: Synthesis of 5-10 conflicting tactical simulations into a unified institutional consensus.
+
+SIMULATIONS:
+${simulations}
+
+MANDATORY: 
+- Resolve conflicts between Bearish and Bullish agents.
+- Highlight the strongest divergence signals.
+- Output a single, authoritative 500-800 word strategic synthesis.
+- Include a final <chart-data> block summarizing 'Swarm Consensus Sentiment'.
+`;
+}
+
 export {
     VERTICALS,
+    CONSENSUS_PERSONAS,
     getBriefingPrompt,
     getArticlePrompt,
     getSanitizerPrompt,
     getResearcherPrompt,
     getDrafterPrompt,
-    getEditorPrompt
+    getEditorPrompt,
+    getExpertPersonaPrompt,
+    getConsensusPrompt
 };

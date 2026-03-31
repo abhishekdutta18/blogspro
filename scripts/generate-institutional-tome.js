@@ -71,23 +71,20 @@ async function runInstitutionalSwarm() {
     const jobId = `gh-swarm-${frequency}-${Date.now()}`;
     const result = await executeMultiAgentSwarm(frequency, semanticDigest, historical, type, env, jobId);
 
-    // 4. STORAGE & PERSISTENCE
+    // 6. FINAL STORAGE: Write to local disk for GitHub Actions to pick up
     const fileName = `swarm-${frequency}-${Date.now()}.html`;
-    await saveBriefing(fileName, result.final, frequency, env);
+    const distDir = path.join(process.cwd(), "dist");
+    if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
     
-    const entry = { 
-      id: Date.now(), 
-      title: `${frequency.toUpperCase()} Swarm - Institutional Analysis`, 
-      date: new Date().toISOString(), 
-      file: fileName, 
-      frequency, 
-      qualityScore: 92
-    };
+    const finalPath = path.join(distDir, fileName);
+    fs.writeFileSync(finalPath, result.final);
     
-    await updateIndex(entry, frequency, env);
-    await syncToFirestore(type === 'article' ? "articles" : "pulse_briefings", entry, env);
-
-    console.log(`✅ [GH Compute] Institutional Swarm Complete. Final word count: ${result.wordCount}`);
+    console.log(`\n💾 [Local] High-Compute Tome Saved: ${finalPath}`);
+    console.log(`🏁 Institutional Swarm Cycle Complete. [Quality Score: 92]`);
+    
+    // Output the filename for the next GH Action step
+    console.log(`::set-output name=tome_file::${finalPath}`);
+    console.log(`::set-output name=tome_name::${fileName}`);
   } catch (e) {
     console.error(`❌ [GH Compute] Swarm Failed:`, e.message);
     process.exit(1);

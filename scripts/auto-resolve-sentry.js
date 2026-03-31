@@ -6,8 +6,8 @@ const fetch = require('node-fetch');
 const SENTRY_ORG = process.env.SENTRY_ORG; 
 const SENTRY_PROJECT = process.env.SENTRY_PROJECT || 'javascript';     
 const SENTRY_AUTH_TOKEN = process.env.SENTRY_AUTH_TOKEN;
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const REPO = process.env.GITHUB_REPOSITORY; // e.g. 'abhishekdutta18/blogspro'
+const GITHUB_TOKEN = process.env.GH_PAT || process.env.GITHUB_TOKEN;
+const REPO = process.env.GITHUB_REPOSITORY || 'abhishekdutta18/blogspro';
 
 let CURRENT_SENTRY_ORG = SENTRY_ORG;
 let CURRENT_SENTRY_PROJECT = SENTRY_PROJECT;

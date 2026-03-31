@@ -1,11 +1,15 @@
 import { askAI } from "./ai-service.js";
 import { 
   VERTICALS, 
+  CONSENSUS_PERSONAS,
   getResearcherPrompt, 
   getDrafterPrompt, 
   getEditorPrompt, 
-  getArticlePrompt 
+  getArticlePrompt,
+  getExpertPersonaPrompt,
+  getConsensusPrompt
 } from "./prompts.js";
+import { validateAndRepair } from "./fidelity-governor.js";
 
 /**
  * BlogsPro Swarm 4.0: Hierarchical Multi-Swarm Orchestrator
@@ -13,6 +17,48 @@ import {
  * High-performance collaborative reasoning pipeline for 
  * ultra-high-density institutional manuscripts (up to 25k words).
  */
+
+async function runConsensusDesk(frequency, semanticDigest, env) {
+  console.log(`🤝 [MiroFish] Launching ${CONSENSUS_PERSONAS.length}-Agent Consensus Swarm...`);
+  
+  const simulations = await Promise.all(CONSENSUS_PERSONAS.map(async (persona) => {
+    try {
+      const result = await askAI(getExpertPersonaPrompt(persona, frequency, JSON.stringify(semanticDigest)), {
+        role: 'generate',
+        env,
+        model: 'llama-3.1-8b-instant' // Use fast/cheap models for individual agents
+      });
+      return `[${persona.name}]: ${result}`;
+    } catch (e) {
+      console.warn(`⚠️ Persona ${persona.name} failed: ${e.message}`);
+      return `[${persona.name}]: [FAILED_SIMULATION]`;
+    }
+  }));
+
+  const synthesis = await askAI(getConsensusPrompt(simulations.join("\n\n"), frequency), {
+    role: 'edit',
+    env,
+    model: 'claude-3.5-sonnet' // High-reasoning for final synthesis
+  });
+
+  // Affine Integration: Push consensus found to the sync bridge
+  if (env.MIRO_SYNC) {
+    try {
+      await env.MIRO_SYNC.fetch("https://miro/push", {
+        method: "POST",
+        body: JSON.stringify({
+          source: `MiroFish Swarm (${frequency.toUpperCase()})`,
+          content: synthesis
+        })
+      });
+      console.log("💎 [MiroFish] Consensus synchronized with Affine.");
+    } catch (err) {
+      console.warn("⚠️ Affine sync failed:", err.message);
+    }
+  }
+
+  return synthesis;
+}
 
 export async function executeMultiAgentSwarm(frequency, semanticDigest, historicalData, type, env, jobId = null) {
   const isArticle = type === 'article';
@@ -64,6 +110,10 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
     combinedChapters += `\n\n${chapterDraft}`;
   }
 
+  // STAGE 2.5: THE CONSENSUS DESK (Strategic Drift)
+  const consensusSummary = await runConsensusDesk(frequency, semanticDigest, env);
+  combinedChapters = `<h2>SWARM CONSENSUS & TACTICAL SIMULATION</h2>\n${consensusSummary}\n\n${combinedChapters}`;
+
   // STAGE 3: THE CHIEF EDITOR (Harden & Merge)
   console.log("👔 [Swarm] Chief Editor: Merging and Hardening Industrial Pass...");
   const polishedManuscript = await askAI(getEditorPrompt(combinedChapters, frequency), {
@@ -71,6 +121,11 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
     env,
     model: 'claude-3.5-sonnet'
   });
+
+  // STAGE 3.5: FIDELITY GOVERNOR (Validation & Repair)
+  console.log("⚖️ [Swarm] Fidelity Governor: Validating Structural Integrity...");
+  const fidelityResult = validateAndRepair(polishedManuscript);
+  const finalManuscript = fidelityResult.content;
 
   // STAGE 4: TEMPLATE ENGINE (Bloomberg-Gold UI/UX Pass)
   console.log("🎨 [Swarm] Calling Template Engine for Industrial UI Transformation...");
@@ -80,7 +135,7 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
     body: JSON.stringify({
       title: `${frequency.toUpperCase()} Strategic Manuscript`,
       excerpt: semanticDigest.strategicLead || "Institutional Macro Drift Analysis.",
-      content: polishedManuscript,
+      content: finalManuscript,
       dateLabel: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
       type,
       freq: frequency,

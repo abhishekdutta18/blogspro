@@ -336,12 +336,9 @@ export async function askAI(prompt, options = { role: 'generate' }) {
     
     console.log(`🌊 Active pool size: ${generatePool.length} providers`);
     
-    // If role is audit, we explicitly want Gemini first for precision formatting (but now with fallback)
-    // If role is audit, we now prefer the general pool (Groq first) for lower latency 
-    // but Gemini remains the high-fidelity fallback for precision sanitization
-    if (options.role === 'audit') {
-        console.log("🔍 Running Institutional Audit...");
-        // Auditor logic follows standard pool rules unless we want to force specify a model.
+    // If role is audit, we now prefer Groq for speed, but keep Gemini for precision 
+    if (options.role === 'audit' && (activeKeys.Groq || activeKeys.Gemini)) {
+        console.log("🔍 Running Institutional Audit via Primary Provider (Groq/Gemini)...");
     }
     
     if (generatePool.length === 0) {
@@ -383,13 +380,17 @@ export async function askAI(prompt, options = { role: 'generate' }) {
         }
     }
 
-    // Ultimate fallback for generation: Gemini (any role)
+    // Ultimate fallback for generation: Groq (then Gemini)
+    if (process.env.GROQ_API_KEY) {
+        console.log("🚀 Attempting Ultimate Fallback via Groq...");
+        return await generateGroqContent(prompt);
+    }
     if (process.env.GEMINI_API_KEY) {
         console.log("🚀 Attempting Ultimate Fallback via Gemini...");
         return await generateGeminiContent(prompt);
     }
     
-    throw new Error("All AI engines exhausted. Check GEMINI_API_KEY/GROQ_API_KEY secrets in GitHub Actions.");
+    throw new Error("All AI engines exhausted. Check GROQ_API_KEY/GEMINI_API_KEY secrets in GitHub Actions.");
 }
 
 // Simplified ESM export
