@@ -1,6 +1,103 @@
-# BlogsPro — AI SaaS CMS
+# BlogsPro Swarm 4.0 — Institutional Intelligence Terminal
 
-A full-featured, AI-powered blog platform built with **Vanilla HTML/CSS/JS**, **Firebase** (Firestore + Auth), and a **Cloudflare Worker** backend. Designed for niche content creators who want professional-grade publishing with built-in AI writing tools — no React, no Node server, no paid subscriptions required.
+A professional-grade, AI-powered autonomous research suite for high-fidelity institutional manuscript delivery. Built with a **Vanilla HTML/CSS/JS** distribution layer, **Firebase Storage** archival, and a logic-dense **Hierarchical Multi-Swarm Orchestrator**.
+
+---
+
+## 🏗️ Architecture & Logic Flows
+
+### 1. Swarm Orchestration Pipeline (Hierarchical Consensus)
+This flow illustrates the end-to-end generation of a 25,000-word institutional manuscript, from initial trigger to multi-layered archival.
+
+```mermaid
+graph TD
+    Trigger[GitHub Action / Workflow Dispatch] --> Orchestrator[Swarm Orchestrator]
+    Orchestrator --> Researcher[Researcher Agent]
+    subgraph Research_Intelligence
+        Researcher --> Search[Gemini-Fleet Search]
+        Researcher --> Read[Deep-Read Page Parser]
+        Researcher --> OCR[Vision-Parse OCR]
+    end
+    Researcher --> Brief[Research Brief]
+    Brief --> 16Verticals[16-Vertical Swarm]
+    subgraph Swarm_Verticals
+        16Verticals --> Drafter[Drafter]
+        16Verticals --> Critic[Critic]
+        16Verticals --> Refiner[Refiner]
+    end
+    Swarm_Verticals --> MiroFish[MiroFish Consensus Desk]
+    MiroFish --> Editor[Chief Editor]
+    Editor --> Governor[Fidelity Governor]
+    Governor --> Export[Puppeteer PDF / HTML Export]
+    Export --> Firebase[Firebase Storage Archival]
+    Export --> Git[GitHub Git-Persistence]
+```
+
+### 2. Data Acquisition Loop (Self-Resolving OCR & Search)
+How the agents autonomously resolve information gaps using internet search and vision tools.
+
+```mermaid
+graph LR
+    Agent[Agent] -->|Tool Call| Search[search_web]
+    Agent -->|Tool Call| Read[read_page]
+    Agent -->|Tool Call| Vision[vision_parse]
+    Vision -->|OCR| Charts[Chart-Ready JSON]
+    Charts -->|Direct Injection| MS[Manuscript <chart-data>]
+```
+
+---
+
+## 🚀 Key Features
+
+### Swarm 4.0 (Intelligence Layer)
+- **16-Vertical Research Slate**: Specialized intelligence across Banking, Global Macro, Cards & Payments, Mutual Funds, and PE/VC flows.
+- **MiroFish 10-Agent Consensus Desk**: Multi-agent strategic foresight and 'God View' scenario testing.
+- **Gemini-Fleet Research Desk**: Real-time internet research integration with tool-calling for up-to-the-minute market alpha.
+- **Auto-Resolve Chart Injection**: OCR-based extraction of data series from institutional PDF/Images directly into `<chart-data>` visualizations.
+- **Fidelity Governor**: Industrial-grade validation and self-healing layer for 25k-word MS structural integrity.
+
+### Distribution Layer (CMS)
+- **Vanilla Admin Panel**: Full-featured blog platform (Firestore + Auth + Cloudflare).
+- **High-Fidelity PDF Distribution**: Automated Puppeteer-based manuscript printing and Firebase archival.
+- **GitHub Actions Compute Bridge**: 6-hour high-compute persistent environment for ultra-high-density synthesis.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology | Status |
+|---|---|---|
+| **Core** | Vanilla HTML5 / CSS3 / ES Modules | Operational |
+| **Intelligence** | Gemini 1.5 Pro/Flash + Groq Llama 3.3 | Hardened |
+| **Search Engine** | Gemini-Fleet / Google Search Tool-Calling | Integrated |
+| **Vision/OCR** | Gemini 1.5 Flash (Vision-to-Chart Bridge) | Integrated |
+| **Database** | Firebase Firestore | Primary |
+| **Archival** | **Firebase Storage** (S3-Compatible) | Migrated (100%) |
+| **Compute** | GitHub Actions (High-Compute Bridge) | Operational |
+| **PDF Engine** | Puppeteer (Headless Print-to-PDF) | Operational |
+
+---
+
+## 📂 Project Structure
+
+```
+blogspro/
+├── index.html               ← Public blog feed (homepage)
+├── scripts/                 ← **Institutional Hub (Node.js)**
+│   ├── generate-institutional-tome.js  ← 25k-word MS synthesis engine
+│   ├── generate-pdf-worker.js         ← Puppeteer PDF print worker
+│   ├── swarm-orchestrator.js          ← 16-vertical swarm logic
+│   └── lib/                           ← Swarm prompts, templates, and fidelity-gov
+├── mirofish/                ← **MiroFish: Strategic Consensus Engine**
+│   ├── backend/              ← Multi-agent social evolution logic (Python)
+│   ├── frontend/             ← Swarm visualization dashboard (Vue)
+│   └── README.md             ← Predictive engine documentation
+├── .github/workflows/       ← **CI/CD Pipeline**
+│   ├── institutional-research.yml     ← MS Generation Workflow
+│   └── pdf-generator.yml              ← PDF Export Workflow
+├── firestore.rules          ← Firestore security rules
+└── README.md
+```
 
 ---
 
@@ -45,15 +142,12 @@ A full-featured, AI-powered blog platform built with **Vanilla HTML/CSS/JS**, **
 - **AI Write** and **AI Image** buttons inside the editor toolbar
 - Auto-generated excerpts
 - Inline Chart.js data visualisations generated by AI
-- **Nexus Institutional Terminal (2026)** — autonomous financial briefing engine
-  - RSS-First architecture (ET, Moneycontrol, Business Standard, Reuters)
-  - Gemini 3.1 Pro Fleet Integration for high-fidelity structural synthesis
-  - Institutional-grade white-background charts and PDF fidelity
-  - Autonomous QA Auditor loop with mandatory citation enforcement
-- **MiroFish Swarm Intelligence** — predictive social evolution engine
-  - Multi-agent simulation based on real-world policy and financial 'seeds'
-  - Parallel digital world construction for 'God View' scenario testing
-  - Quantitative predictive reports reflecting thousands of independent AI agent interactions
+- **BlogsPro Swarm 4.0 (Institutional Terminal)** — autonomous 25,000-word manuscript engine.
+  - **16-Vertical Research Slate** — Specialized intelligence across Banking, Global Macro, Cards & Payments, Mutual Funds, and PE/VC flows.
+  - **MiroFish 10-Agent Consensus Desk** — Multi-agent strategic foresight and 'God View' scenario testing.
+  - **Gemini-Fleet Research Desk** — Real-time internet research integration with tool-calling for up-to-the-minute market alpha.
+  - **High-Fidelity PDF Distribution** — Automated Puppeteer-based manuscript printing and R2 archival.
+  - **GitHub Actions Compute Bridge** — 6-hour high-compute persistent environment for ultra-high-density synthesis.
 
 ### AI SEO & Strategy Tools
 - **Headline AI** — generate high-CTR titles with type & score
@@ -82,11 +176,12 @@ A full-featured, AI-powered blog platform built with **Vanilla HTML/CSS/JS**, **
 | Frontend | Vanilla HTML5 / CSS3 / ES Modules |
 | Database | Firebase Firestore |
 | Auth | Firebase Authentication (Email/Password) |
-| AI Primary | **Gemini 3.1 Pro Fleet (March 2026)** |
-| AI Fallback 1 | Groq API (Llama 3.3 / Llama 4 Maverick) |
-| AI Fallback 2 | Mistral Large / Cloudflare Workers AI |
-| Image Generation | Pollinations.ai / Cloudflare Workers |
-| Image Hosting | Cloudinary |
+| AI Primary | **Gemini 1.5 Pro / Flash (March 2026 Fleet)** |
+| AI Fallback | Groq Llama 3.3 / Mistral Large |
+| Search Engine | **Gemini-Fleet / Google Search Tool-Calling** |
+| Archival | **Cloudflare R2 (S3-Compatible)** |
+| Compute | **GitHub Actions (High-Compute Bridge)** |
+| PDF Engine | **Puppeteer (Headless Print-to-PDF)** |
 | Hosting | GitHub Pages (static) |
 
 ---
@@ -97,11 +192,11 @@ A full-featured, AI-powered blog platform built with **Vanilla HTML/CSS/JS**, **
 blogspro/
 ├── index.html               ← Public blog feed (homepage)
 ├── ...                      ← Frontend (HTML/CSS/JS)
-├── scripts/                 ← **Nexus Intelligence Pipeline (Node.js)**
-│   ├── generate-briefing.js  ← Primary autonomous synthesis engine
-│   ├── lib/                  ← Prompts, Fetchers, and Templates
-│   ├── notify-telegram.js    ← Terminal delivery hook
-│   └── audit-feeds.js        ← RSS Health & Integrity Auditor
+├── scripts/                 ← **Institutional Hub (Node.js)**
+│   ├── generate-institutional-tome.js  ← 25k-word MS synthesis engine
+│   ├── generate-pdf-worker.js         ← Puppeteer PDF print worker
+│   ├── swarm-orchestrator.js          ← 16-vertical swarm logic
+│   └── lib/                           ← Swarm prompts, templates, and fidelity-gov
 ├── mirofish/                ← **MiroFish: Swarm Intelligence Engine**
 │   ├── backend/              ← Multi-agent social evolution logic (Python)
 │   ├── frontend/             ← Swarm visualization dashboard (Vue)
@@ -544,8 +639,8 @@ Before either bot edits code, update this table first.
 |---|---|---|---|---|---|
 | Security rules + auth hardening | Codex | DONE | `firestore.rules`, `register.html`, `index.html`, `dashboard.html`, `account.html` | 2026-03-21 | Hotfix shipped and live on GitHub. |
 | Deploy automation tooling | Codex | DONE | `deploy-worker.js`, `deploy.html` | 2026-03-21 | CLI deploy helper added; uses same Worker as deploy UI. |
-| Nexus Institutional Terminal | Antigravity | DONE | `scripts/generate-briefing.js`, `scripts/lib/*` | **2026-03-30** | Migrated to RSS-First architecture & Gemini 3.1 fleet. |
-| Strategic Pulse Expansion | UNCLAIMED | TODO | TBD | - | Ready for Weekly/Monthly Article expansion. |
+| Nexus Institutional Terminal | Antigravity | DONE | `scripts/*`, `dist/*` | **2026-03-31** | **HARDENED Swarm 4.0 Logic Shipped.** 16-Vertical research & PDF export operational. |
+| Strategic Pulse Expansion | Codex | DONE | `pulse_final.log`, `data-fetchers.js` | 2026-03-31 | Real-time internet research integrated. |
 
 ### Quick handoff template
 

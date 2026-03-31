@@ -10,8 +10,13 @@ compatibility_flags = [ "nodejs_compat" ]
 
 [env.pulse.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
+FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
 BASE_URL = "https://blogspro.in"
-SWARM_INTERNAL_TOKEN = "BPRO_SWARM_SECRET_2026"
+PROJECT_DOMAIN = "blogspro.ai"
+GROQ_MODEL = "llama-3.3-70b-versatile"
+GEMINI_MODEL = "gemini-1.5-pro"
+MISTRAL_MODEL = "mistral-large-latest"
+# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env pulse')
 
 [[env.pulse.services]]
 binding = "DATA_HUB"
@@ -26,24 +31,22 @@ binding = "AUDITOR"
 service = "blogspro-auditor"
 
 [[env.pulse.services]]
-binding = "SEO_MANAGER"
-service = "blogspro-seo"
-
-[[env.pulse.r2_buckets]]
-binding = "BLOOMBERG_ASSETS"
-bucket_name = "blogspro-assets"
-
-[[env.pulse.services]]
 binding = "TEMPLATE_ENGINE"
 service = "blogspro-templates"
 
-[[env.pulse.kv_namespaces]]
-binding = "KV"
-id = "9caa7afdf7e94adb99cecf221275d63d"
+[[env.pulse.services]]
+binding = "SEO_MANAGER"
+service = "blogspro-seo"
 
 [[env.pulse.durable_objects.bindings]]
 name = "MANUSCRIPT_DO"
 class_name = "ManuscriptAggregator"
+script_name = "blogspro-manuscript"
+
+[[env.pulse.durable_objects.bindings]]
+name = "MIRO_SYNC_DO"
+class_name = "MiroSync"
+script_name = "blogspro-miro-sync"
 
 [[env.pulse.analytics_engine_datasets]]
 binding = "ANALYTICS"
@@ -51,6 +54,64 @@ dataset = "swarm_telemetry"
 
 [env.pulse.triggers]
 crons = ["0 * * * *", "0 4 * * *", "0 5 * * 1", "0 6 1 * *"]
+
+# --- TRIALS ORCHESTRATOR (Mirrored/Staging) ---
+[env.trials]
+name = "blogspro-trials"
+main = "scripts/pulse-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+[env.trials.vars]
+FIREBASE_PROJECT_ID = "blogspro-ai"
+FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
+BASE_URL = "https://trials.blogspro.in"
+PROJECT_DOMAIN = "blogspro.in"
+GROQ_MODEL = "llama-3.3-70b-versatile"
+GEMINI_MODEL = "gemini-1.5-flash"
+MISTRAL_MODEL = "mistral-small-latest"
+# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env trials')
+
+[[env.trials.services]]
+binding = "DATA_HUB"
+service = "blogspro-data-hub"
+
+[[env.trials.services]]
+binding = "RELEVANCE"
+service = "blogspro-relevance"
+
+[[env.trials.services]]
+binding = "AUDITOR"
+service = "blogspro-auditor"
+
+[[env.trials.services]]
+binding = "SEO_MANAGER"
+service = "blogspro-seo"
+
+[[env.trials.services]]
+binding = "TEMPLATE_ENGINE"
+service = "blogspro-templates"
+
+[[env.trials.durable_objects.bindings]]
+name = "MANUSCRIPT_DO"
+class_name = "ManuscriptAggregator"
+script_name = "blogspro-manuscript"
+
+[[env.trials.durable_objects.bindings]]
+name = "MIRO_SYNC_DO"
+class_name = "MiroSync"
+script_name = "blogspro-miro-sync"
+
+[[env.trials.durable_objects.bindings]]
+name = "INGESTOR_DO"
+class_name = "DataIngestor"
+script_name = "blogspro-miro-sync"
+
+[[env.trials.analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "swarm_telemetry"
+
+# No crons for trials to save compute/quota
 
 # --- TEMPLATE ENGINE WORKER ---
 [env.templates]
@@ -67,15 +128,9 @@ compatibility_date = "2024-12-30"
 compatibility_flags = [ "nodejs_compat" ]
 
 [env.data-hub.vars]
-SWARM_INTERNAL_TOKEN = "BPRO_SWARM_SECRET_2026"
-
-[[env.data-hub.r2_buckets]]
-binding = "BLOOMBERG_ASSETS"
-bucket_name = "blogspro-assets"
-
-[[env.data-hub.kv_namespaces]]
-binding = "KV"
-id = "9caa7afdf7e94adb99cecf221275d63d"
+FIREBASE_PROJECT_ID = "blogspro-ai"
+FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
+# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env data-hub')
 
 # --- RELEVANCE WORKER ---
 [env.relevance]
@@ -85,7 +140,8 @@ compatibility_date = "2024-12-30"
 compatibility_flags = [ "nodejs_compat" ]
 
 [env.relevance.vars]
-SWARM_INTERNAL_TOKEN = "BPRO_SWARM_SECRET_2026"
+FIREBASE_PROJECT_ID = "blogspro-ai"
+# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env relevance')
 
 # --- AUDITOR WORKER ---
 [env.auditor]
@@ -96,7 +152,7 @@ compatibility_flags = [ "nodejs_compat" ]
 
 [env.auditor.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
-SWARM_INTERNAL_TOKEN = "BPRO_SWARM_SECRET_2026"
+# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env auditor')
 
 # --- SEO MANAGER WORKER ---
 [env.seo]
@@ -107,15 +163,8 @@ compatibility_flags = [ "nodejs_compat" ]
 
 [env.seo.vars]
 BASE_URL = "https://blogspro.in"
-SWARM_INTERNAL_TOKEN = "BPRO_SWARM_SECRET_2026"
-
-[[env.seo.r2_buckets]]
-binding = "BLOOMBERG_ASSETS"
-bucket_name = "blogspro-assets"
-
-[[env.seo.kv_namespaces]]
-binding = "KV"
-id = "9caa7afdf7e94adb99cecf221275d63d"
+FIREBASE_PROJECT_ID = "blogspro-ai"
+# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env seo')
 
 # --- MIRO SYNC BRIDGE ---
 [env.miro-sync]
@@ -123,10 +172,23 @@ name = "blogspro-miro-sync"
 main = "scripts/miro-sync-worker.js"
 compatibility_date = "2024-12-30"
 compatibility_flags = [ "nodejs_compat" ]
+smart_placement = true
+
+[env.miro-sync.vars]
+FIREBASE_PROJECT_ID = "blogspro-ai"
+# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env miro-sync')
 
 [[env.miro-sync.durable_objects.bindings]]
 name = "MIRO_SYNC_DO"
 class_name = "MiroSync"
+
+[[env.miro-sync.durable_objects.bindings]]
+name = "INGESTOR_DO"
+class_name = "DataIngestor"
+
+[[env.miro-sync.durable_objects.bindings]]
+name = "MANUSCRIPT_DO"
+class_name = "ManuscriptAggregator"
 
 [[env.miro-sync.r2_buckets]]
 binding = "snapshots"
@@ -151,7 +213,7 @@ compatibility_date = "2024-12-30"
 compatibility_flags = [ "nodejs_compat" ]
 
 [env.mirofish.vars]
-SWARM_INTERNAL_TOKEN = "BPRO_SWARM_SECRET_2026"
+# SWARM_INTERNAL_TOKEN (Add via 'wrangler secret put SWARM_INTERNAL_TOKEN --env mirofish')
 
 [[env.mirofish.durable_objects.bindings]]
 name = "MIRO_SYNC_DO"

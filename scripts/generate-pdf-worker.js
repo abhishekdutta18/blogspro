@@ -1,14 +1,10 @@
 import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
-import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { initFirebase, uploadToStorage, downloadFromStorage } from './lib/firebase-service.js';
 
 async function run() {
     const {
-        R2_ENDPOINT,
-        CLOUDFLARE_R2_ACCESS_KEY_ID,
-        CLOUDFLARE_R2_SECRET_ACCESS_KEY,
-        R2_BUCKET_NAME,
         FILE_NAME,
         FREQUENCY,
         OUTPUT_DIR
@@ -18,23 +14,25 @@ async function run() {
         throw new Error('FILE_NAME environment variable is required');
     }
 
-    const s3 = new S3Client({
-        region: 'auto',
-        endpoint: R2_ENDPOINT,
-        credentials: {
-            accessKeyId: CLOUDFLARE_R2_ACCESS_KEY_ID,
-            secretAccessKey: CLOUDFLARE_R2_SECRET_ACCESS_KEY,
-        },
-    });
+    const freq = (FREQUENCY || 'weekly').toLowerCase();
+    const inputKey = `${freq}/${FILE_NAME}`; 
+    const localDistPath = path.join(process.cwd(), 'dist', FILE_NAME);
 
-    const inputKey = `briefings/${FILE_NAME}`;
-    console.log('Fetching HTML from R2:', inputKey);
+    let html = "";
 
-    const getObj = await s3.send(new GetObjectCommand({
-        Bucket: R2_BUCKET_NAME,
-        Key: inputKey,
-    }));
-    const html = await getObj.Body.transformToString();
+    // 🏎️ LOCAL-FIRST FALLBACK: Check if file exists in dist/ before fetching from Firebase
+    if (fs.existsSync(localDistPath)) {
+        console.log(`🏎️ [PDF Worker] Found local manuscript: ${localDistPath}`);
+        html = fs.readFileSync(localDistPath, 'utf8');
+    } else {
+        console.log(`🌐 [PDF Worker] Fetching HTML from Firebase Storage: ${inputKey}`);
+        try {
+            html = await downloadFromStorage(inputKey);
+        } catch (e) {
+            console.error(`❌ [PDF Worker] Failed to fetch HTML from Firebase: ${e.message}`);
+            throw e;
+        }
+    }
 
     console.log('Launching Puppeteer...');
     const browser = await puppeteer.launch({ 
@@ -43,33 +41,29 @@ async function run() {
     });
     
     const page = await browser.newPage();
-    await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 2 });
+    // 📐 High-Resolution Production Viewport
+    await page.setViewport({ width: 1440, height: 2560, deviceScaleFactor: 2 });
     
     // Set content and wait for network idle
-    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
-
-    // Inject print styling (logic from generate-pdf.js)
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 90000 });
+ 
+    // 🖨️ PRODUCTION PRINT STYLING: Enforce clean document render
     await page.evaluate(() => {
         const style = document.createElement('style');
         style.textContent = `
-            @page { margin: 1.5cm; }
-            body { font-family: sans-serif; }
-            .no-print { display: none !important; }
+            @page { margin: 2cm; size: A4; }
+            body { font-family: 'Mulish', sans-serif; background: white !important; color: black !important; }
+            /* 🚫 Hide Interactive UI Elements */
+            .no-print, .terminal-sidebar, .v2-nav, .mobile-toggle, #sidebar-toggle { display: none !important; }
+            .institutional-sector { page-break-before: always; margin-bottom: 2rem; }
+            h1, h2, h3 { color: #000 !important; }
+            a { color: #0056b3 !important; text-decoration: underline; }
+            table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .chart-container { width: 100% !important; height: auto !important; page-break-inside: avoid; }
         `;
         document.head.appendChild(style);
     });
-
-    // --- 1. DETERMINE URL & ASSET KEY ---
-    const freq = process.env.FREQUENCY || 'weekly';
-    const type = process.env.TYPE || (freq === 'hourly' || freq === 'daily' ? 'briefing' : 'article');
-    
-    // Base URLs for the different types of generated content
-    const baseUrl = type === 'briefing' ? 'https://assets.blogspro.in/briefings' : 'https://assets.blogspro.in/articles';
-    const url = `${baseUrl}/${freq}/${FILE_NAME}`;
-    const pdfKey = `${type === 'briefing' ? 'briefings' : 'articles'}/${freq}/${FILE_NAME.replace('.html', '.pdf')}`;
-
-    console.log(`🖨️ [Worker] Generating PDF for: ${url}`);
-    console.log(`📦 [Worker] Targeted R2 Key: ${pdfKey}`);
 
     const pdfName = FILE_NAME.replace('.html', '.pdf');
     const localPath = path.join(OUTPUT_DIR || '.', pdfName);
@@ -82,14 +76,15 @@ async function run() {
         margin: { top: '30px', bottom: '30px', left: '30px', right: '30px' }
     });
 
-    console.log('Uploading PDF to R2:', pdfName);
-    const outputKey = `briefings/${pdfName}`;
-    await s3.send(new PutObjectCommand({
-        Bucket: R2_BUCKET_NAME,
-        Key: outputKey,
-        Body: fs.readFileSync(localPath),
-        ContentType: 'application/pdf'
-    }));
+    console.log('Uploading PDF to Firebase Storage:', pdfName);
+    const outputKey = `${freq}/${pdfName}`;
+    
+    try {
+        await uploadToStorage(localPath, outputKey, 'application/pdf');
+        console.log(`🌐 [Worker] PDF Uploaded to Firebase Storage: ${outputKey}`);
+    } catch (e) {
+        console.warn(`⚠️ [Worker] Firebase Upload skipped or failed: ${e.message}`);
+    }
 
     await browser.close();
     console.log('✅ PDF Generation Complete for:', pdfName);

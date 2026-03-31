@@ -1,151 +1,125 @@
-/**
- * generate-institutional-tome.js
- * ================================
- * BlogsPro Swarm 4.0: High-Compute Standalone Generation Engine.
- * 
- * This script runs in GitHub Actions to bypass serverless timeouts.
- * It performs the heavy 16-vertical hierarchical swarm research.
- */
-import { executeMultiAgentSwarm } from "./lib/swarm-orchestrator.js";
-import { 
-  getRecentSnapshots, 
-  getHistoricalData, 
-  saveBriefing, 
-  updateIndex, 
-  syncToFirestore 
-} from "./lib/storage-bridge.js";
-import { detectAndAlert } from "./lib/black-swan-alert.js";
+import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { executeMultiAgentSwarm } from "./lib/swarm-orchestrator.js";
+import { getBaseTemplate } from "./lib/templates.js";
+import { getRecentSnapshots, 
+  getHistoricalData, 
+  syncToFirestore 
+} from "./lib/storage-bridge.js";
+import { uploadToStorage } from './lib/firebase-service.js';
 
 async function runInstitutionalSwarm() {
   const frequency = process.argv.find(a => a.startsWith('--freq='))?.split('=')[1] || 'weekly';
   const type = process.argv.find(a => a.startsWith('--type='))?.split('=')[1] || 'article';
-  const isExtended = process.argv.includes('--extended') || process.env.EXTENDED_MODE === 'true';
+  const extended = process.argv.includes('--extended');
+  const id = `swarm-${frequency}-${Date.now()}`;
 
-  console.log(`🚀 [GH Compute] Starting ${frequency.toUpperCase()} Institutional Swarm (${type}) [Extended: ${isExtended}]...`);
-
-  // 1. MOCK ENVIRONMENT (For Standalone Node Context)
+  // 1. NORMALIZE ENVIRONMENT (Bridge .env keys to Swarm Binders)
   const env = {
-    FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
-    GROQ_API_KEY: process.env.GROQ_API_KEY,
-    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-    OPENROUTER_KEY: process.env.OPENROUTER_KEY,
-    MISTRAL_API_KEY: process.env.MISTRAL_API_KEY,
-    SWARM_INTERNAL_TOKEN: process.env.SWARM_INTERNAL_TOKEN,
-    EXTENDED_MODE: isExtended,
-    BLOOMBERG_ASSETS: {
-      put: async (key, content) => {
-        console.log(`📦 [R2] Storing ${key}...`);
-        return { key };
-      },
-      get: async (key) => {
-        console.log(`📦 [R2] Attempting to retrieval ${key}...`);
-        return { json: async () => null };
-      },
-      list: async () => {
-        return { objects: [] };
-      }
-    },
-    // The Template Engine service binding would normally be here in a worker
-    // For standalone, we can call the service URL if needed.
+    ...process.env,
+    EXTENDED_MODE: extended, // Explicitly set for orchestrator detection
+    AI: { fetch: (url, opts) => fetch(url, opts) },
     TEMPLATE_ENGINE: {
-      fetch: async (req) => {
-        const url = "https://blogspro-templates.abhishekdutta18.workers.dev/transform";
-        const res = await fetch(url, { ...req });
-        return res;
+      fetch: async (reqOrUrl, optionsOrNull) => {
+        const request = (reqOrUrl instanceof Request) ? reqOrUrl : new Request(reqOrUrl, optionsOrNull);
+        try {
+            const localRes = await fetch("http://localhost:8888/transform", request.clone());
+            if (localRes.ok) return localRes;
+        } catch (e) {
+            console.log(`🎨 [Swarm] Local template engine offline/congested.`);
+        }
+        try {
+            console.log(`🎨 [Swarm] Template failover: Using production edge...`);
+            const edgeRes = await fetch("https://blogspro-templates.abhishekdutta18.workers.dev/transform", request.clone());
+            if (edgeRes.ok) return edgeRes;
+        } catch (e) {
+            console.log(`🎨 [Swarm] Production edge unreachable.`);
+        }
+        console.log(`🏗️ [Swarm] Template recovery: Running NATIVE transformation...`);
+        try {
+            const data = await request.json();
+            const html = getBaseTemplate({
+                ...data,
+                dateLabel: data.dateLabel || new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+            });
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({ status: "success", html, wordCount: (data.content || "").split(/\s+/).length })
+            };
+        } catch (err) {
+            console.error(`❌ [Recovery] Native template pass failure:`, err.message);
+            throw err;
+        }
       }
     },
-    KV: {
-      put: async (key, value) => console.log(`🗄️ [KV] Mock Mapping: ${key}`),
-      get: async (key) => null
+    MIRO_SYNC: {
+      fetch: async (url, options) => {
+        const localHub = "http://localhost:8787/telemetry";
+        try {
+          const res = await fetch(localHub, { ...options, headers: { ...options.headers, "Content-Type": "application/json" } });
+          if (res.ok) return res;
+        } catch (e) { return { json: async () => ({ status: 'local-offline' }), ok: true }; }
+      }
     },
-    SLACK_WEBHOOK_URL: process.env.SLACK_WEBHOOK_URL
+    BLOOMBERG_ASSETS: {
+        list: async () => ({ objects: [] }),
+        get: async () => null,
+        put: async () => {}
+    }
   };
 
+  console.log(`🚀 [Swarm] Initializing BlogsPro Institutional Synthesis [ID: ${id}]`);
   try {
-    // 2. PRE-FILL CONTEXT (Simplified for GitHub context)
-    console.log("📂 [GH Compute] Pre-filling Context Mega-Pool...");
-    
-    // In GH Actions, we can fetch from the public worker index as a backup
+    // 2. CONTEXT RETRIEVAL
+    const snapshots = await getRecentSnapshots(frequency, 5, env);
     const historical = await getHistoricalData(env);
     
-    const semanticDigest = {
-      marketContext: { day: new Date().toLocaleDateString('en-US', { weekday: 'long' }) },
-      macroFocus: "Institutional Macro Drift Analysis",
-      strategicLead: "Global Market Pulse: Institutional Divergence.",
-      megaPool: { historical }
-    };
+    // Normalize snapshots for the 'semanticDigest' argument
+    const semanticDigest = snapshots[0] || { strategicLead: "Institutional Macro Drift Analysis." };
 
-    // 3. EXECUTE SWARM
-    const jobId = `gh-swarm-${frequency}-${Date.now()}`;
-    const result = await executeMultiAgentSwarm(frequency, semanticDigest, historical, type, env, jobId);
+    // 3. EXECUTE SWARM (Aligning with exact 6-argument signature)
+    const result = await executeMultiAgentSwarm(
+        frequency,       // 1. frequency
+        semanticDigest,  // 2. semanticDigest
+        historical,      // 3. historicalData
+        type,            // 4. type
+        env,             // 5. env
+        id               // 6. jobId
+    );
 
-    // 4. AUTO-INDEXING: Update Dashboard Index
-    console.log("📇 [GH Compute] Updating Institutional Index...");
-    await updateIndex({
-      id: jobId,
-      title: `${frequency.toUpperCase()} Strategic Manuscript`,
-      excerpt: semanticDigest.strategicLead,
-      date: new Date().toISOString(),
-      url: `https://assets.blogspro.in/briefings/${frequency}/${jobId}.html`,
-      wordCount: result.wordCount,
-      type: "institutional"
-    }, frequency, env);
-
-    // 6. FINAL STORAGE: Write to local disk for GitHub Actions to pick up
+    // 4. ARCHIVAL PHASE
     const fileName = `swarm-${frequency}-${Date.now()}.html`;
-    const distDir = path.join(process.cwd(), "dist");
-    if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
+    const outPath = path.join(process.cwd(), 'dist', fileName);
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
     
-    const finalPath = path.join(distDir, fileName);
-    fs.writeFileSync(finalPath, result.final);
-    
-    console.log(`\n💾 [Local] High-Compute Tome Saved: ${finalPath}`);
-    console.log(`🏁 Institutional Swarm Cycle Complete. [Quality Score: 92]`);
-    
-    // --- 4. STEP SUMMARY: Executive Dashboard for GitHub UI ---
-    if (process.env.GITHUB_STEP_SUMMARY) {
-      const summaryMarkdown = `
-# 🔬 Swarm 4.0 Institutional Report: ${frequency.toUpperCase()}
-**Status:** ✅ Successfully Generated [ID: \`${jobId}\`]
-**Word Density:** ${result.wordCount} words
-**Consensus Logic:** 10-Agent MiroFish Active
+    // Result object has { final: html }
+    fs.writeFileSync(outPath, result.final);
+    console.log(`💾 [Swarm] Archive Phase: Saved locally to ${outPath}`);
 
-### 📋 Consensus Overview
-- **Fidelity Score:** 92/100 (Hardened)
-- **Verticals Analyzed:** 16 Market Hubs
-- **Governor Status:** Structural Integrity Verified
-
-> [!TIP]
-> **View Strategic Manuscript**: [articles/${frequency}/${fileName}](https://assets.blogspro.in/articles/${frequency}/${fileName})
-
----
-### 🚨 Intelligence Signals
-- **Volume Drift:** Normalized
-- **Consensus Sentiment:** Bullish-Neutral
-- **Market Divergence:** Low
-      `;
-      fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryMarkdown);
+    // --- 🏺 ARCHIVAL PHASE: Persistent Cloud/Local Storage ---
+    try {
+        const destination = `${frequency}/${fileName}`;
+        await uploadToStorage(outPath, destination, 'text/html');
+        console.log(`🌐 [Swarm] Archive Phase: Uploaded to Firebase Storage (${destination})`);
+    } catch (e) {
+        console.warn(`⚠️ [Swarm] Firebase Upload Failed:`, e.message);
+        // We don't throw here to allow GitHub Output bridge to still run
     }
 
-    // --- 5. BLACK SWAN DETECTION: Autonomous Alerting ---
-    const alertResult = await detectAndAlert(result, frequency);
-    if (alertResult) {
-      console.log("🚨 [Alert] Black Swan detected. Github Issue opened.");
-    }
-
-    console.log(`🏁 Institutional Swarm Cycle Complete.`);
-    
-    // Output the filename and type for the next GH Action step using modern GITHUB_OUTPUT
+    // --- 🛰️ GITHUB OUTPUT BRIDGE: For Automated PDF Generation ---
     if (process.env.GITHUB_OUTPUT) {
-      fs.appendFileSync(process.env.GITHUB_OUTPUT, `tome_file=${finalPath}\n`);
-      fs.appendFileSync(process.env.GITHUB_OUTPUT, `tome_name=${fileName}\n`);
-      fs.appendFileSync(process.env.GITHUB_OUTPUT, `tome_type=${type}\n`);
+        const fs = await import('fs');
+        fs.appendFileSync(process.env.GITHUB_OUTPUT, `tome_file=dist/${fileName}\n`);
+        fs.appendFileSync(process.env.GITHUB_OUTPUT, `tome_name=${fileName}\n`);
+        fs.appendFileSync(process.env.GITHUB_OUTPUT, `tome_type=tome\n`);
+        console.log(`🛰️ [Workflow] Emitted GitHub Outputs for PDF Generation.`);
     }
-  } catch (e) {
-    console.error(`❌ [GH Compute] Swarm Failed:`, e.message);
+
+    console.log(`✅ [Dashboard] Institutional Workflow Finalized. [Words: ${result.wordCount}]`);
+  } catch (error) {
+    console.error(`❌ [Swarm] Pipeline Critical Failure:`, error.message);
     process.exit(1);
   }
 }
