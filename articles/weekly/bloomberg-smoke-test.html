@@ -5,246 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bloomberg V6.40 - Masterpiece Smoke Test (Sovereign) | Nexus Institutional Terminal</title>
     <meta name="description" content="A 13-vertical high-fidelity strategic synthesis of the global and domestic institutional landscape.">
-    <meta name="keywords" content="GIFT City, IFSCA, Mutual Fund Inflows, PE/VC Deal Tracking, Institutional Market Intelligence, BlogsPro">
-    
-    <!-- Nexus Core Typography -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
-    <!-- Google Charts SDK -->
+    <meta name="keywords" content="Banking, Cards, Payments, Mutual Fund Inflows, PE/VC Deal Tracking, Institutional Market Intelligence, BlogsPro">
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <script type="text/javascript">
-        google.charts.load('current', {'packages':['corechart', 'table']});
-    </script>
-    
     <style>
         :root {
             --nexus-bg: #050505;
-            --nexus-sidebar: rgba(18, 18, 18, 0.98);
-            --nexus-glass: rgba(10, 10, 10, 0.9);
-            --nexus-accent: #BFA100; /* Bloomberg Gold */
-            --nexus-amber: #FFB800;  /* Data Amber */
-            --nexus-border: rgba(191, 161, 0, 0.15);
+            --nexus-sidebar: #0A0A0A;
+            --nexus-accent: #BFA100;
+            --nexus-amber: #FFB800;
+            --nexus-border: rgba(191, 161, 0, 0.2);
             --nexus-text-h1: #F8FAFC;
             --nexus-text-p: #D1D5DB;
-            --nexus-success: #4ADE80;
-            --nexus-warning: #F87171;
             --sidebar-width: 260px;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--nexus-bg); color: var(--nexus-text-p); font-family: 'Mulish', sans-serif; display: flex; margin: 0; min-height: 100vh; }
+        
+        .sidebar { width: var(--sidebar-width); background: var(--nexus-sidebar); border-right: 1px solid var(--nexus-border); padding: 1.5rem; position: fixed; height: 100vh; overflow-y: auto; }
+        .logo { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--nexus-text-h1); text-decoration: none; border-bottom: 2px solid var(--nexus-accent); padding-bottom: 0.5rem; display: block; margin-bottom: 2rem; }
+        .logo span { color: var(--nexus-amber); }
 
-        body {
-            background-color: var(--nexus-bg);
-            color: var(--nexus-text-p);
-            font-family: 'Inter', sans-serif;
-            display: flex;
-            min-height: 100vh;
-            overflow-x: hidden;
-            line-height: 1.6;
-        }
+        .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 4rem; max-width: 1100px; }
+        
+        .status-tag { font-family: 'JetBrains Mono', monospace; background: rgba(191, 161, 0, 0.1); color: var(--nexus-accent); padding: 0.3rem 0.7rem; font-size: 0.7rem; text-transform: uppercase; margin-bottom: 1.5rem; display: inline-block; border: 1px solid var(--nexus-border); }
+        h1 { font-size: 3rem; color: var(--nexus-text-h1); margin-bottom: 1.5rem; letter-spacing: -1px; font-weight: 800; }
+        h2 { font-family: 'JetBrains Mono', monospace; color: var(--nexus-accent); margin-top: 4rem; font-size: 1.4rem; text-transform: uppercase; border-top: 1px solid var(--nexus-border); padding-top: 2rem; }
+        
+        .excerpt { border-left: 4px solid var(--nexus-amber); padding-left: 1.5rem; margin: 2rem 0; font-size: 1.2rem; opacity: 0.9; font-style: italic; }
 
-        /* Bloomberg Sidebar - High Density */
-        .sidebar {
-            width: var(--sidebar-width);
-            background: var(--nexus-sidebar);
-            border-right: 1px solid var(--nexus-border);
-            padding: 1rem;
-            position: fixed;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            z-index: 100;
-            overflow-y: auto;
-        }
+        .table-container { margin: 2.5rem 0; background: #0A0A0A; border: 1px solid var(--nexus-border); }
+        table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+        th { text-align: left; padding: 1rem; background: rgba(191,161,0,0.05); color: var(--nexus-accent); border-bottom: 2px solid var(--nexus-accent); }
+        td { padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
-        .logo {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
-            font-size: 1rem;
-            color: var(--nexus-text-h1);
-            margin-bottom: 2rem;
-            letter-spacing: -0.5px;
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--nexus-accent);
-        }
-        .logo span { color: var(--nexus-amber); margin-left: 0.4rem; }
-
-        .nav-group { margin-bottom: 1.5rem; }
-        .nav-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.6rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            font-weight: 700;
-            margin-bottom: 0.8rem;
-            color: var(--nexus-accent);
-            padding-left: 0.5rem;
-            opacity: 0.6;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            padding: 0.5rem 0.8rem;
-            border-radius: 4px;
-            color: rgba(255,255,255,0.6);
-            text-decoration: none;
-            font-size: 0.8rem;
-            font-family: 'JetBrains Mono', monospace;
-            transition: all 0.1s;
-            margin-bottom: 0.2rem;
-            border-left: 2px solid transparent;
-        }
-
-        .nav-item:hover {
-            background: rgba(191, 161, 0, 0.05);
-            color: var(--nexus-accent);
-            border-left: 2px solid var(--nexus-accent);
-        }
-
-        /* Terminal Body Architecture */
-        .main-content {
-            margin-left: var(--sidebar-width);
-            flex: 1;
-            padding: 3rem 4rem;
-            max-width: 1200px;
-        }
-
-        header { margin-bottom: 3rem; }
-        .status-tag {
-            font-family: 'JetBrains Mono', monospace;
-            background: rgba(191, 161, 0, 0.1);
-            color: var(--nexus-accent);
-            padding: 0.2rem 0.6rem;
-            border-radius: 2px;
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-bottom: 1rem;
-            display: inline-block;
-            border: 1px solid var(--nexus-border);
-        }
-
-        h1 {
-            font-family: 'Inter', sans-serif;
-            font-size: 2.8rem;
-            color: var(--nexus-text-h1);
-            line-height: 1.1;
-            margin-bottom: 1rem;
-            letter-spacing: -1px;
-            font-weight: 800;
-        }
-
-        .excerpt {
-            font-size: 1.15rem;
-            color: var(--nexus-text-p);
-            max-width: 850px;
-            border-left: 4px solid var(--nexus-amber);
-            padding-left: 1.5rem;
-            margin: 1.5rem 0;
-            opacity: 0.8;
-        }
-
-        /* Terminal Typography */
-        .manuscript-body h2 {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.3rem;
-            color: var(--nexus-accent);
-            margin: 3.5rem 0 1.2rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border-top: 1px solid var(--nexus-border);
-            padding-top: 1.5rem;
-        }
-
-        .manuscript-body p {
-            font-size: 1.05rem;
-            margin-bottom: 1.5rem;
-            color: rgba(209, 213, 219, 0.85);
-        }
-
-        /* Bloomberg Table & Card Logic */
-        .card {
-            background: rgba(20, 20, 20, 0.5);
-            border: 1px solid var(--nexus-border);
-            border-left: 4px solid var(--nexus-accent);
-            padding: 1.5rem;
-            margin: 2.5rem 0;
-        }
-
-        .card-title {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: var(--nexus-amber);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 1.5rem;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-        }
-
-        th { text-align: left; padding: 0.8rem; border-bottom: 2px solid var(--nexus-accent); color: var(--nexus-accent); font-weight: 800; }
-        td { padding: 0.8rem; border-bottom: 1px solid var(--nexus-border); color: var(--nexus-amber); }
-
-        .f-success { color: var(--nexus-success); font-weight: 600; }
-        .f-warning { color: var(--nexus-warning); font-weight: 600; }
-
-        .table-container { overflow-x: auto; margin: 2rem 0; }
-
-        @media (max-width: 1024px) {
-            .sidebar { display: none; }
-            .main-content { margin-left: 0; padding: 2rem; }
-        }
+        .nav-item { display: block; padding: 0.6rem 0.8rem; color: rgba(255,255,255,0.6); text-decoration: none; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; border-left: 2px solid transparent; }
+        .nav-item:hover { background: rgba(191, 161, 0, 0.05); color: var(--nexus-accent); border-left: 2px solid var(--nexus-accent); }
     </style>
 </head>
 <body>
     <aside class="sidebar">
-        <a href="../../index.html" class="logo">NEXUS<span>TERMINAL</span></a>
-        
-        <div class="nav-group">
-            <div class="nav-label">Institutional Verticals</div>
-            <nav>
-                <a href="#macro" class="nav-item">Global Macro Drift</a>
-                <a href="#debt" class="nav-item">Debt & Sovereignty</a>
-                <a href="#digital" class="nav-item">Digital Rails</a>
-                <a href="#equities" class="nav-item">Equities & Alpha</a>
-                <a href="#reg" class="nav-item">Regulatory Ledger</a>
-                <a href="#fx" class="nav-item">FX & Cross-Border</a>
-                <a href="#commodity" class="nav-item">Commodity Pulse</a>
-                <a href="#em" class="nav-item">Emerging Markets</a>
-                <a href="#asset" class="nav-item">Asset Allocation</a>
-                <a href="#scribe" class="nav-item">Scribe Analytics</a>
-                <a href="#capital" class="nav-item">Capital Flows (PE/VC)</a>
-                <a href="#insurance" class="nav-item">Insurance & Risk</a>
-                <a href="#gift" class="nav-item">Offshore & GIFT City</a>
-            </nav>
-        </div>
-        
-        <div style="margin-top:auto; padding-top:2rem; border-top: 1px solid var(--nexus-border);">
-            <div style="font-size:0.6rem; color:rgba(255,255,255,0.2); text-transform:uppercase;">BlogsPro Intel Unit</div>
-            <div style="font-size:0.75rem; color:var(--nexus-accent); font-weight:600;">V6.30 Sovereign Pass</div>
-        </div>
+        <a href="/" class="logo">BLOGS<span>PRO</span></a>
+        <nav>
+            <a href="#" class="nav-item">STRATEGIC PULSE</a>
+            <a href="#" class="nav-item">INSTITUTIONAL FLOWS</a>
+            <a href="#" class="nav-item">ALPHA ROTATION</a>
+            <a href="#" class="nav-item">QUANTITATIVE DESK</a>
+        </nav>
     </aside>
 
     <main class="main-content">
         <header>
-            <div class="status-tag">Status: Institutional Manuscript • 29 March 2026</div>
+            <div class="status-tag">WEEKLY Institutional Manuscript • 31 March 2026</div>
             <h1>Bloomberg V6.40 - Masterpiece Smoke Test (Sovereign)</h1>
             <div class="excerpt">A 13-vertical high-fidelity strategic synthesis of the global and domestic institutional landscape.</div>
         </header>
 
-        <div class="manuscript-body">
-            <section id="macro" class="institutional-section"></p><p>            <h2>Global Macro Drift</h2>
-            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Global Macro Drift vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by India GDP: 7.2% (Institutional Est.)...</p>
+        <section class="manuscript-body">
+            <section id="macro" class="institutional-section">
+
+            <h2>Global Macro Drift</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Global Macro Drift vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by Global Macro: India GDP undefined%, US CPI undefin...</p>
             <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
             <div class="card">
                 <div class="card-title">Institutional Multi-Asset Drift - Global Macro Drift</div>
@@ -254,8 +75,10 @@
             
         
 </section>
-<section id="debt" class="institutional-section"></p><p>            <h2>Debt & Sovereignty</h2>
-            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Debt & Sovereignty vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by RBI: Auction of Government of India Dated Securiti...</p>
+<section id="debt" class="institutional-section">
+
+            <h2>Debt & Sovereignty</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Debt & Sovereignty vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by RBI: Supervisory Data Quality Index for Scheduled ...</p>
             <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
             <div class="card">
                 <div class="card-title">Institutional Multi-Asset Drift - Debt & Sovereignty</div>
@@ -265,8 +88,10 @@
             
         
 </section>
-<section id="equities" class="institutional-section"></p><p>            <h2>Equities & Alpha</h2>
-            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Equities & Alpha vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by SEBI: Order in the matter of Mr Yash Garg Propriet...</p>
+<section id="equities" class="institutional-section">
+
+            <h2>Equities & Alpha</h2>
+            <p><strong>Institutional Audit:</strong> Our recursive pulse of the Equities & Alpha vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by SEBI: Ex-Parte Interim Order in the matter of Elit...</p>
             <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
             <div class="card">
                 <div class="card-title">Institutional Multi-Asset Drift - Equities & Alpha</div>
@@ -276,7 +101,9 @@
             
         
 </section>
-<section id="mutual-funds" class="institutional-section"></p><p>            <h2>Institutional Mutual Funds</h2>
+<section id="mutual-funds" class="institutional-section">
+
+            <h2>Institutional Mutual Funds</h2>
             <p><strong>Institutional Audit:</strong> Our recursive pulse of the Institutional Mutual Funds vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by MF: Inflows at record ₹35,000Cr+, Sector rotation ...</p>
             <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
             <div class="card">
@@ -287,7 +114,9 @@
             
         
 </section>
-<section id="pe-vc" class="institutional-section"></p><p>            <h2>Private Equity & VC (CCIL)</h2>
+<section id="pe-vc" class="institutional-section">
+
+            <h2>Private Equity & VC (CCIL)</h2>
             <p><strong>Institutional Audit:</strong> Our recursive pulse of the Private Equity & VC (CCIL) vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by PE/VC: $1.2B deployed this week. Focus on Fintech/...</p>
             <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
             <div class="card">
@@ -298,7 +127,9 @@
             
         
 </section>
-<section id="insurance" class="institutional-section"></p><p>            <h2>Insurance Pulse (IRDAI)</h2>
+<section id="insurance" class="institutional-section">
+
+            <h2>Insurance Pulse (IRDAI)</h2>
             <p><strong>Institutional Audit:</strong> Our recursive pulse of the Insurance Pulse (IRDAI) vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by Insurance: Health segments outpace Motor; IRDAI ey...</p>
             <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
             <div class="card">
@@ -309,7 +140,9 @@
             
         
 </section>
-<section id="gift-city" class="institutional-section"></p><p>            <h2>GIFT City Catalyst (IFSCA)</h2>
+<section id="gift-city" class="institutional-section">
+
+            <h2>GIFT City Catalyst (IFSCA)</h2>
             <p><strong>Institutional Audit:</strong> Our recursive pulse of the GIFT City Catalyst (IFSCA) vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by GIFT City: Derivative turnover hits USD 30B daily;...</p>
             <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
             <div class="card">
@@ -320,7 +153,9 @@
             
         
 </section>
-<section id="digital" class="institutional-section"></p><p>            <h2>Digital Infrastructure</h2>
+<section id="digital" class="institutional-section">
+
+            <h2>Digital Infrastructure</h2>
             <p><strong>Institutional Audit:</strong> Our recursive pulse of the Digital Infrastructure vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by RBI CBDC/UPI 2.0 pulses active....</p>
             <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
             <div class="card">
@@ -331,7 +166,9 @@
             
         
 </section>
-<section id="fx" class="institutional-section"></p><p>            <h2>Foreign Exchange Drift</h2>
+<section id="fx" class="institutional-section">
+
+            <h2>Foreign Exchange Drift</h2>
             <p><strong>Institutional Audit:</strong> Our recursive pulse of the Foreign Exchange Drift vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by USDINR sovereign drift monitoring....</p>
             <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
             <div class="card">
@@ -342,7 +179,9 @@
             
         
 </section>
-<section id="commodities" class="institutional-section"></p><p>            <h2>Strategic Commodities</h2>
+<section id="commodities" class="institutional-section">
+
+            <h2>Strategic Commodities</h2>
             <p><strong>Institutional Audit:</strong> Our recursive pulse of the Strategic Commodities vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by Gold sovereign reserve delta pulse....</p>
             <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
             <div class="card">
@@ -353,7 +192,9 @@
             
         
 </section>
-<section id="em" class="institutional-section"></p><p>            <h2>Emerging Market Alpha</h2>
+<section id="em" class="institutional-section">
+
+            <h2>Emerging Market Alpha</h2>
             <p><strong>Institutional Audit:</strong> Our recursive pulse of the Emerging Market Alpha vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by BRICS+ systemic shift analysis....</p>
             <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
             <div class="card">
@@ -364,7 +205,9 @@
             
         
 </section>
-<section id="allocation" class="institutional-section"></p><p>            <h2>Systemic Asset Allocation</h2>
+<section id="allocation" class="institutional-section">
+
+            <h2>Systemic Asset Allocation</h2>
             <p><strong>Institutional Audit:</strong> Our recursive pulse of the Systemic Asset Allocation vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by Institutional cross-asset rebalancing....</p>
             <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
             <div class="card">
@@ -375,7 +218,9 @@
             
         
 </section>
-<section id="analytics" class="institutional-section"></p><p>            <h2>Scribe Quantitative Audit</h2>
+<section id="analytics" class="institutional-section">
+
+            <h2>Scribe Quantitative Audit</h2>
             <p><strong>Institutional Audit:</strong> Our recursive pulse of the Scribe Quantitative Audit vertical suggests a systemic volatility plateau. The primary drift factor is currently measured at 12.4% above institutional baselines, driven largely by Recursive drift synthesis metrics....</p>
             <p><strong>Risk Assessment:</strong> Second-order effects from the latest regulatory shift indicate a 40bp divergence in alpha targets. Institutional actors are repositioning exposure to mitigate sovereign liquidity drift.</p>
             <div class="card">
@@ -386,12 +231,11 @@
             
         
 </section>
-        </div>
 
-        <footer style="margin-top: 10rem; padding-top: 3rem; border-top: 1px solid var(--nexus-border); text-align: center;">
-            <p style="font-size: 0.75rem; color: rgba(248, 250, 252, 0.4); letter-spacing: 1px;">
-                © 2026 BLOGSPRO TERMINAL • ALL RIGHTS RESERVED • INSTITUTIONAL USE ONLY
-            </p>
+        </section>
+
+        <footer style="margin-top: 8rem; padding-top: 4rem; border-top: 1px solid var(--nexus-border); color: rgba(248, 250, 252, 0.4); font-size: 0.7rem; text-align: center;">
+            © 2026 BLOGSPRO TERMINAL • ALL RIGHTS RESERVED • INSTITUTIONAL USE ONLY
         </footer>
     </main>
     
@@ -402,14 +246,14 @@
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Period');
                 data.addColumn('number', 'Institutional Drift %');
-                data.addRows([["Q1", 5.384105546907315], ["Q2", 7.00069933145352], ["Q3", 7.687723615331655], ["Q4", 13.584911486872208]]);
+                data.addRows([["Q1", 6.738791999376254], ["Q2", 9.43321051054128], ["Q3", 6.08527519912132], ["Q4", 11.134906409598244]]);
 
                 const options = {
                     backgroundColor: 'transparent',
                     colors: ['#BFA100'],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
                     legend: { 
-                        position: 'top', 
+                        position: 'bottom', 
                         alignment: 'center',
                         textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
                     },
@@ -439,14 +283,14 @@
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Period');
                 data.addColumn('number', 'Institutional Drift %');
-                data.addRows([["Q1", 6.0029587595916105], ["Q2", 9.430933226752696], ["Q3", 7.184978448542099], ["Q4", 11.506696990631301]]);
+                data.addRows([["Q1", 6.666756128577254], ["Q2", 7.296005711896604], ["Q3", 6.49421023143881], ["Q4", 13.544057950973002]]);
 
                 const options = {
                     backgroundColor: 'transparent',
                     colors: ['#BFA100'],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
                     legend: { 
-                        position: 'top', 
+                        position: 'bottom', 
                         alignment: 'center',
                         textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
                     },
@@ -476,14 +320,14 @@
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Period');
                 data.addColumn('number', 'Institutional Drift %');
-                data.addRows([["Q1", 5.738652590682445], ["Q2", 7.395538281286161], ["Q3", 6.5474408207163135], ["Q4", 14.72450768159443]]);
+                data.addRows([["Q1", 6.23085357968449], ["Q2", 9.668647692429774], ["Q3", 6.459792678184841], ["Q4", 13.15219489864025]]);
 
                 const options = {
                     backgroundColor: 'transparent',
                     colors: ['#BFA100'],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
                     legend: { 
-                        position: 'top', 
+                        position: 'bottom', 
                         alignment: 'center',
                         textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
                     },
@@ -513,14 +357,14 @@
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Period');
                 data.addColumn('number', 'Institutional Drift %');
-                data.addRows([["Q1", 6.950064016900598], ["Q2", 8.998323906638696], ["Q3", 6.823793465677312], ["Q4", 14.911968243635364]]);
+                data.addRows([["Q1", 5.0616401698118905], ["Q2", 8.381503519685335], ["Q3", 6.855461626776698], ["Q4", 11.621015245057981]]);
 
                 const options = {
                     backgroundColor: 'transparent',
                     colors: ['#BFA100'],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
                     legend: { 
-                        position: 'top', 
+                        position: 'bottom', 
                         alignment: 'center',
                         textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
                     },
@@ -550,14 +394,14 @@
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Period');
                 data.addColumn('number', 'Institutional Drift %');
-                data.addRows([["Q1", 6.204075820814398], ["Q2", 9.156704133482888], ["Q3", 6.22684627689749], ["Q4", 11.95129560052865]]);
+                data.addRows([["Q1", 6.448371536000628], ["Q2", 9.468599399423397], ["Q3", 6.639827782428382], ["Q4", 11.625445374482128]]);
 
                 const options = {
                     backgroundColor: 'transparent',
                     colors: ['#BFA100'],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
                     legend: { 
-                        position: 'top', 
+                        position: 'bottom', 
                         alignment: 'center',
                         textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
                     },
@@ -587,14 +431,14 @@
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Period');
                 data.addColumn('number', 'Institutional Drift %');
-                data.addRows([["Q1", 5.014037965951621], ["Q2", 9.054733324972176], ["Q3", 6.092273866126067], ["Q4", 12.090203649395939]]);
+                data.addRows([["Q1", 5.823170046792406], ["Q2", 9.843861025927065], ["Q3", 6.380029837907071], ["Q4", 13.866712469465545]]);
 
                 const options = {
                     backgroundColor: 'transparent',
                     colors: ['#BFA100'],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
                     legend: { 
-                        position: 'top', 
+                        position: 'bottom', 
                         alignment: 'center',
                         textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
                     },
@@ -624,14 +468,14 @@
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Period');
                 data.addColumn('number', 'Institutional Drift %');
-                data.addRows([["Q1", 5.382349804261821], ["Q2", 9.933968531428693], ["Q3", 6.987102200235027], ["Q4", 12.83762877179257]]);
+                data.addRows([["Q1", 6.347806537383824], ["Q2", 9.47907235511893], ["Q3", 6.236712069499599], ["Q4", 14.043694741061447]]);
 
                 const options = {
                     backgroundColor: 'transparent',
                     colors: ['#BFA100'],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
                     legend: { 
-                        position: 'top', 
+                        position: 'bottom', 
                         alignment: 'center',
                         textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
                     },
@@ -661,14 +505,14 @@
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Period');
                 data.addColumn('number', 'Institutional Drift %');
-                data.addRows([["Q1", 5.802918800933185], ["Q2", 7.46490149965082], ["Q3", 6.730232741761969], ["Q4", 10.883304085384122]]);
+                data.addRows([["Q1", 6.047238908062653], ["Q2", 7.441511782839587], ["Q3", 6.597803338560261], ["Q4", 14.428426948328287]]);
 
                 const options = {
                     backgroundColor: 'transparent',
                     colors: ['#BFA100'],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
                     legend: { 
-                        position: 'top', 
+                        position: 'bottom', 
                         alignment: 'center',
                         textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
                     },
@@ -698,14 +542,14 @@
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Period');
                 data.addColumn('number', 'Institutional Drift %');
-                data.addRows([["Q1", 6.639005811459953], ["Q2", 9.341542088293519], ["Q3", 7.047088757165499], ["Q4", 12.880187525295959]]);
+                data.addRows([["Q1", 6.87295490644552], ["Q2", 8.078802818045649], ["Q3", 6.467133410716727], ["Q4", 11.810212869706055]]);
 
                 const options = {
                     backgroundColor: 'transparent',
                     colors: ['#BFA100'],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
                     legend: { 
-                        position: 'top', 
+                        position: 'bottom', 
                         alignment: 'center',
                         textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
                     },
@@ -735,14 +579,14 @@
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Period');
                 data.addColumn('number', 'Institutional Drift %');
-                data.addRows([["Q1", 6.475698628999613], ["Q2", 8.224562626214327], ["Q3", 7.726363428302131], ["Q4", 10.539682319271282]]);
+                data.addRows([["Q1", 5.418419915175695], ["Q2", 7.537363506359542], ["Q3", 7.61287256158081], ["Q4", 14.047649606557776]]);
 
                 const options = {
                     backgroundColor: 'transparent',
                     colors: ['#BFA100'],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
                     legend: { 
-                        position: 'top', 
+                        position: 'bottom', 
                         alignment: 'center',
                         textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
                     },
@@ -772,14 +616,14 @@
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Period');
                 data.addColumn('number', 'Institutional Drift %');
-                data.addRows([["Q1", 6.388308397424083], ["Q2", 9.821530945806604], ["Q3", 6.361027344389555], ["Q4", 10.83241758036518]]);
+                data.addRows([["Q1", 6.253863961615425], ["Q2", 9.951490133009749], ["Q3", 6.732557779551108], ["Q4", 11.069801787075061]]);
 
                 const options = {
                     backgroundColor: 'transparent',
                     colors: ['#BFA100'],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
                     legend: { 
-                        position: 'top', 
+                        position: 'bottom', 
                         alignment: 'center',
                         textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
                     },
@@ -809,14 +653,14 @@
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Period');
                 data.addColumn('number', 'Institutional Drift %');
-                data.addRows([["Q1", 5.507818286921063], ["Q2", 7.467494117763098], ["Q3", 6.453784075511234], ["Q4", 14.47545765162151]]);
+                data.addRows([["Q1", 6.998109002365986], ["Q2", 9.861193980751299], ["Q3", 7.277045406937899], ["Q4", 12.4216843691482]]);
 
                 const options = {
                     backgroundColor: 'transparent',
                     colors: ['#BFA100'],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
                     legend: { 
-                        position: 'top', 
+                        position: 'bottom', 
                         alignment: 'center',
                         textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
                     },
@@ -846,14 +690,14 @@
                 const data = new google.visualization.DataTable();
                 data.addColumn('string', 'Period');
                 data.addColumn('number', 'Institutional Drift %');
-                data.addRows([["Q1", 6.21362573319252], ["Q2", 9.179430644298874], ["Q3", 7.9036519090031145], ["Q4", 10.662825954489744]]);
+                data.addRows([["Q1", 6.0506008555594795], ["Q2", 9.264981473916205], ["Q3", 6.096540044433368], ["Q4", 13.66119650753051]]);
 
                 const options = {
                     backgroundColor: 'transparent',
                     colors: ['#BFA100'],
                     chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
                     legend: { 
-                        position: 'top', 
+                        position: 'bottom', 
                         alignment: 'center',
                         textStyle: {color: 'rgba(191,161,0,0.8)', fontSize: 10} 
                     },

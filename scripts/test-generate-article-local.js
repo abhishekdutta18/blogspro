@@ -1,11 +1,15 @@
 #!/usr/bin/env node
-const path = require("path");
-const fs = require("fs");
-const { 
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+import { 
     fetchMacroPulse, fetchRBIData, fetchSEBIData, 
     fetchMFData, fetchPEVCData, fetchInsuranceData, fetchGIFTCityData 
-} = require("./lib/data-fetchers.js");
-const { getBaseTemplate } = require("./lib/templates.js");
+} from "./lib/data-fetchers.js";
+import { getBaseTemplate } from "./lib/templates.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function testArticleGeneration() {
     console.log("🏛️  Starting BlogsPro V6.40 High-Fidelity Smoke Test...");

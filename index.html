@@ -1388,6 +1388,7 @@
   import { getAuth, onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { initIntelHub } from "./js/intel-hub.js";
+  import { loadHybridPosts } from "./js/posts.js";
 
   const firebaseConfig = {
     apiKey:            "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
@@ -2657,45 +2658,16 @@
   document.addEventListener('click', e => { if (!e.target.closest('#navUserBtn')) document.getElementById('navDropdown')?.classList.remove('open'); });
   window.doSignOut = async () => { await signOut(auth); window.location.reload(); };
 
-  // ── Load posts ─────────────────────────────────
+  // ── Load posts (Refactored to use Unified Hybrid Engine) ──────
   async function loadPosts() {
     try {
-      // 1. Fetch Manual Firestore Posts
-      const snap = await withTimeout(getDocs(query(
-        collection(db, 'posts'),
-        where('published', '==', true)
-      )), FIREBASE_TIMEOUT_MS, 'posts query');
+      allPosts = await loadHybridPosts();
       
-      let firestorePosts = snap.docs.map(d => ({ 
-        id: d.id, 
-        ...d.data(),
-        timestamp: d.data().createdAt?.toDate?.()?.getTime() || 0 
-      }));
-
-      // 2. Ingest Sovereign AI Pulses (Hybrid Index Expansion)
-      const briefingIndices = ['/briefings/daily/index.json', '/briefings/hourly/index.json', '/articles/weekly/index.json'];
-      const aiResults = await Promise.all(briefingIndices.map(url => 
-        fetch(url).then(r => r.ok ? r.json() : []).catch(() => [])
-      ));
-
-      let aiPosts = aiResults.flat().map(pulse => ({
-        id: pulse.fileName,
-        title: pulse.title,
-        excerpt: pulse.excerpt || "Institutional Strategic Intelligence",
-        category: pulse.type === 'briefing' ? 'Pulse' : 'Strategic',
-        authorName: "Bloomberg",
-        createdAt: { toDate: () => new Date(pulse.timestamp || Date.now()) },
-        timestamp: pulse.timestamp || Date.now(),
-        image: pulse.type === 'briefing' ? "" : "", // AI Pulses are high-density text
-        isAI: true,
-        path: pulse.type === 'briefing' ? `briefings/${pulse.frequency}/${pulse.fileName}` : `articles/${pulse.frequency}/${pulse.fileName}`
-      }));
-
-      // 3. Unify & Sort (The Sovereign Grid)
-      allPosts = [...firestorePosts, ...aiPosts].sort((a, b) => b.timestamp - a.timestamp);
-
       const postCountEl = document.getElementById('postCount');
       if (postCountEl) postCountEl.textContent = allPosts.length;
+      
+      // Calculate total views from Firestore posts only (AI pulses have no views)
+      const firestorePosts = allPosts.filter(p => !p.isAI);
       const totalViews = firestorePosts.reduce((sum, p) => sum + (p.views || 0), 0);
       const tvEl = document.getElementById('totalViewCount');
       if (tvEl) tvEl.textContent = fmtViews(totalViews);

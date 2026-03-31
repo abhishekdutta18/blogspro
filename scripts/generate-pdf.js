@@ -109,15 +109,24 @@ async function prepareForPrint(page) {
 }
 
 async function generatePDFs() {
-    const weeklyHtml = await getLatestFile(path.join(__dirname, '../articles/weekly'));
+    const inputDir = process.env.INPUT_DIR || path.join(__dirname, '../articles/weekly');
+    const outputDir = process.env.OUTPUT_DIR || path.join(__dirname, '../artifacts');
+    
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const weeklyHtml = await getLatestFile(inputDir);
     
     if (!weeklyHtml) {
-        console.log("No content to convert.");
+        console.log("No content to convert in:", inputDir);
         return;
     }
 
-    const browser = await puppeteer.launch({ headless: "new" });
-    const outputDir = '/Users/nandadulaldutta/.gemini/antigravity/brain/e6ec49bb-f90f-4b55-a43a-5dfcb780edf8';
+    const browser = await puppeteer.launch({ 
+        headless: "new",
+        args: ['--no-sandbox', '--disable-setuid-sandbox'] // Required for many CI environments
+    });
 
     console.log("Generating Unbreakable HTML+Charts Weekly PDF from:", weeklyHtml);
     const page = await browser.newPage();
@@ -130,7 +139,7 @@ async function generatePDFs() {
     await prepareForPrint(page);
     
     // Safety sleep just to make absolutely sure any chart animations finish
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, 5000));
 
     const outPath = path.join(outputDir, 'BlogsPro_Weekly_Briefing_Clean.pdf');
     await page.pdf({ 

@@ -4,7 +4,7 @@ import { initAuth, initLogout } from "./auth.js";
 import { initNav } from "./nav.js";
 import { initEditor } from "./editor.js";
 import { initDrawer } from "./ai-drawer.js";
-import "./posts.js";
+import { loadAll } from "./posts.js";
 import "./users.js";
 import "./subscribers.js";
 import "./newsletter.js";
@@ -49,6 +49,7 @@ async function boot() {
     initAIImages();
     initSiteSettings();
     initAdminAccount();
+    await loadAll();
     if (window.__ENABLE_POST_AUDIT__ === true) {
       import("./post-audit.js").catch(err => {
         console.warn("[post-audit] optional module failed to load:", err.message);

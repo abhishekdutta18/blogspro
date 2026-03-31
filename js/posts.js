@@ -97,6 +97,7 @@ export async function loadAll() {
     showToast('Failed to load: ' + (e.message || e.code), 'error');
   }
 }
+window.loadAll = loadAll;
 
 export function renderPostsTable(posts, tbodyId) {
   const tbody = document.getElementById(tbodyId);
@@ -311,3 +312,52 @@ export async function loadIntelligence() {
     }
 }
 window.loadIntelligence = loadIntelligence;
+
+/**
+ * HYBRID DATA ENGINE (The Sovereign Grid)
+ * Unified fetcher for Firestore Posts + AI Sovereign Pulses
+ */
+export async function loadHybridPosts() {
+    try {
+        // 1. Fetch Manual Firestore Posts
+        const snap = await withTimeout(getDocs(query(
+            collection(db, 'posts'),
+            orderBy('createdAt', 'desc')
+        )), FIREBASE_TIMEOUT_MS, 'posts query');
+        
+        let firestorePosts = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(p => p.published);
+
+        // 2. Ingest Sovereign AI Pulses
+        const briefingIndices = ['/briefings/daily/index.json', '/briefings/hourly/index.json', '/articles/weekly/index.json'];
+        const aiResults = await Promise.all(briefingIndices.map(url => 
+            fetch(url).then(r => r.ok ? r.json() : []).catch(() => [])
+        ));
+
+        let aiPosts = aiResults.flat().map(pulse => ({
+            id: pulse.fileName,
+            title: pulse.title,
+            excerpt: pulse.excerpt || "Institutional Strategic Intelligence",
+            category: pulse.type === 'briefing' ? 'Pulse' : 'Strategic',
+            authorName: "Bloomberg",
+            createdAt: { toDate: () => new Date(pulse.timestamp || Date.now()) },
+            timestamp: pulse.timestamp || Date.now(),
+            isAI: true,
+            path: pulse.type === 'briefing' ? `briefings/${pulse.frequency}/${pulse.fileName}` : `articles/${pulse.frequency}/${pulse.fileName}`
+        }));
+
+        // 3. Unify & Sort
+        const all = [...firestorePosts, ...aiPosts].sort((a, b) => {
+            const ta = a.timestamp || a.createdAt?.toMillis?.() || 0;
+            const tb = b.timestamp || b.createdAt?.toMillis?.() || 0;
+            return tb - ta;
+        });
+
+        return all;
+    } catch (err) {
+        console.error('[HybridEngine] Sync failed:', err);
+        throw err;
+    }
+}
+window.loadHybridPosts = loadHybridPosts;
