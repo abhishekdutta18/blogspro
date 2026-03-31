@@ -1354,7 +1354,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script type="text/javascript">
-  google.charts.load('current', { packages: ['corechart', 'gauge'] });
+  const chartsReadyPromise = google.charts.load('current', { packages: ['corechart', 'gauge'] });
   const CHART_THEME = {
     backgroundColor: '#0a0f1d',
     fontName: 'JetBrains Mono',
@@ -2949,9 +2949,11 @@
     const settingsOk = await loadSiteSettings().catch(() => false);
     const postsOk = await loadPosts().catch(() => false);
     const aboutOk = await loadAbout().catch(() => false);
+    // Wait for Google Charts before any chart-rendering calls.
+    // 5s timeout prevents a CDN failure from hanging the entire init sequence.
+    await Promise.race([chartsReadyPromise, new Promise(res => setTimeout(res, 5000))]);
     const forexOk = await loadForexFactoryData().catch(() => false);
     initForexCalendarControls();
-    await new Promise((res) => google.charts.setOnLoadCallback(res));
     const indiaOk = await loadIndiaCalendarData().catch(() => false);
     const marketOk = await loadUpstoxMarketData({ showLoading: true }).catch(() => false);
     const allOk = settingsOk && postsOk && aboutOk && forexOk && indiaOk && marketOk;
