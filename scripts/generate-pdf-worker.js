@@ -59,6 +59,18 @@ async function run() {
         document.head.appendChild(style);
     });
 
+    // --- 1. DETERMINE URL & ASSET KEY ---
+    const freq = process.env.FREQUENCY || 'weekly';
+    const type = process.env.TYPE || (freq === 'hourly' || freq === 'daily' ? 'briefing' : 'article');
+    
+    // Base URLs for the different types of generated content
+    const baseUrl = type === 'briefing' ? 'https://assets.blogspro.in/briefings' : 'https://assets.blogspro.in/articles';
+    const url = `${baseUrl}/${freq}/${FILE_NAME}`;
+    const pdfKey = `${type === 'briefing' ? 'briefings' : 'articles'}/${freq}/${FILE_NAME.replace('.html', '.pdf')}`;
+
+    console.log(`🖨️ [Worker] Generating PDF for: ${url}`);
+    console.log(`📦 [Worker] Targeted R2 Key: ${pdfKey}`);
+
     const pdfName = FILE_NAME.replace('.html', '.pdf');
     const localPath = path.join(OUTPUT_DIR || '.', pdfName);
 

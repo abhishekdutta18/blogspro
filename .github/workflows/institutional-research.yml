@@ -4,11 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       freq:
-        description: 'Frequency (weekly, monthly)'
+        description: 'Frequency (hourly, daily, weekly, monthly)'
         required: true
         default: 'weekly'
         type: choice
         options:
+          - hourly
+          - daily
           - weekly
           - monthly
       type:
@@ -24,6 +26,7 @@ jobs:
     outputs:
       tome_file: ${{ steps.swarm.outputs.tome_file }}
       tome_name: ${{ steps.swarm.outputs.tome_name }}
+      tome_type: ${{ steps.swarm.outputs.tome_type }}
     steps:
       - name: 🛰️ Checkout Repository
         uses: actions/checkout@v4
@@ -54,9 +57,11 @@ jobs:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           SWARM_INTERNAL_TOKEN: ${{ secrets.SWARM_INTERNAL_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_PAT }}
+          EXTENDED_MODE: true
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           mkdir -p ./dist
-          node scripts/generate-institutional-tome.js --freq=${{ github.event.inputs.freq }} --type=${{ github.event.inputs.type }}
+          node scripts/generate-institutional-tome.js --freq=${{ github.event.inputs.freq }} --type=${{ github.event.inputs.type }} --extended
 
   pdf-generation:
     name: 📄 PDF Manuscript Print
@@ -83,6 +88,7 @@ jobs:
       - name: 🖨️ Generate PDF Manuscript
         env:
           FILE_NAME: ${{ needs.research.outputs.tome_name }}
+          TYPE: ${{ needs.research.outputs.tome_type }}
           FREQUENCY: ${{ github.event.inputs.freq }}
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}

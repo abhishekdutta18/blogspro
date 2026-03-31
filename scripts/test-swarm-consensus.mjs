@@ -7,7 +7,8 @@ async function runTest() {
     const env = {
         GROQ_API_KEY: process.env.GROQ_API_KEY,
         GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-        CLAUDE_API_KEY: process.env.CLAUDE_API_KEY, // if available
+        CLAUDE_API_KEY: process.env.CLAUDE_API_KEY,
+        EXTENDED_MODE: true, // Trigger Deep-Reflect Logic
         
         // Mock MiroSync Durable Object push
         MIRO_SYNC: {
@@ -47,8 +48,8 @@ async function runTest() {
 
     try {
         // Run a 'briefing' type for speed (single vertical consolidation)
-        console.log("🔍 [Test] Executing Swarm (Type: briefing)...");
-        const result = await executeMultiAgentSwarm('hourly', semanticDigest, historicalData, 'briefing', env, 'test-job-001');
+        console.log("🔍 [Test] Executing Swarm (Type: article, Mode: EXTENDED)...");
+        const result = await executeMultiAgentSwarm('hourly', semanticDigest, historicalData, 'article', env, 'test-job-extended');
 
         console.log("\n✅ [Test] Swarm Result Summary:");
         console.log(`- Job ID: ${result.jobId}`);
@@ -57,6 +58,9 @@ async function runTest() {
         // Check for Consensus and Governor markers
         const hasConsensus = result.raw.includes("SWARM CONSENSUS");
         console.log(`- Includes Consensus Block: ${hasConsensus ? '✅ Yes' : '❌ No'}`);
+        
+        // Check for Refinement indicators (Deep-Reflect often results in higher word counts or specific phrasing)
+        console.log(`- Extended Mode Indicators: ${result.wordCount > 500 ? '✅ Passed (High Density)' : '⚠️ Moderate Density'}`);
 
         if (result.final.includes('FIDELITY_ERROR')) {
             console.error("❌ [Test] Fidelity Governor flagged a critical error.");

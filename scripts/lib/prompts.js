@@ -157,6 +157,48 @@ ${STRUCTURAL_RULES}
 `;
 }
 
+function getCriticPrompt(researchBrief, draft) {
+    return `
+${INSTITUTIONAL_PERSONA}
+ROLE: INSTITUTIONAL CRITIC
+TASK: Audit the research draft against the raw research brief.
+
+IDENTIFY:
+1. Gaps: What data from the research brief was ignored?
+2. Vague Claims: Where did the drafter use "filler" (e.g., "significant drift") instead of exact numbers?
+3. Bias: Is the analysis too one-dimensional?
+4. Technical Depth: Is the language too simple for a institutional desk?
+
+DRAFT:
+${draft}
+
+BRIEF:
+${researchBrief}
+
+OUTPUT: A bulleted list of "REQUIRED ENHANCEMENTS". Zero conversational fluff.
+`;
+}
+
+function getRefinementPrompt(draft, critique, verticalName) {
+    return `
+${INSTITUTIONAL_PERSONA}
+ROLE: LEAD REFINEMENT STRATEGIST
+TASK: Re-write and expand the research chapter for '${verticalName}' by incorporating the Institutional Critique.
+
+⚠️ NEW WORD TARGET: 1,200 - 1,500 WORDS. 
+FORCE-EXPAND every section. Use the critique to double-down on data-density.
+
+CRITIQUE:
+${critique}
+
+ORIGINAL DRAFT:
+${draft}
+
+MANDATORY: Address every point in the critique. Do not stop until you hit 1,200 words of dense analysis.
+${STRUCTURAL_RULES}
+`;
+}
+
 function getEditorPrompt(rawDraft, frequency) {
     const totalTarget = frequency === 'monthly' ? '20,000'
                       : frequency === 'weekly'  ? '10,000'
@@ -208,11 +250,12 @@ TASK: Synthesis of 5-10 conflicting tactical simulations into a unified institut
 SIMULATIONS:
 ${simulations}
 
-MANDATORY: 
-- Resolve conflicts between Bearish and Bullish agents.
-- Highlight the strongest divergence signals.
-- Output a single, authoritative 500-800 word strategic synthesis.
-- Include a final <chart-data> block summarizing 'Swarm Consensus Sentiment'.
+MANDATORY DELPHI-METHOD SYNTHESIS:
+1. Identify the "Strongest Minority View" (The outlier with the most data supporting it).
+2. Create 3 TACTICAL SCENARIOS (Base Case, Extreme Bull, Tail Risk Bear).
+3. Specify 16-vertical cross-asset correlations for each scenario.
+4. Output a single, authoritative 1,200-1,500 word strategic synthesis.
+5. Include a final <chart-data> block summarizing 'Swarm Consensus Sentiment' and 'Scenario Probability Weights' for each of the 3 scenarios.
 `;
 }
 
@@ -226,5 +269,7 @@ export {
     getDrafterPrompt,
     getEditorPrompt,
     getExpertPersonaPrompt,
-    getConsensusPrompt
+    getConsensusPrompt,
+    getCriticPrompt,
+    getRefinementPrompt
 };

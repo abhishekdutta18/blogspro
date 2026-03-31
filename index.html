@@ -1080,7 +1080,7 @@
 <!-- POSTS -->
 <section id="posts">
   <div class="section-header">
-    <h2 class="section-title">Latest Articles</h2>
+    <h2 class="section-title" id="postsTitle">Latest Articles</h2>
   </div>
   <div class="filters">
     <button class="filter-btn active" data-cat="all">All</button>
@@ -2665,6 +2665,12 @@
       
       const postCountEl = document.getElementById('postCount');
       if (postCountEl) postCountEl.textContent = allPosts.length;
+
+      const postsTitleEl = document.getElementById('postsTitle');
+      if (postsTitleEl) {
+          const isAdmin = state.currentUserProfile?.role === 'admin' || state.currentUser?.email === 'abhishekdutta18@gmail.com';
+          postsTitleEl.textContent = isAdmin ? 'Institutional Strategic Ledger' : 'Recent Market Pulses (Last 3 Generations)';
+      }
       
       // Calculate total views from Firestore posts only (AI pulses have no views)
       const firestorePosts = allPosts.filter(p => !p.isAI);

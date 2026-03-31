@@ -7,9 +7,13 @@ import {
   getEditorPrompt, 
   getArticlePrompt,
   getExpertPersonaPrompt,
-  getConsensusPrompt
+  getConsensusPrompt,
+  getCriticPrompt,
+  getRefinementPrompt
 } from "./prompts.js";
 import { validateAndRepair } from "./fidelity-governor.js";
+import { detectAndAlert } from "./black-swan-alert.js";
+import { dispatchInstitutionalAlert } from "./social-utils.js";
 
 /**
  * BlogsPro Swarm 4.0: Hierarchical Multi-Swarm Orchestrator
@@ -62,11 +66,12 @@ async function runConsensusDesk(frequency, semanticDigest, env) {
 
 export async function executeMultiAgentSwarm(frequency, semanticDigest, historicalData, type, env, jobId = null) {
   const isArticle = type === 'article';
+  const extended = !!env.EXTENDED_MODE; // Detect high-compute mode
   const targetVerticals = isArticle ? VERTICALS : [{ id: "consolidated", name: "Institutional Pulse" }];
   
   const id = jobId || `swarm-${Date.now()}`;
   const startTime = Date.now();
-  console.log(`🐝 [Swarm] Starting Hierarchical Orchestration [ID: ${id}] [Scale: ${targetVerticals.length} Swarms]`);
+  console.log(`🐝 [Swarm] Starting ${extended ? 'EXTENDED ' : ''}Hierarchical Orchestration [ID: ${id}]`);
 
   // --- 1. INITIALIZE DURABLE OBJECT ---
   let manuscriptDO = null;
@@ -89,25 +94,43 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
     const researchBrief = await askAI(getResearcherPrompt(frequency, semanticDigest, historicalData), {
       role: 'research',
       env,
-      model: 'gemini-3.1-pro'
+      model: 'gemini-1.5-pro'
     });
 
     // STAGE 2: THE DRAFTER (Structural Pass)
-    const chapterDraft = await askAI(getDrafterPrompt(frequency, researchBrief, vertical.name), {
+    let chapterContent = await askAI(getDrafterPrompt(frequency, researchBrief, vertical.name), {
       role: 'generate',
       env,
       model: 'llama-3.3-70b'
     });
 
+    // --- DEEP-REFLECT: CRITIC/REFINEMENT PASS (EXTENDED MODE ONLY) ---
+    if (extended) {
+        console.log(`🧐 [Deep-Reflect] Instituting Dissent: Auditing ${vertical.name}...`);
+        
+        const critique = await askAI(getCriticPrompt(researchBrief, chapterContent), {
+            role: 'edit',
+            env,
+            model: 'claude-3.5-sonnet'
+        });
+
+        console.log(`🖋️ [Deep-Reflect] Reinforcing Manuscript: Expanding ${vertical.name}...`);
+        chapterContent = await askAI(getRefinementPrompt(chapterContent, critique, vertical.name), {
+            role: 'generate',
+            env,
+            model: 'claude-3.5-sonnet'
+        });
+    }
+
     // UPDATE DURABLE OBJECT FOR PROGRESS
     if (manuscriptDO) {
       await manuscriptDO.fetch(new Request("https://do/update", {
         method: "POST",
-        body: JSON.stringify({ verticalId: vertical.id, content: chapterDraft })
+        body: JSON.stringify({ verticalId: vertical.id, content: chapterContent })
       }));
     }
 
-    combinedChapters += `\n\n${chapterDraft}`;
+    combinedChapters += `\n\n${chapterContent}`;
   }
 
   // STAGE 2.5: THE CONSENSUS DESK (Strategic Drift)
@@ -149,7 +172,24 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
   const latency = Date.now() - startTime;
   console.log(`✅ [Swarm] Hierarchical Pass Complete. Total Words: ${wordCount} [Latency: ${latency}ms]`);
 
-  // --- 5. LOG INSTITUTIONAL TELEMETRY ---
+  // --- 5. POST-GENERATION C2: RISK ALERTS & SOCIAL DISPATCH ---
+  if (extended) {
+    console.log("🛡️ [C2] Institutional Risk Guard: Scanning for Black Swan events...");
+    await detectAndAlert({ wordCount, raw: finalManuscript, jobId: id }, frequency);
+    
+    if (env.SLACK_WEBHOOK_URL) {
+        console.log("💎 [C2] Institutional Desk: Dispatching strategic summary...");
+        await dispatchInstitutionalAlert({
+            title: `${frequency.toUpperCase()} Strategic Manuscript`,
+            excerpt: semanticDigest.strategicLead || "Institutional Macro Drift Analysis.",
+            frequency,
+            wordCount,
+            jobId: id
+        }, env.SLACK_WEBHOOK_URL);
+    }
+  }
+
+  // --- 6. LOG INSTITUTIONAL TELEMETRY ---
   if (env.ANALYTICS) {
     try {
       env.ANALYTICS.writeDataPoint({

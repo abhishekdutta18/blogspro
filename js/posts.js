@@ -30,6 +30,14 @@ function formatViews(n) {
   return String(n);
 }
 
+function checkIfAdmin() {
+    // Super-admin escape hatch (owner email) or Firestore role
+    const profile = state.currentUserProfile;
+    const user = state.currentUser;
+    const isAdmin = profile?.role === 'admin' || user?.email === 'abhishekdutta18@gmail.com';
+    return isAdmin;
+}
+
 export async function loadAll() {
   window.__setAdminIntegrationStatus?.(null, 'Integrations: Syncing');
   ['statTotal','statPublished','statDrafts','statSubs'].forEach(id => {
@@ -348,11 +356,23 @@ export async function loadHybridPosts() {
         }));
 
         // 3. Unify & Sort
-        const all = [...firestorePosts, ...aiPosts].sort((a, b) => {
+        let all = [...firestorePosts, ...aiPosts].sort((a, b) => {
             const ta = a.timestamp || a.createdAt?.toMillis?.() || 0;
             const tb = b.timestamp || b.createdAt?.toMillis?.() || 0;
             return tb - ta;
         });
+
+        // 4. VISIBILITY GATE: Public sees only last 3 AI results
+        if (!checkIfAdmin()) {
+            console.log("🔒 [Security] Public view: Slicing AI results to last 3.");
+            const nonAI = all.filter(p => !p.isAI);
+            const limitedAI = all.filter(p => p.isAI).slice(0, 3);
+            all = [...nonAI, ...limitedAI].sort((a, b) => {
+                const ta = a.timestamp || a.createdAt?.toMillis?.() || 0;
+                const tb = b.timestamp || b.createdAt?.toMillis?.() || 0;
+                return tb - ta;
+            });
+        }
 
         return all;
     } catch (err) {
