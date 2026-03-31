@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const __dirname = typeof process !== 'undefined' ? path.dirname(fileURLToPath(import.meta.url)) : "";
+const __dirname = (typeof process !== 'undefined' && import.meta && import.meta.url && import.meta.url.startsWith('file:')) 
+  ? path.dirname(fileURLToPath(import.meta.url)) 
+  : "";
 
 // Firestore REST Client: $0 Managed State Layer
 async function syncToFirestore(collection, data, env) {
