@@ -22,6 +22,17 @@ const THEME = {
   palette:  ['#c9a84c','#93c5fd','#4ade80','#c4b5fd','#fca5a5','#fdba74','#6ee7b7'],
 };
 
+// HTML-escape AI-generated strings before injecting into HTML
+function esc(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function toNum(v) {
   if (typeof v === 'number') return v;
   if (typeof v === 'string') {
@@ -178,15 +189,15 @@ function buildBarChart(data) {
         const pct = Math.round((val / max) * 100);
         const color = THEME.palette[di % THEME.palette.length];
         return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span style="font-size:0.65rem;color:${THEME.muted};width:70px;flex-shrink:0;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ds.name}</span>
+          <span style="font-size:0.65rem;color:${THEME.muted};width:70px;flex-shrink:0;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(ds.name)}</span>
           <div style="flex:1;background:rgba(255,255,255,0.05);border-radius:2px;height:14px;overflow:hidden">
             <div style="width:${pct}%;height:100%;background:${color};border-radius:2px;transition:width 0.8s ease;min-width:2px"></div>
           </div>
-          <span style="font-size:0.68rem;color:${color};font-weight:700;min-width:56px;flex-shrink:0;text-align:right">${formatValue(val, unit)}</span>
+          <span style="font-size:0.68rem;color:${color};font-weight:700;min-width:56px;flex-shrink:0;text-align:right">${esc(formatValue(val, unit))}</span>
         </div>`;
       }).join('');
       return `<div style="margin-bottom:0.9rem">
-        <div style="font-size:0.75rem;color:${THEME.cream};font-weight:600;margin-bottom:4px">${label}</div>
+        <div style="font-size:0.75rem;color:${THEME.cream};font-weight:600;margin-bottom:4px">${esc(label)}</div>
         ${groupBars}
       </div>`;
     } else {
@@ -195,8 +206,8 @@ function buildBarChart(data) {
       const color = THEME.palette[i % THEME.palette.length];
       return `<div style="margin-bottom:0.6rem">
         <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-          <span style="font-size:0.75rem;color:${THEME.cream}">${label}</span>
-          <span style="font-size:0.75rem;color:${color};font-weight:700">${formatValue(val, unit)}</span>
+          <span style="font-size:0.75rem;color:${THEME.cream}">${esc(label)}</span>
+          <span style="font-size:0.75rem;color:${color};font-weight:700">${esc(formatValue(val, unit))}</span>
         </div>
         <div style="background:rgba(255,255,255,0.05);border-radius:3px;height:16px;overflow:hidden">
           <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,${color},${color}cc);border-radius:3px;transition:width 0.8s ease;min-width:4px"></div>
@@ -209,7 +220,7 @@ function buildBarChart(data) {
     ? `<div style="display:flex;flex-wrap:wrap;gap:0.6rem;margin-bottom:1rem">
         ${data.datasets.map((ds, di) => `
           <span style="display:flex;align-items:center;gap:4px;font-size:0.68rem;color:${THEME.muted}">
-            <span style="width:10px;height:10px;border-radius:2px;background:${THEME.palette[di % THEME.palette.length]};display:inline-block;flex-shrink:0"></span>${ds.name}
+            <span style="width:10px;height:10px;border-radius:2px;background:${THEME.palette[di % THEME.palette.length]};display:inline-block;flex-shrink:0"></span>${esc(ds.name)}
           </span>`).join('')}
       </div>` : '';
 
@@ -241,14 +252,14 @@ function buildLineChart(data) {
     const y = yScale(v);
     const label = formatValue(v, data.unit || '');
     return `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="${THEME.border}" stroke-width="1"/>
-            <text x="${padL - 4}" y="${y + 4}" text-anchor="end" font-size="9" fill="${THEME.muted}">${label}</text>`;
+            <text x="${padL - 4}" y="${y + 4}" text-anchor="end" font-size="9" fill="${THEME.muted}">${esc(label)}</text>`;
   }).join('');
 
   // X axis labels
   const xLabels = data.labels.map((lbl, i) => {
     const x = xScale(i);
     const show = n <= 8 || i % Math.ceil(n / 6) === 0 || i === n - 1;
-    return show ? `<text x="${x}" y="${H - 4}" text-anchor="middle" font-size="9" fill="${THEME.muted}">${lbl}</text>` : '';
+    return show ? `<text x="${x}" y="${H - 4}" text-anchor="middle" font-size="9" fill="${THEME.muted}">${esc(lbl)}</text>` : '';
   }).join('');
 
   // Series lines + dots
@@ -273,7 +284,7 @@ function buildLineChart(data) {
     ? `<div style="display:flex;flex-wrap:wrap;gap:0.6rem;margin-top:0.5rem">
         ${data.datasets.map((ds, di) => `
           <span style="display:flex;align-items:center;gap:4px;font-size:0.68rem;color:${THEME.muted}">
-            <span style="width:16px;height:2px;background:${THEME.palette[di % THEME.palette.length]};display:inline-block"></span>${ds.name}
+            <span style="width:16px;height:2px;background:${THEME.palette[di % THEME.palette.length]};display:inline-block"></span>${esc(ds.name)}
           </span>`).join('')}
       </div>` : '';
 
@@ -323,16 +334,16 @@ function buildPieChart(data) {
   const legend = slices.map(s =>
     `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
       <span style="width:12px;height:12px;border-radius:2px;background:${s.color};flex-shrink:0;display:inline-block"></span>
-      <span style="font-size:0.75rem;color:${THEME.cream};flex:1">${s.label}</span>
+      <span style="font-size:0.75rem;color:${THEME.cream};flex:1">${esc(s.label)}</span>
       <span style="font-size:0.75rem;font-weight:700;color:${s.color}">${s.pct}%</span>
-      <span style="font-size:0.7rem;color:${THEME.muted}">${formatValue(s.val, data.unit || '')}</span>
+      <span style="font-size:0.7rem;color:${THEME.muted}">${esc(formatValue(s.val, data.unit || ''))}</span>
     </div>`
   ).join('');
 
   const svg = `<svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg" style="width:180px;height:180px;flex-shrink:0">
     ${slices.map(s => s.path).join('')}
     <circle cx="${CX}" cy="${CY}" r="${IR - 3}" fill="${THEME.bg2}"/>
-    <text x="${CX}" y="${CY - 6}" text-anchor="middle" font-size="11" fill="${THEME.cream}" font-weight="700">${formatValue(vals.reduce((a,b)=>a+b,0), data.unit || '')}</text>
+    <text x="${CX}" y="${CY - 6}" text-anchor="middle" font-size="11" fill="${THEME.cream}" font-weight="700">${esc(formatValue(vals.reduce((a,b)=>a+b,0), data.unit || ''))}</text>
     <text x="${CX}" y="${CY + 10}" text-anchor="middle" font-size="9" fill="${THEME.muted}">Total</text>
   </svg>`;
 
@@ -356,8 +367,8 @@ function buildStatsCards(data) {
     const val   = series.values[i];
     const color = THEME.palette[i % THEME.palette.length];
     return `<div style="flex:1;min-width:120px;background:${THEME.bg2};border:1px solid ${color}33;border-radius:6px;padding:0.9rem 1rem;text-align:center">
-      <div style="font-size:1.6rem;font-weight:800;color:${color};line-height:1;margin-bottom:0.35rem">${data.unit||''}${val}</div>
-      <div style="font-size:0.72rem;color:${THEME.muted};line-height:1.3">${label}</div>
+      <div style="font-size:1.6rem;font-weight:800;color:${color};line-height:1;margin-bottom:0.35rem">${esc(data.unit||'')}${esc(val)}</div>
+      <div style="font-size:0.72rem;color:${THEME.muted};line-height:1.3">${esc(label)}</div>
     </div>`;
   }).join('');
 
@@ -377,16 +388,16 @@ function buildDataTable(data) {
 
   const thead = `<tr>
     <th style="padding:0.6rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;position:sticky;left:0;background:${THEME.bg2};z-index:2"></th>
-    ${headers.map(h => `<th style="padding:0.6rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;background:${THEME.bg2}">${h}</th>`).join('')}
+    ${headers.map(h => `<th style="padding:0.6rem 0.75rem;text-align:left;font-size:0.7rem;font-weight:700;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;background:${THEME.bg2}">${esc(h)}</th>`).join('')}
   </tr>`;
 
   const tbody = rows.map((row, ri) => {
     const bg = ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.025)';
     const cells = (row.values || []).map(v =>
-      `<td style="padding:0.55rem 0.75rem;font-size:0.78rem;color:${THEME.cream};border-bottom:1px solid ${THEME.border};vertical-align:top;white-space:normal;line-height:1.45">${v}</td>`
+      `<td style="padding:0.55rem 0.75rem;font-size:0.78rem;color:${THEME.cream};border-bottom:1px solid ${THEME.border};vertical-align:top;white-space:normal;line-height:1.45">${esc(v)}</td>`
     ).join('');
     return `<tr style="background:${bg}">
-      <td style="padding:0.55rem 0.75rem;font-size:0.78rem;font-weight:600;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;position:sticky;left:0;background:${THEME.bg}">${row.name||''}</td>
+      <td style="padding:0.55rem 0.75rem;font-size:0.78rem;font-weight:600;color:${THEME.gold};border-bottom:1px solid ${THEME.border};white-space:nowrap;position:sticky;left:0;background:${THEME.bg}">${esc(row.name||'')}</td>
       ${cells}
     </tr>`;
   }).join('');
@@ -395,7 +406,7 @@ function buildDataTable(data) {
     `<div style="overflow-x:auto;border:1px solid ${THEME.border};border-radius:6px">
       <table style="width:100%;min-width:680px;border-collapse:collapse;font-family:var(--sans,sans-serif);table-layout:auto">
         <caption style="caption-side:top;text-align:left;padding:0.6rem 0.75rem;color:${THEME.muted};font-size:0.7rem;border-bottom:1px solid ${THEME.border}">
-          ${data.name || data.title || 'Comparison Table'}
+          ${esc(data.name || data.title || 'Comparison Table')}
         </caption>
         <thead>${thead}</thead>
         <tbody>${tbody}</tbody>
@@ -412,7 +423,7 @@ function _chartWrapper(data, innerHTML) {
   const chartName = data.name || data.title || 'Data Visualization';
   const chartId = data._chartId || '';
   return `
-<div class="bp-chart-block" id="${chartId}" data-chart-name="${chartName}" style="
+<div class="bp-chart-block" id="${esc(chartId)}" data-chart-name="${esc(chartName)}" style="
   background:${THEME.bg};
   border:1px solid ${THEME.border};
   border-left:3px solid ${THEME.gold};
@@ -422,11 +433,11 @@ function _chartWrapper(data, innerHTML) {
   font-family:var(--sans,sans-serif);
 ">
   <div style="margin-bottom:0.9rem">
-    <div style="font-size:0.68rem;font-weight:600;color:${THEME.gold};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px">${chartName}</div>
-    <div style="font-size:0.82rem;font-weight:700;color:${THEME.cream};margin-bottom:2px">${data.title || 'Data Visualization'}</div>
-    ${data.subtitle ? `<div style="font-size:0.7rem;color:${THEME.muted}">${data.subtitle}</div>` : ''}
+    <div style="font-size:0.68rem;font-weight:600;color:${THEME.gold};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px">${esc(chartName)}</div>
+    <div style="font-size:0.82rem;font-weight:700;color:${THEME.cream};margin-bottom:2px">${esc(data.title || 'Data Visualization')}</div>
+    ${data.subtitle ? `<div style="font-size:0.7rem;color:${THEME.muted}">${esc(data.subtitle)}</div>` : ''}
   </div>
   ${innerHTML}
-  ${data.source ? `<div style="margin-top:0.8rem;font-size:0.65rem;color:${THEME.muted};border-top:1px solid ${THEME.border};padding-top:0.5rem;font-style:italic">${data.source}</div>` : ''}
+  ${data.source ? `<div style="margin-top:0.8rem;font-size:0.65rem;color:${THEME.muted};border-top:1px solid ${THEME.border};padding-top:0.5rem;font-style:italic">${esc(data.source)}</div>` : ''}
 </div>`;
 }
