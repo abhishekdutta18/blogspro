@@ -24,11 +24,11 @@ jobs:
           NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
         run: |
           # 1. Standard Deploy
-          npx wrangler@3 deploy
+          npx wrangler@3 deploy --env newsletter
 
           # 2. Push Secrets with Guards
-          [ -n "$RESEND_API_KEY" ] && echo "$RESEND_API_KEY" | npx wrangler@3 secret put RESEND_API_KEY || echo "Skipping RESEND_API_KEY"
-          [ -n "$NEWSLETTER_SECRET" ] && echo "$NEWSLETTER_SECRET" | npx wrangler@3 secret put NEWSLETTER_SECRET || echo "Skipping NEWSLETTER_SECRET"
+          [ -n "$RESEND_API_KEY" ] && echo "$RESEND_API_KEY" | npx wrangler@3 secret put RESEND_API_KEY --env newsletter || echo "Skipping RESEND_API_KEY"
+          [ -n "$NEWSLETTER_SECRET" ] && echo "$NEWSLETTER_SECRET" | npx wrangler@3 secret put NEWSLETTER_SECRET --env newsletter || echo "Skipping NEWSLETTER_SECRET"
           echo "✓ Newsletter worker secrets pushed"
 
   notify-failure:
