@@ -90,6 +90,19 @@ class_name = "ManuscriptAggregator"
 binding = "snapshots"
 bucket_name = "blogspro-affine-snapshots"
 
+# --- MICRO-MIGRATIONS (Scoped strictly to the DO script environment) ---
+[[env.miro-sync.migrations]]
+tag = "v1"
+new_sqlite_classes = ["MiroSync"]
+
+[[env.miro-sync.migrations]]
+tag = "v2"
+new_sqlite_classes = ["DataIngestor"]
+
+[[env.miro-sync.migrations]]
+tag = "v3"
+new_sqlite_classes = ["ManuscriptAggregator"]
+
 # --- NEWSLETTER WORKER ---
 [env.newsletter]
 name = "blogspro-newsletter"
@@ -143,16 +156,3 @@ name = "blogspro-templates"
 main = "scripts/template-worker.js"
 compatibility_date = "2024-12-30"
 compatibility_flags = [ "nodejs_compat" ]
-
-# --- GLOBAL MIGRATIONS ---
-[[migrations]]
-tag = "v1"
-new_sqlite_classes = ["MiroSync"]
-
-[[migrations]]
-tag = "v2"
-new_sqlite_classes = ["DataIngestor"]
-
-[[migrations]]
-tag = "v3"
-new_sqlite_classes = ["ManuscriptAggregator"]
