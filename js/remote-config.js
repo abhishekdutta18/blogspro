@@ -10,6 +10,7 @@ import {
 
 
 export let AI_KEYS = {};
+export let NEWSLETTER_CONFIG = { url: '', secret: '' };
 
 function hasUsableAiWorkerBase() {
   const candidates = [
@@ -58,6 +59,12 @@ export async function loadRemoteConfig() {
       together:   getValue(remoteConfig, 'together_key').asString(),
       deepinfra:  getValue(remoteConfig, 'deepinfra_key').asString(),
       gemini:     getValue(remoteConfig, 'gemini_key').asString(),
+    };
+
+    NEWSLETTER_CONFIG = {
+      url:    getValue(remoteConfig, 'newsletter_worker_url').asString()
+              || 'https://blogspro-newsletter.abhishek-dutta1996.workers.dev',
+      secret: getValue(remoteConfig, 'newsletter_secret').asString(),
     };
 
     console.log('[remote-config] AI keys loaded (auto fallback mode)');

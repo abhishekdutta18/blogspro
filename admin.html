@@ -245,7 +245,7 @@ function onModelChange(val) {
           <p style="font-size:0.6rem; color:var(--muted); margin-top:0.2rem">Required for UI-to-GitHub triggering. Stored only in your browser.</p>
         </div>
         
-        <button id="btnTerminalDispatch" onclick="triggerTerminalDispatch()" class="v2-gen-btn" style="background:var(--emerald); border-color:var(--emerald); padding:0.6rem; font-size:0.8rem;">
+        <button id="btnTerminalDispatch" onclick="window.triggerTerminalDispatch?.()" class="v2-gen-btn" style="background:var(--emerald); border-color:var(--emerald); padding:0.6rem; font-size:0.8rem;">
           ⚡ Trigger Weekly Pipeline
         </button>
 
@@ -1069,7 +1069,7 @@ function onModelChange(val) {
               <div style="font-size:0.75rem;color:var(--muted);margin-top:0.25rem">Active</div>
             </div>
           </div>
-          <button onclick="loadSubscriberAnalytics()" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;margin-bottom:0.8rem">🔄 Refresh Stats</button>
+          <button onclick="window.loadSubscriberAnalytics?.()" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;margin-bottom:0.8rem">🔄 Refresh Stats</button>
           <div style="font-size:0.75rem;color:var(--muted);text-align:center">Last updated: <span id="statsLastUpdated">—</span></div>
         </div>
         <div class="saas-panel blue-accent" style="margin-top:1rem">
