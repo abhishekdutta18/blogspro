@@ -21,7 +21,7 @@ import { initSiteSettings } from "./site-settings.js";
 import { initAdminAccount } from "./admin-account.js";
 import { initHealthMonitor } from "./health.js";
 
-// ── Sentry is initialised in admin.html via Sentry.onLoad() — do NOT
+// ── Sentry is initialised via js/sentry-init-v2.js on all pages — do NOT
 //    call Sentry.init() here. Just use window.Sentry when available. ──
 function setAdminIntegrationStatus(mode, label) {
   const badge = document.getElementById("integrationBadgeAdmin");

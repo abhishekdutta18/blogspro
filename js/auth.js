@@ -8,7 +8,7 @@ import { state }                          from './state.js';
 import { loadAll }                        from './posts.js';
 import { identifyUser }                   from './analytics.js';
 
-// Sentry is loaded via admin.html CDN script + Sentry.onLoad().
+// Sentry is loaded via js/sentry-init-v2.js shared bootstrap.
 // It may not be ready when this module first executes, so we wrap
 // all Sentry calls in a helper that defers until onLoad fires. ─────────
 function sentryCaptureException(err) {
