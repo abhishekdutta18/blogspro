@@ -21,8 +21,9 @@ export async function dispatchSwarm(frequency = 'daily') {
   const btn = document.getElementById(btnId);
 
   if (!pat) {
-    showToast('GitHub PAT missing. Please enter it in the Terminal Dispatch section first.', 'error');
-    window.showView('seotools'); // Redirect to where PAT input usually is, or just focus it
+    showToast('GitHub PAT missing. Enter it in the Dashboard → Autonomous AI Operations section.', 'error');
+    window.showView('dashboard');
+    setTimeout(() => document.getElementById('ghPatInput')?.focus(), 300);
     return;
   }
 
