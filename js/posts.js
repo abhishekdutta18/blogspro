@@ -10,6 +10,7 @@ import {
   collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc,
   query, orderBy, limit, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { cachedFetch } from './worker-endpoints.js';
 
 const FIREBASE_TIMEOUT_MS = 12000;
 function withTimeout(promise, ms = FIREBASE_TIMEOUT_MS, label = 'request') {
@@ -343,8 +344,8 @@ export async function loadHybridPosts() {
 
         // 2. Ingest Sovereign AI Pulses
         const briefingIndices = ['/briefings/daily/index.json', '/briefings/hourly/index.json', '/articles/weekly/index.json'];
-        const aiResults = await Promise.all(briefingIndices.map(url => 
-            fetch(url).then(r => r.ok ? r.json() : []).catch(() => [])
+        const aiResults = await Promise.all(briefingIndices.map(url =>
+            cachedFetch(url).then(r => r.ok ? r.json() : []).catch(() => [])
         ));
 
         let aiPosts = aiResults.flat().map(pulse => ({

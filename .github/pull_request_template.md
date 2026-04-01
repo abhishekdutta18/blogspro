@@ -11,6 +11,9 @@ Describe what changed and why.
 
 Mark all items before requesting review.
 
+- [ ] No hard-coded AI provider URLs; all go through `worker-endpoints.js`.
+- [ ] AI routing still falls back to free tiers (Gemini 1.5, HF) and skips paid 2.x.
+- [ ] Dispatch buttons succeed via worker or GH token fallback (`js/terminal-dispatch.js`).
 - [ ] `js/posts.js` still saves required author fields on post save: `authorUid`, `authorName`, `authorEmail`.
 - [ ] Author fallback rendering is intact in all views:
   - [ ] [index.html](/Users/nandadulaldutta/Documents/New%20project/index.html) post cards (`name -> email prefix -> BlogsPro`)
@@ -34,6 +37,7 @@ Mark all items before requesting review.
 
 - [ ] No Firestore rule-impacting changes
 - [ ] Firestore fields/rules changed (explain below)
+- [ ] CSP updated where needed and verified (admin/index)
 
 If changed, explain migration or compatibility notes:
 
@@ -45,4 +49,3 @@ Attach before/after UI screenshots or logs for changed behavior.
 
 - Risk level: `low` | `medium` | `high`
 - Rollback plan:
-

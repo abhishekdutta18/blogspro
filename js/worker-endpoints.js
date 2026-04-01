@@ -4,6 +4,7 @@
 const LEGACY_GITHUB_PUSH_WORKER = "https://github-push.abhishek-dutta1996.workers.dev";
 const NON_AI_WORKERS = [LEGACY_GITHUB_PUSH_WORKER];
 const AI_FALLBACK_WORKER = LEGACY_GITHUB_PUSH_WORKER; // temporary default for AI calls when none configured
+const DEFAULT_CACHE_WORKER = "https://blogspro-kv-cache.abhishek-dutta1996.workers.dev";
 
 const configuredBases = [
   window.__AI_API_BASE__,
@@ -62,6 +63,23 @@ export function workerUrl(path = "", base = null) {
   const p = String(path || "").replace(/^\/+/, "");
   const resolvedBase = normalizeBase(base || workerCandidates(path)[0]);
   return `${resolvedBase}/${p}`;
+}
+
+function cacheWorkerBase() {
+  const override = window.__CACHE_WORKER_URL__ || localStorage.getItem("bp_cache_worker_url");
+  return normalizeBase(override || DEFAULT_CACHE_WORKER);
+}
+
+// GET-only cached fetch via KV worker; falls back to direct fetch on error
+export async function cachedFetch(targetUrl) {
+  const base = cacheWorkerBase();
+  if (!base) return fetch(targetUrl);
+  const url = `${base}/?target=${encodeURIComponent(targetUrl)}`;
+  try {
+    const res = await fetch(url, { method: "GET" });
+    if (res.ok) return res;
+  } catch (_) {}
+  return fetch(targetUrl);
 }
 
 export async function workerFetch(path, init = {}) {

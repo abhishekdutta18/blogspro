@@ -1,0 +1,17 @@
+name: Dependabot Auto Approve + Label
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches: [main]
+
+jobs:
+  label-dependabot:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add deps label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: deps
+          github_token: ${{ secrets.GITHUB_TOKEN }}
