@@ -20,11 +20,10 @@
       return;
     }
 
-    // Known transient domains — CORS/network failures from these are expected
-    // and should not be sent to Sentry.
+    // Known transient domains — routine CORS/network poll failures from these
+    // hosts are expected and should not flood Sentry. Auth/token errors are
+    // still allowed through so expired Upstox tokens surface in the dashboard.
     const NOISY_HOSTS = [
-      "blogspro-upstox",
-      "abhishek-dutta1996.workers.dev",
       "ticker.json",
       "tradingview.com",
       "s3.tradingview.com",
@@ -67,13 +66,20 @@
       ],
 
       beforeSend(event, hint) {
-        // Drop events whose stack or request URL contains a known noisy host
         const msg = (event.message || "") + JSON.stringify(hint?.originalException || "");
+
+        // Always let Upstox auth/token errors through to Sentry
+        const isUpstoxAuth = msg.includes("tokenExpired") || msg.includes("TOKEN EXPIRED") ||
+          (msg.includes("upstox") && /401|auth|token/i.test(msg));
+        if (isUpstoxAuth) return event;
+
+        // Drop events from known noisy polling hosts (CORS/network transients only)
         if (NOISY_HOSTS.some(h => msg.includes(h))) return null;
 
-        // Drop fetch/network errors that are just market-data polling failures
+        // Drop generic fetch/network errors from market-data background polling
         const err = hint?.originalException;
-        if (err instanceof TypeError && /fetch|network/i.test(err.message)) return null;
+        if (err instanceof TypeError && /fetch|network/i.test(err.message) &&
+            msg.includes("workers.dev")) return null;
 
         return event;
       },

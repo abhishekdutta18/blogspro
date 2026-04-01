@@ -2,7 +2,7 @@ const fetch = require("node-fetch");
 
 async function testUpstoxWorker() {
     console.log("🚀 Testing Upstox Cloudflare Worker...");
-    const url = "https://blogspro-upstox.abhishek-dutta1996.workers.dev/quotes?symbols=NSE_INDEX%7CNifty%2050";
+    const url = "https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/quotes?symbols=NSE_INDEX%7CNifty%2050";
     
     try {
         const res = await fetch(url);

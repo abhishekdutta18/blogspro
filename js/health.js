@@ -36,27 +36,34 @@ async function initFinancialHealth() {
     const refresh = async () => {
         try {
             const start = Date.now();
-            const res = await fetch('https://blogspro-upstox.abhishek-dutta1996.workers.dev/quotes');
+            const res = await fetch('https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/quotes');
             const latency = Date.now() - start;
             const data = await res.json();
             
-            const isOk = data.status === 'success';
+            const isOk = res.ok && data.status === 'success';
+            const isExpired = res.status === 401 || data.tokenExpired === true || data.message?.includes('Token') || data.message?.includes('expired');
+            const statusLabel = isOk && !isExpired ? 'CONNECTED' : (isExpired ? 'TOKEN EXPIRED' : 'ERROR');
+            const recordCount = data.data ? Object.keys(data.data).length : 0;
             card.innerHTML = `
                 <div class="stat-mini">
                     <span>Upstox API</span>
-                    <span style="color:${isOk ? 'var(--emerald)' : 'var(--red)'}">${isOk ? 'CONNECTED' : 'EXPIRED'}</span>
+                    <span style="color:${isOk ? 'var(--emerald)' : 'var(--red)'}">${statusLabel}</span>
                 </div>
                 <div class="stat-mini">
                     <span>Latency</span>
-                    <span>${latency}ms</span>
+                    <span style="color:${latency < 3000 ? 'var(--emerald)' : 'var(--gold)'}">${latency}ms</span>
                 </div>
                 <div class="stat-mini">
-                    <span>Data Freshness</span>
-                    <span style="color:var(--gold)">LIVE</span>
+                    <span>Records</span>
+                    <span style="color:var(--gold)">${recordCount} symbols</span>
                 </div>
             `;
+            if (isExpired) {
+                console.warn('[health] Upstox token expired — update at https://developer.upstox.com/dashboard');
+            }
         } catch (e) {
-            card.innerHTML = '<div style="color:var(--red);font-size:0.7rem">Financial Proxy Offline</div>';
+            console.warn('[health] Upstox fetch failed:', e.message);
+            card.innerHTML = `<div style="color:var(--red);font-size:0.7rem">Financial Proxy Offline: ${e.message}</div>`;
         }
     };
 
