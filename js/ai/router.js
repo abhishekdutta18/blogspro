@@ -22,8 +22,10 @@ async function callGeminiDirect(prompt) {
 
   // Use free/public Gemini endpoints first to avoid paid usage
   const variants = [
-    "gemini-1.5-flash-latest",
+    "gemini-1.5-flash-002",
     "gemini-1.5-flash",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-pro-002",
     "gemini-1.5-pro-latest",
   ];
   let lastErr = null;
