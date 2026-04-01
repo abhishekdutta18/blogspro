@@ -160,14 +160,23 @@ export default {
           fetch(
             `${UPSTOX_API}/market-quote/quotes?symbol=${encodeURIComponent(nseIndexSymbols)}`,
             { headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` } }
-          ).then((r) => r.json()).catch(() => null),
+          ).then((r) => {
+            if (r.status === 401) {
+              console.error("[upstox-worker] Token expired or invalid (401)");
+              return { _tokenExpired: true, data: {} };
+            }
+            if (!r.ok) return null;
+            return r.json();
+          }).catch(() => null),
           ...yfMap.map(fetchYfChart),
         ]);
 
         const merged = {};
 
         // Upstox NSE indices
-        const upstoxData = upstoxRes.status === "fulfilled" ? (upstoxRes.value?.data || {}) : {};
+        const upstoxValue = upstoxRes.status === "fulfilled" ? upstoxRes.value : null;
+        const tokenExpired = upstoxValue?._tokenExpired === true;
+        const upstoxData = tokenExpired ? {} : (upstoxValue?.data || {});
         Object.assign(merged, upstoxData);
 
         // Yahoo Finance — each result is [instrKey, cardData] or null
@@ -214,9 +223,9 @@ export default {
         }
 
         if (!Object.keys(merged).length) {
-          return jsonResponse({ status: "error", message: "All data sources failed" }, 503);
+          return jsonResponse({ status: "error", message: "All data sources failed", tokenExpired }, 503);
         }
-        return jsonResponse({ status: "success", data: merged }, 200, { "Cache-Control": "public, max-age=15" });
+        return jsonResponse({ status: "success", data: merged, tokenExpired }, 200, { "Cache-Control": "public, max-age=15" });
       }
 
       if (url.pathname === "/historical") {
