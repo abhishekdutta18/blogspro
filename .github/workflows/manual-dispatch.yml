@@ -22,21 +22,27 @@ on:
         default: false
         type: boolean
 
+concurrency:
+  group: manual-dispatch-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
 jobs:
   dispatch:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
       - name: Install dependencies
-        run: npm install
+        run: npm ci --no-audit --fund=false
       - name: Execute Autonomous Briefing/Article
+        timeout-minutes: 25
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -66,7 +72,7 @@ jobs:
         run: |
           FREQ="${{ github.event.inputs.frequency || 'daily' }}"
           FORCE_FLAG="${{ github.event.inputs.force == 'true' && '--force' || '' }}"
-          node scripts/generate-institutional-tome.js --freq=$FREQ --type=article $FORCE_FLAG
+          timeout 24m node scripts/generate-institutional-tome.js --freq=$FREQ --type=article $FORCE_FLAG
       - name: Commit and Push
         run: |
           git config --global user.name "BlogsPro Bot"

@@ -3,6 +3,7 @@
 
 const LEGACY_GITHUB_PUSH_WORKER = "https://github-push.abhishek-dutta1996.workers.dev";
 const NON_AI_WORKERS = [LEGACY_GITHUB_PUSH_WORKER];
+const AI_FALLBACK_WORKER = LEGACY_GITHUB_PUSH_WORKER; // temporary default for AI calls when none configured
 
 const configuredBases = [
   window.__AI_API_BASE__,
@@ -41,6 +42,10 @@ export function workerCandidates(path = "") {
     }
 
     baseCandidates.push(...aiConfigured);
+    // Last resort: send AI calls to legacy worker if nothing else is configured.
+    if (baseCandidates.length === 0) {
+      baseCandidates.push(AI_FALLBACK_WORKER);
+    }
     return unique(baseCandidates);
   }
 

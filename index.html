@@ -7,7 +7,7 @@
   <meta name="description" content="Sharp insights on fintech, regulatory compliance, and growth strategy." />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="icon" type="image/x-icon" href="favicon.ico" />
-  <link rel="apple-touch-icon" href="favicon.svg" />
+  <link rel="apple-touch-icon" href="favicon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
@@ -1004,7 +1004,7 @@
 <!-- NAV -->
 <nav>
   <div class="nav-inner">
-    <a class="nav-brand" href="index.html"><img src="logo.svg" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto"></a>
+    <a class="nav-brand" href="index.html"><img src="logo.svg?v=20260402" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto"></a>
     <ul class="nav-links">
       <li><a href="#posts">Articles</a></li>
       <li><a href="#about">About</a></li>
@@ -1316,7 +1316,7 @@
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
-    <a class="nav-brand" href="index.html" style="text-decoration: none;"><img src="logo.svg" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto"></a>
+    <a class="nav-brand" href="index.html" style="text-decoration: none;"><img src="logo.svg?v=20260402" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto"></a>
     <span class="footer-copy">© <span id="year"></span> BlogsPro. All rights reserved.</span>
     <ul class="footer-links">
       <li><a href="login.html" id="footerAuthLink">Login</a></li>
@@ -1397,6 +1397,7 @@
   let marketRefreshTick = 0;
   let marketNextFetchAt = 0;
   let marketLastUpdatedAt = 0;
+  let indexUserIsAdmin = false;
   const startMarketAutoRefresh = () => {
     if (marketRefreshTimer) return;
     marketRefreshTimer = setInterval(() => {
@@ -2604,6 +2605,7 @@
     const footerLink = document.getElementById('footerAuthLink');
 
     if (!user) {
+      indexUserIsAdmin = false;
       slot.innerHTML = `<a href="login.html" class="nav-cta">Login</a>`;
       footerLink.textContent = 'Login'; footerLink.href = 'login.html';
       return;
@@ -2616,6 +2618,7 @@
     } catch (err) {
       console.warn('Role check failed:', err);
     }
+    indexUserIsAdmin = isAdmin || user.email === 'abhishekdutta18@gmail.com';
 
     if (isAdmin) {
       slot.innerHTML = `
@@ -2652,26 +2655,83 @@
   window.doSignOut = async () => { await signOut(auth); window.location.reload(); };
 
   // ── Load posts (Refactored to use Unified Hybrid Engine) ──────
+  function isBloombergPost(post) {
+    if (!post) return false;
+    const haystack = [
+      post.authorName,
+      post.authorEmail,
+      post.source,
+      post.publisher,
+      post.publication,
+      post.origin,
+      post.title
+    ].map(v => String(v || '')).join(' ');
+    return /bloomberg/i.test(haystack);
+  }
+
+  function postEpochMs(post) {
+    if (!post) return 0;
+    const rawTs = post.timestamp;
+    if (typeof rawTs === 'number' && Number.isFinite(rawTs)) {
+      return rawTs > 1e12 ? rawTs : rawTs * 1000;
+    }
+    if (typeof rawTs === 'string') {
+      const parsed = Date.parse(rawTs);
+      if (Number.isFinite(parsed)) return parsed;
+      const n = Number(rawTs);
+      if (Number.isFinite(n)) return n > 1e12 ? n : n * 1000;
+    }
+    const createdAt = post.createdAt;
+    if (createdAt?.toMillis) {
+      const ms = createdAt.toMillis();
+      if (Number.isFinite(ms)) return ms;
+    }
+    if (createdAt?.seconds) return Number(createdAt.seconds) * 1000;
+    if (createdAt?.toDate) {
+      const ms = createdAt.toDate()?.getTime?.();
+      if (Number.isFinite(ms)) return ms;
+    }
+    return 0;
+  }
+
+  function formatPostDate(post) {
+    const ms = postEpochMs(post);
+    if (!ms) return '';
+    return new Date(ms).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function normalizeViews(v) {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+
+  function safePostId(id) {
+    return encodeURIComponent(String(id || ''));
+  }
+
   async function loadPosts() {
     try {
-      allPosts = await loadHybridPosts();
+      const hybridPosts = await loadHybridPosts();
+      allPosts = hybridPosts
+        .filter(p => !isBloombergPost(p))
+        .sort((a, b) => postEpochMs(b) - postEpochMs(a));
       
       const postCountEl = document.getElementById('postCount');
       if (postCountEl) postCountEl.textContent = allPosts.length;
 
       const postsTitleEl = document.getElementById('postsTitle');
       if (postsTitleEl) {
-          const isAdmin = state.currentUserProfile?.role === 'admin' || state.currentUser?.email === 'abhishekdutta18@gmail.com';
+          const isAdmin = indexUserIsAdmin || auth.currentUser?.email === 'abhishekdutta18@gmail.com';
           postsTitleEl.textContent = isAdmin ? 'Institutional Strategic Ledger' : 'Recent Market Pulses (Last 3 Generations)';
       }
       
       // Calculate total views from Firestore posts only (AI pulses have no views)
       const firestorePosts = allPosts.filter(p => !p.isAI);
-      const totalViews = firestorePosts.reduce((sum, p) => sum + (p.views || 0), 0);
+      const totalViews = firestorePosts.reduce((sum, p) => sum + normalizeViews(p.views), 0);
       const tvEl = document.getElementById('totalViewCount');
       if (tvEl) tvEl.textContent = fmtViews(totalViews);
       
-      renderPosts(allPosts);
+      renderPosts(currentCat === 'all' ? allPosts : allPosts.filter(p => p.category === currentCat));
       return true;
     } catch(err) {
       console.error('Error loading hybrid index:', err);
@@ -2685,12 +2745,13 @@
 
   function renderPosts(posts) {
     const grid = document.getElementById('postsGrid');
-    if (!posts.length) { renderEmpty(); return; }
+    const safePosts = (posts || []).filter(p => !isBloombergPost(p));
+    if (!safePosts.length) { renderEmpty(); return; }
     // Helper: sanitize text fields for safe HTML insertion
     const esc = (s) => DOMPurify.sanitize(s || '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
-    grid.innerHTML = posts.map((p, i) => {
-      const title    = esc(p.title);
-      const excerpt  = esc(p.excerpt);
+    grid.innerHTML = safePosts.map((p, i) => {
+      const title    = esc(p.title || 'Untitled');
+      const excerpt  = esc(p.excerpt || 'No summary available.');
       const category = esc(p.category) || 'General';
       const author = esc(p.authorName || (p.authorEmail ? String(p.authorEmail).split('@')[0] : '') || 'BlogsPro');
       const rawImage = imagesEnabled ? DOMPurify.sanitize(String(p.image || '').trim()) : '';
@@ -2698,9 +2759,11 @@
         /^https?:\/\//i.test(rawImage) &&
         rawImage !== 'null' &&
         rawImage !== 'undefined' &&
-        rawImage !== '[object Object]'
+        rawImage !== '[object Object]' &&
+        !/^javascript:/i.test(rawImage)
       ) ? rawImage : '';
-      const date = p.createdAt?.toDate?.()?.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) || '';
+      const date = formatPostDate(p);
+      const postId = safePostId(p.id);
       // FIX: Strip HTML tags before counting words for reading time
       const plainText = (p.content || '').replace(/<[^>]+>/g, ' ').trim();
       const readTime = Math.max(1, Math.ceil(plainText.split(/\s+/).filter(Boolean).length / 200));
@@ -2709,7 +2772,7 @@
           ? `<div class="featured-visual featured-visual-img"><img src="${image}" alt="${title}" loading="lazy" onerror="this.closest('.featured-visual')?.remove(); this.closest('.post-card')?.classList.add('featured-no-img');" /></div>`
           : '';
         return `
-          <div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPost('${p.id}')" style="animation-delay:${i*0.08}s">
+          <div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPostById('${postId}')" style="animation-delay:${i*0.08}s">
             <div class="featured-body">
               <span class="featured-badge">Featured</span>
               <span class="post-category">${category}</span>
@@ -2720,7 +2783,7 @@
                 <div style="display:flex;align-items:center;gap:0.75rem">
                   <span class="post-date">By ${author}</span>
                   <span class="post-read-time">${readTime} min read</span>
-                  <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
+                  <span class="post-views">&#128065; ${fmtViews(normalizeViews(p.views))}</span>
                 </div>
               </div>
             </div>
@@ -2728,7 +2791,7 @@
           </div>`;
       }
       return `
-        <div class="post-card" onclick="openPost('${p.id}')" style="animation-delay:${i*0.08}s">
+        <div class="post-card" onclick="openPostById('${postId}')" style="animation-delay:${i*0.08}s">
           <span class="post-category">${category}</span>
           <h3 class="post-title">${title}</h3>
           <p class="post-excerpt">${excerpt}</p>
@@ -2737,7 +2800,7 @@
             <div style="display:flex;align-items:center;gap:0.75rem">
               <span class="post-date">By ${author}</span>
               <span class="post-read-time">${readTime} min read</span>
-              <span class="post-views">&#128065; ${fmtViews(p.views)}</span>
+              <span class="post-views">&#128065; ${fmtViews(normalizeViews(p.views))}</span>
             </div>
           </div>
         </div>`;
@@ -2752,7 +2815,8 @@
       </div>`;
   }
 
-  window.openPost = async (id) => {
+  window.openPostById = async (encodedId) => {
+    const id = decodeURIComponent(String(encodedId || ''));
     // 1. Check for Sovereign AI Path (Direct Navigation)
     const post = allPosts.find(p => p.id === id);
     if (post && post.path) {
@@ -2845,6 +2909,13 @@
 
       // Social links
       const socials = document.getElementById('aboutSocials');
+      const normalizeSafeUrl = (href) => {
+        if (!href) return null;
+        const h = String(href).trim();
+        if (/^mailto:/i.test(h)) return h;
+        if (/^https?:\/\//i.test(h)) return h;
+        return null;
+      };
       const links = [
         { key: 'email',    label: '✉ Email',    href: data.email    ? `mailto:${data.email}` : null },
         { key: 'twitter',  label: '𝕏 Twitter',  href: data.twitter  || null },
@@ -2852,8 +2923,9 @@
         { key: 'website',  label: '↗ Website',  href: data.website  || null },
       ];
       socials.innerHTML = links
+        .map(l => ({ ...l, href: normalizeSafeUrl(l.href) }))
         .filter(l => l.href)
-        .map(l => `<a class="about-social-link" href="${l.href}" target="_blank" rel="noopener">${l.label}</a>`)
+        .map(l => `<a class="about-social-link" href="${l.href}" target="_blank" rel="noopener noreferrer">${l.label}</a>`)
         .join('');
 
       // Show real content, hide skeleton

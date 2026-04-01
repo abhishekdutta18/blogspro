@@ -110,7 +110,7 @@ function onModelChange(val) {
 <!-- SIDEBAR -->
 <aside id="sidebar">
   <div class="sidebar-brand">
-    <img src="logo.svg" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto;margin-bottom:0.25rem">
+    <img src="logo.svg?v=20260402" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto;margin-bottom:0.25rem">
     <p>AI SaaS CMS</p>
   </div>
   <nav class="side-nav">
@@ -240,9 +240,11 @@ function onModelChange(val) {
       </div>
       <div style="display:flex; flex-direction:column; gap:0.75rem;">
         <div class="form-row" style="margin:0">
-          <label class="form-label" style="font-size:0.7rem; color:var(--muted)">GitHub Personal Access Token (PAT)</label>
-          <input type="password" id="ghPatInput" class="v2-f-input" placeholder="ghp_xxxxxxxxxxxx" style="font-size:0.8rem" />
-          <p style="font-size:0.6rem; color:var(--muted); margin-top:0.2rem">Required for UI-to-GitHub triggering. Stored only in your browser.</p>
+          <label class="form-label" style="font-size:0.7rem; color:var(--muted)">Cloudflare Worker Orchestration</label>
+          <div id="ghPatStatus" style="font-size:0.68rem;color:var(--muted);line-height:1.5;padding:0.55rem 0.7rem;border:1px solid var(--border);border-radius:3px;background:var(--navy)">
+            Initializing worker mode…
+          </div>
+          <p style="font-size:0.6rem; color:var(--muted); margin-top:0.25rem">No PAT entry required in admin panel. Dispatch runs via Cloudflare Worker secrets.</p>
         </div>
         
         <button id="btnTerminalDispatch" onclick="window.triggerTerminalDispatch?.()" class="v2-gen-btn" style="background:var(--emerald); border-color:var(--emerald); padding:0.6rem; font-size:0.8rem;">

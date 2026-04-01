@@ -327,15 +327,19 @@ window.loadIntelligence = loadIntelligence;
  */
 export async function loadHybridPosts() {
     try {
-        // 1. Fetch Manual Firestore Posts
-        const snap = await withTimeout(getDocs(query(
-            collection(db, 'posts'),
-            orderBy('createdAt', 'desc')
-        )), FIREBASE_TIMEOUT_MS, 'posts query');
-        
-        let firestorePosts = snap.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .filter(p => p.published);
+        // 1. Fetch Manual Firestore Posts (degrade gracefully on permission/network issues)
+        let firestorePosts = [];
+        try {
+            const snap = await withTimeout(getDocs(query(
+                collection(db, 'posts'),
+                orderBy('createdAt', 'desc')
+            )), FIREBASE_TIMEOUT_MS, 'posts query');
+            firestorePosts = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(p => p.published);
+        } catch (firestoreErr) {
+            console.warn('[HybridEngine] Firestore posts unavailable, continuing with static feeds:', firestoreErr);
+        }
 
         // 2. Ingest Sovereign AI Pulses
         const briefingIndices = ['/briefings/daily/index.json', '/briefings/hourly/index.json', '/articles/weekly/index.json'];
@@ -348,7 +352,8 @@ export async function loadHybridPosts() {
             title: pulse.title,
             excerpt: pulse.excerpt || "Institutional Strategic Intelligence",
             category: pulse.type === 'briefing' ? 'Pulse' : 'Strategic',
-            authorName: "Bloomberg",
+            // Keep public index free from third-party publisher attribution labels.
+            authorName: "BlogsPro Research Desk",
             createdAt: { toDate: () => new Date(pulse.timestamp || Date.now()) },
             timestamp: pulse.timestamp || Date.now(),
             isAI: true,
@@ -377,7 +382,7 @@ export async function loadHybridPosts() {
         return all;
     } catch (err) {
         console.error('[HybridEngine] Sync failed:', err);
-        throw err;
+        return [];
     }
 }
 window.loadHybridPosts = loadHybridPosts;

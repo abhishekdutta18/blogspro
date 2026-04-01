@@ -1,6 +1,11 @@
 # BlogsPro 5.0 - Multi-Tier Swarm Configuration
 # ============================================
 
+# Default target (avoids “Missing entry-point” when no env is specified)
+name = "blogspro-upstox-stable"
+main = "api/upstox-worker.js"
+compatibility_date = "2026-04-01"
+
 [vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
 
