@@ -14,7 +14,7 @@
 export { auth, db }                  from './firebase.js';
 
 // AI keys + remote config loader
-export { AI_KEYS, NEWSLETTER_CONFIG, loadRemoteConfig } from './remote-config.js';
+export { AI_KEYS, NEWSLETTER_CONFIG, DISPATCH_CONFIG, loadRemoteConfig } from './remote-config.js';
 
 // Utility functions
 export {

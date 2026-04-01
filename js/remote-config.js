@@ -11,6 +11,7 @@ import {
 
 export let AI_KEYS = {};
 export let NEWSLETTER_CONFIG = { url: '', secret: '' };
+export let DISPATCH_CONFIG = { ghToken: '' };
 
 export async function loadRemoteConfig() {
   try {
@@ -36,6 +37,10 @@ export async function loadRemoteConfig() {
       url:    getValue(remoteConfig, 'newsletter_worker_url').asString()
               || 'https://blogspro-newsletter.abhishek-dutta1996.workers.dev',
       secret: getValue(remoteConfig, 'newsletter_secret').asString(),
+    };
+
+    DISPATCH_CONFIG = {
+      ghToken: getValue(remoteConfig, 'gh_dispatch_token').asString(),
     };
 
     console.log('[remote-config] AI keys loaded (auto fallback mode)');
