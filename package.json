@@ -19,8 +19,7 @@
     "firebase-admin": "^13.7.0",
     "google-charts": "^2.0.0",
     "toucan-js": "^4.1.1",
-    "upstox-js-sdk": "^2.23.0",
-    "y-protocols": "^1.0.7",
+"y-protocols": "^1.0.7",
     "yjs": "^13.6.30"
   },
   "devDependencies": {

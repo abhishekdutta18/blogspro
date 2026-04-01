@@ -344,7 +344,7 @@ async function fetchUpstoxData() {
         const json = await res.json();
         if (json.status === "success") {
             const d = json.data;
-            const summary = `NIFTY: ${d["NSE_INDEX:Nifty 50"]?.last_price || "N/A"} | BANK NIFTY: ${d["NSE_INDEX:Nifty Bank"]?.last_price || "N/A"}`;
+            const summary = `NIFTY: ${d["NSE_INDEX|Nifty 50"]?.last_price || "N/A"} | BANK NIFTY: ${d["NSE_INDEX|Nifty Bank"]?.last_price || "N/A"}`;
             return { summary, raw: d };
         }
     } catch (e) {}
