@@ -36,20 +36,12 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm install
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          
-      - name: Install Python dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r mirofish/backend/requirements.txt
-          
       - name: Execute Autonomous Briefing/Article
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
+          GROQ_KEY: ${{ secrets.GROQ_API_KEY }}
           SAMBANOVA_API_KEY: ${{ secrets.SAMBANOVA_API_KEY }}
           CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -63,19 +55,18 @@ jobs:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          SWARM_INTERNAL_TOKEN: ${{ secrets.SWARM_INTERNAL_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_TO: ${{ secrets.TELEGRAM_CHAT_ID }}
           NOTIFICATION_WEBHOOK: ${{ secrets.WEBHOOK_SECRET }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: |
-          FREQ="${{ github.event.inputs.frequency }}"
+          FREQ="${{ github.event.inputs.frequency || 'daily' }}"
           FORCE_FLAG="${{ github.event.inputs.force == 'true' && '--force' || '' }}"
-          
-          if [ "$FREQ" == "hourly" ] || [ "$FREQ" == "daily" ]; then
-            node scripts/generate-briefing.js --freq=$FREQ $FORCE_FLAG
-          else
-            node scripts/generate-article.js --freq=$FREQ $FORCE_FLAG
-          fi
+          node scripts/generate-institutional-tome.js --freq=$FREQ --type=article $FORCE_FLAG
       - name: Commit and Push
         run: |
           git config --global user.name "BlogsPro Bot"
