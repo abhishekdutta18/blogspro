@@ -14,7 +14,7 @@ const imageLimiter = new RateLimiter(5000);  // 1 request per 5 seconds
 
 // Provider display metadata — label + color + model shown in the modal
 export const PROVIDER_META = {
-  gemini:      { label: 'Gemini 2.0 Flash',      color: '#4285f4', icon: '✨', model: 'gemini-2.0-flash'         },
+  gemini:      { label: 'Gemini 1.5 Flash (free)', color: '#4285f4', icon: '✨', model: 'gemini-1.5-flash-latest' },
   groq:        { label: 'Llama 3.3 70B (Groq)',  color: '#f55036', icon: '🦙', model: 'llama-3.3-70b-versatile'  },
   cerebras:    { label: 'Cerebras Qwen3 235B',   color: '#0ea5e9', icon: '⚡', model: 'qwen-3-235b'              },
   sambanova:   { label: 'SambaNova Llama 3.3',   color: '#f59e0b', icon: '🚀', model: 'llama-3.3-70b'            },

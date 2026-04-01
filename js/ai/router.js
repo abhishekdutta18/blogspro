@@ -20,10 +20,11 @@ async function callGeminiDirect(prompt) {
   const key = String(AI_KEYS?.gemini || "").trim();
   if (!key) throw new Error("endpoint not configured");
 
+  // Use free/public Gemini endpoints first to avoid paid usage
   const variants = [
-    "gemini-2.0-flash",
+    "gemini-1.5-flash-latest",
     "gemini-1.5-flash",
-    "gemini-1.5-pro",
+    "gemini-1.5-pro-latest",
   ];
   let lastErr = null;
   for (const model of variants) {
