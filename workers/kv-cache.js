@@ -2,13 +2,18 @@
 // Set KV binding CACHE_KV in wrangler.toml for this worker.
 export default {
   async fetch(request, env) {
+    const CORS = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    };
     const url = new URL(request.url);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204 });
 
     // health check
-    if (url.pathname === '/health') return new Response('ok', { status: 200 });
+    if (url.pathname === '/health') return new Response('ok', { status: 200, headers: CORS });
 
-    if (!env.CACHE_KV) return new Response('KV not bound', { status: 500 });
+    if (!env.CACHE_KV) return new Response('KV not bound', { status: 500, headers: CORS });
 
     // Cache key: method + path + body hash
     const body = await request.clone().text().catch(() => '');
@@ -19,14 +24,14 @@ export default {
       if (cached) {
         return new Response(cached, {
           status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Status': 'HIT' }
+          headers: { 'Content-Type': 'application/json', 'Cache-Status': 'HIT', ...CORS }
         });
       }
     }
 
     // Proxy to upstream (expect target param)
     const target = url.searchParams.get('target');
-    if (!target) return new Response('Missing target', { status: 400 });
+    if (!target) return new Response('Missing target', { status: 400, headers: CORS });
 
     const upstream = await fetch(target, {
       method: request.method,
@@ -39,7 +44,9 @@ export default {
       await env.CACHE_KV.put(key, text, { expirationTtl: 3600 }); // 1h TTL
     }
 
-    return new Response(text, { status: upstream.status, headers: upstream.headers });
+    const headers = new Headers(upstream.headers);
+    Object.entries(CORS).forEach(([k,v]) => headers.set(k,v));
+    return new Response(text, { status: upstream.status, headers });
   }
 };
 

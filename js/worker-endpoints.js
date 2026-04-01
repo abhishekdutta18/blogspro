@@ -73,13 +73,22 @@ function cacheWorkerBase() {
 // GET-only cached fetch via KV worker; falls back to direct fetch on error
 export async function cachedFetch(targetUrl) {
   const base = cacheWorkerBase();
+  // Normalize relative paths to absolute
+  const normalizedTarget = (() => {
+    if (!targetUrl) return '';
+    if (/^https?:\/\//i.test(targetUrl)) return targetUrl;
+    const origin = window.location.origin.replace(/\/+$/, '');
+    const path = String(targetUrl).startsWith('/') ? targetUrl : `/${targetUrl}`;
+    return `${origin}${path}`;
+  })();
+  if (!normalizedTarget) return fetch(targetUrl);
   if (!base) return fetch(targetUrl);
-  const url = `${base}/?target=${encodeURIComponent(targetUrl)}`;
+  const url = `${base}/?target=${encodeURIComponent(normalizedTarget)}`;
   try {
     const res = await fetch(url, { method: "GET" });
     if (res.ok) return res;
   } catch (_) {}
-  return fetch(targetUrl);
+  return fetch(normalizedTarget);
 }
 
 export async function workerFetch(path, init = {}) {
