@@ -234,7 +234,9 @@ Rules:
 - labels array and values array MUST have the same length
 - For stats type: values can be strings like "23%" or "$340B"
 - Choose: bar (comparisons), line (trends over time with years as labels), pie (market share), stats (key numbers), table (feature comparison)`,
-    true
+    true,
+    "gemini",
+    512
   );
 
   if (result.error || !result.text) return '';
@@ -251,8 +253,14 @@ Rules:
   // ── VALIDATION ENGINE ──────────────────────────
   if (!data?.type || !data?.labels?.length) return '';
   if (!data.datasets?.[0]?.values?.length) return '';
-  if (data.labels.length !== data.datasets[0].values.length &&
-      data.type !== 'table') return '';
+  // Normalize lengths to avoid ingestion errors
+  const minLen = Math.min(
+    data.labels.length,
+    ...data.datasets.map(ds => (ds.values || []).length)
+  );
+  data.labels = data.labels.slice(0, minLen);
+  data.datasets = data.datasets.map(ds => ({ ...ds, values: (ds.values || []).slice(0, minLen) }));
+  if (!minLen) return '';
 
   // Validate chart name exists
   if (!data.name) data.name = `${data.type === 'table' ? 'Table' : 'Fig'}: ${data.title || sectionTitle}`;
