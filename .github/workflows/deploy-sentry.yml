@@ -84,7 +84,7 @@ jobs:
           [ -n "$RESEND_API_KEY" ] && echo "$RESEND_API_KEY" | npx wrangler@3 secret put RESEND_API_KEY || echo "Skipping RESEND_API_KEY"
           [ -n "$FIREBASE_API_KEY" ] && echo "$FIREBASE_API_KEY" | npx wrangler@3 secret put FIREBASE_API_KEY || echo "Skipping FIREBASE_API_KEY"
           [ -n "$FIREBASE_PROJECT" ] && echo "$FIREBASE_PROJECT" | npx wrangler@3 secret put FIREBASE_PROJECT || echo "Skipping FIREBASE_PROJECT"
-          echo "$NEWSLETTER_SECRET" | npx wrangler@3 secret put NEWSLETTER_SECRET
+          [ -n "$NEWSLETTER_SECRET" ] && echo "$NEWSLETTER_SECRET" | npx wrangler@3 secret put NEWSLETTER_SECRET || echo "Skipping NEWSLETTER_SECRET"
 
       - name: Register Telegram webhook
         env:

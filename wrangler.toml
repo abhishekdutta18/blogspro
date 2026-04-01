@@ -117,3 +117,14 @@ name = "blogspro-templates"
 main = "scripts/template-worker.js"
 compatibility_date = "2024-12-30"
 compatibility_flags = [ "nodejs_compat" ]
+
+# --- TRIALS WORKER ---
+[env.trials]
+name = "blogspro-trials"
+main = "scripts/generate-institutional-tome.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+[env.trials.vars]
+FIREBASE_PROJECT_ID = "blogspro-ai"
+TRIALS_MODE = "true"

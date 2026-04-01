@@ -36,16 +36,6 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm install
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          
-      - name: Install Python dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r mirofish/backend/requirements.txt
-          
       - name: Execute Autonomous Briefing/Article
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -72,9 +62,9 @@ jobs:
           FORCE_FLAG="${{ github.event.inputs.force == 'true' && '--force' || '' }}"
           
           if [ "$FREQ" == "hourly" ] || [ "$FREQ" == "daily" ]; then
-            node scripts/generate-briefing.js --freq=$FREQ $FORCE_FLAG
+            node scripts/generate-institutional-tome.js --freq=$FREQ $FORCE_FLAG
           else
-            node scripts/generate-article.js --freq=$FREQ $FORCE_FLAG
+            node scripts/generate-post.js --freq=$FREQ $FORCE_FLAG
           fi
       - name: Commit and Push
         run: |
