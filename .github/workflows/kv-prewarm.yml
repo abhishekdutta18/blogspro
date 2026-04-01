@@ -1,0 +1,37 @@
+name: Prewarm KV with briefings/articles
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "articles/weekly/index.json"
+      - "briefings/**/index.json"
+
+jobs:
+  prewarm:
+    if: github.repository_owner == 'abhishekdutta18'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch and store JSON into KV
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          NAMESPACE_ID: 9caa7afdf7e94adb99cecf221275d63d
+        run: |
+          set -e
+          fetch_put() {
+            local src="$1"
+            local key="$2"
+            echo "Fetching $src"
+            data=$(curl -fsSL "$src")
+            echo "Putting to KV key: $key"
+            curl -fsSL -X PUT \
+              -H "Authorization: Bearer $CF_API_TOKEN" \
+              --data "$data" \
+              "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/storage/kv/namespaces/$NAMESPACE_ID/values/$key"
+          }
+
+          fetch_put "https://blogspro.in/briefings/daily/index.json" "briefings/daily/index.json"
+          fetch_put "https://blogspro.in/briefings/hourly/index.json" "briefings/hourly/index.json"
+          fetch_put "https://blogspro.in/articles/weekly/index.json" "articles/weekly/index.json"
