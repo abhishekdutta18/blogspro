@@ -61,6 +61,26 @@ window.deleteSub   = async (id) => {
     showToast('Subscriber removed.','success');
   } catch(e) { showToast('Failed: '+e.message,'error'); }
 };
+window.loadSubscriberAnalytics = async () => {
+  try {
+    const snap = await withTimeout(
+      getDocs(collection(db, 'subscribers')),
+      FIREBASE_TIMEOUT_MS,
+      'analytics query'
+    );
+    const all = snap.docs.map(d => d.data());
+    const active = all.filter(s => s.status !== 'unsubscribed');
+    const totalEl = document.getElementById('totalSubscribers');
+    const activeEl = document.getElementById('activeSubscribers');
+    const lastEl = document.getElementById('statsLastUpdated');
+    if (totalEl) totalEl.textContent = all.length;
+    if (activeEl) activeEl.textContent = active.length;
+    if (lastEl) lastEl.textContent = new Date().toLocaleTimeString('en-IN');
+  } catch (e) {
+    const { showToast } = await import('./config.js');
+    showToast('Failed to load stats: ' + e.message, 'error');
+  }
+};
 window.exportSubscribers = () => {
   if (!state.allSubs.length) { showToast('No subscribers to export.','error'); return; }
   const csv  = 'Email,Date\n' + state.allSubs.map(s=>`${s.email},${s.createdAt?.toDate?.()?.toLocaleDateString('en-IN')||''}`).join('\n');
