@@ -1004,7 +1004,7 @@
 <!-- NAV -->
 <nav>
   <div class="nav-inner">
-    <a class="nav-brand" href="index.html"><img src="logo-crop.png?v=20260402" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto"></a>
+    <a class="nav-brand" href="index.html"><img src="logo-crop.png?v=20260402" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto;border:none;outline:none"></a>
     <ul class="nav-links">
       <li><a href="#posts">Articles</a></li>
       <li><a href="#about">About</a></li>
@@ -1316,7 +1316,7 @@
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
-    <a class="nav-brand" href="index.html" style="text-decoration: none;"><img src="logo-crop.png?v=20260402" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto"></a>
+    <a class="nav-brand" href="index.html" style="text-decoration: none;"><img src="logo-crop.png?v=20260402" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto;border:none;outline:none"></a>
     <span class="footer-copy">© <span id="year"></span> BlogsPro. All rights reserved.</span>
     <ul class="footer-links">
       <li><a href="login.html" id="footerAuthLink">Login</a></li>
@@ -1360,26 +1360,13 @@
   };
 </script>
 <script type="module">
-  import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, doc, getDocs, getDoc, query, where, addDoc }
+  import { app, db, auth } from "./js/firebase.js";
+  import { collection, doc, getDocs, getDoc, query, where, addDoc }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getAuth, onAuthStateChanged, signOut }
+  import { onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { initIntelHub } from "./js/intel-hub.js";
   import { loadHybridPosts } from "./js/posts.js";
-
-  const firebaseConfig = {
-    apiKey:            "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
-    authDomain:        "blogspro-ai.firebaseapp.com",
-    projectId:         "blogspro-ai",
-    storageBucket:     "blogspro-ai.firebasestorage.app",
-    messagingSenderId: "940428277283",
-    appId:             "1:940428277283:web:d3bb414f0992718ca76396"
-  };
-
-  const app  = initializeApp(firebaseConfig);
-  const db   = getFirestore(app);
-  const auth = getAuth(app);
 
   let allPosts   = [];
   let currentCat = 'all';
