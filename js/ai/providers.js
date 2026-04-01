@@ -5,12 +5,14 @@
 
 // Priority order: best quality first, fastest fallback last
 export const TEXT_PROVIDERS = [
-  "groq",        // Kimi K2 1T MoE — best quality, fastest
-  "openrouter",  // Access to many frontier models
-  "together",    // DeepSeek V3 — strong reasoning
+  "gemini",      // Primary: Google Gemini 2.0 Flash (stable, cheapest)
+  "groq",        // Secondary: Groq Llama 3.3 70B (fast, but rate-limited)
+  "cerebras",    // Cerebras Qwen3 235B (requires key; skipped if missing)
+  "sambanova",   // SambaNova Llama 3.3 (requires key; skipped if missing)
+  "mistral",     // Mistral Large — balanced
   "deepinfra",   // Llama 3.3 70B — reliable
-  "gemini",      // Gemini 2.0 Flash — Google fallback
-  "mistral",     // Mistral Large — European fallback
+  "openrouter",  // Aggregator access
+  "together",    // DeepSeek V3 — strong reasoning
   "deepseek",    // DeepSeek Chat — last resort
 ];
 

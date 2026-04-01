@@ -6,15 +6,19 @@ import { workerFetch } from "../worker-endpoints.js";
 import { AI_KEYS } from "../config.js";
 
 const OPENAI_COMPAT = {
-  groq:       { url: "https://api.groq.com/openai/v1/chat/completions", model: "moonshotai/kimi-k2-instruct" },
-  openrouter: { url: "https://openrouter.ai/api/v1/chat/completions", model: "qwen/qwen3-235b-a22b" },
-  together:   { url: "https://api.together.xyz/v1/chat/completions", model: "deepseek-ai/DeepSeek-V3" },
+  groq:       { url: "https://api.groq.com/openai/v1/chat/completions",      model: "moonshotai/kimi-k2-instruct" },
+  openrouter: { url: "https://openrouter.ai/api/v1/chat/completions",        model: "qwen/qwen3-235b-a22b" },
+  together:   { url: "https://api.together.xyz/v1/chat/completions",         model: "deepseek-ai/DeepSeek-V3" },
   deepinfra:  { url: "https://api.deepinfra.com/v1/openai/chat/completions", model: "meta-llama/Llama-3.3-70B-Instruct" },
+  cerebras:   { url: "https://api.cerebras.ai/v1/chat/completions",          model: "cerebras/llama3.1-70b" },
+  sambanova:  { url: "https://api.sambanova.ai/v1/chat/completions",         model: "Meta-Llama-3.3-70B-Instruct" },
 };
+
+const KEY_REQUIRED = new Set(Object.keys(OPENAI_COMPAT).concat(["gemini", "mistral"]));
 
 async function callGeminiDirect(prompt) {
   const key = String(AI_KEYS?.gemini || "").trim();
-  if (!key) throw new Error("gemini key not configured");
+  if (!key) throw new Error("endpoint not configured");
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`,
@@ -23,7 +27,7 @@ async function callGeminiDirect(prompt) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 8192 },
+        generationConfig: { temperature: 0.6, maxOutputTokens: 4096 },
       }),
     }
   );
@@ -43,7 +47,7 @@ async function callOpenAiCompatDirect(provider, prompt) {
   const cfg = OPENAI_COMPAT[provider];
   if (!cfg) throw new Error(`${provider} direct mode not supported`);
   const key = String(AI_KEYS?.[provider] || "").trim();
-  if (!key) throw new Error(`${provider} key not configured`);
+  if (!key) throw new Error("endpoint not configured");
 
   const headers = {
     "Content-Type": "application/json",
@@ -61,8 +65,8 @@ async function callOpenAiCompatDirect(provider, prompt) {
     body: JSON.stringify({
       model: cfg.model,
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 4096,
+      temperature: 0.6,
+      max_tokens: 2048,
     }),
   });
 
@@ -91,6 +95,11 @@ async function callProviderDirect(provider, prompt) {
 
 export async function callProvider(provider, prompt, type = "text") {
   try {
+    if (KEY_REQUIRED.has(provider)) {
+      const key = String(AI_KEYS?.[provider] || "").trim();
+      if (!key) throw new Error("endpoint not configured");
+    }
+
     const res = await workerFetch("api/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -99,6 +108,10 @@ export async function callProvider(provider, prompt, type = "text") {
 
     if (!res.ok) {
       const err = await res.text().catch(() => "");
+      // Treat auth and missing routes as “not configured” so the router can try the next provider.
+      if ([401, 403, 404, 405].includes(res.status) || err.toLowerCase().includes("unauthorized")) {
+        throw new Error("endpoint not configured");
+      }
       throw new Error(`${provider} failed (${res.status}): ${err.substring(0, 140)}`);
     }
 
@@ -117,7 +130,9 @@ export async function callProvider(provider, prompt, type = "text") {
       m.includes("endpoint not configured") ||
       m.includes("(400)") ||
       m.includes("(404)") ||
-      m.includes("(405)")
+      m.includes("(405)") ||
+      m.includes("unauthorized") ||
+      m.includes("forbidden")
     ) {
       return await callProviderDirect(provider, prompt);
     }

@@ -35,6 +35,19 @@ function setAdminIntegrationStatus(mode, label) {
 window.__setAdminIntegrationStatus = setAdminIntegrationStatus;
 setAdminIntegrationStatus(null, "Integrations: Initializing");
 
+// Manual AI key refresh from admin UI
+window.reloadAIConfig = async () => {
+  try {
+    setAdminIntegrationStatus("degraded", "Integrations: Syncing keys…");
+    await loadRemoteConfig();
+    setAdminIntegrationStatus("online", "Integrations: Keys refreshed");
+    if (window.showToast) showToast("AI keys reloaded from Remote Config.", "success");
+  } catch (err) {
+    setAdminIntegrationStatus("degraded", "Integrations: Key refresh failed");
+    if (window.showToast) showToast("Reload failed: " + err.message, "error");
+  }
+};
+
 // ── Boot — B-01 fix: try/catch so any module failure shows a
 //    diagnostic screen instead of a blank white page ───────────────────
 async function boot() {
@@ -58,6 +71,8 @@ async function boot() {
       });
     }
     setAdminIntegrationStatus("online", "Integrations: Online");
+    // Periodic key refresh (hourly) to keep AI provider creds in sync
+    setInterval(() => window.reloadAIConfig?.(), 60 * 60 * 1000);
   } catch (err) {
     window.Sentry?.captureException(err);
     setAdminIntegrationStatus("degraded", "Integrations: Degraded");
