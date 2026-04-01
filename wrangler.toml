@@ -2,7 +2,7 @@
 # ============================================
 
 # Default target (avoids “Missing entry-point” when no env is specified)
-name = "blogspro-upstox-stable"
+name = "blogspro-upstox"
 main = "api/upstox-worker.js"
 compatibility_date = "2026-04-01"
 
