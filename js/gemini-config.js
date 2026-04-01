@@ -32,15 +32,14 @@
 export const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 export const GEMINI_MODELS = {
-  GEMINI_2_0_FLASH: 'gemini-2.0-flash',      // Latest, fastest
-  GEMINI_2_0_FLASH_LITE: 'gemini-2.0-flash-lite', // Lightweight
-  GEMINI_2_0_FLASH_EXP: 'gemini-2.0-flash-exp', // Experimental
-  GEMINI_1_5_PRO: 'gemini-1.5-pro',          // High quality
-  GEMINI_1_5_FLASH: 'gemini-1.5-flash',      // Balanced
+  GEMINI_1_5_FLASH: 'gemini-1.5-flash',        // Free tier, balanced
+  GEMINI_1_5_FLASH_LATEST: 'gemini-1.5-flash-latest',
+  GEMINI_1_5_PRO: 'gemini-1.5-pro',            // Higher quality, still common
+  GEMINI_1_5_PRO_LATEST: 'gemini-1.5-pro-latest',
 };
 
-// Recommended model for BlogsPro (best for content generation)
-export const DEFAULT_GEMINI_MODEL = GEMINI_MODELS.GEMINI_2_0_FLASH;
+// Recommended model for BlogsPro (free tier first)
+export const DEFAULT_GEMINI_MODEL = GEMINI_MODELS.GEMINI_1_5_FLASH;
 
 export const GEMINI_CONFIG = {
   apiKey: null, // Loaded from Remote Config

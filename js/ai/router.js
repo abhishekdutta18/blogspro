@@ -12,6 +12,7 @@ const OPENAI_COMPAT = {
   deepinfra:  { url: "https://api.deepinfra.com/v1/openai/chat/completions", model: "meta-llama/Llama-3.3-70B-Instruct" },
   cerebras:   { url: "https://api.cerebras.ai/v1/chat/completions",          model: "cerebras/llama3.1-70b" },
   sambanova:  { url: "https://api.sambanova.ai/v1/chat/completions",         model: "Meta-Llama-3.3-70B-Instruct" },
+  huggingface:{ url: "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3", model: "hf-mistral-7b" },
 };
 
 const KEY_REQUIRED = new Set(Object.keys(OPENAI_COMPAT).concat(["gemini", "mistral"]));
@@ -79,12 +80,17 @@ async function callOpenAiCompatDirect(provider, prompt) {
   const res = await fetch(cfg.url, {
     method: "POST",
     headers,
-    body: JSON.stringify({
-      model: cfg.model,
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.6,
-      max_tokens: 2048,
-    }),
+    body: provider === "huggingface"
+      ? JSON.stringify({
+          inputs: prompt,
+          parameters: { max_new_tokens: 512, temperature: 0.7 },
+        })
+      : JSON.stringify({
+          model: cfg.model,
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.6,
+          max_tokens: 2048,
+        }),
   });
 
   if (!res.ok) {
@@ -93,6 +99,13 @@ async function callOpenAiCompatDirect(provider, prompt) {
   }
 
   const data = await res.json();
+  if (provider === "huggingface") {
+    const text = Array.isArray(data)
+      ? data.map(d => d?.generated_text || d?.text || "").join("\n").trim()
+      : (data?.generated_text || data?.text || "");
+    if (!text) throw new Error("huggingface returned empty response");
+    return text;
+  }
   const text =
     data?.choices?.[0]?.message?.content ??
     data?.choices?.[0]?.text ??

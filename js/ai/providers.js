@@ -11,6 +11,7 @@ export const TEXT_PROVIDERS = [
   "sambanova",   // SambaNova Llama 3.3 (requires key; skipped if missing)
   "mistral",     // Mistral Large — balanced
   "deepinfra",   // Llama 3.3 70B — reliable
+  "huggingface", // HF Inference API free/paid — low priority
   "openrouter",  // Aggregator access
   "together",    // DeepSeek V3 — strong reasoning
   "deepseek",    // DeepSeek Chat — last resort

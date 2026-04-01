@@ -26,7 +26,7 @@ export const PROVIDER_META = {
   google:      { label: 'Google Imagen',         color: '#4285f4', icon: '🖼', model: 'imagen-3.0-generate-002'  },
   cloudflare:  { label: 'Cloudflare AI',         color: '#f6821f', icon: '☁️', model: 'workers-ai'               },
   pollinations:{ label: 'Pollinations',          color: '#ec4899', icon: '🌸', model: 'flux-schnell'             },
-  huggingface: { label: 'HuggingFace',           color: '#fbbf24', icon: '🤗', model: 'flux-schnell'             },
+  huggingface: { label: 'HuggingFace',           color: '#fbbf24', icon: '🤗', model: 'mistralai/Mistral-7B-Instruct-v0.3' },
 };
 
 // callAI supports two calling conventions:
