@@ -20,27 +20,41 @@ async function callGeminiDirect(prompt) {
   const key = String(AI_KEYS?.gemini || "").trim();
   if (!key) throw new Error("endpoint not configured");
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.6, maxOutputTokens: 4096 },
-      }),
+  const variants = [
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
+  ];
+  let lastErr = null;
+  for (const model of variants) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.6, maxOutputTokens: 4096 },
+          }),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.text().catch(() => "");
+        lastErr = new Error(`${model} direct failed (${res.status}): ${err.substring(0, 140)}`);
+        if (res.status === 404) continue;
+        throw lastErr;
+      }
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.map((p) => p?.text || "").join("").trim() || "";
+      if (!text) throw new Error("gemini returned empty response");
+      return text;
+    } catch (e) {
+      lastErr = e;
+      continue;
     }
-  );
-
-  if (!res.ok) {
-    const err = await res.text().catch(() => "");
-    throw new Error(`gemini direct failed (${res.status}): ${err.substring(0, 140)}`);
   }
-
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.map((p) => p?.text || "").join("").trim() || "";
-  if (!text) throw new Error("gemini returned empty response");
-  return text;
+  throw lastErr || new Error("gemini direct failed");
 }
 
 async function callOpenAiCompatDirect(provider, prompt) {
@@ -94,12 +108,15 @@ async function callProviderDirect(provider, prompt) {
 }
 
 export async function callProvider(provider, prompt, type = "text") {
-  try {
-    if (KEY_REQUIRED.has(provider)) {
-      const key = String(AI_KEYS?.[provider] || "").trim();
-      if (!key) throw new Error("endpoint not configured");
-    }
+  const key = String(AI_KEYS?.[provider] || "").trim();
+  const hasKey = KEY_REQUIRED.has(provider) && key;
 
+  const directFirst = async () => {
+    if (!hasKey) throw new Error("skip-direct");
+    return await callProviderDirect(provider, prompt);
+  };
+
+  const viaWorker = async () => {
     const res = await workerFetch("api/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -108,8 +125,7 @@ export async function callProvider(provider, prompt, type = "text") {
 
     if (!res.ok) {
       const err = await res.text().catch(() => "");
-      // Treat auth and missing routes as “not configured” so the router can try the next provider.
-      if ([401, 403, 404, 405].includes(res.status) || err.toLowerCase().includes("unauthorized")) {
+      if ([400, 401, 403, 404, 405].includes(res.status) || err.toLowerCase().includes("unauthorized")) {
         throw new Error("endpoint not configured");
       }
       throw new Error(`${provider} failed (${res.status}): ${err.substring(0, 140)}`);
@@ -124,6 +140,21 @@ export async function callProvider(provider, prompt, type = "text") {
       "";
     if (!text) throw new Error(`${provider} returned empty response`);
     return text;
+  };
+
+  try {
+    // Prefer direct when we have a key; fall back to worker if direct fails.
+    if (hasKey) {
+      try { return await directFirst(); } catch (e) {
+        if (String(e.message).includes("endpoint not configured")) {
+          // try worker next
+        } else {
+          try { return await viaWorker(); } catch (_) {}
+          throw e;
+        }
+      }
+    }
+    return await viaWorker();
   } catch (err) {
     const m = String(err?.message || "").toLowerCase();
     if (
@@ -134,7 +165,11 @@ export async function callProvider(provider, prompt, type = "text") {
       m.includes("unauthorized") ||
       m.includes("forbidden")
     ) {
-      return await callProviderDirect(provider, prompt);
+      // If we skipped direct earlier, try it now as a last resort.
+      if (KEY_REQUIRED.has(provider)) {
+        return await callProviderDirect(provider, prompt);
+      }
+      throw err;
     }
     throw err;
   }
