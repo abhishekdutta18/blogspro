@@ -7,39 +7,39 @@
 import { callAI } from './ai-core.js';
 
 const THEME = {
-  bg:       '#0c1322',
-  bg2:      '#111c30',
-  border:   'rgba(255,255,255,0.08)',
-  gold:     '#c9a84c',
-  gold2:    '#e2c97e',
-  cream:    '#f5f0e8',
-  muted:    '#8896b3',
-  green:    '#4ade80',
-  red:      '#fca5a5',
-  blue:     '#93c5fd',
-  purple:   '#c4b5fd',
+  bg:       '#ffffff',
+  bg2:      '#f4f6f8',
+  border:   '#d0d7de',
+  gold:     '#1a1a2e',
+  gold2:    '#333333',
+  cream:    '#111111',
+  muted:    '#555555',
+  green:    '#16a34a',
+  red:      '#dc2626',
+  blue:     '#2563eb',
+  purple:   '#7c3aed',
   // Bar palette — cycles through for multi-series
-  palette:  ['#c9a84c','#93c5fd','#4ade80','#c4b5fd','#fca5a5','#fdba74','#6ee7b7'],
+  palette:  ['#2563eb','#dc2626','#16a34a','#d97706','#7c3aed','#0891b2','#be185d'],
 };
 
-// Google Charts theme — mirrors THEME above
+// Google Charts theme — white background, black labels
 const GC_THEME = {
-  backgroundColor: { fill: '#0c1322' },
+  backgroundColor: { fill: '#ffffff' },
   fontName: 'DM Sans',
-  colors: ['#c9a84c','#93c5fd','#4ade80','#c4b5fd','#fca5a5','#fdba74','#6ee7b7'],
-  legend: { textStyle: { color: '#8896b3', fontSize: 11 } },
-  chartArea: { backgroundColor: '#0c1322', left: 60, right: 20, top: 30, bottom: 50 },
+  colors: ['#2563eb','#dc2626','#16a34a','#d97706','#7c3aed','#0891b2','#be185d'],
+  legend: { textStyle: { color: '#333333', fontSize: 11 } },
+  chartArea: { backgroundColor: '#ffffff', left: 60, right: 20, top: 30, bottom: 50 },
   hAxis: {
-    textStyle: { color: '#8896b3', fontSize: 9 },
-    titleTextStyle: { color: '#8896b3', fontSize: 10, italic: false },
-    gridlines: { color: 'rgba(255,255,255,0.06)' },
-    baselineColor: 'rgba(255,255,255,0.1)',
+    textStyle: { color: '#333333', fontSize: 9 },
+    titleTextStyle: { color: '#333333', fontSize: 10, italic: false },
+    gridlines: { color: '#e0e0e0' },
+    baselineColor: '#cccccc',
   },
   vAxis: {
-    textStyle: { color: '#8896b3', fontSize: 9 },
-    titleTextStyle: { color: '#8896b3', fontSize: 10, italic: false },
-    gridlines: { color: 'rgba(255,255,255,0.06)' },
-    baselineColor: 'rgba(255,255,255,0.1)',
+    textStyle: { color: '#333333', fontSize: 9 },
+    titleTextStyle: { color: '#333333', fontSize: 10, italic: false },
+    gridlines: { color: '#e0e0e0' },
+    baselineColor: '#cccccc',
   },
 };
 
@@ -130,7 +130,7 @@ function _renderGcChart(el, data) {
       pieHole: 0.4,
       chartArea: { ...GC_THEME.chartArea, top: 10, bottom: 10 },
       legend: { ...GC_THEME.legend, position: 'right' },
-      pieSliceTextStyle: { color: '#f5f0e8', fontSize: 10 },
+      pieSliceTextStyle: { color: '#ffffff', fontSize: 10 },
     });
 
   }
@@ -305,7 +305,7 @@ function buildBarChart(data) {
         const color = THEME.palette[di % THEME.palette.length];
         return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
           <span style="font-size:0.65rem;color:${THEME.muted};width:70px;flex-shrink:0;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(ds.name)}</span>
-          <div style="flex:1;background:rgba(255,255,255,0.05);border-radius:2px;height:14px;overflow:hidden">
+          <div style="flex:1;background:rgba(0,0,0,0.06);border-radius:2px;height:14px;overflow:hidden">
             <div style="width:${pct}%;height:100%;background:${color};border-radius:2px;transition:width 0.8s ease;min-width:2px"></div>
           </div>
           <span style="font-size:0.68rem;color:${color};font-weight:700;min-width:56px;flex-shrink:0;text-align:right">${esc(formatValue(val, unit))}</span>
@@ -324,7 +324,7 @@ function buildBarChart(data) {
           <span style="font-size:0.75rem;color:${THEME.cream}">${esc(label)}</span>
           <span style="font-size:0.75rem;color:${color};font-weight:700">${esc(formatValue(val, unit))}</span>
         </div>
-        <div style="background:rgba(255,255,255,0.05);border-radius:3px;height:16px;overflow:hidden">
+        <div style="background:rgba(0,0,0,0.06);border-radius:3px;height:16px;overflow:hidden">
           <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,${color},${color}cc);border-radius:3px;transition:width 0.8s ease;min-width:4px"></div>
         </div>
       </div>`;
@@ -507,7 +507,7 @@ function buildDataTable(data) {
   </tr>`;
 
   const tbody = rows.map((row, ri) => {
-    const bg = ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.025)';
+    const bg = ri % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.04)';
     const cells = (row.values || []).map(v =>
       `<td style="padding:0.55rem 0.75rem;font-size:0.78rem;color:${THEME.cream};border-bottom:1px solid ${THEME.border};vertical-align:top;white-space:normal;line-height:1.45">${esc(v)}</td>`
     ).join('');
@@ -557,18 +557,19 @@ function _chartWrapper(data, innerHTML) {
 
   return `
 <div class="bp-chart-block" id="${esc(chartId)}" data-chart-name="${esc(chartName)}" style="
-  background:${THEME.bg};
-  border:1px solid ${THEME.border};
-  border-left:3px solid ${THEME.gold};
+  background:#ffffff;
+  border:1px solid #d0d7de;
+  border-left:3px solid #1a1a2e;
   border-radius:6px;
   padding:1.2rem 1.4rem;
   margin:1.6rem 0;
   font-family:var(--sans,sans-serif);
+  box-shadow:0 1px 4px rgba(0,0,0,0.07);
 ">
   <div style="margin-bottom:0.9rem">
-    <div style="font-size:0.68rem;font-weight:600;color:${THEME.gold};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px">${esc(chartName)}</div>
-    <div style="font-size:0.82rem;font-weight:700;color:${THEME.cream};margin-bottom:2px">${esc(data.title || 'Data Visualization')}</div>
-    ${data.subtitle ? `<div style="font-size:0.7rem;color:${THEME.muted}">${esc(data.subtitle)}</div>` : ''}
+    <div style="font-size:0.68rem;font-weight:700;color:#1a1a2e;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">${esc(chartName)}</div>
+    <div style="font-size:0.9rem;font-weight:700;color:#111111;margin-bottom:2px">${esc(data.title || 'Data Visualization')}</div>
+    ${data.subtitle ? `<div style="font-size:0.72rem;color:#555555">${esc(data.subtitle)}</div>` : ''}
   </div>
   <div class="bp-chart-fallback">${innerHTML}</div>
   ${hasGcVariant ? `<div class="bp-chart-canvas" data-bp-gchart="${gcAttr}" style="display:none;width:100%"></div>` : ''}
