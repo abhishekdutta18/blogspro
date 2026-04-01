@@ -82,11 +82,12 @@ export async function cachedFetch(targetUrl) {
     return `${origin}${path}`;
   })();
   if (!normalizedTarget) return fetch(targetUrl);
-  if (!base) return fetch(targetUrl);
+  if (!base) return fetch(normalizedTarget);
   const url = `${base}/?target=${encodeURIComponent(normalizedTarget)}`;
   try {
     const res = await fetch(url, { method: "GET" });
-    if (res.ok) return res;
+    const hasCors = res.headers?.get("Access-Control-Allow-Origin");
+    if (res.ok && hasCors) return res;
   } catch (_) {}
   return fetch(normalizedTarget);
 }
