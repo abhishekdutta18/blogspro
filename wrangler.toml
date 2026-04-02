@@ -163,9 +163,9 @@ bindings = [
   { name = "MANUSCRIPT_DO", class_name = "ManuscriptAggregator" }
 ]
 
-[[env.miro-sync.migrations]]
-tag = "v1"
-new_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"]
+migrations = [
+  { tag = "v5_4_2_h_final", new_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"] }
+]
 
 # --- UPSTOX MARKET PROXY ---
 [env.upstox]

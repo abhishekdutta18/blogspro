@@ -27,6 +27,6 @@ bucket_name = "blogspro-affine-snapshots"
 
 # --- STRATEGIC MIGRATIONS (V5.4.1) ---
 [[migrations]]
-tag = "v1"
+tag = "v5_4_2_h_final"
 new_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"]
 
