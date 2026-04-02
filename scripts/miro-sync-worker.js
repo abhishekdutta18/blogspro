@@ -623,5 +623,5 @@ const TERMINAL_HTML = `
 /**
  * Registry Stubs to satisfy Wrangler Global Bindings
  */
-export class DataIngestor { constructor(state) { this.state = state; } async fetch(req) { return new Response("DH_STUB"); } }
-export class ManuscriptAggregator { constructor(state) { this.state = state; } async fetch(req) { return new Response("MA_STUB"); } }
+export class DataIngestorS { constructor(state) { this.state = state; } async fetch(req) { return new Response("DH_STUB"); } }
+export class ManuscriptAggregatorS { constructor(state) { this.state = state; } async fetch(req) { return new Response("MA_STUB"); } }
