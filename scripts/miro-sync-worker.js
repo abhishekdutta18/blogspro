@@ -629,6 +629,6 @@ export class ManuscriptAggregatorS { constructor(state) { this.state = state; } 
 // --- TRANSITION STUBS (V5.4.2) ---
 // We keep the original class exports to satisfy existing live bindings in other scripts.
 // These will be fully removed once pulse and mirofish have successfully migrated to the *S classes.
-export class MiroSync extends DurableObject {}
-export class DataIngestor extends DurableObject {}
-export class ManuscriptAggregator extends DurableObject {}
+export class MiroSync { constructor(state) { this.state = state; } async fetch(req) { return new Response("LEGACY_STUB"); } }
+export class DataIngestor { constructor(state) { this.state = state; } async fetch(req) { return new Response("LEGACY_STUB"); } }
+export class ManuscriptAggregator { constructor(state) { this.state = state; } async fetch(req) { return new Response("LEGACY_STUB"); } }
