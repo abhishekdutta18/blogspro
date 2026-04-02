@@ -25,15 +25,8 @@ class_name = "ManuscriptAggregator"
 binding = "snapshots"
 bucket_name = "blogspro-affine-snapshots"
 
-# --- STRATEGIC MIGRATIONS (Only for this script/config) ---
+# --- STRATEGIC MIGRATIONS (V5.4.1) ---
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["MiroSync"]
+new_sqlite_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"]
 
-[[migrations]]
-tag = "v2"
-new_sqlite_classes = ["DataIngestor"]
-
-[[migrations]]
-tag = "v3"
-new_sqlite_classes = ["ManuscriptAggregator"]

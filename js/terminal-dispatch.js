@@ -1,4 +1,4 @@
-import { showToast, db, DISPATCH_CONFIG } from './config.js';
+import { showToast, auth, db, DISPATCH_CONFIG } from './config.js';
 import { collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { workerCandidates, workerUrl } from './worker-endpoints.js';
 
@@ -33,13 +33,12 @@ export async function dispatchSwarm(frequency = 'daily') {
   if (statusEl) statusEl.textContent = `Initializing node cluster for ${frequency} research cascade...`;
 
   try {
-    const idToken = await window.auth.currentUser?.getIdToken();
+    const idToken = await auth.currentUser?.getIdToken();
     if (!idToken) throw new Error("Authentication required - please refresh the dashboard.");
 
     // Direct Pulse Orchestrator — blogspro-pulse environment
     const workerBase = window.BLOGSPRO_CONFIG?.PULSE_WORKER_URL || "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
-    const pulseWorkerUrl = `${workerBase.replace(/\/+$/, '')}/dispatch`;
-
+    const pulseWorkerUrl = `${workerBase.replace(/\/+$/, '')}/dispatch?type=pulse&freq=${frequency}`;
     const response = await fetch(pulseWorkerUrl, {
       method: "POST",
       headers: {
@@ -157,12 +156,11 @@ export async function triggerTerminalDispatch() {
   }
 
   try {
-    const idToken = await window.auth.currentUser?.getIdToken();
+    const idToken = await auth.currentUser?.getIdToken();
     if (!idToken) throw new Error("Authentication required - please login.");
 
     const workerBase = window.BLOGSPRO_CONFIG?.PULSE_WORKER_URL || "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
-    const pulseWorkerUrl = `${workerBase.replace(/\/+$/, '')}/dispatch`;
-
+    const pulseWorkerUrl = `${workerBase.replace(/\/+$/, '')}/dispatch?type=pulse&freq=weekly`;
     const response = await fetch(pulseWorkerUrl, {
       method: 'POST',
       headers: {

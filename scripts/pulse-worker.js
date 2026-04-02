@@ -75,11 +75,22 @@ export default {
         });
       }
 
-      // 5. MANUAL DISPATCH
+      // 5. MANUAL DISPATCH (V5.4.2)
       if (pathname === '/dispatch' && request.method === "POST") {
-        const type = url.searchParams.get('type') || 'pulse';
-        const freq = url.searchParams.get('freq') || 'hourly';
-        const jobId = `man-${Date.now()}`;
+        let body = {};
+        try { body = await request.json(); } catch (e) {}
+
+        const type = body.type || url.searchParams.get('type') || 'pulse';
+        const freq = body.frequency || body.freq || url.searchParams.get('freq') || 'hourly';
+        const jobId = body.jobId || `man-${Date.now()}`;
+
+        // Institutional Security Pass
+        const authHeader = request.headers.get("Authorization");
+        const swarmToken = request.headers.get("X-Swarm-Token");
+
+        if (!authHeader && !swarmToken && !isPagesDev) {
+          return wrapResponse({ error: "Unauthorized — Institutional Pulse Node restricted." }, 401);
+        }
 
         const client = getInngestClient(env);
         ctx.waitUntil(client.send({
@@ -87,7 +98,7 @@ export default {
           data: { jobId, type, frequency: freq }
         }));
 
-        return wrapResponse({ success: true, jobId, message: "Durable Dispatch Initiated" });
+        return wrapResponse({ success: true, jobId, message: "Durable Dispatch Initiated", type, frequency: freq });
       }
 
       // 6. VAULT (Secret Propagation for Browser Rendering)
