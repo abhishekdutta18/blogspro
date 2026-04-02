@@ -21,10 +21,6 @@ class_name = "DataIngestor"
 name = "MANUSCRIPT_DO"
 class_name = "ManuscriptAggregator"
 
-[[r2_buckets]]
-binding = "snapshots"
-bucket_name = "blogspro-affine-snapshots"
-
 # --- STRATEGIC MIGRATIONS (V5.4.1) ---
 [[migrations]]
 tag = "v5_4_2_h_final"
