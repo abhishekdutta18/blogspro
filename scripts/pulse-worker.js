@@ -101,20 +101,78 @@ export default {
         return wrapResponse({ success: true, jobId, message: "Durable Dispatch Initiated", type, frequency: freq });
       }
 
-      // 6. VAULT (Secret Propagation for Browser Rendering)
+      // 6. VAULT (Secret Propagation for Browser Rendering & GitHub Swarm)
       if (pathname === "/vault" && request.method === "POST") {
         const vaultAuth = request.headers.get("X-Vault-Auth") || "";
         if (!vaultAuth || vaultAuth !== env.VAULT_MASTER_KEY) {
+          logSwarmBreadcrumb("Unauthorized Vault Access Attempt", { auth: !!vaultAuth }, sentry);
           return wrapResponse({ error: "Unauthorized Vault Access" }, 403);
         }
 
+        // Institutional Payload: Return actual values managed via scripts/sync-secrets.mjs
         return wrapResponse({ 
           status: "authenticated", 
           secrets: {
-            GEMINI: !!env.GEMINI_API_KEY,
-            INNGEST: !!env.INNGEST_SIGNING_KEY,
-            SENTRY: !!env.SENTRY_DSN
+            GH_PAT: env.GH_PAT || null,
+            GEMINI: env.GEMINI_API_KEY || null,
+            GROQ: env.GROQ_API_KEY || null,
+            MISTRAL: env.MISTRAL_API_KEY || null,
+            INNGEST: env.INNGEST_SIGNING_KEY || null,
+            SENTRY: env.SENTRY_DSN || null
           } 
+        });
+      }
+
+      // 7. DISPATCH STATUS PROXY (V5.4 Hardened)
+      if (pathname === "/api/dispatch-status") {
+        // Enforce same security as /dispatch
+        const idToken = request.headers.get("Authorization");
+        if (!idToken && !isPagesDev) {
+          return wrapResponse({ error: "Unauthorized — Institutional Node access required." }, 401);
+        }
+
+        let body = {};
+        if (request.method === "POST") {
+          try { body = await request.json(); } catch (e) {}
+        }
+
+        const owner = body.owner || url.searchParams.get("owner") || "abhishekdutta18";
+        const repo = body.repo || url.searchParams.get("repo") || "blogspro";
+        const workflow = body.workflow || url.searchParams.get("workflow") || "manual-dispatch.yml";
+        const branch = body.branch || url.searchParams.get("branch") || "main";
+
+        if (!env.GH_PAT) {
+          return wrapResponse({ error: "Github PAT not configured in worker secrets." }, 503);
+        }
+
+        // Fetch latest run for this workflow
+        const ghUrl = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflow}/runs?branch=${branch}&per_page=1`;
+        const ghRes = await fetch(ghUrl, {
+          headers: {
+            "Authorization": `token ${env.GH_PAT}`,
+            "User-Agent": "BlogsPro-Pulse-Worker/5.4",
+            "Accept": "application/vnd.github.v3+json"
+          }
+        });
+
+        if (!ghRes.ok) {
+          const ghErr = await ghRes.text();
+          return wrapResponse({ error: `Github API Error: ${ghRes.status}`, details: ghErr }, ghRes.status);
+        }
+
+        const ghData = await ghRes.json();
+        const latestRun = ghData.workflow_runs?.[0];
+
+        if (!latestRun) {
+          return wrapResponse({ status: "not_found", message: "No workflow runs found." });
+        }
+
+        return wrapResponse({
+          id: latestRun.id,
+          status: latestRun.status, // e.g., "completed", "in_progress"
+          conclusion: latestRun.conclusion, // e.g., "success", "failure"
+          runUrl: latestRun.html_url,
+          updated_at: latestRun.updated_at
         });
       }
 
