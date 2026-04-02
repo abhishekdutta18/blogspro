@@ -15,7 +15,7 @@ Your newsletter system is fully operational with the following stack:
 - **Domain Verified**: `mail.blogspro.in`
 
 ### Cloudflare Worker ✅
-- **URL**: https://blogspro-newsletter.abhishek-dutta1996.workers.dev
+- **URL**: https://blogspro-newsletter.abhishekdutta18.workers.dev
 - **Secrets Set**:
   - `RESEND_API_KEY`: ✅ Active
   - `NEWSLETTER_SECRET`: biltu123

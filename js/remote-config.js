@@ -35,7 +35,7 @@ export async function loadRemoteConfig() {
 
     NEWSLETTER_CONFIG = {
       url:    getValue(remoteConfig, 'newsletter_worker_url').asString()
-              || 'https://blogspro-newsletter.abhishek-dutta1996.workers.dev',
+              || 'https://blogspro-newsletter.abhishekdutta18.workers.dev',
       secret: getValue(remoteConfig, 'newsletter_secret').asString(),
     };
 

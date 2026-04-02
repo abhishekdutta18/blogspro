@@ -20,7 +20,7 @@ function padZero(num) {
 function dispatchWorkerBases() {
   const override = localStorage.getItem('bp_dispatch_worker_url');
   const configured = override ? [override] : workerCandidates('api/dispatch');
-  const fallback = 'https://github-push.abhishek-dutta1996.workers.dev';
+  const fallback = 'https://github-push.abhishekdutta18.workers.dev';
   const all = [...configured, fallback]
     .map((v) => String(v || '').trim().replace(/\/+$/, ''))
     .filter(Boolean);

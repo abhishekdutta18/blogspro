@@ -20,7 +20,7 @@ async function testBackend() {
     // 1. Upstox Proxy (Indian Markets)
     console.log("\n📡 Testing Upstox Proxy (India)...");
     try {
-        const res = await get("https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/quotes");
+        const res = await get("https://blogspro-upstox-stable.abhishekdutta18.workers.dev/quotes");
         const json = JSON.parse(res.data);
         if (json.status === "success") {
             const symbols = Object.keys(json.data || {});
@@ -35,7 +35,7 @@ async function testBackend() {
     // 2. Global Markets Proxy
     console.log("\n📡 Testing Global Market Proxy...");
     try {
-        const res = await get("https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/global");
+        const res = await get("https://blogspro-upstox-stable.abhishekdutta18.workers.dev/global");
         const json = JSON.parse(res.data);
         if (json.status === "success") {
             console.log(`✅ SUCCESS: Global Proxy is LIVE. Fetched ${json.data.length} indices.`);

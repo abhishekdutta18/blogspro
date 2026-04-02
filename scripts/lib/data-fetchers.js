@@ -340,7 +340,7 @@ async function fetchCentralBankPulse() {
 
 async function fetchUpstoxData() {
     try {
-        const res = await _fetch("https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/quotes");
+        const res = await _fetch("https://blogspro-upstox-stable.abhishekdutta18.workers.dev/quotes");
         const json = await res.json();
         if (json.status === "success") {
             const d = json.data;
