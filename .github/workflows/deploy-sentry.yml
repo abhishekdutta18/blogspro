@@ -92,6 +92,6 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" \
             -H "Content-Type: application/json" \
-            -d '{"url":"https://blogspro-sentry-webhook.abhishek-dutta1996.workers.dev/telegram","allowed_updates":["message","callback_query"]}' \
+            -d '{"url":"https://blogspro-sentry-webhook.abhishekdutta18.workers.dev/telegram","allowed_updates":["message","callback_query"]}' \
           | python3 -c "import sys,json; r=json.load(sys.stdin); print('Telegram webhook:', r.get('description', r))"
 

@@ -1,10 +1,10 @@
 // Centralized worker endpoint config for all server-side API calls.
 // Keeps provider keys off the client and supports safe fallback routes.
 
-const LEGACY_GITHUB_PUSH_WORKER = "https://github-push.abhishek-dutta1996.workers.dev";
-const NON_AI_WORKERS = [LEGACY_GITHUB_PUSH_WORKER];
-const AI_FALLBACK_WORKER = LEGACY_GITHUB_PUSH_WORKER; // temporary default for AI calls when none configured
-const DEFAULT_CACHE_WORKER = "https://blogspro-kv-cache.abhishek-dutta1996.workers.dev";
+const PULSE_WORKER_BASE = "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
+const NON_AI_WORKERS = [PULSE_WORKER_BASE];
+const AI_FALLBACK_WORKER = PULSE_WORKER_BASE; 
+const DEFAULT_CACHE_WORKER = PULSE_WORKER_BASE;
 
 const configuredBases = [
   window.__AI_API_BASE__,
@@ -53,8 +53,8 @@ export function workerCandidates(path = "") {
   // Non-AI routes can still use configured bases.
   baseCandidates.push(...configured);
 
-  // Keep legacy deploy worker as the final fallback only.
-  baseCandidates.push(LEGACY_GITHUB_PUSH_WORKER);
+  // Use institutional Pulse worker as the final fallback.
+  baseCandidates.push(PULSE_WORKER_BASE);
 
   return unique(baseCandidates);
 }

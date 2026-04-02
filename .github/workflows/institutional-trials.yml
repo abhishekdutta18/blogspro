@@ -25,7 +25,7 @@ jobs:
   trial-swarm:
     name: 🐝 Trial Swarm Dispatch
     runs-on: ubuntu-latest
-    environment: Production # Using production secrets for high-fidelity trial
+    environment: production # Using production secrets for high-fidelity trial
     steps:
       - name: 🛰️ Checkout Repository
         uses: actions/checkout@v4

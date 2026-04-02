@@ -2,8 +2,12 @@
  * test-pipeline.js
  * Verifies the internal logic of generate-article.js WITHOUT calling external APIs.
  */
-const fs = require("fs");
-const path = require("path");
+const fs = await import("fs");
+const path = await import("path");
+const { fileURLToPath } = await import('url');
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const mockHtml = `
 <html>

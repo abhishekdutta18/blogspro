@@ -19,7 +19,7 @@ export function initHealthMonitor() {
             <div style="width:6px;height:6px;background:${status === 'SUCCESS' ? 'var(--emerald)' : 'var(--red)'};border-radius:50%;box-shadow:0 0 5px ${status === 'SUCCESS' ? 'var(--emerald)' : 'var(--red)'}"></div>
             Pipeline ${status}: ${lastRun}
         `;
-        
+
         statusBadge.style.color = status === 'SUCCESS' ? 'var(--emerald)' : '#fca5a5';
         statusBadge.style.background = status === 'SUCCESS' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)';
         statusBadge.style.borderColor = status === 'SUCCESS' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)';
@@ -39,7 +39,7 @@ async function initFinancialHealth() {
             const res = await fetch('https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/quotes');
             const latency = Date.now() - start;
             const data = await res.json();
-            
+
             const isOk = res.ok && data.status === 'success';
             const isExpired = res.status === 401 || data.tokenExpired === true || data.message?.includes('Token') || data.message?.includes('expired');
             const statusLabel = isOk && !isExpired ? 'CONNECTED' : (isExpired ? 'TOKEN EXPIRED' : 'ERROR');

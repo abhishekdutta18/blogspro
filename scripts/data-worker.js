@@ -19,6 +19,14 @@ import { saveSnapshot } from "./lib/storage-bridge.js";
 
 export default {
   async fetch(request, env) {
+    // 0. Governance: Internal API Authentication
+    const token = request.headers.get("X-Swarm-Token");
+    if (token !== env.SWARM_INTERNAL_TOKEN && env.ENVIRONMENT !== 'development') {
+      return new Response(JSON.stringify({ error: "Unauthorized Swarm Access" }), { 
+        status: 401, headers: { "Content-Type": "application/json" } 
+      });
+    }
+
     const url = new URL(request.url);
     const frequency = url.searchParams.get("freq") || "hourly";
     const force = url.searchParams.get("force") === "true";
@@ -29,11 +37,15 @@ export default {
         try {
           const snapshotMeta = await fetch(`https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/latest_snapshots/latest_${frequency}`).then(r => r.json());
           
-          if (snapshotMeta.fields && (Date.now() - parseInt(snapshotMeta.fields.timestamp.integerValue) < 300000)) { 
-            console.log(`⚡ [DataHub] Serving ${frequency} snapshot from Firebase.`);
-            const storageUrl = `https://storage.googleapis.com/${env.FIREBASE_STORAGE_BUCKET}/${snapshotMeta.fields.key.stringValue}`;
-            const res = await fetch(storageUrl);
-            return new Response(await res.text(), { headers: { "Content-Type": "application/json" } });
+          // Fix: Standardize on doubleValue for timestamps
+          if (snapshotMeta.fields && snapshotMeta.fields.timestamp) {
+            const timestamp = parseFloat(snapshotMeta.fields.timestamp.doubleValue || snapshotMeta.fields.timestamp.integerValue);
+            if (Date.now() - timestamp < 300000) { 
+              console.log(`⚡ [DataHub] Serving ${frequency} snapshot from Storage: ${snapshotMeta.fields.key.stringValue}`);
+              const storageUrl = `https://storage.googleapis.com/${env.FIREBASE_STORAGE_BUCKET}/${snapshotMeta.fields.key.stringValue}`;
+              const res = await fetch(storageUrl);
+              return new Response(await res.text(), { headers: { "Content-Type": "application/json" } });
+            }
           }
         } catch (e) {
           console.warn(`⚠️ [DataHub] Snapshot Cache Miss: ${e.message}`);
@@ -72,16 +84,26 @@ export default {
 async function ingest(frequency, env) {
   const mktInfo = getMarketContext();
   
-  // Parallel ingestion from institutional feeds
+  // 1. Parallel Resilient Ingestion
+  console.log(`🌐 [DataHub] Executing High-Availability Ingestion Loop [Freq: ${frequency}]...`);
+  const promises = [
+    fetchMultiAssetData(), fetchEconomicCalendar(), fetchSentimentData(), fetchUniversalNews(),
+    fetchRBIData(), fetchSEBIData(), fetchUpstoxData(), fetchMacroPulse(),
+    fetchMFData(), fetchPEVCData(), fetchInsuranceData(), fetchGIFTCityData(), fetchCentralBankPulse()
+  ];
+
+  const results = await Promise.allSettled(promises);
+  const data = results.map((res, idx) => {
+    if (res.status === 'fulfilled') return res.value;
+    console.error(`⚠️ [DataHub] Provider ${idx} Failed: ${res.reason?.message || "Unknown error"}`);
+    return { summary: "Data partially unavailable.", error: true };
+  });
+
   const [ 
     mktData, calendar, sentiment, news, 
     rbi, sebi, upstox, pulse, 
     mf, pevc, ins, gift, banks 
-  ] = await Promise.all([
-    fetchMultiAssetData(), fetchEconomicCalendar(), fetchSentimentData(), fetchUniversalNews(),
-    fetchRBIData(), fetchSEBIData(), fetchUpstoxData(), fetchMacroPulse(),
-    fetchMFData(), fetchPEVCData(), fetchInsuranceData(), fetchGIFTCityData(), fetchCentralBankPulse()
-  ]);
+  ] = data;
 
   return {
     frequency,

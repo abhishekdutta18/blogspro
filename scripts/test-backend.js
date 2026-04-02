@@ -1,17 +1,17 @@
 /**
  * scripts/test-backend.js
- * Verifies live connectivity for BlogsPro backend using native https (No dependencies).
+ * Verifies live connectivity for BlogsPro backend using native fetch (No dependencies).
  */
-const https = require("https");
+// const https = require("https"); // Removed: Using native fetch
 
-function get(url) {
-    return new Promise((resolve, reject) => {
-        https.get(url, (res) => {
-            let data = "";
-            res.on("data", (chunk) => data += chunk);
-            res.on("end", () => resolve({ status: res.statusCode, data }));
-        }).on("error", (err) => reject(err));
-    });
+async function get(url) {
+    try {
+        const res = await fetch(url);
+        const data = await res.text();
+        return { status: res.status, data };
+    } catch (err) {
+        throw err;
+    }
 }
 
 async function testBackend() {
@@ -21,6 +21,7 @@ async function testBackend() {
     console.log("\n📡 Testing Upstox Proxy (India)...");
     try {
         const res = await get("https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/quotes");
+
         const json = JSON.parse(res.data);
         if (json.status === "success") {
             const symbols = Object.keys(json.data || {});
@@ -36,6 +37,7 @@ async function testBackend() {
     console.log("\n📡 Testing Global Market Proxy...");
     try {
         const res = await get("https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/global");
+
         const json = JSON.parse(res.data);
         if (json.status === "success") {
             console.log(`✅ SUCCESS: Global Proxy is LIVE. Fetched ${json.data.length} indices.`);

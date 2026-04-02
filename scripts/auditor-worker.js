@@ -1,5 +1,5 @@
 import { validateContent } from "./lib/validator.js";
-import { repairTables, injectVisuals, hardenJson, enforceTemporalGrounding } from "./lib/rules-engine.js";
+import { repairTables, injectVisuals, hardenJson, enforceTemporalGrounding, enforceInstitutionalSections } from "./lib/rules-engine.js";
 import { verifyCitations } from "./lib/citation-engine.js";
 import { initWorkerSentry, captureSwarmError, logSwarmBreadcrumb } from "./lib/sentry-bridge.js";
 import rl from "./lib/reinforcement.js";
@@ -35,9 +35,11 @@ export default {
       let clean = content;
 
       // 1. Structural Repair (Rules Engine)
+      const vid = metadata?.verticalId || "gen";
       clean = repairTables(clean);
-      clean = injectVisuals(clean, metadata.verticalName, metadata.verticalId);
-      clean = hardenJson(clean);
+      clean = hardenJson(clean, vid); // Unique IDs first
+      clean = injectVisuals(clean, metadata?.verticalName || task, vid); // Slot-filling adopts IDs
+      clean = enforceInstitutionalSections(clean);
       clean = enforceTemporalGrounding(clean);
 
       // 2. Source Verification (Citation Engine)

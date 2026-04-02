@@ -15,10 +15,14 @@ function parseMD(md) {
 
     lines.forEach(line => {
         const trimmed = line.trim();
-        if (trimmed.startsWith('|')) {
-            if (trimmed.includes('---')) return;
+        const hasPipes = trimmed.includes('|');
+        const isSeparator = /^[|\s-]*(:?---:?|[|\s-]*)+$/.test(trimmed) && trimmed.includes('---');
 
-            const cols = trimmed.split('|')
+        if (hasPipes || isSeparator) {
+            if (isSeparator && !inTable) return; 
+
+            const cols = (trimmed.startsWith('|') ? trimmed : '| ' + trimmed + ' |')
+                .split('|')
                 .map(c => c.trim())
                 .filter((c, i, a) => i > 0 && i < a.length - 1);
             
@@ -37,44 +41,51 @@ function parseMD(md) {
                 inTable = true;
                 tableHtml = '<div class="table-container"><table><thead><tr>' + 
                             cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
-            } else {
+            } else if (!isSeparator) {
                 tableHtml += '<tr>' + cols.map(c => {
                     let content = c;
                     content = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-                    if (c.includes('+') || c.includes('▲')) content = `<span style="color:#22c55e;">▲ ${c.replace(/[\+\^▲]/g,'')}</span>`;
-                    else if (c.includes('-') || c.includes('▼')) content = `<span style="color:#ef4444;">▼ ${c.replace(/[\-\▼]/g,'')}</span>`;
+                    
+                    const numRegex = /^\d[\d,.]*$/;
+                    if (numRegex.test(c.replace(/[%$₹,.]/g, ''))) {
+                        if (!c.includes('%') && !c.includes('$') && !c.includes('₹')) {
+                            if (parseFloat(c.replace(/,/g,'')) > 1000) content = `₹${c}`;
+                            else content = `$${c}`;
+                        }
+                    }
+
+                    if (c.includes('+') || c.includes('▲')) content = `<span style="color:#00D166; font-weight:700;">▲ ${c.replace(/[\+\^▲]/g,'')}</span>`;
+                    else if (c.includes('-') || c.includes('▼')) content = `<span style="color:#FF3B30; font-weight:700;">▼ ${c.replace(/[\-\▼]/g,'')}</span>`;
                     return `<td>${content}</td>`;
                 }).join('') + '</tr>';
             }
         } else {
             if (inTable) {
                 tableHtml += '</tbody></table></div>';
-                midStage += tableHtml + '\n';
+                midStage += '\n' + tableHtml + '\n\n';
                 inTable = false;
                 tableHtml = "";
             }
             midStage += line + '\n';
         }
     });
-    if (inTable) midStage += tableHtml + '</tbody></table></div>';
+    if (inTable) midStage += '\n' + tableHtml + '</tbody></table></div>\n\n';
 
     let finalHtml = midStage
         .replace(/^[#\s]*### (.*$)/gim, '<h3>$1</h3>')
         .replace(/^[#\s]*## (.*$)/gim, '<h2>$1</h2>')
         .replace(/^[#\s]*# (.*$)/gim, '<h1>$1</h1>')
-        .replace(/---/g, '<hr class="institutional-divider">')
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
         .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
-        .replace(/^\- (.*$)/gim, '<li>$1</li>');
+        .replace(/^\- (.*$)/gim, '<li>$1</li>')
+        .replace(/---/g, '<hr class="institutional-divider">');
         
     finalHtml = finalHtml.split('\n\n').map(block => {
-        block = block.trim();
-        if (!block) return '';
-        // 🛡️ Clean up any leaked markdown symbols that are adjacent to HTML tags
-        block = block.replace(/^[#\s]+(<h[1-6])/g, '$1');
-        
-        if (block.startsWith('<div') || block.startsWith('<h') || block.startsWith('<ul') || block.startsWith('<li') || block.startsWith('<hr')) return block;
-        return '<p>' + block + '</p>';
+        const trimmed = block.trim();
+        if (!trimmed) return '';
+        if (/^<(div|table|section|h[1-6]|ul|li|hr|span|header|aside|footer)/i.test(trimmed)) return trimmed;
+        if (trimmed.indexOf('class="table-container"') !== -1) return trimmed;
+        return `<p style="color:var(--nexus-text-muted); line-height:1.7;">${trimmed.replace(/\n/g, '<br>')}</p>`;
     }).join('\n');
     
     return finalHtml.replace(/<li>/g, '<ul><li>').replace(/<\/li>/g, '</li></ul>').replace(/<\/ul>\s*<ul>/g, '').trim();
@@ -82,9 +93,7 @@ function parseMD(md) {
 
 function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileName, rel = "../../", sentimentScore = 50, priceInfo = { last: "0", high: "0", low: "0" }, scripts = "" }) {
     const seoDescription = excerpt || "BlogsPro Institutional Strategic Manuscript - 16-Vertical Specialized Market Synthesis.";
-    const seoKeywords = "Banking, Cards, Payments, Mutual Fund Inflows, PE/VC Deal Tracking, Institutional Market Intelligence, BlogsPro";
-    
-    const finalBody = content.includes('<h') ? content : parseMD(content);
+    const finalBody = parseMD(content);
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -92,165 +101,180 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title} | Nexus Institutional Terminal</title>
-    <meta name="description" content="${seoDescription}">
-    <meta name="keywords" content="${seoKeywords}">
-    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
         :root {
             --nexus-bg: #050505;
             --nexus-sidebar: #0A0A0A;
-            --nexus-accent: #BFA100;
-            --nexus-amber: #FFB800;
-            --nexus-border: rgba(191, 161, 0, 0.2);
-            --nexus-text-h1: #F8FAFC;
-            --nexus-text-p: #D1D5DB;
-            --sidebar-width: 260px;
+            --nexus-accent: #BFA100; 
+            --nexus-text-main: #F8FAFC; 
+            --nexus-text-muted: #94A3B8; 
+            --nexus-border: rgba(191,161,0,0.2);
         }
-
-        body { background: var(--nexus-bg); color: var(--nexus-text-p); font-family: 'Mulish', sans-serif; display: flex; margin: 0; min-height: 100vh; }
+        body { background: var(--nexus-bg); color: var(--nexus-text-muted); font-family: 'Mulish', sans-serif; margin: 0; min-height: 100vh; overflow-x: hidden; }
         
-        .sidebar { width: var(--sidebar-width); background: var(--nexus-sidebar); border-right: 1px solid var(--nexus-border); padding: 1.5rem; position: fixed; height: 100vh; overflow-y: auto; }
-        .logo { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--nexus-text-h1); text-decoration: none; border-bottom: 2px solid var(--nexus-accent); padding-bottom: 0.5rem; display: block; margin-bottom: 2rem; }
-        .logo span { color: var(--nexus-amber); }
-
-        .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 4rem; max-width: 1100px; }
+        /* 🚀 MINIMALIST BRANDING: Icon Only */
+        .global-logo { position: fixed; top: 1.5rem; left: 1.5rem; display: flex; align-items: center; justify-content: center; z-index: 200; background: rgba(10,10,10,0.9); backdrop-filter: blur(10px); width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--nexus-border); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .global-logo:hover { transform: scale(1.1); border-color: var(--nexus-accent); box-shadow: 0 0 30px rgba(191,161,0,0.2); }
+        .global-logo img { width: 24px; height: 24px; filter: contrast(1.1); }
         
-        .status-tag { font-family: 'JetBrains Mono', monospace; background: rgba(191, 161, 0, 0.1); color: var(--nexus-accent); padding: 0.3rem 0.7rem; font-size: 0.7rem; text-transform: uppercase; margin-bottom: 1.5rem; display: inline-block; border: 1px solid var(--nexus-border); }
-        h1 { font-size: 3rem; color: var(--nexus-text-h1); margin-bottom: 1.5rem; letter-spacing: -1px; font-weight: 800; }
-        h2 { font-family: 'JetBrains Mono', monospace; color: var(--nexus-accent); margin-top: 4rem; font-size: 1.4rem; text-transform: uppercase; border-top: 1px solid var(--nexus-border); padding-top: 2rem; }
+        .app-container { display: flex; width: 100%; }
+        .main-content { flex: 1; padding: 6rem 12% 4rem 12%; max-width: 1200px; margin: 0 auto; min-height: 100vh; position: relative; z-index: 10; }
+        .rhs-sidebar { width: 380px; background: #070707; padding: 6rem 2.5rem; height: 100vh; position: sticky; top: 0; overflow-y: auto; border-left: 1px solid var(--nexus-border); flex-shrink: 0; }
         
-        .excerpt { border-left: 4px solid var(--nexus-amber); padding-left: 1.5rem; margin: 2rem 0; font-size: 1.2rem; opacity: 0.9; font-style: italic; }
+        .status-tag { background: rgba(191, 161, 0, 0.1); color: var(--nexus-accent); padding: 0.4rem 0.8rem; font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2rem; display: inline-block; border: 1px solid var(--nexus-border); letter-spacing: 0.1rem; font-family: 'JetBrains Mono', monospace; }
+        h1 { font-size: 3.5rem; color: var(--nexus-text-main); margin-bottom: 2rem; letter-spacing: -2px; font-weight: 800; line-height: 1; }
+        h2 { font-family: 'Mulish', sans-serif; font-weight: 700; color: var(--nexus-accent); margin-top: 5rem; font-size: 1.8rem; text-transform: uppercase; border-top: 1px solid var(--nexus-border); padding-top: 2.5rem; letter-spacing: -0.5px; }
+        h3 { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--nexus-accent); margin-top: 3rem; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 2px; border-left: 3px solid var(--nexus-accent); padding-left: 1rem; }
+        
+        .excerpt { font-size: 1.3rem; line-height: 1.6; color: var(--nexus-text-main); margin: 3rem 0; opacity: 0.9; font-weight: 400; border-left: 2px solid var(--nexus-accent); padding-left: 2rem; }
 
-        .table-container { margin: 2.5rem 0; background: #0A0A0A; border: 1px solid var(--nexus-border); }
+        .table-container { margin: 3rem 0; background: #080808; border: 1px solid var(--nexus-border); overflow-x: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
         table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
-        th { text-align: left; padding: 1rem; background: rgba(191,161,0,0.05); color: var(--nexus-accent); border-bottom: 2px solid var(--nexus-accent); }
-        td { padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        th { text-align: left; padding: 1.4rem; background: rgba(191,161,0,0.1); color: var(--nexus-accent); border-bottom: 2px solid var(--nexus-accent); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        td { padding: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: rgba(248, 250, 252, 0.85); }
+        tr:hover { background: rgba(191, 161, 0, 0.04); }
 
-        .nav-item { display: block; padding: 0.6rem 0.8rem; color: rgba(255,255,255,0.6); text-decoration: none; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; border-left: 2px solid transparent; transition: all 0.2s; }
-        .nav-item:hover { background: rgba(191, 161, 0, 0.05); color: var(--nexus-accent); border-left: 2px solid var(--nexus-accent); }
-        .nav-item.active { color: var(--nexus-accent); border-left: 2px solid var(--nexus-accent); background: rgba(191, 161, 0, 0.05); }
+        .institutional-abstract { background: rgba(191, 161, 0, 0.03); border: 1px solid var(--nexus-border); padding: 2.5rem; margin: 3rem 0; position: relative; }
+        .institutional-abstract h3 { border: none; padding: 0; margin-top: 0; font-size: 0.75rem; opacity: 0.6; }
+        .institutional-glossary { margin: 5rem 0; padding: 3rem 0; }
+        .institutional-glossary li { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; padding: 1rem 0; border-bottom: 1px dotted rgba(191, 161, 0, 0.1); list-style: none; }
+        .institutional-glossary li strong { color: var(--nexus-accent); }
 
-        .institutional-sector { scroll-margin-top: 4rem; margin-bottom: 6rem; }
-        .institutional-divider { border: 0; border-top: 1px solid var(--nexus-border); margin: 6rem 0; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .terminal-chart { min-height: 450px; background: #070707; border: 1px solid var(--nexus-border); margin: 4rem 0; position: relative; border-radius: 4px; }
+        .terminal-chart::after { content: "DATA_VISUALIZATION_ENCLAVE"; position: absolute; bottom: 10px; right: 15px; font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; color: rgba(191,161,0,0.2); }
+
+        /* RHS Interlinks */
+        .rhs-title { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; color: var(--nexus-accent); margin-bottom: 2rem; letter-spacing: 4px; padding-bottom: 0.8rem; text-transform: uppercase; }
+        .interlink-card { background: #0A0A0A; border: 1px solid var(--nexus-border); padding: 1.2rem; margin-bottom: 1.2rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; display: block; }
+        .interlink-card:hover { transform: translateY(-3px); border-color: var(--nexus-accent); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
+        .interlink-card h4 { margin: 0 0 0.6rem 0; font-size: 0.85rem; color: var(--nexus-text-main); font-weight: 700; line-height: 1.4; }
+        .interlink-card .meta { font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; color: var(--nexus-accent); opacity: 0.5; }
+
+        .vertical-flow-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--nexus-text-muted); text-decoration: none; transition: color 0.2s; }
+        .vertical-flow-item:hover { color: var(--nexus-accent); }
+        .vertical-flow-item .score { font-weight: 700; color: #00D166; }
+        
+        /* AdSense Helper */
+        .institutional-adsense { margin: 4rem 0; text-align: center; background: rgba(5,5,5,0.5); padding: 1rem; border: 1px solid rgba(255,255,255,0.02); }
+        .ads-label { font-size: 0.5rem; color: var(--nexus-accent); opacity: 0.3; letter-spacing: 3px; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem; }
     </style>
 </head>
 <body>
-    <aside class="sidebar">
-        <a href="/" class="logo">BLOGS<span>PRO</span></a>
-        <nav>
-            <div style="font-size: 0.6rem; color: rgba(255,255,255,0.3); margin: 1.5rem 0 0.5rem 0.8rem; letter-spacing: 1px;">CORE TERMINAL</div>
-            <a href="#strategic-pulse" class="nav-item">STRATEGIC PULSE</a>
-            
-            <div style="font-size: 0.6rem; color: rgba(255,255,255,0.3); margin: 1.5rem 0 0.5rem 0.8rem; letter-spacing: 1px;">SWARM VERTICALS</div>
-            <a href="#sector-macro" class="nav-item">GLOBAL MACRO</a>
-            <a href="#sector-banking" class="nav-item">INSTITUTIONAL FLOWS</a>
-            <a href="#sector-cards" class="nav-item">CARDS & PAYMENTS</a>
-            <a href="#sector-equities" class="nav-item">ALPHA ROTATION</a>
-            <a href="#sector-debt" class="nav-item">DEBT & LIQUIDITY</a>
-            <a href="#sector-fx" class="nav-item">FX & CURRENCY</a>
-            <a href="#sector-digital" class="nav-item">DIGITAL ASSETS</a>
-            <a href="#sector-reg" class="nav-item">REGULATORY LEDGER</a>
-            <a href="#sector-commodity" class="nav-item">COMMODITY PULSE</a>
-            <a href="#sector-em" class="nav-item">EMERGING MARKETS</a>
-            <a href="#sector-asset" class="nav-item">ASSET ALLOCATION</a>
-            <a href="#sector-scribe" class="nav-item">SCRIBE ANALYTICS</a>
-            <a href="#sector-capital" class="nav-item">CAPITAL FLOWS</a>
-            <a href="#sector-insurance" class="nav-item">INSURANCE RISK</a>
-            <a href="#sector-gift" class="nav-item">OFFSHORE HUB</a>
-            <a href="#sector-payment" class="nav-item">FINTECH RAILS</a>
-        </nav>
-    </aside>
+    <a href="/" class="global-logo" title="Back to Intelligence Hub">
+        <img src="${rel}favicon.svg" alt="Nexus Icon">
+    </a>
 
-    <main class="main-content">
-        <header>
-            <div class="status-tag">${freq.toUpperCase()} Institutional Manuscript • ${dateLabel}</div>
+    <div class="app-container">
+        <main class="main-content">
+            <div class="status-tag">${freq.toUpperCase()} STRATEGIC MANUSCRIPT • ${dateLabel}</div>
             <h1>${title}</h1>
             <div class="excerpt">${excerpt}</div>
-        </header>
+            
+            <div class="institutional-adsense">
+                <div class="ads-label">COMMERCIAL PROTOCOL</div>
+                <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-PLACEHOLDER" data-ad-slot="PLACEHOLDER" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+            </div>
 
-        <section class="manuscript-body">
-            ${finalBody}
-        </section>
+            <section class="manuscript-body">
+                ${finalBody}
+                <div class="institutional-glossary">
+                    <h2>INSTITUTIONAL GLOSSARY</h2>
+                    <ul>
+                        <li><strong>Alpha (α):</strong> Superiority of returns relative to benchmark performance.</li>
+                        <li><strong>Basis Point:</strong> A unit of measure for interest rates (1/100th of 1%).</li>
+                        <li><strong>Liquidity Drift:</strong> Cumulative variance in market depth metrics.</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
 
-        <footer style="margin-top: 8rem; padding-top: 4rem; border-top: 1px solid var(--nexus-border); color: rgba(248, 250, 252, 0.4); font-size: 0.7rem; text-align: center;">
-            © ${new Date().getFullYear()} BLOGSPRO TERMINAL • ALL RIGHTS RESERVED • INSTITUTIONAL USE ONLY
-        </footer>
-    </main>
+        <aside class="rhs-sidebar">
+            <div class="rhs-title">STRATEGIC ANCHORS</div>
+            <a href="#sector-macro" class="interlink-card">
+                <h4>Global Macro Resilience Protocol</h4>
+                <div class="meta">Vertical: MACRO • Pulse: STABLE</div>
+            </a>
+            <a href="#sector-equities" class="interlink-card">
+                <h4>Institutional Alpha Rotation v2</h4>
+                <div class="meta">Vertical: EQUITIES • Pulse: ACTIVE</div>
+            </a>
+            <a href="#sector-debt" class="interlink-card">
+                <h4>Debt & Liquidity Surveillance</h4>
+                <div class="meta">Vertical: DEBT • Pulse: MONITOR</div>
+            </a>
+
+            <div class="rhs-title" style="margin-top: 4rem;">VERTICAL FLOWS</div>
+            <a href="#sector-banking" class="vertical-flow-item"><span>BANKING</span> <span class="score">98%</span></a>
+            <a href="#sector-cards" class="vertical-flow-item"><span>CARDS</span> <span class="score">94%</span></a>
+            <a href="#sector-mutualunds" class="vertical-flow-item"><span>MUTUAL FUNDS</span> <span class="score">89%</span></a>
+        </aside>
+    </div>
 
     <script>
-        // 🏁 BLOGSPRO CHART ENGINE: Discovery & Rendering
-        google.charts.load('current', {packages: ['corechart', 'bar', 'line']});
-        google.charts.setOnLoadCallback(function() {
-            console.log("📊 [Swarm UI] Google Charts Engine Initialized.");
-            if (typeof renderAllCharts === 'function') renderAllCharts();
-        });
-
-        function renderAllCharts() {
-            var chartTags = document.querySelectorAll('chart-data');
-            console.log("🔍 [Swarm UI] Discovering chart payloads...");
-            
-            chartTags.forEach(function(tag, i) {
-                try {
-                    var payload = JSON.parse(tag.textContent);
-                    var chartId = payload.id || 'dynamic-chart-' + i;
-                    
-                    var container = document.getElementById(chartId);
-                    if (!container) {
-                        container = document.createElement('div');
-                        container.id = chartId;
-                        container.className = 'table-container';
-                        container.style.height = '400px';
-                        container.style.padding = '2rem';
-                        tag.parentNode.insertBefore(container, tag.nextSibling);
-                    } else {
-                        container.style.height = '400px';
-                        container.style.padding = '2rem';
-                    }
-
-                    // 🛠️ DATA NORMALIZATION LAYER: AI-generated payloads are often objects, not 2D arrays.
-                    var chartData = payload.data || payload; 
-                    if (!Array.isArray(chartData)) {
-                        console.log("🛠️ [Swarm UI] Normalizing non-array payload for " + chartId);
-                        // If it's a nested object, look one level deeper
-                        var keys = Object.keys(chartData);
-                        if (keys.length === 1 && typeof chartData[keys[0]] === 'object' && !Array.isArray(chartData[keys[0]])) {
-                            chartData = chartData[keys[0]];
-                        }
+        // 🏰 INSTITUTIONAL HARDENED CHART ENGINE v2.2
+        if (typeof google !== 'undefined' && google.charts) {
+            google.charts.load('current', {packages: ['corechart', 'bar', 'line', 'table']});
+            google.charts.setOnLoadCallback(() => {
+                document.querySelectorAll('chart-data').forEach((tag, i) => {
+                    try {
+                        const bt = String.fromCharCode(96);
+                        const raw = tag.textContent.trim().replace(new RegExp(bt + bt + bt + 'json\\n?|' + bt + bt + bt, 'g'), '');
+                        const payload = JSON.parse(raw);
+                        tag.style.setProperty('display', 'none', 'important'); 
                         
-                        var normalized = [['Metric', 'Value']];
-                        for (var key in chartData) {
-                            if (typeof chartData[key] !== 'object') {
-                                normalized.push([key.replace(/_/g, ' '), chartData[key]]);
-                            }
+                        const containerId = payload.id || 'dynamic-chart-' + i;
+                        let container = document.getElementById(containerId);
+                        if (!container) {
+                            container = document.createElement('div');
+                            container.id = containerId;
+                            container.className = 'terminal-chart';
+                            tag.parentNode.insertBefore(container, tag);
                         }
-                        chartData = normalized;
+
+                        const data = google.visualization.arrayToDataTable(payload.data);
+                        const options = {
+                            backgroundColor: 'transparent',
+                            colors: ['#BFA100', '#F8FAFC', '#64748B', '#00D166'],
+                            chartArea: { width: '85%', height: '70%', top: 40 },
+                            legend: { position: 'bottom', textStyle: { color: '#94A3B8', fontSize: 10 } },
+                            hAxis: { textStyle: { color: '#94A3B8' }, gridlines: { color: 'rgba(255,255,255,0.05)' } },
+                            vAxis: { textStyle: { color: '#94A3B8' }, gridlines: { color: 'rgba(255,255,255,0.05)' } },
+                            titleTextStyle: { color: '#BFA100', fontSize: 14 }
+                        };
+
+                        let chart;
+                        if (payload.type === 'pie') chart = new google.visualization.PieChart(container);
+                        else if (payload.type === 'bar') chart = new google.visualization.BarChart(container);
+                        else chart = new google.visualization.LineChart(container);
+                        
+                        chart.draw(data, options);
+                    } catch (e) {
+                        console.error("📊 [Nexus] Chart Error:", e);
+                        tag.style.display = 'none';
                     }
-
-                    if (!chartData || chartData.length <= 1) {
-                        throw new Error("Insufficient data for chart rendering.");
-                    }
-
-                    var data = google.visualization.arrayToDataTable(chartData);
-                    var options = {
-                        title: payload.title || 'Institutional Market Metric',
-                        backgroundColor: '#0A0A0A',
-                        hAxis: { textStyle: { color: '#D1D5DB' }, gridlines: { color: '#333' } },
-                        vAxis: { textStyle: { color: '#D1D5DB' }, gridlines: { color: '#333' } },
-                        legend: { textStyle: { color: '#D1D5DB' } },
-                        colors: ['#BFA100', '#FFB800', '#A5B4FC'],
-                        titleTextStyle: { color: '#F8FAFC', fontSize: 14 }
-                    };
-
-                    var chart = (payload.type === 'bar') ? new google.visualization.BarChart(container) 
-                                : new google.visualization.LineChart(container);
-                    chart.draw(data, options);
-                    tag.style.display = 'none';
-                } catch (e) {
-                    console.error("❌ [Swarm UI] Chart Rendering Error:", e);
-                }
+                });
             });
         }
+        // Fail-safe: Always hide raw JSON regardless of Google Charts status
+        document.querySelectorAll('chart-data').forEach(tag => tag.style.setProperty('display', 'none', 'important'));
+
+        // 🚀 HASH-FREE SMOOTH SCROLL (Institutional Integration)
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a[href^="#"]');
+            if (link) {
+                e.preventDefault();
+                const target = document.getElementById(link.getAttribute('href').substring(1));
+                if (target) {
+                    window.scrollTo({
+                        top: target.getBoundingClientRect().top + window.pageYOffset - 120,
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        });
     </script>
     ${scripts || ''}
 </body>

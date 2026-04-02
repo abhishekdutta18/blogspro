@@ -1,5 +1,4 @@
-import dotenv from 'dotenv';
-dotenv.config();
+import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { executeMultiAgentSwarm } from "./lib/swarm-orchestrator.js";
@@ -9,7 +8,8 @@ import { getRecentSnapshots,
   syncToFirestore 
 } from "./lib/storage-bridge.js";
 import { uploadToStorage } from './lib/firebase-service.js';
-import { initNodeSentry, logSwarmBreadcrumb, captureSwarmError } from "./lib/sentry-bridge.js";
+import { runSwarmAudit } from './lib/mirofish-qa-service.js';
+import { initNodeSentry, logSwarmBreadcrumb, captureSwarmError, flushSentry } from "./lib/sentry-bridge.js";
 
 async function runInstitutionalSwarm() {
   const frequency = process.argv.find(a => a.startsWith('--freq='))?.split('=')[1] || 'weekly';
@@ -78,12 +78,22 @@ async function runInstitutionalSwarm() {
 
   console.log(`🚀 [Swarm] Initializing BlogsPro Institutional Synthesis [ID: ${id}]`);
   try {
-    // 2. CONTEXT RETRIEVAL
-    const snapshots = await getRecentSnapshots(frequency, 5, env);
+    // 2. CONTEXT RETRIEVAL (Institutional Rule: Zero-Pollution Policy)
+    console.log(`📡 [Swarm] Retrieving Institutional Context [Freq: ${frequency}]...`);
+    const snapshots = await getRecentSnapshots(frequency, 1, env);
     const historical = await getHistoricalData(env);
     
-    // Normalize snapshots for the 'semanticDigest' argument
-    const semanticDigest = snapshots[0] || { strategicLead: "Institutional Macro Drift Analysis." };
+    if (!snapshots || snapshots.length === 0) {
+        const errorMsg = `❌ [Swarm] Institutional Retrieval Failure: No snapshots found for ${frequency}. Hallucination Risk too high. Terminating.`;
+        console.error(errorMsg);
+        await captureSwarmError(new Error(errorMsg), { stage: 'context', frequency });
+        await flushSentry();
+        process.exit(1);
+    }
+
+    // Standardize snapshot for the 'semanticDigest' argument
+    const semanticDigest = snapshots[0];
+    console.log(`📊 [Swarm] Context Primed: [Snapshot: ${semanticDigest.timestamp}] [Historical: ${historical ? 'OK' : 'MISS'}]`);
 
     // 3. EXECUTE SWARM (Aligning with exact 6-argument signature)
     const result = await executeMultiAgentSwarm(
@@ -95,14 +105,33 @@ async function runInstitutionalSwarm() {
         id               // 6. jobId
     );
 
-    // 4. ARCHIVAL PHASE
+    // 4. QUALITY ASSURANCE: Institutional Swarm Review
+    let auditStatus = "PENDING";
+    try {
+        console.log(`🕵️ [Swarm] Initiating MiroFish Consensus Review [Freq: ${frequency}]...`);
+        await runSwarmAudit(result.final, frequency);
+        auditStatus = "AUDITED";
+        console.log(`✅ [Swarm] Institutional Review Passed. Status: ${auditStatus}`);
+    } catch (e) {
+        auditStatus = "AUDIT_FAILED";
+        console.warn(`⚠️ [Swarm] Institutional Review REJECTED/FAILED:`, e.message);
+        captureSwarmError(e, { stage: 'qa_audit', frequency, id });
+        // In "Resilient Mode", we still allow the tome to be saved but marked as failed
+    }
+
+    // 5. ARCHIVAL PHASE
     const fileName = `swarm-${frequency}-${Date.now()}.html`;
     const outPath = path.join(process.cwd(), 'dist', fileName);
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
     
-    // Result object has { final: html }
-    fs.writeFileSync(outPath, result.final);
-    console.log(`💾 [Swarm] Archive Phase: Saved locally to ${outPath}`);
+    // Result object has { final: html }. We inject the audit status into a meta tag.
+    let finalHtml = result.final;
+    if (finalHtml.includes('</head>')) {
+        finalHtml = finalHtml.replace('</head>', `<meta name="swarm-status" content="${auditStatus}">\n</head>`);
+    }
+
+    fs.writeFileSync(outPath, finalHtml);
+    console.log(`💾 [Swarm] Archive Phase: Saved locally to ${outPath} [Status: ${auditStatus}]`);
 
     // --- 🏺 ARCHIVAL PHASE: Persistent Cloud/Local Storage ---
     try {
@@ -119,16 +148,34 @@ async function runInstitutionalSwarm() {
 
     // --- 🛰️ GITHUB OUTPUT BRIDGE: For Automated PDF Generation ---
     if (process.env.GITHUB_OUTPUT) {
-        const fs = await import('fs');
         fs.appendFileSync(process.env.GITHUB_OUTPUT, `tome_file=dist/${fileName}\n`);
         fs.appendFileSync(process.env.GITHUB_OUTPUT, `tome_name=${fileName}\n`);
-        fs.appendFileSync(process.env.GITHUB_OUTPUT, `tome_type=tome\n`);
-        console.log(`🛰️ [Workflow] Emitted GitHub Outputs for PDF Generation.`);
+        fs.appendFileSync(process.env.GITHUB_OUTPUT, `tome_type=${type}\n`);
+        fs.appendFileSync(process.env.GITHUB_OUTPUT, `tome_audit=${auditStatus}\n`);
+        console.log(`🛰️ [Workflow] Emitted GitHub Outputs for PDF Generation: ${fileName} (Status: ${auditStatus})`);
+    }
+
+    // 6. DENSITY GATE: Institutional Hard-Fail Requirement
+    const MIN_DENSITY = 1500;
+    if (frequency !== 'hourly' && result.wordCount < MIN_DENSITY) {
+        const densityError = `❌ [Swarm] Density Violation: Generated content is too thin (${result.wordCount} words). Institutional mandate requires >${MIN_DENSITY}. Rejecting Archive.`;
+        console.error(densityError);
+        await captureSwarmError(new Error(densityError), { 
+            stage: 'density_check', 
+            wordCount: result.wordCount, 
+            frequency,
+            jobId: id 
+        });
+        await flushSentry();
+        process.exit(1);
     }
 
     console.log(`✅ [Dashboard] Institutional Workflow Finalized. [Words: ${result.wordCount}]`);
+    await flushSentry();
   } catch (error) {
     console.error(`❌ [Swarm] Pipeline Critical Failure:`, error.message);
+    await captureSwarmError(error, { stage: 'pipeline_critical', frequency: process.argv.find(a => a.startsWith('--freq='))?.split('=')[1] || 'weekly' });
+    await flushSentry();
     process.exit(1);
   }
 }

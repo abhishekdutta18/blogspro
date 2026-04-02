@@ -1,4 +1,3 @@
-# BlogsPro 5.0 - Multi-Tier Swarm Configuration
 # ============================================
 
 # Default target (avoids “Missing entry-point” when no env is specified)
@@ -58,6 +57,10 @@ service = "blogspro-templates"
 binding = "SEO_MANAGER"
 service = "blogspro-seo"
 
+[[env.pulse.services]]
+binding = "MIROFISH"
+service = "blogspro-mirofish"
+
 # Pulse consumes DOs from Miro-Sync
 [[env.pulse.durable_objects.bindings]]
 name = "MIRO_SYNC_DO"
@@ -79,7 +82,12 @@ binding = "ANALYTICS"
 dataset = "swarm_telemetry"
 
 [env.pulse.triggers]
-crons = ["0 * * * *", "15 4 * * *"]
+crons = [
+  "0 * * * *",     # Hourly Pulse
+  "0 4 * * *",     # Daily Pulse (4 AM UTC)
+  "0 5 * * 1",     # Weekly Pulse (Monday 5 AM UTC)
+  "0 6 1 * *"      # Monthly Pulse (1st of Month 6 AM UTC)
+]
 
 # --- NEWSLETTER WORKER ---
 [env.newsletter]
@@ -134,3 +142,14 @@ name = "blogspro-templates"
 main = "scripts/template-worker.js"
 compatibility_date = "2024-12-30"
 compatibility_flags = [ "nodejs_compat" ]
+
+# --- UPSTOX MARKET PROXY ---
+[env.upstox]
+name = "blogspro-upstox"
+main = "api/upstox-worker.js"
+compatibility_date = "2024-02-15"
+compatibility_flags = [ "nodejs_compat" ]
+
+[env.upstox.vars]
+# Environment-specific variables
+FIREBASE_PROJECT_ID = "blogspro-ai"

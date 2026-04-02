@@ -1,14 +1,21 @@
-/**
- * BlogsPro Upstox Proxy Worker
- * Fetches live Indian market data without exposing the auth token to the frontend.
- */
+import UpstoxClient from 'upstox-js-sdk';
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-const UPSTOX_API = "https://api.upstox.com/v2";
+// Initialize Upstox SDK helper
+function getUpstoxClient(token) {
+  const defaultClient = UpstoxClient.ApiClient.instance;
+  const OAUTH2 = defaultClient.authentications['OAUTH2'];
+  OAUTH2.accessToken = token;
+  return {
+    quotes: new UpstoxClient.MarketQuoteV3Api(),
+    history: new UpstoxClient.HistoryV3Api()
+  };
+}
 
 function jsonResponse(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
@@ -19,34 +26,29 @@ function jsonResponse(data, status = 200, extra = {}) {
 
 export default {
   async fetch(request, env) {
-    // Top-level catch ensures CORS headers always sent
     try {
       const url = new URL(request.url);
 
-      // CORS Preflight
       if (request.method === "OPTIONS") {
         return new Response(null, { status: 204, headers: CORS_HEADERS });
       }
 
-      // Origin validation
       const origin = request.headers.get("Origin") || "";
       if (origin && !origin.includes("blogspro.in") && !origin.includes("localhost")) {
         return new Response("Unauthorized Origin", { status: 403, headers: CORS_HEADERS });
       }
 
-      // Check token
       const token = env.UPSTOX_ACCESS_TOKEN;
       if (!token) {
         return jsonResponse({ status: "error", message: "Token not configured" }, 503);
       }
 
-      // Routes
       if (url.pathname === "/health") {
-        return jsonResponse({ status: "ok", service: "upstox-proxy" });
+        return jsonResponse({ status: "ok", service: "upstox-sdk-proxy" });
       }
 
       if (url.pathname === "/quotes") {
-        // NSE indices that are accessible with the current Upstox token
+        const sdk = getUpstoxClient(token);
         const nseIndexSymbols = [
           "NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank", "NSE_INDEX|Nifty IT",
           "NSE_INDEX|Nifty Auto", "NSE_INDEX|Nifty Pharma", "NSE_INDEX|Nifty Metal",
@@ -54,12 +56,9 @@ export default {
           "NSE_INDEX|Nifty Midcap 50", "NSE_INDEX|Nifty Midcap 100",
           "NSE_INDEX|Nifty Smallcap 100", "NSE_INDEX|Nifty Energy",
           "NSE_INDEX|Nifty Infra", "NSE_INDEX|Nifty Media"
-        ].join(",");
+        ];
 
-        // Yahoo Finance tickers → [yf_ticker, instrument_key, display_symbol]
-        // v8/finance/chart used per-symbol in parallel — v7/quote now requires auth
         const yfMap = [
-          // ── NSE Blue-chip stocks (INR) ──────────────────────────────────────
           ["RELIANCE.NS",   "NSE_EQ:RELIANCE",    "RELIANCE"],
           ["HDFCBANK.NS",   "NSE_EQ:HDFCBANK",    "HDFCBANK"],
           ["ICICIBANK.NS",  "NSE_EQ:ICICIBANK",   "ICICIBANK"],
@@ -80,7 +79,6 @@ export default {
           ["NESTLEIND.NS",  "NSE_EQ:NESTLEIND",   "NESTLEIND"],
           ["SUNPHARMA.NS",  "NSE_EQ:SUNPHARMA",   "SUNPHARMA"],
           ["TATAMOTORS.NS", "NSE_EQ:TATAMOTORS",  "TATAMOTORS"],
-          // ── Global indices (routed to indices segment) ──────────────────────
           ["^GSPC",    "GLOBAL_INDEX:SP500",    "S&P 500"],
           ["^IXIC",    "GLOBAL_INDEX:NASDAQ",   "NASDAQ"],
           ["^DJI",     "GLOBAL_INDEX:DJIA",     "Dow Jones"],
@@ -91,7 +89,6 @@ export default {
           ["^FCHI",    "GLOBAL_INDEX:CAC40",    "CAC 40"],
           ["^STOXX50E","GLOBAL_INDEX:EUROSTOXX","Euro Stoxx 50"],
           ["^BSESN",   "GLOBAL_INDEX:SENSEX",   "Sensex"],
-          // ── Commodities (fetched in USD, converted to INR below) ───────────
           ["GC=F",  "MCX_FO:MCX Gold",    "MCX Gold"],
           ["SI=F",  "MCX_FO:MCX Silver",  "MCX Silver"],
           ["CL=F",  "MCX_FO:Crude Oil",   "Crude Oil"],
@@ -102,19 +99,16 @@ export default {
           ["PA=F",  "MCX_FO:Palladium",   "Palladium"],
           ["ZC=F",  "MCX_FO:Corn",        "Corn"],
           ["ZW=F",  "MCX_FO:Wheat",       "Wheat"],
-          // ── Bond yields — US Treasuries ──────────────────────────────────────
           ["^TNX", "NSE_DEBT:US10Y",  "US 10Y Yield"],
           ["^FVX", "NSE_DEBT:US5Y",   "US 5Y Yield"],
           ["^TYX", "NSE_DEBT:US30Y",  "US 30Y Yield"],
           ["^IRX", "NSE_DEBT:US3M",   "US 3M T-Bill"],
-          // ── Bond yields — India (BHARAT Bond ETFs + G-Sec ETFs on NSE) ──────
           ["EBBETF0430.NS", "NSE_DEBT:BBond2030",  "BBond Apr 2030"],
           ["EBBETF0431.NS", "NSE_DEBT:BBond2031",  "BBond Apr 2031"],
           ["EBBETF0433.NS", "NSE_DEBT:BBond2033",  "BBond Apr 2033"],
           ["GSEC10YEAR.NS", "NSE_DEBT:GSec813Y",   "G-Sec 8-13Y"],
           ["SDL26BEES.NS",  "NSE_DEBT:SDL2026",    "SDL Apr 2026"],
           ["LIQUIDBEES.NS", "NSE_DEBT:LiquidBeES", "LiquidBeES"],
-          // ── FX / Currency ───────────────────────────────────────────────────
           ["USDINR=X", "NSE_CDS:USDINR", "USDINR"],
           ["EURINR=X", "NSE_CDS:EURINR", "EURINR"],
           ["GBPINR=X", "NSE_CDS:GBPINR", "GBPINR"],
@@ -155,19 +149,15 @@ export default {
           } catch (_) { return null; }
         };
 
-        // Fetch Upstox NSE indices + all Yahoo Finance symbols in parallel
+        // Fetch Upstox Quotes using SDK + Yahoo Finance in parallel
         const [upstoxRes, ...yfResults] = await Promise.allSettled([
-          fetch(
-            `${UPSTOX_API}/market-quote/quotes?symbol=${encodeURIComponent(nseIndexSymbols)}`,
-            { headers: { "Accept": "application/json", "Authorization": `Bearer ${token}` } }
-          ).then((r) => {
-            if (r.status === 401) {
-              console.error("[upstox-worker] Token expired or invalid (401)");
-              return { _tokenExpired: true, data: {} };
-            }
-            if (!r.ok) return null;
-            return r.json();
-          }).catch(() => null),
+          new Promise((resolve, reject) => {
+            sdk.quotes.getLtp({ instrumentKey: nseIndexSymbols.join(",") }, (error, data) => {
+              if (error) reject(error);
+              else resolve(data);
+            });
+          }),
+
           ...yfMap.map(fetchYfChart),
         ]);
 
@@ -179,7 +169,7 @@ export default {
         const upstoxData = tokenExpired ? {} : (upstoxValue?.data || {});
         Object.assign(merged, upstoxData);
 
-        // Yahoo Finance — each result is [instrKey, cardData] or null
+        // Yahoo Finance results
         for (const res of yfResults) {
           if (res.status === "fulfilled" && res.value) {
             const [instrKey, cardData] = res.value;
@@ -188,17 +178,16 @@ export default {
         }
 
         // Convert commodity USD prices → INR using live USDINR rate
-        // Gold/Silver: COMEX $/troy-oz → MCX ₹ per respective unit
         const usdinr = Number(merged["NSE_CDS:USDINR"]?.last_price);
         if (Number.isFinite(usdinr) && usdinr > 0) {
           const conversionMap = {
-            "MCX_FO:MCX Gold":    (p) => p * usdinr * 10 / 31.1035,    // $/oz → ₹/10g
-            "MCX_FO:MCX Silver":  (p) => p * usdinr * 1000 / 31.1035,  // $/oz → ₹/kg
-            "MCX_FO:Crude Oil":   (p) => p * usdinr,                    // $/bbl → ₹/bbl
+            "MCX_FO:MCX Gold":    (p) => p * usdinr * 10 / 31.1035,
+            "MCX_FO:MCX Silver":  (p) => p * usdinr * 1000 / 31.1035,
+            "MCX_FO:Crude Oil":   (p) => p * usdinr,
             "MCX_FO:Brent Crude": (p) => p * usdinr,
-            "MCX_FO:Natural Gas": (p) => p * usdinr,                    // $/mmBtu → ₹/mmBtu
-            "MCX_FO:Copper":      (p) => p * usdinr / 0.453592,         // $/lb → ₹/kg
-            "MCX_FO:Platinum":    (p) => p * usdinr,                    // $/oz → ₹/oz
+            "MCX_FO:Natural Gas": (p) => p * usdinr,
+            "MCX_FO:Copper":      (p) => p * usdinr / 0.453592,
+            "MCX_FO:Platinum":    (p) => p * usdinr,
             "MCX_FO:Palladium":   (p) => p * usdinr,
           };
           for (const [key, fn] of Object.entries(conversionMap)) {
@@ -229,28 +218,19 @@ export default {
       }
 
       if (url.pathname === "/historical") {
+        const sdk = getUpstoxClient(token);
         const instrumentKey = url.searchParams.get("instrumentKey") || "NSE_INDEX|Nifty 50";
         const interval = url.searchParams.get("interval") || "day";
-        const now = new Date();
-        const toDate = url.searchParams.get("toDate") || now.toISOString().split('T')[0];
-        const thirtyDaysAgo = new Date(now);
-        thirtyDaysAgo.setDate(now.getDate() - 30);
-        const fromDate = url.searchParams.get("fromDate") || thirtyDaysAgo.toISOString().split('T')[0];
+        const toDate = url.searchParams.get("toDate") || new Date().toISOString().split('T')[0];
+        const fromDate = url.searchParams.get("fromDate") || new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
 
-        const response = await fetch(
-          `${UPSTOX_API}/historical-candle/${encodeURIComponent(instrumentKey)}/${interval}/${toDate}/${fromDate}`,
-          {
-            headers: {
-              "Accept": "application/json",
-              "Authorization": `Bearer ${token}`
-            }
-          }
-        );
-        const data = await response.json();
+        const data = await new Promise((resolve, reject) => {
+           sdk.history.getHistoricalCandleData(instrumentKey, interval, toDate, fromDate, (error, data) => {
+             if (error) reject(error);
+             else resolve(data);
+           });
+        });
 
-        if (data.status === "error" || !response.ok) {
-          return jsonResponse(data, response.status || 400);
-        }
         return jsonResponse(data, 200, { "Cache-Control": "public, max-age=3600" });
       }
 

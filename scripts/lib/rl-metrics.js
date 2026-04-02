@@ -3,11 +3,17 @@
  * Calculates the 'Reward' score for institutional research chapters.
  */
 
+function stripHTML(html) {
+    if (!html) return "";
+    return html.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+}
+
 function calculateReward(content, targetWords = 500) {
     if (!content) return 0;
 
     let score = 0;
-    const actualWords = content.split(/\s+/).length;
+    const cleanText = stripHTML(content);
+    const actualWords = cleanText.split(/\s+/).length;
 
     // 1. Length Reward (0.0 - 0.4)
     // We penalize heavily if under 50% of target

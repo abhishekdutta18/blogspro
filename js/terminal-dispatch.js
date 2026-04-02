@@ -20,7 +20,7 @@ function padZero(num) {
 function dispatchWorkerBases() {
   const override = localStorage.getItem('bp_dispatch_worker_url');
   const configured = override ? [override] : workerCandidates('api/dispatch');
-  const fallback = 'https://github-push.abhishek-dutta1996.workers.dev';
+  const fallback = 'https://blogspro-pulse.abhishek-dutta1996.workers.dev';
   const all = [...configured, fallback]
     .map((v) => String(v || '').trim().replace(/\/+$/, ''))
     .filter(Boolean);
@@ -98,6 +98,8 @@ export async function dispatchSwarm(frequency = 'daily') {
   const btnId = frequency === 'daily' ? 'btnDispatchDaily' : (frequency === 'weekly' ? 'btnDispatchWeekly' : 'btnDispatchManual');
   const btn = document.getElementById(btnId);
 
+  // V5.0: No PAT required for Serverless Dispatch Proxy
+
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = `⏳ Dispatching ${frequency.toUpperCase()}...`;
@@ -105,22 +107,29 @@ export async function dispatchSwarm(frequency = 'daily') {
   if (statusEl) statusEl.textContent = `Initializing node cluster for ${frequency} research cascade...`;
 
   try {
-    let res = null;
-    try {
-      res = await triggerWorkflowViaWorker(frequency);
-    } catch (e) {
-      // Fallback to direct GitHub API if worker rejected and a token is available
-      const msg = String(e?.message || '').toLowerCase();
-      if ((msg.includes('no dispatch-capable') || msg.includes('(400)')) && DISPATCH_CONFIG?.ghToken) {
-        res = await triggerWorkflowDirect(frequency);
-      } else {
-        throw e;
-      }
-    }
+    // ── V5.0: Call Serverless Dispatch Proxy (Pulse Worker) ────────────
+    const idToken = await window.auth.currentUser?.getIdToken();
+    if (!idToken) throw new Error("Authentication required - please refresh the dashboard.");
+
+    // Dynamic Worker Discovery - Reverted to legacy-active domain
+    const workerBase = window.BLOGSPRO_CONFIG?.PULSE_WORKER_URL || "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
+    const pulseWorkerUrl = `${workerBase}/dispatch`;
+
+    const response = await fetch(pulseWorkerUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${idToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ frequency })
+    });
+
+    if (!response.ok) throw new Error(`Dispatch failed: ${response.statusText}`);
+
     showToast(`Swarm ${frequency} dispatch successful!`, 'success');
     if (statusEl) statusEl.innerHTML = `<span style="color:var(--gold)">🛰 Swarm Active</span>: Propagation started. Monitor the Reinforcement Ledger below.`;
     if (window.startDispatchTimer) window.startDispatchTimer();
-    pollDispatchStatus(res.base);
+    pollDispatchStatus(workerBase);
   } catch (err) {
     showToast(err.message, 'error');
     if (statusEl) statusEl.textContent = `Error: ${err.message}`;
@@ -217,10 +226,34 @@ export async function triggerTerminalDispatch() {
   }
 
   try {
-    const res = await triggerWorkflowViaWorker('weekly');
-    showToast('Weekly dispatch triggered successfully via Cloudflare worker!', 'success');
+    const idToken = await window.auth.currentUser?.getIdToken();
+    if (!idToken) throw new Error("Login session expired or invalid.");
+
+    const workerBase = window.BLOGSPRO_CONFIG?.PULSE_WORKER_URL || "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
+    const pulseWorkerUrl = `${workerBase}/dispatch`;
+
+    const response = await fetch(pulseWorkerUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ frequency: 'weekly' })
+    });
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+         throw new Error('Unauthorized. Ensuring you are an admin on the 2026 Cluster.');
+      }
+      throw new Error(`Failed to dispatch: ${response.statusText}`);
+    }
+
+    showToast('Weekly dispatch triggered successfully on GitHub!', 'success');
+    
+    // Start the timer UI tracking
+
     startDispatchTimer();
-    pollDispatchStatus(res.base);
+    pollDispatchStatus(workerBase);
   } catch (err) {
     showToast(err.message, 'error');
     if (dispatchTimerInterval) clearInterval(dispatchTimerInterval);

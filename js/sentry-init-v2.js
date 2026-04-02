@@ -4,10 +4,13 @@
  * If the Sentry SDK is not already loaded, this script will fetch it automatically.
  */
 (function() {
-  const SENTRY_VERSION = "10.44.0";
-  const BUNDLE_URL = `https://browser.sentry-cdn.com/${SENTRY_VERSION}/bundle.tracing.replay.min.js`;
+  const SENTRY_VERSION = "8.54.0";
+  const CACHE_BUST     = Date.now();
+  const BUNDLE_URL     = `https://browser.sentry-cdn.com/${SENTRY_VERSION}/bundle.tracing.replay.min.js?v=${CACHE_BUST}`;
+  const CAPTURE_URL    = `https://browser.sentry-cdn.com/${SENTRY_VERSION}/captureconsole.min.js?v=${CACHE_BUST}`;
   const SENTRY_RELEASE = "blogspro@2026-04-01";
-  const INIT_FLAG = "__BLOGSPRO_SENTRY_INIT_V2__";
+  const INIT_FLAG      = "__BLOGSPRO_SENTRY_INIT_V2__";
+
 
   function initSentry() {
     if (typeof Sentry === 'undefined' || !Sentry.init) {
@@ -24,6 +27,9 @@
     // hosts are expected and should not flood Sentry. Auth/token errors are
     // still allowed through so expired Upstox tokens surface in the dashboard.
     const NOISY_HOSTS = [
+      "blogspro-upstox",
+      "abhishek-dutta1996.workers.dev",
+
       "ticker.json",
       "tradingview.com",
       "s3.tradingview.com",
@@ -37,6 +43,13 @@
       // Reduced from 1.0 — capture 10% of traces in production to avoid quota burn
       tracesSampleRate: window.location.hostname === "blogspro.in" ? 0.1 : 1.0,
       profilesSampleRate: 0.1,
+      initialScope: {
+        tags: { 
+          swarm_version: '5.0',
+          platform: 'frontend-admin',
+          capability: 'strategic-terminal'
+        }
+      },
 
       sampleRate: 1.0,
       attachStacktrace: true,
@@ -46,13 +59,13 @@
       replaysOnErrorSampleRate: 1.0,    // 100% of sessions with errors
 
       integrations: [
-        Sentry.browserTracingIntegration(),
-        Sentry.replayIntegration({
+        // v8+ Integrations — Guarded to prevent crash on older SDKs
+        ...(typeof Sentry.browserTracingIntegration === 'function' ? [Sentry.browserTracingIntegration()] : []),
+        ...(typeof Sentry.replayIntegration === 'function' ? [Sentry.replayIntegration({
           maskAllText: false,
           blockAllMedia: false,
-        }),
-        Sentry.httpContextIntegration(),
-        // captureConsoleIntegration excluded — it was capturing every pollMarkets CORS failure
+        })] : []),
+        ...(typeof Sentry.httpContextIntegration === 'function' ? [Sentry.httpContextIntegration()] : []),
       ],
 
       ignoreErrors: [
@@ -66,20 +79,17 @@
       ],
 
       beforeSend(event, hint) {
-        const msg = (event.message || "") + JSON.stringify(hint?.originalException || "");
+        // Drop events whose stack or request URL contains a known noisy host
+        // Exception: 5xx errors from the upstream BlogsPro workers MUST be sent
+        const error = hint?.originalException;
+        const msg   = (event.message || "") + JSON.stringify(error || "");
+        const isUpstreamError = /blogspro-upstox|workers\.dev/i.test(msg) && (error?.status >= 500 || event.level === "error");
 
-        // Always let Upstox auth/token errors through to Sentry
-        const isUpstoxAuth = msg.includes("tokenExpired") || msg.includes("TOKEN EXPIRED") ||
-          (msg.includes("upstox") && /401|auth|token/i.test(msg));
-        if (isUpstoxAuth) return event;
+        if (NOISY_HOSTS.some(h => msg.includes(h)) && !isUpstreamError) return null;
+ 
+        // Drop fetch/network errors that are just market-data polling failures
+        if (error instanceof TypeError && /fetch|network/i.test(error.message) && !isUpstreamError) return null;
 
-        // Drop events from known noisy polling hosts (CORS/network transients only)
-        if (NOISY_HOSTS.some(h => msg.includes(h))) return null;
-
-        // Drop generic fetch/network errors from market-data background polling
-        const err = hint?.originalException;
-        if (err instanceof TypeError && /fetch|network/i.test(err.message) &&
-            msg.includes("workers.dev")) return null;
 
         return event;
       },
@@ -121,8 +131,12 @@
   window[INIT_FLAG] = true;
 
   if (typeof Sentry === 'undefined') {
-    loadScript(BUNDLE_URL).then(initSentry).catch(err => {
-      console.error('[Sentry] Failed to load SDK bundle:', err);
+    Promise.all([
+      loadScript(BUNDLE_URL),
+      loadScript(CAPTURE_URL)
+    ]).then(initSentry).catch(err => {
+      console.error('[Sentry] Failed to load one or more stable v8.x SDK bundles:', err);
+
     });
   } else {
     initSentry();

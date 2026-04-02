@@ -2,8 +2,9 @@ name: Manual Terminal Dispatch
 
 on:
   schedule:
-    # Run every Friday at 12:00 PM UTC (5:30 PM IST)
-    - cron: '0 12 * * 5'
+    - cron: '0 5 * * *'        # Daily Research (5 AM UTC)
+    - cron: '0 6 * * 1'        # Weekly Heavy Research (Monday 6 AM UTC)
+    - cron: '30 7 1 * *'       # Monthly Institutional Tome (1st of month 7:30 AM UTC)
   workflow_dispatch:
     inputs:
       frequency:
@@ -41,38 +42,108 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci --no-audit --fund=false
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r mirofish/backend/requirements.txt
+          
+      - name: Fetch Secrets from Cloudflare Strategic Vault
+        id: vault
+        env:
+          VAULT_MASTER_KEY: ${{ secrets.VAULT_MASTER_KEY }}
+        run: |
+          # V5.3 Hardened Vault Endpoint (Institutional)
+          VAULT_URL="https://blogspro-pulse.abhishekdutta18.workers.dev/vault"
+          echo "📡 Connecting to BlogsPro Strategic Vault at $VAULT_URL..."
+          
+          RESPONSE=$(curl -s -X POST "$VAULT_URL" \
+            -H "X-Vault-Auth: $VAULT_MASTER_KEY" \
+            -H "Content-Type: application/json")
+
+          if echo "$RESPONSE" | grep -q "authenticated"; then
+            echo "✅ Vault Authenticated. Injecting 2026 Cluster Credentials..."
+            
+            # Extract and Mask Secrets
+            GH_PAT=$(echo "$RESPONSE" | jq -r '.secrets.GH_PAT // empty')
+            GEMINI=$(echo "$RESPONSE" | jq -r '.secrets.GEMINI // empty')
+            GROQ=$(echo "$RESPONSE" | jq -r '.secrets.GROQ // empty')
+            MISTRAL=$(echo "$RESPONSE" | jq -r '.secrets.MISTRAL // empty')
+            SENTRY_DSN=$(echo "$RESPONSE" | jq -r '.secrets.SENTRY_DSN // empty')
+            
+            if [ -z "$GH_PAT" ] || [ "$GH_PAT" == "null" ]; then
+                echo "❌ Vault Error: GH_PAT is missing or null in the vault response."
+                echo "💡 Hint: Update secrets using 'node scripts/sync-secrets.mjs' locally."
+                exit 1
+            fi
+
+            echo "::add-mask::$GH_PAT"
+            echo "::add-mask::$GEMINI"
+            echo "::add-mask::$GROQ"
+            echo "::add-mask::$MISTRAL"
+            echo "::add-mask::$SENTRY_DSN"
+
+            echo "GH_PAT=$GH_PAT" >> $GITHUB_ENV
+            echo "GH_TOKEN=$GH_PAT" >> $GITHUB_ENV
+            echo "GEMINI_API_KEY=$GEMINI" >> $GITHUB_ENV
+            echo "GROQ_API_KEY=$GROQ" >> $GITHUB_ENV
+            echo "MISTRAL_API_KEY=$MISTRAL" >> $GITHUB_ENV
+            echo "SENTRY_DSN=$SENTRY_DSN" >> $GITHUB_ENV
+          else
+             echo "❌ Vault Error: $(echo "$RESPONSE" | jq -r '.error // "Unknown connection failure (Check Network/Subdomain)"')"
+             exit 1
+          fi
+
       - name: Execute Autonomous Briefing/Article
         timeout-minutes: 25
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # V5.0: Secrets now pulled dynamically from CF Vault
+          GEMINI_API_KEY: ${{ env.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ env.GROQ_API_KEY }}
+          MISTRAL_API_KEY: ${{ env.MISTRAL_API_KEY }}
+          GH_TOKEN: ${{ env.GH_PAT }}
+
           OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
           GROQ_KEY: ${{ secrets.GROQ_API_KEY }}
           SAMBANOVA_API_KEY: ${{ secrets.SAMBANOVA_API_KEY }}
           CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          QWEB_KEY: ${{ secrets.QWEB_KEY }}
-          NEWS_API_KEY: ${{ secrets.API_KEY_NEWS }}
-          NEWSLETTER_WORKER_URL: ${{ secrets.NEWSLETTER_WORKER_URL }}
-          NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
-          UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
-          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           SWARM_INTERNAL_TOKEN: ${{ secrets.SWARM_INTERNAL_TOKEN }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_TO: ${{ secrets.TELEGRAM_CHAT_ID }}
           NOTIFICATION_WEBHOOK: ${{ secrets.WEBHOOK_SECRET }}
           NODE_OPTIONS: "--max-old-space-size=4096"
         run: |
-          FREQ="${{ github.event.inputs.frequency || 'daily' }}"
+          # ── V5.0: Dynamic Frequency Switch (Autonomous Trigger) ──────
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+            CRON_TRIGGER="${{ github.event.schedule }}"
+            echo "⏰ Scheduled trigger detected: $CRON_TRIGGER"
+            if [ "$CRON_TRIGGER" == "0 5 * * *" ]; then FREQ="daily";
+            elif [ "$CRON_TRIGGER" == "0 6 * * 1" ]; then FREQ="weekly";
+            elif [ "$CRON_TRIGGER" == "30 7 1 * *" ]; then FREQ="monthly";
+            else FREQ="daily"; fi
+          else
+            FREQ="${{ github.event.inputs.frequency }}"
+          fi
+
           FORCE_FLAG="${{ github.event.inputs.force == 'true' && '--force' || '' }}"
-          timeout 24m node scripts/generate-institutional-tome.js --freq=$FREQ --type=article $FORCE_FLAG
+          echo "🚀 Executing Swarm Vertical: $FREQ"
+          
+          if [ "$FREQ" == "hourly" ] || [ "$FREQ" == "daily" ]; then
+            node scripts/generate-briefing.js --freq=$FREQ $FORCE_FLAG
+          else
+            node scripts/generate-institutional-tome.js --freq=$FREQ --type=article $FORCE_FLAG
+          fi
+
       - name: Commit and Push
         run: |
           git config --global user.name "BlogsPro Bot"

@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.gstatic.com https://browser.sentry-cdn.com https://www.clarity.ms https://scripts.clarity.ms blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; font-src https://fonts.gstatic.com; img-src * data: blob:; connect-src *;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.gstatic.com https://browser.sentry-cdn.com https://www.clarity.ms https://*.clarity.ms blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; font-src https://fonts.gstatic.com; img-src * data: blob:; connect-src *;">
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Dashboard — BlogsPro</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -92,8 +93,37 @@ function applyCustomWordTarget(el) {
 }
 function onModelChange(val) {
   if (window._onModelChange) window._onModelChange(val);
-  // No toast for select change as it might be annoying, but prevents ReferenceError
 }
+
+// ── V4.6 Diagnostic: Detect Gateway Pulse & Module failure ────────
+window.addEventListener('load', () => {
+  const GATEWAY_URL = 'https://blogspro-pulse.abhishekdutta18.workers.dev/ping';
+  const badge = document.getElementById('integrationBadgeAdmin');
+  const text  = document.getElementById('integrationBadgeAdminText');
+
+  // 1. Initial Pulse Check
+  fetch(GATEWAY_URL, { mode: 'no-cors' }).then(() => {
+    console.log('🛰 Gateway Pulse: OK');
+  }).catch(() => {
+    console.warn('🛰 Gateway Pulse: UNREACHABLE');
+  });
+
+  // 2. Health Monitoring Timeout
+  setTimeout(() => {
+    if (badge && text && text.textContent.includes('Initializing')) {
+      if (window.location.protocol === 'file:') {
+        alert('⚠️ [BlogsPro] Serverless Environment Detected. \n\nDirect file access is blocked by CORS. Please run: \nnpx wrangler pages dev . \n\nand open the provided localhost URL.');
+        badge.style.background = '#f59e0b';
+        text.textContent = 'STATUS: LOCAL_FILE_ONLY';
+      } else {
+        console.warn('[BlogsPro] Gateway timeout. Checking infrastructure...');
+        badge.style.background = '#ef4444';
+        text.textContent = 'STATUS: GATEWAY_UNREACHABLE';
+        if (window.showToast) showToast('🛰 Worker Gateway Unreachable', 'error');
+      }
+    }
+  }, 10000); // 10s grace period for cold starts
+});
 </script>
 
 <!-- Mobile top bar (hidden on desktop, shown on mobile) -->
@@ -240,15 +270,18 @@ function onModelChange(val) {
         <div style="font-size:0.6rem; color:var(--muted); text-transform:uppercase">GitHub Action Dispatcher</div>
       </div>
       <div style="display:flex; flex-direction:column; gap:0.75rem;">
-        <div class="form-row" style="margin:0">
-          <label class="form-label" style="font-size:0.7rem; color:var(--muted)">Cloudflare Worker Orchestration</label>
-          <div id="ghPatStatus" style="font-size:0.68rem;color:var(--muted);line-height:1.5;padding:0.55rem 0.7rem;border:1px solid var(--border);border-radius:3px;background:var(--navy)">
-            Initializing worker mode…
+        <p class="section-desc" style="font-size:0.75rem; color:var(--muted);">Trigger a deep research sequence manually. <b>Note</b>: Auth is handled securely via the 2026 Strategist Proxy.</p>
+        
+        <div style="background:var(--navy); border:1px solid var(--border); border-radius:4px; padding:0.8rem; margin-top:0.2rem">
+          <div style="font-size:0.65rem; font-weight:700; color:var(--gold); margin-bottom:0.5rem; text-transform:uppercase;">GitHub Authentication</div>
+          <div style="display:flex; gap:0.5rem">
+            <input type="password" id="ghPatInput" class="form-input" style="flex:1; font-size:0.8rem; height:32px" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" />
+            <div style="font-size:0.6rem; color:var(--muted); line-height:1.2; max-width:120px">Paste your GitHub PAT here. It is saved locally in your browser.</div>
           </div>
-          <p style="font-size:0.6rem; color:var(--muted); margin-top:0.25rem">No PAT entry required in admin panel. Dispatch runs via Cloudflare Worker secrets.</p>
         </div>
         
-        <button id="btnTerminalDispatch" onclick="window.triggerTerminalDispatch?.()" class="v2-gen-btn" style="background:var(--emerald); border-color:var(--emerald); padding:0.6rem; font-size:0.8rem;">
+        <button id="btnTerminalDispatch" onclick="window.triggerTerminalDispatch?.()" class="v2-gen-btn" style="background:var(--emerald); border-color:var(--emerald); padding:0.6rem; font-size:0.8rem; margin-top:0.5rem">
+
           ⚡ Trigger Weekly Pipeline
         </button>
 

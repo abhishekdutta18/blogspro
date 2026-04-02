@@ -97,7 +97,7 @@ export async function loadAll() {
     if (tbody) tbody.innerHTML = `<tr><td colspan="7"><div class="table-empty" style="color:#fca5a5;line-height:1.8">
       ✕ ${e.message || 'Unknown error'}<br>
       <span style="font-size:0.75rem;color:var(--muted)">${hint}</span><br>
-      <button onclick="loadAll()" style="margin-top:8px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:4px 12px;border-radius:3px;font-size:0.75rem;cursor:pointer">↺ Retry</button>
+      <button onclick="window.loadAll?.()" style="margin-top:8px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:4px 12px;border-radius:3px;font-size:0.75rem;cursor:pointer">↺ Retry</button>
     </div></td></tr>`;
     ['statTotal','statPublished','statDrafts','statSubs'].forEach(id => {
       const el = document.getElementById(id); if (el) el.textContent = '—';
@@ -342,10 +342,21 @@ export async function loadHybridPosts() {
             console.warn('[HybridEngine] Firestore posts unavailable, continuing with static feeds:', firestoreErr);
         }
 
-        // 2. Ingest Sovereign AI Pulses
-        const briefingIndices = ['/briefings/daily/index.json', '/briefings/hourly/index.json', '/articles/weekly/index.json'];
-        const aiResults = await Promise.all(briefingIndices.map(url =>
-            cachedFetch(url).then(r => r.ok ? r.json() : []).catch(() => [])
+        // 2. Ingest Sovereign AI Pulses (Direct Origin Fetch)
+        const origin = window.location.origin;
+        const briefingIndices = [
+            `${origin}/briefings/daily/index.json`,
+            `${origin}/briefings/hourly/index.json`,
+            `${origin}/articles/weekly/index.json`
+        ];
+
+        const aiResults = await Promise.all(briefingIndices.map(url => 
+            fetch(url, { cache: 'no-cache' })
+                .then(r => r.ok ? r.json() : [])
+                .catch(err => {
+                    console.warn(`[HybridEngine] Failed index: ${url}`, err.message);
+                    return [];
+                })
         ));
 
         let aiPosts = aiResults.flat().map(pulse => ({

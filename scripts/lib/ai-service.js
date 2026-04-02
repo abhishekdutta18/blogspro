@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import _fetch from "node-fetch";
+// import _fetch from "node-fetch"; // Removed: Using Node 24 native fetch
+const _fetch = fetch;
 import Cerebras from "@cerebras/cerebras_cloud_sdk";
 import { fetchDynamicNews, fetchFullPageContent, fetchDocument } from "./data-fetchers.js";
 
@@ -9,13 +10,14 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const normalizeEnv = () => {
     process.env.GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY || process.env.GOOGLE_API_KEY;
     process.env.GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.GROQ_KEY;
-    process.env.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || process.env.MISTRAL_KEY || process.env.MISTRAL_API_KEY;
+    process.env.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || process.env.MISTRAL_KEY;
     process.env.OPENROUTER_KEY = process.env.OPENROUTER_KEY || process.env.OPENROUTER_API_KEY;
     process.env.SAMBANOVA_API_KEY = process.env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_KEY;
     process.env.CEREBRAS_API_KEY = process.env.CEREBRAS_API_KEY || process.env.CEREBRAS_KEY;
     process.env.HF_TOKEN = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
     process.env.QWEB_API_KEY = process.env.QWEB_API_KEY || process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY || process.env.QWEB_KEY;
-    process.env.OLLAMA_HOST = process.env.OLLAMA_HOST || "http://localhost:11434";
+    process.env.CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN || process.env.CF_API_TOKEN;
+    process.env.CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID || "abhishekdutta18"; // Institutional Default
 };
 normalizeEnv();
 
@@ -107,6 +109,7 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
                     messages.push({ role: "tool", tool_call_id: toolCall.id, content: pageText });
                 } else if (toolCall.function.name === "vision_parse") {
                     const args = JSON.parse(toolCall.function.arguments);
+                    // Standard: fetchDocument is imported from ./data-fetchers.js
                     const doc = await fetchDocument(args.url);
                     if (doc) {
                         console.log(`👁️ [Groq-Vision Bridge] Requesting Gemini OCR (Chart-Enabled)...`);
@@ -133,21 +136,14 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
 
         if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
         
-        if (data.error && (data.error.code === "rate_limit_exceeded" || data.error.message?.includes('Request too large') || data.error.message?.includes('Rate limit'))) {
+        if (data.error && (data.error.code === "rate_limit_exceeded" || data.error.message?.toLowerCase().includes('rate limit') || data.error.message?.includes('TPD'))) {
             console.warn(`⏳ Groq Rate/Size Limit. Error: ${data.error.message}`);
-            // If 70b is too large or rate limited, wait the specified time then fall back to 8b
+            // If 70b is too large or rate limited, fallback to 8b
             if (model.includes("70b")) {
-                const waitMatch = data.error.message.match(/try again in ([\d.]+)s/);
-                const waitMs = waitMatch ? Math.ceil(parseFloat(waitMatch[1]) * 1000) + 500 : 3000;
-                if (waitMs < 15000) {
-                    await sleep(waitMs);
-                    console.log(`🔄 Falling back to 8b-instant after ${waitMs}ms wait...`);
-                } else {
-                    console.log(`🔄 70b TPM limit high, falling back to 8b-instant immediately...`);
-                }
+                console.log(`🔄 Falling back to 8b-instant immediately...`);
                 return generateGroqContent(prompt, "llama-3.1-8b-instant", context);
             }
-            throw new Error(`RATE_LIMIT:10000`);
+            throw new Error(`RATE_LIMIT:429`);
         }
 
         console.error("❌ Groq API Fail Details:", JSON.stringify(data));
@@ -196,12 +192,17 @@ async function generateGeminiContent(prompt, model = "gemini-1.5-flash", context
     // Standard v1 for institutional stability in March 2026
     const genAI = new GoogleGenerativeAI(key);
     
-    // Default high-fidelity list for March 2026 institutional pass
+    // MARCH 2026: Institutional model-name sanitizer
+    if (model?.includes('3.1') || model?.includes('lite')) {
+        console.warn(`🧹 [Gemini-Fleet] Sanitizing deprecated model: ${model} -> gemini-1.5-flash`);
+        model = "gemini-1.5-flash";
+    }
+
+    // Default high-fidelity list for March 2026 institutional pass (Removing experimental/deprecated models)
     let models = [
         "gemini-1.5-flash", 
         "gemini-2.0-flash-exp",
-        "gemini-1.5-pro",
-        "gemini-1.0-pro"
+        "gemini-1.5-pro"
     ];
 
     // If a specific Gemini model is requested, move it to the front
@@ -349,9 +350,13 @@ async function generateMistralContent(prompt, model = "mistral-large-latest", co
                 temperature: 0.1
             })
         });
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`Mistral Error: ${res.status} ${errText}`);
+        }
         const data = await res.json();
-        if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
-        throw new Error(`Mistral API Error: ${JSON.stringify(data)}`);
+        if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
+        throw new Error(`Mistral Error: Empty choices`);
     } catch (err) {
         throw err;
     } finally {
@@ -380,9 +385,13 @@ async function generateTogetherContent(prompt, model = "meta-llama/Llama-3-70b-c
             temperature: 0.2
         })
     });
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Together Error: ${res.status} ${errText}`);
+    }
     const data = await res.json();
     if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    throw new Error(`Together API Error: ${JSON.stringify(data)}`);
+    throw new Error(`Together Error: Empty choices`);
 }
 
 async function generateDeepInfraContent(prompt, model = "meta-llama/Meta-Llama-3-8B-Instruct", context = {}) {
@@ -405,9 +414,13 @@ async function generateDeepInfraContent(prompt, model = "meta-llama/Meta-Llama-3
             messages: [{ role: "user", content: prompt }]
         })
     });
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`DeepInfra Error: ${res.status} ${errText}`);
+    }
     const data = await res.json();
     if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    throw new Error(`DeepInfra API Error: ${JSON.stringify(data)}`);
+    throw new Error(`DeepInfra Error: Empty choices`);
 }
 
 async function generateOpenRouterContent(prompt, model = "anthropic/claude-3.5-sonnet", context = {}) {
@@ -433,9 +446,16 @@ async function generateOpenRouterContent(prompt, model = "anthropic/claude-3.5-s
             temperature: 0.1
         })
     });
+    if (!res.ok) {
+        const errText = await res.text();
+        if (res.status === 402 || errText.includes('credits') || errText.includes('balance')) {
+            throw new Error("OPENROUTER_CREDIT_EXHAUSTED");
+        }
+        throw new Error(`OpenRouter Error: ${res.status} ${errText}`);
+    }
     const data = await res.json();
     if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    throw new Error(`OpenRouter Error: ${JSON.stringify(data)}`);
+    throw new Error(`OpenRouter Error: Empty choices`);
 }
 
 async function generateGithubContent(prompt, model = "gpt-4o-mini", context = {}) {
@@ -459,13 +479,17 @@ async function generateGithubContent(prompt, model = "gpt-4o-mini", context = {}
             temperature: 0.5
         })
     });
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`GitHub Models Error: ${res.status} ${errText}`);
+    }
     const data = await res.json();
     if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
     throw new Error(`GitHub Models Error: ${JSON.stringify(data)}`);
 }
 
 async function generateCloudflareContent(prompt, model = "@cf/meta/llama-3-8b-instruct", context = {}) {
-    const key = context?.CF_API_TOKEN || process.env.CF_API_TOKEN;
+    const key = context?.CLOUDFLARE_API_TOKEN || context?.CF_API_TOKEN || process.env.CLOUDFLARE_API_TOKEN || process.env.CF_API_TOKEN;
     const accountId = context?.CF_ACCOUNT_ID || process.env.CF_ACCOUNT_ID;
     if (!key || !accountId) throw new Error("Cloudflare keys missing.");
 
@@ -481,6 +505,10 @@ async function generateCloudflareContent(prompt, model = "@cf/meta/llama-3-8b-in
             messages: [{ role: "user", content: prompt }]
         })
     });
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Cloudflare Error: ${res.status} ${errText}`);
+    }
     const data = await res.json();
     if (data.success && data.result) return data.result.response;
     throw new Error(`Cloudflare AI Error: ${JSON.stringify(data)}`);
@@ -502,9 +530,15 @@ async function generateSambaNovaContent(prompt, model = "Meta-Llama-3.1-405B-Ins
             temperature: 0.1
         })
     });
+
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`SambaNova Error: ${res.status} ${errText}`);
+    }
+
     const data = await res.json();
     if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    throw new Error(`SambaNova Error: ${JSON.stringify(data)}`);
+    throw new Error(`SambaNova Error: Empty choices`);
 }
 
 async function generateCerebrasContent(prompt, model = "llama3.1-8b", context = {}) {
@@ -552,10 +586,13 @@ async function generateHuggingFaceContent(prompt, model = "mistralai/Mistral-7B-
             messages: [{ role: "user", content: prompt }]
         })
     });
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`HuggingFace Error: ${res.status} ${errText}`);
+    }
     const data = await res.json();
     if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    if (data.error) throw new Error(`HuggingFace Error: ${data.error.message || JSON.stringify(data.error)}`);
-    return JSON.stringify(data);
+    throw new Error(`HuggingFace Error: ${JSON.stringify(data)}`);
 }
 
 async function generateQwenContent(prompt, model = "qwen-2.5-72b-instruct", context = {}) {
@@ -571,6 +608,10 @@ async function generateQwenContent(prompt, model = "qwen-2.5-72b-instruct", cont
             messages: [{ role: "user", content: prompt }]
         })
     });
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Qwen/Qweb Error: ${res.status} ${errText}`);
+    }
     const data = await res.json();
     if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
     throw new Error(`Qwen/Qweb Error: ${JSON.stringify(data)}`);
@@ -606,8 +647,8 @@ const ResourceManager = {
     cooldowns: new Map(),
     failed: new Set(),
     
-    init(env = {}) {
-        if (this.pool.length > 0) return; // Only init once
+    init(env = {}, forceRefresh = false) {
+        if (this.pool.length > 0 && !forceRefresh) return; // Only init once unless forced
         this.failed = new Set();
         const activeKeys = {
             Groq: env.GROQ_API_KEY || process.env.GROQ_API_KEY || process.env.GROQ_KEY,
@@ -621,7 +662,7 @@ const ResourceManager = {
             HuggingFace: env.HF_TOKEN || process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN,
             Qweb: env.QWEB_API_KEY || process.env.QWEB_API_KEY || process.env.QWEB_KEY,
             Ollama: true, // Always check for local Ollama
-            Cloudflare: (env.CF_API_TOKEN || process.env.CF_API_TOKEN) && (env.CF_ACCOUNT_ID || process.env.CF_ACCOUNT_ID),
+            Cloudflare: (env.CLOUDFLARE_API_TOKEN || env.CF_API_TOKEN || process.env.CLOUDFLARE_API_TOKEN || process.env.CF_API_TOKEN) && (env.CF_ACCOUNT_ID || process.env.CF_ACCOUNT_ID),
             GitHub: env.GITHUB_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN
         };
 
@@ -680,12 +721,17 @@ const ResourceManager = {
         const current = this.inflight.get(name);
         if (current > 0) this.inflight.set(name, current - 1);
         
-        if (error.includes('429') || error.includes('rate_limit') || error.includes('TPM') || error.includes('quota')) {
-            console.warn(`⏳ [AI-Balancer] ${name} rate limited. Activating 60s cooldown.`);
+        const isRate = error.includes('429') || error.includes('rate_limit') || error.includes('TPM') || error.includes('quota') || error.includes('RATE_LIMIT');
+        const isAuth = error.includes('401') || error.includes('403') || error.includes('402') || error.includes('Unauthorized') || error.includes('API key') || error.includes('Authentication') || error.includes('permission') || error.includes('NOT_FOUND') || error.includes('Not Found') || error.includes('404') || error.includes('PERMISSION_DENIED') || error.includes('Invalid Key') || error.includes('Invalid API Key') || error.includes('CREDIT_EXHAUSTED');
+
+        if (isRate) {
+            console.warn(`⏳ [AI-Balancer] ${name} rate limited. Activating 60000ms cooldown.`);
             this.cooldowns.set(name, Date.now() + 60000);
-        } else if (error.includes('401') || error.includes('Authentication') || error.includes('not found') || error.includes('GEMINI_PERMISSION_DENIED') || error.includes('CEREBRAS_PERMISSION_DENIED')) {
+        } else if (isAuth) {
             console.error(`🚫 [AI-Balancer] Blacklisting ${name} due to terminal failure: ${error}`);
             this.failed.add(name);
+        } else {
+            console.warn(`⚠️ [AI-Balancer] ${name} failed with temporary error: ${error}. Retrying next...`);
         }
     }
 };
@@ -718,8 +764,13 @@ export async function askAI(prompt, options = {}) {
         console.error(`❌ [AI-Balancer] ${provider.name} failed: ${err.message}`);
         ResourceManager.markFailure(provider.name, err.message);
         
-        // Dynamic Failover Rotation
-        console.log(`🔄 [AI-Balancer] Initiating failover for role: ${role}...`);
+        // Dynamic Failover Rotation (Max Retries: 5)
+        if (seed >= 5) {
+            console.error(`🚨 [AI-Balancer] Max retries exhausted for role: ${role}. Failing...`);
+            throw new Error(`AI_FLEET_EXHAUSTED: ${err.message}`);
+        }
+
+        console.log(`🔄 [AI-Balancer] Initiating failover for role: ${role} [Retry ${seed + 1}/5]...`);
         return askAI(prompt, { ...options, seed: seed + 1 });
     }
 }

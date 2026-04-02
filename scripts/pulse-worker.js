@@ -17,40 +17,162 @@ import rl from "./lib/reinforcement.js";
 
 export default {
   async fetch(request, env, ctx) {
+    const frequency = request.url.includes("daily") ? "daily" : "hourly";
+    let megaPool = { hourly: [] };
+    
+    // NOTE: Sub-orchestration (DataHub fetch) is now deferred to orchestrateSwarm 
+    // to prevent double-billing and redundant latency in cold-starts.
+
     const url = new URL(request.url);
-    const frequency = url.searchParams.get("freq") || "hourly";
     const type = url.searchParams.get("type") || "briefing";
 
     const sentry = initWorkerSentry(request, env, ctx);
-    logSwarmBreadcrumb(`Pulse Triggered: ${frequency} ${type}`, { url: request.url }, sentry);
+    logSwarmBreadcrumb(`Pulse Worker Ingress`, { url: request.url, method: request.method }, sentry);
+
+    const origin = request.headers.get("Origin") || "";
+    const allowedDomains = ["https://blogspro.in", "https://blogspro.ai"];
+    const isPagesDev = origin.endsWith(".pages.dev");
+    const isLocal = origin.includes("localhost") || origin.includes("127.0.0.1");
+    
+    let allowOrigin = "";
+    if (!isLocal && (allowedDomains.includes(origin) || isPagesDev)) {
+      allowOrigin = origin;
+    }
+
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": allowOrigin || "https://blogspro.in",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Vault-Auth",
+      "Access-Control-Max-Age": "86400",
+    };
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders });
+    }
+
+    const wrapResponse = (data, status = 200) => {
+      return new Response(JSON.stringify(data), { 
+        status, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
+    };
+
+    // 🔗 V5.0 Serverless Dispatch Proxy
+    if (url.pathname === "/dispatch" && request.method === "POST") {
+      try {
+        const authHeader = request.headers.get("Authorization") || "";
+        if (!authHeader.startsWith("Bearer ")) {
+          return wrapResponse({ error: "Unauthorized: Missing Bearer Token" }, 401);
+        }
+
+        if (!env.GH_PAT) {
+            throw new Error("Dispatch Failed: GH_PAT is missing. Run sync-secrets.mjs");
+        }
+
+        const token = authHeader.split("Bearer ")[1];
+        const { frequency = "daily", type = "briefing" } = await request.json();
+
+        if (!token || token.length < 100) throw new Error("Malformed JWT Token");
+        
+        const ghResponse = await fetch(`https://api.github.com/repos/abhishekdutta18/blogspro/actions/workflows/manual-dispatch.yml/dispatches`, {
+          method: "POST",
+          headers: {
+            "Authorization": `token ${env.GH_PAT}`,
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "BlogsPro-Orchestrator",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            ref: "main",
+            inputs: { frequency, force: "true" }
+          })
+        });
+
+        if (!ghResponse.ok) {
+          const errText = await ghResponse.text();
+          throw new Error(`GitHub API Error: ${ghResponse.status} - ${errText}`);
+        }
+
+        return wrapResponse({ status: "dispatched", frequency, type });
+
+      } catch (e) {
+        captureSwarmError(e, { stage: 'dispatch_proxy' }, sentry);
+        return wrapResponse({ error: e.message }, 500);
+      }
+    }
+
+    // 🔒 V5.1 Serverless Secret Vault
+    if (url.pathname === "/vault" && request.method === "POST") {
+      try {
+        if (!env.VAULT_MASTER_KEY) {
+          throw new Error("Vault Configuration Incomplete: VAULT_MASTER_KEY not set.");
+        }
+
+        const vaultAuth = request.headers.get("X-Vault-Auth") || "";
+        if (!vaultAuth || vaultAuth !== env.VAULT_MASTER_KEY) {
+          return wrapResponse({ error: "Unauthorized Vault Access" }, 403);
+        }
+
+        return wrapResponse({ status: "authenticated", secrets: {
+            GH_PAT: env.GH_PAT || "",
+            GEMINI: env.GEMINI_API_KEY || "",
+            GROQ: env.GROQ_API_KEY || "",
+            MISTRAL: env.MISTRAL_API_KEY || "",
+            MOONSHOT: env.KIMI_API_KEY || "",
+            SENTRY_DSN: env.SENTRY_DSN || ""
+        } });
+
+      } catch (e) {
+        captureSwarmError(e, { stage: 'vault_access' }, sentry);
+        return wrapResponse({ error: e.message }, 500);
+      }
+    }
+
+    if (url.pathname === "/health" || url.pathname === "/ping") {
+        return wrapResponse({ status: "healthy", clock: new Date().toISOString(), node: "Pulse-V3.1" });
+    }
+
+    if (url.pathname === "/status") {
+        return wrapResponse({ 
+            swarm: "Institutional-2026",
+            secrets: {
+                gh: !!env.GH_PAT,
+                vault: !!env.VAULT_MASTER_KEY,
+                sentry: !!env.SENTRY_DSN
+            },
+            config: {
+                fireBase: env.FIREBASE_PROJECT_ID,
+                orchestrator: "Llama-3.3-70B-Institutional"
+            }
+        });
+    }
+
+    logSwarmBreadcrumb(`Pulse Process Triggered: ${frequency} ${type}`, { url: request.url }, sentry);
 
     try {
-      // NON-BLOCKING TRIGGER: Return 202 immediately and run swarm in background
       let localResult = null;
       if (ctx && ctx.waitUntil) {
         ctx.waitUntil(orchestrateSwarm(frequency, type, env, sentry));
       } else {
-        // Local/Direct Execution Support
-        console.log(`📡 [Pulse] Direct Execution (WaitUntil Mocked)`);
         localResult = await orchestrateSwarm(frequency, type, env, sentry);
       }
       
-      return new Response(JSON.stringify({ 
+      return wrapResponse({ 
         status: "accepted", 
         message: `Swarm triggered for ${frequency} ${type}.`,
         frequency,
         type,
         result: localResult,
-        liveTerminal: "https://blogspro-miro-sync.abhishek-dutta1996.workers.dev/terminal"
-      }), {
-        status: 202,
-        headers: { "Content-Type": "application/json" }
-      });
+        liveTerminal: "https://blogspro-miro-sync.workers.dev/terminal"
+      }, 202);
     } catch (e) {
       captureSwarmError(e, { stage: 'orchestration_start', frequency, type }, sentry);
-      return new Response(JSON.stringify({ status: "error", message: e.message }), {
-        status: 500, headers: { "Content-Type": "application/json" }
-      });
+      const isMissingSecret = e.message.includes("missing") || e.message.includes("not set");
+      return wrapResponse({ 
+        status: "error", 
+        message: e.message,
+        hint: isMissingSecret ? "Run 'node scripts/sync-secrets.mjs' to restore credentials." : "Check Sentry for trace ID."
+      }, 500);
     }
   },
 
@@ -62,19 +184,43 @@ export default {
     if (cron === "0 4 * * *") { frequency = "daily"; type = "briefing"; }
     else if (cron === "0 5 * * 1") { frequency = "weekly"; type = "article"; }
     else if (cron === "0 6 1 * *") { frequency = "monthly"; type = "article"; }
+    else if (cron === "0 * * * *") { frequency = "hourly"; type = "briefing"; }
 
-    console.log(`⏰ [Pulse] Swarm Trigger: ${type.toUpperCase()} (${frequency.toUpperCase()})`);
-    ctx.waitUntil(orchestrateSwarm(frequency, type, env));
+    const sentry = initWorkerSentry(null, env, ctx);
+    logSwarmBreadcrumb(`⏰ Scheduled Trigger: ${cron}`, { frequency, type, swarm: "5.1" }, sentry);
+    
+    console.log(`⏰ [Pulse] Swarm Trigger: ${type.toUpperCase()} (${frequency.toUpperCase()}) - Cron: ${cron}`);
+    ctx.waitUntil(orchestrateSwarm(frequency, type, env, sentry));
   }
 };
 
 async function orchestrateSwarm(frequency, type, env, sentry = null) {
-  const swarmToken = env.SWARM_INTERNAL_TOKEN;
-  logSwarmBreadcrumb(`Orchestration Phase Start`, { frequency, type }, sentry);
+  const swarmToken = env.SWARM_INTERNAL_TOKEN || "BPRO_SWARM_SECRET_2026";
+  const jobId = `swarm-${frequency}-${Date.now()}`;
+  logSwarmBreadcrumb(`Orchestration Phase Start`, { frequency, type, jobId }, sentry);
 
-  // 1. DATA TIER: Pre-fill Data Rule (Context Mega-Pool)
-  console.log("📂 [Pulse] Pre-filling Context Mega-Pool (Hourly, Daily, Weekly, Monthly, Historical)...");
-  
+  // 0. SIGNAL TIER: Report to Durable Object for Live Terminal Tracking
+  if (env.MIRO_SYNC_DO) {
+    try {
+        const id = env.MIRO_SYNC_DO.idFromName('global-swarm-bridge');
+        const stub = env.MIRO_SYNC_DO.get(id);
+        await stub.fetch("https://sync/push", {
+            method: "POST",
+            body: JSON.stringify({ 
+                source: "SWARM_PROGRESS", 
+                jobId, 
+                event: "SWARM_START",
+                status: "INITIALIZING", 
+                frequency, 
+                type,
+                timestamp: new Date().toISOString()
+            })
+        });
+    } catch (e) { console.warn(`⚠️ [Pulse] DO Status Report Failed:`, e.message); }
+  }
+
+  // 1. DATA TIER: Context Gathering
+  console.log("📂 [Pulse] Pre-filling Context Mega-Pool...");
   const [hourly, daily, weekly, monthly, historical] = await Promise.all([
     getRecentSnapshots("hourly", 1, env),
     getRecentSnapshots("daily", 1, env),
@@ -89,119 +235,71 @@ async function orchestrateSwarm(frequency, type, env, sentry = null) {
     weekly: weekly[0] || {},
     monthly: monthly[0] || {},
     historical: historical || {},
-    meta: {
-      generatedAt: new Date().toISOString(),
-      frequency,
-      tokenDensity: "11.5k Points"
-    }
+    meta: { generatedAt: new Date().toISOString(), frequency }
   };
 
-  // 2. SEMANTIC TIER: Hand off to Relevance Worker for Filtering
-  console.log("🧠 [Pulse] Calling Relevance Worker for Semantic Distillation...");
+  // 2. SEMANTIC TIER: Distillation
+  console.log("🧠 [Pulse] Calling Relevance Worker...");
   const relRes = await env.RELEVANCE.fetch(new Request("https://rel/digest", {
     method: "POST",
     headers: { "X-Swarm-Token": swarmToken },
-    body: JSON.stringify(megaPool.hourly) // Relevance works on recent pulse
+    body: JSON.stringify(megaPool.hourly)
   }));
   const semanticDigest = await relRes.json();
-
-  // Inject Mega-Pool context into digest for the Swarm
   semanticDigest.megaPool = megaPool;
 
-  // 3. REASONING TIER: Dispatch or Execute Multi-Agent Swarm
-  const jobId = `swarm-${frequency}-${Date.now()}`;
-  
-  // High-Compute Bridge: Distribute heavy articles to GitHub Actions (5h 45m limit)
+  // 3. REASONING TIER: Execute or Dispatch
   if (type === 'article') {
-    console.log("🚀 [Pulse] Dispatching Institutional Swarm to High-Compute GH Action...");
-    const ghToken = env.GH_TOKEN || env.GITHUB_TOKEN;
-    if (!ghToken) {
-      throw new Error("GH_TOKEN missing. Cannot dispatch high-compute swarm.");
-    }
+    console.log("🚀 [Pulse] Dispatching to GitHub Actions...");
+    const ghToken = env.GH_PAT || env.GH_TOKEN || env.GITHUB_TOKEN;
+    if (!ghToken) throw new Error("GH_PAT missing.");
 
-    const repo = "abhishekdutta18/blogspro";
-    const workflowId = "institutional-research.yml";
-    
-    const dispatchRes = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/${workflowId}/dispatches`, {
+    const dispatchRes = await fetch(`https://api.github.com/repos/abhishekdutta18/blogspro/actions/workflows/institutional-research.yml/dispatches`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${ghToken}`,
         "Accept": "application/vnd.github.v3+json",
-        "User-Agent": "BlogsPro-Swarm-Orchestrator"
+        "User-Agent": "BlogsPro-Orchestrator"
       },
-      body: JSON.stringify({
-        ref: "main",
-        inputs: { freq: frequency, type: type }
-      })
+      body: JSON.stringify({ ref: "main", inputs: { freq: frequency, type: type } })
     });
 
-    if (!dispatchRes.ok) {
-      const err = await dispatchRes.text();
-      console.error("❌ GitHub Dispatch Fail:", err);
-      captureSwarmError(new Error(`GitHub Dispatch Fail: ${err}`), { jobId, workflowId, frequency, type }, sentry);
-      throw new Error(`Failed to dispatch high-compute swarm: ${err}`);
-    }
+    if (!dispatchRes.ok) throw new Error(`GH Dispatch Fail: ${await dispatchRes.text()}`);
 
-    console.log("✅ [Pulse] High-Compute Swarm Dispatched. Monitor GitHub Actions for Tome completion.");
-    logSwarmBreadcrumb(`Institutional Swarm Dispatched`, { jobId, workflowId, frequency, type }, sentry);
-    return { 
-      status: "dispatched", 
-      jobId, 
-      workflow: workflowId,
-      liveTerminal: `https://${env.PROJECT_DOMAIN || 'blogspro.ai'}/swarm-terminal.html#${jobId}`
-    };
+    return { status: "dispatched", jobId };
   }
 
-  // Briefing Tier: Standard In-Worker Swarm (Fast, Low-Compute)
   const swarmResult = await executeMultiAgentSwarm(frequency, semanticDigest, megaPool.historical, type, env, jobId);
 
-  // 4. GOVERNANCE TIER: Hand off to Auditor for Rules & Citations
-  console.log("⚖️ [Pulse] Calling Auditor Worker for Governance & Sign-off...");
-  const verticalName = type === 'article' ? "Institutional Strategic Manuscript" : "Intelligence Pulse";
+  // 4. GOVERNANCE TIER: Audit
+  console.log("⚖️ [Pulse] Calling Auditor...");
   const auditRes = await env.AUDITOR.fetch(new Request("https://audit/verify", {
     method: "POST",
     headers: { "X-Swarm-Token": swarmToken },
     body: JSON.stringify({
       content: swarmResult.final,
       task: `${frequency.toUpperCase()}_SWARM_GEN`,
-      metadata: { verticalName, verticalId: frequency }
+      metadata: { verticalName: type, verticalId: frequency }
     })
   }));
   const auditResult = await auditRes.json();
 
-  // 5. DISTRIBUTION TIER: Final Save & Sync
+  // 5. DISTRIBUTION TIER
   const fileName = `swarm-${frequency}-${Date.now()}.html`;
   await saveBriefing(fileName, auditResult.content, frequency, env);
 
   const entry = { 
     id: Date.now(), 
-    title: `${frequency.toUpperCase()} Swarm - ${semanticDigest.marketContext.day}`, 
+    title: `${frequency.toUpperCase()} Swarm ${new Date().toLocaleDateString()}`, 
     date: new Date().toISOString(), 
     file: fileName, 
     frequency, 
-    sentiment: semanticDigest.macroFocus.includes("Greed") ? 75 : 45 
+    sentiment: semanticDigest.macroFocus?.includes("Greed") ? 75 : 45 
   };
   
   await updateIndex(entry, frequency, env);
   await syncToFirestore(type === 'article' ? "articles" : "pulse_briefings", entry, env);
 
-  // 6. SEO TIER: Autonomous Indexing & RSS maintenance
-  if (env.SEO_MANAGER) {
-    console.log("🛰 [Pulse] Calling SEO Manager for Autonomous Indexing...");
-    await env.SEO_MANAGER.fetch(new Request("https://seo/index", {
-      method: "POST",
-      headers: { "X-Swarm-Token": swarmToken },
-      body: JSON.stringify({ 
-        metadata: { ...entry, excerpt: semanticDigest.strategicLead }, 
-        type 
-      })
-    }));
-  }
-
-  console.log(`🏁 [Pulse] Swarm 4.0 Cycle Complete. [Quality Score: ${auditResult.qualityScore || 'N/A'}]`);
-  logSwarmBreadcrumb(`Cycle Complete`, { jobId, qualityScore: auditResult.qualityScore }, sentry);
+  console.log(`🏁 [Pulse] Swarm Cycle Complete. [Quality Score: ${auditResult.qualityScore || 'N/A'}]`);
   return { ...entry, qualityScore: auditResult.qualityScore };
 }
-
-
-

@@ -45,14 +45,14 @@ async function getCommitTree(owner, repo, commitSha) {
   return data.tree.sha;
 }
 
-async function createBlob(owner, repo, content) {
+async function createBlob(owner, repo, content, encoding = 'utf-8') {
   const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/blobs`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${GITHUB_TOKEN}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ content, encoding: 'utf-8' })
+    body: JSON.stringify({ content, encoding })
   });
   if (!res.ok) throw new Error(`Failed to create blob: ${res.status}`);
   const data = await res.json();
@@ -60,14 +60,18 @@ async function createBlob(owner, repo, content) {
 }
 
 async function createTree(owner, repo, parentTreeSha, files) {
-  const tree = await Promise.all(
-    files.map(async (file) => ({
+  const tree = [];
+  // Sequential creation to avoid rate limits and handle encoding
+  for (const file of files) {
+    console.log(`   - Creating blob for: ${file.path} (${file.encoding || 'utf-8'})`);
+    const sha = await createBlob(owner, repo, file.content, file.encoding || 'utf-8');
+    tree.push({
       path: file.path,
       mode: '100644',
       type: 'blob',
-      sha: await createBlob(owner, repo, file.content)
-    }))
-  );
+      sha: sha
+    });
+  }
 
   const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees`, {
     method: 'POST',

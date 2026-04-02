@@ -4,23 +4,42 @@
  * Aggregates all quality events into Cloudflare KV ledger.
  */
 
+import { initFirebase } from './firebase-service.js';
+
 const MAX_ENTRIES = 500;
 const COLLECTION = 'ai_reinforcement_ledger';
 
 class ReinforcementSystem {
     constructor() {
         this.ledger = [];
+        this.isNode = typeof process !== 'undefined' && process.versions?.node;
     }
 
-    /**
-     * Sync a single entry to Firestore (REST)
-     */
-    async syncEntry(entry, env) {
-        if (!env || !env.FIREBASE_PROJECT_ID) return;
+    async syncEntry(entry, env = {}) {
+        const projectId = env.FIREBASE_PROJECT_ID || (this.isNode ? process.env.FIREBASE_PROJECT_ID : null);
+        if (!projectId) {
+            if (this.isNode) console.warn("⚠️ [RL] FIREBASE_PROJECT_ID missing in env/process.env");
+            return;
+        }
+
+        // 1. Node.js Path (Admin SDK)
+        if (this.isNode) {
+            try {
+                const { db } = initFirebase();
+                if (db) {
+                    await db.collection(COLLECTION).add({
+                        ...entry,
+                        timestamp: admin.firestore.Timestamp.fromDate(new Date(entry.timestamp))
+                    });
+                    return;
+                }
+            } catch (e) {
+                console.warn("⚠️ [RL] Admin SDK Sync failed, falling back to REST:", e.message);
+            }
+        }
         
-        const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/${COLLECTION}`;
-        
-        // Transform to Firestore format
+        // 2. REST Path (Workers / Fallback)
+        const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${COLLECTION}`;
         const fields = {
             type: { stringValue: entry.type },
             timestamp: { timestampValue: entry.timestamp },
@@ -40,17 +59,40 @@ class ReinforcementSystem {
                 body: JSON.stringify({ fields })
             });
         } catch (e) {
-            console.error("⚠️ RL Sync Fail:", e.message);
+            console.error("⚠️ [RL] REST Sync Fail:", e.message);
         }
     }
 
-    /**
-     * Load recent ledger entries from Firestore (REST runQuery)
-     */
-    async load(env = null) {
-        if (!env || !env.FIREBASE_PROJECT_ID) return;
+    async load(env = {}) {
+        const projectId = env.FIREBASE_PROJECT_ID || (this.isNode ? process.env.FIREBASE_PROJECT_ID : null);
+        if (!projectId) return;
 
-        const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery`;
+        // 1. Node.js Path (Admin SDK)
+        if (this.isNode) {
+            try {
+                const { db } = initFirebase();
+                if (db) {
+                    const snapshot = await db.collection(COLLECTION)
+                        .orderBy('timestamp', 'desc')
+                        .limit(MAX_ENTRIES)
+                        .get();
+                    
+                    this.ledger = snapshot.docs.map(doc => {
+                        const data = doc.data();
+                        return {
+                            ...data,
+                            timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : data.timestamp
+                        };
+                    });
+                    return;
+                }
+            } catch (e) {
+                console.warn("⚠️ [RL] Admin SDK Load failed, falling back to REST:", e.message);
+            }
+        }
+
+        // 2. REST Path (Workers / Fallback)
+        const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
         const query = {
             structuredQuery: {
                 from: [{ collectionId: COLLECTION }],
@@ -81,7 +123,7 @@ class ReinforcementSystem {
                     };
                 });
         } catch (e) {
-            console.error("⚠️ RL Load Fail:", e.message);
+            console.error("⚠️ [RL] REST Load Fail:", e.message);
         }
     }
 
@@ -164,6 +206,10 @@ SENTIMENT_SCORE: 82 | POLL: Best hedge? | OPTIONS: Gold, USD, BTC
                     formattedF = 'CITATION DEFICIT: Your article had fewer than 2 distinct hyperlinked sources. Include at least 2 markdown citations from DIFFERENT domains e.g. [Reuters](...) and [RBI](...)';
                 } else if (f === 'QA_DUPLICATE_CHART_DATA') {
                     formattedF = 'DUPLICATE CHART-DATA: You emitted <chart-data> blocks more than once. Place exactly ONE <chart-data> block at the very end of your response.';
+                } else if (f === 'QA_COLOR_VIOLATION') {
+                    formattedF = 'COLOR CONSTRAINT VIOLATION: You used colors outside the approved 3-color palette (Gold, Slate, Muted Gray). DO NOT use red, green, or blue in tables or text.';
+                } else if (f === 'QA_TABLE_MALFORMATION') {
+                    formattedF = 'TABLE MALFORMATION: Your markdown tables are missing pipes or consistent columns. Use strict | Column 1 | Column 2 | format to ensure visual repair works.';
                 }
                 context += `- AUTO-CORRECTED ${count}x by QA Gate for: ${formattedF}\n`;
             });
@@ -173,10 +219,11 @@ SENTIMENT_SCORE: 82 | POLL: Best hedge? | OPTIONS: Gold, USD, BTC
         context += `
 [CRITICAL PRODUCTION RULES - NON-NEGOTIABLE]:
 1. TOTAL-FIDELITY JSON: Your <chart-data> MUST use "double quotes" for categories and values (e.g. [["USA", 10]] not [USA, 10]). NO trailing commas.
-2. 16-VERTICAL HIERARCHY: Each chapter must start with exactly one <h2> title from the approved list of 16 verticals.
-3. NEVER include <rule-check> tags or system prompt artifacts ("JSON must use DOUBLE QUOTES") in the prose.
-4. The <chart-data> block MUST appear only ONCE, at the very end of your response.
-5. All markdown hyperlinks [text](url) MUST use verified institutional sources (e.g. Bloomberg, Reuters, RBI).
+2. 3-COLOR INSTITUTIONAL AESTHETIC: Strictly use Gold (#BFA100) for headers/deltas, Slate (#F8FAFC) for importance, and Muted Carbon (#94A3B8) for narrative. NO OTHER COLORS.
+3. TABLE RESILIENCE: Headers must be clearly piped. Even if data is sparse, maintain the | col | col | structure.
+4. 16-VERTICAL HIERARCHY: Each chapter must start with exactly one <h2> title from the approved list of 16 verticals.
+5. NEVER include <rule-check> tags or system prompt artifacts in the prose.
+6. The <chart-data> block MUST appear only ONCE, at the very end of your response.
 `;
         return context;
     }

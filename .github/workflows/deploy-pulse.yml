@@ -21,12 +21,12 @@ jobs:
           cache: "npm"
       - name: "Install dependencies"
         run: "npm install"
-      - name: "Deploy MiroSync"
-        uses: "cloudflare/wrangler-action@v3"
+      - name: Deploy MiroSync (Wave 0)
+        uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: "${{ secrets.CLOUDFLARE_API_TOKEN }}"
-          accountId: "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
-          wranglerConfigPath: "wrangler.miro-sync.toml"
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config wrangler.miro-sync.toml
           wranglerVersion: "3.114.17"
 
   deploy-base:
@@ -51,7 +51,7 @@ jobs:
           apiToken: "${{ secrets.CLOUDFLARE_API_TOKEN }}"
           accountId: "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
           environment: "${{ matrix.environment }}"
-          wranglerConfigPath: "wrangler.toml"
+          command: deploy --config wrangler.toml
           wranglerVersion: "3.114.17"
 
   deploy-orchestrator:
@@ -66,13 +66,13 @@ jobs:
           cache: "npm"
       - name: "Install dependencies"
         run: "npm install"
-      - name: "Deploy Pulse Tier"
-        uses: "cloudflare/wrangler-action@v3"
+      - name: Deploy Base Tiers (Wave 1)
+        uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: "${{ secrets.CLOUDFLARE_API_TOKEN }}"
-          accountId: "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: "pulse"
-          wranglerConfigPath: "wrangler.toml"
+          command: deploy --config wrangler.toml
           wranglerVersion: "3.114.17"
 
   deploy-discovery:
@@ -87,13 +87,13 @@ jobs:
           cache: "npm"
       - name: "Install dependencies"
         run: "npm install"
-      - name: "Deploy MiroFish Tier"
-        uses: "cloudflare/wrangler-action@v3"
+      - name: Deploy MiroFish (Wave 3)
+        uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: "${{ secrets.CLOUDFLARE_API_TOKEN }}"
-          accountId: "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: "mirofish"
-          wranglerConfigPath: "wrangler.toml"
+          command: deploy --config wrangler.toml
           wranglerVersion: "3.114.17"
 
   push-swarm-secrets:
@@ -115,22 +115,31 @@ jobs:
           GEMINI_API_KEY: "${{ secrets.GEMINI_API_KEY }}"
           GROQ_API_KEY: "${{ secrets.GROQ_API_KEY }}"
           OPENROUTER_KEY: "${{ secrets.OPENROUTER_KEY }}"
-          SWARM_INTERNAL_TOKEN: "${{ secrets.SWARM_INTERNAL_TOKEN }}"
+          SAMBANOVA_API_KEY: "${{ secrets.SAMBANOVA_API_KEY }}"
+          CEREBRAS_API_KEY: "${{ secrets.CEREBRAS_API_KEY }}"
+          HF_TOKEN: "${{ secrets.HF_TOKEN }}"
+          QWEB_KEY: "${{ secrets.QWEB_KEY }}"
+          SWARM_INTERNAL_TOKEN: "${{ secrets.SWARM_INTERNAL_TOKEN || 'BPRO_SWARM_SECRET_2026' }}"
           GH_PAT: "${{ secrets.GH_PAT }}"
         run: |
-          for env in data-hub relevance auditor seo pulse miro-sync mirofish; do
-            echo "Pushing secrets to $env..."
+          for env in data-hub relevance auditor seo pulse miro-sync mirofish newsletter templates; do
+            echo "🔐 Pushing secrets to $env..."
+
             CONF="wrangler.toml"
             OPTS="--env $env"
             if [ "$env" = "miro-sync" ]; then
               CONF="wrangler.miro-sync.toml"
               OPTS=""
             fi
-            echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY $OPTS --config $CONF || true
-            echo "$GROQ_API_KEY" | npx wrangler secret put GROQ_API_KEY $OPTS --config $CONF || true
-            echo "$OPENROUTER_KEY" | npx wrangler secret put OPENROUTER_KEY $OPTS --config $CONF || true
-            echo "$GH_PAT" | npx wrangler secret put GH_TOKEN $OPTS --config $CONF || true
-            echo "$SWARM_INTERNAL_TOKEN" | npx wrangler secret put SWARM_INTERNAL_TOKEN $OPTS --config $CONF || true
+            echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY $OPTS --config $CONF
+            echo "$GROQ_API_KEY" | npx wrangler secret put GROQ_API_KEY $OPTS --config $CONF
+            echo "$OPENROUTER_KEY" | npx wrangler secret put OPENROUTER_KEY $OPTS --config $CONF
+            echo "$SAMBANOVA_API_KEY" | npx wrangler secret put SAMBANOVA_API_KEY $OPTS --config $CONF
+            echo "$CEREBRAS_API_KEY" | npx wrangler secret put CEREBRAS_API_KEY $OPTS --config $CONF
+            echo "$HF_TOKEN" | npx wrangler secret put HF_TOKEN $OPTS --config $CONF
+            echo "$QWEB_KEY" | npx wrangler secret put QWEB_KEY $OPTS --config $CONF
+            echo "$GH_PAT" | npx wrangler secret put GH_TOKEN $OPTS --config $CONF
+            echo "$SWARM_INTERNAL_TOKEN" | npx wrangler secret put SWARM_INTERNAL_TOKEN $OPTS --config $CONF
           done
           echo "Swarm 4.0 secrets synchronized."
 

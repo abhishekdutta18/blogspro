@@ -14,7 +14,7 @@ const path = require("path");
 const { execSync } = require("child_process");
 
 const DEFAULTS = {
-  workerUrl: "https://github-push.abhishek-dutta1996.workers.dev/",
+  workerUrl: "https://github-push.abhishekdutta18.workers.dev/",
   owner: "abhishekdutta18",
   repo: "blogspro",
   branch: "main",

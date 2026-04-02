@@ -1,8 +1,12 @@
-const fs = require("fs");
-const path = require("path");
-const { fetchIndianNews, fetchGlobalNews, fetchMacroPulse } = require("./lib/data-fetchers");
-const { askAI } = require("./lib/ai-service");
-const { getBaseTemplate } = require("./lib/templates");
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from 'url';
+import { fetchIndianNews, fetchGlobalNews, fetchMacroPulse } from "./lib/data-fetchers.js";
+import { askAI } from "./lib/ai-service.js";
+import { getBaseTemplate } from "./lib/templates.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function generatePost() {
     const category = process.argv.find(a => a.startsWith('--cat='))?.split('=')[1] || 'Macro';

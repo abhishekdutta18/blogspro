@@ -234,35 +234,20 @@ export default {
     try {
       const body = await request.json();
       const { subject, html, secret, from: fromName } = body;
-      const displayFromName = fromName || 'BlogsPro Newsletter';
+    // Institutional Handshake
+    const swarmToken = request.headers.get("X-Swarm-Token");
+    if (swarmToken !== env.SWARM_INTERNAL_TOKEN) {
+      console.warn("🔐 [Newsletter] Unauthorized Handshake Attempt Blocked.");
+      return new Response(JSON.stringify({ error: "Unauthorized Swarm Access" }), { 
+        status: 401, 
+        headers: { "Content-Type": "application/json" } 
+      });
+    }
 
-      // Validate secret
-      if (secret !== env.NEWSLETTER_SECRET) {
-        console.error('Invalid secret provided');
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-          status: 401,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-        });
-      }
-
-      // Validate required fields
-      if (!subject || !html) {
-        return new Response(JSON.stringify({ error: 'Missing subject or html' }), { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-        });
-      }
-
-      const RESEND_API_KEY = env.RESEND_API_KEY;
-      if (!RESEND_API_KEY) {
-        console.error('RESEND_API_KEY not configured');
-        return new Response(JSON.stringify({ error: 'Email API Key not configured' }), { 
-          status: 500,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-        });
-      }
-
-      const PROJECT_ID = env.FIREBASE_PROJECT_ID || 'blogspro-ai';
+    const PROJECT_ID = env.FIREBASE_PROJECT_ID;
+    if (!PROJECT_ID) {
+      return new Response(JSON.stringify({ error: "Internal Error: Project context missing." }), { status: 500 });
+    }
       
       // 1. Fetch ALL subscribers from Firestore REST API (handling pagination)
       console.log('Fetching subscribers from Firestore...');
