@@ -9,17 +9,22 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@ai-sdk/google": "^1.1.0",
+    "@ai-sdk/openai": "^1.1.0",
     "@aws-sdk/client-s3": "^3.1022.0",
     "@cerebras/cerebras_cloud_sdk": "^1.64.1",
     "@google/generative-ai": "^0.24.1",
     "@sentry/node": "^10.47.0",
+    "ai": "^4.1.0",
     "dotenv": "^17.3.1",
     "fast-xml-parser": "^5.5.9",
     "figma-js": "^1.16.1-0",
     "firebase-admin": "^13.7.0",
     "google-charts": "^2.0.0",
+    "inngest": "^4.1.0",
     "toucan-js": "^4.1.1",
-"y-protocols": "^1.0.7",
+    "upstox-js-sdk": "^2.23.0",
+    "y-protocols": "^1.0.7",
     "yjs": "^13.6.30"
   },
   "devDependencies": {

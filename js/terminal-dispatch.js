@@ -17,88 +17,14 @@ function padZero(num) {
   return String(num).padStart(2, '0');
 }
 
-function dispatchWorkerBases() {
-  const override = localStorage.getItem('bp_dispatch_worker_url');
-  const configured = override ? [override] : workerCandidates('api/dispatch');
-  const fallback = 'https://blogspro-pulse.abhishek-dutta1996.workers.dev';
-  const all = [...configured, fallback]
-    .map((v) => String(v || '').trim().replace(/\/+$/, ''))
-    .filter(Boolean);
-  return [...new Set(all)];
-}
-
-async function postJson(url, body) {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  let data = null;
-  try { data = await res.json(); } catch (_) {}
-  return { ok: res.ok, status: res.status, data, text: data ? null : await res.text().catch(() => null) };
-}
-
-async function triggerWorkflowViaWorker(frequency = 'weekly') {
-  const endpoints = ['api/dispatch', 'api/workflow-dispatch', 'dispatch'];
-  const payload = {
-    owner: GH_OWNER,
-    repo: GH_REPO,
-    branch: GH_BRANCH,
-    workflow: GH_WORKFLOW,
-    ref: GH_BRANCH,
-    inputs: { frequency, force: 'true' },
-  };
-
-  let lastErr = null;
-  for (const base of dispatchWorkerBases()) {
-    for (const endpoint of endpoints) {
-      try {
-        const url = workerUrl(endpoint, base);
-        const { ok, status, data, text } = await postJson(url, payload);
-        if (ok) return { base, endpoint, data };
-        if ([400, 404, 405].includes(status)) continue;
-        lastErr = new Error(data?.error || data?.message || text || `Worker dispatch failed (${status})`);
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-  }
-  throw lastErr || new Error('No dispatch-capable Cloudflare worker endpoint is configured.');
-}
-
-async function triggerWorkflowDirect(frequency = 'weekly') {
-  const token = String(DISPATCH_CONFIG?.ghToken || '').trim();
-  if (!token) throw new Error('Dispatch token not configured');
-  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/actions/workflows/${GH_WORKFLOW}/dispatches`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github+json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      ref: GH_BRANCH,
-      inputs: { frequency, force: 'true' }
-    })
-  });
-  if (!res.ok) {
-    const err = await res.text().catch(() => '');
-    throw new Error(`Direct dispatch failed (${res.status}): ${err.substring(0,140)}`);
-  }
-  return { base: 'github-api', endpoint: 'workflow-dispatch', data: { status: 'queued' } };
-}
-
 /**
- * DISPATCH SWARM (4.6 Orchestration)
- * Triggers the GitHub Actions pipeline through Cloudflare Worker only.
+ * DISPATCH SWARM (V5.4 Durable Inngest)
+ * Triggers the Pulse orchestrator directly via authenticated POST.
  */
 export async function dispatchSwarm(frequency = 'daily') {
   const statusEl = document.getElementById('swarmDispatchStatus');
   const btnId = frequency === 'daily' ? 'btnDispatchDaily' : (frequency === 'weekly' ? 'btnDispatchWeekly' : 'btnDispatchManual');
   const btn = document.getElementById(btnId);
-
-  // V5.0: No PAT required for Serverless Dispatch Proxy
 
   if (btn) {
     btn.disabled = true;
@@ -107,13 +33,12 @@ export async function dispatchSwarm(frequency = 'daily') {
   if (statusEl) statusEl.textContent = `Initializing node cluster for ${frequency} research cascade...`;
 
   try {
-    // ── V5.0: Call Serverless Dispatch Proxy (Pulse Worker) ────────────
     const idToken = await window.auth.currentUser?.getIdToken();
     if (!idToken) throw new Error("Authentication required - please refresh the dashboard.");
 
-    // Dynamic Worker Discovery - Reverted to legacy-active domain
+    // Direct Pulse Orchestrator — blogspro-pulse environment
     const workerBase = window.BLOGSPRO_CONFIG?.PULSE_WORKER_URL || "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
-    const pulseWorkerUrl = `${workerBase}/dispatch`;
+    const pulseWorkerUrl = `${workerBase.replace(/\/+$/, '')}/dispatch`;
 
     const response = await fetch(pulseWorkerUrl, {
       method: "POST",
@@ -124,10 +49,15 @@ export async function dispatchSwarm(frequency = 'daily') {
       body: JSON.stringify({ frequency })
     });
 
-    if (!response.ok) throw new Error(`Dispatch failed: ${response.statusText}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || `Dispatch failed: ${response.statusText}`);
+    }
 
     showToast(`Swarm ${frequency} dispatch successful!`, 'success');
     if (statusEl) statusEl.innerHTML = `<span style="color:var(--gold)">🛰 Swarm Active</span>: Propagation started. Monitor the Reinforcement Ledger below.`;
+    
+    // UI Feedback & Polling
     if (window.startDispatchTimer) window.startDispatchTimer();
     pollDispatchStatus(workerBase);
   } catch (err) {
@@ -220,6 +150,7 @@ window.updateSwarmTelemetry = updateSwarmTelemetry;
 
 export async function triggerTerminalDispatch() {
   const btn = document.getElementById('btnTerminalDispatch');
+
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = '⚡ Dispatching...';
@@ -227,10 +158,10 @@ export async function triggerTerminalDispatch() {
 
   try {
     const idToken = await window.auth.currentUser?.getIdToken();
-    if (!idToken) throw new Error("Login session expired or invalid.");
+    if (!idToken) throw new Error("Authentication required - please login.");
 
     const workerBase = window.BLOGSPRO_CONFIG?.PULSE_WORKER_URL || "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
-    const pulseWorkerUrl = `${workerBase}/dispatch`;
+    const pulseWorkerUrl = `${workerBase.replace(/\/+$/, '')}/dispatch`;
 
     const response = await fetch(pulseWorkerUrl, {
       method: 'POST',
@@ -243,15 +174,13 @@ export async function triggerTerminalDispatch() {
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
-         throw new Error('Unauthorized. Ensuring you are an admin on the 2026 Cluster.');
+         throw new Error('Unauthorized. Access restricted to 2026 Strategy Cluster.');
       }
-      throw new Error(`Failed to dispatch: ${response.statusText}`);
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || `Dispatch failed: ${response.statusText}`);
     }
 
-    showToast('Weekly dispatch triggered successfully on GitHub!', 'success');
-    
-    // Start the timer UI tracking
-
+    showToast('Weekly dispatch triggered successfully!', 'success');
     startDispatchTimer();
     pollDispatchStatus(workerBase);
   } catch (err) {
@@ -308,6 +237,8 @@ window.startDispatchTimer = startDispatchTimer;
 
 async function pollDispatchStatus(workerBase) {
   const pollToken = ++activePollToken;
+  const safeWorkerBase = workerBase || window.BLOGSPRO_CONFIG?.PULSE_WORKER_URL || "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
+  
   setTimeout(async () => {
     let isCompleted = false;
     let attempts = 0;
@@ -323,7 +254,7 @@ async function pollDispatchStatus(workerBase) {
       if (pollToken !== activePollToken) break;
       attempts += 1;
       try {
-        const statusUrl = `${String(workerBase || '').replace(/\/+$/, '')}/api/dispatch-status`;
+        const statusUrl = `${String(safeWorkerBase).replace(/\/+$/, '')}/api/dispatch-status`;
         const body = JSON.stringify({ owner: GH_OWNER, repo: GH_REPO, workflow: GH_WORKFLOW, branch: GH_BRANCH });
         const tryReq = async (method) => {
           const resp = await fetch(statusUrl, {
@@ -404,3 +335,39 @@ document.addEventListener('DOMContentLoaded', () => {
   const status = document.getElementById('ghPatStatus');
   if (status) status.textContent = 'Worker mode active. One-click orchestration enabled.';
 });
+// UI Initialization for Manual PAT Override
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    const patInput = document.getElementById('ghPatInput');
+    if (patInput) {
+      // 1. Initial Load
+      const savedPat = localStorage.getItem('bp_gh_pat');
+      if (savedPat) {
+        patInput.value = savedPat;
+        DISPATCH_CONFIG.ghToken = savedPat;
+      }
+
+      // 2. Sync on Change
+      patInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        localStorage.setItem('bp_gh_pat', val);
+        DISPATCH_CONFIG.ghToken = val;
+      });
+    }
+  });
+
+  // Export for emergency manual trigger check
+  window.triggerDirectDispatchOverride = async () => {
+    const pat = localStorage.getItem('bp_gh_pat');
+    if (!pat) {
+       showToast("GitHub PAT required for manual override.", "error");
+       return;
+    }
+    try {
+      await triggerWorkflowDirect('manual');
+      showToast("Manual override success!", "success");
+    } catch(e) {
+      showToast(e.message, "error");
+    }
+  };
+}

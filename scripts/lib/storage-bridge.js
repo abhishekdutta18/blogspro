@@ -5,6 +5,14 @@ const __dirname = (typeof process !== 'undefined' && import.meta && import.meta.
   ? path.dirname(fileURLToPath(import.meta.url)) 
   : "";
 
+const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+const isWorker = typeof caches !== 'undefined' && typeof Response !== 'undefined';
+
+let fs = null;
+if (isNode) {
+    import('node:fs').then(mod => { fs = mod; }).catch(() => {});
+}
+
 // Firestore REST Client: $0 Managed State Layer
 async function syncToFirestore(collection, data, env) {
   if (!env || !env.FIREBASE_PROJECT_ID) {
@@ -127,30 +135,47 @@ export default {
  * Manages frequency-specific data snapshots and historical trends.
  */
 
-async function saveSnapshot(data, frequency, env) {
-  if (!env || !env.FIREBASE_STORAGE_BUCKET) return;
-  const timestamp = Date.now();
-  const key = `snapshots/${frequency}/${timestamp}.json`;
+async function saveSnapshot(data, frequency, env, customFileName = null) {
+  if (!env || !env.FIREBASE_STORAGE_BUCKET) {
+    console.warn("⚠️ [StorageBridge] Missing FIREBASE_STORAGE_BUCKET. Snapshot skipped.");
+    return;
+  }
   
-  console.log(`📸 [Snapshot] Saving ${frequency} telemetry to Firebase: ${key}`);
+  const timestamp = Date.now();
+  const isBinary = data instanceof Uint8Array || data instanceof ArrayBuffer;
+  const extension = isBinary ? 'yjs' : 'json';
+  const filename = customFileName || `snapshot-${timestamp}.${extension}`;
+  const key = `snapshots/${frequency}/${filename}`;
+  const contentType = isBinary ? 'application/octet-stream' : 'application/json';
+  const body = isBinary ? data : JSON.stringify(data);
+  
+  console.log(`📸 [StorageBridge] Saving ${frequency} snapshot (${extension}) to Firebase: ${key}`);
   const url = `https://storage.googleapis.com/upload/storage/v1/b/${env.FIREBASE_STORAGE_BUCKET}/o?uploadType=media&name=${encodeURIComponent(key)}`;
   
   try {
-    await fetch(url, {
+    const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
+      headers: { "Content-Type": contentType },
+      body: body
     });
+    
+    if (!res.ok) {
+        throw new Error(`Firebase Storage Error: ${await res.text()}`);
+    }
     
     // Also maintain a 'latest' pointer in Firestore for fast retrieval
     await syncToFirestore(`latest_snapshots`, {
         frequency,
         key,
         timestamp,
+        type: extension,
         id: `latest_${frequency}`
     }, env);
+    
+    return key;
   } catch (e) {
-    console.error(`⚠️ Snapshot Sync Fail:`, e.message);
+    console.error(`⚠️ [StorageBridge] Snapshot Sync Fail:`, e.message);
+    return null;
   }
 }
 

@@ -1,62 +1,29 @@
-// Centralized worker endpoint config for all server-side API calls.
-// Keeps provider keys off the client and supports safe fallback routes.
+// Centralized worker endpoint config for all BlogsPro Institutional operations.
+// Strictly favors the Durable Pulse Orchestrator (V5.4).
 
 const PULSE_WORKER_BASE = "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
-const NON_AI_WORKERS = [PULSE_WORKER_BASE];
-const AI_FALLBACK_WORKER = PULSE_WORKER_BASE; 
-const DEFAULT_CACHE_WORKER = PULSE_WORKER_BASE;
-
-const configuredBases = [
-  window.__AI_API_BASE__,
-  localStorage.getItem("bp_ai_api_base"),
-  window.__AI_WORKER_URL,
-  localStorage.getItem("bp_ai_worker_url"),
-].filter(Boolean);
 
 function normalizeBase(url) {
   return String(url || "").trim().replace(/\/+$/, "");
 }
 
-function unique(values) {
-  return [...new Set(values.map(normalizeBase).filter(Boolean))];
-}
-
 export function workerCandidates(path = "") {
   const p = String(path || "").replace(/^\/+/, "");
-  const configured = unique(configuredBases);
-  const isAiPath = /^api\/(ai|generate-image|validate-url)/.test(p);
-  const baseCandidates = [];
+  const candidates = [];
 
-  if (isAiPath) {
-    // For AI routes, only use explicit AI API bases.
-    // Do not route to deploy-only workers or static-site origins by default.
-    const aiConfigured = configured.filter((base) =>
-      !NON_AI_WORKERS.includes(base)
-    );
+  // 1. Check for manual overrides in Local Storage
+  const override = localStorage.getItem("bp_ai_worker_url") || localStorage.getItem("bp_ai_api_base");
+  if (override) candidates.push(normalizeBase(override));
 
-    // Optional override if the site later exposes a same-origin AI endpoint.
-    if (window.__AI_USE_SAME_ORIGIN__ === true) {
-      baseCandidates.push(window.location.origin);
-      if (window.location.origin !== "https://blogspro.in") {
-        baseCandidates.push("https://blogspro.in");
-      }
-    }
+  // 2. Default to Institutional Pulse
+  candidates.push(PULSE_WORKER_BASE);
 
-    baseCandidates.push(...aiConfigured);
-    // Last resort: send AI calls to legacy worker if nothing else is configured.
-    if (baseCandidates.length === 0) {
-      baseCandidates.push(AI_FALLBACK_WORKER);
-    }
-    return unique(baseCandidates);
+  // 3. Fallback to origin if running on blogspro.in
+  if (window.location.origin.includes("blogspro.in")) {
+    candidates.push(window.location.origin);
   }
 
-  // Non-AI routes can still use configured bases.
-  baseCandidates.push(...configured);
-
-  // Use institutional Pulse worker as the final fallback.
-  baseCandidates.push(PULSE_WORKER_BASE);
-
-  return unique(baseCandidates);
+  return [...new Set(candidates)];
 }
 
 export function workerUrl(path = "", base = null) {
@@ -65,53 +32,17 @@ export function workerUrl(path = "", base = null) {
   return `${resolvedBase}/${p}`;
 }
 
-function cacheWorkerBase() {
-  const override = window.__CACHE_WORKER_URL__ || localStorage.getItem("bp_cache_worker_url");
-  return normalizeBase(override || DEFAULT_CACHE_WORKER);
-}
-
-// GET-only cached fetch via KV worker; falls back to direct fetch on error
-export async function cachedFetch(targetUrl) {
-  const base = cacheWorkerBase();
-  // Normalize relative paths to absolute
-  const normalizedTarget = (() => {
-    if (!targetUrl) return '';
-    if (/^https?:\/\//i.test(targetUrl)) return targetUrl;
-    const origin = window.location.origin.replace(/\/+$/, '');
-    const path = String(targetUrl).startsWith('/') ? targetUrl : `/${targetUrl}`;
-    return `${origin}${path}`;
-  })();
-  if (!normalizedTarget) return fetch(targetUrl);
-  if (!base) return fetch(normalizedTarget);
-  const url = `${base}/?target=${encodeURIComponent(normalizedTarget)}`;
-  try {
-    const res = await fetch(url, { method: "GET" });
-    const hasCors = res.headers?.get("Access-Control-Allow-Origin");
-    if (res.ok && hasCors) return res;
-  } catch (_) {}
-  return fetch(normalizedTarget);
-}
-
 export async function workerFetch(path, init = {}) {
   const candidates = workerCandidates(path);
-  const p = String(path || "").replace(/^\/+/, "");
-  const isAiPath = /^api\/(ai|generate-image|validate-url)/.test(p);
-
-  if (candidates.length === 0 && isAiPath) {
-    throw new Error("AI worker endpoint not configured");
-  }
-
-  let lastResponse = null;
+  
   let lastError = null;
-
   for (const base of candidates) {
     try {
-      const res = await fetch(workerUrl(path, base), init);
+      const url = workerUrl(path, base);
+      const res = await fetch(url, init);
       if (res.ok) return res;
-
-      // Retry on endpoint mismatch and transient server errors.
-      if ([400, 404, 405, 429, 500, 502, 503, 504].includes(res.status)) {
-        lastResponse = res;
+      if (res.status >= 500) {
+        lastError = new Error(`Worker Error (${res.status}): ${res.statusText}`);
         continue;
       }
       return res;
@@ -119,7 +50,10 @@ export async function workerFetch(path, init = {}) {
       lastError = err;
     }
   }
+  throw lastError || new Error("All worker candidates failed.");
+}
 
-  if (lastResponse) return lastResponse;
-  throw lastError || new Error("Worker request failed");
+// Legacy support for cached fetches (now routed through Pulse)
+export async function cachedFetch(targetUrl) {
+  return fetch(targetUrl); // Pulse handles internal caching/DO sync
 }

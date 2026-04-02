@@ -58,7 +58,7 @@ jobs:
           VAULT_MASTER_KEY: ${{ secrets.VAULT_MASTER_KEY }}
         run: |
           # V5.3 Hardened Vault Endpoint (Institutional)
-          VAULT_URL="https://blogspro-pulse.abhishekdutta18.workers.dev/vault"
+          VAULT_URL="https://blogspro-pulse.abhishek-dutta1996.workers.dev/vault"
           echo "📡 Connecting to BlogsPro Strategic Vault at $VAULT_URL..."
           
           RESPONSE=$(curl -s -X POST "$VAULT_URL" \

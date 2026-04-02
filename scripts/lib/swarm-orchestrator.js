@@ -30,7 +30,7 @@ import rl from "./reinforcement.js";
  * ultra-high-density institutional manuscripts (up to 25k words).
  */
 
-async function notifyProgress(env, jobId, data) {
+export async function notifyProgress(env, jobId, data) {
   if (!env.MIRO_SYNC_DO) return;
   try {
     const id = env.MIRO_SYNC_DO.idFromName('global-swarm-bridge');
@@ -46,6 +46,8 @@ async function notifyProgress(env, jobId, data) {
         ...data 
       })
     });
+    // [V5.3] 200ms delay to prevent DO rate-limiting in parallel fan-outs
+    await new Promise(r => setTimeout(r, 200));
   } catch (e) {
     if (env.DEBUG) console.warn("⚠️ Telemetry Bridge Stalled:", e.message);
   }
@@ -57,7 +59,7 @@ async function notifyProgress(env, jobId, data) {
  * Executes a dedicated Researcher -> Drafter -> Auditor loop for a single vertical.
  * Used internally by both Parallel Fan-out and Consolidated Pulses.
  */
-async function executeSingleVerticalSwarm(vertical, index, frequency, semanticDigest, historicalData, env, id, extended, blackboardContext = "") {
+export async function executeSingleVerticalSwarm(vertical, index, frequency, semanticDigest, historicalData, env, id, extended, blackboardContext = "") {
   try {
     console.log(`🕵️ [Sub-Swarm] Analyzing Vertical: ${vertical.name}...`);
     const internetResearch = await fetchDynamicNews(vertical.name);
@@ -136,7 +138,7 @@ async function executeSingleVerticalSwarm(vertical, index, frequency, semanticDi
   }
 }
 
-async function runConsensusDesk(frequency, semanticDigest, env, jobId = null) {
+export async function runConsensusDesk(frequency, semanticDigest, env, jobId = null) {
   const simulations = await Promise.all(CONSENSUS_PERSONAS.map(async (persona) => {
     try {
       const result = await askAI(getExpertPersonaPrompt(persona, frequency, JSON.stringify(semanticDigest)), {
@@ -246,6 +248,50 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
   }
 
   if (extended) await detectAndAlert({ wordCount: finalCount, raw: finalManuscript, jobId: id }, frequency);
+
+  return { final: finalHtml, wordCount: finalCount, raw: finalManuscript, jobId: id };
+}
+
+/**
+ * finalizeManuscript
+ * ------------------
+ * Consolidates individual sector results into a cohesive institutional briefing.
+ * Applies final $SHIELD audit and template transformation.
+ */
+export async function finalizeManuscript(allChapterContents, consensusSummary, frequency, type, env, id) {
+  const executiveStrategy = await askAI(getEditorPrompt(consensusSummary, frequency), { 
+    role: 'edit', env, model: 'claude-3.5-sonnet' 
+  });
+
+  const combinedManuscript = `<div id="strategic-pulse">${executiveStrategy}</div><hr>${allChapterContents.join("\n\n")}`;
+  
+  // 🛡️ FINAL $SHIELD AUDIT PASS
+  const finalManuscript = rules.sanitizePayload(combinedManuscript);
+  const fidelityResult = validateAndRepair(finalManuscript);
+  
+  let finalHtml = `<html><body>${fidelityResult.content}</body></html>`;
+  let finalCount = fidelityResult.content.split(/\s+/).length;
+
+  try {
+    const templateRes = await env.TEMPLATE_ENGINE.fetch(new Request("https://templates/transform", {
+      method: "POST", 
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        title: `${frequency.toUpperCase()} Strategic Manuscript`, 
+        content: fidelityResult.content, 
+        type, 
+        freq: frequency 
+      })
+    }));
+
+    if (templateRes.ok) {
+      const { html, wordCount: wc } = await templateRes.json();
+      finalHtml = html;
+      finalCount = wc;
+    }
+  } catch (e) {
+    console.warn("⚠️ [Template-Engine] Finalization fallback used.", e.message);
+  }
 
   return { final: finalHtml, wordCount: finalCount, raw: finalManuscript, jobId: id };
 }

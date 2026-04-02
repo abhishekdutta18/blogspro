@@ -437,7 +437,7 @@ async function generateOpenRouterContent(prompt, model = "anthropic/claude-3.5-s
         headers: {
             "Authorization": `Bearer ${String(key).trim()}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://blogspro.ai",
+            "HTTP-Referer": "https://blogspro.in",
             "X-Title": "BlogsPro Swarm"
         },
         body: JSON.stringify({

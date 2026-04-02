@@ -2,6 +2,7 @@ import * as Y from 'yjs';
 import * as sync from 'y-protocols/dist/sync.cjs';
 import * as awareness from 'y-protocols/dist/awareness.cjs';
 import { encoding, decoding } from 'lib0';
+import { saveSnapshot } from './lib/storage-bridge.js';
 
 /**
  * MiroSync Durable Object
@@ -36,13 +37,16 @@ export class MiroSync {
       return new Response(null, { status: 101, webSocket: client });
     }
 
-    // Handle snapshot export to R2
+    // Handle snapshot export to Firebase
     if (url.pathname === '/snapshot') {
       const update = Y.encodeStateAsUpdate(this.doc);
       const filename = `snapshot-${Date.now()}.yjs`;
-      await this.env.snapshots.put(filename, update);
+      await saveSnapshot(update, 'miro-sync', this.env, filename);
       return new Response(JSON.stringify({ success: true, filename }), {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          "Access-Control-Allow-Origin": "*"
+        }
       });
     }
 
@@ -56,8 +60,32 @@ export class MiroSync {
     // 1.5. Failsafe Telemetry Snapshot (Conflict-Free JSON Stream)
     if (url.pathname === '/telemetry' && request.method === 'GET') {
       const progressMap = this.doc.getMap('swarm-progress');
+      
+      // 🧹 Pruning Routine: Remove entries older than 3 months
+      const THREE_MONTHS_MS = 90 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      let prunedCount = 0;
+
+      for (const [key, value] of progressMap.entries()) {
+        const timestamp = new Date(value.timestamp).getTime();
+        if (!isNaN(timestamp) && (now - timestamp) > THREE_MONTHS_MS) {
+          progressMap.delete(key);
+          prunedCount++;
+        }
+      }
+      if (prunedCount > 0) console.log(`🧹 [MiroSync] Pruned ${prunedCount} legacy swarm entries.`);
+
       const data = Object.fromEntries(progressMap.entries());
-      return new Response(JSON.stringify(data), {
+      
+      // 🚀 optimization: Only send the 5 most recent jobs to the client to prevent payload bloat
+      const sortedKeys = Object.keys(data).sort((a, b) => 
+        new Date(data[b].timestamp).getTime() - new Date(data[a].timestamp).getTime()
+      );
+      
+      const filteredData = {};
+      sortedKeys.slice(0, 5).forEach(k => filteredData[k] = data[k]);
+
+      return new Response(JSON.stringify(filteredData), {
         headers: { 
           'Content-Type': 'application/json',
           "Access-Control-Allow-Origin": "*"
@@ -422,6 +450,7 @@ const TERMINAL_HTML = `
             <span class="status-pill" id="global-status">SWARM_IDLE</span>
         </div>
         <div class="control-block">
+            <span id="conn-status" style="color: #666; font-size: 11px; margin-right: 15px;">📡 SYNC_OK</span>
             <span id="current-job" style="font-family: 'JetBrains Mono'; font-size: 12px; color: #666;">NO_ACTIVE_JOB</span>
         </div>
     </header>
@@ -498,31 +527,59 @@ const TERMINAL_HTML = `
         }
 
         let lastJobId = null;
-        async function pollTelemetry() {
-            try {
-                const res = await fetch('/telemetry');
-                const data = await res.json();
-                
-                // Find the latest job using timestamp comparison
-                let latest = null;
-                let maxTime = 0;
-                for (const jobId in data) {
-                    const dt = new Date(data[jobId].timestamp).getTime();
-                    if (!isNaN(dt) && dt > maxTime) { 
-                        maxTime = dt; 
-                        latest = data[jobId]; 
-                    }
-                }
+        let isPolling = false;
+        let consecutiveErrors = 0;
 
-                if (latest) {
-                    if (latest.jobId !== lastJobId) {
-                        lastJobId = latest.jobId;
-                        addLog('🚀 New Job Detected: ' + lastJobId, 'highlight');
+        async function pollTelemetry() {
+            if (isPolling) return;
+            isPolling = true;
+
+            try {
+                // Use a short timeout to prevent hanging UI during worker cold-starts
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+                const res = await fetch('/telemetry', { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (res.ok) {
+                    const data = await res.json();
+                    consecutiveErrors = 0;
+                    document.getElementById('conn-status').innerText = '📡 SYNC_OK';
+                    document.getElementById('conn-status').style.color = '#00FF41';
+
+                    let latest = null;
+                    let maxTime = 0;
+                    for (const jobId in data) {
+                        const dt = new Date(data[jobId].timestamp).getTime();
+                        if (!isNaN(dt) && dt > maxTime) { 
+                            maxTime = dt; 
+                            latest = data[jobId]; 
+                        }
                     }
-                    updateUI(latest);
+
+                    if (latest) {
+                        if (latest.jobId !== lastJobId) {
+                            lastJobId = latest.jobId;
+                            addLog('🚀 Synchronizing With Swarm: ' + lastJobId, 'highlight');
+                        }
+                        updateUI(latest);
+                    }
+                } else {
+                    throw new Error('HTTP_' + res.status);
                 }
             } catch (e) {
-                console.warn('Telemetry Poll Error:', e);
+                consecutiveErrors++;
+                document.getElementById('conn-status').innerText = '⏳ RECOVERING... (' + consecutiveErrors + ')';
+                document.getElementById('conn-status').style.color = '#FF9900';
+                
+                if (consecutiveErrors > 5) {
+                    // Force a softer reset of the polling flag to allow fresh attempts
+                    isPolling = false; 
+                }
+                console.warn('Telemetry recovery attempt:', e.message);
+            } finally {
+                isPolling = false;
             }
         }
 

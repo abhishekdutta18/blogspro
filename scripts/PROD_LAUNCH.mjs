@@ -33,7 +33,7 @@ async function preFlightCheck() {
     log("🛰️  Running Service Pre-flight Check...");
     const endpoints = [
         { name: "DATA_HUB", url: "http://localhost:8888/ping" }, // Simplified for GHA example
-        { name: "TEMPLATES", url: "https://blogspro-templates.abhishekdutta18.workers.dev/ping" }
+        { name: "TEMPLATES", url: "https://blogspro-templates.abhishek-dutta1996.workers.dev/ping" }
     ];
     
     for (const ep of endpoints) {

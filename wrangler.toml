@@ -31,10 +31,12 @@ compatibility_flags = [ "nodejs_compat" ]
 FIREBASE_PROJECT_ID = "blogspro-ai"
 FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
 BASE_URL = "https://blogspro.in"
-PROJECT_DOMAIN = "blogspro.ai"
+PROJECT_DOMAIN = "blogspro.in"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 GEMINI_MODEL = "gemini-1.5-pro"
 MISTRAL_MODEL = "mistral-large-latest"
+INNGEST_EVENT_KEY = "iyn6A_cYtMybjJhGswI7zr_CX6HkT3R_bCqepOty9yufd_ax_OfkE9RDsQ_8tyMvM6TvWoJDvLm6IREcyjoMTg"
+INNGEST_SIGNING_KEY = "signkey-prod-da8bf4172979eda4d892588ea271764fc3989d474a260eddbbd846b5aab8406a"
 SENTRY_DSN = "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336"
 
 [[env.pulse.services]]
@@ -142,6 +144,28 @@ name = "blogspro-templates"
 main = "scripts/template-worker.js"
 compatibility_date = "2024-12-30"
 compatibility_flags = [ "nodejs_compat" ]
+
+# --- MIRO SYNC WORKER (Durable Object Provider) ---
+[env.miro-sync]
+name = "blogspro-miro-sync"
+main = "scripts/miro-sync-worker.js"
+compatibility_date = "2024-12-30"
+compatibility_flags = [ "nodejs_compat" ]
+
+[env.miro-sync.vars]
+FIREBASE_PROJECT_ID = "blogspro-ai"
+FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
+
+[env.miro-sync.durable_objects]
+bindings = [
+  { name = "MIRO_SYNC_DO", class_name = "MiroSync" },
+  { name = "INGESTOR_DO", class_name = "DataIngestor" },
+  { name = "MANUSCRIPT_DO", class_name = "ManuscriptAggregator" }
+]
+
+[[env.miro-sync.migrations]]
+tag = "v1"
+new_sqlite_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"]
 
 # --- UPSTOX MARKET PROXY ---
 [env.upstox]
