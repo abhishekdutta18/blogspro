@@ -17,9 +17,9 @@ import { inngest } from "./inngest-client.js";
 export const pulseSwarmWorkflow = inngest.createFunction(
   { 
     id: "pulse-swarm-workflow",
-    name: "Institutional Pulse Swarm"
+    name: "Institutional Pulse Swarm",
+    triggers: [{ event: "swarm/triggered" }] 
   },
-  { event: "swarm/triggered" },
   async ({ event, step, env, ctx }) => {
     const { jobId, type = 'pulse', frequency = 'hourly', semanticDigest = {}, historicalData = [] } = event.data;
     const isArticle = type === 'article';
