@@ -234,15 +234,19 @@ export default {
     try {
       const body = await request.json();
       const { subject, html, secret, from: fromName } = body;
-    // Institutional Handshake
-    const swarmToken = request.headers.get("X-Swarm-Token");
-    if (swarmToken !== env.SWARM_INTERNAL_TOKEN) {
-      console.warn("🔐 [Newsletter] Unauthorized Handshake Attempt Blocked.");
-      return new Response(JSON.stringify({ error: "Unauthorized Swarm Access" }), { 
-        status: 401, 
-        headers: { "Content-Type": "application/json" } 
-      });
-    }
+
+      // 1. Institutional Handshake & Dashboard Auth
+      const swarmToken = request.headers.get("X-Swarm-Token");
+      const isAuthBySecret = secret && secret === env.NEWSLETTER_SECRET;
+      const isAuthByToken = swarmToken && swarmToken === env.SWARM_INTERNAL_TOKEN;
+
+      if (!isAuthBySecret && !isAuthByToken) {
+        console.warn("🔐 [Newsletter] Unauthorized Send Attempt Blocked.");
+        return new Response(JSON.stringify({ error: "Unauthorized: Invalid Secret or token." }), { 
+          status: 401, 
+          headers: { "Content-Type": "application/json", 'Access-Control-Allow-Origin': '*' } 
+        });
+      }
 
     const PROJECT_ID = env.FIREBASE_PROJECT_ID;
     if (!PROJECT_ID) {
@@ -294,7 +298,7 @@ export default {
             .replace(/{{NAME}}/g, sub.name);
 
           return {
-            from: `${displayFromName} <newsletter@mail.blogspro.in>`,
+            from: `${fromName || 'BlogsPro'} <newsletter@mail.blogspro.in>`,
             to: [sub.email],
             subject: subject,
             html: personalHtml
@@ -304,7 +308,7 @@ export default {
         const resendRes = await fetch('https://api.resend.com/emails/batch', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${RESEND_API_KEY}`,
+            'Authorization': `Bearer ${env.RESEND_API_KEY}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(resendPayload)
