@@ -41,7 +41,7 @@ export default {
         frequency,
         type,
         result: localResult,
-        liveTerminal: "https://blogspro-miro-sync.workers.dev/terminal"
+        liveTerminal: "https://blogspro-miro-sync.abhishek-dutta1996.workers.dev/terminal"
       }), {
         status: 202,
         headers: { "Content-Type": "application/json" }

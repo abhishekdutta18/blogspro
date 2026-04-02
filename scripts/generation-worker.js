@@ -198,7 +198,7 @@ export async function generateArticleJob(frequency, env, jobId = null, verticalI
   // Check if we need more steps
   if (verticalIndex < totalVerticals - 1) {
     // Trigger next step
-    const nextUrl = new URL(`https://blogspro-gen.workers.dev/?freq=${frequency}&type=article&jobId=${id}&step=${verticalIndex + 1}`);
+    const nextUrl = new URL(`https://blogspro-gen.abhishek-dutta1996.workers.dev/?freq=${frequency}&type=article&jobId=${id}&step=${verticalIndex + 1}`);
     
     // We use wait until to prevent termination while calling itself
     // Or just fetch and return

@@ -32,7 +32,7 @@ async function notifyProgress(env, jobId, data) {
   if (!env.MIRO_SYNC) return;
   try {
     const isMock = !env.MIRO_SYNC.idFromName;
-    const url = isMock ? "https://blogspro-miro-sync.workers.dev/push" : "https://miro/push";
+    const url = isMock ? "https://blogspro-miro-sync.abhishek-dutta1996.workers.dev/push" : "https://miro/push";
     
     await env.MIRO_SYNC.fetch(url, {
       method: "POST",

@@ -83,7 +83,7 @@ async function sendTestNewsletter() {
     return;
   }
   
-  const workerUrl = 'https://blogspro-newsletter.workers.dev';
+  const workerUrl = 'https://blogspro-newsletter.abhishek-dutta1996.workers.dev';
   const secret = 'biltu123'; // MUST match deployed NEWSLETTER_SECRET
   
   console.log('📧 Sending newsletter via Worker...');

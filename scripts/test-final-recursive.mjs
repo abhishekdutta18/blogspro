@@ -63,7 +63,7 @@ globalThis.fetch = async (url, options) => {
   const urlStr = url.toString();
 
   // Self-callback to generation worker → simulate in-process
-  if (urlStr.includes("blogspro-gen.workers.dev")) {
+  if (urlStr.includes("blogspro-gen.abhishek-dutta1996.workers.dev")) {
     const u = new URL(urlStr);
     const freq  = u.searchParams.get("freq");
     const jobId = u.searchParams.get("jobId");
