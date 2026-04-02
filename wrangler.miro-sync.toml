@@ -23,6 +23,6 @@ class_name = "ManuscriptAggregator"
 
 # --- STRATEGIC MIGRATIONS (V5.4.1) ---
 [[migrations]]
-tag = "v5_4_2_h_final"
-new_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"]
+tag = "v5_4_2_i_sqlite"
+new_sqlite_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"]
 
