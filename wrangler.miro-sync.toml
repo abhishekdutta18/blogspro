@@ -23,5 +23,6 @@ class_name = "ManuscriptAggregatorS"
 
 # --- STRATEGIC MIGRATIONS (V5.4.2) ---
 [[migrations]]
-tag = "v5_4_2_m_transition"
+tag = "v5_4_2_n_purge_complete"
+deleted_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"]
 new_sqlite_classes = ["MiroSyncS", "DataIngestorS", "ManuscriptAggregatorS"]
