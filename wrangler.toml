@@ -165,7 +165,7 @@ bindings = [
 
 [[env.miro-sync.migrations]]
 tag = "v1"
-new_sqlite_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"]
+new_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"]
 
 # --- UPSTOX MARKET PROXY ---
 [env.upstox]
