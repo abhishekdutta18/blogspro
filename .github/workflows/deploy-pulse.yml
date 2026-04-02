@@ -142,7 +142,7 @@ jobs:
       - name: "Trigger All Frequencies"
         env:
           SWARM_TOKEN: "${{ secrets.SWARM_INTERNAL_TOKEN }}"
-          BASE_URL: "https://blogspro-pulse.abhishekdutta18.workers.dev"
+          BASE_URL: "https://blogspro-pulse.abhishek-dutta1996.workers.dev"
         run: |
           echo "Initializing Swarm 4.0 Frequencies..."
           curl -sf -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=hourly" || echo "hourly trigger attempted"

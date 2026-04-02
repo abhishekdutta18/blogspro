@@ -37,7 +37,7 @@ async function runInstitutionalSwarm() {
         }
         try {
             console.log(`🎨 [Swarm] Template failover: Using production edge...`);
-            const edgeRes = await fetch("https://blogspro-templates.abhishekdutta18.workers.dev/transform", request.clone());
+            const edgeRes = await fetch("https://blogspro-templates.abhishek-dutta1996.workers.dev/transform", request.clone());
             if (edgeRes.ok) return edgeRes;
         } catch (e) {
             console.log(`🎨 [Swarm] Production edge unreachable.`);
