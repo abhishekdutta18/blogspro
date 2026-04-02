@@ -11,18 +11,17 @@ FIREBASE_PROJECT_ID = "blogspro-ai"
 
 [[durable_objects.bindings]]
 name = "MIRO_SYNC_DO"
-class_name = "MiroSync"
+class_name = "MiroSyncS"
 
 [[durable_objects.bindings]]
 name = "INGESTOR_DO"
-class_name = "DataIngestor"
+class_name = "DataIngestorS"
 
 [[durable_objects.bindings]]
 name = "MANUSCRIPT_DO"
-class_name = "ManuscriptAggregator"
+class_name = "ManuscriptAggregatorS"
 
-# --- STRATEGIC MIGRATIONS (V5.4.1) ---
+# --- STRATEGIC MIGRATIONS (V5.4.2) ---
 [[migrations]]
-tag = "v5_4_2_i_sqlite"
-new_sqlite_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"]
-
+tag = "v5_4_2_j_final"
+new_sqlite_classes = ["MiroSyncS", "DataIngestorS", "ManuscriptAggregatorS"]

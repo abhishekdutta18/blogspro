@@ -66,17 +66,17 @@ service = "blogspro-mirofish"
 # Pulse consumes DOs from Miro-Sync
 [[env.pulse.durable_objects.bindings]]
 name = "MIRO_SYNC_DO"
-class_name = "MiroSync"
+class_name = "MiroSyncS"
 script_name = "blogspro-miro-sync"
 
 [[env.pulse.durable_objects.bindings]]
 name = "INGESTOR_DO"
-class_name = "DataIngestor"
+class_name = "DataIngestorS"
 script_name = "blogspro-miro-sync"
 
 [[env.pulse.durable_objects.bindings]]
 name = "MANUSCRIPT_DO"
-class_name = "ManuscriptAggregator"
+class_name = "ManuscriptAggregatorS"
 script_name = "blogspro-miro-sync"
 
 [[env.pulse.analytics_engine_datasets]]
@@ -107,7 +107,7 @@ compatibility_flags = [ "nodejs_compat" ]
 
 [[env.mirofish.durable_objects.bindings]]
 name = "MIRO_SYNC_DO"
-class_name = "MiroSync"
+class_name = "MiroSyncS"
 script_name = "blogspro-miro-sync"
 
 # --- DATA HUB WORKER ---
@@ -158,13 +158,13 @@ FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
 
 [env.miro-sync.durable_objects]
 bindings = [
-  { name = "MIRO_SYNC_DO", class_name = "MiroSync" },
-  { name = "INGESTOR_DO", class_name = "DataIngestor" },
-  { name = "MANUSCRIPT_DO", class_name = "ManuscriptAggregator" }
+  { name = "MIRO_SYNC_DO", class_name = "MiroSyncS" },
+  { name = "INGESTOR_DO", class_name = "DataIngestorS" },
+  { name = "MANUSCRIPT_DO", class_name = "ManuscriptAggregatorS" }
 ]
 
 migrations = [
-  { tag = "v5_4_2_i_sqlite", new_sqlite_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"] }
+  { tag = "v5_4_2_j_final", new_sqlite_classes = ["MiroSyncS", "DataIngestorS", "ManuscriptAggregatorS"] }
 ]
 
 # --- UPSTOX MARKET PROXY ---

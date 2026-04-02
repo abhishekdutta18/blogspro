@@ -8,7 +8,7 @@ import { saveSnapshot } from './lib/storage-bridge.js';
  * MiroSync Durable Object
  * $0 Serverless Bridge between Swarm and Affine
  */
-export class MiroSync {
+export class MiroSyncS {
   constructor(state, env) {
     this.state = state;
     this.env = env;
