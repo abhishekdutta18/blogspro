@@ -21,7 +21,7 @@
  *
  * GitHub Webhook Setup (one-time, manual):
  *  Repo → Settings → Webhooks → Add webhook
- *  URL: https://blogspro-sentry-webhook.abhishekdutta18.workers.dev/github
+ *  URL: https://blogspro-sentry-webhook.abhishek-dutta1996.workers.dev/github
  *  Content type: application/json
  *  Secret: value of GITHUB_WEBHOOK_SECRET worker secret
  *  Events: Pushes, Pull requests, Issues, Workflow runs

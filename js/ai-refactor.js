@@ -13,7 +13,7 @@
 import { callAI }          from './ai-core.js';
 import { showToast }       from './config.js';
 
-const WORKER_URL = 'https://github-push.abhishekdutta18.workers.dev';
+const WORKER_URL = 'https://github-push.abhishek-dutta1996.workers.dev';
 const OWNER      = 'abhishekdutta18';
 const REPO       = 'blogspro';
 const BRANCH     = 'main';

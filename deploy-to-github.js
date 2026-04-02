@@ -21,7 +21,7 @@ console.log(`   Files: ${deployPayload.files.length}`);
 console.log(`   PR Mode: ${deployPayload.pr}\n`);
 
 // Call Cloudflare Worker
-fetch('https://github-push.abhishekdutta18.workers.dev/', {
+fetch('https://github-push.abhishek-dutta1996.workers.dev/', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(deployPayload)

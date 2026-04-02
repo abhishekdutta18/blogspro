@@ -1,10 +1,10 @@
 // Centralized worker endpoint config for all server-side API calls.
 // Keeps provider keys off the client and supports safe fallback routes.
 
-const LEGACY_GITHUB_PUSH_WORKER = "https://github-push.abhishekdutta18.workers.dev";
+const LEGACY_GITHUB_PUSH_WORKER = "https://github-push.abhishek-dutta1996.workers.dev";
 const NON_AI_WORKERS = [LEGACY_GITHUB_PUSH_WORKER];
 const AI_FALLBACK_WORKER = LEGACY_GITHUB_PUSH_WORKER; // temporary default for AI calls when none configured
-const DEFAULT_CACHE_WORKER = "https://blogspro-kv-cache.abhishekdutta18.workers.dev";
+const DEFAULT_CACHE_WORKER = "https://blogspro-kv-cache.abhishek-dutta1996.workers.dev";
 
 const configuredBases = [
   window.__AI_API_BASE__,
