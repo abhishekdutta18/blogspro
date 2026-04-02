@@ -625,3 +625,10 @@ const TERMINAL_HTML = `
  */
 export class DataIngestorS { constructor(state) { this.state = state; } async fetch(req) { return new Response("DH_STUB"); } }
 export class ManuscriptAggregatorS { constructor(state) { this.state = state; } async fetch(req) { return new Response("MA_STUB"); } }
+
+// --- TRANSITION STUBS (V5.4.2) ---
+// We keep the original class exports to satisfy existing live bindings in other scripts.
+// These will be fully removed once pulse and mirofish have successfully migrated to the *S classes.
+export class MiroSync extends DurableObject {}
+export class DataIngestor extends DurableObject {}
+export class ManuscriptAggregator extends DurableObject {}

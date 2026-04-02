@@ -164,7 +164,7 @@ bindings = [
 ]
 
 migrations = [
-  { tag = "v5_4_2_k_final_purge", deleted_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"], new_sqlite_classes = ["MiroSyncS", "DataIngestorS", "ManuscriptAggregatorS"] }
+  { tag = "v5_4_2_m_transition", new_sqlite_classes = ["MiroSyncS", "DataIngestorS", "ManuscriptAggregatorS"] }
 ]
 
 # --- UPSTOX MARKET PROXY ---
