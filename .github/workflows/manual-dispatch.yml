@@ -54,6 +54,7 @@ jobs:
           
       - name: Fetch Secrets from Cloudflare Strategic Vault
         id: vault
+        continue-on-error: true
         env:
           VAULT_MASTER_KEY: ${{ secrets.VAULT_MASTER_KEY }}
         run: |
@@ -61,9 +62,16 @@ jobs:
           VAULT_URL="https://blogspro-pulse.abhishek-dutta1996.workers.dev/vault"
           echo "📡 Connecting to BlogsPro Strategic Vault at $VAULT_URL..."
           
-          RESPONSE=$(curl -s -X POST "$VAULT_URL" \
+          # Use a shorter timeout to avoid hanging if the vault is misconfigured
+          RESPONSE=$(curl -s --connect-timeout 10 -X POST "$VAULT_URL" \
             -H "X-Vault-Auth: $VAULT_MASTER_KEY" \
             -H "Content-Type: application/json")
+
+          if [ $? -ne 0 ]; then
+             echo "⚠️ Vault Error: Connection timeout or network failure."
+             echo "💡 Fallback: Using legacy/repository secrets if available."
+             exit 0
+          fi
 
           if echo "$RESPONSE" | grep -q "authenticated"; then
             echo "✅ Vault Authenticated. Injecting 2026 Cluster Credentials..."
@@ -75,27 +83,21 @@ jobs:
             MISTRAL=$(echo "$RESPONSE" | jq -r '.secrets.MISTRAL // empty')
             SENTRY_DSN=$(echo "$RESPONSE" | jq -r '.secrets.SENTRY_DSN // empty')
             
-            if [ -z "$GH_PAT" ] || [ "$GH_PAT" == "null" ]; then
-                echo "❌ Vault Error: GH_PAT is missing or null in the vault response."
-                echo "💡 Hint: Update secrets using 'node scripts/sync-secrets.mjs' locally."
-                exit 1
+            if [ -n "$GH_PAT" ] && [ "$GH_PAT" != "null" ]; then
+                echo "::add-mask::$GH_PAT"
+                echo "GH_PAT=$GH_PAT" >> $GITHUB_ENV
+                echo "GH_TOKEN=$GH_PAT" >> $GITHUB_ENV
+            else
+                echo "⚠️ Vault Warning: GH_PAT is missing in vault response. Using repo secret fallback."
             fi
 
-            echo "::add-mask::$GH_PAT"
-            echo "::add-mask::$GEMINI"
-            echo "::add-mask::$GROQ"
-            echo "::add-mask::$MISTRAL"
-            echo "::add-mask::$SENTRY_DSN"
-
-            echo "GH_PAT=$GH_PAT" >> $GITHUB_ENV
-            echo "GH_TOKEN=$GH_PAT" >> $GITHUB_ENV
-            echo "GEMINI_API_KEY=$GEMINI" >> $GITHUB_ENV
-            echo "GROQ_API_KEY=$GROQ" >> $GITHUB_ENV
-            echo "MISTRAL_API_KEY=$MISTRAL" >> $GITHUB_ENV
-            echo "SENTRY_DSN=$SENTRY_DSN" >> $GITHUB_ENV
+            [ -n "$GEMINI" ] && [ "$GEMINI" != "null" ] && echo "::add-mask::$GEMINI" && echo "GEMINI_API_KEY=$GEMINI" >> $GITHUB_ENV
+            [ -n "$GROQ" ] && [ "$GROQ" != "null" ] && echo "::add-mask::$GROQ" && echo "GROQ_API_KEY=$GROQ" >> $GITHUB_ENV
+            [ -n "$MISTRAL" ] && [ "$MISTRAL" != "null" ] && echo "::add-mask::$MISTRAL" && echo "MISTRAL_API_KEY=$MISTRAL" >> $GITHUB_ENV
+            [ -n "$SENTRY_DSN" ] && [ "$SENTRY_DSN" != "null" ] && echo "::add-mask::$SENTRY_DSN" && echo "SENTRY_DSN=$SENTRY_DSN" >> $GITHUB_ENV
           else
-             echo "❌ Vault Error: $(echo "$RESPONSE" | jq -r '.error // "Unknown connection failure (Check Network/Subdomain)"')"
-             exit 1
+             echo "⚠️ Vault Warning: $(echo "$RESPONSE" | jq -r '.error // "Unknown connection failure"')"
+             echo "💡 System will attempt to run using Repository Secrets."
           fi
 
       - name: Execute Autonomous Briefing/Article
