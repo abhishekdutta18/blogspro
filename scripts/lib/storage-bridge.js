@@ -13,6 +13,61 @@ if (isNode) {
     import('node:fs').then(mod => { fs = mod; }).catch(() => {});
 }
 
+// --------------------------------------------------
+// GOOGLE OAUTH BRIDGE: CF Workers
+// --------------------------------------------------
+async function getGoogleAccessToken(env) {
+    if (!env.FIREBASE_SERVICE_ACCOUNT) {
+        console.warn("⚠️ FIREBASE_SERVICE_ACCOUNT secret missing. Falling back to public REST (NOT RECOMMENDED).");
+        return null;
+    }
+
+    try {
+        const sa = typeof env.FIREBASE_SERVICE_ACCOUNT === 'string' 
+                   ? JSON.parse(env.FIREBASE_SERVICE_ACCOUNT) 
+                   : env.FIREBASE_SERVICE_ACCOUNT;
+                   
+        const now = Math.floor(Date.now() / 1000);
+        const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" })).replace(/=/g, "");
+        const payload = btoa(JSON.stringify({
+            iss: sa.client_email,
+            scope: "https://www.googleapis.com/auth/devstorage.full_control https://www.googleapis.com/auth/datastore",
+            aud: "https://oauth2.googleapis.com/token",
+            exp: now + 3600,
+            iat: now
+        })).replace(/=/g, "");
+
+        const message = `${header}.${payload}`;
+        const pemHeader = "-----BEGIN PRIVATE KEY-----";
+        const pemFooter = "-----END PRIVATE KEY-----";
+        const pemContents = sa.private_key.substring(pemHeader.length, sa.private_key.length - pemFooter.length).replace(/\s/g, "");
+        const binaryDer = Uint8Array.from(atob(pemContents).split("").map(c => c.charCodeAt(0)));
+
+        const key = await crypto.subtle.importKey(
+            "pkcs8", binaryDer,
+            { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+            false, ["sign"]
+        );
+
+        const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(message));
+        const encodedSig = btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+        
+        const jwt = `${message}.${encodedSig}`;
+        
+        const res = await fetch("https://oauth2.googleapis.com/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
+        });
+
+        const data = await res.json();
+        return data.access_token;
+    } catch (e) {
+        console.error("❌ Google OAuth Exchange Fail:", e.message);
+        return null;
+    }
+}
+
 // Firestore REST Client: $0 Managed State Layer
 async function syncToFirestore(collection, data, env) {
   if (!env || !env.FIREBASE_PROJECT_ID) {
@@ -31,9 +86,13 @@ async function syncToFirestore(collection, data, env) {
   }
 
   try {
+    const headers = { "Content-Type": "application/json" };
+    const token = await getGoogleAccessToken(env);
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers,
       body: JSON.stringify({ fields })
     });
     if (!res.ok) {
@@ -62,9 +121,13 @@ async function saveBriefing(fileName, content, frequency, env = null) {
     const url = `https://storage.googleapis.com/upload/storage/v1/b/${env.FIREBASE_STORAGE_BUCKET}/o?uploadType=media&name=${encodeURIComponent(key)}`;
     
     try {
+      const headers = { "Content-Type": "text/html" };
+      const token = await getGoogleAccessToken(env);
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "text/html" },
+        headers: headers,
         body: content
       });
       if (!res.ok) console.warn(`⚠️ Firebase Storage REST Fail: ${await res.text()}`);
@@ -153,9 +216,13 @@ async function saveSnapshot(data, frequency, env, customFileName = null) {
   const url = `https://storage.googleapis.com/upload/storage/v1/b/${env.FIREBASE_STORAGE_BUCKET}/o?uploadType=media&name=${encodeURIComponent(key)}`;
   
   try {
+    const headers = { "Content-Type": contentType };
+    const token = await getGoogleAccessToken(env);
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": contentType },
+      headers: headers,
       body: body
     });
     
@@ -180,41 +247,35 @@ async function saveSnapshot(data, frequency, env, customFileName = null) {
 }
 
 async function getRecentSnapshots(frequency, limit = 1, env) {
-  if (!env || !env.FIREBASE_PROJECT_ID) return [];
-
-  // Node.js: Use Admin SDK for Cloud Storage
-  if (isNode) {
-    const admin = await getFirebaseAdmin();
-    if (admin && env.FIREBASE_STORAGE_BUCKET) {
-        try {
-            if (!admin.apps.length) admin.initializeApp({ projectId: env.FIREBASE_PROJECT_ID });
-            const doc = await admin.firestore().collection('latest_snapshots').doc(`latest_${frequency}`).get();
-            if (doc.exists) {
-                const storageKey = doc.data().key;
-                const file = admin.storage().bucket(env.FIREBASE_STORAGE_BUCKET).file(storageKey);
-                const [content] = await file.download();
-                return [JSON.parse(content.toString())];
-            }
-        } catch (e) {
-            console.warn("⚠️ [StorageBridge] Admin Cloud Retrieval failed, falling back to REST:", e.message);
-        }
-    }
-  }
+  if (!env || !env.FIREBASE_PROJECT_ID || !env.FIREBASE_STORAGE_BUCKET) return [];
 
   try {
-    // 1. Get the latest snapshot pointer from Firestore
-    const res = await fetch(`https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/latest_snapshots/latest_${frequency}`);
-    if (!res.ok) return [];
+    // 1. Get the latest snapshot pointer from Firestore (Authenticated REST)
+    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/latest_snapshots/latest_${frequency}`;
+    const headers = { "Content-Type": "application/json" };
+    const token = await getGoogleAccessToken(env);
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const res = await fetch(firestoreUrl, { headers });
+    if (!res.ok) {
+        console.warn(`⚠️ [StorageBridge] Firestore pointer not found for ${frequency}:`, await res.text());
+        return [];
+    }
 
     const meta = await res.json();
     if (!meta.fields || !meta.fields.key) return [];
 
     const storageKey = meta.fields.key.stringValue;
-    const storageUrl = `https://storage.googleapis.com/${env.FIREBASE_STORAGE_BUCKET}/${storageKey}`;
-
-    // 2. Fetch the actual JSON snapshot from Storage
-    const snapshotRes = await fetch(storageUrl);
-    if (!snapshotRes.ok) return [];
+    
+    // 2. Fetch the actual JSON snapshot from Storage (Authenticated REST)
+    const storageUrl = `https://storage.googleapis.com/storage/v1/b/${env.FIREBASE_STORAGE_BUCKET}/o/${encodeURIComponent(storageKey)}?alt=media`;
+    
+    console.log(`📡 [StorageBridge] Retrieving snapshot from REST: ${storageKey}`);
+    const snapshotRes = await fetch(storageUrl, { headers });
+    if (!snapshotRes.ok) {
+        console.error(`❌ [StorageBridge] Storage media retrieval failed:`, await snapshotRes.text());
+        return [];
+    }
 
     const data = await snapshotRes.json();
     return [data]; 
