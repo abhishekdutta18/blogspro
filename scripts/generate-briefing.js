@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import { fetch } from 'undici'; // Use node built-in or undici if native is unavailable in Node 18
 import { executeMultiAgentSwarm } from "./lib/swarm-orchestrator.js";
-import { getRecentSnapshots, getHistoricalData, saveBriefing, updateIndex, syncToFirestore } from "./lib/storage-bridge.js";
+import { getRecentSnapshots, getHistoricalData, saveBriefing, updateIndex, syncToFirestore, pushTelemetryLog } from "./lib/storage-bridge.js";
 import fs from 'fs';
 import path from 'path';
 
@@ -19,6 +19,9 @@ async function runBriefingProxy() {
     const env = process.env;
 
     console.log(`🚀 [Proxy] Initializing ${frequency.toUpperCase()} Briefing Swarm [ID: ${id}]`);
+    
+    // 0. INITIALIZE TRACE
+    await pushTelemetryLog("BRIEFING_START", { frequency, jobId: id, status: "processing" }, env);
 
     try {
         // 1. DATA TIER: Context Retrieval
@@ -51,8 +54,10 @@ async function runBriefingProxy() {
         await syncToFirestore("pulse_briefings", entry, env);
         
         console.log(`🏁 [Proxy] Cycle Complete: ${frequency}`);
+        await pushTelemetryLog("BRIEFING_COMPLETE", { frequency, jobId: id, status: "success", message: `Briefing Finalized: ${fileName}` }, env);
     } catch (e) {
         console.error(`❌ [Proxy] Critical Failure:`, e.message);
+        await pushTelemetryLog("BRIEFING_ERROR", { frequency, jobId: id, status: "error", message: e.message }, env);
         process.exit(1);
     }
 }

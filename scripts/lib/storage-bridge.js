@@ -285,15 +285,19 @@ async function getRecentSnapshots(frequency, limit = 1, env) {
   }
 }
 
-async function saveHistoricalData(data, env) {
+async function pushHistoricalData(data, env) {
   if (!env || !env.FIREBASE_STORAGE_BUCKET) return;
   const key = `snapshots/historical/market_baseline.json`;
   const url = `https://storage.googleapis.com/upload/storage/v1/b/${env.FIREBASE_STORAGE_BUCKET}/o?uploadType=media&name=${encodeURIComponent(key)}`;
   
-  console.log(`🏛️ [Historical] Updating global market baseline in Firebase`);
+  const headers = { "Content-Type": "application/json" };
+  const token = await getGoogleAccessToken(env);
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  console.log(`🏛️ [Historical] Updating global market baseline in Firebase (Authenticated)`);
   await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(data)
   });
 }
@@ -302,9 +306,63 @@ async function getHistoricalData(env) {
   if (!env || !env.FIREBASE_STORAGE_BUCKET) return null;
   const key = `snapshots/historical/market_baseline.json`;
   try {
-    const res = await fetch(`https://storage.googleapis.com/${env.FIREBASE_STORAGE_BUCKET}/${key}`);
+    const headers = {};
+    const token = await getGoogleAccessToken(env);
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const storageUrl = `https://storage.googleapis.com/storage/v1/b/${env.FIREBASE_STORAGE_BUCKET}/o/${encodeURIComponent(key)}?alt=media`;
+    const res = await fetch(storageUrl, { headers });
     return res.ok ? await res.json() : null;
   } catch (e) {
     return null;
   }
 }
+
+/**
+ * 📡 [Hardened Trace] Push Institutional Telemetry to Firestore
+ * Records core execution traces for continuous improvement.
+ */
+async function pushTelemetryLog(event, metadata = {}, env) {
+  if (!env || !env.FIREBASE_PROJECT_ID) return;
+  
+  try {
+    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/telemetry_logs`;
+    
+    const headers = { "Content-Type": "application/json" };
+    const token = await getGoogleAccessToken(env);
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const payload = {
+      fields: {
+        event: { stringValue: event },
+        timestamp: { timestampValue: new Date().toISOString() },
+        frequency: { stringValue: metadata.frequency || "unknown" },
+        jobId: { stringValue: metadata.jobId || "local" },
+        status: { stringValue: metadata.status || "info" },
+        latency: { integerValue: metadata.latency ? metadata.latency.toString() : "0" },
+        message: { stringValue: metadata.message || "" },
+        details: { stringValue: JSON.stringify(metadata.details || {}) }
+      }
+    };
+
+    const res = await fetch(firestoreUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) console.warn("⚠️ [Telemetry] Bridge Stalled:", await res.text());
+  } catch (e) {
+    console.warn("⚠️ [Telemetry] Failed to push trace:", e.message);
+  }
+}
+
+export { 
+  getGoogleAccessToken, 
+  syncToFirestore, 
+  saveSnapshot, 
+  getRecentSnapshots, 
+  pushHistoricalData, 
+  getHistoricalData,
+  pushTelemetryLog
+};

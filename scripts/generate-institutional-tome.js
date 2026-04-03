@@ -5,7 +5,8 @@ import { executeMultiAgentSwarm } from "./lib/swarm-orchestrator.js";
 import { getBaseTemplate } from "./lib/templates.js";
 import { getRecentSnapshots, 
   getHistoricalData, 
-  syncToFirestore 
+  syncToFirestore,
+  pushTelemetryLog
 } from "./lib/storage-bridge.js";
 import { uploadToStorage } from './lib/firebase-service.js';
 import { runSwarmAudit } from './lib/mirofish-qa-service.js';
@@ -20,6 +21,15 @@ async function runInstitutionalSwarm() {
   // 0. INITIALIZE SENTRY (Node.js)
   initNodeSentry(process.env.SENTRY_DSN, frequency);
   logSwarmBreadcrumb(`Starting Institutional Batch: ${frequency}`, { id, extended });
+
+  // 0.1 INITIALIZE TRACE (Firestore)
+  console.log(`📡 [Trace] Initializing Institutional Audit Log...`);
+  await pushTelemetryLog("SWARM_START", { 
+    frequency, 
+    jobId: id, 
+    status: "initializing",
+    message: `Initializing BlogsPro Institutional Synthesis [${frequency}]`
+  }, process.env);
 
   // 1. NORMALIZE ENVIRONMENT (Bridge .env keys to Swarm Binders)
   const env = {
@@ -79,20 +89,23 @@ async function runInstitutionalSwarm() {
   console.log(`🚀 [Swarm] Initializing BlogsPro Institutional Synthesis [ID: ${id}]`);
   try {
     // 2. CONTEXT RETRIEVAL (Institutional Rule: Zero-Pollution Policy)
-    console.log(`📡 [Swarm] Retrieving Institutional Context [Freq: ${frequency}]...`);
-    const snapshots = await getRecentSnapshots(frequency, 1, env);
+    let snapshots = await getRecentSnapshots(frequency, 1, env);
     const historical = await getHistoricalData(env);
     
+    let semanticDigest;
     if (!snapshots || snapshots.length === 0) {
-        const errorMsg = `❌ [Swarm] Institutional Retrieval Failure: No snapshots found for ${frequency}. Hallucination Risk too high. Terminating.`;
-        console.error(errorMsg);
-        await captureSwarmError(new Error(errorMsg), { stage: 'context', frequency });
-        await flushSentry();
-        process.exit(1);
+        console.warn(`🛰️ [Cold-Start] No legacy snapshots found for ${frequency}. Initializing GEOPOLITICAL_GENESIS.`);
+        semanticDigest = {
+            timestamp: new Date().toISOString(),
+            frequency: frequency,
+            strategicLead: `GEOPOLITICAL_GENESIS: Initializing first ${frequency} research cycle for BlogsPro Institutional Registry.`,
+            tome_type: "article",
+            key: `snapshots/genesis_${frequency}_${Date.now()}.json`
+        };
+        await pushTelemetryLog("COLD_START", { frequency, jobId: id, status: "warn", message: "No snapshots found. Initializing genesis context." }, env);
+    } else {
+        semanticDigest = snapshots[0];
     }
-
-    // Standardize snapshot for the 'semanticDigest' argument
-    const semanticDigest = snapshots[0];
     console.log(`📊 [Swarm] Context Primed: [Snapshot: ${semanticDigest.timestamp}] [Historical: ${historical ? 'OK' : 'MISS'}]`);
 
     // 3. EXECUTE SWARM (Aligning with exact 6-argument signature)
@@ -171,10 +184,25 @@ async function runInstitutionalSwarm() {
     }
 
     console.log(`✅ [Dashboard] Institutional Workflow Finalized. [Words: ${result.wordCount}]`);
+    await pushTelemetryLog("SWARM_COMPLETE", { 
+        frequency, 
+        jobId: id, 
+        status: "success", 
+        latency: Date.now() - start,
+        message: `Institutional Dispatch Finalized: ${result.wordCount} words.`,
+        details: { wordCount: result.wordCount, audit: auditStatus }
+    }, env);
     await flushSentry();
   } catch (error) {
     console.error(`❌ [Swarm] Pipeline Critical Failure:`, error.message);
-    await captureSwarmError(error, { stage: 'pipeline_critical', frequency: process.argv.find(a => a.startsWith('--freq='))?.split('=')[1] || 'weekly' });
+    const fallbackFreq = process.argv.find(a => a.startsWith('--freq='))?.split('=')[1] || 'weekly';
+    await pushTelemetryLog("SWARM_ERROR", { 
+        frequency: fallbackFreq, 
+        jobId: id, 
+        status: "error", 
+        message: `Pipeline Critical Failure: ${error.message}`
+    }, process.env);
+    await captureSwarmError(error, { stage: 'pipeline_critical', frequency: fallbackFreq });
     await flushSentry();
     process.exit(1);
   }
