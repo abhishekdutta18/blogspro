@@ -23,10 +23,14 @@ const SECRETS_TO_SYNC = [
     'DEEPINFRA_API_KEY',
     'OPENROUTER_API_KEY',
     'KIMI_API_KEY',
-    'SENTRY_DSN'
+    'SENTRY_DSN',
+    'FIREBASE_PROJECT_ID',
+    'FIREBASE_SERVICE_ACCOUNT',
+    'TELEGRAM_BOT_TOKEN',
+    'NGROK_REMOTE_URL'
 ];
 
-const WORKER_ENVIRONMENTS = ['data-hub', 'relevance', 'auditor', 'seo', 'pulse', 'mirofish', 'newsletter', 'templates'];
+const WORKER_ENVIRONMENTS = ['data-hub', 'relevance', 'auditor', 'seo', 'pulse', 'mirofish', 'newsletter', 'templates', 'hil-relay'];
 
 function log(msg, symbol = '🤖') {
     console.log(`${symbol} [Pulse-Sync] ${msg}`);

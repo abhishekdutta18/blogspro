@@ -30,6 +30,11 @@ export async function dispatchSwarm(frequency = 'daily') {
     btn.disabled = true;
     btn.innerHTML = `⏳ Dispatching ${frequency.toUpperCase()}...`;
   }
+  
+  // V7.0 Hardening: Clear newsfeed for fresh cycle
+  const newsfeed = document.getElementById('dispatchNewsfeed');
+  if (newsfeed) newsfeed.innerHTML = '';
+  
   if (statusEl) statusEl.textContent = `Initializing node cluster for ${frequency} research cascade...`;
 
   try {
@@ -56,8 +61,9 @@ export async function dispatchSwarm(frequency = 'daily') {
     showToast(`Swarm ${frequency} dispatch successful!`, 'success');
     if (statusEl) statusEl.innerHTML = `<span style="color:var(--gold)">🛰 Swarm Active</span>: Propagation started. Monitor the Reinforcement Ledger below.`;
     
-    // UI Feedback & Polling
+    // UI Feedback & Polling (V7.0: append context instead of clearing)
     if (window.startDispatchTimer) window.startDispatchTimer();
+    appendToNewsfeed("INIT", `User triggered ${frequency.toUpperCase()} swarm pipeline.`);
     pollDispatchStatus(workerBase);
   } catch (err) {
     showToast(err.message, 'error');
@@ -84,12 +90,36 @@ export async function updateSwarmTelemetry() {
   if (!successCtx || !latencyCtx) return;
 
   try {
-    const q = query(collection(db, 'ai_reinforcement_ledger'), orderBy('timestamp', 'desc'), limit(50));
-    const snap = await getDocs(q);
-    const logs = snap.docs.map((d) => d.data()).reverse();
+    // V7.0 Hardening: Pull from both Legacy Ledger and New Telemetry Logs
+    const ledgerQuery = query(collection(db, 'ai_reinforcement_ledger'), orderBy('timestamp', 'desc'), limit(25));
+    const telemetryQuery = query(collection(db, 'telemetry_logs'), orderBy('timestamp', 'desc'), limit(25));
+    
+    const [ledgerSnap, telemetrySnap] = await Promise.all([getDocs(ledgerQuery), getDocs(telemetryQuery)]);
+    
+    const rawLogs = [
+        ...ledgerSnap.docs.map(d => ({ ...d.data(), source: 'legacy' })),
+        ...telemetrySnap.docs.map(d => {
+            const data = d.data();
+            // Standardize format: timestamp is a Firestore Timestamp object from SDK, or ISO string from REST
+            const ts = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+            return {
+                timestamp: ts.toISOString(),
+                event: data.event,
+                status: data.status,
+                latency: parseInt(data.latency || 0),
+                source: 'hardened'
+            };
+        })
+    ];
+
+    // Sort combined logs by timestamp
+    const logs = rawLogs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).slice(-50);
 
     const labels = logs.map((_, i) => i + 1);
-    const successData = logs.map((l) => l.event === 'SUCCESS' ? 100 : (l.event === 'ERROR' ? 0 : 50));
+    const successData = logs.map((l) => {
+        if (l.source === 'legacy') return l.event === 'SUCCESS' ? 100 : (l.event === 'ERROR' ? 0 : 50);
+        return l.status === 'success' ? 100 : (l.status === 'error' ? 0 : 50);
+    });
     const latencyData = logs.map((l) => l.latency || Math.floor(Math.random() * 500) + 200);
 
     new Chart(successCtx, {
@@ -233,20 +263,169 @@ function startDispatchTimer() {
 }
 window.startDispatchTimer = startDispatchTimer;
 
+/**
+ * Newsfeed Log Appender (V7.0)
+ */
+export function appendToNewsfeed(stage, message) {
+  const newsfeed = document.getElementById('dispatchNewsfeed');
+  if (!newsfeed) return;
+
+  const now = new Date();
+  const ts = `[${padZero(now.getHours())}:${padZero(now.getMinutes())}:${padZero(now.getSeconds())}]`;
+  
+  // Deduplicate: Don't append if the last message is identical
+  const lastEntry = newsfeed.lastElementChild;
+  if (lastEntry && lastEntry.querySelector('.newsfeed-msg')?.textContent === message) return;
+
+  const entry = document.createElement('div');
+  entry.className = 'newsfeed-entry';
+  entry.innerHTML = `
+    <span class="newsfeed-ts">${ts}</span>
+    <span class="newsfeed-stage">${stage}</span>
+    <span class="newsfeed-msg">${message}</span>
+  `;
+  
+  newsfeed.appendChild(entry);
+  newsfeed.scrollTop = newsfeed.scrollHeight;
+}
+
+/**
+ * TELEMETRY INITIALIZER (V7.0)
+ * Automatically detects if a swarm is currently active and initiates newsfeed polling.
+ */
+export async function initSwarmMonitoring() {
+  const workerBase = window.BLOGSPRO_CONFIG?.PULSE_WORKER_URL || "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
+  const newsfeed = document.getElementById('dispatchNewsfeed');
+  if (!newsfeed) return;
+
+  try {
+    const resp = await fetch(`${workerBase.replace(/\/+$/, '')}/telemetry`);
+    if (resp.ok) {
+       const data = await resp.json();
+       // Full history or active run
+       const history = data.history || [];
+       
+       if (history.length > 0) {
+          appendToNewsfeed("SYNC", `Resuming historical log. ${history.length} events recovered.`);
+          history.forEach(log => appendToNewsfeed(log.stage || "PULSE", log.message));
+       }
+
+       if (data.active || data.stage) {
+          appendToNewsfeed("SYNC", "Detected active swarm run. Subscribing to live telemetry...");
+          pollDispatchStatus(workerBase);
+       }
+    }
+  } catch(e) {
+    console.warn("⚠️ Telemetry Auto-Init failed:", e.message);
+  }
+}
+window.initSwarmMonitoring = initSwarmMonitoring;
+
+/**
+ * Proactive Firebase Archival Trigger (V7.0)
+ */
+export async function triggerManualArchive() {
+  const workerBase = window.BLOGSPRO_CONFIG?.PULSE_WORKER_URL || "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
+  const archiveUrl = `${workerBase.replace(/\/+$/, '')}/archive`;
+
+  showToast('Initiating permanent Firebase archival...', 'info');
+  
+  try {
+    const res = await fetch(archiveUrl);
+    const data = await res.json();
+    if (data.success) {
+      showToast('Archival completed. Records moved to deep storage.', 'success');
+      appendToNewsfeed('ARCHIVE', 'V7.0 Perpetual Archiving Successful. 90-day window enforced.');
+    } else {
+      throw new Error(data.message);
+    }
+  } catch (e) {
+    showToast(`Archival failed: ${e.message}`, 'error');
+    console.error('Archive error:', e);
+  }
+}
+
+window.triggerManualArchive = triggerManualArchive;
+window.appendToNewsfeed = appendToNewsfeed;
+
 async function pollDispatchStatus(workerBase) {
   const pollToken = ++activePollToken;
   const safeWorkerBase = workerBase || window.BLOGSPRO_CONFIG?.PULSE_WORKER_URL || "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
+  const telemetryUrl = `${String(safeWorkerBase).replace(/\/+$/, '')}/telemetry`;
   
+  const fillEl = document.getElementById('dispatchFill');
+  const statusEl = document.getElementById('dispatchStatusText');
+  const linkEl = document.getElementById('dispatchRunLink');
+  const elapsedEl = document.getElementById('dispatchElapsed');
+
+  if (linkEl) {
+    linkEl.href = GH_ACTIONS_URL;
+    linkEl.style.display = 'inline-block';
+  }
+
+  // Phase 1: Real-time Telemetry Polling (High Fidelity)
+  let isSwarmDone = false;
+  let pollCount = 0;
+
+  const telemetryPoll = async () => {
+    if (pollToken !== activePollToken || isSwarmDone) return;
+    pollCount++;
+
+    try {
+      const res = await fetch(telemetryUrl);
+      if (res.ok) {
+        const data = await res.json();
+        const latestJob = Object.values(data).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+
+        if (latestJob) {
+          // Update Status Text
+          if (statusEl) {
+            statusEl.innerHTML = `🛰 <span style="color:var(--gold)">${latestJob.stage}</span>: ${latestJob.message}`;
+          }
+
+          // [V7.0] Append to Newsfeed
+          appendToNewsfeed(latestJob.stage, latestJob.message);
+
+          // Update Progress Bar based on stage
+          const stages = {
+            'START': 5,
+            'INIT': 10,
+            'RESEARCHING': 30,
+            'RESEARCH': 40,
+            'ANCHOR': 50,
+            'SECTORS': 60,
+            'CONSENSUS': 75,
+            'DRAFTING': 80,
+            'AUDIT': 90,
+            'FINALIZE': 95,
+            'PERSIST': 98,
+            'COMPLETE': 100,
+            'SUCCESS': 100
+          };
+          const progress = stages[latestJob.stage] || 10;
+          if (fillEl) fillEl.style.width = `${progress}%`;
+
+          if (latestJob.stage === 'COMPLETE' || latestJob.stage === 'SUCCESS') {
+            isSwarmDone = true;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Telemetry poll error:', e);
+    }
+
+    if (!isSwarmDone && pollCount < 100) {
+      setTimeout(telemetryPoll, 5000); // Poll every 5s
+    }
+  };
+
+  telemetryPoll();
+
+  // Phase 2: GitHub Actions Completion Check (Legacy Fallback / Final State)
   setTimeout(async () => {
     let isCompleted = false;
     let attempts = 0;
     const maxAttempts = 24;
-
-    const linkEl = document.getElementById('dispatchRunLink');
-    if (linkEl) {
-      linkEl.href = GH_ACTIONS_URL;
-      linkEl.style.display = 'inline-block';
-    }
 
     while (!isCompleted && attempts < maxAttempts) {
       if (pollToken !== activePollToken) break;
@@ -254,48 +433,29 @@ async function pollDispatchStatus(workerBase) {
       try {
         const statusUrl = `${String(safeWorkerBase).replace(/\/+$/, '')}/api/dispatch-status`;
         const body = JSON.stringify({ owner: GH_OWNER, repo: GH_REPO, workflow: GH_WORKFLOW, branch: GH_BRANCH });
-        const tryReq = async (method) => {
-          const resp = await fetch(statusUrl, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: method === 'POST' ? body : undefined,
-          });
-          return resp;
-        };
-
-        const response = await tryReq('POST').catch(() => null) || await tryReq('GET').catch(() => null);
+        
+        const response = await fetch(statusUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: body,
+        }).catch(() => null);
 
         if (response && response.ok) {
-          let data = null;
-          try { data = await response.json(); } catch (_) {}
+          let data = await response.json();
           if (data?.runUrl && linkEl) {
             linkEl.href = data.runUrl;
-            linkEl.style.display = 'inline-block';
           }
           if (data?.status === 'completed') {
             isCompleted = true;
+            isSwarmDone = true;
             stopDispatchTimer(data?.conclusion === 'success');
             break;
           }
         }
       } catch (e) {
-        console.warn('Poll error', e);
+        console.warn('Poll status error', e);
       }
       await new Promise((r) => setTimeout(r, 15000));
-    }
-
-    if (!isCompleted && pollToken === activePollToken) {
-      if (dispatchTimerInterval) clearInterval(dispatchTimerInterval);
-      const statusEl = document.getElementById('dispatchStatusText');
-      if (statusEl) {
-        statusEl.innerHTML = 'ℹ️ Dispatch started. Track completion in GitHub Actions.';
-        statusEl.style.color = 'var(--gold)';
-      }
-      const btn = document.getElementById('btnTerminalDispatch');
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '⚡ Trigger Weekly Pipeline';
-      }
     }
   }, 10000);
 }
@@ -332,6 +492,9 @@ window.triggerTerminalDispatch = triggerTerminalDispatch;
 document.addEventListener('DOMContentLoaded', () => {
   const status = document.getElementById('ghPatStatus');
   if (status) status.textContent = 'Worker mode active. One-click orchestration enabled.';
+  
+  // V7.0: Auto-load telemetry
+  if (window.initSwarmMonitoring) window.initSwarmMonitoring();
 });
 // UI Initialization for Manual PAT Override
 if (typeof document !== 'undefined') {
@@ -369,3 +532,107 @@ if (typeof document !== 'undefined') {
     }
   };
 }
+
+// 🏺 [V8.4] INSTITUTIONAL HIL CONSENSUS SERVICE
+// --------------------------------------------------
+import { 
+  collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+let hilUnsubscribe = null;
+
+export function initHILStation() {
+    const station = document.getElementById('hilConsensusStation');
+    const list = document.getElementById('hilAuditList');
+    if (!station || !list) return;
+
+    console.log("🏺 [HIL] Initializing Consensus Station...");
+
+    // Real-time listener for pending audits
+    const q = query(collection(db, "institutional_audits"), where("status", "==", "PENDING"));
+    
+    hilUnsubscribe = onSnapshot(q, (snapshot) => {
+        if (snapshot.empty) {
+            station.style.display = 'none';
+            list.innerHTML = `<div style="font-size:0.75rem; color:var(--muted); padding:1rem; text-align:center;">No pending institutional audits.</div>`;
+            return;
+        }
+
+        station.style.display = 'block';
+        list.innerHTML = '';
+
+        snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const id = docSnap.id;
+            
+            const card = document.createElement('div');
+            card.className = 'saas-panel';
+            card.style.background = 'rgba(0,0,0,0.2)';
+            card.style.border = '1px solid rgba(168,85,247,0.3)';
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem">
+                    <div>
+                        <div style="font-size:0.85rem; font-weight:700; color:var(--purple2)">${data.frequency?.toUpperCase() || 'INSTITUTIONAL'} TOME</div>
+                        <div style="font-size:0.65rem; color:var(--muted)">Job ID: <code>${id}</code> • ${data.wordCount || 0} words</div>
+                    </div>
+                    <div style="display:flex; gap:0.5rem">
+                        <button class="v2-btn-top" onclick="previewHILManuscript('${id}')">👁 Review</button>
+                        <button class="v2-btn-pub" onclick="approveHILManuscript('${id}')" style="background:var(--emerald); border-color:var(--emerald); color:white">✅ Approve</button>
+                    </div>
+                </div>
+                <div id="hil-preview-${id}" style="display:none; max-height:400px; overflow-y:auto; background:var(--navy); padding:1rem; border-radius:4px; font-size:0.8rem; line-height:1.6; border:1px solid var(--border);">
+                    ${data.content || 'No content found.'}
+                </div>
+            `;
+            list.appendChild(card);
+        });
+    }, (err) => {
+        console.error("HIL Station Error:", err);
+        showToast("HIL Station offline: Firestore connection failed.", "error");
+    });
+}
+
+window.previewHILManuscript = (id) => {
+    const el = document.getElementById(`hil-preview-${id}`);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+window.approveHILManuscript = async (id) => {
+    if (!confirm(`Confirm strategic approval for Job [${id}]?`)) return;
+    
+    try {
+        const docRef = doc(db, "institutional_audits", id);
+        await updateDoc(docRef, {
+            status: "APPROVED",
+            approvedAt: serverTimestamp(),
+            approvedBy: auth.currentUser?.email || 'Admin'
+        });
+
+        // [V8.5] Relay Consensus Signal to Inngest (Serverless Wake-up)
+        const eventKey = DISPATCH_CONFIG?.inngestEventKey || 'DEFAULT_KEY';
+        const eventUrl = DISPATCH_CONFIG?.inngestUrl || "https://inn.blogspro.in/e/";
+        
+        await fetch(`${eventUrl}${eventKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify([{
+                name: "swarm/manuscript.approved",
+                data: { jobId: id },
+                timestamp: Date.now()
+            }])
+        });
+
+        showToast(`✅ [HIL] Strategic approval granted for ${id}.`, "success");
+    } catch (e) {
+        console.error("Approval Failed:", e);
+        showToast("Approval failed: Cloud sync error.", "error");
+    }
+};
+
+// Initialize if on appropriate view
+document.addEventListener('DOMContentLoaded', () => {
+    // Only init if intelligence view exists
+    if (document.getElementById('view-intelligence')) {
+        initHILStation();
+    }
+});

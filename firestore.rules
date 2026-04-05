@@ -154,8 +154,22 @@ service cloud.firestore {
 
     // ── SUBSCRIBERS (newsletter) ────────────────────────────────────────────
     match /subscribers/{subId} {
-      // Temporarily open for testing - will tighten after confirming it works
-      allow create, read, update, delete: if true;
+      // Allow anybody to sign up (create), but only admin to read/manage list
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ── SWARM TELEMETRY BRIDGE ──────────────────────────────────────────────
+    match /latest_snapshots/{docId} {
+      // Allow public to read active swarm state for UI Newsfeed
+      allow read: if true;
+      // Only Admin / Service Account can update state
+      allow write: if isAdmin();
+    }
+
+    match /telemetry_logs/{docId} {
+      // Internal logs for audit
+      allow read, write: if isAdmin();
     }
 
     // ── AI MEMORY (#18, #19, #28) ───────────────────────────────────────────

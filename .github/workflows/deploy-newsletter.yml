@@ -30,11 +30,15 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
         run: |
           npx wrangler@3 deploy --env newsletter
           [ -n "$RESEND_API_KEY" ] && echo "$RESEND_API_KEY" | npx wrangler@3 secret put RESEND_API_KEY --env newsletter || echo "Skipping RESEND_API_KEY"
           [ -n "$NEWSLETTER_SECRET" ] && echo "$NEWSLETTER_SECRET" | npx wrangler@3 secret put NEWSLETTER_SECRET --env newsletter || echo "Skipping NEWSLETTER_SECRET"
-          echo "Newsletter worker deployed."
+          [ -n "$FIREBASE_SERVICE_ACCOUNT" ] && echo "$FIREBASE_SERVICE_ACCOUNT" | npx wrangler@3 secret put FIREBASE_SERVICE_ACCOUNT --env newsletter || echo "Skipping FIREBASE_SERVICE_ACCOUNT"
+          [ -n "$FIREBASE_PROJECT_ID" ] && echo "$FIREBASE_PROJECT_ID" | npx wrangler@3 secret put FIREBASE_PROJECT_ID --env newsletter || echo "Skipping FIREBASE_PROJECT_ID"
+          echo "Newsletter worker deployed with institutional security context."
 
   notify-failure:
     needs: deploy

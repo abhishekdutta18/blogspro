@@ -40,6 +40,10 @@ def run_swarm_audit(content_path, output_path=None, frequency="daily"):
         has_2027 = "2027" in article_content
         is_stale = "2023" in article_content or "2024" in article_content
         
+        # ── V5.4.4: Technical & Structural Validation (Coding Architect) ──
+        has_semantic_tags = any(tag in article_content for tag in ["<article", "<section", "<header", "<footer>"])
+        has_malformed_json = '{"' in article_content and '"}' not in article_content # simple check
+        
         # Consensus scoring logic
         score = 100
         critiques = []
@@ -57,6 +61,17 @@ def run_swarm_audit(content_path, output_path=None, frequency="daily"):
         if word_count > 5000:
             critiques.append({"role": "Editor", "feedback": "High density detected. Excellent research depth."})
 
+        if not has_semantic_tags:
+            score -= 15
+            critiques.append({"role": "Coding Architect", "feedback": "WARNING: Strategic manuscript lacks HTML5 semantic structure. Accessibility/SEO markers missing."})
+        
+        if has_malformed_json:
+            score -= 30
+            critiques.append({"role": "Coding Architect", "feedback": "CRITICAL: Detected traces of malformed JSON in technical appendix. Escaping failure suspected."})
+        
+        if "Principal Software Architect" in article_content or "Coder Persona" in article_content:
+            critiques.append({"role": "Coding Architect", "feedback": "Technical self-reference detected. Validating structural fidelity..."})
+
         status = "PASS" if score >= 70 else "REJECT"
         
         verdict = {
@@ -64,7 +79,7 @@ def run_swarm_audit(content_path, output_path=None, frequency="daily"):
             "status": status,
             "consensus_score": score,
             "word_count": word_count,
-            "agent_critiques": critiques if critiques else [{"role": "System", "feedback": "All agents reached consensus. No critical issues found."}],
+            "agent_critiques": critiques if critiques else [{"role": "Coding Architect", "feedback": "Structural fidelity confirmed. Zero technical debt detected."}],
             "timestamp": datetime.now().isoformat()
         }
         

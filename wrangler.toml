@@ -24,7 +24,7 @@ FIREBASE_PROJECT_ID = "blogspro-ai"
 [env.pulse]
 name = "blogspro-pulse"
 main = "scripts/pulse-worker.js"
-compatibility_date = "2024-12-30"
+compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
 
 [env.pulse.vars]
@@ -95,15 +95,19 @@ crons = [
 [env.newsletter]
 name = "blogspro-newsletter"
 main = "api/newsletter-worker.js"
-compatibility_date = "2024-12-30"
+compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
 
 # --- MIROFISH WORKER ---
 [env.mirofish]
 name = "blogspro-mirofish"
 main = "scripts/mirofish-worker.js"
-compatibility_date = "2024-12-30"
+compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
+
+[env.mirofish.vars]
+FIREBASE_PROJECT_ID = "blogspro-ai"
+FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
 
 [[env.mirofish.durable_objects.bindings]]
 name = "MIRO_SYNC_DO"
@@ -114,42 +118,78 @@ script_name = "blogspro-miro-sync"
 [env.data-hub]
 name = "blogspro-data-hub"
 main = "scripts/data-worker.js"
-compatibility_date = "2024-12-30"
+compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
+
+[env.data-hub.vars]
+FIREBASE_PROJECT_ID = "blogspro-ai"
+FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
 
 # --- RELEVANCE WORKER ---
 [env.relevance]
 name = "blogspro-relevance"
 main = "scripts/relevance-worker.js"
-compatibility_date = "2024-12-30"
+compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
+
+[env.relevance.vars]
+FIREBASE_PROJECT_ID = "blogspro-ai"
+FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
 
 # --- AUDITOR WORKER ---
 [env.auditor]
 name = "blogspro-auditor"
 main = "scripts/auditor-worker.js"
-compatibility_date = "2024-12-30"
+compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
+
+[env.auditor.vars]
+FIREBASE_PROJECT_ID = "blogspro-ai"
+FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
 
 # --- SEO MANAGER WORKER ---
 [env.seo]
 name = "blogspro-seo"
 main = "scripts/seo-worker.js"
-compatibility_date = "2024-12-30"
+compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
+
+[env.seo.vars]
+FIREBASE_PROJECT_ID = "blogspro-ai"
+FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
 
 # --- TEMPLATE ENGINE ---
 [env.templates]
 name = "blogspro-templates"
 main = "scripts/template-worker.js"
-compatibility_date = "2024-12-30"
+compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
+
+[env.templates.vars]
+FIREBASE_PROJECT_ID = "blogspro-ai"
+FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
+
+# --- HIL AUDIT STATION ---
+[env.hil-station]
+name = "blogspro-hil-station"
+main = "scripts/hil-worker.js"
+compatibility_date = "2026-04-01"
+compatibility_flags = [ "nodejs_compat" ]
+
+[env.hil-station.vars]
+ENVIRONMENT = "hil-station"
+FIREBASE_PROJECT_ID = "blogspro-ai"
+FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
+TELEGRAM_BOT_TOKEN = "PASTE_TOKEN_HERE"
+TELEGRAM_ADMIN_CHAT_ID = "PASTE_CHAT_ID_HERE"
+HIL_STATION_URL = "https://hil.blogspro.in"
+SWARM_INTERNAL_TOKEN = "PASTE_INTERNAL_TOKEN_HERE"
 
 # --- MIRO SYNC WORKER (Durable Object Provider) ---
 [env.miro-sync]
 name = "blogspro-miro-sync"
 main = "scripts/miro-sync-worker.js"
-compatibility_date = "2024-12-30"
+compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
 
 [env.miro-sync.vars]
@@ -163,9 +203,9 @@ bindings = [
   { name = "MANUSCRIPT_DO", class_name = "ManuscriptAggregatorS" }
 ]
 
-migrations = [
-  { tag = "v5_4_2_o_cleanup_legacy", deleted_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"] }
-]
+[[env.miro-sync.migrations]]
+tag = "v5_4_2_o_cleanup_legacy"
+deleted_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"]
 
 # --- UPSTOX MARKET PROXY ---
 [env.upstox]

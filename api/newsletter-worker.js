@@ -1,3 +1,5 @@
+import { getGoogleAccessToken, pushTelemetryLog } from '../scripts/lib/storage-bridge.js';
+
 export default {
   async fetch(request, env, ctx) {
     const jsonResponse = (data, status = 200) =>
@@ -184,15 +186,27 @@ export default {
           }
         };
 
+        const token = await getGoogleAccessToken(env);
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
         const listRes = await fetch(queryUrl, {
           method: 'POST',
+          headers,
           body: JSON.stringify(queryBody)
         });
         const results = await listRes.json();
         
         if (results && results[0] && results[0].document) {
           const docPath = results[0].document.name;
-          const delRes = await fetch(`https://firestore.googleapis.com/v1/${docPath}`, { method: 'DELETE' });
+          const headers = {};
+          const token = await getGoogleAccessToken(env);
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+          
+          const delRes = await fetch(`https://firestore.googleapis.com/v1/${docPath}`, { 
+            method: 'DELETE',
+            headers
+          });
           if (!delRes.ok) throw new Error('Delete failed');
         }
 
@@ -259,9 +273,13 @@ export default {
       let pageToken = '';
       const baseUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/subscribers`;
 
+      const token = await getGoogleAccessToken(env);
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       do {
         const url = pageToken ? `${baseUrl}?pageToken=${pageToken}` : baseUrl;
-        const dbRes = await fetch(url);
+        const dbRes = await fetch(url, { headers });
         if (!dbRes.ok) {
           const dbError = await dbRes.text();
           throw new Error(`Failed to fetch subscribers: ${dbRes.status} - ${dbError}`);
@@ -280,17 +298,13 @@ export default {
       console.log(`Found ${emails.length} total subscribers`);
 
       // 2. Send individual emails via Resend Batch API (100 per request)
-      // Using /emails/batch so each subscriber gets a private, individual email
       const BATCH_SIZE = 100;
       let emailsSentCount = 0;
+      let failedBatchesCount = 0;
 
       const workerUrl = new URL(request.url).origin;
 
-      for (let i = 0; i < emails.length; i += BATCH_SIZE) {
-        const batch = emails.slice(i, i + BATCH_SIZE);
-
-        console.log(`Sending batch ${Math.floor(i / BATCH_SIZE) + 1} with ${batch.length} emails...`);
-
+      const sendBatchWithRetry = async (batch, attempt = 1) => {
         const resendPayload = batch.map(sub => {
           const unsubLink = `${workerUrl}/?email=${encodeURIComponent(sub.email)}&secret=${encodeURIComponent(secret)}`;
           const personalHtml = html
@@ -316,15 +330,51 @@ export default {
 
         if (!resendRes.ok) {
           const resendError = await resendRes.text();
-          console.error(`Resend API error: ${resendRes.status}`);
-          console.error(`Response: ${resendError}`);
-          throw new Error(`Resend API failed: ${resendRes.status} - ${resendError}`);
+          console.error(`Attempt ${attempt}: Resend API batch failure (${resendRes.status}) - ${resendError}`);
+          
+          if (attempt < 2) {
+            console.log(`Retrying batch (attempt ${attempt + 1})...`);
+            return sendBatchWithRetry(batch, attempt + 1);
+          }
+          throw new Error(`Resend Batch Failed after ${attempt} attempts: ${resendRes.status}`);
         }
+        return batch.length;
+      };
 
-        emailsSentCount += batch.length;
+      const batchPromises = [];
+      for (let i = 0; i < emails.length; i += BATCH_SIZE) {
+        const batch = emails.slice(i, i + BATCH_SIZE);
+        batchPromises.push(sendBatchWithRetry(batch));
+      }
+
+      console.log(`Dispatching ${batchPromises.length} parallel batches...`);
+      const results = await Promise.allSettled(batchPromises);
+
+      results.forEach((result, idx) => {
+        if (result.status === 'fulfilled') {
+          emailsSentCount += result.value;
+        } else {
+          failedBatchesCount++;
+          console.error(`Batch ${idx + 1} permanently failed:`, result.reason);
+        }
+      });
+
+      console.log(`✅ Newsletter cycle complete. Total Sent: ${emailsSentCount}, Failed Batches: ${failedBatchesCount}`);
+      
+      if (failedBatchesCount > 0 && emailsSentCount === 0) {
+        throw new Error(`Newsletter distribution completely failed across ${failedBatchesCount} batches.`);
       }
 
       console.log(`✅ Newsletter sent to ${emailsSentCount} subscribers`);
+      
+      // 🚀 Institutional Telemetry
+      ctx.waitUntil(pushTelemetryLog("NEWSLETTER_DISPATCH", {
+        frequency: "daily",
+        status: "success",
+        message: `Newsletter sent to ${emailsSentCount} readers. Failures: ${failedBatchesCount}`,
+        details: { sent: emailsSentCount, failures: failedBatchesCount, subject }
+      }, env));
+
       return new Response(JSON.stringify({ success: true, count: emailsSentCount }), {
         status: 200,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }

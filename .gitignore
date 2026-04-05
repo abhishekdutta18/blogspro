@@ -1,27 +1,35 @@
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
+# 🏺 BlogsPro Institutional Repository Filtering
+# ============================================
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Build/Deploy Artifacts
-blogspro/
-blogspro-deploy.zip
-.sentry-logs.zip
-
-# Environment
+# --- ENVIRONMENT & SECRETS ---
 .env
+.env.*
 .env.local
-.env.*.local
+firebase-service-account.json
+*.pem
+*.plist
 
-# Node (in case it's added later)
-node_modules/
+# --- AI ARTIFACTS & DRAFTS ---
+briefings/
+dist/
+review-*.html
+swarm-*.html
+ai-feedback.json
+knowledge-graph.json
+
+# --- LOGS & DIAGNOSTICS ---
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-/tmp/
-.dev.vars
+.wrangler/
+.firebase/
+.github/logs/
+
+# --- INFRASTRUCTURE & BUILD ---
+node_modules/
+public/
+tmp/
+.DS_Store
+Thumbs.db

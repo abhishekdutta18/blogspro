@@ -2,6 +2,7 @@ import { initWorkerSentry, captureSwarmError, logSwarmBreadcrumb } from "./lib/s
 import { serve } from "inngest/cloudflare";
 import { inngest, getInngestClient } from "./lib/inngest-client.js";
 import { pulseSwarmWorkflow } from "./lib/inngest-functions.js";
+import { getGoogleAccessToken, pushTelemetryLog } from "./lib/storage-bridge.js";
 
 /**
  * BlogsPro Pulse Worker (V5.3 - Durable)
@@ -54,22 +55,60 @@ export default {
         })(request, env, ctx);
       }
 
-      // 4. STATUS & TELEMETRY
+      // 3.5. KV PROXY (Instant Visibility for Autonomous Articles)
+      if (pathname.startsWith('/briefings/') || pathname.startsWith('/articles/')) {
+        try {
+          const skipKV = url.searchParams.has('static');
+          if (!skipKV && env.KV) {
+            // Serve from KV for real-time autonomous updates
+            const kvPath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+            const data = await env.KV.get(kvPath, { type: 'stream' });
+            if (data) {
+              const contentType = pathname.endsWith('.json') ? 'application/json' : 'text/html';
+              return new Response(data, {
+                headers: { 
+                  'Content-Type': contentType,
+                  'X-Source': 'KV-Dynamic',
+                  'Access-Control-Allow-Origin': '*'
+                }
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("KV Proxy Fallback:", e.message);
+        }
+        // Fallback to site bucket (handled by default at the end)
+      }
+
+      // 4. STATUS & TELEMETRY (Unified Institutional Bridge)
       if (pathname === '/status') {
         let telemetry = [];
         try {
-          const id = env.MIRO_SYNC_DO.idFromName('global-swarm-bridge');
-          const stub = env.MIRO_SYNC_DO.get(id);
-          const teleRes = await stub.fetch("https://sync/status");
-          const teleData = await teleRes.json();
-          telemetry = teleData.jobs || [];
+          // 4.1. Grab recent logs from the Hardened Firestore collection
+          const PROJECT_ID = env.FIREBASE_PROJECT_ID;
+          const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/telemetry_logs?pageSize=10&orderBy=timestamp desc`;
+          
+          const token = await getGoogleAccessToken(env);
+          const headers = { "Content-Type": "application/json" };
+          if (token) headers["Authorization"] = `Bearer ${token}`;
+
+          const logRes = await fetch(firestoreUrl, { headers });
+          if (logRes.ok) {
+            const data = await logRes.json();
+            telemetry = (data.documents || []).map(doc => ({
+              event: doc.fields?.event?.stringValue,
+              status: doc.fields?.status?.stringValue,
+              timestamp: doc.fields?.timestamp?.timestampValue,
+              message: doc.fields?.message?.stringValue
+            }));
+          }
         } catch (e) {
-          console.warn("Telemetry Bridge Search Failed:", e.message);
+          console.warn("Institutional Telemetry Retrieval Failed:", e.message);
         }
         
         return wrapResponse({ 
           status: "ONLINE", 
-          version: "5.3-Durable-Institutional",
+          version: "5.4-Institutional-Hardened",
           orchestrator: "Inngest",
           telemetry
         });
@@ -176,9 +215,21 @@ export default {
         });
       }
 
-      // 7. HEALTH CHECK
+      // 7. HEALTH & BRIDGE AWARENESS (V7.1)
       if (pathname === "/health" || pathname === "/ping") {
-        return wrapResponse({ status: "healthy", version: "5.3" });
+        return wrapResponse({ status: "healthy", version: "7.1-Unified-Brain" });
+      }
+
+      if (pathname === "/bridge-health") {
+        const bridgeUrl = env.NGROK_DOMAIN || "institutional-bridge.ngrok-free.app";
+        let bridgeStatus = "OFFLINE";
+        try {
+          const res = await fetch(`https://${bridgeUrl}/ping`, { signal: AbortSignal.timeout(3000) });
+          if (res.ok) bridgeStatus = "ONLINE";
+        } catch (e) {
+          bridgeStatus = `UNREACHABLE: ${e.message}`;
+        }
+        return wrapResponse({ bridge: bridgeStatus, domain: bridgeUrl });
       }
 
       return wrapResponse({ error: "Not Found" }, 404);

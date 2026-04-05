@@ -290,4 +290,6 @@ function getEmailTemplate({ title, excerpt, content, dateLabel, fileName, freq, 
     </body></html>`;
 }
 
-export { getBaseTemplate, getEmailTemplate, parseMD };
+import { getApexTemplate } from './apex-template.js';
+
+export { getBaseTemplate, getEmailTemplate, getApexTemplate, parseMD };

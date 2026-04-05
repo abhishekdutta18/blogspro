@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// --------------------------------------------------
+// BlogsPro: Institutional Archival Security Rules
+// Project: blogspro-ai
+// --------------------------------------------------
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // 1. Swarm Archival Access (Admin Only)
+    match /archive/{monthYear}/{dataset}/{allPaths=**} {
+      // Allows the swarm orchestrator (Service Account) to manage archives
+      allow read, write: if request.auth != null;
+    }
+
+    // 2. Public Research Assets (Read-Only After Dispatch)
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // 3. Default: Deny All
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

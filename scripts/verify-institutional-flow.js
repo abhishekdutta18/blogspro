@@ -1,85 +1,43 @@
 import 'dotenv/config';
-import fs from 'fs';
+import { spawn } from 'child_process';
 import path from 'path';
 
-// Mocked storage bridge functions
-async function saveBriefing(fileName, content, frequency) {
-    const briefingDir = path.join(process.cwd(), "archive", frequency);
-    if (!fs.existsSync(briefingDir)) fs.mkdirSync(briefingDir, { recursive: true });
-    const localPath = path.join(briefingDir, fileName);
-    fs.writeFileSync(localPath, content);
-    return localPath;
+/**
+ * 🏺 [V8.5] Institutional E2E Verification Harness
+ * ==============================================
+ * Validates the entire Local-to-Cloud HIL Consensus Bridge.
+ * Bypasses expensive AI tier via --dry-run for 60-second audit.
+ */
+
+async function runE2EVerification() {
+  console.log("🚀 [E2E] Starting Institutional HIL Bridge Verification...");
+  
+  const swarmProcess = spawn('/opt/homebrew/bin/node', [
+    path.join(process.cwd(), 'scripts/generate-institutional-tome.js'),
+    '--freq=weekly',
+    '--type=article',
+    '--hil',
+    '--dry-run'
+  ], {
+    stdio: 'inherit',
+    env: { ...process.env, DEBUG: 'true' }
+  });
+
+  console.log("\n---------------------------------------------------------");
+  console.log("🏺 CONSTRUCTING INSTITUTIONAL DRAFT (DRY-RUN)...");
+  console.log("📡 SIGNALING CLOUD HIL BRIDGE (FIRESTORE & TELEGRAM)...");
+  console.log("---------------------------------------------------------\n");
+
+  swarmProcess.on('close', (code) => {
+    if (code === 0) {
+      console.log("\n✅ [E2E] Institutional verification successful (Handshake Complete).");
+    } else {
+      console.error(`\n❌ [E2E] Institutional verification failed with code ${code}.`);
+    }
+  });
+
+  // Keep the process alive to show logs
+  process.on('SIGINT', () => swarmProcess.kill());
 }
 
-async function updateIndex(data, frequency) {
-    console.log(`[Mock-Index] Registered: ${data.id} (${data.words} words)`);
-}
-
-async function runVerification() {
-  console.log("🛠️ [Verify] Starting Institutional Swarm DRY-RUN...");
-  
-  const frequency = 'weekly';
-  const type = 'article';
-  const jobId = `verify-swarm-${Date.now()}`;
-  
-  // 1. TELEMETRY TEST (Local Hub)
-  const localHub = "http://localhost:8787/push";
-  console.log(`🛰 [Telemetry] Beaming start event to ${localHub}...`);
-  try {
-      const response = await fetch(localHub, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-swarm-token": process.env.SWARM_INTERNAL_TOKEN },
-          body: JSON.stringify({ 
-              source: 'SWARM_PROGRESS',
-              event: 'SWARM_START', 
-              stage: 'START',
-              jobId, 
-              vertical: 'Verification-Mock',
-              message: 'Starting Hardened Pipeline Verification Cycle'
-          })
-      });
-      const data = await response.json();
-      console.log(`🛰 [Telemetry] Response: ${response.status} - ${JSON.stringify(data)}`);
-  } catch (e) {
-      console.warn(`⚠️ [Telemetry] Local hub connection failed: ${e.message}`);
-  }
-
-  // 2. SWARM MOCK (25k Word Layout)
-  const result = {
-      final: "<html><body><h1>Institutional Verification Draft</h1><p>This is a 25,000-word density mock for pipeline hardening validation.</p></body></html>",
-      words: 25150,
-      latency: 4500,
-      wordCount: 25150
-  };
-
-  // 3. ARCHIVAL PHASE (The new logic to verify)
-  console.log("📦 [Final Archival] Testing persistence logic...");
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const fileName = `swarm-${frequency}-${timestamp}.html`;
-  
-  const distDir = path.join(process.cwd(), "dist");
-  if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
-  const finalPath = path.join(distDir, fileName);
-  
-  fs.writeFileSync(finalPath, result.final);
-  console.log(`✅ [Archive] Finalized Institutional Tome: ${finalPath}`);
-
-  try {
-      const localPath = await saveBriefing(fileName, result.final, frequency);
-      await updateIndex({
-        id: timestamp,
-        title: `Institutional Strategic Report: ${new Date().toLocaleDateString()}`,
-        file: fileName,
-        words: result.words,
-        latency: result.latency,
-        timestamp: new Date().toISOString()
-      }, frequency);
-      console.log(`📇 [Index] Institutional Metadata updated.`);
-  } catch (e) {
-      console.error(`⚠️ [Persistence] Archival failed: ${e.message}`);
-  }
-
-  console.log("🏁 Verification Cycle Complete.");
-}
-
-runVerification();
+runE2EVerification();

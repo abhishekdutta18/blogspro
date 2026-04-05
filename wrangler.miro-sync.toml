@@ -8,6 +8,7 @@ compatibility_flags = [ "nodejs_compat" ]
 
 [vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
+FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
 
 [[durable_objects.bindings]]
 name = "MIRO_SYNC_DO"

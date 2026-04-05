@@ -1,6 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import UpstoxClient from 'upstox-js-sdk';
 import { captureSwarmError } from './sentry-bridge.js';
+import { gateSignal } from "./gating-engine.js";
 const _fetch = fetch;
 const _env = typeof process !== "undefined" ? process.env : {};
 
@@ -102,7 +103,7 @@ async function fetchMultiAssetData() {
     };
 
     try {
-        const [americas, europe, asia, commodities, forex, bonds, crypto, india] = await Promise.all([
+        const results = await Promise.all([
             fetchScanner("america", ["AMEX:SPY", "NASDAQ:QQQ", "CBOE:VIX", "NASDAQ:AAPL", "NASDAQ:MSFT", "NASDAQ:NVDA", "NASDAQ:TSLA", "NASDAQ:GOOGL"]),
             fetchScanner("europe", ["INDEX:DAX", "INDEX:SX5E", "INDEX:UKX", "INDEX:CAC", "LSE:HSBA", "Euronext:MC"]),
             fetchScanner("asia", ["INDEX:NKY", "INDEX:HSI", "INDEX:AS51", "INDEX:STI", "KRX:005930"]),
@@ -110,19 +111,34 @@ async function fetchMultiAssetData() {
             fetchScanner("forex", ["FX_IDC:DXY", "FX:EURUSD", "FX:USDJPY", "FX:GBPUSD", "FX:AUDUSD", "FX:USDCAD", "FX_IDC:USDINR"]),
             fetchScanner("cfd", ["TVC:US10Y", "TVC:US02Y", "TVC:DE10Y", "TVC:JP10Y", "TVC:IN10Y", "TVC:GB10Y"]),
             fetchScanner("crypto", ["COINBASE:BTCUSD", "COINBASE:ETHUSD", "BINANCE:SOLUSDT", "BINANCE:BNBUSDT", "BINANCE:ADAUSDT"]),
-            fetchScanner("india", ["NSE_INDEX:NIFTY_50", "NSE_INDEX:NIFTY_BANK", "BSE_INDEX:SENSEX", "NSE:RELIANCE", "NSE:HDFCBANK", "NSE:SBIN", "NSE:TCS", "NSE:ICICIBANK"])
+            // [V7.0] Expanded Indian Verticals (Economy, Banking, Industrials, Mid-Caps)
+            fetchScanner("india", [
+                "NSE_INDEX:NIFTY_50", "NSE_INDEX:NIFTY_BANK", "BSE_INDEX:SENSEX", 
+                "NSE_INDEX:NIFTY_MIDCAP_100", "NSE_INDEX:NIFTY_MIDCAP_150", 
+                "NSE:RELIANCE", "NSE:HDFCBANK", "NSE:SBIN", "NSE:TCS", "NSE:ICICIBANK", 
+                "NSE:AXISBANK", "NSE:KOTAKBANK", "NSE:LT", "NSE:TATASTEEL", "NSE:MARUTI", "NSE:ADANIENT",
+                "NSE:FEDERALBNK", "NSE:AUBANK", "NSE:VOLTAS", "NSE:CUMMINSIND", // Mid-cap leaders
+                "TVC:IN10Y" // Yields for india_macro
+            ])
         ]);
 
-        const allData = [
-            ...(americas.data || []), ...(europe.data || []), ...(asia.data || []), 
-            ...(commodities.data || []), ...(forex.data || []), ...(bonds.data || []),
-            ...(crypto.data || []), ...(india.data || [])
-        ].filter(i => i && i.d);
-        const summary = allData.map(item => {
+        const rawData = results.flatMap(r => r.data || []);
+        
+        // --- V7.0 HYBRID TICK-BY-TICK SIGNAL GATING ---
+        // Uses Rules + AI to purge market noise and macro static
+        const { filtered, noiseCount, summary } = await hybridGateSignal(rawData, null, 0.001); 
+        console.log(`📡 [Data-Pulse] ${summary}`);
+
+        const formattedData = filtered.map(item => {
             const [close, chg, desc] = item.d;
             return `${desc}: ${close.toFixed(2)} (${chg.toFixed(2)}%)`;
         }).join(' | ');
-        return { summary, raw: allData };
+
+        return { 
+            summary: formattedData, 
+            raw: filtered,
+            noisePurged: noiseCount
+        };
     } catch (e) { return { summary: "Market Data: Partially unavailable.", raw: [] }; }
 }
 
@@ -148,7 +164,9 @@ const UNIVERSAL_FEEDS = {
     REUTERS_GLOBAL: "https://news.google.com/rss/search?q=site%3Areuters.com+finance&hl=en-US&gl=US&ceid=US:en",
     NIKKEI_ASIA: "https://news.google.com/rss/search?q=site%3Aasia.nikkei.com+economy&hl=en-US&gl=US&ceid=US:en",
     YAHOO_FINANCE: "https://finance.yahoo.com/news/rssindex",
-    ECONOMIC_TIMES: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"
+    ECONOMIC_TIMES: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms",
+    MONEYCONTROL_INDIA: "https://news.google.com/rss/search?q=site%3Amoneycontrol.com+indian+markets&hl=en-IN&gl=IN&ceid=IN:en",
+    LIVE_MINT_MACRO: "https://news.google.com/rss/search?q=site%3Alivemint.com+indian+economy&hl=en-IN&gl=IN&ceid=IN:en"
 };
 
 /**

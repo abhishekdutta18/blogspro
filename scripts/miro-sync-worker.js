@@ -37,6 +37,21 @@ export class MiroSyncS {
       return new Response(null, { status: 101, webSocket: client });
     }
 
+    // 0.5 [V7.0] Manual Archival Trigger
+    if (url.pathname === '/archive') {
+      await this.archiveToFirebase();
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: "V7.0 Proactive Archiving Initiated",
+        timestamp: new Date().toISOString()
+      }), {
+        headers: { 
+          'Content-Type': 'application/json',
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
     // Handle snapshot export to Firebase
     if (url.pathname === '/snapshot') {
       const update = Y.encodeStateAsUpdate(this.doc);
@@ -60,21 +75,6 @@ export class MiroSyncS {
     // 1.5. Failsafe Telemetry Snapshot (Conflict-Free JSON Stream)
     if (url.pathname === '/telemetry' && request.method === 'GET') {
       const progressMap = this.doc.getMap('swarm-progress');
-      
-      // 🧹 Pruning Routine: Remove entries older than 3 months
-      const THREE_MONTHS_MS = 90 * 24 * 60 * 60 * 1000;
-      const now = Date.now();
-      let prunedCount = 0;
-
-      for (const [key, value] of progressMap.entries()) {
-        const timestamp = new Date(value.timestamp).getTime();
-        if (!isNaN(timestamp) && (now - timestamp) > THREE_MONTHS_MS) {
-          progressMap.delete(key);
-          prunedCount++;
-        }
-      }
-      if (prunedCount > 0) console.log(`🧹 [MiroSync] Pruned ${prunedCount} legacy swarm entries.`);
-
       const data = Object.fromEntries(progressMap.entries());
       
       // 🚀 optimization: Only send the 5 most recent jobs to the client to prevent payload bloat
@@ -88,7 +88,19 @@ export class MiroSyncS {
       return new Response(JSON.stringify(filteredData), {
         headers: { 
           'Content-Type': 'application/json',
-          "Access-Control-Allow-Origin": "*"
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Headers": "*"
+        }
+      });
+    }
+
+    if (url.pathname === '/telemetry' && request.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Headers": "*"
         }
       });
     }
@@ -97,28 +109,63 @@ export class MiroSyncS {
     if (url.pathname === '/push' && request.method === 'POST') {
       try {
         const body = await request.json();
-        const { source, content, stage, message } = body;
-        const text = this.doc.getText('miro-consensus');
+        const { source, content, stage, message, jobId, trace, agentScores, health, rl } = body;
         const timestamp = new Date().toISOString();
+        const id = jobId || 'latest';
+        const progressMap = this.doc.getMap('swarm-progress');
 
         if (source === "SWARM_PROGRESS" || body.event === 'SWARM_START') {
-          const progressMap = this.doc.getMap('swarm-progress');
-          const entry = { 
-            ...body, 
-            stage: stage || body.event || 'PROGRESS', 
-            message: message || body.message || 'Telemetry Sync...',
+          const entry = progressMap.get(id) || { jobId: id, stages: [], logs: [], trace: [], timestamp };
+          entry.stage = stage || body.event || entry.stage || 'PROGRESS';
+          entry.message = message || body.message || entry.message || 'Telemetry Sync...';
+          entry.timestamp = timestamp;
+          if (trace) entry.trace = [...(entry.trace || []), trace];
+          if (agentScores) entry.agentScores = agentScores;
+          if (body.latency) entry.latency = body.latency;
+          progressMap.set(id, entry);
+        } else if (source === "GHOST_PREDICTION") {
+          const entry = progressMap.get(id) || { jobId: id, timestamp };
+          entry.ghostProjection = { 
+            summary: body.summary, 
+            telemetry: body.telemetry,
+            latency: body.latency,
             timestamp 
           };
-          progressMap.set(body.jobId || 'latest', entry);
-        } else {
-          const formattedEntry = `\n\n═══════════════════════════════════════\n🕵️ SOURCE: ${source || 'MiroFish Consensus'}\n📅 DATE: ${timestamp}\n═══════════════════════════════════════\n\n${content}\n\n`;
-          text.insert(text.length, formattedEntry);
+          progressMap.set(id, entry);
+        } else if (source === "MIRO_METRICS") {
+          const entry = progressMap.get(id) || { jobId: id, timestamp };
+          entry.agentScores = agentScores || entry.agentScores || [];
+          entry.disagreementVariance = body.disagreementVariance || 0;
+          entry.swarmSentiment = body.swarmSentiment || 50;
+          entry.consensusTimeline = body.consensusTimeline || [];
+          if (body.logicChain) entry.logicChain = body.logicChain;
+          progressMap.set(id, entry);
+        } else if (source === "KEY_HEALTH" || source === "RL_METRICS") {
+          const entry = progressMap.get(id) || { jobId: id, timestamp };
+          if (health) entry.health = health;
+          if (rl) entry.rl = rl;
+          if (body.latency) entry.latency = body.latency;
+          progressMap.set(id, entry);
+          
+          // Sync specific performance metrics to the global Affine shared doc
+          const affineMetrics = this.doc.getMap('affine-health');
+          affineMetrics.set('last_update', timestamp);
+          if (health) affineMetrics.set('key_health', health);
+          if (rl) affineMetrics.set('rl_performance', rl);
+        } else if (source === "FINAL_MANUSCRIPT") {
+          const finalText = this.doc.getText('final-manuscript');
+          finalText.delete(0, finalText.length);
+          finalText.insert(0, content);
+          console.log(`📑 [MiroSync] FINAL_MANUSCRIPT received.`);
+          
+          const update = Y.encodeStateAsUpdate(this.doc);
+          const filename = `final-${body.frequency || 'pulse'}-${Date.now()}.yjs`;
+          await saveSnapshot(update, 'miro-sync-final', this.env, filename);
         }
 
-        // --- HARDENED BROADCAST: Notify all connected terminal clients ---
         const update = Y.encodeStateAsUpdate(this.doc);
         const encoder = encoding.createEncoder();
-        encoding.writeUint8(encoder, 0); // messageSync
+        encoding.writeUint8(encoder, 0); 
         sync.writeUpdate(encoder, update);
         this.broadcast(encoding.toUint8Array(encoder));
 
@@ -136,6 +183,75 @@ export class MiroSyncS {
           headers: { "Access-Control-Allow-Origin": "*" }
         });
       }
+    }
+
+    // [V6.0] State-Aware Resilience: Check if a step is already completed
+    if (url.pathname === '/check-step' && request.method === 'GET') {
+      const jobId = url.searchParams.get('jobId');
+      const stepId = url.searchParams.get('stepId');
+      const progressMap = this.doc.getMap('swarm-progress');
+      const job = progressMap.get(jobId);
+      const completed = job && job.trace && job.trace.some(t => t.stepId === stepId && t.status === "COMPLETED");
+      
+      return new Response(JSON.stringify({ 
+        status: completed ? "COMPLETED" : "PENDING",
+        jobId,
+        stepId
+      }), {
+        headers: { 'Content-Type': 'application/json', "Access-Control-Allow-Origin": "*" }
+      });
+    }
+
+    // [V6.0] Institutional Style Manual sync
+    if (url.pathname === '/styles' && request.method === 'GET') {
+      return new Response(JSON.stringify({ 
+        manual: "BLOGSPRO_STYLE_V6",
+        lastUpdate: new Date().toISOString(),
+        guidelines: {
+          typography: "Outfit, JetBrains Mono",
+          colors: { background: "#050505", accent: "#daaf37", ghost: "#888888" },
+          tone: "Institutional, High-Density, Data-First"
+        }
+      }), {
+        headers: { 'Content-Type': 'application/json', "Access-Control-Allow-Origin": "*" }
+      });
+    }
+
+    // [V7.0] Archive Access (Durable Object "Warm" Archive)
+    if (url.pathname === '/archive' && request.method === 'POST') {
+      const result = await this.archiveToFirebase();
+      return new Response(JSON.stringify(result), {
+        headers: { 'Content-Type': 'application/json', "Access-Control-Allow-Origin": "*" }
+      });
+    }
+
+    if (url.pathname === '/archive/list' && request.method === 'GET') {
+      const archiveMap = this.doc.getMap('swarm-archive');
+      return new Response(JSON.stringify(Object.fromEntries(archiveMap.entries())), {
+        headers: { 
+          'Content-Type': 'application/json',
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
+    if (url.pathname === '/archive/retrieve' && request.method === 'GET') {
+      const id = url.searchParams.get('id');
+      const archiveMap = this.doc.getMap('swarm-archive');
+      const entry = archiveMap.get(id);
+      
+      if (!entry) {
+        return new Response(JSON.stringify({ error: "Record not found in warm archive." }), {
+          status: 404, headers: { "Access-Control-Allow-Origin": "*" }
+        });
+      }
+      
+      return new Response(JSON.stringify(entry), {
+        headers: { 
+          'Content-Type': 'application/json',
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
     }
 
     // 3. Default Durable Object State Sync (WebSocket + Yjs)
@@ -200,14 +316,10 @@ export class MiroSyncS {
           if (encoding.length(encoder) > 1) {
             ws.send(encoding.toUint8Array(encoder));
           }
-        }
+}
       } catch (err) {
         console.error('WS Error:', err);
       }
-    });
-
-    ws.addEventListener('close', () => {
-      this.sessions.delete(id);
     });
   }
 
@@ -221,6 +333,63 @@ export class MiroSyncS {
         }
       }
     }
+  }
+
+  async scheduled(event, env, ctx) {
+    console.log("⏰ [Cron] Durable State Sync: Initiating Firebase Archiving...");
+    await this.archiveToFirebase();
+  }
+
+  /**
+   * V7.0 Lifecycle Management: 
+   * Moves records > 90 days to Firebase and purges from DO.
+   */
+  async archiveToFirebase() {
+    const progressMap = this.doc.getMap('swarm-progress');
+    const archiveMap = this.doc.getMap('swarm-archive');
+    const THREE_MONTHS_MS = 90 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    let archivedCount = 0;
+    const archivedRecords = {};
+
+    for (const [key, value] of progressMap.entries()) {
+      const timestamp = new Date(value.timestamp).getTime();
+      // [V7.0] Perpetual Archiving: Records > 90 days move to deep storage
+      if (!isNaN(timestamp) && (now - timestamp) > THREE_MONTHS_MS) {
+        archiveMap.set(key, value);
+        archivedRecords[key] = value;
+        progressMap.delete(key);
+        archivedCount++;
+      }
+    }
+
+    if (archivedCount > 0) {
+      if (!this.env.FIREBASE_STORAGE_BUCKET) {
+        console.warn("⚠️ [MiroSync] Archival skipped: FIREBASE_STORAGE_BUCKET not configured.");
+        return { archivedCount: 0, activeCount: progressMap.size, status: "SKIPPED_CONFIG" };
+      }
+
+      const date = new Date();
+      const folder = `${new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date).toUpperCase()}${date.getFullYear()}`;
+      const base = `archive/${folder}`;
+
+      // 1. Persist the FULL Yjs Document to Firebase (Binary State Dataset)
+      const fullUpdate = Y.encodeStateAsUpdate(this.doc);
+      const binaryName = `miro-archive-binary-${Date.now()}.yjs`;
+      await saveSnapshot(fullUpdate, `${base}/state`, this.env, binaryName);
+
+      // 2. Persist partitioned JSON (Telemetry Dataset)
+      const jsonName = `miro-pruned-batch-${Date.now()}.json`;
+      await saveSnapshot(archivedRecords, `${base}/telemetry`, this.env, jsonName);
+
+      // 3. Save to DO storage
+      const update = Y.encodeStateAsUpdate(this.doc);
+      await this.state.storage.put('doc', update);
+
+      console.log(`📦 [MiroSync] V7.0 Archive: Successfully moved ${archivedCount} records to Firebase Dataset [${folder}].`);
+    }
+
+    return { archivedCount, activeCount: progressMap.size };
   }
 }
 
@@ -240,19 +409,21 @@ const TERMINAL_HTML = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BlogsPro Swarm Terminal | Institutional Real-Time Logic</title>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <title>BlogsPro Institutional Swarm Terminal | V7.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
         :root {
             --gold: #BFA100;
             --gold-dim: rgba(191, 161, 0, 0.4);
-            --bg: #0A0A0A;
-            --surface: #141414;
-            --border: #2A2A2A;
-            --text: #E0E0E0;
-            --success: #00FF9D;
-            --warning: #FFBF00;
-            --error: #FF4D4D;
+            --bg: #050505;
+            --surface: #0E0E0E;
+            --border: #1F1F1F;
+            --text: #F0F0F0;
+            --ok: #00FF9D;
+            --warn: #FFBF00;
+            --err: #FF4D4D;
+            --ghost: #9b59b6;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -270,10 +441,10 @@ const TERMINAL_HTML = `
             display: flex;
             align-items: center;
             padding: 0 30px;
-            background: rgba(10, 10, 10, 0.8);
-            backdrop-filter: blur(10px);
+            background: rgba(5, 5, 5, 0.98);
+            backdrop-filter: blur(20px);
             justify-content: space-between;
-            z-index: 100;
+            z-index: 1000;
         }
 
         .title-block { display: flex; align-items: center; gap: 15px; }
@@ -283,342 +454,312 @@ const TERMINAL_HTML = `
             color: var(--gold); 
             padding: 4px 12px; 
             border-radius: 20px; 
-            font-size: 12px; 
+            font-size: 11px; 
             font-family: 'JetBrains Mono', monospace;
             border: 1px solid var(--gold);
         }
 
         main {
             display: grid;
-            grid-template-columns: 400px 1fr;
-            grid-template-rows: 1fr 300px;
+            grid-template-columns: 350px 1fr 340px;
             height: calc(100vh - 60px);
         }
 
-        .sidebar {
-            background: var(--surface);
+        .pane {
             border-right: 1px solid var(--border);
-            padding: 20px;
             overflow-y: auto;
-        }
-
-        h3 { 
-            color: var(--gold); 
-            font-size: 14px; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-            margin-bottom: 20px; 
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .vertical-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-bottom: 30px;
-        }
-
-        .vertical-node {
-            aspect-ratio: 1;
-            background: #1A1A1A;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 9px;
-            text-align: center;
-            color: #666;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .vertical-node.active { 
-            border-color: var(--gold); 
-            color: var(--gold); 
-            box-shadow: 0 0 15px var(--gold-dim);
-            animation: pulse 2s infinite;
-        }
-
-        .vertical-node.complete { 
-            border-color: var(--success); 
-            color: var(--success); 
-            background: rgba(0, 255, 157, 0.05);
-        }
-
-        .vertical-node i { font-size: 14px; margin-bottom: 5px; }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.6; }
-            100% { opacity: 1; }
-        }
-
-        .console {
-            grid-row: 2;
-            grid-column: 1 / 3;
-            background: #000;
-            border-top: 1px solid var(--border);
-            padding: 20px;
-            font-family: 'JetBrains Mono', monospace;
-            overflow-y: auto;
-            font-size: 12px;
-            line-height: 1.6;
-        }
-
-        .log-entry { margin-bottom: 5px; display: flex; gap: 15px; }
-        .log-time { color: var(--gold); opacity: 0.6; }
-        .log-msg { color: #BBB; }
-        .log-msg.highlight { color: var(--gold); font-weight: 700; }
-        .log-msg.success { color: var(--success); }
-
-        .workspace {
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            gap: 30px;
-            overflow-y: auto;
-        }
-
-        .progress-container {
-            background: var(--surface);
-            padding: 30px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-        }
-
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-        }
-
-        .progress-bar-bg {
-            height: 8px;
-            background: #222;
-            border-radius: 4px;
-            overflow: hidden;
-            border: 1px solid #333;
-        }
-
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #8A7500, var(--gold));
-            width: 0%;
-            transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: 0 0 10px var(--gold);
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-
-        .metric-card {
-            background: #1A1A1A;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
             position: relative;
         }
 
-        .metric-label { font-size: 11px; color: #666; text-transform: uppercase; margin-bottom: 5px; }
-        .metric-value { font-size: 24px; color: var(--gold); font-weight: 700; }
-
-        .bg-glow {
-            position: fixed;
-            top: 20%;
-            left: 50%;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, var(--gold-dim) 0%, transparent 70%);
-            filter: blur(80px);
-            z-index: -1;
-            opacity: 0.3;
+        .pane-header {
+            padding: 15px 20px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--gold);
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
+
+        section { padding: 25px; }
+
+        .panel {
+            background: rgba(20,20,20,0.5);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: ''; position: absolute; top:0; left:0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+        }
+
+        .stat-label { font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; font-weight: 700; }
+        .chart-container { height: 160px; width: 100%; }
+
+        /* [V6.0] Ghost Projection Overlay */
+        .ghost-box {
+            background: rgba(155, 89, 182, 0.05);
+            border: 1px dashed var(--ghost);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            position: relative;
+        }
+        .ghost-tag { 
+            position: absolute; top: -10px; right: 10px; 
+            background: var(--ghost); color: #fff; font-size: 8px; 
+            padding: 2px 6px; border-radius: 4px; font-weight: 700;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+
+        /* METRICS GRID */
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .m-card { background: #0A0A0A; border: 1px solid #1A1A1A; padding: 15px; border-radius: 8px; }
+        .m-val { font-size: 22px; color: var(--gold); font-family: 'JetBrains Mono'; font-weight: 700; }
+        .m-lbl { font-size: 8px; color: #555; text-transform: uppercase; margin-top: 5px; }
+
+        /* LOGIC TREE */
+        .logic-tree { display: flex; flex-direction: column; gap: 12px; }
+        .logic-node { 
+            background: #0D0D0D; border-left: 3px solid var(--gold); padding: 12px; 
+            border-radius: 4px; font-size: 11px; position: relative;
+        }
+        .l-header { display: flex; justify-content: space-between; margin-bottom: 6px; color: var(--gold); font-weight: 700; }
+        .l-body { color: #888; line-height: 1.5; font-size: 10px; }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        .btn { 
+            flex: 1; padding: 10px; border-radius: 6px; font-size: 10px; 
+            cursor: pointer; transition: all 0.2s; font-family: 'JetBrains Mono'; font-weight: 700;
+            text-transform: uppercase;
+        }
+        .btn-primary { background: var(--gold); color: #000; border: none; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: #888; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+
     </style>
 </head>
 <body>
-    <div class="bg-glow"></div>
-    
     <header>
         <div class="title-block">
-            <span class="logo">BLOGSPRO 4.0</span>
-            <span class="status-pill" id="global-status">SWARM_IDLE</span>
+            <span class="logo">BLOGSPRO ADMIN</span>
+            <span class="status-pill" id="global-status">IDLE_SCAN</span>
         </div>
         <div class="control-block">
-            <span id="conn-status" style="color: #666; font-size: 11px; margin-right: 15px;">📡 SYNC_OK</span>
-            <span id="current-job" style="font-family: 'JetBrains Mono'; font-size: 12px; color: #666;">NO_ACTIVE_JOB</span>
+            <span id="job-id" style="font-family: 'JetBrains Mono'; font-size: 11px; color: #444; border-right: 1px solid #222; padding-right: 15px; margin-right: 15px;">NO_PULSE_LOADED</span>
+            <span style="color: var(--ok); font-size: 11px;">📡 TELEMETRY_STABLE</span>
         </div>
     </header>
 
     <main>
-        <section class="sidebar">
-            <h3>Vertical Grid</h3>
-            <div class="vertical-grid" id="node-grid"></div>
-
-            <h3>Metrics</h3>
-            <div class="metrics-grid" style="grid-template-columns: 1fr;">
-                <div class="metric-card">
-                    <div class="metric-label">Token Rotation</div>
-                    <div class="metric-value" id="model-usage" style="font-size: 14px;">Groq / Gemini / Mistral</div>
+        <!-- LEFT: ENGINE PERFORMANCE -->
+        <aside class="pane">
+            <div class="pane-header">System Vitals</div>
+            <section>
+                <div class="metrics-grid">
+                    <div class="m-card">
+                        <div class="stat-card">
+                          <div class="stat-label">ARCHIVE STATUS</div>
+                          <div class="stat-value" style="color: #00ff88;">LIFETIME</div>
+                          <div class="stat-sub">V7.0 Deep Storage Active</div>
+                        </div>
+                    </div>
+                    <div class="m-card">
+                        <div class="m-val" style="color:var(--ok)">98.2%</div>
+                        <div class="m-lbl">SLA Uptime</div>
+                    </div>
                 </div>
-            </div>
+
+                <div class="panel">
+                    <div class="stat-label">System Stress [Latency ms]</div>
+                    <div id="chart_latency" class="chart-container"></div>
+                </div>
+
+                <div class="panel">
+                    <div class="stat-label">OASIS [GHOST vs LIVE]</div>
+                    <div id="chart_oasis" class="chart-container"></div>
+                </div>
+            </section>
+        </aside>
+
+        <!-- CENTER: OBSERVATORY -->
+        <section class="pane" style="background: radial-gradient(circle at top, #0A0A0A, #050505);">
+            <div class="pane-header">Consensus Observatory</div>
+            <section>
+                <div class="panel" style="border-color: #333;">
+                    <div class="stat-label">Disagreement Heatmap (Variance Matrices)</div>
+                    <div id="chart_heatmap" style="height: 250px;"></div>
+                </div>
+
+                <div class="panel" style="border-color: #333;">
+                    <div class="stat-label">Alignment Evolution (Institutional Drift)</div>
+                    <div id="chart_timeline" style="height: 180px;"></div>
+                </div>
+
+                <div id="ghost-projection"></div>
+            </section>
         </section>
 
-        <section class="workspace">
-            <div class="progress-container">
-                <div class="progress-header">
-                    <span id="stage-label" style="color: var(--gold); font-weight: 700;">INITIALIZING_ENVIRONMENT</span>
-                    <span id="percentage-label">0%</span>
+        <!-- RIGHT: MANAGEMENT -->
+        <aside class="pane" style="border-right: none;">
+            <div class="pane-header">Institutional Control</div>
+            <section>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="triggerSync()">Checkpoint Sync</button>
+                    <button class="btn btn-outline" onclick="triggerArchive()">Archive Store</button>
                 </div>
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" id="progress-fill"></div>
-                </div>
-            </div>
+                <div id="sync-status" style="font-size: 9px; color: #444; margin-top: 8px; text-align:center;">READY</div>
 
-            <div class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-label">Consensus Desk</div>
-                    <div class="metric-value" id="consensus-status" style="font-size: 16px; color: #666;">WAITING...</div>
+                <div class="pane-header" style="margin: 30px -25px 20px -25px; border-top: 1px solid var(--border)">Visual Logic Stream</div>
+                <div id="logic-tree" class="logic-tree">
+                    <div style="color: #333; font-size: 11px; text-align: center; margin-top: 20px;">Awaiting pulse telemetry...</div>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-label">Fidelity Governor</div>
-                    <div class="metric-value" id="governor-status" style="font-size: 16px; color: #666;">STANDBY</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Deep-Reflect</div>
-                    <div class="metric-value" id="reflect-status" style="font-size: 16px; color: #666;">ACTIVE</div>
-                </div>
-            </div>
-        </section>
-
-        <section class="console" id="log-console">
-            <div class="log-entry">
-                <span class="log-time">Awaiting Sync...</span>
-                <span class="log-msg highlight">SYSTEM_START: Institutional Swarm Hub Active.</span>
-            </div>
-        </section>
+            </section>
+        </aside>
     </main>
 
     <script>
-        const nodeGrid = document.getElementById('node-grid');
-        const logConsole = document.getElementById('log-console');
-        const verticals = ["Macro", "Banking", "Cards", "Equities", "Debt", "FX", "Digital", "Reg", "Comm", "EM", "Asset", "Scribe", "Capital", "Insure", "GIFT", "Pay"];
+        google.charts.load('current', {'packages':['corechart', 'table', 'gauge']});
         
-        // Initial Grid Setup
-        verticals.forEach((v, i) => {
-            const n = document.createElement('div');
-            n.className = 'vertical-node';
-            n.id = 'node-' + i;
-            n.innerHTML = '<i>' + v.substring(0, 3) + '</i>' + v;
-            nodeGrid.appendChild(n);
+        let charts = { latency: null, heatmap: null, timeline: null, oasis: null };
+        
+        google.charts.setOnLoadCallback(() => {
+            charts.latency = new google.visualization.AreaChart(document.getElementById('chart_latency'));
+            charts.heatmap = new google.visualization.Table(document.getElementById('chart_heatmap'));
+            charts.timeline = new google.visualization.LineChart(document.getElementById('chart_timeline'));
+            charts.oasis = new google.visualization.Gauge(document.getElementById('chart_oasis'));
+            poll(); 
         });
 
-        function addLog(msg, type = '') {
-            const t = new Date().toLocaleTimeString('en-IN', { hour12: false, timeZone: 'Asia/Kolkata' });
-            const e = document.createElement('div');
-            e.className = 'log-entry';
-            e.innerHTML = '<span class="log-time">[' + t + ']</span><span class="log-msg ' + type + '">' + msg + '</span>';
-            logConsole.prepend(e);
+        function updateCharts(job) {
+            if (!charts.latency) return;
+
+            // 1. Latency Trace
+            if (job.trace) {
+                const rows = [['Stage', 'ms']];
+                job.trace.forEach(t => { if(t.duration) rows.push([t.stepId.split('_').pop(), t.duration]); });
+                if(rows.length > 1) {
+                    charts.latency.draw(google.visualization.arrayToDataTable(rows), {
+                        backgroundColor: 'transparent', colors: ['#BFA100'], legend: 'none',
+                        chartArea: { width: '90%', height: '80%' },
+                        areaOpacity: 0.1,
+                        hAxis: { textStyle: { color: '#444', fontSize: 7 }, gridlines: { color: 'transparent' } },
+                        vAxis: { textStyle: { color: '#444', fontSize: 7 }, gridlines: { color: '#111' } }
+                    });
+                }
+            }
+
+            // 2. Heatmap
+            if (job.disagreementHeatmap) {
+                const data = new google.visualization.DataTable();
+                data.addColumn('string', 'P_Alpha');
+                data.addColumn('string', 'P_Beta');
+                data.addColumn('number', 'Delta');
+                job.disagreementHeatmap.forEach(h => data.addRow([h.p1, h.p2, h.variance]));
+                charts.heatmap.draw(data, { width: '100%', height: '100%', cssClassNames: { headerRow: 'h-row', tableRow: 't-row' } });
+            }
+
+            // 3. Timeline
+            if (job.consensusTimeline) {
+                const rows = [['Step', 'Alignment']];
+                job.consensusTimeline.forEach(t => rows.push([t.step.toString(), t.alignment]));
+                charts.timeline.draw(google.visualization.arrayToDataTable(rows), {
+                    backgroundColor: 'transparent', colors: ['#00A3FF'], legend: 'none',
+                    chartArea: { width: '90%', height: '80%' },
+                    hAxis: { textStyle: { color: '#444', fontSize: 7 }, gridlines: { color: 'transparent' } },
+                    vAxis: { textStyle: { color: '#444', fontSize: 7 }, gridlines: { color: '#111' } }
+                });
+            }
+
+            // 4. OASIS Gauge
+            const gData = google.visualization.arrayToDataTable([
+                ['Label', 'Value'],
+                ['Ghost', job.ghostProjection?.telemetry?.swarmSentiment || 0],
+                ['Live', job.swarmSentiment || 0]
+            ]);
+            charts.oasis.draw(gData, {
+                width: '100%', height: 160,
+                redFrom: 0, redTo: 20, yellowFrom: 20, yellowTo: 50, greenFrom: 50, greenTo: 100,
+                minorTicks: 5
+            });
         }
 
-        let lastJobId = null;
-        let isPolling = false;
-        let consecutiveErrors = 0;
-
-        async function pollTelemetry() {
-            if (isPolling) return;
-            isPolling = true;
-
+        async function poll() {
             try {
-                // Use a short timeout to prevent hanging UI during worker cold-starts
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-                const res = await fetch('/telemetry', { signal: controller.signal });
-                clearTimeout(timeoutId);
-
-                if (res.ok) {
-                    const data = await res.json();
-                    consecutiveErrors = 0;
-                    document.getElementById('conn-status').innerText = '📡 SYNC_OK';
-                    document.getElementById('conn-status').style.color = '#00FF41';
-
-                    let latest = null;
-                    let maxTime = 0;
-                    for (const jobId in data) {
-                        const dt = new Date(data[jobId].timestamp).getTime();
-                        if (!isNaN(dt) && dt > maxTime) { 
-                            maxTime = dt; 
-                            latest = data[jobId]; 
-                        }
-                    }
-
-                    if (latest) {
-                        if (latest.jobId !== lastJobId) {
-                            lastJobId = latest.jobId;
-                            addLog('🚀 Synchronizing With Swarm: ' + lastJobId, 'highlight');
-                        }
-                        updateUI(latest);
-                    }
-                } else {
-                    throw new Error('HTTP_' + res.status);
+                const res = await fetch('/telemetry');
+                const data = await res.json();
+                const jobs = Object.values(data).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+                if (jobs.length > 0) {
+                    const job = jobs[0];
+                    renderUI(job);
+                    updateCharts(job);
                 }
-            } catch (e) {
-                consecutiveErrors++;
-                document.getElementById('conn-status').innerText = '⏳ RECOVERING... (' + consecutiveErrors + ')';
-                document.getElementById('conn-status').style.color = '#FF9900';
-                
-                if (consecutiveErrors > 5) {
-                    // Force a softer reset of the polling flag to allow fresh attempts
-                    isPolling = false; 
-                }
-                console.warn('Telemetry recovery attempt:', e.message);
-            } finally {
-                isPolling = false;
+                document.getElementById('storage-active').innerText = jobs.length;
+            } catch (e) { console.error('Poll Error:', e); }
+            setTimeout(poll, 3000);
+        }
+
+        function renderUI(job) {
+            document.getElementById('job-id').innerText = job.jobId || 'ACTIVE';
+            document.getElementById('global-status').innerText = (job.stage || 'PROCESSING').toUpperCase();
+
+            // Logic Tree
+            if (job.logicChain) {
+                const tree = document.getElementById('logic-tree');
+                tree.innerHTML = job.logicChain.map(l => '<div class="logic-node"><div class="l-header"><span>' + l.agent + '</span><span style="color:var(--ok)">\u2713</span></div><div class="l-body">' + (l.argument || '').substring(0, 120) + '...</div></div>').join('');
+            }
+
+            // Ghost Box
+            if (job.ghostProjection) {
+                const g = document.getElementById('ghost-projection');
+                const confidence = Math.round((job.ghostProjection.confidence || 0.8) * 100);
+                const summary = job.ghostProjection.summary || '';
+                g.innerHTML = '<div class="ghost-box"><span class="ghost-tag">SPECULATIVE_GHOST</span><div class="stat-label">Projection Confidence: ' + confidence + '%</div><div style="font-size: 11px; color: var(--ghost); font-family: monospace;">' + summary + '</div></div>';
             }
         }
 
-        function updateUI(data) {
-            document.getElementById('current-job').innerText = data.jobId;
-            document.getElementById('global-status').innerText = 'SWARM_' + data.stage;
-            document.getElementById('stage-label').innerText = data.message;
-
-            if (data.stage === 'VERTICAL_START') {
-                const p = Math.round((data.index / 16) * 90);
-                document.getElementById('progress-fill').style.width = p + '%';
-                document.getElementById('percentage-label').innerText = p + '%';
-                const n = document.getElementById('node-' + data.index);
-                if (n && !n.classList.contains('active')) { 
-                    n.classList.add('active'); 
-                    addLog('[' + data.vertical + '] Analyzing sector context...'); 
-                }
-            }
-            if (data.stage === 'VERTICAL_COMPLETE') {
-                const n = document.getElementById('node-' + data.index);
-                if (n && !n.classList.contains('complete')) {
-                    n.classList.remove('active'); 
-                    n.classList.add('complete'); 
-                    addLog('[' + data.vertical + '] Sector Analysis Complete.', 'success');
-                }
-            }
-            if (data.stage === 'CONSENSUS_START') {
-                document.getElementById('consensus-status').innerText = '10-AGENT_ACTIVE';
-                document.getElementById('consensus-status').style.color = '#BFA100';
-            }
+        async function triggerSync() {
+            const b = document.querySelector('.btn-primary'); b.innerText = 'SYNCING...';
+            try {
+                const r = await fetch('/sync', { method: 'POST' });
+                const d = await r.json();
+                document.getElementById('sync-status').innerText = 'SYNC_COMPLETE: ' + (d.size/1024).toFixed(1) + 'KB';
+            } finally { b.innerText = 'Checkpoint Sync'; }
         }
 
-        // --- HARDENED POLL LOOP: 1.5s interval ---
-        setInterval(pollTelemetry, 1500);
-        pollTelemetry(); // Immediate trigger
+        async function triggerArchive() {
+            if(!confirm('Migrate telemetry older than 90 days to deep storage?')) return;
+            try {
+                const r = await fetch('/archive', { method: 'POST' });
+                const d = await r.json();
+                alert('Success: ' + d.archivedCount + ' entries moved to archive.');
+            } catch(e) { alert('Archive Failed'); }
+        }
     </script>
 </body>
 </html>
-`;
+`
+
 
 /**
  * Registry Stubs to satisfy Wrangler Global Bindings

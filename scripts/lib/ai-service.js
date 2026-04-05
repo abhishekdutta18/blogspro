@@ -1,7 +1,49 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-// import _fetch from "node-fetch"; // Removed: Using Node 24 native fetch
 const _fetch = fetch;
-import Cerebras from "@cerebras/cerebras_cloud_sdk";
+import http from 'http';
+
+// MARCH 2026: Robust local request handler to bypass global fetch instability
+async function localRequest(url, options) {
+    return new Promise((resolve, reject) => {
+        const body = options.body || '';
+        const urlObj = new URL(url);
+        const reqOptions = {
+            hostname: urlObj.hostname,
+            port: urlObj.port,
+            path: urlObj.pathname + urlObj.search,
+            method: options.method || 'POST',
+            headers: {
+                ...options.headers,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(body)
+            },
+            timeout: 900000 // 15 minute timeout for heavy local generations (M1-8GB Optimized)
+        };
+
+        const req = http.request(reqOptions, (res) => {
+            let resData = '';
+            res.on('data', (chunk) => resData += chunk);
+            res.on('end', () => {
+                resolve({
+                    ok: res.statusCode >= 200 && res.statusCode < 300,
+                    status: res.statusCode,
+                    text: async () => resData,
+                    json: async () => JSON.parse(resData)
+                });
+            });
+        });
+
+        req.on('error', (e) => reject(e));
+        req.on('timeout', () => {
+            req.destroy();
+            reject(new Error('Local Request Timeout'));
+        });
+        req.write(body);
+        req.end();
+    });
+}
+import { Cerebras } from "@cerebras/cerebras_cloud_sdk";
+import { pushTelemetryLog } from "./firebase-service.js";
 import { fetchDynamicNews, fetchFullPageContent, fetchDocument } from "./data-fetchers.js";
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -16,10 +58,10 @@ const normalizeEnv = () => {
     process.env.CEREBRAS_API_KEY = process.env.CEREBRAS_API_KEY || process.env.CEREBRAS_KEY;
     process.env.HF_TOKEN = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
     process.env.QWEB_API_KEY = process.env.QWEB_API_KEY || process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY || process.env.QWEB_KEY;
-    process.env.CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN || process.env.CF_API_TOKEN;
-    process.env.CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID || "abhishekdutta18"; // Institutional Default
+    process.env.CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN || process.env.CF_API_TOKEN || process.env.CF_API_KEY;
+    process.env.CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID || process.env.CLOUDFLARE_ACCOUNT_ID; 
 };
-normalizeEnv();
+// normalizeEnv(); // DEFERRED: Now called during ResourceManager.init to avoid race conditions
 
 async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", context = {}) {
     const key = context?.GROQ_API_KEY || process.env.GROQ_API_KEY;
@@ -302,7 +344,7 @@ async function generateGeminiContent(prompt, model = "gemini-1.5-flash", context
  * Echo Detector: Identifies if the AI output is actually the prompt itself.
  */
 function isEcho(content) {
-    if (!content) return true;
+    if (content === undefined || content === null) return false; // Fail safe
     const tokens = ["GLOBAL TEMPORAL GROUNDING", "INSTITUTIONAL_PERSONA", "QUANTITATIVE DRAFTER"];
     return tokens.some(t => content.includes(t));
 }
@@ -507,6 +549,9 @@ async function generateCloudflareContent(prompt, model = "@cf/meta/llama-3-8b-in
     });
     if (!res.ok) {
         const errText = await res.text();
+        if (res.status === 401) {
+            throw new Error(`Cloudflare AI 401: Unauthorized. Please check if CF_API_TOKEN has 'Workers AI: Edit' permissions for Account ${accountId}.`);
+        }
         throw new Error(`Cloudflare Error: ${res.status} ${errText}`);
     }
     const data = await res.json();
@@ -547,12 +592,15 @@ async function generateCerebrasContent(prompt, model = "llama3.1-8b", context = 
 
     try {
         const client = new Cerebras({ apiKey: key });
-        const targetModel = model?.includes('70b') ? "llama3.1-70b" : "llama3.1-8b";
+        // V5.4.1 INSTITUTIONAL UPGRADE: Support 70b for high-fidelity research
+        // Default to 70b if requested, otherwise fallback to 8b for throughput
+        const targetModel = (model && model.includes('70b')) ? "llama3.3-70b" : "llama3.1-8b";
+        console.log(`🚀 [Cerebras] Dispatching ${targetModel} for role: ${context.role || 'generic'}...`);
 
         const completion = await client.chat.completions.create({
             messages: [{ role: "user", content: prompt }],
             model: targetModel,
-            max_completion_tokens: 1024,
+            max_completion_tokens: 2048,
             temperature: 0.2,
             top_p: 1,
             stream: false
@@ -568,6 +616,91 @@ async function generateCerebrasContent(prompt, model = "llama3.1-8b", context = 
         }
         throw new Error(`Cerebras Error: ${err.message}`);
     }
+}
+
+async function generateOllamaContent(prompt, model = "llama3.1", context = {}) {
+    const defaultHost = "http://127.0.0.1:11434";
+    const host = context.targetHost || process.env.OLLAMA_HOST || defaultHost;
+    const apiKey = context.targetKey || process.env.OLLAMA_PROD_KEY; // Optional key for prod tunnels
+
+    // MAR 2026: Institutional Model Mapping (Force local fallback for cloud model names)
+    let targetModel = model?.toLowerCase() || "llama3.1:latest";
+    if (targetModel.includes('node-') || !targetModel.includes(':') || targetModel.includes('gemini') || targetModel.includes('gpt') || targetModel.includes('claude') || targetModel.includes('llama3.1')) {
+        targetModel = "llama3.1:latest"; // Verified local baseline for BlogsPro 5.0
+    } else if (targetModel.includes('70b') || targetModel.includes('research')) {
+        targetModel = "llama3.1:latest"; // Fallback high-fidelity to largest local node
+    }
+
+    try {
+        const headers = { "Content-Type": "application/json" };
+        
+        // MARCH 2026: Institutional Tunnel Hardening (ngrok & Cloudflare)
+        if (apiKey && apiKey.includes('.')) {
+            const [clientId, clientSecret] = apiKey.split('.');
+            headers["CF-Access-Client-Id"] = clientId;
+            headers["CF-Access-Client-Secret"] = clientSecret;
+        } else if (apiKey) {
+            headers["Authorization"] = `Bearer ${apiKey}`;
+        }
+        
+        // NGROK BYPASS: Skip the "You are about to visit..." interstitial page for automated clients
+        if (host.includes('ngrok-free.app') || host.includes('ngrok-free.dev')) {
+            headers["ngrok-skip-browser-warning"] = "69420";
+        }
+
+        // MARCH 2026: Heavy stagger for local calls to prioritize stability over speed
+        if (host.includes('127.0.0.1') || host.includes('localhost')) {
+            const stagger = Math.floor(Math.random() * 3000) + 2500;
+            await sleep(stagger);
+        }
+        const targetHost = host.replace('127.0.0.1', 'localhost');
+        console.log(`🚀 [Ollama] Dispatching to ${targetHost} [Model: ${targetModel}]...`);
+
+        // MAR 2026: Use robust localRequest for internal nodes, standard fetch for remote
+        const fetcher = (targetHost.includes('localhost') || targetHost.includes('127.0.0.1')) ? localRequest : _fetch;
+
+        const res = await fetcher(`${targetHost}/api/generate`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+                model: targetModel,
+                prompt: prompt,
+                stream: false
+            })
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`Ollama Error: ${res.status} ${errText}`);
+        }
+
+        const data = await res.json();
+        if (data && data.response) return data.response;
+        throw new Error("Ollama returned an empty or malformed response.");
+    } catch (err) {
+        throw new Error(`Ollama (${host.includes('127.0.0.1') ? 'Local Swarm' : 'Prod Swarm'}) Unreachable: ${err.message}`);
+    }
+}
+
+// V7.1: Institutional Local Cascade (Multiple Model Resilience)
+async function generateLocalCascade(prompt, model, context = {}) {
+    const localEndpoints = [
+        { name: "Ollama-Default", host: "http://127.0.0.1:11434" },
+        { name: "LM-Studio", host: "http://127.0.0.1:1234" },
+        { name: "Ollama-Alt", host: "http://127.0.0.1:11435" }
+    ];
+
+    let lastError = null;
+    for (const endpoint of localEndpoints) {
+        try {
+            console.log(`🏠 [Local-Cascade] Attempting ${endpoint.name} (${model})...`);
+            return await generateOllamaContent(prompt, model, { ...context, targetHost: endpoint.host });
+        } catch (err) {
+            console.warn(`🏠 [Local-Cascade] ${endpoint.name} failed: ${err.message}`);
+            lastError = err;
+        }
+    }
+    throw lastError || new Error("LOCAL_CASCADE_EXHAUSTED");
 }
 
 async function generateHuggingFaceContent(prompt, model = "mistralai/Mistral-7B-Instruct-v0.3", context = {}) {
@@ -617,94 +750,153 @@ async function generateQwenContent(prompt, model = "qwen-2.5-72b-instruct", cont
     throw new Error(`Qwen/Qweb Error: ${JSON.stringify(data)}`);
 }
 
-async function generateOllamaContent(prompt, model = "llama3", context = {}) {
-    try {
-        const host = process.env.OLLAMA_HOST || "http://127.0.0.1:11434"; // Use 127.0.0.1 for better Node/DNS stability
-        // MARCH 2026 UPDATE: Using /api/chat for better persona/rule enforcement
-        const res = await _fetch(`${host}/api/chat`, {
-            method: "POST",
-            body: JSON.stringify({
-                model: model || "llama3",
-                messages: [{ role: "user", content: prompt }],
-                stream: false,
-                options: { temperature: 0.1 }
-            })
-        });
-        if (!res.ok) throw new Error(`Ollama Error: Status ${res.status}`);
-        const data = await res.json();
-        if (data.message && data.message.content) return data.message.content;
-    } catch (e) {
-        throw new Error(`Ollama (Local Swarm) Unreachable: ${e.message}`);
-    }
-    throw new Error(`Ollama Error: Service unreachable.`);
-}
-
 
 // --- INSTITUTIONAL AI RESOURCE MANAGER ---
-const ResourceManager = {
+export const ResourceManager = {
     pool: [],
     inflight: new Map(),
     cooldowns: new Map(),
     failed: new Set(),
     
     init(env = {}, forceRefresh = false) {
-        if (this.pool.length > 0 && !forceRefresh) return; // Only init once unless forced
+        if (this.pool.length > 0 && !forceRefresh) return;
+        this.pool = []; 
         this.failed = new Set();
-        const activeKeys = {
-            Groq: env.GROQ_API_KEY || process.env.GROQ_API_KEY || process.env.GROQ_KEY,
-            Gemini: env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY,
-            OpenRouter: env.OPENROUTER_KEY || process.env.OPENROUTER_KEY,
-            Mistral: env.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY || process.env.MISTRAL_KEY,
-            Together: env.TOGETHER_API_KEY || process.env.TOGETHER_KEY,
-            DeepInfra: env.DEEPINFRA_API_KEY || process.env.DEEPINFRA_KEY,
-            SambaNova: env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_KEY,
-            Cerebras: env.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY || process.env.CEREBRAS_KEY,
-            HuggingFace: env.HF_TOKEN || process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN,
-            Qweb: env.QWEB_API_KEY || process.env.QWEB_API_KEY || process.env.QWEB_KEY,
-            Ollama: true, // Always check for local Ollama
-            Cloudflare: (env.CLOUDFLARE_API_TOKEN || env.CF_API_TOKEN || process.env.CLOUDFLARE_API_TOKEN || process.env.CF_API_TOKEN) && (env.CF_ACCOUNT_ID || process.env.CF_ACCOUNT_ID),
-            GitHub: env.GITHUB_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN
+        this.cooldowns = new Map();
+        this.inflight = new Map();
+        
+        // Ensure environment is normalized BEFORE using it. 
+        normalizeEnv();
+        
+        const isPlaceholder = (k) => !k || k.includes('1_2_3_4_5') || k.includes('AIzaSyA_J0') || k.length < 15;
+        
+        const sanitize = (val) => {
+            if (!val || typeof val !== 'string') return null;
+            // Clean non-printable/control chars and trim
+            const cleaned = val.replace(/[^\x20-\x7E]/g, '').trim();
+            if (isPlaceholder(cleaned)) return null;
+            return cleaned;
         };
 
+        const activeKeys = {
+            Groq: sanitize(env.GROQ_API_KEY || process.env.GROQ_API_KEY || process.env.GROQ_KEY),
+            Gemini: sanitize(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY),
+            OpenRouter: sanitize(env.OPENROUTER_KEY || process.env.OPENROUTER_KEY),
+            Mistral: sanitize(env.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY || process.env.MISTRAL_KEY),
+            Together: sanitize(env.TOGETHER_API_KEY || process.env.TOGETHER_KEY),
+            DeepInfra: sanitize(env.DEEPINFRA_API_KEY || process.env.DEEPINFRA_KEY),
+            SambaNova: sanitize(env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_KEY),
+            Cerebras: sanitize(env.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY || process.env.CEREBRAS_KEY),
+            HuggingFace: sanitize(env.HF_TOKEN || process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN),
+            Qweb: sanitize(env.QWEB_API_KEY || process.env.QWEB_API_KEY || process.env.QWEB_KEY),
+            GitHub: sanitize(env.GITHUB_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN),
+            Ollama: (env.OLLAMA_HOST || process.env.OLLAMA_HOST || (this.activeKeys && this.activeKeys.Ollama) || "http://127.0.0.1:11434").trim(),
+            OllamaProd: (env.OLLAMA_PROD_URL || process.env.OLLAMA_PROD_URL || "").trim(),
+            Cloudflare: sanitize(env.CF_API_TOKEN || process.env.CF_API_TOKEN || env.CLOUDFLARE_API_TOKEN || env.CF_API_KEY)
+        };
+        
+        // Fix SambaNova/Cerebras cross-contamination
+        if (activeKeys.SambaNova && activeKeys.SambaNova.startsWith('csk-')) activeKeys.SambaNova = null;
+        if (activeKeys.Cerebras && !activeKeys.Cerebras.startsWith('csk-')) activeKeys.Cerebras = null;
+        if (activeKeys.HuggingFace && !activeKeys.HuggingFace.startsWith('hf_')) activeKeys.HuggingFace = null;
+        if (activeKeys.Cloudflare && !activeKeys.Cloudflare.startsWith('cfut_')) {
+             if (activeKeys.Cloudflare && activeKeys.Cloudflare.length < 30) activeKeys.Cloudflare = null;
+        }
+
         this.pool = [];
-        if (activeKeys.Gemini) this.pool.push({ name: 'Gemini', fn: generateGeminiContent, tier: 1, match: /gemini/i }); 
-        if (activeKeys.Groq) this.pool.push({ name: 'Groq', fn: generateGroqContent, tier: 1, match: /groq/i }); 
-        if (activeKeys.SambaNova) this.pool.push({ name: 'SambaNova', fn: generateSambaNovaContent, tier: 1, match: /samba|llama-3\.3-70b|llama-3\.1-405b/i });
-        if (activeKeys.Cerebras) this.pool.push({ name: 'Cerebras', fn: generateCerebrasContent, tier: 1, match: /cerebras|llama3\.1-8b|llama3\.1-70b/i });
-        if (activeKeys.Qweb) this.pool.push({ name: 'Qweb', fn: generateQwenContent, tier: 1, match: /qwen|qweb/i });
-        if (activeKeys.Mistral) this.pool.push({ name: 'Mistral', fn: generateMistralContent, tier: 2, match: /mistral/i });
-        if (activeKeys.Together) this.pool.push({ name: 'Together', fn: generateTogetherContent, tier: 2, match: /together/i });
-        if (activeKeys.DeepInfra) this.pool.push({ name: 'DeepInfra', fn: generateDeepInfraContent, tier: 2, match: /deepinfra/i });
-        if (activeKeys.GitHub) this.pool.push({ name: 'GitHub', fn: generateGithubContent, tier: 2, match: /github|gpt-4o/i });
-        if (activeKeys.HuggingFace) this.pool.push({ name: 'HuggingFace', fn: generateHuggingFaceContent, tier: 3, match: /huggingface|hf/i });
-        if (activeKeys.Ollama) this.pool.push({ name: 'Ollama', fn: generateOllamaContent, tier: 3, match: /ollama|local/i }); 
-        if (activeKeys.Cloudflare) this.pool.push({ name: 'Cloudflare', fn: generateCloudflareContent, tier: 3, match: /cloudflare/i }); 
-        if (activeKeys.OpenRouter) this.pool.push({ name: 'OpenRouter', fn: generateOpenRouterContent, tier: 3, match: /openrouter/i });
+        // TIER 1: INSTITUTIONAL RESEARCH & EDITING (High Precision)
+        if (activeKeys.Gemini) {
+            this.pool.push({ name: 'Gemini-Pro', fn: (p, m, c) => generateGeminiContent(p, "gemini-1.5-pro", c), tier: 1, roles: ['research', 'edit', 'manager'], match: /gemini-pro|node-research|node-edit|node-manager/i });
+        }
+        if (activeKeys.Cerebras) {
+            this.pool.push({ name: 'Cerebras-70B', fn: (p, m, c) => generateCerebrasContent(p, m || "llama3.3-70b", c), tier: 1, roles: ['research', 'audit'], match: /cerebras-70b|node-research|node-audit/i });
+        }
+
+        // TIER 2: HIGH-THROUGHPUT DRAFTING (Cost-Efficient)
+        if (activeKeys.SambaNova) {
+            this.pool.push({ name: 'SambaNova', fn: generateSambaNovaContent, tier: 2, roles: ['draft'], match: /sambanova|node-draft/i });
+        }
+        if (activeKeys.Ollama) {
+            this.pool.push({ 
+                name: 'Ollama-Local', 
+                fn: (p, m, c) => generateOllamaContent(p, m, { ...c, targetHost: activeKeys.Ollama }), 
+                tier: 1, 
+                roles: ['research', 'edit', 'manager', 'draft', 'audit', 'utility'], 
+                match: /ollama|local|research|edit|manager|draft|audit/i 
+            }); 
+        }
+        const ollamaProdUrl = activeKeys.OllamaProd || process.env.OLLAMA_PROD_URL;
+        if (ollamaProdUrl && !isPlaceholder(ollamaProdUrl)) {
+             this.pool.push({ 
+                name: 'Ollama-Prod', 
+                fn: (p, m, c) => generateOllamaContent(p, m, { ...c, targetHost: ollamaProdUrl, targetKey: process.env.OLLAMA_PROD_KEY }), 
+                tier: 2, 
+                roles: ['research', 'edit', 'manager', 'draft', 'audit', 'utility'],
+                match: /ollama-prod|remote|research|edit|manager|draft|audit/i 
+            });
+        }
+
+        // TIER 3: RESILIENCE FALLBACKS
+        if (activeKeys.Cloudflare) {
+             this.pool.push({ name: 'Cloudflare', fn: generateCloudflareContent, tier: 3, roles: ['utility'], match: /cloudflare|node-utility/i }); 
+        }
+        if (activeKeys.HuggingFace) {
+             this.pool.push({ name: 'HuggingFace', fn: generateHuggingFaceContent, tier: 3, roles: ['utility'], match: /huggingface|hf|node-utility/i });
+        }
+        if (activeKeys.Groq) {
+            this.pool.push({ name: 'Groq', fn: generateGroqContent, tier: 3, roles: ['draft'], match: /groq|node-draft/i });
+        }
+        if (activeKeys.OpenRouter) {
+            this.pool.push({ name: 'OpenRouter', fn: generateOpenRouterContent, tier: 3, roles: ['utility'], match: /openrouter|node-utility/i });
+        }
         
         this.pool.forEach(p => this.inflight.set(p.name, 0));
-        console.log(`🌐 [AI-Balancer] Pool initialized with ${this.pool.length} providers.`);
+        console.log(`🌐 [AI-Balancer] V5.4.1 Pool initialized (${this.pool.length} nodes): ${this.pool.map(p => p.name).join(', ')}`);
+        
+        // Institutional Telemetry: Audit Pool State
+        try {
+            pushTelemetryLog("SWARM_AI_POOL_V2_INITIALIZED", {
+                status: "success",
+                nodeCount: this.pool.length,
+                capabilities: {
+                    research: this.pool.filter(p => p.roles?.includes('research')).length,
+                    draft: this.pool.filter(p => p.roles?.includes('draft')).length,
+                    audit: this.pool.filter(p => p.roles?.includes('audit')).length
+                }
+            }, env);
+        } catch (e) {}
     },
 
-    getAvailable(seed = 0, requestedModel = null) {
+    getAvailable(seed = 0, requestedModel = null, context = {}) {
         const now = Date.now();
         let candidates = this.pool.filter(p => {
-            if (this.failed.has(p.name)) return false;
+            if (this.failed.has(p.name)) {
+                console.log(`🚫 [AI-Balancer] Skipping blacklisted node: ${p.name}`);
+                return false;
+            }
             const cooldown = this.cooldowns.get(p.name);
-            if (cooldown && now < cooldown) return false;
+            if (cooldown && now < cooldown) { 
+                console.log(`⏳ [AI-Balancer] Skipping node on cooldown (${Math.ceil((cooldown - now)/1000)}s): ${p.name}`);
+                return false;
+            }
             return true;
         });
 
         if (candidates.length === 0) return null;
 
-        // MARCH 2026 UPDATE: Model-Aware Priority
-        // If a specific model or provider hint is in the requested model name, 
-        // filter candidates to only those that match.
-        if (requestedModel) {
-            const explicitMatches = candidates.filter(p => p.match && p.match.test(requestedModel));
-            if (explicitMatches.length > 0) {
-                candidates = explicitMatches;
+        // MARCH 2026 UPDATE: Model & Role-Aware Priority
+        if (requestedModel || context?.role) {
+            const requestedRole = context.role?.replace('node-', ''); // Normalize persona to capability
+            const matches = candidates.filter(p => {
+                const modelMatch = requestedModel ? (p.match && p.match.test(requestedModel)) : true;
+                const roleMatch = requestedRole ? (p.roles && p.roles.includes(requestedRole)) : true;
+                return modelMatch && roleMatch;
+            });
+            if (matches.length > 0) {
+                candidates = matches;
             }
         }
+        console.log(`🔍 [AI-Balancer] Candidates for ${context?.role || 'generic'}/${requestedModel || 'any'}: ${candidates.map(p => p.name).join(', ')}`);
 
         candidates.sort((a, b) => {
             const infA = this.inflight.get(a.name);
@@ -736,44 +928,64 @@ const ResourceManager = {
     }
 };
 
+/**
+ * V7.1: Institutional Role-Based Semantic Dispatcher
+ * Implements Local-First Cascade and Semantic Compression.
+ */
 export async function askAI(prompt, options = {}) {
-    const { role = 'generate', model, env = {}, seed = 0 } = options;
+    const env = options.env || process.env;
+    if (env.DRY_RUN) {
+        console.log("🕵️ [DRY-RUN] Globally bypassing AI tier for institutional verification.");
+        return "[DRY-RUN MOCK CONTENT]: Strategic Institutional synthesis for BlogsPro 5.0. No AI tokens consumed.";
+    }
+    const { role = 'generate', model, env: envOpt = {}, seed = 0, frequency = 'hourly', _retry = 0 } = options;
     
-    // MARCH 2026: Persistence check — Only init if pool is empty
+    // 1. Semantic Model Mapping (M1-8GB Hardware Transition)
+    let targetModel = model;
+    if (role === 'node-audit') targetModel = 'llama3.1:latest'; // M1 Optimization: 8B instead of 70B
+    if (role === 'node-research') targetModel = 'llama3.1:latest'; // M1 Optimization: 8B instead of 70B
+    if (role === 'node-draft') targetModel = 'llama3.1:latest';
+
+    // 2. Cascade Logic (User Override: Local-First)
+    if (role === 'node-research' || role === 'node-audit') {
+        try {
+            return await generateLocalCascade(prompt, targetModel, { role, env });
+        } catch (e) {
+            console.log(`🔄 [Cascade-Fallback] Local models (Ollama/LM) exhausted. Rotating to Tier 1 Cloud...`);
+        }
+    }
+
+    // 3. Optional: Semantic Compression for Telemetry
+    if (role === 'compress') {
+        const compressedPrompt = `COMPRESS the following reasoning trace into a 250-word Semantic Summary preserving strategic decisions. DO NOT include raw tokens:\n\n${prompt}`;
+        return await generateGeminiContent(compressedPrompt, "gemini-1.5-flash", { env });
+    }
+
     if (ResourceManager.pool.length === 0) {
         ResourceManager.init(env);
     }
     
-    const provider = ResourceManager.getAvailable(seed, model);
+    // [V5.4.1] Role-Aware Dispatch
+    const provider = ResourceManager.getAvailable(seed, targetModel, { role: role });
     if (!provider) throw new Error("No available AI providers found.");
 
-    ResourceManager.inflight.set(provider.name, ResourceManager.inflight.get(provider.name) + 1);
-    console.log(`📝 [AI] Request: Role=${role} [Seed=${seed}]`);
-    console.log(`🚀 [AI-Balancer] Dispatching to ${provider.name} (In-flight: ${ResourceManager.inflight.get(provider.name)})`);
+    ResourceManager.inflight.set(provider.name, (ResourceManager.inflight.get(provider.name) || 0) + 1);
+    console.log(`🚀 [AI-Balancer] Dispatching to ${provider.name} (Role: ${role}, Retry: ${_retry}, Seed: ${seed})`);
 
     try {
-        const response = await provider.fn(prompt, model, env); // Pass context bridge
-        
-        if (isEcho(response)) {
-            throw new Error(`ECHO_DETECTED: ${provider.name} echoed the prompt.`);
-        }
+        const response = await provider.fn(prompt, targetModel, env);
+        if (isEcho(response)) throw new Error(`ECHO_DETECTED: ${provider.name} echoed the prompt.`);
 
-        ResourceManager.inflight.set(provider.name, ResourceManager.inflight.get(provider.name) - 1);
+        const currentInp = ResourceManager.inflight.get(provider.name);
+        if (currentInp > 0) ResourceManager.inflight.set(provider.name, currentInp - 1);
         return response;
     } catch (err) {
         console.error(`❌ [AI-Balancer] ${provider.name} failed: ${err.message}`);
         ResourceManager.markFailure(provider.name, err.message);
         
-        // Dynamic Failover Rotation (Max Retries: 5)
-        if (seed >= 5) {
-            console.error(`🚨 [AI-Balancer] Max retries exhausted for role: ${role}. Failing...`);
-            throw new Error(`AI_FLEET_EXHAUSTED: ${err.message}`);
-        }
-
-        console.log(`🔄 [AI-Balancer] Initiating failover for role: ${role} [Retry ${seed + 1}/5]...`);
-        return askAI(prompt, { ...options, seed: seed + 1 });
+        if (_retry >= 5) throw new Error(`AI_FLEET_EXHAUSTED: ${err.message}`);
+        return askAI(prompt, { ...options, _retry: _retry + 1 });
     }
 }
 
-// Simplified ESM export
 export default { askAI };

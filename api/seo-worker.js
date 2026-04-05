@@ -1,3 +1,5 @@
+import { getGoogleAccessToken, pushTelemetryLog } from "../scripts/lib/storage-bridge.js";
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -22,8 +24,13 @@ export default {
 
     try {
       // 2. Query Firestore REST API for the specific post data
-      const firebaseUrl = `https://firestore.googleapis.com/v1/projects/blogspro-ai/databases/(default)/documents/posts/${postId}`;
-      const dbRes = await fetch(firebaseUrl);
+      const firebaseUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/posts/${postId}`;
+      
+      const token = await getGoogleAccessToken(env);
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const dbRes = await fetch(firebaseUrl, { headers });
 
       if (dbRes.ok) {
         const data = await dbRes.json();
@@ -60,6 +67,14 @@ export default {
           `;
           
           html = html.replace('</head>', `${metaTags}\n</head>`);
+
+          // 🚀 Institutional Telemetry
+          ctx.waitUntil(pushTelemetryLog("SEO_HYDRATION", {
+            frequency: "pulse",
+            status: "success",
+            message: `Hydrated SEO for post: ${postId}`,
+            details: { title }
+          }, env));
         }
       }
     } catch (e) {

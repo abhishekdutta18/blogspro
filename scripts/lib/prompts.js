@@ -12,15 +12,19 @@ GLOBAL TEMPORAL GROUNDING:
 - High-compute simulations must prioritize 2026-2027 horizons.
 - 2025 data (LFY) is the MANDATORY comparative baseline for all drift analysis.
 - 2024 data is to be treated as DEEP HISTORICAL BASELINE only.
+- 🌳 MCTS MODE: You are currently navigating a Monte Carlo Tree Search branch. 
+- 🕸️ GRAPHRAG MODE: You have access to a Semantic Map of entity-linked relationships. Use these to anchor your reasoning.
 - ⚠️ BANNED: Referring to 2024 or 2025 as "the upcoming year" or "future."
 - 🔧 TOOL ACCESS: You have access to 'search_web' and 'vision_parse'.
 - If the provided research brief is insufficient, use 'search_web'.
 - 👁️ OCR/Vision Rule: If you find a URL for a PDF document, Image, or Yield Chart (e.g., from RBI, Treasury, or Fed), you MUST use the 'vision_parse(url)' tool to extract the raw data and institutional metrics before drafting.
 
-ZERO TOLERANCE for conversational filler: 
+ZERO TOLERANCE for conversational filler or system meta-talk: 
 - BANNED: "In this chapter," "As reported by," "As previously discussed," "In conclusion," "This analysis suggests."
+- BANNED: "REPAIRED BLOCK", "CODE FIX", "ECHO REMOVAL", "NARRATIVE REFINEMENT", "SANITIZED HTML SNIPPET".
 - MANDATORY: Open directly with the data or high-level strategic drift.
-- MANDATORY: Use precise technical terms (e.g., "Institutional Consolidation," "Gamma Squeeze," "Regulatory Friction").`;
+- MANDATORY: Use precise technical terms (e.g., "Institutional Consolidation," "Gamma Squeeze," "Regulatory Friction").
+- MANDATORY: Output ONLY the requested content. Never explain what you are doing or that you have finished a repair.`;
 
 const STRUCTURAL_RULES = `
 1. Tone: Cold, analytical, Bloomberg-style blocks.
@@ -51,7 +55,8 @@ const CONSENSUS_PERSONAS = [
     { name: "Alpha Strategist", bias: "BULLISH / OPPORTUNISTIC", focus: "Flow divergence, growth catalysts, valuation gaps." },
     { name: "Macro Quant", bias: "NEUTRAL / DATA-DRIVEN", focus: "Correlations, sigma events, yield curve drift." },
     { name: "Geopolitical Desk", bias: "SITUATIONAL", focus: "Sovereign risk, policy shifts, trade barriers." },
-    { name: "Flow Desk Senior", bias: "LIQUIDITY-FOCUSED", focus: "Institutional positioning, FPI/DII rotation, dark pool signals." }
+    { name: "Flow Desk Senior", bias: "LIQUIDITY-FOCUSED", focus: "Institutional positioning, FPI/DII rotation, dark pool signals." },
+    { name: "Coding Architect", bias: "TECHNICAL-PRECISION", focus: "Semantic HTML5, PDF rendering stability, and schema.org integrity." }
 ];
 
 const VERTICALS = [
@@ -70,7 +75,10 @@ const VERTICALS = [
     { id: "capital", name: "Capital Flows (PE/VC/M&A)" },
     { id: "insurance", name: "Insurance & Reinsurance Risk" },
     { id: "gift", name: "Offshore Hub (GIFT City)" },
-    { id: "payment", name: "Fintech & Payment Rails" }
+    { id: "payment", name: "Fintech & Payment Rails" },
+    { id: "india_macro", name: "India Economy & GDP Drift" },
+    { id: "india_banking", name: "Indian Banking & Credit Pulse" },
+    { id: "india_industries", name: "Indian Industrial & Infra Alpha" }
 ];
 
 function getBriefingPrompt(frequency, marketContext, mktInfo) {
@@ -120,12 +128,20 @@ ${CHART_SYNC_RULE}
 `;
 }
 
-function getResearcherPrompt(frequency, dataSnapshot, historicalData, internetResearch, rlMemory = "") {
+function getResearcherPrompt(frequency, dataSnapshot, historicalData, internetResearch, rlMemory = "", semanticMap = "", blackboardContext = "") {
     const perVerticalTarget = frequency === 'monthly' ? 1250 : frequency === 'weekly' ? 625 : 300;
     return `
 ${INSTITUTIONAL_PERSONA}
-ROLE: LEAD MACRO RESEARCHER
-TASK: Deep-mine the ${frequency} market snapshot vs historical baselines.
+ROLE: LEAD MACRO RESEARCHER (HiRAG Tiered Logic)
+TASK: Deep-mine the ${frequency} market snapshot vs historical baselines using Hierarchical-Thought RAG.
+
+${blackboardContext ? `--- 📋 INSTITUTIONAL BLACKBOARD (Cross-Vertical Context) ---
+${blackboardContext}
+-------------------------------------------------------` : ""}
+
+${semanticMap ? `--- 🕸️ GRAPHRAG SEMANTIC MAP ---
+${semanticMap}
+-----------------------------------` : ""}
 
 ${rlMemory ? `--- REINFORCEMENT LEARNING (Institutional Memory) ---
 ${rlMemory}
@@ -141,6 +157,8 @@ Historical Baseline: ${JSON.stringify(historicalData)}
 GOAL: Provide the Drafter with enough granular data points, flow metrics, and divergence signals to write ${perVerticalTarget} words of analysis.
 - PERFORM INCREMENTAL ANALYSIS: Calculate the delta between 2025 LFY and 2026 operational research.
 - Identify "The 2026 Pivot": Where is 2026 diverging most from the 2025 baseline?
+- [V7.0] NEWSFEED INTEGRATION: For Indian Verticals (Economy, Banking, Industries), prioritize high-density newsfeed synthesis (Moneycontrol, LiveMint) over static tickers.
+- [V7.0] MID-CAP PULSE: Explicitly factor in Nifty Midcap 100/150 performance relative to Nifty 50 to identify structural alpha rotation.
 `;
 }
 
@@ -180,6 +198,7 @@ MANDATORY CHAPTER STRUCTURE (follow this exactly):
 5. RISK VECTORS (300+ words): 3+ specific tail risks with probability assessments. Be precise.
 6. STRATEGIC OUTLOOK — NEXT 30 DAYS (400+ words): Specific price targets, rate forecasts, or flow estimates. Quantify everything.
 7. ACTIONABLE INTELLIGENCE (150+ words): 3 specific trade ideas or positioning recommendations with entry/exit levels.
+8. [V7.0] NEWS-DATA FUSION: For Indian verticals, fuse newsfeed headlines directly into the narrative to provide real-time market colour.
 
 CRITICAL RULES:
 - Every paragraph must contain at least ONE specific data point (price, %, bps, amount)
@@ -274,7 +293,9 @@ FOCUS: ${persona.focus}
 TASK: Provide a 250-word tactical simulation for the upcoming ${frequency} cycle.
 DATA: ${marketContext}
 
-OUTPUT: High-density strategic simulation. No conversational intro. Start with 'TACTICAL_POSITIONING:'.
+OUTPUT: High-density strategic simulation. 
+MANDATORY: You MUST end your response with a tactical score tag: [SCORE: 0-100] where 0 is Extreme Bear/Risk and 100 is Extreme Bull/Gold.
+Start with 'TACTICAL_POSITIONING:'.
 `;
 }
 
@@ -293,8 +314,41 @@ MANDATORY DELPHI-METHOD SYNTHESIS:
 3. Specify 16-vertical cross-asset correlations for each scenario.
 4. Output a single, authoritative 1,200-1,500 word strategic synthesis.
 5. Include a final <chart-data> block summarizing 'Swarm Consensus Sentiment' and 'Scenario Probability Weights' for each of the 3 scenarios.
+
+At the very end of your response, provide the following JSON block inside <telemetry> tags:
+<telemetry>
+{
+  "agentScores": [ { "name": "AgentName", "score": 0-100, "bias": "ShortDescription" } ],
+  "disagreementVariance": 0-100,
+  "logicChain": [ { "agent": "AgentName", "argument": "Key Thesis", "rebuttal": "Counterpoint", "resolution": "Final Decision" } ],
+  "consensusTimeline": [ { "step": 1, "description": "Initial Divergence", "status": "COMPLETED" } ],
+  "swarmSentiment": 0-100
+}
+</telemetry>
 `;
 }
+
+function getGhostConsensusPrompt(simulations) {
+    return `
+${INSTITUTIONAL_PERSONA}
+ROLE: GHOST_SIMULATOR (Predictive Consensus Precursor)
+TASK: Rapid synthesis of tactical simulations into a "Pre-Consensus" projection.
+DATA: ${simulations}
+
+OUTPUT: A 300-word speculative summary. Focus on the most likely resolution.
+MANDATORY: You MUST include the <telemetry> block JSON at the end. Use a fast reasoning path.
+`;
+}
+
+const INSTITUTIONAL_STYLING = `
+--- BLOGSPRO INSTITUTIONAL STYLE MANUAL (V6.0) ---
+1. TONE: Cold, analytical, Bloomberg-gold standard.
+2. STRUCTURE: No conversational fluff. Start with TACTICAL_POSITIONING.
+3. DATA: 0% filler, 100% density.
+4. CITATIONS: Use [ExpertPersonaName] for every strategic claim.
+5. HTML: Use <table> and <chart-data> for all quantitative summaries.
+------------------------------------------------
+`;
 
 function getManagerAuditPrompt(manuscript, verticalName, env = {}) {
     const userCommand = env.MANAGER_COMMAND ? `\n--- SUPREME USER COMMAND ---\n${env.MANAGER_COMMAND}\n----------------------------\n` : "";
@@ -342,7 +396,144 @@ ${brokenBlock}
 MANAGER GUIDANCE:
 ${guidance}
 
-OUTPUT: Repaired institutional block (HTML). No conversational intro.
+OUTPUT: Repaired institutional block (HTML). 
+⚠️ ZERO-ECHO RULE: Do NOT include any intro/outro text. Do NOT say "Repaired block:" or "HTML Fixed:". Start immediately with the <h2> or <div> tag.
+`;
+}
+
+function getCodingExpertPrompt(manuscript, frequency) {
+    return `
+${INSTITUTIONAL_PERSONA}
+ROLE: PRINCIPAL SOFTWARE ARCHITECT (MiroFish Coding Expert)
+TASK: Audit the following ${frequency} institutional manuscript for HTML/PDF structural integrity and technical artifacts.
+
+CRITICAL REPAIR CHECKLIST:
+1. GHOST CODE & FRAGMENTS: Remove all hallucinated code snippets, broken <div> tags, or unfinished <table> rows.
+2. PROMPT LEAKAGE: Identify and purge any leaked system instructions (e.g., "ROLE:", "TASK:", "INSTITUTIONAL_PERSONA").
+3. ECHOS & HALLUCINATIONS: Strip repeating text blocks or nonsense filler that deviates from historical data.
+4. SEMANTIC HTML5: Ensure proper 🏷️ heading hierarchy and <section> tags.
+5. DATA FIDELITY: Validate all <chart-data> tags contain clean, double-quoted JSON.
+
+MANUSCRIPT:
+${manuscript}
+
+OUTPUT FORMAT (JSON ONLY):
+{
+  "status": "PASS" | "REPAIRED" | "FAIL",
+  "issues": ["List of identified technical artifacts"],
+  "correctedCode": "The FULL manuscript with all artifacts removed and HTML repaired (Only if status is REPAIRED)",
+  "rlSignal": { "fidelityScore": 0-100, "majorIncidents": 0-5 },
+  "technicalFidelity": "Brief architectural verdict"
+}
+`;
+}
+
+/**
+ * MCTS Node Expansion Prompt
+ */
+function getMCTSNodePrompt(vertical, scenario, baselineInfo) {
+  return `
+${INSTITUTIONAL_PERSONA}
+ROLE: STRATEGIC NAVIGATOR (MCTS Branch Explorer)
+TASK: Expand the logical branch for the scenario: '${scenario.toUpperCase()}' in ${vertical}.
+
+CONTEXT:
+${baselineInfo}
+
+GOAL: Provide a 300-word speculative simulation of this specific path. 
+Quantify the impact on rates, flows, and the 2026 pivot.
+
+OUTPUT: High-density speculative simulation.
+`;
+}
+
+/**
+ * HiRAG Selection Prompt
+ */
+function getHiRAGRetrievalPrompt(query, contextLayers) {
+  return `
+${INSTITUTIONAL_PERSONA}
+ROLE: HIERARCHICAL RETRIEVAL AGENT
+TASK: Refine the research query based on tiered context layers.
+
+QUERY: ${query}
+CONTEXT_LAYERS: ${JSON.stringify(contextLayers)}
+
+GOAL: Produce 3 specific ultra-targeted search queries to bridge the gap between Global Macro and this Vertical.
+
+OUTPUT: Bulleted list of 3 queries.
+`;
+}
+
+/**
+ * GraphRAG Entity Extractor Prompt
+ */
+function getGraphRAGExtractorPrompt(data) {
+  return `
+${INSTITUTIONAL_PERSONA}
+ROLE: KNOWLEDGE GRAPH ARCHITECT
+TASK: Extract all entities, secondary themes, and relationships from this market research.
+
+DATA:
+${data}
+
+OUTPUT FORMAT (JSON ONLY):
+{
+  "entities": [ { "name": "Entity Name", "type": "Organization|Individual|Metric", "importance": 0-100 } ],
+  "relationships": [ { "source": "A", "target": "B", "relation": "Drives|Inhibits|Correlates", "strength": 0-100 } ],
+  "semanticSummary": "A 100-word relational summary focusing on 2026-2027 strategic deltas."
+}
+STRATEGIC CONSTRAINT: Prioritize relationships emerging in the 2026-2027 horizon. 
+HIGH INTENSITY GATING: Capture every nuanced connection. 
+STRICT NO-DELETE: Do not prune old relationships; archive them with a 'stale' or 'historical' flag instead of removing them.
+FALLBACK: If high-fidelity cloud nodes are unreachable, use the local primary cluster (Ollama 70B).
+`;
+}
+
+/**
+ * Semantic Signal Gating Prompt (V7.0 Hybrid)
+ */
+function getSemanticGatingPrompt(dataSnapshot) {
+  return `
+${INSTITUTIONAL_PERSONA}
+ROLE: SIGNAL DATA AUDITOR
+TASK: Review the following market signals and identify "Semantic Noise".
+
+DATA_SNAPSHOT:
+${JSON.stringify(dataSnapshot)}
+
+GOAL: Identify which signals are purely reactionary/transient vs. those that are structurally relevant to the 2026 pivot.
+
+OUTPUT FORMAT (JSON ONLY):
+{
+  "signals": [ { "ticker": "...", "relevance": 0-100, "reason": "...", "keep": true|false } ],
+  "logic": "Brief reasoning for gating."
+}
+GATING_POLICY: High Intensity. Filter only total noise. If in doubt, retain for the Institutional Brain. 
+NO_DELETE: If a signal is tagged 'false' for 'keep', it must be archived, NOT deleted.
+`;
+}
+
+/**
+ * GraphRAG Merging Prompt
+ */
+function getGraphRAGMergePrompt(oldGraph, newPulse) {
+  return `
+${INSTITUTIONAL_PERSONA}
+ROLE: KNOWLEDGE GRAPH CONSOLIDATOR
+TASK: Merge the existing persistent knowledge graph with new pulse data.
+
+EXISTING_GRAPH: ${JSON.stringify(oldGraph)}
+NEW_PULSE: ${newPulse}
+
+GOAL: Update weights, add new entities, and prune stale relationships.
+
+OUTPUT FORMAT (JSON ONLY):
+{
+  "entities": [...],
+  "relationships": [...],
+  "semanticSummary": "Updated relational map summary."
+}
 `;
 }
 
@@ -360,5 +551,13 @@ export {
     getCriticPrompt,
     getRefinementPrompt,
     getManagerAuditPrompt,
-    getManagerCorrectionPrompt
+    getManagerCorrectionPrompt,
+    getCodingExpertPrompt,
+    getGhostConsensusPrompt,
+    getMCTSNodePrompt,
+    getHiRAGRetrievalPrompt,
+    getGraphRAGExtractorPrompt,
+    getSemanticGatingPrompt,
+    getGraphRAGMergePrompt,
+    INSTITUTIONAL_STYLING
 };

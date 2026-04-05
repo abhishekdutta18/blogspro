@@ -1,9 +1,4 @@
-/**
- * BlogsPro Reinforcement Learning System (Serverless Version)
- * ==========================================================
- * Aggregates all quality events into Cloudflare KV ledger.
- */
-
+import admin from 'firebase-admin';
 import { initFirebase } from './firebase-service.js';
 
 const MAX_ENTRIES = 500;

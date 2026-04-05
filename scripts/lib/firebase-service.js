@@ -90,3 +90,84 @@ export async function downloadFromStorage(fileName) {
         throw error;
     }
 }
+/**
+ * Push a telemetry log to Firestore
+ * @param {string} eventName 
+ * @param {object} data 
+ * @param {object} env 
+ */
+export async function pushTelemetryLog(eventName, data = {}, env = {}) {
+    const { db } = initFirebase();
+    if (!db) return;
+
+    try {
+        const docRef = db.collection('swarm_telemetry').doc();
+        await docRef.set({
+            event: eventName,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            data: data,
+            environment: {
+                node: process.version,
+                platform: process.platform,
+                os: process.release?.name || 'unknown'
+            }
+        });
+        console.log(`📡 [Telemetry] Logged ${eventName} to Firestore.`);
+    } catch (error) {
+        console.warn(`⚠️ [Telemetry] Failed to push log: ${error.message}`);
+    }
+}
+
+/**
+ * Save a manuscript for human review (Phase 8 HIL)
+ * @param {object} auditData 
+ */
+export async function savePendingAudit(auditData) {
+    const { db } = initFirebase();
+    if (!db) throw new Error("Firestore not initialized");
+
+    const docId = auditData.jobId || `audit-${Date.now()}`;
+    const docRef = db.collection('pending_audits').doc(docId);
+    
+    await docRef.set({
+        ...auditData,
+        status: 'PENDING',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    
+    console.log(`📡 [HIL] Manuscript saved to 'pending_audits' as: ${docId}`);
+    return docId;
+}
+
+/**
+ * Get all pending audits for the HIL Station
+ */
+export async function getPendingAudits() {
+    const { db } = initFirebase();
+    if (!db) return [];
+
+    const snapshot = await db.collection('pending_audits')
+        .where('status', '==', 'PENDING')
+        .orderBy('createdAt', 'desc')
+        .get();
+
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+/**
+ * Update the status of a pending audit
+ */
+export async function updateAuditStatus(docId, status, feedback = "") {
+    const { db } = initFirebase();
+    if (!db) return;
+
+    const docRef = db.collection('pending_audits').doc(docId);
+    await docRef.update({
+        status,
+        feedback,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    
+    console.log(`✅ [HIL] Audit ${docId} updated to: ${status}`);
+}

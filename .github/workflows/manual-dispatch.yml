@@ -138,6 +138,13 @@ jobs:
           fi
 
           FORCE_FLAG="${{ github.event.inputs.force == 'true' && '--force' || '' }}"
+          
+          # V5.4: Strategic Bridge Detection (ngrok local cluster)
+          if [ -n "${{ secrets.NGROK_REMOTE_URL }}" ] || [ -n "$NGROK_REMOTE_URL" ]; then
+            echo "📡 Institutional Cluster Detected via Strategic Bridge."
+            export OLLAMA_PROD_URL="${NGROK_REMOTE_URL:-${{ secrets.NGROK_REMOTE_URL }}}"
+          fi
+
           echo "🚀 Executing Swarm Vertical: $FREQ"
           
           if [ "$FREQ" == "hourly" ] || [ "$FREQ" == "daily" ]; then

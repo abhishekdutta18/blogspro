@@ -1,0 +1,11 @@
+file:///Users/nandadulaldutta/Documents/New%20project/blogspro/test-auth-bridge.mjs:7
+    FIREBASE_SERVICE_ACCOUNT: fs.readFileSync('.env', 'utf8').split('FIREBASE_SERVICE_ACCOUNT=')[1].trim().replace(/^'|'$/g, '')
+                                                                                                   ^
+
+TypeError: Cannot read properties of undefined (reading 'trim')
+    at file:///Users/nandadulaldutta/Documents/New%20project/blogspro/test-auth-bridge.mjs:7:100
+    at ModuleJob.run (node:internal/modules/esm/module_job:430:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:639:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v25.8.1

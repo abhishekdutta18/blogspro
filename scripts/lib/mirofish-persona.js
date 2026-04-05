@@ -1,4 +1,5 @@
 import { askAI } from "./ai-service.js";
+import { pushTelemetryLog } from "./storage-bridge.js";
 
 /**
  * MiroFish AI-Persona Swarm (Serverless V4.0)
@@ -17,7 +18,8 @@ const MIROFISH_SWARM_PERSONAS = [
   { id: "risk", role: "Stress-Test Manager", focus: "Liquidity VaR and counterparty solvency" },
   { id: "retail", role: "Sentiment & Flow Analyst", focus: "MF inflows and retail euphoria/capitulation" },
   { id: "gift", role: "Offshore Hub Specialist", focus: "GIFT City arbitrage and basis compression" },
-  { id: "fintech", role: "Digital Rails Analyst", focus: "UPI, Cards, and Payment ecosystem throughput" }
+  { id: "fintech", role: "Digital Rails Analyst", focus: "UPI, Cards, and Payment ecosystem throughput" },
+  { id: "coder", role: "Principal Software Architect", focus: "Semantic HTML5, CSS layout stability, and PDF rendering compatibility" }
 ];
 
 const MIROFISH_PROTOCOL = `
@@ -25,8 +27,8 @@ You are the MiroFish Institutional Consensus Engine.
 MISSION: Conduct a simulated 10-Agent swarm review to identify strategic alpha.
 
 PROCEDURE:
-1. INTERNAL DEBATE: Each of the 10 following agents must critique the market pulse:
-   - Bull, Bear, Macro, Quant, Geopolitical, CIO, Risk, Retail, GIFT City, and Fintech.
+1. INTERNAL DEBATE: Each of the 11 following agents must critique the market pulse:
+   - Bull, Bear, Macro, Quant, Geopolitical, CIO, Risk, Retail, GIFT City, Fintech, and Coder.
 2. CONSENSUS FILTER: Aggregate their findings into a single 'MiroFish Strategic Outlook'.
 
 OUTPUT FORMAT:
@@ -35,7 +37,7 @@ OUTPUT FORMAT:
 - FORECAST: (authoritative, high-density terminal briefing block)
 `;
 
-async function generateMiroForecast(marketContext, env = null) {
+async function generateMiroForecast(marketContext, env = null, ctx = null) {
   console.log("🚀 [MiroFish 4.0] Executing 10-Agent Consensus Swarm...");
   
   const prompt = `
@@ -51,8 +53,17 @@ Generate the final consolidated forecast now. Be cold, authoritative, and data-d
     const result = await askAI(prompt, { 
       role: 'generate', 
       env,
-      model: 'claude-3.5-sonnet' // Preference for nuanced consensus simulation
+      model: 'node-research' // Utilization of high-fidelity institutional terminal (Cerebras/Gemini)
     });
+    
+    if (ctx) {
+        ctx.waitUntil(pushTelemetryLog("PERSONA_ALIGNMENT", {
+            frequency: "pulse",
+            status: "success",
+            message: `Consensus swarm complete for market context.`,
+            details: { contextLength: marketContext.length }
+        }, env));
+    }
     
     return result;
   } catch (e) {
