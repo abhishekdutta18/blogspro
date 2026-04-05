@@ -9,7 +9,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@ai-sdk/google": "^1.1.0",
+    "@ai-sdk/google": "^3.0.58",
     "@ai-sdk/openai": "^1.1.0",
     "@aws-sdk/client-s3": "^3.1022.0",
     "@cerebras/cerebras_cloud_sdk": "^1.64.1",
