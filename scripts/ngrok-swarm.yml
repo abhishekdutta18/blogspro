@@ -1,5 +1,5 @@
 version: "2"
-authtoken: 3BqLduM9MgIJGYawd84LdEHGeFq_21FmXVX46fbFH77kSzkfB
+authtoken: ${NGROK_AUTHTOKEN}
 web_addr: localhost:4040
 tunnels:
   ollama-prod:

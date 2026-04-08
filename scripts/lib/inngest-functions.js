@@ -166,18 +166,52 @@ export const pulseSwarmWorkflow = inngest.createFunction(
         return await finalizeManuscript(allChapterContents, consensusSummary, frequency, type, { ...env, INNGEST: true }, runtimeId);
       });
 
-      // --- HIL GATE (V8.5) ---
-      // Transition from blocking polling to serverless event-wait
+      // --- HIL / REFINEMENT GATE (V8.6) ---
+      let finalManuscript = finalResult.final;
+
       if (env.HIL) {
-        await step.waitForEvent("swarm/manuscript.approved", {
-            timeout: "60m",
-            match: "data.jobId === event.data.jobId"
-        });
-        await notifyProgress(env, runtimeId, { stage: "HIL_APPROVED", message: "Institutional consensus received via serverless relay." });
+        let approved = false;
+        let iteration = 0;
+        const MAX_REFINEMENTS = 3;
+
+        while (!approved && iteration < MAX_REFINEMENTS) {
+          // Durable wait for either Approval or Refinement Request
+          const hilEvent = await step.waitForEvent("wait-for-hil-decision", {
+            event: ["swarm/manuscript.approved", "swarm/manuscript.refine_requested"],
+            timeout: "24h",
+            match: (event, data) => event.data.jobId === data.jobId,
+            data: { jobId: runtimeId }
+          });
+
+          if (hilEvent.name === "swarm/manuscript.approved") {
+            approved = true;
+            await notifyProgress(env, runtimeId, { 
+              stage: "HIL_APPROVED", 
+              message: "Institutional consensus received. Proceeding to audit." 
+            });
+          } else {
+            iteration++;
+            const feedback = hilEvent.data.feedback || "Institutional refinement requested.";
+            
+            // Execute specialized refinement pass
+            finalManuscript = await step.run(`refine-manuscript-iter-${iteration}`, async () => {
+              const { applyHumanRefinement } = await import("./swarm-orchestrator.js");
+              return await applyHumanRefinement(finalManuscript, feedback, env, runtimeId);
+            });
+
+            await notifyProgress(env, runtimeId, { 
+              stage: "REFINED", 
+              message: `Refinement pass ${iteration} complete. Re-waiting for consensus...` 
+            });
+          }
+        }
+
+        if (!approved) {
+          throw new Error(`HIL_REFINEMENT_LIMIT: Reached max iterations (${MAX_REFINEMENTS}) without approval.`);
+        }
       }
 
       // 4b. CODING AUDIT (MiroFish Expert Review & Auto-Repair)
-      let finalManuscript = finalResult.final;
       const codingVerdict = await step.run("coding-audit", async () => {
         await notifyProgress(env, runtimeId, { stage: "AUDIT", message: "Executing Principal Architect Infrastructure Review..." });
         const res = await askAI(getCodingExpertPrompt(finalManuscript, frequency), { 

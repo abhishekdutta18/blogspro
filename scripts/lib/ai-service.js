@@ -754,9 +754,14 @@ async function generateQwenContent(prompt, model = "qwen-2.5-72b-instruct", cont
 // --- INSTITUTIONAL AI RESOURCE MANAGER ---
 export const ResourceManager = {
     pool: [],
+    runCount: 0,
     inflight: new Map(),
-    cooldowns: new Map(),
-    failed: new Set(),
+    cooldowns: new Map(), // Rate-limit cooldowns (Short-term)
+    failed: new Set(),    // Terminal blacklisted nodes
+    failedAt: new Map(),  // Timestamp of terminal failure for self-healing
+    
+    // BlogsPro V5.4.1 Resilience Tuning
+    RECOVERY_TTL: 3600000, // 60 minutes self-healing threshold
     
     init(env = {}, forceRefresh = false) {
         if (this.pool.length > 0 && !forceRefresh) return;
@@ -770,29 +775,32 @@ export const ResourceManager = {
         
         const isPlaceholder = (k) => !k || k.includes('1_2_3_4_5') || k.includes('AIzaSyA_J0') || k.length < 15;
         
-        const sanitize = (val) => {
+        const sanitize = (val, nodeName = null) => {
             if (!val || typeof val !== 'string') return null;
             // Clean non-printable/control chars and trim
             const cleaned = val.replace(/[^\x20-\x7E]/g, '').trim();
-            if (isPlaceholder(cleaned)) return null;
+            if (isPlaceholder(cleaned)) {
+                if (nodeName) console.warn(`🚫 [AI-Balancer] Node "${nodeName}" inactive: Placeholder Key Detected.`);
+                return null;
+            }
             return cleaned;
         };
 
         const activeKeys = {
-            Groq: sanitize(env.GROQ_API_KEY || process.env.GROQ_API_KEY || process.env.GROQ_KEY),
-            Gemini: sanitize(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY),
-            OpenRouter: sanitize(env.OPENROUTER_KEY || process.env.OPENROUTER_KEY),
-            Mistral: sanitize(env.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY || process.env.MISTRAL_KEY),
-            Together: sanitize(env.TOGETHER_API_KEY || process.env.TOGETHER_KEY),
-            DeepInfra: sanitize(env.DEEPINFRA_API_KEY || process.env.DEEPINFRA_KEY),
-            SambaNova: sanitize(env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_KEY),
-            Cerebras: sanitize(env.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY || process.env.CEREBRAS_KEY),
-            HuggingFace: sanitize(env.HF_TOKEN || process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN),
-            Qweb: sanitize(env.QWEB_API_KEY || process.env.QWEB_API_KEY || process.env.QWEB_KEY),
-            GitHub: sanitize(env.GITHUB_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN),
+            Groq: sanitize(env.GROQ_API_KEY || process.env.GROQ_API_KEY || process.env.GROQ_KEY, 'Groq'),
+            Gemini: sanitize(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY, 'Gemini'),
+            OpenRouter: sanitize(env.OPENROUTER_KEY || process.env.OPENROUTER_KEY, 'OpenRouter'),
+            Mistral: sanitize(env.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY || process.env.MISTRAL_KEY, 'Mistral'),
+            Together: sanitize(env.TOGETHER_API_KEY || process.env.TOGETHER_KEY, 'Together'),
+            DeepInfra: sanitize(env.DEEPINFRA_API_KEY || process.env.DEEPINFRA_KEY, 'DeepInfra'),
+            SambaNova: sanitize(env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_KEY, 'SambaNova'),
+            Cerebras: sanitize(env.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY || process.env.CEREBRAS_KEY, 'Cerebras'),
+            HuggingFace: sanitize(env.HF_TOKEN || process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN, 'HuggingFace'),
+            Qweb: sanitize(env.QWEB_API_KEY || process.env.QWEB_API_KEY || process.env.QWEB_KEY, 'Qweb'),
+            GitHub: sanitize(env.GITHUB_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN, 'GitHub'),
             Ollama: (env.OLLAMA_HOST || process.env.OLLAMA_HOST || (this.activeKeys && this.activeKeys.Ollama) || "http://127.0.0.1:11434").trim(),
             OllamaProd: (env.OLLAMA_PROD_URL || process.env.OLLAMA_PROD_URL || "").trim(),
-            Cloudflare: sanitize(env.CF_API_TOKEN || process.env.CF_API_TOKEN || env.CLOUDFLARE_API_TOKEN || env.CF_API_KEY)
+            Cloudflare: sanitize(env.CF_API_TOKEN || process.env.CF_API_TOKEN || env.CLOUDFLARE_API_TOKEN || env.CF_API_KEY, 'Cloudflare')
         };
         
         // Fix SambaNova/Cerebras cross-contamination
@@ -806,10 +814,13 @@ export const ResourceManager = {
         this.pool = [];
         // TIER 1: INSTITUTIONAL RESEARCH & EDITING (High Precision)
         if (activeKeys.Gemini) {
-            this.pool.push({ name: 'Gemini-Pro', fn: (p, m, c) => generateGeminiContent(p, "gemini-1.5-pro", c), tier: 1, roles: ['research', 'edit', 'manager'], match: /gemini-pro|node-research|node-edit|node-manager/i });
+            this.pool.push({ name: 'Gemini-1.5-Pro', fn: (p, m, c) => generateGeminiContent(p, "gemini-1.5-pro", c), tier: 1, roles: ['research', 'edit', 'manager', 'draft', 'generate'], match: /gemini-pro|gemini-1\.5|node-research|node-edit|node-manager|node-draft|node-generate/i });
         }
         if (activeKeys.Cerebras) {
-            this.pool.push({ name: 'Cerebras-70B', fn: (p, m, c) => generateCerebrasContent(p, m || "llama3.3-70b", c), tier: 1, roles: ['research', 'audit'], match: /cerebras-70b|node-research|node-audit/i });
+            this.pool.push({ name: 'Cerebras-70B-Versatile', fn: (p, m, c) => generateCerebrasContent(p, m || "llama3.3-70b", c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /cerebras-70b|llama3\.3|llama|node-research|node-edit|node-draft|node-audit|node-generate/i });
+        }
+        if (activeKeys.Groq) {
+            this.pool.push({ name: 'Groq-70B-Versatile', fn: (p, m, c) => generateGroqContent(p, m || "llama-3.3-70b-versatile", c), tier: 1, roles: ['research', 'edit', 'draft', 'generate'], match: /groq|node-research|node-edit|node-draft|node-generate|llama/i });
         }
 
         // TIER 2: HIGH-THROUGHPUT DRAFTING (Cost-Efficient)
@@ -820,19 +831,20 @@ export const ResourceManager = {
             this.pool.push({ 
                 name: 'Ollama-Local', 
                 fn: (p, m, c) => generateOllamaContent(p, m, { ...c, targetHost: activeKeys.Ollama }), 
-                tier: 1, 
-                roles: ['research', 'edit', 'manager', 'draft', 'audit', 'utility'], 
-                match: /ollama|local|research|edit|manager|draft|audit/i 
+                tier: 3, 
+                roles: ['utility'], 
+                match: /ollama|local|llama|mistral|phi|gemma|qwen|utility/i 
             }); 
         }
         const ollamaProdUrl = activeKeys.OllamaProd || process.env.OLLAMA_PROD_URL;
         if (ollamaProdUrl && !isPlaceholder(ollamaProdUrl)) {
+             // [V8.6] Institutional Pre-flight Connectivity Audit
              this.pool.push({ 
                 name: 'Ollama-Prod', 
                 fn: (p, m, c) => generateOllamaContent(p, m, { ...c, targetHost: ollamaProdUrl, targetKey: process.env.OLLAMA_PROD_KEY }), 
                 tier: 2, 
                 roles: ['research', 'edit', 'manager', 'draft', 'audit', 'utility'],
-                match: /ollama-prod|remote|research|edit|manager|draft|audit/i 
+                match: /ollama-prod|remote|llama|mistral|phi|gemma|qwen|research|edit|manager|draft|audit/i 
             });
         }
 
@@ -842,9 +854,6 @@ export const ResourceManager = {
         }
         if (activeKeys.HuggingFace) {
              this.pool.push({ name: 'HuggingFace', fn: generateHuggingFaceContent, tier: 3, roles: ['utility'], match: /huggingface|hf|node-utility/i });
-        }
-        if (activeKeys.Groq) {
-            this.pool.push({ name: 'Groq', fn: generateGroqContent, tier: 3, roles: ['draft'], match: /groq|node-draft/i });
         }
         if (activeKeys.OpenRouter) {
             this.pool.push({ name: 'OpenRouter', fn: generateOpenRouterContent, tier: 3, roles: ['utility'], match: /openrouter|node-utility/i });
@@ -870,12 +879,24 @@ export const ResourceManager = {
     getAvailable(seed = 0, requestedModel = null, context = {}) {
         const now = Date.now();
         let candidates = this.pool.filter(p => {
+            // V5.4.1: Institutional Self-Healing Logic
             if (this.failed.has(p.name)) {
+                const failTime = this.failedAt.get(p.name) || 0;
+                if (now - failTime > this.RECOVERY_TTL) {
+                    console.log(`🩹 [AI-Balancer] Attempting self-healing recovery for: ${p.name}`);
+                    this.failed.delete(p.name);
+                    this.failedAt.delete(p.name);
+                    return true;
+                }
                 console.log(`🚫 [AI-Balancer] Skipping blacklisted node: ${p.name}`);
                 return false;
             }
             const cooldown = this.cooldowns.get(p.name);
             if (cooldown && now < cooldown) { 
+                // 🛡️ INSTITUTIONAL RETENTION: Do not skip Tier-1 nodes for minor cooldowns if pressure is high
+                if (p.tier === 1 && (cooldown - now) < 60000) {
+                   return true; 
+                }
                 console.log(`⏳ [AI-Balancer] Skipping node on cooldown (${Math.ceil((cooldown - now)/1000)}s): ${p.name}`);
                 return false;
             }
@@ -899,10 +920,17 @@ export const ResourceManager = {
         console.log(`🔍 [AI-Balancer] Candidates for ${context?.role || 'generic'}/${requestedModel || 'any'}: ${candidates.map(p => p.name).join(', ')}`);
 
         candidates.sort((a, b) => {
+            // 🛡️ INSTITUTIONAL ALIGNMENT: Prioritize Tier over Inflight for Quality Retention
+            if (a.tier !== b.tier) return a.tier - b.tier;
+
             const infA = this.inflight.get(a.name);
             const infB = this.inflight.get(b.name);
             if (infA !== infB) return infA - infB;
-            return a.tier - b.tier;
+            
+            // If still tied, prefer the one with NO cooldown
+            const coolA = this.cooldowns.get(a.name) || 0;
+            const coolB = this.cooldowns.get(b.name) || 0;
+            return coolA - coolB;
         });
 
         const startIdx = seed % candidates.length;
@@ -914,7 +942,7 @@ export const ResourceManager = {
         if (current > 0) this.inflight.set(name, current - 1);
         
         const isRate = error.includes('429') || error.includes('rate_limit') || error.includes('TPM') || error.includes('quota') || error.includes('RATE_LIMIT');
-        const isAuth = error.includes('401') || error.includes('403') || error.includes('402') || error.includes('Unauthorized') || error.includes('API key') || error.includes('Authentication') || error.includes('permission') || error.includes('NOT_FOUND') || error.includes('Not Found') || error.includes('404') || error.includes('PERMISSION_DENIED') || error.includes('Invalid Key') || error.includes('Invalid API Key') || error.includes('CREDIT_EXHAUSTED');
+        const isAuth = error.includes('401') || error.includes('403') || error.includes('402') || error.includes('Unauthorized') || error.includes('API key') || error.includes('Authentication') || error.includes('permission') || error.includes('NOT_FOUND') || error.includes('Not Found') || error.includes('404') || error.includes('PERMISSION_DENIED') || error.includes('Invalid Key') || error.includes('Invalid API Key') || error.includes('CREDIT_EXHAUSTED') || error.includes('4018'); // ERR_NGROK_4018
 
         if (isRate) {
             console.warn(`⏳ [AI-Balancer] ${name} rate limited. Activating 60000ms cooldown.`);
@@ -922,9 +950,21 @@ export const ResourceManager = {
         } else if (isAuth) {
             console.error(`🚫 [AI-Balancer] Blacklisting ${name} due to terminal failure: ${error}`);
             this.failed.add(name);
+            this.failedAt.set(name, Date.now()); // Set recovery timestamp
         } else {
             console.warn(`⚠️ [AI-Balancer] ${name} failed with temporary error: ${error}. Retrying next...`);
         }
+    },
+
+    /**
+     * Emergency Pool Resurrection
+     * Forces all blacklisted nodes back into rotation.
+     */
+    forcePoolHeal() {
+        console.log("🩹 [AI-Balancer] Institutional Force-Heal Activated. Purging blacklist...");
+        this.failed.clear();
+        this.failedAt.clear();
+        this.cooldowns.clear();
     }
 };
 

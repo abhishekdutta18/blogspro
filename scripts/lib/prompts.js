@@ -24,7 +24,8 @@ ZERO TOLERANCE for conversational filler or system meta-talk:
 - BANNED: "REPAIRED BLOCK", "CODE FIX", "ECHO REMOVAL", "NARRATIVE REFINEMENT", "SANITIZED HTML SNIPPET".
 - MANDATORY: Open directly with the data or high-level strategic drift.
 - MANDATORY: Use precise technical terms (e.g., "Institutional Consolidation," "Gamma Squeeze," "Regulatory Friction").
-- MANDATORY: Output ONLY the requested content. Never explain what you are doing or that you have finished a repair.`;
+- MANDATORY: Output ONLY the requested content. Never explain what you are doing or that you have finished a repair.
+- 🔏 ZERO-ECHO RULE: You MUST wrap the entire manuscript body (excluding telemetry) in [[BPRO_INTEL_START]] and [[BPRO_INTEL_END]] delimiters. Output outside these tags will be purged.`;
 
 const STRUCTURAL_RULES = `
 1. Tone: Cold, analytical, Bloomberg-style blocks.
@@ -78,7 +79,8 @@ const VERTICALS = [
     { id: "payment", name: "Fintech & Payment Rails" },
     { id: "india_macro", name: "India Economy & GDP Drift" },
     { id: "india_banking", name: "Indian Banking & Credit Pulse" },
-    { id: "india_industries", name: "Indian Industrial & Infra Alpha" }
+    { id: "india_industries", name: "Indian Industrial & Infra Alpha" },
+    { id: "india_global_impact", name: "Global Macro Impact on India" }
 ];
 
 function getBriefingPrompt(frequency, marketContext, mktInfo) {
@@ -95,6 +97,7 @@ ${marketContext}
 ${STRUCTURAL_RULES}
 ${CHART_SYNC_RULE}
 - Output inside <chart-data>{ "sentiment": [...], "macro": [...] }</chart-data>
+- 🔏 Enforce [[BPRO_INTEL_START]] and [[BPRO_INTEL_END]] delimiters.
 `;
 }
 
@@ -125,6 +128,7 @@ News Stream: ${news}
 --- FINAL CHART DATA ---
 ${CHART_SYNC_RULE}
 <chart-data>[["Label", Value], ...]</chart-data>
+- 🔏 Enforce [[BPRO_INTEL_START]] and [[BPRO_INTEL_END]] delimiters.
 `;
 }
 
@@ -210,6 +214,8 @@ RESEARCH INPUT:
 ${researchBrief}
 
 ${STRUCTURAL_RULES}
+
+- 🔏 Enforce [[BPRO_INTEL_START]] and [[BPRO_INTEL_END]] delimiters.
 `;
 }
 
@@ -254,6 +260,29 @@ MANDATORY: Address every point in the critique. Do not stop until you hit 1,200 
 ${STRUCTURAL_RULES}
 `;
 }
+
+function getHumanRefinementPrompt(draft, feedback, verticalName) {
+    return `
+${INSTITUTIONAL_PERSONA}
+ROLE: PRINCIPAL TERMINAL EDITOR (HIL Bridge Mode)
+TASK: Refine and adapt the institutional manuscript for '${verticalName}' based on DIRECT HUMAN STEERING.
+
+⚠️ HUMAN DIRECTIVE:
+"${feedback}"
+
+--- ORIGINAL DRAFT ---
+${draft}
+
+INSTRUCTIONS:
+1.  **Absolute Compliance**: The Human Directive is the supreme priority. If the user asks for a shift in focus, data addition, or tone change, you MUST execute it precisely.
+2.  **Maintain Density**: Do not sacrifice institutional depth (tables, glossaries, metrics) while implementing the feedback.
+3.  **Cross-Impact**: Analyze how the human feedback affects other technical claims in the draft and adjust them for consistency.
+
+OUTPUT: Refined institutional research (HTML). Start immediately with the narrative.
+${STRUCTURAL_RULES}
+`;
+}
+
 
 function getEditorPrompt(rawDraft, frequency) {
     const totalTarget = frequency === 'monthly' ? '20,000'
@@ -550,6 +579,7 @@ export {
     getConsensusPrompt,
     getCriticPrompt,
     getRefinementPrompt,
+    getHumanRefinementPrompt,
     getManagerAuditPrompt,
     getManagerCorrectionPrompt,
     getCodingExpertPrompt,

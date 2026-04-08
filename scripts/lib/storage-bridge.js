@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { normalizeInstitutionalPem } from './sanitizer.js';
 const __dirname = (typeof process !== 'undefined' && import.meta && import.meta.url && import.meta.url.startsWith('file:'))
   ? path.dirname(fileURLToPath(import.meta.url))
   : "";
@@ -7,52 +8,115 @@ const isNode = typeof process !== 'undefined' && process.versions && process.ver
 const isWorker = typeof caches !== 'undefined' && typeof Response !== 'undefined';
 let fs = null;
 if (isNode) {
-    import('node:fs').then(mod => { fs = mod; }).catch(() => {});
+    // Synchronous-like resolution for Node environment to prevent race conditions
+    try {
+        const { default: fsMod } = await import('node:fs');
+        fs = fsMod;
+    } catch (e) {
+        // Fallback for older environments
+    }
 }
 
 // --------------------------------------------------
 // GOOGLE OAUTH BRIDGE : CF Workers
 // --------------------------------------------------
 async function getGoogleAccessToken(env) {
-    if (!env.FIREBASE_SERVICE_ACCOUNT) {
-        console.warn("⚠️ FIREBASE_SERVICE_ACCOUNT secret missing. Falling back to public REST (NOT RECOMMENDED).");
+    let sa = null;
+
+    // V9.1: Robust Absolute Path Resolution for Institutional Credentials
+    if (isNode && fs) {
+        try {
+            // Find root dir regardless of execution context
+            const rootDir = process.cwd();
+            const possiblePaths = [
+                path.join(rootDir, 'knowledge', 'firebase-service-account.json'),
+                path.join(rootDir, '..', 'knowledge', 'firebase-service-account.json'),
+                path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'knowledge', 'firebase-service-account.json')
+            ];
+
+            for (const saPath of possiblePaths) {
+                if (fs.existsSync(saPath)) {
+                    sa = JSON.parse(fs.readFileSync(saPath, 'utf8'));
+                    break;
+                }
+            }
+        } catch (e) {
+            console.warn("⚠️ [StorageBridge] Failed to load sa-file:", e.message);
+        }
+    }
+
+    // [V9.3] Institutional Priority Logic: Match firebase-service.js stability
+    const saFile = path.join(process.cwd(), 'knowledge', 'firebase-service-account.json');
+    if (fs.existsSync(saFile)) {
+        try {
+            sa = JSON.parse(fs.readFileSync(saFile, 'utf8'));
+            // 💧 HYDRATE & HARDEN (V5.4.4)
+            if (sa.private_key) sa.private_key = normalizeInstitutionalPem(sa.private_key);
+            if (!sa.client_email && sa.project_id) {
+                sa.client_email = `firebase-adminsdk-q0p9j@${sa.project_id}.iam.gserviceaccount.com`;
+            }
+            console.log(`🛡️ [StorageBridge] Keyfile Hydrated: ${sa.client_email}`);
+        } catch (e) {
+            console.warn("⚠️ [StorageBridge] Keyfile Load Fail:", e.message);
+        }
+    }
+
+    if (!sa && env.FIREBASE_SERVICE_ACCOUNT) {
+        try {
+            // [V9.3.1] Brute-force sanitize for CI/CD environments
+            let saString = String(env.FIREBASE_SERVICE_ACCOUNT).trim();
+            saString = saString.replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
+            const firstBrace = saString.indexOf('{');
+            const lastBrace = saString.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace !== -1) {
+                saString = saString.substring(firstBrace, lastBrace + 1);
+            }
+            sa = JSON.parse(saString);
+            // 💧 HYDRATE & HARDEN (V5.4.4)
+            if (sa.private_key) sa.private_key = normalizeInstitutionalPem(sa.private_key);
+            if (!sa.client_email && sa.project_id) {
+                sa.client_email = `firebase-adminsdk-q0p9j@${sa.project_id}.iam.gserviceaccount.com`;
+            }
+        } catch (e) {
+            console.warn("⚠️ [StorageBridge] Env-SA Parse Fail:", e.message);
+        }
+    }
+
+    if (!sa) {
+        console.warn("⚠️ FIREBASE_SERVICE_ACCOUNT secret missing. Falling back to public REST.");
         return null;
     }
+
     try {
-        const sa = typeof env.FIREBASE_SERVICE_ACCOUNT === 'string'
-                    ? JSON.parse(env.FIREBASE_SERVICE_ACCOUNT)
-                    : env.FIREBASE_SERVICE_ACCOUNT;
         const now = Math.floor(Date.now() / 1000);
-        const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" })).replace(/=/g, "");
-        const payload = btoa(JSON.stringify({
+        const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString('base64url');
+        const payload = Buffer.from(JSON.stringify({
             iss: sa.client_email,
             scope: "https://www.googleapis.com/auth/devstorage.full_control https://www.googleapis.com/auth/datastore",
             aud: "https://oauth2.googleapis.com/token",
             exp: now + 3600,
             iat: now
-        })).replace(/=/g, "");
+        })).toString('base64url');
         const message = `${header}.${payload}`;
         
-        // Hardened PEM Extract: Removes all whitespace/headers precisely
-        const pemContents = sa.private_key
+        // [V9.3.2] Institutional PEM Restoration: Standard PKCS8 DER extraction
+        const base64Der = sa.private_key
             .replace(/-----BEGIN PRIVATE KEY-----/g, "")
             .replace(/-----END PRIVATE KEY-----/g, "")
             .replace(/\s+/g, "");
-            
-        const binaryDer = Uint8Array.from(atob(pemContents).split("").map(c => c.charCodeAt(0)));
+             
+        const binaryDer = Buffer.from(base64Der, 'base64');
         const key = await crypto.subtle.importKey(
-            "pkcs8", binaryDer,
+            "pkcs8", 
+            binaryDer,
             { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-            false, ["sign"]
+            false, 
+            ["sign"]
         );
         const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(message));
         
-        // Robust Base64URL encoding for cross-platform (Node/Worker)
-        const encodedSig = btoa(String.fromCharCode(...new Uint8Array(signature)))
-            .replace(/\+/g, "-")
-            .replace(/\//g, "_")
-            .replace(/=/g, "");
-        
+        // Robust Base64URL encoding (Node standard)
+        const encodedSig = Buffer.from(signature).toString('base64url');
         const jwt = `${message}.${encodedSig}`;
         
         const res = await fetch("https://oauth2.googleapis.com/token", {
@@ -357,6 +421,66 @@ async function pushTelemetryLog(event, metadata = {}, env) {
   }
 }
 
+export async function getPendingAuditsREST(env) {
+  if (!env || !env.FIREBASE_PROJECT_ID) return [];
+  const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/pending_audits`;
+  
+  try {
+    const headers = { "Content-Type": "application/json" };
+    const token = await getGoogleAccessToken(env);
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const res = await fetch(url, { method: "GET", headers });
+    if (!res.ok) {
+      console.error("⚠️ [StorageBridge] Pending Audits REST fetch failed:", await res.text());
+      return [];
+    }
+    const data = await res.json();
+    if (!data.documents) return [];
+    
+    return data.documents.map(doc => {
+      const id = doc.name.split('/').pop();
+      const result = { id };
+      for (const [key, value] of Object.entries(doc.fields)) {
+        if (value.stringValue !== undefined) result[key] = value.stringValue;
+        else if (value.integerValue !== undefined) result[key] = parseInt(value.integerValue);
+        else if (value.doubleValue !== undefined) result[key] = parseFloat(value.doubleValue);
+        else if (value.timestampValue !== undefined) result[key] = value.timestampValue;
+        else if (value.booleanValue !== undefined) result[key] = value.booleanValue;
+      }
+      return result;
+    }).filter(a => a.status === 'PENDING').sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  } catch (e) {
+    console.error("⚠️ [StorageBridge] getPendingAuditsREST Error:", e.message);
+    return [];
+  }
+}
+
+export async function updateAuditStatusREST(docId, status, feedback = "", env) {
+  if (!env || !env.FIREBASE_PROJECT_ID) return;
+  const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/pending_audits/${docId}?updateMask.fieldPaths=status&updateMask.fieldPaths=feedback&updateMask.fieldPaths=updatedAt`;
+  
+  try {
+    const headers = { "Content-Type": "application/json" };
+    const token = await getGoogleAccessToken(env);
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const payload = {
+      fields: {
+        status: { stringValue: status },
+        feedback: { stringValue: feedback },
+        updatedAt: { timestampValue: new Date().toISOString() }
+      }
+    };
+
+    const res = await fetch(url, { method: "PATCH", headers, body: JSON.stringify(payload) });
+    if (!res.ok) console.error(`❌ [StorageBridge] Update Audit REST Fail (${docId}):`, await res.text());
+    else console.log(`✅ [HIL] Audit ${docId} updated to: ${status} via REST`);
+  } catch (e) {
+    console.error("⚠️ [StorageBridge] updateAuditStatusREST Error:", e.message);
+  }
+}
+
 export {
   getGoogleAccessToken,
   syncToFirestore,
@@ -367,5 +491,8 @@ export {
   getRecentSnapshots,
   pushHistoricalData,
   getHistoricalData,
-  pushTelemetryLog
+  pushTelemetryLog,
+  getPendingAuditsREST,
+  updateAuditStatusREST,
+  getFirestoreDoc
 };

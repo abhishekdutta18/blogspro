@@ -64,7 +64,7 @@ export async function initNodeSentry(dsn, frequency = 'weekly') {
 
         Sentry.init({
             dsn: dsn,
-            tracesSampleRate: 0.1,
+            tracesSampleRate: 1.0, // HARDENED: 100% capture during stabilization
             environment: process.env.NODE_ENV || 'production',
             initialScope: {
                 tags: { frequency, swarm_version: '5.3' }

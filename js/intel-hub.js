@@ -1,7 +1,7 @@
-import { db } from './config.js';
 import { 
     collection, query, orderBy, limit, getDocs 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initNewsWire } from './news-wire.js';
 
 /**
  * BlogsPro Strategic Intelligence Hub
@@ -9,6 +9,11 @@ import {
  */
 export async function initIntelHub() {
     const hubContainer = document.getElementById('intel-hub-root');
+    
+    // Initialize News Wire (Institutional Pulse Hub)
+    initNewsWire();
+    window.refreshNewsWire = initNewsWire;
+
     if (!hubContainer) return;
 
     try {

@@ -145,20 +145,21 @@ jobs:
             export OLLAMA_PROD_URL="${NGROK_REMOTE_URL:-${{ secrets.NGROK_REMOTE_URL }}}"
           fi
 
-          echo "🚀 Executing Swarm Vertical: $FREQ"
+          echo "🚀 Executing Swarm Vertical: $FREQ [Hybrid Split-Execution]"
           
           if [ "$FREQ" == "hourly" ] || [ "$FREQ" == "daily" ]; then
             node scripts/generate-briefing.js --freq=$FREQ $FORCE_FLAG
           else
-            node scripts/generate-institutional-tome.js --freq=$FREQ --type=article $FORCE_FLAG
+            # [V9.0] Institutional Worker Phase: Offload parallel research to GHA
+            node scripts/generate-institutional-tome.js --freq=$FREQ --type=article --mode=worker $FORCE_FLAG
           fi
 
-      - name: Commit and Push
+      - name: Commit and Push (Including Sector Fragments)
         run: |
           git config --global user.name "BlogsPro Bot"
           git config --global user.email "bot@blogspro.in"
           git add briefings/ articles/ index.html sitemap.xml knowledge/ dist/ manuscripts/ *.pdf *.pdf.txt || echo "No change in some artifacts"
-          git commit -m "chore: autonomous research dispatch [skip ci]" || echo "No changes"
+          git commit -m "chore: autonomous research dispatch [worker mode] [skip ci]" || echo "No changes"
           for i in {1..5}; do
             git pull --rebase origin main
             git push && exit 0

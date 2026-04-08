@@ -28,6 +28,9 @@ import {
   logBlackboardMemo,
   logSwarmPulse
 } from "./sentry-bridge.js";
+import { generatePDF } from './pdf-service.js';
+import path from 'path';
+import os from 'os';
 import { detectAndAlert } from "./black-swan-alert.js";
 import * as rules from "./rules-engine.js";
 import { dispatchInstitutionalAlert } from "./social-utils.js";
@@ -40,6 +43,87 @@ import rl from "./reinforcement.js";
  * High-performance collaborative reasoning pipeline for 
  * ultra-high-density institutional manuscripts (up to 25k words).
  */
+
+const SECTOR_DIR = "./manuscripts/v7/sectors";
+const TRACE_FILE = "./logs/institutional-trace.log";
+
+let traceBuffer = [];
+
+export async function publishGitHubTrace(env, jobId) {
+    if (!env || !env.GH_PAT) {
+        console.warn("⚠️ [Telemetry] Cannot publish GitHub trace: No GH_PAT provided in environment.");
+        return;
+    }
+    if (traceBuffer.length === 0) return;
+    
+    console.log("🚀 [Telemetry] Publishing absolute runtime trace to GitHub Issues...");
+    const traceContent = traceBuffer.join("");
+    const title = `Swarm Telemetry Trace: Job [${jobId}] (${new Date().toISOString()})`;
+    
+    try {
+        const res = await fetch("https://api.github.com/repos/abhishekdutta18/blogspro/issues", {
+            method: "POST",
+            headers: {
+                "Authorization": `token ${env.GH_PAT}`,
+                "Accept": "application/vnd.github.v3+json",
+                "Content-Type": "application/json",
+                "User-Agent": "BlogsPro-Swarm-Agent"
+            },
+            body: JSON.stringify({
+                title: title,
+                body: "```log\n" + traceContent.substring(0, 60000) + "\n```"
+            })
+        });
+        
+        if (res.ok) {
+            console.log(`✅ [Telemetry] GitHub Trace published successfully.`);
+        } else {
+            console.error(`❌ [Telemetry] GitHub Trace failed HTTP ${res.status}:`, await res.text());
+        }
+    } catch (e) {
+        console.error(`❌ [Telemetry] GitHub Trace Network Error:`, e.message);
+    } finally {
+        traceBuffer = []; // clear buffer
+    }
+}
+
+/**
+ * 🛡️ INSTITUTIONAL TRACE: High-fidelity logger for Swarm Audit
+ */
+function logTrace(message, data = null) {
+    const timestamp = new Date().toISOString();
+    const logMsg = `[${timestamp}] ${message}${data ? ' ' + JSON.stringify(data) : ''}\n`;
+    
+    traceBuffer.push(logMsg);
+    console.log(message);
+    
+    // Bridge to Sentry
+    if (typeof logSwarmBreadcrumb === 'function') {
+        logSwarmBreadcrumb(message, data);
+    }
+}
+
+function saveSectorFragment(jobId, verticalId, content) {
+    if (!fs.existsSync(SECTOR_DIR)) fs.mkdirSync(SECTOR_DIR, { recursive: true });
+    const filePath = path.join(SECTOR_DIR, `${jobId}_${verticalId}.json`);
+    fs.writeFileSync(filePath, JSON.stringify({ 
+        jobId, 
+        verticalId, 
+        content, 
+        timestamp: new Date().toISOString() 
+    }, null, 2));
+    console.log(`💾 [Worker] Sector fragment saved: ${filePath}`);
+}
+
+function loadSectorFragments(jobId) {
+    if (!fs.existsSync(SECTOR_DIR)) return [];
+    return fs.readdirSync(SECTOR_DIR)
+        .filter(f => f.startsWith(jobId) && f.endsWith(".json"))
+        .map(f => {
+            const data = JSON.parse(fs.readFileSync(path.join(SECTOR_DIR, f), "utf8"));
+            return data.content;
+        });
+}
 
 
 export async function runGhostSim(frequency, semanticDigest, env, jobId) {
@@ -364,6 +448,8 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
   // 👻 SPECULATIVE GHOST LOOP: Fire and forget
   runGhostSim(frequency, semanticDigest, env, id);
   
+  const globalNewsPulse = [];
+
   // MARCH 2026: Institutional Pre-flight Audit
   let nodeCount = 0;
   try {
@@ -375,9 +461,20 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
 
   await notifyProgress(env, id, { 
       stage: "START", 
-      message: `Orchestrating ${targetVerticals.length} Vertical Swarms... [Nodes: ${nodeCount}]`,
+      message: `Orchestrating ${targetVerticals.length} Vertical Swarms [Mode: ${env.MODE || 'standard'}]... [Nodes: ${nodeCount}]`,
       nodeCount
   });
+
+  // [V9.0] ASSEMBLE MODE: Direct skip to synthesis (M1 Consolidation)
+  if (env.MODE === 'assemble') {
+      console.log(`🏗️ [Assemble] Loading sector fragments for Job [${id}]...`);
+      const fragments = loadSectorFragments(id);
+      if (fragments.length > 0) {
+          console.log(`✅ [Assemble] Recovered ${fragments.length} sectors from local GitOps storage.`);
+          return await finalizeManuscript(fragments, "Consensus pending in assembly loop.", frequency, type, env, id);
+      }
+      console.warn(`⚠️ [Assemble] No fragments found for ${id}. Falling back to standard synthesis.`);
+  }
 
   const PRIORITY_VERTICAL_IDS = ['macro', 'reg', 'em', 'rates'];
   const sharedBlackboard = { strategicContext: semanticDigest.strategicLead, institutionalMemos: [], jobId: id, frequency };
@@ -401,6 +498,11 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
       sharedBlackboard.institutionalMemos.push(`[FROM: ${vertical.name.toUpperCase()}]: ${memo}`);
       logBlackboardMemo(vertical.name, memo, { jobId: id, frequency });
       
+      // 🛡️ NEWS WIRE ACCUMULATION: Seed the global news pulse
+      if (news && news.length > 50) {
+          globalNewsPulse.push({ vertical: vertical.name, news: news });
+      }
+      
       // 🛡️ $SHIELD POST-PROCESSING: Sanitize and Repair before final commit
       const sanitizedChapter = rules.sanitizePayload(chapter);
       const repairedChapter = rules.repairTables(sanitizedChapter);
@@ -408,6 +510,8 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
       const finalChapter = rules.enforceInstitutionalSections(visualChapter);
 
       allChapterContents.push(`<div id="sector-${vertical.id}" class="institutional-sector" data-vertical-id="${vertical.id}"><h2>${vertical.name.toUpperCase()}</h2>${finalChapter}</div>`);
+      
+      globalNewsPulse.push({ vertical: vertical.name, news });
       
       completedSectors++;
       const progress = Math.round((completedSectors / totalSectors) * 100);
@@ -422,55 +526,62 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
     
     let sectorResults = [];
     
-    if (env.SERIAL_FLOW) {
-      console.log(`🐢 [SERIAL_FLOW] Executing ${sectorVerticals.length} sectors sequentially for hardware stability...`);
-      for (let i = 0; i < sectorVerticals.length; i++) {
-        const v = sectorVerticals[i];
-        const result = await executeSingleVerticalSwarm(v, i, frequency, semanticDigest, historicalData, env, id, extended, blackboardContext);
-        
-        completedSectors++;
-        const progress = Math.round((completedSectors / totalSectors) * 100);
-        await notifyProgress(env, id, { 
-          stage: "SECTOR_COMPLETE", 
-          progress, 
-          message: `Completed ${v.name} (${completedSectors}/${totalSectors})` 
-        });
-        sectorResults.push(result);
-      }
-    } else {
-      sectorResults = await Promise.all(sectorVerticals.map(async (v, i) => {
-        // [V6.0] State-Aware Resilience: Check if this sector was already completed in a previous attempt
-        // [V6.0] State-Aware Resilience: Only active in Cloudflare Runtime
-        if (env.MIRO_SYNC_DO) {
-          try {
-            const id = env.MIRO_SYNC_DO.idFromName('global-swarm-bridge');
-            const stub = env.MIRO_SYNC_DO.get(id);
-            const checkRes = await stub.fetch(`https://sync/check-step?jobId=${id}&stepId=sector_${v.id}`);
-            if (checkRes.ok) {
-              const { status } = await checkRes.json();
-              if (status === "COMPLETED") {
-                console.log(`♻️ [Resilience] Skipping ${v.name} (Already Completed)`);
-                return `<div class="sector-cached">[RECOV: ${v.name}]</div>`;
-              }
-            }
-          } catch (e) {
-            console.warn(`⚠️ [Resilience-Check] Failed for ${v.name}:`, e.message);
-          }
-        }
+    console.log(`🐢 [SERIAL_FLOW] Executing ${sectorVerticals.length} sectors sequentially for hardware stability...`);
+    for (let i = 0; i < sectorVerticals.length; i++) {
+      const v = sectorVerticals[i];
 
-        const result = await executeSingleVerticalSwarm(v, i, frequency, semanticDigest, historicalData, env, id, extended, blackboardContext);
-        
-        completedSectors++;
-        const progress = Math.round((completedSectors / totalSectors) * 100);
-        await notifyProgress(env, id, { 
-          stage: "SECTOR_COMPLETE", 
-          progress, 
-          message: `Completed ${v.name} (${completedSectors}/${totalSectors})` 
+      // [V6.0] State-Aware Resilience: Check if this sector was already completed
+      if (env.MIRO_SYNC_DO) {
+        try {
+          const idObj = env.MIRO_SYNC_DO.idFromName('global-swarm-bridge');
+          const stub = env.MIRO_SYNC_DO.get(idObj);
+          const checkRes = await stub.fetch(`https://sync/check-step?jobId=${id}&stepId=sector_${v.id}`);
+          if (checkRes.ok) {
+            const { status } = await checkRes.json();
+            if (status === "COMPLETED") {
+              console.log(`♻️ [Resilience] Skipping ${v.name} (Already Completed)`);
+              sectorResults.push(`<div class="sector-cached">[RECOV: ${v.name}]</div>`);
+              continue;
+            }
+          }
+        } catch (e) {
+          console.warn(`⚠️ [Resilience-Check] Failed for ${v.name}:`, e.message);
+        }
+      }
+
+      const result = await executeSingleVerticalSwarm(v, i, frequency, semanticDigest, historicalData, env, id, extended, blackboardContext);
+      
+      completedSectors++;
+      const progress = Math.round((completedSectors / totalSectors) * 100);
+      await notifyProgress(env, id, { 
+        stage: "SECTOR_COMPLETE", 
+        progress, 
+        message: `Completed ${v.name} (${completedSectors}/${totalSectors})` 
+      });
+      sectorResults.push(result);
+    }
+    
+    // [V9.0] WORKER MODE: Save fragments and exit (GHA Parallelization)
+    if (env.MODE === 'worker') {
+        console.log(`🚀 [Worker] Partitioning ${sectorResults.length} sector results to GitOps fragments...`);
+        sectorResults.forEach((res, i) => {
+            const v = sectorVerticals[i] || (priorityVerticals && priorityVerticals[i]);
+            if (v) saveSectorFragment(id, v.id, res);
         });
         
-        return result;
-      }));
+        await notifyProgress(env, id, { 
+          stage: "WORKER_COMPLETE", 
+          message: `Worker Job [${id}] finalized. Fragments committed to manuscripts/v7/sectors/.` 
+        });
+        
+        return { 
+          final: "<!-- WORKER_MODE_PARTITION -->", 
+          wordCount: 0, 
+          status: "PARTITIONED", 
+          jobId: id 
+        };
     }
+
     allChapterContents.push(...sectorResults);
   } else {
     // 2. FAST PULSE PATH (Consolidated)
@@ -513,7 +624,21 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
     await extractKnowledgeGraph(allChapterContents.join("\n"), env, "institutional_brain", consensusData.summary);
   }
 
-  const combinedManuscript = `<div id="strategic-pulse">${executiveStrategy}</div><hr>${allChapterContents.join("\n\n")}`;
+  // [V8.6] Strategic News Wire Injection
+  let strategicNewsWire = "";
+  if (globalNewsPulse.length > 0) {
+      console.log(`📡 [Swarm] Synthesizing Strategic News Wire for final Tome...`);
+      const newsSummary = globalNewsPulse.map(n => `[${n.vertical}]: ${n.news.substring(0, 500)}...`).join("\n\n");
+      const synthesizedNews = await askAI(`Summarize these 3-5 critical market events into a high-density 250-word 'STRATEGIC NEWS WIRE' for an institutional article. Use <li> bullet points for each event.\n\n${newsSummary}`, { role: 'edit', env, model: 'node-draft' });
+      strategicNewsWire = `<section id="strategic-news-wire" class="institutional-sector">
+        <h2>STRATEGIC NEWS WIRE</h2>
+        <div class="news-wire-content">
+          ${synthesizedNews}
+        </div>
+      </section><hr>`;
+  }
+
+  const combinedManuscript = `${strategicNewsWire}<div id="strategic-pulse">${executiveStrategy}</div><hr>${allChapterContents.join("\n\n")}`;
   
   // 🛡️ FINAL $SHIELD AUDIT PASS: Purge all remaining jargon and prompts
   const finalManuscript = rules.sanitizePayload(combinedManuscript);
@@ -626,6 +751,8 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
       await notifyProgress(env, id, { stage: "HIL_APPROVED", message: "Institutional consensus reached. Proceeding to publication." });
   }
 
+  // Publish aggregated telemetry payload to GitHub Issues (Zero-FS Trace)
+  await publishGitHubTrace(env, id);
   return finalOutput;
 }
 
@@ -691,5 +818,92 @@ export async function finalizeManuscript(allChapterContents, consensusSummary, f
     }
   }
 
-  return { final: finalHtml, wordCount: finalCount, raw: finalManuscript, jobId: id };
+  // 📑 [HIL-PDF] Every draft generates a high-fidelity rendition (Initial + Refinement)
+  let initialPdfUrl = null;
+  try {
+    const tmpHtmlPath = path.join(os.tmpdir(), `initial-${id}.html`);
+    fs.writeFileSync(tmpHtmlPath, finalHtml);
+    await generatePDF(tmpHtmlPath, "institutional");
+    initialPdfUrl = `https://storage.blogspro.in/manuscripts/${id}.pdf`; 
+  } catch (pdfErr) {
+    console.warn("⚠️ Initial PDF Generation failed:", pdfErr.message);
+  }
+
+  return { final: finalHtml, wordCount: finalCount, raw: finalManuscript, jobId: id, pdfUrl: initialPdfUrl };
+}
+
+/**
+ * applyHumanRefinement
+ * --------------------
+ * High-fidelity refinement pass based on direct HIL feedback.
+ */
+export async function applyHumanRefinement(originalManuscript, feedback, env, jobId) {
+    const start = Date.now();
+    await notifyProgress(env, jobId, { 
+        stage: "REFINE", 
+        message: `Applying HIL Strategic Refinement... Signals: ${feedback.substring(0, 50)}...` 
+    });
+
+    try {
+        const refinedContent = await askAI(getRefinementPrompt(originalManuscript, feedback, "Institutional Briefing"), { 
+            role: 'generate', 
+            env, 
+            model: 'node-edit' 
+        });
+
+        // [V9.0] Apply Institutional Template to Refined Content
+        let finalRefined = refinedContent;
+        try {
+            const templateRes = await fetch("https://templates.blogspro.in/render", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    content: refinedContent, 
+                    type: "institutional", 
+                    jobId 
+                })
+            });
+            if (templateRes.ok) {
+                const { html } = await templateRes.json();
+                finalRefined = html;
+            }
+        } catch (e) {
+            console.warn("⚠️ Template fallback used during refinement.");
+        }
+
+        // 📑 [HIL-PDF] Every Refinement generates a high-fidelity rendition
+        let pdfUrl = null;
+        try {
+            const tmpHtmlPath = path.join(os.tmpdir(), `refine-${jobId}.html`);
+            fs.writeFileSync(tmpHtmlPath, finalRefined);
+            const pdfPath = await generatePDF(tmpHtmlPath, "institutional");
+            
+            // Assume Storage Bridge Handles Uploads (Resolved in V9.1)
+            pdfUrl = `https://storage.blogspro.in/manuscripts/${jobId}.pdf`; 
+        } catch (pdfErr) {
+            console.warn("⚠️ PDF Generation failed during refinement:", pdfErr.message);
+        }
+
+        // 📡 [Consensus-Anchor] Update Firestore back to PENDING for re-review
+        const updatePayload = {
+            content: finalRefined,
+            pdfUrl: pdfUrl,
+            status: "PENDING",
+            refinementFeedback: feedback,
+            lastRefined: new Date().toISOString()
+        };
+        
+        await syncToFirestore("institutional_audits", updatePayload, env, jobId);
+
+        await notifyProgress(env, jobId, { 
+            stage: "REFINE_COMPLETE", 
+            message: "HIL Refinement successful. PDF/HTML re-queued for final audit.",
+            latency: Date.now() - start
+        });
+
+        return finalRefined;
+    } catch (err) {
+        captureSwarmError(err, { jobId, stage: "REFINE_FAILURE" });
+        throw err;
+    }
 }

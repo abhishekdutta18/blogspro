@@ -10,8 +10,8 @@ firebase-service-account.json
 *.plist
 
 # --- AI ARTIFACTS & DRAFTS ---
-briefings/
-dist/
+# briefings/
+# dist/
 review-*.html
 swarm-*.html
 ai-feedback.json

@@ -13,6 +13,9 @@ async function pullSecrets() {
     const envPath = path.join(process.cwd(), '.env');
     let currentEnv = {};
     
+    // 🛡️ INSTITUTIONAL TOOLING: Resolve 'gh' absolute path
+    const GH_PATH = fs.existsSync('/opt/homebrew/bin/gh') ? '/opt/homebrew/bin/gh' : 'gh';
+    
     if (fs.existsSync(envPath)) {
         const content = fs.readFileSync(envPath, 'utf8');
         content.split('\n').forEach(line => {
@@ -25,8 +28,8 @@ async function pullSecrets() {
 
     try {
         // 1. List all available secrets
-        console.log("📡 Fetching secret list from GitHub...");
-        const secretListRaw = execSync('gh secret list', { encoding: 'utf8' });
+        console.log(`📡 Fetching secret list from GitHub using ${GH_PATH}...`);
+        const secretListRaw = execSync(`${GH_PATH} secret list`, { encoding: 'utf8' });
         const secretNames = secretListRaw.split('\n')
             .slice(1) // Skip header
             .map(line => line.split(/\s+/)[0])
@@ -38,7 +41,7 @@ async function pullSecrets() {
         for (const name of secretNames) {
             try {
                 process.stdout.write(`📥 Pulling ${name}... `);
-                const value = execSync(`gh secret view ${name} --raw`, { encoding: 'utf8' }).trim();
+                const value = execSync(`${GH_PATH} secret view ${name} --raw`, { encoding: 'utf8' }).trim();
                 
                 // Map to local keys (handle naming variations)
                 let localKey = name;

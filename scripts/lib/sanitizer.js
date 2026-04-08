@@ -39,4 +39,45 @@ function sanitizeInstitutionalContent(content) {
     return clean;
 }
 
-export { sanitizeInstitutionalContent as sanitizeJSON };
+/**
+ * extractJson
+ * Institutional Resilience Utility: Finds and parses the first JSON block within ANY string payload.
+ * Useful for stripping [DRY-RUN] or other log-utility noise prefixes.
+ */
+function extractJson(text) {
+    if (!text || typeof text !== 'string') return null;
+    try {
+        const firstBrace = text.indexOf('{');
+        const lastBrace = text.lastIndexOf('}');
+        if (firstBrace === -1 || lastBrace === -1) return null;
+        
+        const jsonStr = text.substring(firstBrace, lastBrace + 1)
+                            .replace(/[\u0000-\u001F\u007F-\u009F]/g, ""); // Purge control chars
+        return JSON.parse(jsonStr);
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * normalizeInstitutionalPem
+ * Institutional Hardening Utility: Re-chunks RSA private keys into the strict 
+ * 64-character line format required by Node.js and WebCrypto.
+ */
+function normalizeInstitutionalPem(pem) {
+    if (!pem || typeof pem !== 'string') return "";
+    
+    // 1. Purge all existing headers, footers, whitespace, and literal \n sequences
+    const base64 = pem.replace(/-----BEGIN PRIVATE KEY-----/g, "")
+                      .replace(/-----END PRIVATE KEY-----/g, "")
+                      .replace(/\\n/g, "")
+                      .replace(/\s+/g, "");
+                      
+    // 2. Re-chunk into 64-character rows
+    const lines = base64.match(/.{1,64}/g) || [];
+    
+    // 3. Re-wrap with strict headers
+    return `-----BEGIN PRIVATE KEY-----\n${lines.join('\n')}\n-----END PRIVATE KEY-----\n`;
+}
+
+export { sanitizeInstitutionalContent as sanitizeJSON, extractJson, normalizeInstitutionalPem };

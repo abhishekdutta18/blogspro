@@ -17,6 +17,7 @@ async function runInstitutionalSwarm() {
   const start = Date.now();
   const frequency = process.argv.find(a => a.startsWith('--freq='))?.split('=')[1] || 'weekly';
   const type = process.argv.find(a => a.startsWith('--type='))?.split('=')[1] || 'article';
+  const mode = process.argv.find(a => a.startsWith('--mode='))?.split('=')[1] || 'standard';
   const extended = process.argv.includes('--extended');
   const id = `swarm-${frequency}-${Date.now()}`;
 
@@ -40,6 +41,7 @@ async function runInstitutionalSwarm() {
     HIL: process.argv.includes('--hil'), // 🏺 Phase 8.1: Human-in-the-Loop Signaling
     SERIAL_FLOW: process.argv.includes('--serial'), // [V8.6] Sequential synthesis for 8GB hardware
     DRY_RUN: process.argv.includes('--dry-run'), // [V8.5] Infrastructure Verification Mode
+    MODE: mode, // [V9.0] Hybrid Split-Execution Node Mode (Worker vs Master)
     TEST_HIL: process.argv.includes('--test-hil'), 
     AI: { fetch: (url, opts) => fetch(url, opts) },
     TEMPLATE_ENGINE: {

@@ -573,15 +573,37 @@ export function initHILStation() {
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem">
                     <div>
                         <div style="font-size:0.85rem; font-weight:700; color:var(--purple2)">${data.frequency?.toUpperCase() || 'INSTITUTIONAL'} TOME</div>
-                        <div style="font-size:0.65rem; color:var(--muted)">Job ID: <code>${id}</code> • ${data.wordCount || 0} words</div>
+                        <div style="font-size:0.65rem; color:var(--muted)">Job ID: <code>${id}</code> • ${data.wordCount || 0} words ${data.lastRefined ? '• <span style="color:var(--gold)">REFINED</span>' : ''}</div>
                     </div>
                     <div style="display:flex; gap:0.5rem">
-                        <button class="v2-btn-top" onclick="previewHILManuscript('${id}')">👁 Review</button>
+                        <button class="v2-btn-top" onclick="previewHILManuscript('${id}')">👁 Full HTML Review</button>
+                        ${data.pdfUrl ? `<button class="v2-btn-top" onclick="window.open('${data.pdfUrl}', '_blank')" style="border-color:var(--blue2); color:var(--blue2)">📑 View PDF</button>` : ''}
+                        <button class="v2-btn-top" onclick="toggleHILRefine('${id}')" style="border-color:var(--gold); color:var(--gold)">✎ Refine & Suggest</button>
                         <button class="v2-btn-pub" onclick="approveHILManuscript('${id}')" style="background:var(--emerald); border-color:var(--emerald); color:white">✅ Approve</button>
                     </div>
                 </div>
-                <div id="hil-preview-${id}" style="display:none; max-height:400px; overflow-y:auto; background:var(--navy); padding:1rem; border-radius:4px; font-size:0.8rem; line-height:1.6; border:1px solid var(--border);">
-                    ${data.content || 'No content found.'}
+                <div id="hil-preview-${id}" style="display:none; height:600px; background:#fff; border-radius:4px; border:1px solid var(--border); margin-bottom:0.8rem; overflow:hidden;">
+                    <iframe id="iframe-preview-${id}" style="width:100%; height:100%; border:none;" srcdoc="${(data.content || '<html><body>No content preview available.</body></html>').replace(/"/g, '&quot;')}"></iframe>
+                </div>
+                <div id="hil-refine-zone-${id}" style="display:none; padding:1rem; background:rgba(201,168,76,0.05); border:1px solid var(--border); border-radius:4px;">
+                    <div style="font-size:0.65rem; font-weight:700; color:var(--gold); margin-bottom:0.5rem; text-transform:uppercase">Refinement Feedback Loop</div>
+                    <p style="font-size:0.7rem; color:var(--muted); margin-bottom:0.8rem">Provide specific steering instructions. The swarm will re-enter reasoning mode to incorporate your feedback.</p>
+                    
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:0.8rem;">
+                        <div>
+                            <label style="font-size:0.7rem; color:var(--muted); font-weight:700;">GENERAL FEEDBACK</label>
+                            <textarea id="hil-refine-msg-${id}" class="form-textarea" rows="4" placeholder="Tone, structure, flow..." style="margin-top:0.3rem; font-size:0.75rem;"></textarea>
+                        </div>
+                        <div>
+                            <label style="font-size:0.7rem; color:#fca5a5; font-weight:700;">CHART & TABLE FEEDBACK</label>
+                            <textarea id="hil-refine-chart-${id}" class="form-textarea" rows="4" placeholder="Missing labels, quantitative logic errors, layout..." style="margin-top:0.3rem; font-size:0.75rem; border-color:rgba(252,165,165,0.3);"></textarea>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; justify-content:flex-end; gap:0.5rem">
+                        <button class="v2-btn-top" onclick="toggleHILRefine('${id}')">Cancel</button>
+                        <button class="v2-btn-pub" onclick="refineHILManuscript('${id}')" style="background:var(--gold); border-color:var(--gold); color:var(--navy)">🚀 Submit to Swarm</button>
+                    </div>
                 </div>
             `;
             list.appendChild(card);
@@ -595,6 +617,57 @@ export function initHILStation() {
 window.previewHILManuscript = (id) => {
     const el = document.getElementById(`hil-preview-${id}`);
     if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+window.toggleHILRefine = (id) => {
+    const el = document.getElementById(`hil-refine-zone-${id}`);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+window.refineHILManuscript = async (id) => {
+    const msgEl = document.getElementById(`hil-refine-msg-${id}`);
+    const chartEl = document.getElementById(`hil-refine-chart-${id}`);
+    
+    const msg = msgEl?.value.trim() || '';
+    const chartMsg = chartEl?.value.trim() || '';
+
+    if (!msg && !chartMsg) {
+        showToast("Please provide refinement instructions (General or Chart-specific).", "error");
+        return;
+    }
+    
+    const combinedMsg = `General: ${msg || 'N/A'}\nCharts & Tables: ${chartMsg || 'N/A'}`;
+
+    if (!confirm(`Trigger refinement loop for Job [${id}]?`)) return;
+    
+    try {
+        const docRef = doc(db, "institutional_audits", id);
+        await updateDoc(docRef, {
+            status: "REFINEMENT_REQUESTED",
+            adminComments: combinedMsg,
+            requestedAt: serverTimestamp(),
+            updatedBy: auth.currentUser?.email || 'Admin'
+        });
+
+        // Relay to Inngest
+        const eventKey = DISPATCH_CONFIG?.inngestEventKey || 'DEFAULT_KEY';
+        const eventUrl = DISPATCH_CONFIG?.inngestUrl || "https://inn.blogspro.in/e/";
+        
+        await fetch(`${eventUrl}${eventKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify([{
+                name: "swarm/manuscript.refine_requested",
+                data: { jobId: id, feedback: msg },
+                timestamp: Date.now()
+            }])
+        });
+
+        showToast(`🚀 Refinement requested for ${id}.`, "success");
+    } catch (e) {
+        console.error("Refinement Request Failed:", e);
+        showToast("Refinement request failed.", "error");
+    }
 };
 
 window.approveHILManuscript = async (id) => {

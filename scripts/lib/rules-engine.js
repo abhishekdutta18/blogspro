@@ -24,7 +24,51 @@ export function sanitizePayload(content) {
     sanitized = sanitized.replace(new RegExp(`\\b${word}\\b|▼\\s*${word}|▲\\s*${word}`, 'gi'), "N/A (AUDIT)");
   });
 
+  // 🛡️ ZERO-ECHO ISOLATION: Strict content extraction
+  sanitized = stripEchos(sanitized);
+  
+  // 🛡️ GHOST PROMPT REMOVAL
+  sanitized = stripGhostPrompts(sanitized);
+
   return sanitized.trim();
+}
+
+/**
+ * Strips everything outside [[BPRO_INTEL_START]] and [[BPRO_INTEL_END]]
+ */
+export function stripEchos(content) {
+  if (!content) return "";
+  const match = content.match(/\[\[BPRO_INTEL_START\]\]([\s\S]*?)\[\[BPRO_INTEL_END\]\]/i);
+  if (match) return match[1].trim();
+  
+  // Fallback: If markers missing, strip common AI intro phrases
+  return content
+    .replace(/^(Certainly|Here is|Below is|Based on|As a|As an AI)[\s\S]*?:/i, "")
+    .replace(/(Hope this|Let me know|If you need)[\s\S]*$/i, "");
+}
+
+/**
+ * Purges system instructions that leaked into the manuscript
+ */
+export function stripGhostPrompts(content) {
+  if (!content) return "";
+  const ghostPatterns = [
+    /ROLE:\s*[A-Z\s]+/gi,
+    /TASK:\s*[\s\S]*?(?=\n|$)/gi,
+    /INSTITUTIONAL_PERSONA:[\s\S]*?(?=\n|$)/gi,
+    /VERTICAL DATA:[\s\S]*?(?=\n|$)/gi,
+    /RESEARCH INPUT:[\s\S]*?(?=\n|$)/gi,
+    /BANNED:[\s\S]*?(?=\n|$)/gi,
+    /MANDATORY:[\s\S]*?(?=\n|$)/gi,
+    /\[\[BPRO_INTEL_START\]\]/gi,
+    /\[\[BPRO_INTEL_END\]\]/gi
+  ];
+  
+  let cleared = content;
+  ghostPatterns.forEach(pattern => {
+    cleared = cleared.replace(pattern, "");
+  });
+  return cleared;
 }
 
 /**
@@ -62,6 +106,9 @@ export function repairTables(content) {
       // 🛡️ Normalization: Ensure Leading and Trailing Pipes
       if (!line.startsWith('|')) line = '| ' + line;
       if (!line.endsWith('|')) line = line + ' |';
+      
+      // 🛡️ TABLE HARDENING: Ensure internal alignment and clean pipes
+      line = line.replace(/\|{2,}/g, '|'); // Collapse multiple pipes
       
       // 🛡️ ANTI-HALLUCINATION: Validate each cell in the row
       const cells = line.split('|').map(c => validateCellFidelity(c));

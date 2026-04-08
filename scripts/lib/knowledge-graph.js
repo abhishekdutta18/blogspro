@@ -1,5 +1,6 @@
 import { askAI } from "./ai-service.js";
 import { getGraphRAGExtractorPrompt, getGraphRAGMergePrompt } from "./prompts.js";
+import { extractJson } from "./sanitizer.js";
 import { pushTelemetryLog } from "./storage-bridge.js";
 
 /**
@@ -31,16 +32,16 @@ export async function extractKnowledgeGraph(data, env, verticalId = "global", bl
             const mergedStr = await askAI(getGraphRAGMergePrompt(existingGraph, data + context), { 
                 role: 'research', env, model: 'node-research' 
             });
-            const cleaned = mergedStr.replace(/```json\n?|```/g, '').trim();
-            graph = JSON.parse(cleaned);
+            graph = extractJson(mergedStr);
         } else {
             // Fresh start with Institutional Extraction
             const result = await askAI(getGraphRAGExtractorPrompt(data + context), { 
                 role: 'research', env, model: 'node-research' 
             });
-            const cleaned = result.replace(/```json\n?|```/g, '').trim();
-            graph = JSON.parse(cleaned);
+            graph = extractJson(result);
         }
+
+        if (!graph) throw new Error("Graph extraction returned null or malformed JSON.");
 
         // Persist back to KV
         if (env && env.KV && graph.entities?.length > 0) {
@@ -49,18 +50,25 @@ export async function extractKnowledgeGraph(data, env, verticalId = "global", bl
 
         console.log(`✅ [GraphRAG] Updated ${graph.entities?.length || 0} entities for ${verticalId}.`);
         
-        // 🚀 Institutional Telemetry
-        ctx.waitUntil(pushTelemetryLog("GRAPH_UPDATE", {
-            frequency: "pulse",
-            status: "success",
-            message: `Updated ${graph.entities?.length || 0} entities for ${verticalId}.`,
-            details: { verticalId, entities: graph.entities?.length, relations: graph.relationships?.length }
-        }, env));
+        // 🚀 Institutional Telemetry (Restored V9.3.2)
+        if (env && env.FIREBASE_PROJECT_ID) {
+            pushTelemetryLog("GRAPH_UPDATE", {
+                frequency: "pulse",
+                status: "success",
+                message: `Updated ${graph.entities?.length || 0} entities for ${verticalId}.`,
+                details: { verticalId, entities: (graph.entities?.length || 0), relations: (graph.relationships?.length || 0) }
+            }, env).catch(e => console.warn("⚠️ [GraphRAG-Telemetry] Background sync failed:", e.message));
+        }
 
         return graph;
     } catch (e) {
         console.error("⚠️ [GraphRAG] Extraction failed:", e.message);
-        return existingGraph.entities.length > 0 ? existingGraph : { entities: [], relationships: [], semanticSummary: "Relational mapping failed." };
+        // [V9.3] Institutional Resilience: Return a valid-schema empty graph instead of failing the pipeline
+        return { 
+            entities: (existingGraph && existingGraph.entities) || [], 
+            relationships: (existingGraph && existingGraph.relationships) || [], 
+            semanticSummary: `Relational mapping partially stalled: ${e.message}` 
+        };
     }
 }
 

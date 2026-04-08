@@ -85,15 +85,19 @@ async function runHighFidelityAuditor(content, frequency) {
             return { role: role.name, status: isPass ? "PASS" : "REJECT", feedback: result };
         } catch (e) {
             console.warn(`⚠️ Audit Node failure for ${role.name}:`, e.message);
-            return { role: role.name, status: "PASS", feedback: `Audit bypassed due to connectivity: ${e.message}` };
+            // 🛡️ INSTITUTIONAL HARDENING: Connectivity failure must NOT result in a blind PASS
+            return { role: role.name, status: "INCONCLUSIVE", feedback: `Audit unreachable: ${e.message}` };
         }
     }));
 
     const passes = audits.filter(a => a.status === "PASS").length;
+    const inconclusive = audits.filter(a => a.status === "INCONCLUSIVE").length;
+    
+    // Adjusted logic: If there are inconclusive results, the audit defaults to "CAUTION"
     const score = Math.round((passes / roles.length) * 100);
-    const status = score >= 66 ? "PASS" : "REJECT";
+    const status = (passes >= 2 && inconclusive === 0) ? "PASS" : (inconclusive > 0 ? "CAUTION" : "REJECT");
 
-    console.log(`✅ Swarm Consensus: ${status} (${passes}/${roles.length} approved). Score: ${score}%`);
+    console.log(`✅ Swarm Consensus: ${status} (${passes}/${roles.length} approved, ${inconclusive} inconclusive). Score: ${score}%`);
 
     // Log to Institutional Telemetry
     try {

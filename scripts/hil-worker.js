@@ -4,7 +4,7 @@
  * Premium Human-in-the-Loop review dashboard for BlogsPro AI Swarm.
  */
 
-import { initFirebase, getPendingAudits, updateAuditStatus } from "./lib/firebase-service.js";
+import { getPendingAuditsREST, updateAuditStatusREST } from "./lib/storage-bridge.js";
 
 export default {
   async fetch(request, env) {
@@ -18,14 +18,14 @@ export default {
 
     // 1. API: Get Pending Audits
     if (url.pathname === "/api/pending") {
-      const audits = await getPendingAudits();
+      const audits = await getPendingAuditsREST(env);
       return new Response(JSON.stringify(audits), { headers: { "Content-Type": "application/json" } });
     }
 
     // 2. API: Action (Approve/Reject)
     if (url.pathname === "/api/action" && request.method === "POST") {
       const { id, action, feedback } = await request.json();
-      await updateAuditStatus(id, action === 'approve' ? 'APPROVED' : 'REJECTED', feedback);
+      await updateAuditStatusREST(id, action === 'approve' ? 'APPROVED' : 'REJECTED', feedback, env);
       return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
     }
 
@@ -36,7 +36,7 @@ export default {
         const query = update.callback_query;
         const [action, auditId] = query.data.split(':');
         
-        await updateAuditStatus(auditId, action === 'approve' ? 'APPROVED' : 'REJECTED', `via Telegram (${query.from.username})`);
+        await updateAuditStatusREST(auditId, action === 'approve' ? 'APPROVED' : 'REJECTED', `via Telegram (${query.from.username})`, env);
         
         // Respond to Telegram to stop loading spinner & update message
         const botToken = env.TELEGRAM_BOT_TOKEN;
@@ -191,9 +191,10 @@ export default {
         <script>
             let currentId = null;
             let audits = [];
+            const clientToken = "${clientToken}";
 
             async function loadAudits() {
-                const res = await fetch(\`/api/pending?token=${clientToken}\`);
+                const res = await fetch(\`/api/pending?token=\${clientToken}\`);
                 audits = await res.json();
                 renderList();
             }
@@ -223,7 +224,7 @@ export default {
 
             async function handleAction(action) {
                 if (!confirm(\`Are you sure you want to \${action} this manuscript?\`)) return;
-                const res = await fetch(\`/api/action?token=${clientToken}\`, {
+                const res = await fetch(\`/api/action?token=\${clientToken}\`, {
                     method: 'POST',
                     body: JSON.stringify({ id: currentId, action })
                 });

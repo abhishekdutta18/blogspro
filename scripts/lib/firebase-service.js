@@ -1,8 +1,30 @@
 import admin from 'firebase-admin';
-import { readFileSync } from 'fs';
+import fs from 'fs';
 import path from 'path';
+import { normalizeInstitutionalPem } from './sanitizer.js';
 
 let db, storageBucket;
+
+/**
+ * hydrateServiceAccount
+ * Institutional Utility: Ensures all mission-critical GCP fields are present and correctly formatted.
+ */
+function hydrateServiceAccount(sa) {
+    if (!sa || typeof sa !== 'object') return sa;
+    
+    // 1. [V5.4.4] RSA Logic Restoration: Force strict 64-char line PEM format
+    if (sa.private_key) {
+        sa.private_key = normalizeInstitutionalPem(sa.private_key);
+    }
+    
+    // 2. Definitive Recovery for client_email
+    if (!sa.client_email && sa.project_id) {
+        console.warn(`🛡️ [Hydration] Missing client_email. Recovering via project_id: ${sa.project_id}`);
+        sa.client_email = `firebase-adminsdk-q0p9j@${sa.project_id}.iam.gserviceaccount.com`;
+    }
+    
+    return sa;
+}
 
 /**
  * Initialize Firebase Admin SDK
@@ -19,21 +41,51 @@ export function initFirebase() {
         storageBucket: bucketName
     };
 
-    // If service account path is provided, use it (for local testing)
-    if (serviceAccountPath) {
+    // [V5.4.2] Institutional Priority: Prefer local knowledge-file to avoid ENV truncation
+    const saFile = path.join(process.cwd(), 'knowledge', 'firebase-service-account.json');
+    if (fs.existsSync(saFile)) {
         try {
-            const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
+            const raw = fs.readFileSync(saFile, 'utf8');
+            let serviceAccount = JSON.parse(raw);
+            
+            // 💧 HYDRATE: Standardize fields before SDK consumption
+            serviceAccount = hydrateServiceAccount(serviceAccount);
+            
+            console.log(`🛡️ [Firebase] Authenticated via Institutional Key: ${saFile}`);
             options.credential = admin.credential.cert(serviceAccount);
+            admin.initializeApp(options);
+            db = admin.firestore();
+            storageBucket = admin.storage().bucket();
+            return { db, storageBucket };
         } catch (e) {
-            console.warn('⚠️ Could not load service account from path, falling back to default credentials');
+            console.warn('⚠️ Institutional Knowledge-Key Load Fail:', e.message);
         }
-    } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-        // For CI/CD environments
+    }
+
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+        // For CI/CD and Swarm environments
         try {
-            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+            // 🛡️ INSTITUTIONAL BRUTE-FORCE SANITIZER (V5.4.1)
+            let saString = String(process.env.FIREBASE_SERVICE_ACCOUNT).trim();
+            
+            // Pass 1: Purge all non-printable control characters
+            saString = saString.replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
+            
+            // Pass 2: Trim to JSON boundaries to ignore prefix/suffix noise (e.g. logs)
+            const firstBrace = saString.indexOf('{');
+            const lastBrace = saString.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace !== -1) {
+                saString = saString.substring(firstBrace, lastBrace + 1);
+            }
+
+            let serviceAccount = JSON.parse(saString);
+            
+            // 💧 HYDRATE: Standardize fields before SDK consumption
+            serviceAccount = hydrateServiceAccount(serviceAccount);
+            
             options.credential = admin.credential.cert(serviceAccount);
         } catch (e) {
-            console.warn('⚠️ Could not parse FIREBASE_SERVICE_ACCOUNT env var');
+            console.error(`❌ [Firebase] Critical Error: Failed to parse FIREBASE_SERVICE_ACCOUNT: ${e.message}`);
         }
     }
 
