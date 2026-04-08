@@ -491,8 +491,5 @@ export {
   getRecentSnapshots,
   pushHistoricalData,
   getHistoricalData,
-  pushTelemetryLog,
-  getPendingAuditsREST,
-  updateAuditStatusREST,
-  getFirestoreDoc
+  pushTelemetryLog
 };
