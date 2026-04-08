@@ -1,5 +1,5 @@
 import { showToast, auth, db, DISPATCH_CONFIG } from './config.js';
-import { collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, query, orderBy, limit, getDocs, where, onSnapshot, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { workerCandidates, workerUrl } from './worker-endpoints.js';
 
 let dispatchTimerInterval = null;
@@ -535,9 +535,7 @@ if (typeof document !== 'undefined') {
 
 // 🏺 [V8.4] INSTITUTIONAL HIL CONSENSUS SERVICE
 // --------------------------------------------------
-import { 
-  collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp 
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// HIL Consensus listener initialized below using consolidated imports.
 
 let hilUnsubscribe = null;
 
