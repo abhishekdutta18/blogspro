@@ -761,37 +761,9 @@ async function generateLocalCascade(prompt, model, context = {}) {
     for (const endpoint of localEndpoints) {
         try {
             console.log(`🏠 [Local-Cascade] Attempting ${endpoint.name} (${model})...`);
-    const startTs = Date.now();
-    try {
-        const content = await selectedNode.fn(prompt, model || selectedNode.name, { ...options, ...context });
-        const latency = Date.now() - startTs;
-        
-        // --- 🛰️ SOVEREIGN TRACE: Interaction Breadcrumb ---
-        pushSovereignTrace("AI_INTERACTION", {
-            jobId: jobId || 'local',
-            status: "success",
-            latency: latency,
-            role: role,
-            model: selectedNode.name,
-            message: `Interaction complete via ${selectedNode.name}`
-        }, env).catch(() => {}); // Fire and forget to prevent blocking
-        
-        return content;
-    } catch (e) {
-        const latency = Date.now() - startTs;
-        pushSovereignTrace("AI_FAILURE", {
-            jobId: jobId || 'local',
-            status: "error",
-            latency: latency,
-            role: role,
-            model: selectedNode.name,
-            message: `Interaction failed: ${e.message}`
-        }, env).catch(() => {});
-        
-        throw e;
-    }
-}
-console.warn(`🏠 [Local-Cascade] ${endpoint.name} failed: ${err.message}`);
+            return await generateOllamaContent(prompt, model, { ...context, targetHost: endpoint.host });
+        } catch (err) {
+            console.warn(`🏠 [Local-Cascade] ${endpoint.name} failed: ${err.message}`);
             lastError = err;
         }
     }
