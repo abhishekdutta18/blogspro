@@ -129,7 +129,7 @@ async function runInstitutionalSwarm() {
     // --- 🎛️ MODE BRANCHING: Worker vs Assemble (V12.0) ---
     if (mode === 'worker' && targetVerticalId) {
         console.log(`👷 [Worker-Mode] Commencing Parallel Research for Vertical: ${targetVerticalId}`);
-        const { VERTICALS } = await import("./lib/swarm-orchestrator.js");
+        const { VERTICALS } = await import("./lib/prompts.js");
         const vertical = VERTICALS.find(v => v.id === targetVerticalId);
         if (!vertical) throw new Error(`Invalid Vertical ID: ${targetVerticalId}`);
 
@@ -168,7 +168,7 @@ async function runInstitutionalSwarm() {
 
     if (mode === 'assemble') {
         console.log(`🏰 [Master-Mode] Commencing Institutional Tome Assembly [Job: ${id}]`);
-        const { VERTICALS } = await import("./lib/swarm-orchestrator.js");
+        const { VERTICALS } = await import("./lib/prompts.js");
         
         // 1. GATHER FRAGMENTS
         const sectorPath = path.join(process.cwd(), 'manuscripts', 'v7', 'sectors');
