@@ -6,7 +6,8 @@ import { getBaseTemplate } from "./lib/templates.js";
 import { getRecentSnapshots, 
   getHistoricalData, 
   syncToFirestore,
-  pushTelemetryLog
+  pushTelemetryLog,
+  saveToCloudBucket
 } from "./lib/storage-bridge.js";
 import { uploadToStorage } from './lib/firebase-service.js';
 import { runSwarmAudit } from './lib/mirofish-qa-service.js';
@@ -156,12 +157,26 @@ async function runInstitutionalSwarm() {
         console.log(`✅ [Worker-Mode] Fragment Saved: ${fragmentFile}`);
         
         // 🏺 PERSISTENT RECOVERY BRIDGE: Sync fragment to cloud immediately
-        await syncToFirestore("swarm_fragments", { 
-            jobId: id, 
-            verticalId: targetVerticalId, 
-            path: `sectors/${id}_${targetVerticalId}.json`,
-            status: "ready"
-        }, env);
+        const cloudPath = `sectors/${id}/${targetVerticalId}.json`;
+        console.log(`📤 [Cloud-Sync] Uploading fragment to Storage: ${cloudPath}`);
+        
+        try {
+            await saveToCloudBucket(cloudPath, {
+                verticalId: targetVerticalId,
+                content: fragment,
+                jobId: id,
+                timestamp: Date.now()
+            }, env);
+
+            await syncToFirestore("swarm_fragments", { 
+                jobId: id, 
+                verticalId: targetVerticalId, 
+                path: cloudPath,
+                status: "ready"
+            }, env);
+        } catch (e) {
+            console.warn(`⚠️ [Cloud-Sync] Primary persistence failed, relying on Artifact fallback: ${e.message}`);
+        }
 
         return;
     }

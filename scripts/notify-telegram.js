@@ -81,9 +81,14 @@ export async function notifyTelegram(filePath = null, frequency = 'daily', type 
                 console.log(`✅ Telegram Document Sent: ${title}`);
                 return await res.json();
             } else {
-                const err = await res.json();
-                console.error(`❌ Telegram API Error:`, err);
-                return { status: "error", error: err };
+                let errData = "Unknown Document Error";
+                try {
+                    errData = await res.json();
+                } catch(e) {
+                    errData = await res.text();
+                }
+                console.error(`❌ Telegram API Error:`, errData);
+                return { status: "error", error: errData };
             }
         } else {
             console.warn(`⚠️ PDF not found, falling back to text notification.`);
@@ -97,9 +102,15 @@ export async function notifyTelegram(filePath = null, frequency = 'daily', type 
                 console.log(`✅ Telegram Text Notification Sent: ${title}`);
                 return await res.json();
             } else {
-                const errData = await res.json();
-                console.error(`❌ Telegram Text Dispatch Failed:`, errData.description);
-                return { status: "error", error: errData.description };
+                let errDescription = "Unknown Error";
+                try {
+                    const errData = await res.json();
+                    errDescription = errData.description || JSON.stringify(errData);
+                } catch(e) {
+                    errDescription = await res.text();
+                }
+                console.error(`❌ Telegram Text Dispatch Failed:`, errDescription);
+                return { status: "error", error: errDescription };
             }
         }
     } catch (e) {

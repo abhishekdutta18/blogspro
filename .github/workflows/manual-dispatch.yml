@@ -129,9 +129,9 @@ jobs:
           # Failover Tunnel for Consolidator (Audit pass)
           OLLAMA_PROD_URL: ${{ secrets.NGROK_REMOTE_URL }}
           OLLAMA_PROD_KEY: ${{ secrets.OLLAMA_PROD_KEY }}
-          SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'daily' }}-${{ github.run_id }}"
+          SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}"
         run: |
-          FREQ="${{ github.event.inputs.frequency || 'daily' }}"
+          FREQ="${{ github.event.inputs.frequency || 'monthly' }}"
           
           if [ "$FREQ" == "hourly" ]; then
              # Fast Pulse: Single runner
