@@ -1,5 +1,5 @@
 import fs from "fs";
-import { syncToFirestore, getFirestoreDoc, saveToCloudBucket, loadFromCloudBucket, saveToGDriveBucket } from './storage-bridge.js';
+import { syncToFirestore, getFirestoreDoc, saveToCloudBucket, loadFromCloudBucket, saveToGDriveBucket, pushSovereignTrace } from './storage-bridge.js';
 import { askAI, ResourceManager } from "./ai-service.js";
 import { 
   VERTICALS, 
