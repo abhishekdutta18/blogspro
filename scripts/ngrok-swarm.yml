@@ -1,17 +1,17 @@
 version: "2"
-authtoken: ${NGROK_AUTHTOKEN}
+authtoken: 3BqLduM9MgIJGYawd84LdEHGeFq_21FmXVX46fbFH77kSzkfB
 web_addr: localhost:4040
 tunnels:
   ollama-prod:
     proto: http
     addr: 11434 # Local Swarm Controller
     inspect: true
-    domain: superimportant-priscilla-supersecretively.ngrok-free.dev # 70B Institutional Bridge [/health endpoint enabled]
+    # domain logic removed for Free Plan compatibility
     schemes:
       - https
   sw-terminal:
     proto: http
     addr: 3000
-    domain: REPLACE_WITH_SUBDOMAIN_IF_AVAILABLE # Strategic Dashboard Access
+    # domain logic removed for Free Plan compatibility
     schemes:
       - https

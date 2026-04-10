@@ -10,6 +10,9 @@ import { askAI } from "./ai-service.js";
 import { VERTICALS, getCodingExpertPrompt, INSTITUTIONAL_STYLING } from "./prompts.js";
 import { initWorkerSentry, captureSwarmError } from "./sentry-bridge.js";
 import { inngest } from "./inngest-client.js";
+import { hydrateRemoteContext } from "./remote-config.js";
+import { hydrateSwarmPrompts } from "./prompts.js";
+
 
 /**
  * [V6.0] checkStepStatus
@@ -52,6 +55,14 @@ export const pulseSwarmWorkflow = inngest.createFunction(
     initWorkerSentry(null, env, ctx);
 
     await step.run("initialize-telemetry", async () => {
+      // [V10.0] PRE-FLIGHT HYDRATION: Sync with Remote Cloud/Drive metadata
+      try {
+        const remoteMetadata = await hydrateRemoteContext(env);
+        if (remoteMetadata) hydrateSwarmPrompts(remoteMetadata);
+      } catch (e) {
+        console.warn("⚠️ [Inngest] Remote hydration failed, proceeding with local defaults.");
+      }
+
       await notifyProgress(env, runtimeId, { 
         stage: "INIT", 
         message: `Durable Swarm V6.0 Activated [Type: ${type.toUpperCase()}]`,
@@ -67,6 +78,7 @@ export const pulseSwarmWorkflow = inngest.createFunction(
       // [V6.0] Fire "Ghost Loop" Speculative Simulation
       runGhostSim(frequency, semanticDigest, env, runtimeId);
     });
+
 
     try {
       // 2. RESEARCH PHASE (Hierarchical for Articles, Consolidated for Pulse)
@@ -280,13 +292,8 @@ export const pulseSwarmWorkflow = inngest.createFunction(
         const link = `https://blogspro.in/${type === 'article' ? 'articles' : 'briefings'}/${frequency}/${persistenceResult.filename}`;
         const tgText = `📑 *${frequency.toUpperCase()} INTELLIGENCE REPORT*\n\n*${persistenceResult.title}*\n\n🔹 *Executive Abstract:*\n${abstract}\n\n🔗 *Interactive Terminal:* ${link}`;
         
-        if (env.TELEGRAM_TOKEN && env.TELEGRAM_TO) {
-          await fetch(`https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: env.TELEGRAM_TO, text: tgText, parse_mode: "Markdown" })
-          });
-        }
+        const { sendStandardizedTelegram } = await import("./notification-service.js");
+        await sendStandardizedTelegram(tgText, env, { parseMode: 'Markdown' });
 
         // 6b. Conditional Email (Weekly/Monthly ONLY)
         if (['weekly', 'monthly'].includes(frequency)) {

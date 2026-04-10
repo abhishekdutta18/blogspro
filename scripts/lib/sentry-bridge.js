@@ -56,7 +56,15 @@ export function initWorkerSentry(request, env, ctx) {
  * Initialize Sentry for a Node.js performance environment (High-Compute Tome).
  */
 export async function initNodeSentry(dsn, frequency = 'weekly') {
-    if (!dsn || !isNode) return;
+    // V10.6 Hardening: Fallback to local logging if DSN is missing
+    if (!isNode) return;
+    
+    const TARGET_ENVIRONMENT = process.env.NODE_ENV || 'institutional-swarm';
+    
+    if (!dsn) {
+        console.warn(`🛡️ [Sentry] DSN Missing. Telemetry active in LOCAL-ONLY mode [Env: ${TARGET_ENVIRONMENT}]`);
+        return;
+    }
 
     try {
         const Sentry = await getSentryNode();
@@ -64,15 +72,15 @@ export async function initNodeSentry(dsn, frequency = 'weekly') {
 
         Sentry.init({
             dsn: dsn,
-            tracesSampleRate: 1.0, // HARDENED: 100% capture during stabilization
-            environment: process.env.NODE_ENV || 'production',
+            tracesSampleRate: 1.0, 
+            environment: TARGET_ENVIRONMENT,
             initialScope: {
-                tags: { frequency, swarm_version: '5.3' }
+                tags: { frequency, swarm_version: '5.4.2' }
             }
         });
-        console.log(`🛡️ [Sentry] Node Observability Active [Swarm 5.3 | Freq: ${frequency}]`);
+        console.log(`🛡️ [Sentry] Node Observability Active [Env: ${TARGET_ENVIRONMENT} | Freq: ${frequency}]`);
     } catch (e) {
-        console.warn(`⚠️ [Sentry] Node Initialization Failed (Resilient Mode Active):`, e.message);
+        console.warn(`⚠️ [Sentry] Node Initialization Failed:`, e.message);
     }
 }
 

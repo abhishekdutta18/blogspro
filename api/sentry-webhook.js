@@ -25,20 +25,11 @@ export default {
                       `<b>Culprit:</b> <code>${culprit}</code>\n\n` +
                       `<a href="${link}">View Full Trace in Sentry</a>`;
 
-      const telegramUrl = `https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/sendMessage`;
-      const tgRes = await fetch(telegramUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: env.TELEGRAM_TO,
-          text: message,
-          parse_mode: 'HTML',
-          disable_web_page_preview: true
-        })
-      });
+      const { sendStandardizedTelegram } = await import('../scripts/lib/notification-service.js');
+      const tgRes = await sendStandardizedTelegram(message, env);
 
-      if (!tgRes.ok) {
-        console.error('Telegram API Failed:', await tgRes.text());
+      if (!tgRes.success) {
+        console.error('Telegram API Failed:', tgRes.error);
         return new Response('Failed to dispatch Telegram message', { status: 500 });
       }
 

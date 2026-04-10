@@ -96,6 +96,10 @@ export async function notifyTelegram(filePath = null, frequency = 'daily', type 
             if (res.ok) {
                 console.log(`✅ Telegram Text Notification Sent: ${title}`);
                 return await res.json();
+            } else {
+                const errData = await res.json();
+                console.error(`❌ Telegram Text Dispatch Failed:`, errData.description);
+                return { status: "error", error: errData.description };
             }
         }
     } catch (e) {

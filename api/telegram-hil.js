@@ -122,7 +122,8 @@ export default {
   },
 
   async answerCallbackQuery(callbackQueryId, text, env) {
-    const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`;
+    const token = env.TELEGRAM_BOT_TOKEN || env.TELEGRAM_TOKEN;
+    const url = `https://api.telegram.org/bot${token}/answerCallbackQuery`;
     await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -131,7 +132,8 @@ export default {
   },
 
   async editMessage(chatId, messageId, text, env) {
-    const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/editMessageText`;
+    const token = env.TELEGRAM_BOT_TOKEN || env.TELEGRAM_TOKEN;
+    const url = `https://api.telegram.org/bot${token}/editMessageText`;
     await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

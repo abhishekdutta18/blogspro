@@ -2,6 +2,7 @@ import { executeMultiAgentSwarm } from "./lib/swarm-orchestrator.js";
 import { runSwarmAudit } from "./lib/mirofish-qa-service.js";
 import { ResourceManager } from "./lib/ai-service.js";
 import { pushTelemetryLog } from "./lib/firebase-service.js";
+import { initNodeSentry, flushSentry } from "./lib/sentry-bridge.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -19,6 +20,9 @@ dotenv.config();
 
 async function runVerification() {
     console.log("🚀 [DRY-RUN] Starting Institutional Swarm Verification...");
+    
+    // [V10.6 Hardening] Sentry Initializer
+    await initNodeSentry(process.env.SENTRY_DSN, 'weekly');
     
     // 0. AI POOL CHECK
     console.log("🔍 Checking AI Node Pool...");
@@ -62,6 +66,7 @@ async function runVerification() {
         console.log("✅ [Firebase] Telemetry synced.");
 
         console.log("\n🎊 [SUCCESS] Phase 2 Institutional Hardening Validated.");
+        await flushSentry();
         process.exit(0);
 
     } catch (err) {
@@ -72,6 +77,7 @@ async function runVerification() {
             timestamp: new Date().toISOString()
         });
         
+        await flushSentry();
         process.exit(1);
     }
 }

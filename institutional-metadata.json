@@ -1,0 +1,32 @@
+{
+  "VERTICALS": [
+    { "id": "macro", "name": "Global Macro & Cross-Asset Drift" },
+    { "id": "banking", "name": "Banking & Institutional Treasury" },
+    { "id": "cards", "name": "Cards & Payments Ecosystem" },
+    { "id": "equities", "name": "Equities & Alpha Rotation" },
+    { "id": "debt", "name": "Debt & Sovereign Credit" },
+    { "id": "fx", "name": "FX & Cross-Border Flows" },
+    { "id": "digital", "name": "Digital Assets & Infrastructure" },
+    { "id": "reg", "name": "Regulatory Ledger & Compliance" },
+    { "id": "commodity", "name": "Commodity & Resource Pulse" },
+    { "id": "em", "name": "Emerging Markets (EM) Alpha" },
+    { "id": "asset", "name": "Asset Allocation & Risk-Parity" },
+    { "id": "scribe", "name": "Scribe Analytics & Sentiment" },
+    { "id": "capital", "name": "Capital Flows (PE/VC/M&A)" },
+    { "id": "insurance", "name": "Insurance & Reinsurance Risk" },
+    { "id": "gift", "name": "Offshore Hub (GIFT City)" },
+    { "id": "payment", "name": "Fintech & Payment Rails" },
+    { "id": "india_macro", "name": "India Economy & GDP Drift" },
+    { "id": "india_banking", "name": "Indian Banking & Credit Pulse" },
+    { "id": "india_industries", "name": "Indian Industrial & Infra Alpha" },
+    { "id": "india_global_impact", "name": "Global Macro Impact on India" }
+  ],
+  "CONSENSUS_PERSONAS": [
+    { "name": "Risk Desk Lead", "bias": "BEARISH / SKEPTICAL", "focus": "Tail risks, margin pressure, regulatory friction." },
+    { "name": "Alpha Strategist", "bias": "BULLISH / OPPORTUNISTIC", "focus": "Flow divergence, growth catalysts, valuation gaps." },
+    { "name": "Macro Quant", "bias": "NEUTRAL / DATA-DRIVEN", "focus": "Correlations, sigma events, yield curve drift." },
+    { "name": "Geopolitical Desk", "bias": "SITUATIONAL", "focus": "Sovereign risk, policy shifts, trade barriers." },
+    { "name": "Flow Desk Senior", "bias": "LIQUIDITY-FOCUSED", "focus": "Institutional positioning, FPI/DII rotation, dark pool signals." },
+    { "name": "Coding Architect", "bias": "TECHNICAL-PRECISION", "focus": "Semantic HTML5, PDF rendering stability, and schema.org integrity." }
+  ]
+}

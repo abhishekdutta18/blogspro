@@ -40,6 +40,7 @@ jobs:
           CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
           SENTRY_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           NEWSLETTER_URL: ${{ secrets.NEWSLETTER_WORKER_URL }}
         run: |
           MISSING=()
@@ -47,6 +48,7 @@ jobs:
           [ -z "$CF_ACCOUNT" ] && MISSING+=("CLOUDFLARE_ACCOUNT_ID")
           [ -z "$GEMINI_KEY" ] && MISSING+=("GEMINI_API_KEY")
           [ -z "$SENTRY_TOKEN" ] && MISSING+=("SENTRY_AUTH_TOKEN")
+          [ -z "$SENTRY_DSN" ] && MISSING+=("SENTRY_DSN")
           [ -z "$NEWSLETTER_URL" ] && MISSING+=("NEWSLETTER_WORKER_URL")
 
           if [ ${#MISSING[@]} -ne 0 ]; then

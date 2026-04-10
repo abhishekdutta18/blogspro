@@ -2,13 +2,10 @@
  * social-utils.js
  * =================
  * BlogsPro Social & Notification Interface.
- * Dispatches strategic summaries to Slack, Discord, and other 
- * institutional desks.
  */
 
 /**
  * Dispatches a high-density strategic alert to a configured webhook.
- * Supports Slack and Discord payload formats.
  */
 export async function dispatchInstitutionalAlert(summary, webhookUrl) {
   if (!webhookUrl) {
@@ -81,34 +78,9 @@ export async function dispatchInstitutionalAlert(summary, webhookUrl) {
  * Dispatches a Telegram notification using the Bot API.
  */
 export async function dispatchTelegramAlert(summary, env) {
-  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
-    console.warn("⚠️ [Telegram] Bot token or Chat ID missing.");
-    return false;
-  }
-
+  const { sendStandardizedTelegram } = await import("./notification-service.js");
   const text = `🚨 *${summary.title}*\n\n${summary.abstract}\n\n📊 *Word Count:* ${summary.wordCount}\n🔗 [View Full Manuscript](https://blogspro.in/pulse)`;
-
-  try {
-    const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: env.TELEGRAM_CHAT_ID,
-        text: text,
-        parse_mode: 'Markdown'
-      })
-    });
-
-    if (res.ok) {
-      console.log("💎 [Telegram] Strategic alert dispatched.");
-      return true;
-    } else {
-      console.error("❌ [Telegram] API Error:", await res.text());
-      return false;
-    }
-  } catch (e) {
-    console.error("❌ [Telegram] Dispatch failed:", e.message);
-    return false;
-  }
+  
+  const res = await sendStandardizedTelegram(text, env, { parseMode: 'Markdown' });
+  return res.success;
 }

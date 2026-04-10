@@ -162,6 +162,39 @@ export default {
         });
       }
 
+      // 6.5. AI GATEWAY (V7.2 - Institutional Key Restoration)
+      if (pathname === "/ai-gateway" && request.method === "POST") {
+        const vaultAuth = request.headers.get("X-Vault-Auth") || request.headers.get("Authorization")?.replace('Bearer ', '') || "";
+        if (!vaultAuth || vaultAuth !== env.VAULT_MASTER_KEY) {
+          return wrapResponse({ error: "Unauthorized Gateway Access" }, 403);
+        }
+
+        let body = {};
+        try { body = await request.json(); } catch (e) { return wrapResponse({ error: "Invalid JSON" }, 400); }
+
+        const { prompt, model, provider } = body;
+        if (!prompt) return wrapResponse({ error: "Missing prompt" }, 400);
+
+        try {
+          let responseText = "";
+          if (provider === 'groq') {
+            responseText = await handleGroqGateway(prompt, model, env);
+          } else if (provider === 'gemini') {
+            responseText = await handleGeminiGateway(prompt, model, env);
+          } else if (provider === 'sambanova') {
+            responseText = await handleSambaNovaGateway(prompt, model, env);
+          } else if (provider === 'huggingface') {
+            responseText = await handleHuggingFaceGateway(prompt, model, env);
+          } else {
+            return wrapResponse({ error: `Provider ${provider} not supported on gateway.` }, 400);
+          }
+          return wrapResponse({ success: true, response: responseText });
+        } catch (e) {
+          captureSwarmError(e, { stage: 'ai_gateway', provider, model }, sentry);
+          return wrapResponse({ error: e.message }, 500);
+        }
+      }
+
       // 7. DISPATCH STATUS PROXY (V5.4 Hardened)
       if (pathname === "/api/dispatch-status") {
         // Enforce same security as /dispatch
@@ -232,6 +265,37 @@ export default {
         return wrapResponse({ bridge: bridgeStatus, domain: bridgeUrl });
       }
 
+      // 8. TELEGRAM WEBHOOK (V5.4 Hardened - ID Capture)
+      if (pathname === "/telegram-webhook" && request.method === "POST") {
+        try {
+          const body = await request.json();
+          const message = body.message;
+          if (message && message.chat && message.text) {
+            const chatId = message.chat.id;
+            const text = message.text.toLowerCase();
+            
+            if (text.includes('/id') || text.includes('/status')) {
+              const botToken = env.TELEGRAM_BOT_TOKEN;
+              if (botToken) {
+                const reply = `🦾 <b>BlogsPro Institutional Signal</b>\n\n🔹 Your Chat ID: <code>${chatId}</code>\n🔹 Worker Version: 5.4.2\n🔹 Status: READY`;
+                await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    chat_id: chatId,
+                    text: reply,
+                    parse_mode: 'HTML'
+                  })
+                });
+              }
+            }
+          }
+          return wrapResponse({ success: true });
+        } catch (e) {
+          return wrapResponse({ error: "Webhook Process Failed" }, 400);
+        }
+      }
+
       return wrapResponse({ error: "Not Found" }, 404);
 
     } catch (err) {
@@ -258,3 +322,98 @@ export default {
     }));
   }
 };
+
+/**
+ * 🛰️ INSTITUTIONAL GATEWAY HANDLERS
+ * ================================
+ */
+
+async function handleGroqGateway(prompt, model, env) {
+  const key = env.GROQ_API_KEY;
+  if (!key) throw new Error("GROQ_API_KEY not configured on edge.");
+
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${key}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: model || "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.2
+    })
+  });
+
+  const data = await res.json();
+  if (data.choices?.[0]?.message?.content) return data.choices[0].message.content;
+  throw new Error(data.error?.message || "Groq Gateway Failure");
+}
+
+async function handleGeminiGateway(prompt, model, env) {
+  const key = env.GEMINI_API_KEY;
+  if (!key) throw new Error("GEMINI_API_KEY not configured on edge.");
+
+  const targetModel = model || "gemini-1.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${key}`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }]
+    })
+  });
+
+  const data = await res.json();
+  if (data.candidates?.[0]?.content?.parts?.[0]?.text) return data.candidates[0].content.parts[0].text;
+  throw new Error(data.error?.message || "Gemini Gateway Failure");
+}
+
+async function handleSambaNovaGateway(prompt, model, env) {
+  const key = env.SAMBANOVA_API_KEY;
+  if (!key) throw new Error("SAMBANOVA_API_KEY not configured on edge.");
+
+  // V12.0: Institutional Model Selector (DeepSeek-V3 for 1T-class MoE performance)
+  let targetModel = model || "DeepSeek-V3";
+  if (model?.toLowerCase().includes('deepseek')) targetModel = "DeepSeek-V3";
+  else if (model?.toLowerCase().includes('405b')) targetModel = "Meta-Llama-3.1-405B-Instruct-v2";
+
+  const res = await fetch("https://api.sambanova.ai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${key}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: targetModel,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.1
+    })
+  });
+
+  const data = await res.json();
+  if (data.choices?.[0]?.message?.content) return data.choices[0].message.content;
+  throw new Error(data.error?.message || "SambaNova Gateway Failure");
+}
+
+async function handleHuggingFaceGateway(prompt, model, env) {
+  const key = env.HF_TOKEN;
+  if (!key) throw new Error("HF_TOKEN not configured on edge.");
+
+  const res = await fetch("https://router.huggingface.co/hf/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${key}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: model || "mistralai/Mistral-7B-Instruct-v0.3",
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+
+  const data = await res.json();
+  if (data.choices?.[0]?.message?.content) return data.choices[0].message.content;
+  throw new Error(data.error?.message || "HuggingFace Gateway Failure");
+}

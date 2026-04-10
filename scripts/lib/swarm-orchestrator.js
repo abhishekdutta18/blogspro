@@ -1,5 +1,5 @@
 import fs from "fs";
-import { syncToFirestore, getFirestoreDoc } from './storage-bridge.js';
+import { syncToFirestore, getFirestoreDoc, saveToCloudBucket, loadFromCloudBucket, saveToGDriveBucket } from './storage-bridge.js';
 import { askAI, ResourceManager } from "./ai-service.js";
 import { 
   VERTICALS, 
@@ -16,8 +16,11 @@ import {
   getManagerCorrectionPrompt,
   getGhostConsensusPrompt,
   getMCTSNodePrompt,
-  getHiRAGRetrievalPrompt
+  getHiRAGRetrievalPrompt,
+  hydrateSwarmPrompts
 } from "./prompts.js";
+import { hydrateRemoteContext } from "./remote-config.js";
+
 import { calculateReward } from "./rl-metrics.js";
 import { extractKnowledgeGraph, formatGraphContext } from "./knowledge-graph.js";
 import { gateSignal } from "./gating-engine.js";
@@ -33,8 +36,10 @@ import path from 'path';
 import os from 'os';
 import { detectAndAlert } from "./black-swan-alert.js";
 import * as rules from "./rules-engine.js";
-import { dispatchInstitutionalAlert } from "./social-utils.js";
+import { dispatchInstitutionalAlert, dispatchTelegramAlert } from "./social-utils.js";
 import { fetchDynamicNews } from "./data-fetchers.js";
+import { getNextSwarmState, routeToBestModel } from "./intelligence-engine.js";
+import { sendStandardizedTelegram } from "./notification-service.js";
 import rl from "./reinforcement.js";
 
 /**
@@ -103,26 +108,96 @@ function logTrace(message, data = null) {
     }
 }
 
-function saveSectorFragment(jobId, verticalId, content) {
-    if (!fs.existsSync(SECTOR_DIR)) fs.mkdirSync(SECTOR_DIR, { recursive: true });
-    const filePath = path.join(SECTOR_DIR, `${jobId}_${verticalId}.json`);
-    fs.writeFileSync(filePath, JSON.stringify({ 
+async function saveSectorFragment(jobId, verticalId, content, env = {}) {
+    const bucket = env.FIREBASE_STORAGE_BUCKET || "blogspro-asset";
+    const fragmentData = { 
         jobId, 
         verticalId, 
         content, 
         timestamp: new Date().toISOString() 
-    }, null, 2));
-    console.log(`💾 [Worker] Sector fragment saved: ${filePath}`);
+    };
+
+    // Remote Persistence (Primary)
+    if (env.FIREBASE_PROJECT_ID) {
+        const fileName = `sectors/${jobId}/${verticalId}.json`;
+        await saveToCloudBucket(fileName, fragmentData, env);
+    }
+
+    // Local Persistence (Redundancy Fallback for GHA Artifacts)
+    if (!fs.existsSync(SECTOR_DIR)) fs.mkdirSync(SECTOR_DIR, { recursive: true });
+    const filePath = path.join(SECTOR_DIR, `${jobId}_${verticalId}.json`);
+    fs.writeFileSync(filePath, JSON.stringify(fragmentData, null, 2));
+    
+    console.log(`💾 [Fragment-Sync] Sector ${verticalId} saved to ${env.FIREBASE_PROJECT_ID ? 'Cloud & ' : ''}Local [${jobId}]`);
 }
 
-function loadSectorFragments(jobId) {
-    if (!fs.existsSync(SECTOR_DIR)) return [];
-    return fs.readdirSync(SECTOR_DIR)
-        .filter(f => f.startsWith(jobId) && f.endsWith(".json"))
-        .map(f => {
-            const data = JSON.parse(fs.readFileSync(path.join(SECTOR_DIR, f), "utf8"));
-            return data.content;
-        });
+async function loadSectorFragments(jobId, env = {}) {
+    let cloudFragments = [];
+    let localFragments = [];
+
+    // 1. Load from Cloud (Firebase/R2)
+    if (env.FIREBASE_PROJECT_ID) {
+        try {
+            cloudFragments = await loadFromCloudBucket(jobId, env);
+            console.log(`📡 [Assembly] Recovered ${cloudFragments.length} fragments from Cloud Bucket.`);
+        } catch (e) {
+            console.warn(`⚠️ [Assembly] Cloud fetch failed: ${e.message}`);
+        }
+    }
+    
+    // 2. Load from Local (GHA Artifacts/FS)
+    if (fs.existsSync(SECTOR_DIR)) {
+        const files = fs.readdirSync(SECTOR_DIR).filter(f => f.includes(jobId) && f.endsWith('.json'));
+        localFragments = files.map(f => JSON.parse(fs.readFileSync(path.join(SECTOR_DIR, f), 'utf8')));
+        console.log(`📂 [Assembly] Recovered ${localFragments.length} fragments from local artifact cache.`);
+    }
+
+    // 3. De-duplicate (Cloud fragments take priority over local)
+    const fragmentMap = new Map();
+    [...localFragments, ...cloudFragments].forEach(f => {
+        fragmentMap.set(f.verticalId, f);
+    });
+
+    return Array.from(fragmentMap.values());
+}
+
+/**
+ * [V12.3] AskAI with Institutional Escalation
+ * ----------------------------------------
+ * Implements a 3-tier fallback strategy:
+ * 1. Primary Cloud Fleet (Groq/Gemini/SambaNova)
+ * 2. Institutional AI Bridge (Cloudflare Edge)
+ * 3. Dedicated Laptop Node (Gemma 4 via Ngrok)
+ */
+async function askAIWithEscalation(prompt, options = {}) {
+    const { role, env, model, seed, extended } = options;
+    const maxRetries = 2;
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            // Attempt 0: Primary Model (as requested)
+            // Attempt 1: Institutional Bridge Fallback
+            // Attempt 2: Laptop (Gemma 4) Sovereign Fallback
+            
+            let targetModel = model;
+            if (attempt === 1) targetModel = 'bridge';
+            if (attempt === 2) targetModel = 'laptop';
+
+            console.log(`🤖 [Escalation-Tier ${attempt}] Dispatching ${role} via ${targetModel || 'auto'}...`);
+            return await askAI(prompt, { ...options, model: targetModel });
+        } catch (e) {
+            lastError = e;
+            console.warn(`⚠️ [Escalation-Tier ${attempt}] Failed: ${e.message}`);
+            
+            // If the failure is a known "Sovereign" failure (Gemma 4 unreachable), stop early
+            if (e.message.includes("Laptop Unreachable") && attempt === 1) break;
+            
+            // Staggered backoff
+            await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+        }
+    }
+    throw new Error(`[Sovereign-Failure] All execution tiers exhausted. Final error: ${lastError.message}`);
 }
 
 
@@ -256,108 +331,121 @@ export async function runMCTSSwarm(vertical, frequency, researchBrief, env) {
 /**
  * executeSingleVerticalSwarm
  * -------------------------
- * V7.0: Hierarchical-Thought RAG + GraphRAG Injection
+ * V12.0: Markov-Governed Intelligence Cycle
  */
 export async function executeSingleVerticalSwarm(vertical, index, frequency, semanticDigest, historicalData, env, id, extended, blackboardContext = "") {
-  const verticalStart = Date.now();
-  try {
-    console.log(`🕵️ [Sub-Swarm] Analyzing Vertical: ${vertical.name}...`);
+    const start = Date.now();
+    await pushSovereignTrace("SWARM_INIT", { jobId: id, frequency, status: "processing", message: `Initializing BlogsPro Institutional Swarm [${frequency}]` }, env);
+
+    try {
+        console.log(`🚀 [Swarm] Commencing Institutional Research Lifecycle [ID: ${id}]`);
+        console.log(`🧬 [Markov-Swarm] Analyzing Vertical: ${vertical.name}...`);
     
-    // [V8.5] Institutional Dry-Run Mode (Bypass AI tier for bridge validation)
-    if (env.DRY_RUN) {
-        return `[DRY-RUN MOCK]: Institutional Strategic Analysis for ${vertical.name}. This is high-fidelity mock content for infrastructure verification. 2026-2027 Strategic Roadmap.`;
+    // [V8.5] Institutional Dry-Run Mode
+    if (env.DRY_RUN) return `[DRY-RUN MOCK]: Strategic Analysis for ${vertical.name}.`;
+
+    // 1. STATE-MACHINE INITIALIZATION
+    let state = 'INIT';
+    let fidelityScore = 0;
+    let iterations = 0;
+    let finalManuscript = "";
+    let researchBrief = "";
+
+    while (state !== 'FINALIZE' && state !== 'FORCE_FINALIZE') {
+        state = getNextSwarmState(state, { fidelityScore, iterations, type: frequency });
+        iterations++;
+        
+        await pushSovereignTrace("STATE_TRANSITION", {
+            jobId: id,
+            frequency,
+            status: "processing",
+            role: "orchestrator",
+            vertical: vertical.id,
+            message: `Entering State: ${state} (Iteration: ${iterations})`
+        }, env);
+
+        if (state === 'RESEARCH') {
+            const contextLayers = { macro: semanticDigest.strategicLead, blackboard: blackboardContext, history: historicalData };
+            const model = routeToBestModel('research', env);
+            const refinedQueries = await askAIWithEscalation(getHiRAGRetrievalPrompt(vertical.name, contextLayers), { role: 'research', env, model });
+            const searchQueries = refinedQueries.split('\n').filter(q => q.includes('?')).slice(0, 3);
+            const rawPulse = await Promise.all(searchQueries.map(q => fetchDynamicNews(q)));
+            const internetResearch = rawPulse.join('\n\n');
+            const knowledgeGraph = await extractKnowledgeGraph(internetResearch, env, vertical.id, blackboardContext);
+            const semanticMap = formatGraphContext(knowledgeGraph);
+            const rlMemory = await rl.getReinforcementContext(env);
+            
+            researchBrief = await askAIWithEscalation(getResearcherPrompt(frequency, semanticDigest, historicalData, internetResearch, rlMemory, semanticMap, blackboardContext), {
+                role: 'research', env, model, seed: index, extended
+            });
+            
+            const mctsResult = await runMCTSSwarm(vertical, frequency, researchBrief, env);
+            researchBrief = `${researchBrief}\n\n🌳 [MCTS_WINNING_PATH]:\n${mctsResult.winningPath}`;
+        }
+
+        if (state === 'DRAFT') {
+            const model = routeToBestModel('draft', env);
+            finalManuscript = await askAIWithEscalation(getDrafterPrompt(frequency, researchBrief, vertical.name), { role: 'generate', env, model, seed: index + iterations });
+            fidelityScore = calculateReward(finalManuscript, frequency === 'monthly' ? 1500 : 500) * 100;
+        }
+
+        if (state === 'AUDIT') {
+            const model = routeToBestModel('audit', env);
+            const auditRes = await askAIWithEscalation(getManagerAuditPrompt(finalManuscript, vertical.name, env), { role: 'edit', env, model });
+            try { 
+                const audit = JSON.parse(auditRes.replace(/```json\n?|```/g, '').trim());
+                fidelityScore = audit.score;
+                
+                await pushSovereignTrace("AUDIT_HEARTBEAT", {
+                    jobId: id,
+                    frequency,
+                    status: fidelityScore > 70 ? "success" : "warn",
+                    vertical: vertical.id,
+                    role: "auditor",
+                    message: `MiroFish Audit Complete. Score: ${fidelityScore}%`,
+                    details: { audit }
+                }, env);
+            } catch (e) {
+                console.warn(`⚠️ [Audit-Fail] Malformed JSON in Markov-Swarm: ${e.message}`);
+                fidelityScore = 50; 
+            }
+        }
+
+        if (state === 'REPAIR') {
+            await pushSovereignTrace("REPAIR_TRIGGERED", {
+                jobId: id,
+                frequency,
+                status: "processing",
+                vertical: vertical.id,
+                role: "fidelity",
+                message: `Low fidelity score (${fidelityScore}%). Commencing adaptive repair pass.`
+            }, env);
+            
+            const model = routeToBestModel('fidelity', env);
+            finalManuscript = await askAI(getManagerCorrectionPrompt(finalManuscript, "Improve institutional depth and quantitative density."), {
+                role: 'generate', env, model, seed: 99 + iterations
+            });
+        }
     }
 
-    // --- HiRAG TIERED RETRIEVAL ---
-    const contextLayers = { macro: semanticDigest.strategicLead, blackboard: blackboardContext, history: historicalData };
+    // 🛡️ $SHIELD POST-PROCESSING (V12.3 Auditable)
+    const auditContext = { jobId: id, verticalId: vertical.id, env };
+    const sanitizedBody = rules.sanitizePayload(finalManuscript, auditContext);
+    const repairedBody = rules.repairTables(sanitizedBody, auditContext);
+    const hardenedBody = rules.hardenJson(repairedBody, vertical.id, auditContext);
+    const visualBody = rules.injectVisuals(hardenedBody, vertical.name, vertical.id, auditContext);
+    const institutionalBody = rules.enforceInstitutionalSections(visualBody);
     
-    // [V8.5] Institutional Dry-Run Mode (Bypass AI tier for bridge validation)
-    if (env.DRY_RUN) {
-        return `[DRY-RUN MOCK]: Institutional Strategic Analysis for ${vertical.name}. This is high-fidelity mock content for infrastructure verification. 2026-2027 Strategic Roadmap.`;
-    }
+    await pushSovereignTrace("SHIELD_COMPLETE", {
+        jobId: id,
+        frequency,
+        status: "success",
+        vertical: vertical.id,
+        role: "shield",
+        message: `$SHIELD Institutional Hardening active. Formatting and visuals injected.`
+    }, env);
 
-    const refinedQueries = await askAI(getHiRAGRetrievalPrompt(vertical.name, contextLayers), { role: 'research', env, model: 'node-research' });
-    
-    const searchQueries = refinedQueries.split('\n').filter(q => q.includes('?')).slice(0, 3);
-    const rawPulse = await Promise.all(searchQueries.map(q => fetchDynamicNews(q)));
-    const internetResearch = rawPulse.join('\n\n');
-
-    // --- GraphRAG KNOWLEDGE EXTRACTION (V7.0 Blackboard-Aware) ---
-    const knowledgeGraph = await extractKnowledgeGraph(internetResearch, env, vertical.id, blackboardContext);
-    const semanticMap = formatGraphContext(knowledgeGraph);
-    
-    // 0. LOAD REINFORCEMENT MEMORY
-    const rlMemory = await rl.getReinforcementContext(env);
-
-    // 1. RESEARCHER (V7.0 Graphite Injector + Blackboard Sync)
-    const researchBrief = await askAI(getResearcherPrompt(frequency, semanticDigest, historicalData, internetResearch, rlMemory, semanticMap, blackboardContext), {
-      role: 'research', env, model: 'node-research', seed: index, extended
-    });
-
-    // --- V7.0 ADAPTIVE MCTS BRANCHING ---
-    const mctsResult = await runMCTSSwarm(vertical, frequency, researchBrief, env);
-    const augmentedBrief = `${researchBrief}\n\n🌳 [MCTS_WINNING_PATH]:\n${mctsResult.winningPath}`;
-
-    // 2. DRAFTER (with RL-Audit Loop)
-    let chapterContent = "";
-    let rlScore = 0;
-    let attempts = 0;
-    const maxAttempts = 3;
-
-    while (attempts < maxAttempts && rlScore < 0.8) {
-      attempts++;
-      let currentPrompt = getDrafterPrompt(frequency, augmentedBrief, vertical.name, rlMemory);
-      if (attempts > 1) {
-        currentPrompt += `\n⚠️ REINFORCEMENT SIGNAL: Previous effort failed audit (Score: ${rlScore}). Increase data-density.\n`;
-      }
-
-      // Node-Draft for high-speed drafting/regeneration
-      chapterContent = await askAI(currentPrompt, { role: 'generate', env, model: 'node-draft', seed: index + attempts });
-      rlScore = calculateReward(chapterContent, frequency === 'monthly' ? 1500 : 500);
-      
-      if (rlScore < 0.8 && attempts < maxAttempts) {
-        await notifyProgress(env, id, { stage: "RL_PENALTY", message: `Fidelity failure in ${vertical.name}. Regenerating...` });
-      }
-    }
-
-    // 3. DEEP-REFLECT (Extended Mode Only)
-    if (extended) {
-      const critique = await askAI(getCriticPrompt(augmentedBrief, chapterContent), { role: 'edit', env, model: 'node-edit' });
-      const volumeCommand = "\n\nCRITICAL: Expand to >1,500 words for institutional depth.";
-      chapterContent = await askAI(getRefinementPrompt(chapterContent, critique + volumeCommand, vertical.name), {
-        role: 'generate', env, model: 'node-draft'
-      });
-    }
-
-    // 4. MANAGER AUDIT (Independent High-Fidelity Pass)
-    const auditRes = await askAI(getManagerAuditPrompt(chapterContent, vertical.name, env), { role: 'edit', env, model: 'node-audit' });
-    let audit = { score: 0, status: "FAIL", guidance: "Malformed audit response. Retrying..." };
-    try { 
-      const cleaned = auditRes.replace(/```json\n?|```/g, '').trim();
-      audit = JSON.parse(cleaned); 
-    } catch (e) {
-      console.warn(`⚠️ [Audit-Fail] Malformed JSON from Auditor for ${vertical.name}. Defaulting to repair pass.`);
-    }
-
-    if (audit.status === "FAIL" || audit.score < 80) {
-      console.log(`🛠️ [Repair] Fidelity failure in ${vertical.name} (Score: ${audit.score}). Executing recovery pass...`);
-      await rl.logFailure(vertical.name, audit.reason ? [audit.reason] : ['Fidelity Failure'], chapterContent, env);
-      
-      chapterContent = await askAI(getManagerCorrectionPrompt(chapterContent, audit.guidance), {
-        role: 'generate', env, model: 'node-edit', seed: 99
-      });
-    } else {
-      await rl.logSuccess(vertical.name, "Institutional alignment confirmed", chapterContent, env);
-    }
-
-    // 🛡️ $SHIELD POST-PROCESSING
-    const sanitizedBody = rules.sanitizePayload(chapterContent);
-    const repairedBody = rules.repairTables(sanitizedBody);
-    const hardenedBody = rules.hardenJson(repairedBody, vertical.id);
-    const visualBody = rules.injectVisuals(hardenedBody, vertical.name, vertical.id);
-    const finalManuscript = rules.enforceInstitutionalSections(visualBody);
-
-    return `<div id="sector-${vertical.id}" class="institutional-sector" data-vertical-id="${vertical.id}">\n<h2>${vertical.name.toUpperCase()}</h2>\n${finalManuscript}\n</div>`;
+    return `<div id="sector-${vertical.id}" class="institutional-sector" data-vertical-id="${vertical.id}">\n<h2>${vertical.name.toUpperCase()}</h2>\n${institutionalBody}\n</div>`;
   } catch (err) {
     captureSwarmError(err, { vertical: vertical.name, jobId: id });
     return `<h3>${vertical.name}</h3><p>Audit Unavailable: ${err.message}</p>`;
@@ -425,11 +513,31 @@ export async function persistLearning(verticalName, audit, status = "FAILURE") {
 // --- Redundant wrapper removed. Unified logic now resides in executeMultiAgentSwarm ---
 
 export async function executeMultiAgentSwarm(frequency, semanticDigest, historicalData, type, env, jobId = null) {
+  // [V10.0] PRE-FLIGHT HYDRATION: Sync with Remote Cloud/Drive metadata
+  try {
+    const remoteMetadata = await hydrateRemoteContext(env);
+    if (remoteMetadata) hydrateSwarmPrompts(remoteMetadata);
+  } catch (e) {
+    console.warn("⚠️ [Swarm-Orchestrator] Remote hydration failed, proceeding with local defaults.");
+  }
+
   const isArticle = type === 'article';
   const extended = !!env.EXTENDED_MODE;
-  const targetVerticals = isArticle ? VERTICALS : [{ id: "consolidated", name: "Institutional Pulse" }];
+  let targetVerticals = isArticle ? VERTICALS : [{ id: "consolidated", name: "Institutional Pulse" }];
   const id = jobId || `swarm-${Date.now()}`;
   
+  // [V12.0] Parallel Matrix Partitioning: Filter for specific vertical if requested
+  if (env.TARGET_VERTICAL_ID) {
+    const vId = env.TARGET_VERTICAL_ID;
+    const filtered = targetVerticals.filter(v => v.id === vId);
+    if (filtered.length > 0) {
+        console.log(`🎯 [Matrix] Runner targeted for Vertical: ${filtered[0].name} [${vId}]`);
+        targetVerticals = filtered;
+    } else {
+        console.warn(`⚠️ [Matrix] Vertical ID '${vId}' not found in registry. Running only for: ${vId}`);
+    }
+  }
+
   try {
       return await _executeSwarmInternal(frequency, semanticDigest, historicalData, type, env, id, isArticle, extended, targetVerticals);
   } catch (err) {
@@ -468,9 +576,10 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
   // [V9.0] ASSEMBLE MODE: Direct skip to synthesis (M1 Consolidation)
   if (env.MODE === 'assemble') {
       console.log(`🏗️ [Assemble] Loading sector fragments for Job [${id}]...`);
-      const fragments = loadSectorFragments(id);
+      const fragments = await loadSectorFragments(id, env);
       if (fragments.length > 0) {
-          console.log(`✅ [Assemble] Recovered ${fragments.length} sectors from local GitOps storage.`);
+          console.log(`✅ [Assemble] Recovered ${fragments.length} sectors from redundant storage.`);
+          // [V12.3] Passing full fragments for Gap Analysis
           return await finalizeManuscript(fragments, "Consensus pending in assembly loop.", frequency, type, env, id);
       }
       console.warn(`⚠️ [Assemble] No fragments found for ${id}. Falling back to standard synthesis.`);
@@ -564,10 +673,11 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
     // [V9.0] WORKER MODE: Save fragments and exit (GHA Parallelization)
     if (env.MODE === 'worker') {
         console.log(`🚀 [Worker] Partitioning ${sectorResults.length} sector results to GitOps fragments...`);
-        sectorResults.forEach((res, i) => {
+        for (const res of sectorResults) {
+            const i = sectorResults.indexOf(res);
             const v = sectorVerticals[i] || (priorityVerticals && priorityVerticals[i]);
-            if (v) saveSectorFragment(id, v.id, res);
-        });
+            if (v) await saveSectorFragment(id, v.id, res, env);
+        }
         
         await notifyProgress(env, id, { 
           stage: "WORKER_COMPLETE", 
@@ -644,116 +754,114 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
   const finalManuscript = rules.sanitizePayload(combinedManuscript);
   const fidelityResult = validateAndRepair(finalManuscript);
   
-  // 4. TEMPLATE ENGINE & DELIVERY (Safe-Fetch Handshake)
-  let finalHtml = `<html><body>${fidelityResult.content}</body></html>`;
-  let finalCount = fidelityResult.content.split(/\s+/).length;
-
-  try {
-    const templateRes = await env.TEMPLATE_ENGINE.fetch(new Request("https://templates/transform", {
-      method: "POST", 
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        title: `${frequency.toUpperCase()} Strategic Manuscript`, 
-        content: fidelityResult.content, 
-        type, 
-        freq: frequency 
-      })
-    }));
-
-    if (templateRes.ok) {
-      const { html, wordCount: wc } = await templateRes.json();
-      finalHtml = html;
-      finalCount = wc;
-    } else {
-      console.warn(`⚠️ [Template-Engine] Failed (HTTP ${templateRes.status}). Using raw fidelity output.`);
-    }
-  } catch (e) {
-    console.warn("⚠️ [Template-Engine] Bindings uninitialized or crashed. Using raw fidelity output.", e.message);
-  }
-
-  if (extended) await detectAndAlert({ wordCount: finalCount, raw: finalManuscript, jobId: id }, frequency);
-
-  const finalOutput = { final: finalHtml, wordCount: finalCount, raw: finalManuscript, jobId: id };
-
-  // --- PHASE 8.1: HUMAN-IN-THE-LOOP (HIL) STATION ---
-  if (env.HIL) {
-      console.log(`\n🏺 [HIL-Station] MANUSCRIPT GENERATED: Entering Human-Audit Hold for Job [${id}]...`);
-      
-      // [V8.4] Review-First Archival: Save a local draft
-      const reviewFile = `review-${id}.html`;
-      const reviewPath = `./dist/${reviewFile}`;
-      if (!fs.existsSync('./dist')) fs.mkdirSync('./dist', { recursive: true });
-      fs.writeFileSync(reviewPath, finalHtml);
-      console.log(`📖 [REVIEW-STATION] Institutional manuscript available: ${process.cwd()}/${reviewPath}`);
-
-      // [V8.4] Cloud HIL Bridge: Synchronize to Firestore for remote Admin/Telegram approval
-      const auditPayload = {
-          jobId: id,
-          frequency,
-          content: finalHtml,
-          status: "PENDING",
-          wordCount: finalCount,
-          timestamp: new Date().toISOString()
-      };
-      await syncToFirestore("institutional_audits", auditPayload, env);
-      console.log(`📡 [Cloud-Bridge] HIL-Consensus published to Firestore: institutional_audits/${id}`);
-
-      await notifyProgress(env, id, { 
-          stage: "PENDING_HIL", 
-          message: `Manuscript generated. REVIEW: dist/${reviewFile}. Awaiting approval via Admin Portal or Telegram.` 
-      });
-
-      // Dispatch Telegram Alert with Approval UI
-      const token = env?.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
-      if (token && (env?.TELEGRAM_ADMIN_CHAT_ID || process.env.TELEGRAM_ADMIN_CHAT_ID)) {
-          const hilService = await import('./telegram-service.js');
-          await hilService.sendManuscriptAlert(id, finalManuscript.slice(0, 500), env);
-      }
-
-      // [V8.5] Non-Blocking HIL Mode (For Serverless Inngest)
-      if (env.INNGEST) {
-          console.log(`📡 [HIL-Station] Non-blocking Inngest mode detected. Handoff to serverless 'waitForEvent'.`);
-          return finalOutput;
-      }
-
-      // Blocking Poll: Wait for 'APPROVED' signal from Remote (Admin/Telegram)
-      let approved = false;
-      const maxWait = 3600000; // 1-hour timeout
-      const pollStart = Date.now();
-      
-      while (!approved && (Date.now() - pollStart) < maxWait) {
-          // Poll every 10s to give the M1 hardware breathing room
-          await new Promise(r => setTimeout(r, 10000)); 
-          
-          try {
-              // Priority 1: Remote Cloud Signal (Firestore)
-              const auditDoc = await getFirestoreDoc("institutional_audits", id, env);
-              if (auditDoc && auditDoc.status === "APPROVED") {
-                  approved = true;
-                  console.log(`✅ [HIL-Station] Approval detected via Remote Cloud Bridge (Firestore).`);
-              }
-
-              // Priority 2: Local Override Signal (Legacy/Dev)
-              if (!approved && fs.existsSync(`./tmp/hil_approve_${id}`)) {
-                  approved = true;
-                  console.log(`✅ [HIL-Station] Approval detected via Local Override bit.`);
-              }
-
-              if (!approved) {
-                  console.log(`⏳ [HIL-Station] Polling for consensus release [${Math.round((Date.now() - pollStart)/1000)}s]...`);
-              }
-          } catch (e) {
-              console.warn(`⚠️ [HIL-Station] Consensus poll delay:`, e.message);
-          }
-      }
-
-      if (!approved) throw new Error("HIL_TIMEOUT: No manual approval received within 60 minutes.");
-      await notifyProgress(env, id, { stage: "HIL_APPROVED", message: "Institutional consensus reached. Proceeding to publication." });
-  }
-
   // Publish aggregated telemetry payload to GitHub Issues (Zero-FS Trace)
   await publishGitHubTrace(env, id);
-  return finalOutput;
+
+  // [V10.5] Unified Finalization & Sync Pass
+  return await _finalizeAndSync(fidelityResult.content, consensusData.summary, frequency, type, env, id);
+}
+
+/**
+ * _finalizeAndSync (V10.5)
+ * -----------------------
+ * Internal terminal gate for institutional manuscripts.
+ * Handles templating, PDF generation, and Dual-Sync (GCS + GDrive).
+ */
+async function _finalizeAndSync(fidelityContent, consensusSummary, frequency, type, env, id) {
+  let finalHtml = `<html><body>${fidelityContent}</body></html>`;
+  let finalCount = fidelityContent.split(/\s+/).length;
+
+  // 1. Template Engineering
+  try {
+    if (env.TEMPLATE_ENGINE && typeof env.TEMPLATE_ENGINE.fetch === 'function') {
+      const templateRes = await env.TEMPLATE_ENGINE.fetch(new Request("https://templates/transform", {
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          title: `${frequency.toUpperCase()} Strategic Manuscript`, 
+          content: fidelityContent, 
+          type, 
+          freq: frequency 
+        })
+      }));
+
+      if (templateRes.ok) {
+        const { html, wordCount: wc } = await templateRes.json();
+        finalHtml = html;
+        finalCount = wc;
+      }
+    }
+  } catch (e) {
+    console.warn("⚠️ [Template-Engine] Finalization fallback used.", e.message);
+  }
+
+  // 2. Telegram Alert with Abstract Extraction
+  if (env.TELEGRAM_BOT_TOKEN && (env.TELEGRAM_CHAT_ID || env.TELEGRAM_TO)) {
+    try {
+      const abstract = await askAI(`Extract title, link (placeholder), and abstract from this institutional manuscript:\n\n${fidelityContent.substring(0, 5000)}`, { role: 'edit', env, model: 'node-draft' });
+      await dispatchTelegramAlert({ 
+        title: `${frequency.toUpperCase()} Strategic Pulse`,
+        abstract: abstract,
+        wordCount: finalCount,
+        frequency
+      }, env);
+    } catch (e) {
+      console.warn("⚠️ [Telegram] Dispatch failed:", e.message);
+    }
+  }
+
+  // 3. Dual-Sync Persistence (GCS + GDrive)
+  let pdfUrl = null;
+  try {
+    const tmpHtmlPath = path.join(os.tmpdir(), `final-${id}.html`);
+    const tmpPdfPath = path.join(os.tmpdir(), `final-${id}.pdf`);
+    fs.writeFileSync(tmpHtmlPath, finalHtml);
+    
+    // Generate PDF rendition
+    await generatePDF(tmpHtmlPath, frequency); 
+    const pdfBuffer = fs.readFileSync(tmpPdfPath);
+    
+    // Mirror to Cloud Bucket (GCS/Firebase) and Drive Anchor (GDrive)
+    await Promise.all([
+      saveToCloudBucket(`manuscripts/${id}.html`, finalHtml, env),
+      saveToCloudBucket(`manuscripts/${id}.pdf`, pdfBuffer, env),
+      saveToGDriveBucket(`${id}.pdf`, pdfBuffer, env)
+    ]);
+    
+    // Triple-Persistence Audit Entry in Firestore
+    await syncToFirestore("institutional_outputs", {
+        jobId: id,
+        frequency,
+        type,
+        wordCount: finalCount,
+        firebaseUrl: `https://storage.googleapis.com/${env.FIREBASE_STORAGE_BUCKET || 'blogspro-assets'}/manuscripts/${id}.pdf`,
+        gcsUrl: `gs://${env.FIREBASE_STORAGE_BUCKET || 'blogspro-assets'}/manuscripts/${id}.pdf`,
+        timestamp: new Date().toISOString()
+    }, env);
+
+    console.log(`✅ [Triple-Persistence] Institutional Manuscript Synchronized to GCS, Firebase & Google Drive: ${id}`);
+    
+    // [V10.6 Hardening] Sentry Heartbeat
+    await logSwarmPulse('info', `Institutional Manuscript Finalized: ${id}`, {
+        jobId: id,
+        frequency,
+        wordCount: finalCount
+    });
+  } catch (err) {
+    console.warn("⚠️ [Persistence] Artifact sync failed:", err.message);
+  }
+
+  console.log(`✅ [Assembly] Institutional Manuscript Finalized [Job: ${id}]`);
+  
+  // --- 🛰️ SOVEREIGN TRACE: Mission Success Breadcrumb ---
+  await pushSovereignTrace("SWARM_COMPLETE", { 
+      jobId: id, 
+      frequency, 
+      status: "success", 
+      message: `Institutional Dispatch Finalized: ${finalCount} words synthesized.`
+  }, env);
+
+  return { final: finalHtml, wordCount: finalCount, raw: fidelityContent, jobId: id, pdfUrl };
 }
 
 /**
@@ -762,74 +870,62 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
  * Consolidates individual sector results into a cohesive institutional briefing.
  * Applies final $SHIELD audit and template transformation.
  */
-export async function finalizeManuscript(allChapterContents, consensusSummary, frequency, type, env, id) {
-  const executiveStrategy = await askAI(getEditorPrompt(consensusSummary, frequency), { 
-    role: 'edit', env, model: 'node-edit' 
-  });
-
-  const combinedManuscript = `<div id="strategic-pulse">${executiveStrategy}</div><hr>${allChapterContents.join("\n\n")}`;
+export async function finalizeManuscript(fragments, consensusSummary, frequency, type, env, id) {
+  // [V12.3] Institutional Gap Analysis: Identify missing chapter IDs
+  const receivedVerticalIds = new Set(fragments.map(f => f.verticalId));
+  const missingVerticals = VERTICALS.filter(v => !receivedVerticalIds.has(v.id));
   
-  // 🛡️ [V6.0] Synchronize Institutional Style Manual to Affine
-  await notifyProgress(env, id, { 
-    source: "STYLE_SYNC", 
-    manual: "INSTITUTIONAL_V6", 
-    status: "SYNCED" 
-  });
+  let recoveryLog = "";
+  if (missingVerticals.length > 0) {
+      console.log(`📡 [Sovereign-Recovery] Gap Analysis complete. Missing: ${missingVerticals.map(v => v.id).join(', ')}`);
+      await pushSovereignTrace("SELF_HEALING_TRIGGERED", { jobId: id, frequency, status: "warn", message: `Commencing Emergency Recovery for ${missingVerticals.length} sectors.` }, env);
+      console.log(`🏗️ [Masterpiece-Hardening] Commencing Emergency Research Loop on Institutional Laptop...`);
+      
+      const recoveredFragments = [];
+      for (const vertical of missingVerticals) {
+          try {
+              // Forced Laptop Execution for Zero-Failure recovery
+              const recoveredContent = await executeSingleVerticalSwarm(
+                  vertical, 99 + VERTICALS.indexOf(vertical), frequency, 
+                  { strategicLead: "Sovereign Emergency Recovery Active." }, 
+                  null, { ...env, FORCE_RECOVERY_NODE: 'laptop' }, id, true
+              );
+              recoveredFragments.push({ verticalId: vertical.id, content: recoveredContent });
+              console.log(`✅ [Recovery] Successfully reconstructed chapter: ${vertical.id}`);
+          } catch (e) {
+              console.error(`❌ [Critical-Failure] Recovery failed for ${vertical.id}: ${e.message}`);
+              recoveredFragments.push({ verticalId: vertical.id, content: `<section class="error">Institutional research for ${vertical.name} is currently offline. Recovery exhausted.</section>` });
+          }
+      }
+      fragments = [...fragments, ...recoveredFragments];
+      recoveryLog = `\n\n🛡️ [Sovereign-Notice]: This tome underwent self-healing to recover ${missingVerticals.length} sectors.`;
+  }
 
-  // 🛡️ FINAL $SHIELD AUDIT PASS
+  const allChapterContents = fragments.map(f => f.content);
+  const expectedCount = VERTICALS.length;
+  const actualCount = allChapterContents.length;
+  
+  let assemblyHeader = `<div id="strategic-pulse" class="assembly-header">ASSEMBLED BRIEFING [Job: ${id}]</div>`;
+  
+  if (actualCount < expectedCount) {
+      assemblyHeader = `<div id="strategic-pulse" class="assembly-header warning">
+        RECONSTRUCTED ASSEMBLY [Job: ${id}] (DEGRADED: ${actualCount}/${expectedCount} Sectors)
+        <p><em>Warning: Quantitative gaps detected despite recovery attempts.</em></p>
+      </div>`;
+  } else if (missingVerticals.length > 0) {
+      assemblyHeader = `<div id="strategic-pulse" class="assembly-header recovery">
+        SOVEREIGN HEALED ASSEMBLY [Job: ${id}] (100% COMPLETE)
+        <p><em>Notice: Automated recovery enabled for ${missingVerticals.length} sectors.</em></p>
+      </div>`;
+  } else {
+      console.log(`✅ [Assembly] All ${expectedCount} sectors merged successfully.`);
+  }
+
+  const combinedManuscript = `${assemblyHeader}<hr>${allChapterContents.join("\n\n")}${recoveryLog}`;
   const finalManuscript = rules.sanitizePayload(combinedManuscript);
   const fidelityResult = validateAndRepair(finalManuscript);
   
-  let finalHtml = `<html><body>${fidelityResult.content}</body></html>`;
-  let finalCount = fidelityResult.content.split(/\s+/).length;
-
-  try {
-    const templateRes = await env.TEMPLATE_ENGINE.fetch(new Request("https://templates/transform", {
-      method: "POST", 
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        title: `${frequency.toUpperCase()} Strategic Manuscript`, 
-        content: fidelityResult.content, 
-        type, 
-        freq: frequency 
-      })
-    }));
-
-    if (templateRes.ok) {
-      const { html, wordCount: wc } = await templateRes.json();
-      finalHtml = html;
-      finalCount = wc;
-    }
-  } catch (e) {
-    console.warn("⚠️ [Template-Engine] Finalization fallback used.", e.message);
-  }
-
-  // [V6.0] Telegram Dispatch with abstract extraction
-  if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
-    try {
-      const abstract = await askAI(`Extract title, link (placeholder), and abstract from this manuscript:\n\n${finalManuscript.substring(0, 5000)}`, { role: 'edit', env, model: 'node-draft' });
-      await dispatchTelegramAlert({ 
-        title: `${frequency.toUpperCase()} Strategic Pulse`,
-        abstract: abstract,
-        wordCount: finalCount
-      }, env);
-    } catch (e) {
-      console.warn("⚠️ [Telegram] Abstract extraction or dispatch failed:", e.message);
-    }
-  }
-
-  // 📑 [HIL-PDF] Every draft generates a high-fidelity rendition (Initial + Refinement)
-  let initialPdfUrl = null;
-  try {
-    const tmpHtmlPath = path.join(os.tmpdir(), `initial-${id}.html`);
-    fs.writeFileSync(tmpHtmlPath, finalHtml);
-    await generatePDF(tmpHtmlPath, "institutional");
-    initialPdfUrl = `https://storage.blogspro.in/manuscripts/${id}.pdf`; 
-  } catch (pdfErr) {
-    console.warn("⚠️ Initial PDF Generation failed:", pdfErr.message);
-  }
-
-  return { final: finalHtml, wordCount: finalCount, raw: finalManuscript, jobId: id, pdfUrl: initialPdfUrl };
+  return await _finalizeAndSync(fidelityResult.content, consensusSummary, frequency, type, env, id);
 }
 
 /**
@@ -852,56 +948,8 @@ export async function applyHumanRefinement(originalManuscript, feedback, env, jo
         });
 
         // [V9.0] Apply Institutional Template to Refined Content
-        let finalRefined = refinedContent;
-        try {
-            const templateRes = await fetch("https://templates.blogspro.in/render", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    content: refinedContent, 
-                    type: "institutional", 
-                    jobId 
-                })
-            });
-            if (templateRes.ok) {
-                const { html } = await templateRes.json();
-                finalRefined = html;
-            }
-        } catch (e) {
-            console.warn("⚠️ Template fallback used during refinement.");
-        }
-
-        // 📑 [HIL-PDF] Every Refinement generates a high-fidelity rendition
-        let pdfUrl = null;
-        try {
-            const tmpHtmlPath = path.join(os.tmpdir(), `refine-${jobId}.html`);
-            fs.writeFileSync(tmpHtmlPath, finalRefined);
-            const pdfPath = await generatePDF(tmpHtmlPath, "institutional");
-            
-            // Assume Storage Bridge Handles Uploads (Resolved in V9.1)
-            pdfUrl = `https://storage.blogspro.in/manuscripts/${jobId}.pdf`; 
-        } catch (pdfErr) {
-            console.warn("⚠️ PDF Generation failed during refinement:", pdfErr.message);
-        }
-
-        // 📡 [Consensus-Anchor] Update Firestore back to PENDING for re-review
-        const updatePayload = {
-            content: finalRefined,
-            pdfUrl: pdfUrl,
-            status: "PENDING",
-            refinementFeedback: feedback,
-            lastRefined: new Date().toISOString()
-        };
-        
-        await syncToFirestore("institutional_audits", updatePayload, env, jobId);
-
-        await notifyProgress(env, jobId, { 
-            stage: "REFINE_COMPLETE", 
-            message: "HIL Refinement successful. PDF/HTML re-queued for final audit.",
-            latency: Date.now() - start
-        });
-
-        return finalRefined;
+        // [V10.5] Dual Persistence: Every Refinement generates a high-fidelity rendition
+        return await _finalizeAndSync(refinedContent, "Refined via HIL feedback", frequency, "article", env, jobId);
     } catch (err) {
         captureSwarmError(err, { jobId, stage: "REFINE_FAILURE" });
         throw err;

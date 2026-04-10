@@ -121,6 +121,9 @@ jobs:
           QWEB_KEY: "${{ secrets.QWEB_KEY }}"
           SWARM_INTERNAL_TOKEN: "${{ secrets.SWARM_INTERNAL_TOKEN || 'BPRO_SWARM_SECRET_2026' }}"
           GH_PAT: "${{ secrets.GH_PAT }}"
+          SENTRY_DSN: "${{ secrets.SENTRY_DSN }}"
+          TELEGRAM_BOT_TOKEN: "${{ secrets.TELEGRAM_BOT_TOKEN }}"
+          TELEGRAM_CHAT_ID: "${{ secrets.TELEGRAM_CHAT_ID }}"
         run: |
           for env in data-hub relevance auditor seo pulse miro-sync mirofish newsletter templates; do
             echo "🔐 Pushing secrets to $env..."
@@ -140,6 +143,14 @@ jobs:
             echo "$QWEB_KEY" | npx wrangler secret put QWEB_KEY $OPTS --config $CONF
             echo "$GH_PAT" | npx wrangler secret put GH_TOKEN $OPTS --config $CONF
             echo "$SWARM_INTERNAL_TOKEN" | npx wrangler secret put SWARM_INTERNAL_TOKEN $OPTS --config $CONF
+            
+            # [V12.0] Direct Vault Propagation for Bridge Authentication
+            [ -z "$VAULT_MASTER_KEY" ] || echo "$VAULT_MASTER_KEY" | npx wrangler secret put VAULT_MASTER_KEY $OPTS --config $CONF
+            
+            # [V10.6 Hardening] Syncing Sentry & Standardized Telegram
+            [ -z "$SENTRY_DSN" ] || echo "$SENTRY_DSN" | npx wrangler secret put SENTRY_DSN $OPTS --config $CONF
+            [ -z "$TELEGRAM_BOT_TOKEN" ] || echo "$TELEGRAM_BOT_TOKEN" | npx wrangler secret put TELEGRAM_BOT_TOKEN $OPTS --config $CONF
+            [ -z "$TELEGRAM_CHAT_ID" ] || echo "$TELEGRAM_CHAT_ID" | npx wrangler secret put TELEGRAM_CHAT_ID $OPTS --config $CONF
           done
           echo "Swarm 4.0 secrets synchronized."
 

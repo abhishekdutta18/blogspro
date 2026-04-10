@@ -53,7 +53,7 @@ async function getGoogleAccessToken(env) {
             // 💧 HYDRATE & HARDEN (V5.4.4)
             if (sa.private_key) sa.private_key = normalizeInstitutionalPem(sa.private_key);
             if (!sa.client_email && sa.project_id) {
-                sa.client_email = `firebase-adminsdk-q0p9j@${sa.project_id}.iam.gserviceaccount.com`;
+                sa.client_email = `firebase-adminsdk-fbsvc@${sa.project_id}.iam.gserviceaccount.com`;
             }
             console.log(`🛡️ [StorageBridge] Keyfile Hydrated: ${sa.client_email}`);
         } catch (e) {
@@ -75,7 +75,7 @@ async function getGoogleAccessToken(env) {
             // 💧 HYDRATE & HARDEN (V5.4.4)
             if (sa.private_key) sa.private_key = normalizeInstitutionalPem(sa.private_key);
             if (!sa.client_email && sa.project_id) {
-                sa.client_email = `firebase-adminsdk-q0p9j@${sa.project_id}.iam.gserviceaccount.com`;
+                sa.client_email = `firebase-adminsdk-fbsvc@${sa.project_id}.iam.gserviceaccount.com`;
             }
         } catch (e) {
             console.warn("⚠️ [StorageBridge] Env-SA Parse Fail:", e.message);
@@ -92,7 +92,7 @@ async function getGoogleAccessToken(env) {
         const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString('base64url');
         const payload = Buffer.from(JSON.stringify({
             iss: sa.client_email,
-            scope: "https://www.googleapis.com/auth/devstorage.full_control https://www.googleapis.com/auth/datastore",
+            scope: "https://www.googleapis.com/auth/devstorage.full_control https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/drive.file",
             aud: "https://oauth2.googleapis.com/token",
             exp: now + 3600,
             iat: now
@@ -105,15 +105,39 @@ async function getGoogleAccessToken(env) {
             .replace(/-----END PRIVATE KEY-----/g, "")
             .replace(/\s+/g, "");
              
-        const binaryDer = Buffer.from(base64Der, 'base64');
-        const key = await crypto.subtle.importKey(
+        // [V10.2] Node/Worker Compatibility Layer: Use globalThis.crypto for consistent Subtle access
+        const cryptoBridge = globalThis.crypto || (isNode ? (await import('node:crypto')).webcrypto : null);
+        if (!cryptoBridge || !cryptoBridge.subtle) throw new Error("WebCrypto API unavailable");
+
+        let binaryDer;
+        try {
+            binaryDer = Buffer.from(base64Der, 'base64');
+            // Check if binary looks valid (starts with 0x30 for ASN.1 Sequence)
+            if (binaryDer[0] !== 0x30) throw new Error("Not a valid ASN.1 sequence");
+        } catch (e) {
+            if (isNode) {
+                console.log("🛠️ [StorageBridge] WebCrypto rejection. Attempting Node-Native Self-Heal...");
+                const { createPrivateKey } = await import('node:crypto');
+                const nativeKey = createPrivateKey(sa.private_key);
+                const pkcs8Pem = nativeKey.export({ type: 'pkcs8', format: 'pem' });
+                const cleanBase64 = pkcs8Pem
+                    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
+                    .replace(/-----END PRIVATE KEY-----/g, "")
+                    .replace(/\s+/g, "");
+                binaryDer = Buffer.from(cleanBase64, 'base64');
+            } else {
+                throw e;
+            }
+        }
+
+        const key = await cryptoBridge.subtle.importKey(
             "pkcs8", 
             binaryDer,
             { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
             false, 
             ["sign"]
         );
-        const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(message));
+        const signature = await cryptoBridge.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(message));
         
         // Robust Base64URL encoding (Node standard)
         const encodedSig = Buffer.from(signature).toString('base64url');
@@ -396,12 +420,25 @@ async function getHistoricalData(env) {
 }
 
 async function pushTelemetryLog(event, metadata = {}, env) {
+    return await pushSovereignTrace(event, metadata, env);
+}
+
+/**
+ * [V12.3] pushSovereignTrace
+ * -------------------------
+ * High-fidelity institutional audit logger.
+ */
+export async function pushSovereignTrace(event, metadata = {}, env) {
   if (!env || !env.FIREBASE_PROJECT_ID) return;
   try {
     const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/telemetry_logs`;
     const headers = { "Content-Type": "application/json" };
     const token = await getGoogleAccessToken(env);
     if (token) headers["Authorization"] = `Bearer ${token}`;
+    
+    // Normalize numeric values for Firestore REST API
+    const latency = metadata.latency ? metadata.latency.toString() : '0';
+    
     const payload = {
       fields: {
         event: { stringValue: event },
@@ -409,15 +446,19 @@ async function pushTelemetryLog(event, metadata = {}, env) {
         frequency: { stringValue: metadata.frequency || 'unknown' },
         jobId: { stringValue: metadata.jobId || 'local' },
         status: { stringValue: metadata.status || 'info' },
-        latency: { integerValue: metadata.latency ? metadata.latency.toString() : '0' },
+        latency: { integerValue: latency },
+        role: { stringValue: metadata.role || 'generic' },
+        model: { stringValue: metadata.model || 'unknown' },
+        vertical: { stringValue: metadata.vertical || 'global' },
         message: { stringValue: metadata.message || '' },
         details: { stringValue: JSON.stringify(metadata.details || {}) }
       }
     };
+    
     const res = await fetch(firestoreUrl, { method: "POST", headers, body: JSON.stringify(payload) });
-    if (!res.ok) console.warn("⚠️ [Telemetry] Bridge Stalled:", await res.text());
+    if (!res.ok) console.warn("⚠️ [Trace] Bridge Stalled:", await res.text());
   } catch (e) {
-    console.warn("⚠️ [Telemetry] Failed to push trace:", e.message);
+    console.warn("⚠️ [Trace] Failed to push breadcrumb:", e.message);
   }
 }
 
@@ -456,29 +497,190 @@ export async function getPendingAuditsREST(env) {
   }
 }
 
-export async function updateAuditStatusREST(docId, status, feedback = "", env) {
-  if (!env || !env.FIREBASE_PROJECT_ID) return;
-  const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/pending_audits/${docId}?updateMask.fieldPaths=status&updateMask.fieldPaths=feedback&updateMask.fieldPaths=updatedAt`;
-  
-  try {
-    const headers = { "Content-Type": "application/json" };
-    const token = await getGoogleAccessToken(env);
-    if (token) headers["Authorization"] = `Bearer ${token}`;
+/**
+ * 🛰️ [V10.1] Google Drive Rocket-Bucket Bridge
+ * Saves a file to a specific Google Drive folder (Bucket).
+ */
+async function saveToGDriveBucket(fileName, content, env) {
+    const folderId = env.GDRIVE_BUCKET_ID;
+    if (!folderId) {
+        console.warn("⚠️ [GDriveBridge] GDRIVE_BUCKET_ID missing. Falling back to local/trash.");
+        return null;
+    }
 
-    const payload = {
-      fields: {
-        status: { stringValue: status },
-        feedback: { stringValue: feedback },
-        updatedAt: { timestampValue: new Date().toISOString() }
-      }
-    };
+    try {
+        const token = await getGoogleAccessToken(env);
+        if (!token) throw new Error("OAuth Token generation failed.");
+        
+        // [V10.6] Shared Drive Hardening: Enable access to institutional Shared Drives
+        const driveParams = "supportsAllDrives=true&includeItemsFromAllDrives=true";
 
-    const res = await fetch(url, { method: "PATCH", headers, body: JSON.stringify(payload) });
-    if (!res.ok) console.error(`❌ [StorageBridge] Update Audit REST Fail (${docId}):`, await res.text());
-    else console.log(`✅ [HIL] Audit ${docId} updated to: ${status} via REST`);
-  } catch (e) {
-    console.error("⚠️ [StorageBridge] updateAuditStatusREST Error:", e.message);
-  }
+        // Stage 1: Check if file exists to determine Update vs Create
+        const searchUrl = `https://www.googleapis.com/drive/v3/files?q=name='${fileName}'+and+'${folderId}'+in+parents+and+trashed=false&fields=files(id)&${driveParams}`;
+        const searchRes = await fetch(searchUrl, { headers: { "Authorization": `Bearer ${token}` } });
+        const { files } = await searchRes.json();
+
+        const isBinary = content instanceof Uint8Array || content instanceof ArrayBuffer || (typeof Buffer !== 'undefined' && Buffer.isBuffer(content));
+        const contentType = fileName.endsWith('.pdf') ? 'application/pdf' : (isBinary ? 'application/octet-stream' : 'application/json');
+
+        if (files && files.length > 0) {
+            const fileId = files[0].id;
+            url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media&supportsAllDrives=true`;
+            method = "PATCH";
+            
+            const res = await fetch(url, {
+                method,
+                headers: { "Authorization": `Bearer ${token}`, "Content-Type": contentType },
+                body: isBinary ? content : (typeof content === 'string' ? content : JSON.stringify(content))
+            });
+            if (!res.ok) throw new Error(`GDrive Update Failed: ${await res.text()}`);
+            console.log(`📡 [GDrive] Updated Bucket Item: ${fileName} (${contentType})`);
+            return fileId;
+        } else {
+            const metadata = { name: fileName, parents: [folderId] };
+            const boundary = "-------314159265358979323846";
+            
+            // Build multipart body
+            let body;
+            const contentBody = isBinary ? content : Buffer.from(typeof content === 'string' ? content : JSON.stringify(content));
+            
+            if (isNode && typeof Buffer !== 'undefined') {
+                body = Buffer.concat([
+                    Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`),
+                    Buffer.from(`--${boundary}\r\nContent-Type: ${contentType}\r\n\r\n`),
+                    contentBody,
+                    Buffer.from(`\r\n--${boundary}--`)
+                ]);
+            } else {
+                // Browser/Worker fallback (simplified string-based, might fail for binary but this service is Node-heavy)
+                const delimiter = `\r\n--${boundary}\r\n`;
+                const close_delim = `\r\n--${boundary}--`;
+                body = delimiter +
+                    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+                    JSON.stringify(metadata) +
+                    delimiter +
+                    `Content-Type: ${contentType}\r\n\r\n` +
+                    (typeof content === 'string' ? content : JSON.stringify(content)) +
+                    close_delim;
+            }
+
+            const res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": `multipart/related; boundary=${boundary}`
+                },
+                body
+            });
+            if (!res.ok) throw new Error(`GDrive Upload Failed: ${await res.text()}`);
+            const result = await res.json();
+            console.log(`📡 [GDrive] Created Bucket Item: ${fileName} -> ${result.id} (${contentType})`);
+            return result.id;
+        }
+    } catch (e) {
+        console.error("❌ [GDriveBridge] Error:", e.message);
+        return null;
+    }
+}
+
+/**
+ * 🛰️ [V10.1] GDrive Direct Download
+ */
+async function loadFromGDriveBucket(jobId, env) {
+    const folderId = env.GDRIVE_BUCKET_ID;
+    if (!folderId) return [];
+
+    try {
+        const token = await getGoogleAccessToken(env);
+        if (!token) return [];
+
+        const driveParams = "supportsAllDrives=true&includeItemsFromAllDrives=true";
+        const searchUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+name+contains+'${jobId}'+and+trashed=false&fields=files(id,name)&${driveParams}`;
+        const searchRes = await fetch(searchUrl, { headers: { "Authorization": `Bearer ${token}` } });
+        const { files } = await searchRes.json();
+
+        if (!files || files.length === 0) return [];
+
+        const fragments = await Promise.all(files.map(async (file) => {
+            const downloadUrl = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
+            const res = await fetch(downloadUrl, { headers: { "Authorization": `Bearer ${token}` } });
+            return await res.text();
+        }));
+
+        return fragments;
+    } catch (e) {
+        console.error("❌ [GDriveBridge] Load Error:", e.message);
+        return [];
+    }
+}
+
+/**
+ * 🛰️ [V10.5] GCS Cloud Bucket Persistence
+ * Saves a file to the project's primary Cloud Storage bucket.
+ */
+async function saveToCloudBucket(fileName, content, env) {
+    const bucket = env.FIREBASE_STORAGE_BUCKET || "blogspro-asset";
+    if (!bucket) {
+        console.warn("⚠️ [CloudBridge] No bucket configured.");
+        return null;
+    }
+
+    try {
+        const url = `https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${encodeURIComponent(fileName)}`;
+        const isBinary = content instanceof Uint8Array || content instanceof ArrayBuffer || (typeof Buffer !== 'undefined' && Buffer.isBuffer(content));
+        const contentType = fileName.endsWith('.pdf') ? 'application/pdf' : (isBinary ? 'application/octet-stream' : 'application/json');
+        
+        const headers = { "Content-Type": contentType };
+        const token = await getGoogleAccessToken(env);
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const res = await fetch(url, {
+            method: "POST",
+            headers,
+            body: isBinary ? content : (typeof content === 'string' ? content : JSON.stringify(content))
+        });
+
+        if (!res.ok) throw new Error(`GCS Upload Failed: ${await res.text()}`);
+        console.log(`✅ [CloudBridge] Uploaded: ${fileName} -> ${bucket}`);
+        return fileName;
+    } catch (e) {
+        console.error("❌ [CloudBridge] Upload Error:", e.message);
+        return null;
+    }
+}
+
+/**
+ * 🛰️ [V10.5] GCS Cloud Bucket Retrieval
+ */
+async function loadFromCloudBucket(jobId, env) {
+    const bucket = env.FIREBASE_STORAGE_BUCKET || "blogspro-asset";
+    if (!bucket || !jobId) return [];
+
+    try {
+        const token = await getGoogleAccessToken(env);
+        const headers = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        // List objects with jobId prefix
+        const listUrl = `https://storage.googleapis.com/storage/v1/b/${bucket}/o?prefix=${encodeURIComponent(`sectors/${jobId}/`)}`;
+        const listRes = await fetch(listUrl, { headers });
+        if (!listRes.ok) return [];
+
+        const listData = await listRes.json();
+        if (!listData.items) return [];
+
+        // Aggregate content from all fragments
+        const fragments = await Promise.all(listData.items.map(async (item) => {
+            const mediaUrl = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodeURIComponent(item.name)}?alt=media`;
+            const res = await fetch(mediaUrl, { headers });
+            return res.ok ? await res.json() : null;
+        }));
+
+        return fragments.filter(f => f !== null);
+    } catch (e) {
+        console.error("❌ [CloudBridge] Load Error:", e.message);
+        return [];
+    }
 }
 
 export {
@@ -491,5 +693,8 @@ export {
   getRecentSnapshots,
   pushHistoricalData,
   getHistoricalData,
-  pushTelemetryLog
+  pushTelemetryLog,
+  saveToCloudBucket,
+  loadFromCloudBucket,
+  saveToGDriveBucket
 };

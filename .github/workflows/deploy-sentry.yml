@@ -74,8 +74,8 @@ jobs:
           FIREBASE_PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
           NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
         run: |
-          [ -n "$TELEGRAM_BOT_TOKEN" ] && echo "$TELEGRAM_BOT_TOKEN" | npx wrangler@3 secret put TELEGRAM_TOKEN || echo "Skipping TELEGRAM_TOKEN"
-          [ -n "$TELEGRAM_CHAT_ID" ]   && echo "$TELEGRAM_CHAT_ID"   | npx wrangler@3 secret put TELEGRAM_TO || echo "Skipping TELEGRAM_TO"
+          [ -n "$TELEGRAM_BOT_TOKEN" ] && echo "$TELEGRAM_BOT_TOKEN" | npx wrangler@3 secret put TELEGRAM_BOT_TOKEN || echo "Skipping TELEGRAM_BOT_TOKEN"
+          [ -n "$TELEGRAM_CHAT_ID" ]   && echo "$TELEGRAM_CHAT_ID"   | npx wrangler@3 secret put TELEGRAM_CHAT_ID || echo "Skipping TELEGRAM_CHAT_ID"
           [ -n "$SENTRY_AUTH_TOKEN" ]  && echo "$SENTRY_AUTH_TOKEN"  | npx wrangler@3 secret put SENTRY_AUTH_TOKEN || echo "Skipping SENTRY_AUTH_TOKEN"
           echo "abhishek-dutta"      | npx wrangler@3 secret put SENTRY_ORG
           echo "javascript"          | npx wrangler@3 secret put SENTRY_PROJECT

@@ -1,7 +1,9 @@
+import { pushSovereignTrace } from './storage-bridge.js';
+
 /**
- * BlogsPro Swarm Rules Engine (V2.0)
+ * BlogsPro Swarm Rules Engine (V2.3)
  * ===================================
- * Deterministic Structural Guardrails.
+ * Deterministic Structural Guardrails with Sovereign Audit Heartbeat.
  * Responsible for:
  * 1. Table Reconstruction (Markdown Repair).
  * 2. Visual Injection (Slot-filling for charts).
@@ -9,7 +11,8 @@
  * 4. Institutional Sections (Abstract, Abbreviations, Citations).
  * 5. $Shield Governance (Sanitization & Anti-Hallucination).
  */
-export function sanitizePayload(content) {
+export function sanitizePayload(content, auditContext = {}) {
+  const { jobId = 'local', verticalId = 'global', env = {} } = auditContext;
   if (!content) return "";
   // 🛡️ GHOST SCRIPT / PROMPT STRIPPING
   let sanitized = content
@@ -18,9 +21,14 @@ export function sanitizePayload(content) {
     .replace(/on\w+="[^"]*"/gi, "") // Remove inline event handlers
     .replace(/{{[\s\S]*?}}/g, ""); // Remove unfinished mustache tokens
 
-  // 🛡️ ABSOLUTE JARGON PURGE: Enforce on entire document
   const jargon = ["MultiPipe", "Multi-Pipe", "PipeFail", "Hallucinate", "NaN", "null_ref", "undefined"];
   jargon.forEach(word => {
+    if (new RegExp(`\\b${word}\\b`, 'gi').test(sanitized)) {
+      pushSovereignTrace("SHIELD_PURGE", {
+        jobId, vertical: verticalId, status: "warn", role: "shield",
+        message: `Purged AI Jargon: '${word}' from manuscript.`
+      }, env).catch(() => {});
+    }
     sanitized = sanitized.replace(new RegExp(`\\b${word}\\b|▼\\s*${word}|▲\\s*${word}`, 'gi'), "N/A (AUDIT)");
   });
 
@@ -86,7 +94,8 @@ function validateCellFidelity(cell) {
   return clean;
 }
 
-export function repairTables(content) {
+export function repairTables(content, auditContext = {}) {
+  const { jobId = 'local', verticalId = 'global', env = {} } = auditContext;
   if (!content) return "";
   
   const lines = content.split('\n');
@@ -118,6 +127,18 @@ export function repairTables(content) {
       if (isSeparator && !line.includes('|')) {
          // This handles the "--- --- ---" case by converting to "|---|---|---|"
          line = '| ' + line.split(/\s+/).map(() => '---').join(' | ') + ' |';
+         pushSovereignTrace("SHIELD_REPAIR", {
+           jobId, vertical: verticalId, status: "info", role: "shield",
+           message: `Injected missing pipes for table separator.`
+         }, env).catch(() => {});
+      }
+
+      // Trace line repair if line changed through normalization
+      if (lines[i].trim() !== line) {
+         pushSovereignTrace("SHIELD_REPAIR", {
+           jobId, vertical: verticalId, status: "info", role: "shield",
+           message: `Normalized table structure: ${line.substring(0, 50)}...`
+         }, env).catch(() => {});
       }
 
       repaired.push(line);
@@ -134,7 +155,8 @@ export function repairTables(content) {
  * Ensures every <chart-data> has a matching .terminal-chart placeholder.
  * If no charts or placeholders exist, injects a fallback at the top.
  */
-export function injectVisuals(content, verticalName, verticalId) {
+export function injectVisuals(content, verticalName, verticalId, auditContext = {}) {
+  const { jobId = 'local', env = {} } = auditContext;
   let updated = content;
   
   // 1. Identify all chart data IDs (after hardening) or existing placeholders
@@ -146,6 +168,10 @@ export function injectVisuals(content, verticalName, verticalId) {
   updated = updated.replace(/<chart-data>([\s\S]*?"id":\s*"(chart_[^"]+)"[\s\S]*?)<\/chart-data>/gi, (match, inner, id) => {
     if (!existingDivIds.includes(id)) {
       console.log(`📡 [RulesEngine] Slot-filling missing container for ${id}`);
+      pushSovereignTrace("SHIELD_REPAIR", {
+        jobId, vertical: verticalId, status: "info", role: "shield",
+        message: `Injected interactive chart container: ${id}`
+      }, env).catch(() => {});
       return `<div class="card terminal-chart" id="${id}"></div>\n${match}`;
     }
     return match;
@@ -156,6 +182,11 @@ export function injectVisuals(content, verticalName, verticalId) {
     console.log(`⚠️ [RulesEngine] Visual Deficit detected for ${verticalName}. Injecting baseline fallback.`);
     const fallbackId = `chart_${verticalId}_fallback`;
     const injection = `\n<div class="card terminal-chart" id="${fallbackId}"></div>\n<chart-data>{"id": "${fallbackId}", "type": "bar", "data": [["Baseline", 0]]}</chart-data>\n`;
+    
+    pushSovereignTrace("SHIELD_REPAIR", {
+        jobId, vertical: verticalId, status: "warn", role: "shield",
+        message: `Visual deficit resolved: Injected baseline chart fallback for ${verticalName}.`
+    }, env).catch(() => {});
     
     if (updated.includes('<section class="manuscript-body">')) {
       updated = updated.replace('<section class="manuscript-body">', '<section class="manuscript-body">' + injection);
@@ -172,7 +203,8 @@ export function injectVisuals(content, verticalName, verticalId) {
 /**
  * Sanitizes JSON and ensures unique IDs for multiple charts.
  */
-export function hardenJson(content, verticalId = "default") {
+export function hardenJson(content, verticalId = "default", auditContext = {}) {
+  const { jobId = 'local', env = {} } = auditContext;
   let chartIndex = 0;
   return content.replace(/<chart-data>([\s\S]*?)<\/chart-data>/gi, (match, inner) => {
     try {

@@ -51,37 +51,44 @@ MULTIPLE CHART SYNCHRONIZATION:
 - 🔍 DIRECT OCR INJECTION: If you receive institutional data from a 'vision_parse' tool call, wrap it in <chart-data> tags exactly as provided.
 `;
 
-const CONSENSUS_PERSONAS = [
-    { name: "Risk Desk Lead", bias: "BEARISH / SKEPTICAL", focus: "Tail risks, margin pressure, regulatory friction." },
-    { name: "Alpha Strategist", bias: "BULLISH / OPPORTUNISTIC", focus: "Flow divergence, growth catalysts, valuation gaps." },
-    { name: "Macro Quant", bias: "NEUTRAL / DATA-DRIVEN", focus: "Correlations, sigma events, yield curve drift." },
-    { name: "Geopolitical Desk", bias: "SITUATIONAL", focus: "Sovereign risk, policy shifts, trade barriers." },
-    { name: "Flow Desk Senior", bias: "LIQUIDITY-FOCUSED", focus: "Institutional positioning, FPI/DII rotation, dark pool signals." },
-    { name: "Coding Architect", bias: "TECHNICAL-PRECISION", focus: "Semantic HTML5, PDF rendering stability, and schema.org integrity." }
+let CONSENSUS_PERSONAS = [];
+
+
+let VERTICALS = [
+    { id: "macro", name: "Global & Indian Macro" },
+    { id: "banking", name: "Banking & Financial Services" },
+    { id: "industries", name: "Heavy Industries & Manufacturing" },
+    { id: "tech", name: "IT & Digital Infrastructure" },
+    { id: "auto", name: "Automotive & EV Ecosystem" },
+    { id: "energy", name: "Energy, Power & Renewables" },
+    { id: "infra", name: "Infrastructure & Logistics" },
+    { id: "pharma", name: "Healthcare & Pharmaceuticals" },
+    { id: "fmcg", name: "FMCG & Consumer Durables" },
+    { id: "metals", name: "Metals, Mining & Materials" },
+    { id: "realty", name: "Real Estate & Urban Dev" },
+    { id: "em_market", name: "Emerging Markets Pulse" },
+    { id: "commodities", name: "Commodities & Agri-Tech" },
+    { id: "crypto", name: "Digital Assets & Web3" },
+    { id: "startups", name: "Startup & VC Ecosystem" },
+    { id: "policy", name: "Regulatory & Policy Shift" }
 ];
 
-const VERTICALS = [
-    { id: "macro", name: "Global Macro & Cross-Asset Drift" },
-    { id: "banking", name: "Banking & Institutional Treasury" },
-    { id: "cards", name: "Cards & Payments Ecosystem" },
-    { id: "equities", name: "Equities & Alpha Rotation" },
-    { id: "debt", name: "Debt & Sovereign Credit" },
-    { id: "fx", name: "FX & Cross-Border Flows" },
-    { id: "digital", name: "Digital Assets & Infrastructure" },
-    { id: "reg", name: "Regulatory Ledger & Compliance" },
-    { id: "commodity", name: "Commodity & Resource Pulse" },
-    { id: "em", name: "Emerging Markets (EM) Alpha" },
-    { id: "asset", name: "Asset Allocation & Risk-Parity" },
-    { id: "scribe", name: "Scribe Analytics & Sentiment" },
-    { id: "capital", name: "Capital Flows (PE/VC/M&A)" },
-    { id: "insurance", name: "Insurance & Reinsurance Risk" },
-    { id: "gift", name: "Offshore Hub (GIFT City)" },
-    { id: "payment", name: "Fintech & Payment Rails" },
-    { id: "india_macro", name: "India Economy & GDP Drift" },
-    { id: "india_banking", name: "Indian Banking & Credit Pulse" },
-    { id: "india_industries", name: "Indian Industrial & Infra Alpha" },
-    { id: "india_global_impact", name: "Global Macro Impact on India" }
-];
+/**
+ * [V10.0] Remote Hydration Hook
+ * Updates swarm metadata from external configuration fetched at runtime.
+ */
+function hydrateSwarmPrompts(metadata) {
+    if (!metadata) return;
+    if (metadata.VERTICALS) {
+        console.log(`📡 [Prompts] Overriding VERTICALS with ${metadata.VERTICALS.length} remote nodes.`);
+        VERTICALS = metadata.VERTICALS;
+    }
+    if (metadata.CONSENSUS_PERSONAS) {
+        console.log(`📡 [Prompts] Overriding PERSONAS with ${metadata.CONSENSUS_PERSONAS.length} remote nodes.`);
+        CONSENSUS_PERSONAS = metadata.CONSENSUS_PERSONAS;
+    }
+}
+
 
 function getBriefingPrompt(frequency, marketContext, mktInfo) {
     const wordTarget = frequency === 'hourly' ? '400-500' : '1,200-1,500';
@@ -589,5 +596,6 @@ export {
     getGraphRAGExtractorPrompt,
     getSemanticGatingPrompt,
     getGraphRAGMergePrompt,
-    INSTITUTIONAL_STYLING
+    INSTITUTIONAL_STYLING,
+    hydrateSwarmPrompts
 };

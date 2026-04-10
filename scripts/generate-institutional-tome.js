@@ -18,8 +18,9 @@ async function runInstitutionalSwarm() {
   const frequency = process.argv.find(a => a.startsWith('--freq='))?.split('=')[1] || 'weekly';
   const type = process.argv.find(a => a.startsWith('--type='))?.split('=')[1] || 'article';
   const mode = process.argv.find(a => a.startsWith('--mode='))?.split('=')[1] || 'standard';
+  const targetVerticalId = process.argv.find(a => a.startsWith('--vertical='))?.split('=')[1];
   const extended = process.argv.includes('--extended');
-  const id = `swarm-${frequency}-${Date.now()}`;
+  const id = process.env.SWARM_JOB_ID || `swarm-${frequency}-${Date.now()}`;
 
   // 0. INITIALIZE SENTRY (Node.js)
   initNodeSentry(process.env.SENTRY_DSN, frequency);
@@ -39,9 +40,10 @@ async function runInstitutionalSwarm() {
     ...process.env,
     EXTENDED_MODE: extended, // Explicitly set for orchestrator detection
     HIL: process.argv.includes('--hil'), // 🏺 Phase 8.1: Human-in-the-Loop Signaling
-    SERIAL_FLOW: process.argv.includes('--serial'), // [V8.6] Sequential synthesis for 8GB hardware
+    SERIAL_FLOW: true, // [V12.0] Force serial vertical execution within each matrix runner for absolute stability
     DRY_RUN: process.argv.includes('--dry-run'), // [V8.5] Infrastructure Verification Mode
     MODE: mode, // [V9.0] Hybrid Split-Execution Node Mode (Worker vs Master)
+    TARGET_VERTICAL_ID: targetVerticalId, // [V12.0] Partitioned execution target for GHA Matrix
     TEST_HIL: process.argv.includes('--test-hil'), 
     AI: { fetch: (url, opts) => fetch(url, opts) },
     TEMPLATE_ENGINE: {
@@ -123,6 +125,90 @@ async function runInstitutionalSwarm() {
         semanticDigest = snapshots[0];
     }
     console.log(`📊 [Swarm] Context Primed: [Snapshot: ${semanticDigest.timestamp}] [Historical: ${historical ? 'OK' : 'MISS'}]`);
+
+    // --- 🎛️ MODE BRANCHING: Worker vs Assemble (V12.0) ---
+    if (mode === 'worker' && targetVerticalId) {
+        console.log(`👷 [Worker-Mode] Commencing Parallel Research for Vertical: ${targetVerticalId}`);
+        const { VERTICALS } = await import("./lib/swarm-orchestrator.js");
+        const vertical = VERTICALS.find(v => v.id === targetVerticalId);
+        if (!vertical) throw new Error(`Invalid Vertical ID: ${targetVerticalId}`);
+
+        // Priming context for worker
+        const snapshots = await getRecentSnapshots(frequency, 1, env);
+        const semanticDigest = snapshots[0] || { strategicLead: "Genesis Cycle Active." };
+        const historical = await getHistoricalData(env);
+
+        const { executeSingleVerticalSwarm } = await import("./lib/swarm-orchestrator.js");
+        const fragment = await executeSingleVerticalSwarm(vertical, 1, frequency, semanticDigest, historical, env, id, extended);
+
+        // Save Fragment for Assembly
+        const sectorPath = path.join(process.cwd(), 'manuscripts', 'v7', 'sectors');
+        if (!fs.existsSync(sectorPath)) fs.mkdirSync(sectorPath, { recursive: true });
+        
+        const fragmentFile = path.join(sectorPath, `${id}_${targetVerticalId}.json`);
+        fs.writeFileSync(fragmentFile, JSON.stringify({
+            verticalId: targetVerticalId,
+            content: fragment,
+            jobId: id,
+            timestamp: Date.now()
+        }, null, 2));
+
+        console.log(`✅ [Worker-Mode] Fragment Saved: ${fragmentFile}`);
+        
+        // 🏺 PERSISTENT RECOVERY BRIDGE: Sync fragment to cloud immediately
+        await syncToFirestore("swarm_fragments", { 
+            jobId: id, 
+            verticalId: targetVerticalId, 
+            path: `sectors/${id}_${targetVerticalId}.json`,
+            status: "ready"
+        }, env);
+
+        return;
+    }
+
+    if (mode === 'assemble') {
+        console.log(`🏰 [Master-Mode] Commencing Institutional Tome Assembly [Job: ${id}]`);
+        const { VERTICALS } = await import("./lib/swarm-orchestrator.js");
+        
+        // 1. GATHER FRAGMENTS
+        const sectorPath = path.join(process.cwd(), 'manuscripts', 'v7', 'sectors');
+        let fragments = [];
+        
+        if (fs.existsSync(sectorPath)) {
+            const files = fs.readdirSync(sectorPath).filter(f => f.startsWith(id) && f.endsWith('.json'));
+            fragments = files.map(f => JSON.parse(fs.readFileSync(path.join(sectorPath, f), 'utf8')));
+        }
+
+        if (fragments.length === 0) {
+            console.log(`🔍 [Master-Mode] No local fragments. Attempting Cloud Recovery...`);
+            const { loadFromCloudBucket } = await import("./lib/storage-bridge.js");
+            fragments = await loadFromCloudBucket(id, env);
+        }
+
+        console.log(`🧩 [Master-Mode] Found ${fragments.length}/${VERTICALS.length} fragments.`);
+
+        // 2. CONSOLIDATE (This triggers the self-healing finalizeManuscript)
+        const snapshots = await getRecentSnapshots(frequency, 1, env);
+        const { finalizeManuscript } = await import("./lib/swarm-orchestrator.js");
+        
+        const consensusSummary = "Consolidated Institutional Consensus Desk [V12.Masterpiece]";
+        const result = await finalizeManuscript(fragments, consensusSummary, frequency, type, env, id);
+
+        // 3. ARCHIVE MASTER Tome
+        const fileName = `swarm-${frequency}-${Date.now()}.html`;
+        const outPath = path.join(process.cwd(), 'dist', fileName);
+        fs.mkdirSync(path.dirname(outPath), { recursive: true });
+        fs.writeFileSync(outPath, result.final);
+
+        console.log(`👑 [Masterpiece-Success] Tome synthesized and archived: ${outPath}`);
+        
+        // Final PDF generation & Sync
+        await pushTelemetryLog("TOME_DISPATCH", { jobId: id, frequency, status: "complete", message: "Institutional Masterpiece Finalized." }, env);
+        return;
+    }
+
+    // --- 🧬 STANDARD/SERIAL MODE (Legacy) ---
+    console.log(`🏃 [Standard-Mode] Running Sequential Institutional Swarm...`);
 
     // 3. EXECUTE SWARM (Aligning with exact 6-argument signature)
     const result = await executeMultiAgentSwarm(

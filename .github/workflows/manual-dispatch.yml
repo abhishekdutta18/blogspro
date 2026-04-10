@@ -24,16 +24,40 @@ on:
         type: boolean
 
 concurrency:
-  group: manual-dispatch-${{ github.ref }}
-  cancel-in-progress: true
+  group: sovereign-swarm-lock
+  cancel-in-progress: false
 
 permissions:
   contents: write
 
 jobs:
-  dispatch:
+  # PHASE 0: DYNAMIC MATRIX SETUP
+  setup-matrix:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    outputs:
+      verticals: ${{ steps.set-matrix.outputs.verticals }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Discover Swarm Registry
+        id: set-matrix
+        run: |
+          # [V12.3] Standard GHA Config Export (via $GITHUB_OUTPUT)
+          node scripts/export-swarm-config.mjs --freq=${{ github.event.inputs.frequency || 'monthly' }}
+
+  # PHASE 1: PARALLEL RESEARCH WORKERS (Multi-Runner Scaling)
+  research-workers:
+    runs-on: ubuntu-latest
+    needs: [setup-matrix]
+    strategy:
+      fail-fast: false
+      max-parallel: 20 # [V12.3] High-Density Concurrency
+      matrix:
+        # [V12.3] Matrix now active for ALL frequencies (including Daily)
+        vertical: ${{ fromJSON(needs.setup-matrix.outputs.verticals) }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -42,131 +66,86 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci --no-audit --fund=false
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          
-      - name: Install Python dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r mirofish/backend/requirements.txt
-          
-      - name: Fetch Secrets from Cloudflare Strategic Vault
-        id: vault
-        continue-on-error: true
+      - name: Execute Vertical Research Fragment
         env:
           VAULT_MASTER_KEY: ${{ secrets.VAULT_MASTER_KEY }}
-        run: |
-          # V5.3 Hardened Vault Endpoint (Institutional)
-          VAULT_URL="https://blogspro-pulse.abhishek-dutta1996.workers.dev/vault"
-          echo "📡 Connecting to BlogsPro Strategic Vault at $VAULT_URL..."
-          
-          # Use a shorter timeout to avoid hanging if the vault is misconfigured
-          RESPONSE=$(curl -s --connect-timeout 10 -X POST "$VAULT_URL" \
-            -H "X-Vault-Auth: $VAULT_MASTER_KEY" \
-            -H "Content-Type: application/json")
-
-          if [ $? -ne 0 ]; then
-             echo "⚠️ Vault Error: Connection timeout or network failure."
-             echo "💡 Fallback: Using legacy/repository secrets if available."
-             exit 0
-          fi
-
-          if echo "$RESPONSE" | grep -q "authenticated"; then
-            echo "✅ Vault Authenticated. Injecting 2026 Cluster Credentials..."
-            
-            # Extract and Mask Secrets
-            GH_PAT=$(echo "$RESPONSE" | jq -r '.secrets.GH_PAT // empty')
-            GEMINI=$(echo "$RESPONSE" | jq -r '.secrets.GEMINI // empty')
-            GROQ=$(echo "$RESPONSE" | jq -r '.secrets.GROQ // empty')
-            MISTRAL=$(echo "$RESPONSE" | jq -r '.secrets.MISTRAL // empty')
-            SENTRY_DSN=$(echo "$RESPONSE" | jq -r '.secrets.SENTRY_DSN // empty')
-            
-            if [ -n "$GH_PAT" ] && [ "$GH_PAT" != "null" ]; then
-                echo "::add-mask::$GH_PAT"
-                echo "GH_PAT=$GH_PAT" >> $GITHUB_ENV
-                echo "GH_TOKEN=$GH_PAT" >> $GITHUB_ENV
-            else
-                echo "⚠️ Vault Warning: GH_PAT is missing in vault response. Using repo secret fallback."
-            fi
-
-            [ -n "$GEMINI" ] && [ "$GEMINI" != "null" ] && echo "::add-mask::$GEMINI" && echo "GEMINI_API_KEY=$GEMINI" >> $GITHUB_ENV
-            [ -n "$GROQ" ] && [ "$GROQ" != "null" ] && echo "::add-mask::$GROQ" && echo "GROQ_API_KEY=$GROQ" >> $GITHUB_ENV
-            [ -n "$MISTRAL" ] && [ "$MISTRAL" != "null" ] && echo "::add-mask::$MISTRAL" && echo "MISTRAL_API_KEY=$MISTRAL" >> $GITHUB_ENV
-            [ -n "$SENTRY_DSN" ] && [ "$SENTRY_DSN" != "null" ] && echo "::add-mask::$SENTRY_DSN" && echo "SENTRY_DSN=$SENTRY_DSN" >> $GITHUB_ENV
-          else
-             echo "⚠️ Vault Warning: $(echo "$RESPONSE" | jq -r '.error // "Unknown connection failure"')"
-             echo "💡 System will attempt to run using Repository Secrets."
-          fi
-
-      - name: Execute Autonomous Briefing/Article
-        timeout-minutes: 25
-        env:
-          # V5.0: Secrets now pulled dynamically from CF Vault
-          GEMINI_API_KEY: ${{ env.GEMINI_API_KEY }}
-          GROQ_API_KEY: ${{ env.GROQ_API_KEY }}
-          MISTRAL_API_KEY: ${{ env.MISTRAL_API_KEY }}
-          GH_TOKEN: ${{ env.GH_PAT }}
-
-          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
-          GROQ_KEY: ${{ secrets.GROQ_API_KEY }}
           SAMBANOVA_API_KEY: ${{ secrets.SAMBANOVA_API_KEY }}
-          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          SWARM_INTERNAL_TOKEN: ${{ secrets.SWARM_INTERNAL_TOKEN }}
-
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_TO: ${{ secrets.TELEGRAM_CHAT_ID }}
-          NOTIFICATION_WEBHOOK: ${{ secrets.WEBHOOK_SECRET }}
-          NODE_OPTIONS: "--max-old-space-size=4096"
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          # [V12.3] Hybrid "Best of Both Worlds" Tunnel
+          OLLAMA_PROD_URL: ${{ secrets.NGROK_REMOTE_URL }}
+          OLLAMA_PROD_KEY: ${{ secrets.OLLAMA_PROD_KEY }}
+          SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}"
         run: |
-          # ── V5.0: Dynamic Frequency Switch (Autonomous Trigger) ──────
-          if [ "${{ github.event_name }}" == "schedule" ]; then
-            CRON_TRIGGER="${{ github.event.schedule }}"
-            echo "⏰ Scheduled trigger detected: $CRON_TRIGGER"
-            if [ "$CRON_TRIGGER" == "0 5 * * *" ]; then FREQ="daily";
-            elif [ "$CRON_TRIGGER" == "0 6 * * 1" ]; then FREQ="weekly";
-            elif [ "$CRON_TRIGGER" == "30 7 1 * *" ]; then FREQ="monthly";
-            else FREQ="daily"; fi
-          else
-            FREQ="${{ github.event.inputs.frequency }}"
-          fi
+          FREQ="${{ github.event.inputs.frequency || 'monthly' }}"
+          node scripts/generate-institutional-tome.js --freq=$FREQ --type=article --mode=worker --vertical=${{ matrix.vertical }}
+      
+      - name: Upload Sector Fragment Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sector-${{ matrix.vertical }}
+          path: manuscripts/v7/sectors/swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}_${{ matrix.vertical }}.json
+          retention-days: 1
 
-          FORCE_FLAG="${{ github.event.inputs.force == 'true' && '--force' || '' }}"
+  # PHASE 2: CONSOLIDATION & DISPATCH (Sovereign Synthesis)
+  consolidate-and-dispatch:
+    runs-on: ubuntu-latest
+    needs: [research-workers]
+    if: always()
+    timeout-minutes: 60 # [V12.3] Expansive window for Sovereign Self-Healing
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci --no-audit --fund=false
+      
+      - name: Download all Sector Fragments
+        uses: actions/download-artifact@v4
+        with:
+          path: manuscripts/v7/sectors/
+          pattern: sector-*
+          merge-multiple: true
+
+      - name: Gather Fragments and Assemble Tome
+        env:
+          VAULT_MASTER_KEY: ${{ secrets.VAULT_MASTER_KEY }}
+          SAMBANOVA_API_KEY: ${{ secrets.SAMBANOVA_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Failover Tunnel for Consolidator (Audit pass)
+          OLLAMA_PROD_URL: ${{ secrets.NGROK_REMOTE_URL }}
+          OLLAMA_PROD_KEY: ${{ secrets.OLLAMA_PROD_KEY }}
+          SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'daily' }}-${{ github.run_id }}"
+        run: |
+          FREQ="${{ github.event.inputs.frequency || 'daily' }}"
           
-          # V5.4: Strategic Bridge Detection (ngrok local cluster)
-          if [ -n "${{ secrets.NGROK_REMOTE_URL }}" ] || [ -n "$NGROK_REMOTE_URL" ]; then
-            echo "📡 Institutional Cluster Detected via Strategic Bridge."
-            export OLLAMA_PROD_URL="${NGROK_REMOTE_URL:-${{ secrets.NGROK_REMOTE_URL }}}"
-          fi
-
-          echo "🚀 Executing Swarm Vertical: $FREQ [Hybrid Split-Execution]"
-          
-          if [ "$FREQ" == "hourly" ] || [ "$FREQ" == "daily" ]; then
-            node scripts/generate-briefing.js --freq=$FREQ $FORCE_FLAG
+          if [ "$FREQ" == "hourly" ]; then
+             # Fast Pulse: Single runner
+             node scripts/generate-briefing.js --freq=$FREQ
           else
-            # [V9.0] Institutional Worker Phase: Offload parallel research to GHA
-            node scripts/generate-institutional-tome.js --freq=$FREQ --type=article --mode=worker $FORCE_FLAG
+             # Daily, Weekly, Monthly: Parallel Reengineering
+             node scripts/generate-institutional-tome.js --freq=$FREQ --type=article --mode=assemble
           fi
 
-      - name: Commit and Push (Including Sector Fragments)
+      - name: Commit and Push Results
         run: |
           git config --global user.name "BlogsPro Bot"
           git config --global user.email "bot@blogspro.in"
-          git add briefings/ articles/ index.html sitemap.xml knowledge/ dist/ manuscripts/ *.pdf *.pdf.txt || echo "No change in some artifacts"
-          git commit -m "chore: autonomous research dispatch [worker mode] [skip ci]" || echo "No changes"
-          for i in {1..5}; do
-            git pull --rebase origin main
-            git push && exit 0
-            sleep 15
-          done
-      - name: Notify Socials
-        env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_TO: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: node scripts/notify-telegram.js --freq=${{ github.event.inputs.frequency }}
+          git add briefings/ articles/ index.html sitemap.xml dist/ manuscripts/ *.pdf || echo "No changes"
+          git commit -m "chore: autonomous hybrid dispatch [matrix=20] [skip ci]" || echo "No changes"
+          git pull --rebase origin main
+          git push || echo "Push failed, retrying in next cycle"

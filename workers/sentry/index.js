@@ -82,13 +82,14 @@ export default {
 // ══════════════════════════════════════════════════════════════════════════════
 
 async function handleSetupWebhook(url, env) {
-  if (!env.TELEGRAM_TOKEN) {
+  const token = env.TELEGRAM_BOT_TOKEN || env.TELEGRAM_TOKEN;
+  if (!token) {
     return new Response('❌ TELEGRAM_TOKEN not set', { status: 500 });
   }
   const workerBase = `${url.protocol}//${url.host}`;
   const webhookUrl = `${workerBase}/telegram`;
   const res = await fetch(
-    `https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/setWebhook`,
+    `https://api.telegram.org/bot${token}/setWebhook`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -394,7 +395,9 @@ async function handleGithubWebhook(request, env) {
   let payload;
   try { payload = JSON.parse(body); } catch { return new Response('Bad Request', { status: 400 }); }
 
-  if (!env.TELEGRAM_TOKEN || !env.TELEGRAM_TO) return new Response('OK');
+  const token = env.TELEGRAM_BOT_TOKEN || env.TELEGRAM_TOKEN;
+  const to = env.TELEGRAM_CHAT_ID || env.TELEGRAM_TO;
+  if (!token || !to) return new Response('OK');
 
   let msg = null;
 
@@ -476,7 +479,7 @@ async function handleGithubWebhook(request, env) {
   }
 
   if (msg) {
-    await sendTelegramMessage(env.TELEGRAM_TO, msg, null, env);
+    await sendTelegramMessage(to, msg, null, env);
   }
   return new Response('OK');
 }
@@ -602,7 +605,9 @@ async function updateUserRole(uid, role, env) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 async function handleSentryWebhook(request, env) {
-  if (!env.TELEGRAM_TOKEN || !env.TELEGRAM_TO) {
+  const token = env.TELEGRAM_BOT_TOKEN || env.TELEGRAM_TOKEN;
+  const to = env.TELEGRAM_CHAT_ID || env.TELEGRAM_TO;
+  if (!token || !to) {
     return new Response('Telegram not configured', { status: 500 });
   }
   try {
@@ -618,7 +623,7 @@ async function handleSentryWebhook(request, env) {
 
     const text        = formatSentryAlert(issue);
     const replyMarkup = buildIssueKeyboard(issue);
-    const ok          = await sendTelegramMessage(env.TELEGRAM_TO, text, replyMarkup, env);
+    const ok          = await sendTelegramMessage(to, text, replyMarkup, env);
     if (!ok) return new Response('Failed to send Telegram message', { status: 500 });
     return new Response('OK');
   } catch (e) {
@@ -632,7 +637,9 @@ async function handleSentryWebhook(request, env) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 async function sendDailySummary(env) {
-  if (!env.TELEGRAM_TOKEN || !env.TELEGRAM_TO) return;
+  const token = env.TELEGRAM_BOT_TOKEN || env.TELEGRAM_TOKEN;
+  const to = env.TELEGRAM_CHAT_ID || env.TELEGRAM_TO;
+  if (!token || !to) return;
 
   // Fetch data in parallel
   const [issues, subCount, posts] = await Promise.all([
@@ -663,7 +670,7 @@ async function sendDailySummary(env) {
   }
 
   msg += `\n<a href="https://blogspro.in">Visit site →</a>`;
-  await sendTelegramMessage(env.TELEGRAM_TO, msg, null, env);
+  await sendTelegramMessage(to, msg, null, env);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -868,27 +875,30 @@ function escapeHtml(str) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 async function sendTelegramMessage(chatId, text, replyMarkup, env) {
+  const token = env.TELEGRAM_BOT_TOKEN || env.TELEGRAM_TOKEN;
   const payload = { chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true };
   if (replyMarkup) payload.reply_markup = replyMarkup;
   const res = await fetch(
-    `https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/sendMessage`,
+    `https://api.telegram.org/bot${token}/sendMessage`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
   );
   return res.ok;
 }
 
 async function editTelegramMessage(chatId, messageId, text, replyMarkup, env) {
+  const token = env.TELEGRAM_BOT_TOKEN || env.TELEGRAM_TOKEN;
   const payload = { chat_id: chatId, message_id: messageId, text, parse_mode: 'HTML', disable_web_page_preview: true };
   if (replyMarkup !== undefined) payload.reply_markup = replyMarkup;
   await fetch(
-    `https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/editMessageText`,
+    `https://api.telegram.org/bot${token}/editMessageText`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
   );
 }
 
 async function answerCallbackQuery(callbackQueryId, text, env) {
+  const token = env.TELEGRAM_BOT_TOKEN || env.TELEGRAM_TOKEN;
   await fetch(
-    `https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/answerCallbackQuery`,
+    `https://api.telegram.org/bot${token}/answerCallbackQuery`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
