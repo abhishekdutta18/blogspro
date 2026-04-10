@@ -6,14 +6,17 @@ const __dirname = (typeof process !== 'undefined' && import.meta && import.meta.
   : "";
 const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
 const isWorker = typeof caches !== 'undefined' && typeof Response !== 'undefined';
-let fs = null;
-if (isNode) {
-    // Synchronous-like resolution for Node environment to prevent race conditions
+
+/**
+ * Lazy-loader for node:fs to prevent Top-Level Await deployment blockers in Workers.
+ */
+async function getFs() {
+    if (!isNode) return null;
     try {
         const { default: fsMod } = await import('node:fs');
-        fs = fsMod;
+        return fsMod;
     } catch (e) {
-        // Fallback for older environments
+        return null;
     }
 }
 
@@ -34,8 +37,9 @@ async function getGoogleAccessToken(env) {
                 path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'knowledge', 'firebase-service-account.json')
             ];
 
+            const fs = await getFs();
             for (const saPath of possiblePaths) {
-                if (fs.existsSync(saPath)) {
+                if (fs && fs.existsSync(saPath)) {
                     sa = JSON.parse(fs.readFileSync(saPath, 'utf8'));
                     break;
                 }
@@ -46,8 +50,8 @@ async function getGoogleAccessToken(env) {
     }
 
     // [V9.3] Institutional Priority Logic: Match firebase-service.js stability
-    const saFile = path.join(process.cwd(), 'knowledge', 'firebase-service-account.json');
-    if (fs.existsSync(saFile)) {
+    const fs = await getFs();
+    if (fs && fs.existsSync(saFile)) {
         try {
             sa = JSON.parse(fs.readFileSync(saFile, 'utf8'));
             // 💧 HYDRATE & HARDEN (V5.4.4)
@@ -254,6 +258,7 @@ async function saveBriefing(fileName, content, frequency, env = null) {
       console.error(`🔌 Firebase Storage Connection Error:`, e.message);
     }
   }
+  const fs = await getFs();
   if (fs && path && typeof process !== 'undefined') {
     const rootDir = process.cwd();
     const targetDir = path.join(rootDir, "briefings", frequency);
@@ -299,14 +304,17 @@ async function updateIndex(entry, frequency, env = null) {
       let index = await env.KV.get(key, { type: 'json' }) || [];
       index.unshift(entry);
       await env.KV.put(key, JSON.stringify(index.slice(0, 50)));
-    } else if (fs && path) {
-      const rootDir = process.cwd();
-      const targetDir = path.join(rootDir, "briefings", frequency);
-      if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
-      const indexPath = path.join(targetDir, "index.json");
-      let index = fs.existsSync(indexPath) ? JSON.parse(fs.readFileSync(indexPath, "utf-8")) : [];
-      index.unshift(entry);
-      fs.writeFileSync(indexPath, JSON.stringify(index.slice(0, 50), null, 2));
+    } else if (isNode) {
+      const fs = await getFs();
+      if (fs && path) {
+        const rootDir = process.cwd();
+        const targetDir = path.join(rootDir, "briefings", frequency);
+        if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+        const indexPath = path.join(targetDir, "index.json");
+        let index = fs.existsSync(indexPath) ? JSON.parse(fs.readFileSync(indexPath, "utf-8")) : [];
+        index.unshift(entry);
+        fs.writeFileSync(indexPath, JSON.stringify(index.slice(0, 50), null, 2));
+      }
     }
   } finally {
     await releaseLock(lockKey, env);
@@ -318,10 +326,13 @@ async function getIndex(frequency, env = null) {
   if (env && env.KV) {
     return await env.KV.get(key, { type: 'json' }) || [];
   } else if (isNode) {
-    const rootDir = process.cwd();
-    const indexPath = path.join(rootDir, "briefings", frequency, "index.json");
-    if (fs.existsSync(indexPath)) {
-        return JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+    const fs = await getFs();
+    if (fs && path) {
+      const rootDir = process.cwd();
+      const indexPath = path.join(rootDir, "briefings", frequency, "index.json");
+      if (fs.existsSync(indexPath)) {
+          return JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+      }
     }
   }
   return [];

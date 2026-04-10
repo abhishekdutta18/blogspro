@@ -2,8 +2,12 @@ import { XMLParser } from "fast-xml-parser";
 import UpstoxClient from 'upstox-js-sdk';
 import { captureSwarmError } from './sentry-bridge.js';
 import { gateSignal } from "./gating-engine.js";
+import { NewsOrchestrator } from "./news-orchestrator.js";
 const _fetch = fetch;
 const _env = typeof process !== "undefined" ? process.env : {};
+
+// Singleton instance for orchestration
+const NEWS_ORCHESTRATOR = new NewsOrchestrator(_env);
 
 
 // Identity Layer: Institutional User-Agent to prevent 403/406/429 blocks
@@ -170,29 +174,10 @@ const UNIVERSAL_FEEDS = {
 };
 
 /**
- * High-Fidelity NewsData.io Integration (V2 - Serverless Native)
- * Pulls directly from institutional sources via JSON API.
+ * News Extraction Tier (Managed by NewsOrchestrator)
  */
 async function fetchNewsData() {
-    const key = _env.NEWS_API_KEY;
-    if (!key) return [];
-    
-    try {
-        console.log("🔍 Consulting NewsData.io for Global Macro Pulse...");
-        // Targeted: World, English, Business/Top/Politics
-        const url = `https://newsdata.io/api/1/news?apikey=${key}&category=business,top,politics&language=en`;
-        const res = await fetchWithTimeout(url);
-        const json = await res.json();
-        
-        if (json.status === "success" && json.results) {
-            return json.results.slice(0, 10).map(item => 
-                `${item.source_id.toUpperCase()} | ${item.title} (URL: ${item.link})`
-            );
-        }
-    } catch (e) {
-        console.warn("⚠️ NewsData Outage/Limit:", e.message);
-    }
-    return [];
+    return await NEWS_ORCHESTRATOR.getBalancedApiNews();
 }
 
 async function fetchRSS(url) {
@@ -216,26 +201,7 @@ async function fetchRSS(url) {
 }
 
 async function fetchUniversalNews() {
-    // Step 1: Fetch RSS Primary Aggregation (High Fidelity)
-    const keys = Object.keys(UNIVERSAL_FEEDS);
-    const results = await Promise.allSettled(keys.map(key => fetchRSS(UNIVERSAL_FEEDS[key])));
-    
-    let masterNews = [];
-    results.forEach((res, idx) => {
-        const source = keys[idx].replace(/_/g, ' ');
-        if (res.status === 'fulfilled') {
-            const items = res.value.slice(0, 5).map(i => `${source} | ${i.title} (URL: ${i.link})`);
-            masterNews.push(...items);
-        }
-    });
-
-    // Step 2: NewsData.io Fallback (Only if RSS is critically low)
-    if (masterNews.length < 5) {
-        const newsDataResults = await fetchNewsData();
-        masterNews.push(...newsDataResults);
-    }
-
-    return masterNews.length > 0 ? masterNews.join(' | ') : "Universal News: No recent pulses.";
+    return await NEWS_ORCHESTRATOR.fetchUniversalNews();
 }
 
 /**
@@ -243,21 +209,7 @@ async function fetchUniversalNews() {
  * Allows the Swarm to target specific current-year (2026) data for any vertical.
  */
 async function fetchDynamicNews(query) {
-    const encodedQuery = encodeURIComponent(`${query} 2025 2026 fiscal policy market metrics`);
-    const url = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
-    try {
-        console.log(`🔍 [Research Desk] Fetching Dynamic Pulse: ${query}...`);
-        const items = await fetchRSS(url);
-        if (items.length === 0) return `No current internet pulse for ${query}.`;
-        
-        // Return a rich list of sources for agentic follow-up
-        return items.slice(0, 10).map((i, idx) => 
-            `[SEARCH_RESULT_${idx + 1}] Title: ${i.title} | Source: ${i.link.split('/')[2]} | URL: ${i.link}`
-        ).join('\n');
-    } catch (e) {
-        console.warn(`⚠️ Research Fail for ${query}:`, e.message);
-        return `No current internet pulse for ${query}.`;
-    }
+    return await NEWS_ORCHESTRATOR.fetchDynamicNews(query);
 }
 
 /**
