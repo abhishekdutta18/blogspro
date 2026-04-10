@@ -14,7 +14,7 @@ export const inngest = new Inngest({
 export const getInngestClient = (env) => {
   return new Inngest({ 
     id: "blogspro-swarm",
-    eventKey: env?.INNGEST_EVENT_KEY,
+    eventKey: env?.INNGEST_EVENT_KEY || "local-dummy-key",
     signingKey: env?.INNGEST_SIGNING_KEY || INNGEST_SIGNING_KEY
   });
 };

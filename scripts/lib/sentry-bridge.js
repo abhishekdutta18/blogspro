@@ -105,6 +105,19 @@ export async function captureSwarmError(error, context = {}, sentryInstance = nu
     const tags = { vertical, role, ...otherTags };
     const extra = { prompt_snapshot };
 
+    if (error && error.message && error.message.includes("AI_FLEET_EXHAUSTED")) {
+        const msg = `⚠️ Transient AI Exhaustion: ${error.message}`;
+        if (sentryInstance && typeof sentryInstance.captureMessage === 'function') {
+            sentryInstance.captureMessage(msg, { level: 'warning', tags, extra });
+        } else if (isNode) {
+            const Sentry = await getSentryNode();
+            if (Sentry) Sentry.captureMessage(msg, { level: 'warning', tags, extra });
+        } else {
+            console.warn(msg);
+        }
+        return;
+    }
+
     if (sentryInstance && typeof sentryInstance.captureException === 'function') {
         sentryInstance.captureException(error, { tags, extra });
     } else if (isNode) {
@@ -120,8 +133,14 @@ export async function captureSwarmError(error, context = {}, sentryInstance = nu
  */
 export async function logSwarmPulse(status, summary, metadata = {}, sentryInstance = null) {
     const message = `📡 [Swarm Pulse] ${status.toUpperCase()}: ${summary}`;
+
+    if (status !== 'error') {
+        console.log(message);
+        return logSwarmBreadcrumb(message, { status, ...metadata }, sentryInstance);
+    }
+
     const options = {
-        level: status === 'error' ? 'error' : 'info',
+        level: 'error',
         tags: { swarm_event: 'pulse_heartbeat', status, ...metadata },
         fingerprint: ['swarm-pulse-heartbeat']
     };
