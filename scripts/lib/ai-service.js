@@ -52,7 +52,7 @@ async function localRequest(url, options) {
     });
 }
 import { pushSovereignTrace } from "./storage-bridge.js";
-import { VERTICALS } from "../../prompts.js";
+import { VERTICALS } from "./prompts.js";
 import { Cerebras } from "@cerebras/cerebras_cloud_sdk";
 import { pushTelemetryLog } from "./storage-bridge.js"; // REST-based for Worker compatibility
 
