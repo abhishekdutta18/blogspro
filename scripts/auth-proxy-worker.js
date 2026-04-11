@@ -135,6 +135,65 @@ export default {
       return jsonResponse({ authenticated: true, user: { uid: payload.uid, email: payload.email, role: payload.role } });
     }
 
+    // Google OAuth Redirect
+    if (path === "/auth/login/google") {
+      const redirect = url.searchParams.get("redirect") || "/";
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + new URLSearchParams({
+        client_id: env.GOOGLE_CLIENT_ID,
+        redirect_uri: `${url.origin}/auth/callback/google`,
+        response_type: "code",
+        scope: "openid email profile",
+        state: redirect
+      });
+      return Response.redirect(googleAuthUrl);
+    }
+
+    // Google Callback
+    if (path === "/auth/callback/google") {
+      const code = url.searchParams.get("code");
+      const state = url.searchParams.get("state") || "/";
+      if (!code) return Response.redirect(`${url.origin}/login.html?error=code_missing`);
+
+      // Exchange code for token
+      const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code,
+          client_id: env.GOOGLE_CLIENT_ID,
+          client_secret: env.GOOGLE_CLIENT_SECRET,
+          redirect_uri: `${url.origin}/auth/callback/google`,
+          grant_type: "authorization_code"
+        })
+      });
+      if (!tokenRes.ok) return Response.redirect(`${url.origin}/login.html?error=unauthorized`);
+      const tokenData = await tokenRes.json();
+      
+      // Get user info from ID Token (simple parse)
+      const idTokenParts = tokenData.id_token.split('.');
+      const userInfo = JSON.parse(Buffer.from(idTokenParts[1], 'base64').toString());
+      const uid = userInfo.sub;
+      const email = userInfo.email;
+
+      // Role check via Firestore
+      let role = null;
+      try {
+        const token = await getAccessToken(serviceAccount);
+        role = await fetchRole(projectId, token, uid);
+      } catch (e) {}
+
+      if (role !== "admin") return Response.redirect(`${url.origin}/login.html?error=unauthorized&reason=${role || 'missing_role'}`);
+
+      const jwt = await signJwt({ uid, email, role }, sessionSecret);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          "Location": state.startsWith("http") ? state : `${url.origin}/${state.replace(/^\//,'')}`,
+          ...setSessionCookie(jwt)
+        }
+      });
+    }
+
     return jsonResponse({ error: "Not found" }, 404);
   }
 };
