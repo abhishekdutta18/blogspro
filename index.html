@@ -1833,6 +1833,7 @@
         { symbol: 'AUDUSD', price: 0.620, change: -0.12, open: 0.621, high: 0.624, low: 0.618, prev: 0.621, volume: 1247600 },
       ],
       commodities: [
+        { symbol: 'Bitcoin (CME)', price: 74000.00, change: 1.32, open: 72850, high: 74480, low: 72640, prev: 73035, volume: 28400000 },
         { symbol: 'MCX Gold (10g)', price: 152561.00, change: -0.42, open: 153184, high: 153490, low: 152210, prev: 153205, volume: 318600 },
         { symbol: 'MCX Silver (kg)', price: 242000.00, change: -0.38, open: 242920, high: 243800, low: 241600, prev: 242920, volume: 274300 },
         { symbol: 'MCX Crude (bbl)', price: 9085.00, change: 1.24, open: 8974, high: 9148, low: 8940, prev: 8974, volume: 421800 },
@@ -1965,6 +1966,8 @@
         if (key === 'indices') return '';
         if (key === 'currency') return '';
         if (key === 'commodities') {
+          // Digital commodity — always USD
+          if (s.includes('BTC') || s.includes('BITCOIN')) return '$';
           // MCX instruments are INR-denominated
           if (s.includes('MCX') || s.includes('GOLD') || s.includes('SILVER') || s.includes('CRUDE') || s.includes('NATGAS')) return '₹';
           // International benchmarks are USD-denominated
