@@ -1,6 +1,7 @@
-import { 
-    collection, query, orderBy, limit, getDocs 
+import {
+    collection, query, orderBy, limit, getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from './config.js';
 import { initNewsWire } from './news-wire.js';
 
 /**
