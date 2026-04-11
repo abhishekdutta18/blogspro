@@ -612,8 +612,8 @@ async function generateInstitutionalBridgeContent(prompt, model, context = {}) {
     if (!bridgeUrl) {
         // Probe Pattern: If we know the project name, we can guess the worker URL
         const projectId = process.env.FIREBASE_PROJECT_ID || "blogspro";
-        const candidateUrl = `https://${projectId}-pulse.abhishekdutta18.workers.dev/ai-gateway`;
-        const fallbackUrl = "https://blogspro-pulse.abhishekdutta18.workers.dev/ai-gateway";
+        const candidateUrl = `https://${projectId}-pulse.abhishek-dutta1996.workers.dev/ai-gateway`;
+        const fallbackUrl = "https://blogspro-pulse.abhishek-dutta1996.workers.dev/ai-gateway";
         
         // Initial handshake to prioritize the candidate
         bridgeUrl = fallbackUrl; // Global Institutional Standard

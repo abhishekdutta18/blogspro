@@ -20,7 +20,7 @@ async function testAIBridge() {
 
     // 3. Adaptive Bridge Probing (V12.2)
     console.log("\n📡 Testing Adaptive Infrastructure Probing...");
-    const bridgeUrl = process.env.SWARM_AI_BRIDGE || "https://blogspro-pulse.abhishekdutta18.workers.dev/ai-gateway";
+    const bridgeUrl = process.env.SWARM_AI_BRIDGE || "https://blogspro-pulse.abhishek-dutta1996.workers.dev/ai-gateway";
     console.log(`🔗 Target: ${bridgeUrl}`);
 
     try {
