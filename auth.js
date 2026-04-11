@@ -43,16 +43,18 @@ export function initAuth() {
       const snap = await getDoc(doc(db, 'users', user.uid));
       const role  = snap.exists() ? snap.data().role : null;
       if (role !== 'admin') {
+        console.warn(`🚫 [Auth] Access Denied: User ${user.email} (${user.uid}) has role '${role || 'null'}'. Admin required.`);
         await signOut(auth);
-        window.location.href = 'login.html?error=unauthorized';
+        window.location.href = 'login.html?error=unauthorized&reason=' + (role || 'missing_role');
         return;
       }
       isAdmin = true;
     } catch(e) {
       sentryCaptureException(e);
       if (e.code === 'permission-denied' || e.code === 'unauthenticated') {
+        console.warn(`🚫 [Auth] Security Error: ${e.code}. User may not have permission to read their own profile.`);
         await signOut(auth);
-        window.location.href = 'login.html?error=unauthorized';
+        window.location.href = 'login.html?error=unauthorized&reason=' + e.code;
         return;
       }
       console.error('Auth role check failed:', e.message);

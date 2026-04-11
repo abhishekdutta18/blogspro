@@ -739,68 +739,54 @@ async function generateCerebrasContent(prompt, model = "llama3.1-8b", context = 
 }
 
 async function generateOllamaContent(prompt, model = "llama3.1", context = {}) {
-    const defaultHost = "http://127.0.0.1:11434";
-    const host = context.targetHost || process.env.OLLAMA_HOST || defaultHost;
-    const apiKey = context.targetKey || process.env.OLLAMA_PROD_KEY; // Optional key for prod tunnels
-
-    // MAR 2026: Institutional Model Mapping (Force local fallback for cloud model names)
-    let targetModel = model?.toLowerCase() || "gemma4:e4b";
-    
-    // [V12.0] Direct User Mandate: Local Ollama must use Gemma 4
-    if (targetModel.includes('node-') || !targetModel.includes(':') || targetModel.includes('gemini') || targetModel.includes('gpt') || targetModel.includes('claude') || targetModel.includes('llama') || targetModel.includes('gemma')) {
-        targetModel = "gemma4:e4b"; // Standardized local baseline: Google Gemma 4 (4-bit institutional quantization)
-    } else if (targetModel.includes('70b') || targetModel.includes('research')) {
-        targetModel = "gemma4:e4b"; // High-fidelity fallback
-    }
-
     try {
+        const defaultHost = "http://127.0.0.1:11434";
+        const host = context.targetHost || process.env.OLLAMA_HOST || defaultHost;
+        const apiKey = context.targetKey || process.env.OLLAMA_PROD_KEY;
+
+        let targetModel = model?.toLowerCase() || "gemma4:e4b";
+        if (targetModel.includes('node-') || !targetModel.includes(':') || /gemini|gpt|claude|llama|gemma/.test(targetModel)) {
+            targetModel = "gemma4:e4b";
+        }
+
         const headers = { "Content-Type": "application/json" };
-        
-        // MARCH 2026: Institutional Tunnel Hardening (ngrok & Cloudflare)
         if (apiKey && apiKey.includes('.')) {
-            const [clientId, clientSecret] = apiKey.split('.');
-            headers["CF-Access-Client-Id"] = clientId;
-            headers["CF-Access-Client-Secret"] = clientSecret;
+            const [id, secret] = apiKey.split('.');
+            headers["CF-Access-Client-Id"] = id;
+            headers["CF-Access-Client-Secret"] = secret;
         } else if (apiKey) {
             headers["Authorization"] = `Bearer ${apiKey}`;
         }
-        
-        // NGROK BYPASS: Skip the "You are about to visit..." interstitial page for automated clients
-        if (host.includes('ngrok-free.app') || host.includes('ngrok-free.dev')) {
+
+        if (/ngrok-free/.test(host)) {
             headers["ngrok-skip-browser-warning"] = "69420";
         }
 
-        // MARCH 2026: Heavy stagger for local calls to prioritize stability over speed
-        if (host.includes('127.0.0.1') || host.includes('localhost')) {
-            const stagger = Math.floor(Math.random() * 3000) + 2500;
-            await sleep(stagger);
+        if (/127\.0\.0\.1|localhost/.test(host)) {
+            await sleep(Math.floor(Math.random() * 3000) + 2500);
         }
-        const targetHost = host.replace('127.0.0.1', 'localhost');
-        console.log(`🚀 [Ollama] Dispatching to ${targetHost} [Model: ${targetModel}]...`);
 
-        // MAR 2026: Use robust localRequest for internal nodes, standard fetch for remote
-        const fetcher = (targetHost.includes('localhost') || targetHost.includes('127.0.0.1')) ? localRequest : _fetch;
+        const targetHost = host.replace('127.0.0.1', 'localhost');
+        const fetcher = (/localhost|127\.0\.0\.1/.test(targetHost)) ? localRequest : _fetch;
+
+        console.log(`🚀 [Ollama] Dispatching to ${targetHost} [Model: ${targetModel}]...`);
 
         const res = await fetcher(`${targetHost}/api/generate`, {
             method: "POST",
             headers,
-            body: JSON.stringify({
-                model: targetModel,
-                prompt: prompt,
-                stream: false
-            })
+            body: JSON.stringify({ model: targetModel, prompt, stream: false })
         });
 
         if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(`Ollama Error: ${res.status} ${errText}`);
+            const txt = await res.text();
+            throw new Error(`HTTP ${res.status}: ${txt}`);
         }
 
         const data = await res.json();
         if (data && data.response) return data.response;
-        throw new Error("Ollama returned an empty or malformed response.");
+        throw new Error("Empty response");
     } catch (err) {
-        throw new Error(`Ollama (${host.includes('127.0.0.1') ? 'Local Swarm' : 'Prod Swarm'}) Unreachable: ${err.message}`);
+        throw new Error(`Ollama Swarm Failure: ${err.message}`);
     }
 }
 

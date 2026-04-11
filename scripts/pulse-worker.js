@@ -2,7 +2,7 @@ import { initWorkerSentry, captureSwarmError, logSwarmBreadcrumb } from "./lib/s
 import { serve } from "inngest/cloudflare";
 import { inngest, getInngestClient } from "./lib/inngest-client.js";
 import { pulseSwarmWorkflow } from "./lib/inngest-functions.js";
-import { getGoogleAccessToken, pushTelemetryLog } from "./lib/storage-bridge.js";
+import { getGoogleAccessToken, pushTelemetryLog } from "./lib/storage-bridge-worker.js";
 
 /**
  * BlogsPro Pulse Worker (V5.3 - Durable)

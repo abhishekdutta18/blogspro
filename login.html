@@ -278,7 +278,7 @@
     GithubAuthProvider
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { firebaseConfig } from "./js/firebase-config.js";
+  import firebaseConfig from "./js/firebase-config.js";
  
   // FIX: No hardcoded ADMIN_UID — use Firestore role check like auth.js does
  
@@ -303,20 +303,37 @@
   }).catch(e => {
     if (e.code) showError(friendlyError(e.code));
   });
+
+  // MARCH 2026: Institutional Diagnostic Handler
+  const urlParams = new URLSearchParams(window.location.search);
+  const errorParam = urlParams.get('error');
+  const reasonParam = urlParams.get('reason');
+  if (errorParam === 'unauthorized') {
+    let msg = 'Unauthorized: Admin privileges required to access the dashboard.';
+    if (reasonParam === 'reader' || reasonParam === 'user') {
+      msg = `Access Denied: Your account role is '${reasonParam}'. Only admins can access this area.`;
+    } else if (reasonParam === 'missing_role') {
+      msg = 'Access Denied: Your account has no role assigned. Please contact the system administrator.';
+    } else if (reasonParam === 'permission-denied') {
+      msg = 'Security Error: You do not have permission to verify your role in Firestore. Please sign out and sign in again.';
+    }
+    showError(msg);
+  }
  
   async function redirectUser(user) {
     try {
       const { doc: docRef, getDoc: getDocSnap } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
       const snap = await getDocSnap(docRef(db, 'users', user.uid));
       const role = snap.exists() ? snap.data().role : null;
-      if (role === 'admin') {
+      if (role === 'admin' || isAutoAdmin(user, role)) {
         window.location.href = 'admin.html';
       } else {
         window.location.href = 'dashboard.html';
       }
     } catch(e) {
-      // If role check fails, default to dashboard
-      window.location.href = 'dashboard.html';
+      // If role check fails, allow trusted admin fallback; else dashboard
+      if (isAutoAdmin(user, null)) window.location.href = 'admin.html';
+      else window.location.href = 'dashboard.html';
     }
   }
  
@@ -388,6 +405,15 @@
       setLoading('email', false);
     }
   };
+
+  function isAutoAdmin(user, role) {
+    if (!user?.email || role === 'admin') return role === 'admin';
+    const email = user.email.toLowerCase();
+    const allowEmails = ['abhishekdutta18@gmail.com'];
+    const allowDomains = ['blogspro.in'];
+    if (allowEmails.includes(email)) return true;
+    return allowDomains.some(dom => email.endsWith(`@${dom}`));
+  }
  
   function setLoading(provider, on) {
     const map = {

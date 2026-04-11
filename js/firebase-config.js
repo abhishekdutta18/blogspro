@@ -3,7 +3,7 @@
 // Project: blogspro-ai
 // --------------------------------------------------
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
   authDomain: "blogspro-ai.firebaseapp.com",
   projectId: "blogspro-ai",
@@ -19,3 +19,5 @@ if (typeof module !== 'undefined' && module.exports) {
 } else {
     window.FIREBASE_CONFIG = firebaseConfig;
 }
+
+export default firebaseConfig;
