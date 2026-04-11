@@ -15,7 +15,7 @@ async function buildStaticPosts() {
     fs.mkdirSync(outDir, { recursive: true });
   }
 
-  const templatePath = path.join(__dirname, '../post.html');
+  const templatePath = path.join(__dirname, 'templates/post.html');
   if (!fs.existsSync(templatePath)) {
     console.error("Template post.html not found!");
     process.exit(1);
