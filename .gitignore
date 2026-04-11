@@ -29,7 +29,7 @@ yarn-error.log*
 
 # --- INFRASTRUCTURE & BUILD ---
 node_modules/
-public/
+# public/
 tmp/
 .DS_Store
 Thumbs.db
