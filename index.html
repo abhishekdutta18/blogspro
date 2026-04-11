@@ -2590,7 +2590,7 @@
 
   // ── Auth nav ───────────────────────────────────
   onAuthStateChanged(auth, async user => {
-    initIntelHub(); // Re-sync hub state on auth change
+    initIntelHub(db); // Re-sync hub state on auth change
     const slot       = document.getElementById('navAuthSlot');
     const footerLink = document.getElementById('footerAuthLink');
 
@@ -3000,7 +3000,7 @@
   }
 
   (async () => {
-    initIntelHub(); // Priority init for guests
+    initIntelHub(db); // Priority init for guests
     const settingsOk = await loadSiteSettings().catch(() => false);
     const postsOk = await loadPosts().catch(() => false);
     const aboutOk = await loadAbout().catch(() => false);
