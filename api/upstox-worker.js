@@ -1,4 +1,5 @@
-import UpstoxClient from 'upstox-js-sdk';
+// Pure REST Implementation for Upstox (V2 API)
+// Eliminates 10MB+ SDK dependency for edge compatibility.
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -6,15 +7,14 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-// Initialize Upstox SDK helper
-function getUpstoxClient(token) {
-  const defaultClient = UpstoxClient.ApiClient.instance;
-  const OAUTH2 = defaultClient.authentications['OAUTH2'];
-  OAUTH2.accessToken = token;
-  return {
-    quotes: new UpstoxClient.MarketQuoteV3Api(),
-    history: new UpstoxClient.HistoryV3Api()
-  };
+async function fetchUpstox(endpoint, token) {
+    const url = `https://api.upstox.com/v2${endpoint}`;
+    return fetch(url, {
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json"
+        }
+    });
 }
 
 function jsonResponse(data, status = 200, extra = {}) {
@@ -48,7 +48,6 @@ export default {
       }
 
       if (url.pathname === "/quotes") {
-        const sdk = getUpstoxClient(token);
         const nseIndexSymbols = [
           "NSE_INDEX|Nifty 50", "NSE_INDEX|Nifty Bank", "NSE_INDEX|Nifty IT",
           "NSE_INDEX|Nifty Auto", "NSE_INDEX|Nifty Pharma", "NSE_INDEX|Nifty Metal",
@@ -149,25 +148,25 @@ export default {
           } catch (_) { return null; }
         };
 
-        // Fetch Upstox Quotes using SDK + Yahoo Finance in parallel
+        // Fetch Upstox Quotes via REST + Yahoo Finance in parallel
         const [upstoxRes, ...yfResults] = await Promise.allSettled([
-          new Promise((resolve, reject) => {
-            sdk.quotes.getLtp({ instrumentKey: nseIndexSymbols.join(",") }, (error, data) => {
-              if (error) reject(error);
-              else resolve(data);
-            });
-          }),
-
+          fetchUpstox(`/market-quote/ltp?instrument_key=${encodeURIComponent(nseIndexSymbols.join(","))}`, token),
           ...yfMap.map(fetchYfChart),
         ]);
 
         const merged = {};
 
         // Upstox NSE indices
-        const upstoxValue = upstoxRes.status === "fulfilled" ? upstoxRes.value : null;
-        const tokenExpired = upstoxValue?._tokenExpired === true;
-        const upstoxData = tokenExpired ? {} : (upstoxValue?.data || {});
-        Object.assign(merged, upstoxData);
+        let tokenExpired = false;
+        if (upstoxRes.status === "fulfilled") {
+            const rawRes = upstoxRes.value;
+            if (rawRes.ok) {
+                const upstoxValue = await rawRes.json();
+                Object.assign(merged, upstoxValue.data || {});
+            } else if (rawRes.status === 401) {
+                tokenExpired = true;
+            }
+        }
 
         // Yahoo Finance results
         for (const res of yfResults) {
@@ -218,19 +217,17 @@ export default {
       }
 
       if (url.pathname === "/historical") {
-        const sdk = getUpstoxClient(token);
         const instrumentKey = url.searchParams.get("instrumentKey") || "NSE_INDEX|Nifty 50";
         const interval = url.searchParams.get("interval") || "day";
         const toDate = url.searchParams.get("toDate") || new Date().toISOString().split('T')[0];
         const fromDate = url.searchParams.get("fromDate") || new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
 
-        const data = await new Promise((resolve, reject) => {
-           sdk.history.getHistoricalCandleData(instrumentKey, interval, toDate, fromDate, (error, data) => {
-             if (error) reject(error);
-             else resolve(data);
-           });
-        });
-
+        const res = await fetchUpstox(`/historical-candle/${encodeURIComponent(instrumentKey)}/${interval}/${toDate}/${fromDate}`, token);
+        if (!res.ok) {
+            return jsonResponse({ status: "error", message: `Upstox API Error: ${res.status}` }, res.status);
+        }
+        
+        const data = await res.json();
         return jsonResponse(data, 200, { "Cache-Control": "public, max-age=3600" });
       }
 

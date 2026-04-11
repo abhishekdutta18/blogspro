@@ -9,22 +9,6 @@ const _env = typeof process !== "undefined" ? process.env : {};
 // Singleton instance for orchestration
 const NEWS_ORCHESTRATOR = new NewsOrchestrator(_env);
 
-/**
- * Lazy-loader for Upstox SDK to prevent 10MB+ TypeScript bloat in Worker bundles.
- * Cloudflare Workers on the free tier have a 3MB limit.
- */
-async function getUpstoxClient() {
-    if (!isNode) return null;
-    try {
-        const { default: UpstoxClient } = await import('upstox-js-sdk');
-        return UpstoxClient;
-    } catch (e) {
-        console.error("⚠️ [Upstox] Heavy SDK Load Failed:", e.message);
-        return null;
-    }
-}
-
-
 // Identity Layer: Institutional User-Agent to prevent 403/406/429 blocks
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) BlogsPro-Intelligence/4.0 (contact@blogspro.in)";
 
@@ -328,35 +312,29 @@ async function fetchUpstoxData() {
     const token = _env.UPSTOX_ACCESS_TOKEN;
     const stableWorker = "https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/quotes";
     
-    // Attempt Direct SDK Fetch if token is available
+    // Attempt Direct REST Fetch if token is available
     if (token) {
         try {
-            console.log("📡 [Data-Pulse] Fetching Upstox via SDK...");
-            const Upstox = await getUpstoxClient();
-            if (!Upstox) return null;
-
-            const defaultClient = Upstox.ApiClient.instance;
-            const OAUTH2 = defaultClient.authentications['OAUTH2'];
-            OAUTH2.accessToken = token;
-            
-            const api = new Upstox.MarketQuoteV3Api();
+            console.log("📡 [Data-Pulse] Fetching Upstox via REST...");
             const symbols = "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank,NSE_INDEX|Nifty IT";
+            const url = `https://api.upstox.com/v2/market-quote/ltp?instrument_key=${encodeURIComponent(symbols)}`;
             
-            const data = await new Promise((resolve, reject) => {
-                api.getLtp({ instrumentKey: symbols }, (error, data) => {
-                    if (error) reject(error);
-                    else resolve(data);
-                });
+            const res = await _fetch(url, {
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Accept": "application/json"
+                }
             });
 
-            if (data?.status === "success") {
-                const d = data.data || {};
+            if (res.ok) {
+                const json = await res.json();
+                const d = json.data || {};
                 const summary = `NIFTY: ${d["NSE_INDEX|Nifty 50"]?.last_price || "N/A"} | BANK NIFTY: ${d["NSE_INDEX|Nifty Bank"]?.last_price || "N/A"}`;
-                return { summary, raw: d, source: "sdk" };
+                return { summary, raw: d, source: "rest" };
             }
         } catch (e) {
-            console.warn("⚠️ [Data-Pulse] Upstox SDK Fallback:", e.message);
-            await captureSwarmError(e, { role: "data-fetcher", vertical: "markets", fetcher: "upstox-sdk" });
+            console.warn("⚠️ [Data-Pulse] Upstox REST Fallback:", e.message);
+            await captureSwarmError(e, { role: "data-fetcher", vertical: "markets", fetcher: "upstox-rest" });
         }
     }
 
