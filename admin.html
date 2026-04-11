@@ -147,103 +147,12 @@ window.addEventListener('load', () => {
     <p>AI SaaS CMS</p>
   </div>
   <style>
-    /* V7.0 Terminal Newsfeed Styles */
-    .newsfeed-log {
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(201, 168, 76, 0.2);
-      border-radius: 4px;
-      padding: 0.8rem;
-      font-family: 'DM Mono', monospace, Courier;
-      font-size: 0.7rem;
-      color: #a1a1aa;
-      max-height: 250px;
-      overflow-y: auto;
-      margin-top: 1rem;
-      line-height: 1.5;
-      box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
-    }
-    .newsfeed-entry {
-      margin-bottom: 0.3rem;
-      display: flex;
-      gap: 0.6rem;
-      animation: fadeInLog 0.3s ease-out;
-    }
-    .newsfeed-ts { color: var(--gold); opacity: 0.8; min-width: 65px; }
-    .newsfeed-msg { color: var(--cream); flex: 1; }
-    .newsfeed-stage { 
-      font-weight: 700; 
-      text-transform: uppercase; 
-      font-size: 0.65rem;
-      padding: 0.1rem 0.3rem;
-      border-radius: 2px;
-      background: rgba(255,255,255,0.05);
-    }
-    @keyframes fadeInLog {
-      from { opacity: 0; transform: translateY(5px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .v2-btn-archive {
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      color: var(--emerald);
-      font-size: 0.72rem;
-      padding: 0.4rem 0.8rem;
-      border-radius: 3px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
     .v2-btn-archive:hover { background: rgba(16, 185, 129, 0.2); }
 
-    /* V8.0 Institutional News Wire Styles */
-    #institutionalNewsWire {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      max-height: 400px;
-      overflow-y: auto;
-      padding: 0.5rem;
-    }
-    .news-item {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 6px;
-      padding: 0.8rem;
-      transition: all 0.2s;
-    }
-    .news-item:hover {
-      background: rgba(201, 168, 76, 0.05);
-      border-color: rgba(201, 168, 76, 0.2);
-      transform: translateX(4px);
-    }
-    .news-meta {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.6rem;
-      font-weight: 700;
-      color: var(--gold);
-      text-transform: uppercase;
-      margin-bottom: 0.3rem;
-    }
-    .news-source { background: rgba(201, 168, 76, 0.1); padding: 1px 4px; border-radius: 2px; }
-    .news-time { color: var(--muted); }
-    .news-title {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.82rem;
-      color: var(--cream);
-      line-height: 1.4;
-      margin: 0.2rem 0;
-    }
-    .news-link {
-      font-size: 0.65rem;
-      color: var(--blue2);
-      text-decoration: none;
-      font-weight: 700;
-    }
-    .news-link:hover { text-decoration: underline; }
-    .news-error { font-size: 0.7rem; color: #fca5a5; padding: 1rem; text-align: center; }
-    .news-empty { font-size: 0.75rem; color: var(--muted); text-align: center; padding: 2rem; }
-  </style>
-  <nav class="side-nav">
+    /* Custom Word Highlighting & Telemetry Extensions */
+    .stat-mini { color: var(--gold); border-bottom: 1px solid rgba(201,168,76,0.1); padding-bottom: 4px; }
+
+  </nav>
     <span class="nav-label">Content</span>
     <div class="nav-item active" data-view="dashboard"><span>◈</span> Dashboard</div>
     <div class="nav-item" data-view="posts"><span>✦</span> All Posts</div>
@@ -286,116 +195,128 @@ window.addEventListener('load', () => {
 <!-- MAIN -->
 <main>
 
-  <!-- ══════════════ DASHBOARD ══════════════ -->
-  <div class="view active" id="view-dashboard">
-    <div class="page-header">
-      <div><h2>Dashboard</h2><p id="greetMsg">Welcome back.</p></div>
-      <button class="btn-publish" style="padding:0.7rem 1.5rem;border-radius:3px" onclick="showView('editor');clearEditor()">+ New Post</button>
+  <!-- ═�    <!-- 🏺 INSTITUTIONAL HEALTH RADAR -->
+    <div class="inst-health-bar">
+      <div class="inst-health-item">
+        <div class="inst-health-dot pulse"></div>
+        GATEWAY: <b id="healthGateway">ONLINE</b>
+      </div>
+      <div class="inst-health-item">
+        <div class="inst-health-dot"></div>
+        SWARM: <b id="healthSwarm">IDLE</b>
+      </div>
+      <div class="inst-health-item">
+        <div class="inst-health-dot"></div>
+        MARKET: <b id="healthMarket">SYNCED</b>
+      </div>
+      <div class="inst-health-item" style="margin-left:auto">
+        <span style="opacity:0.6">NODE:</span> <b>BPRO-PULSE-HK</b>
+      </div>
     </div>
+
+    <!-- Core Metrics -->
     <div class="stats-row">
       <div class="stat-card"><div class="stat-card-label">Total Posts</div><div class="stat-card-value" id="statTotal">—</div></div>
       <div class="stat-card"><div class="stat-card-label">Published</div><div class="stat-card-value" id="statPublished">—</div><div class="stat-card-sub">Live on blog</div></div>
       <div class="stat-card"><div class="stat-card-label">Drafts</div><div class="stat-card-value" id="statDrafts">—</div></div>
       <div class="stat-card"><div class="stat-card-label">Subscribers</div><div class="stat-card-value" id="statSubs">—</div><div class="stat-card-sub">Newsletter</div></div>
     </div>
-    <div class="stat-card" style="margin-bottom:1.2rem">
-      <div class="saas-panel-header" style="padding-bottom:0">
-        <h3>Site Controls</h3>
+
+    <!-- Site Controls -->
+    <div class="inst-pane">
+      <div class="inst-pane-header">
+        <div class="inst-pane-title">◈ Site Navigation Control</div>
         <div id="pipelineStatus" style="font-size:0.65rem; color:var(--emerald); background:rgba(16,185,129,0.1); padding:0.2rem 0.5rem; border-radius:10px; border:1px solid rgba(16,185,129,0.3); display:flex; align-items:center; gap:0.3rem;">
           <div style="width:6px;height:6px;background:var(--emerald);border-radius:50%;box-shadow:0 0 5px var(--emerald)"></div>
           Pipeline Active: OK
         </div>
       </div>
-      <div class="toggle-row" style="border-top:none;margin-top:0;padding-top:0.2rem">
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem">
         <div>
-          <div style="font-size:0.92rem;font-weight:600;color:var(--cream)">Website Images</div>
-          <div id="siteImagesStatus" style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Loading setting…</div>
+          <div class="toggle-row" style="border-top:none; padding-top:0">
+            <div>
+              <div style="font-size:0.92rem;font-weight:600;color:var(--cream)">Website Images</div>
+              <div id="siteImagesStatus" style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Loading setting…</div>
+            </div>
+            <div class="toggle-switch on" id="siteImagesSwitch" onclick="toggleSiteImages()">
+              <div class="toggle-track"></div>
+              <div class="toggle-dot"></div>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div>
+              <div style="font-size:0.92rem;font-weight:600;color:var(--cream)">AI Audio Briefings</div>
+              <div id="siteAudioStatus" style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Loading setting…</div>
+            </div>
+            <div class="toggle-switch" id="siteAudioSwitch" onclick="toggleSiteAudio()">
+              <div class="toggle-track"></div>
+              <div class="toggle-dot"></div>
+            </div>
+          </div>
         </div>
-        <div class="toggle-switch on" id="siteImagesSwitch" onclick="toggleSiteImages()">
-          <div class="toggle-track"></div>
-          <div class="toggle-dot"></div>
+        <div>
+          <div style="margin-top:0; padding:0.8rem; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:4px">
+            <div class="inst-pane-subtitle" style="margin-bottom:0.5rem">Economic Calendar Feed</div>
+            <div style="font-size:0.76rem;color:var(--muted);line-height:1.6">
+              Primary: <span style="color:var(--gold)">ForexFactory (faireconomy media)</span><br/>
+              Fallback: <span style="color:var(--blue2)">TradingEconomics guest calendar</span>
+            </div>
+            <div style="margin-top:0.8rem; font-size:0.62rem;color:var(--green);background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);padding:0.18rem 0.5rem;border-radius:999px;letter-spacing:0.08em;text-transform:uppercase;display:inline-block">
+              Resilient Mode Enabled
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+     <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem">
+      <!-- Financial Hub -->
+      <div class="inst-pane" style="margin-bottom:0">
+        <div class="inst-pane-header">
+          <div class="inst-pane-title">📈 Financial Intelligence Hub</div>
+          <div class="inst-pane-subtitle">NSE • BSE • RBI • SEBI</div>
+        </div>
+        <div id="financialHealthStats" style="display:flex; flex-direction:column; gap:0.6rem; font-family:var(--mono); font-size:0.75rem;">
+          <div class="stat-mini">Loading health metrics...</div>
+        </div>
+        <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
+          <button onclick="window.open('https://developer.upstox.com/dashboard','_blank')" class="v2-btn-top" style="flex:1; font-size:10px;">Update Access</button>
+          <button onclick="location.reload()" class="v2-btn-top" style="flex:1; font-size:10px;">Refresh</button>
         </div>
       </div>
       
-      <div class="toggle-row" style="margin-top:0.5rem">
-        <div>
-          <div style="font-size:0.92rem;font-weight:600;color:var(--cream)">AI Audio Briefings</div>
-          <div id="siteAudioStatus" style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Loading setting…</div>
+      <!-- Autonomous Dispatch -->
+      <div class="inst-pane" style="margin-bottom:0">
+        <div class="inst-pane-header">
+          <div class="inst-pane-title" style="color:var(--emerald)">⚡ Autonomous Dispatch</div>
+          <div class="inst-pane-subtitle">GitHub Action Proxy</div>
         </div>
-        <div class="toggle-switch" id="siteAudioSwitch" onclick="toggleSiteAudio()">
-          <div class="toggle-track"></div>
-          <div class="toggle-dot"></div>
-        </div>
-      </div>
-
-      <div class="toggle-row" style="margin-top:0.5rem;align-items:flex-start">
-        <div>
-          <div style="font-size:0.92rem;font-weight:600;color:var(--cream)">ForexFactory Calendar Feed</div>
-          <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">
-            Primary: <span style="color:var(--gold)">ForexFactory (faireconomy media)</span>
-            <br />
-            Fallback: <span style="color:var(--blue2)">TradingEconomics guest calendar</span>
-          </div>
-        </div>
-        <div style="font-size:0.62rem;color:var(--green);background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);padding:0.18rem 0.5rem;border-radius:999px;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap">
-          Resilient Mode
-        </div>
-      </div>
-
-      <div id="siteImagesHint" style="font-size:0.72rem;color:var(--muted);margin-top:0.7rem">
-        Global controls for website assets and AI voice summaries.
-      </div>
-    </div>
-
-    <!-- Financial Intelligence Status (New) -->
-    <div class="stat-card" style="margin-bottom:1.5rem; border-top: 2px solid var(--gold);">
-      <div class="saas-panel-header" style="padding-bottom:1rem">
-        <h3 style="color:var(--gold)">Financial Intelligence Hub</h3>
-        <div style="font-size:0.6rem; color:var(--muted); text-transform:uppercase">NSE • BSE • RBI • SEBI</div>
-      </div>
-      <div id="financialHealthStats" style="display:flex; flex-direction:column; gap:0.6rem; font-family:monospace; font-size:0.75rem;">
-        <div class="stat-mini">Loading health metrics...</div>
-      </div>
-      <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-        <button onclick="window.open('https://developer.upstox.com/dashboard','_blank')" class="v2-btn-top" style="flex:1; font-size:9px;">Update Access Token</button>
-        <button onclick="location.reload()" class="v2-btn-top" style="flex:1; font-size:9px;">Refresh Status</button>
-      </div>
-    </div>
-    
-    <!-- Autonomous AI Operations (New) -->
-    <div class="stat-card" style="margin-bottom:1.5rem; border-top: 2px solid var(--emerald);">
-      <div class="saas-panel-header" style="padding-bottom:1rem">
-        <h3 style="color:var(--emerald)">Autonomous AI Operations</h3>
-        <div style="font-size:0.6rem; color:var(--muted); text-transform:uppercase">GitHub Action Dispatcher</div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:0.75rem;">
-        <p class="section-desc" style="font-size:0.75rem; color:var(--muted);">Trigger a deep research sequence manually. <b>Note</b>: Auth is handled securely via the 2026 Strategist Proxy.</p>
-        
-        <div style="background:var(--navy); border:1px solid var(--border); border-radius:4px; padding:0.8rem; margin-top:0.2rem">
-          <div style="font-size:0.65rem; font-weight:700; color:var(--gold); margin-bottom:0.5rem; text-transform:uppercase;">GitHub Authentication</div>
-          <div style="display:flex; gap:0.5rem">
-            <input type="password" id="ghPatInput" class="form-input" style="flex:1; font-size:0.8rem; height:32px" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" />
-            <div style="font-size:0.6rem; color:var(--muted); line-height:1.2; max-width:120px">Paste your GitHub PAT here. It is saved locally in your browser.</div>
-          </div>
-        </div>
-        
-        <button id="btnTerminalDispatch" onclick="window.triggerTerminalDispatch?.()" class="v2-gen-btn" style="background:var(--emerald); border-color:var(--emerald); padding:0.6rem; font-size:0.8rem; margin-top:0.5rem">
-
-          ⚡ Trigger Weekly Pipeline
+        <p style="font-size:0.75rem; color:var(--muted); margin-bottom:1rem; line-height:1.5">
+          Trigger a deep research sequence via hardened Cloudflare secure proxy. Orchestration is environment-locked.
+        </p>
+        <button id="btnTerminalDispatch" onclick="window.triggerTerminalDispatch?.()" class="v2-gen-btn" style="background:var(--emerald); border-color:var(--emerald); padding:0.6rem; font-size:0.8rem; border-radius:4px">
+          ⚡ Trigger Weekly Research Cascade
         </button>
 
-        <!-- Timer/Progress Overlay -->
-        <div id="dispatchTimerContainer" style="display:none; margin-top:0.5rem; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); padding:0.8rem; border-radius:4px;">
+        <div id="dispatchTimerContainer" style="display:none; margin-top:0.8rem; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); padding:0.8rem; border-radius:4px;">
            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem">
-              <span id="dispatchStatusText" style="font-size:0.75rem; color:var(--emerald); font-weight:600">Pipeline in progress...</span>
-              <span id="dispatchElapsed" style="font-family:monospace; font-size:0.8rem; color:var(--gold)">00:00</span>
+              <span id="dispatchStatusText" style="font-size:0.72rem; color:var(--emerald); font-weight:700">Pipeline Ingress...</span>
+              <span id="dispatchElapsed" style="font-family:var(--mono); font-size:0.82rem; color:var(--gold)">00:00</span>
            </div>
            <div style="height:4px; background:var(--navy3); border-radius:2px; overflow:hidden">
-              <div id="dispatchFill" style="height:100%; background:var(--emerald); width:0%; transition:width 1s linear"></div>
+              <div id="dispatchFill" style="height:100%; background:var(--emerald); width:x%; transition:width 1s linear"></div>
            </div>
-           <div style="display:flex; justify-content:space-between; margin-top:0.4rem">
-             <span style="font-size:0.65rem; color:var(--muted)">Est. completion: ~15m</span>
-             <a id="dispatchRunLink" href="#" target="_blank" style="display:none; font-size:0.65rem; color:var(--blue2); text-decoration:none">View Logs ↗</a>
+           <div style="display:flex; justify-content:space-between; margin-top:0.6rem">
+             <span style="font-size:0.65rem; color:var(--muted)">EST Comp: ~15m</span>
+             <a id="dispatchRunLink" href="#" target="_blank" style="display:none; font-size:0.65rem; color:var(--blue2); font-weight:700">VIEW LOGS ↗</a>
+           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Data Table -->
+    <div class="table-wrap" style="margin-top:2rem; border-radius:6px">
+"_blank" style="display:none; font-size:0.65rem; color:var(--blue2); text-decoration:none">View Logs ↗</a>
            </div>
         </div>
       </div>

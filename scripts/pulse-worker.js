@@ -195,9 +195,8 @@ export default {
         }
       }
 
-      // 7. DISPATCH STATUS PROXY (V5.4 Hardened)
+      // 7. GITHUB DISPATCH STATUS (V5.4 Hardened)
       if (pathname === "/api/dispatch-status") {
-        // Enforce same security as /dispatch
         const idToken = request.headers.get("Authorization");
         if (!idToken && !isPagesDev) {
           return wrapResponse({ error: "Unauthorized — Institutional Node access required." }, 401);
@@ -222,7 +221,7 @@ export default {
         const ghRes = await fetch(ghUrl, {
           headers: {
             "Authorization": `token ${env.GH_PAT}`,
-            "User-Agent": "BlogsPro-Pulse-Worker/5.4",
+            "User-Agent": "BlogsPro-Pulse-Worker/5.5",
             "Accept": "application/vnd.github.v3+json"
           }
         });
@@ -241,14 +240,62 @@ export default {
 
         return wrapResponse({
           id: latestRun.id,
-          status: latestRun.status, // e.g., "completed", "in_progress"
-          conclusion: latestRun.conclusion, // e.g., "success", "failure"
+          status: latestRun.status,
+          conclusion: latestRun.conclusion,
           runUrl: latestRun.html_url,
           updated_at: latestRun.updated_at
         });
       }
 
-      // 7. HEALTH & BRIDGE AWARENESS (V7.1)
+      // 7.2. GITHUB ACTION DISPATCH PROXY (V5.5 - Institutional Manual Trigger)
+      if (pathname === "/api/trigger-github" && request.method === "POST") {
+        const idToken = request.headers.get("Authorization");
+        if (!idToken && !isPagesDev) {
+          return wrapResponse({ error: "Unauthorized — Institutional Pulse Node access required." }, 401);
+        }
+
+        let body = {};
+        try { body = await request.json(); } catch (e) {}
+        
+        const frequency = body.frequency || "weekly";
+        const owner = "abhishekdutta18";
+        const repo = "blogspro";
+        const workflow = "manual-dispatch.yml";
+
+        if (!env.GH_PAT) {
+          return wrapResponse({ error: "Github PAT not configured in worker secrets." }, 503);
+        }
+
+        logSwarmBreadcrumb(`External Dispatch Trigger: ${frequency}`, { owner, repo, workflow }, sentry);
+
+        const ghUrl = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflow}/dispatches`;
+        const ghRes = await fetch(ghUrl, {
+          method: "POST",
+          headers: {
+            "Authorization": `token ${env.GH_PAT}`,
+            "User-Agent": "BlogsPro-Pulse-Worker/5.5",
+            "Accept": "application/vnd.github.v3+json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            ref: "main",
+            inputs: { frequency }
+          })
+        });
+
+        if (!ghRes.ok) {
+          const ghErr = await ghRes.text();
+          return wrapResponse({ error: `Github Dispatch Failed: ${ghRes.status}`, details: ghErr }, ghRes.status);
+        }
+
+        return wrapResponse({ 
+          success: true, 
+          message: `Institutional Dispatch for ${frequency} initiated.`,
+          workflow: workflow
+        });
+      }
+
+      // 7.5. HEALTH & BRIDGE AWARENESS (V7.1)
       if (pathname === "/health" || pathname === "/ping") {
         return wrapResponse({ status: "healthy", version: "7.1-Unified-Brain" });
       }

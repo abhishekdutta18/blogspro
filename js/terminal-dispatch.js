@@ -189,9 +189,11 @@ export async function triggerTerminalDispatch() {
     const idToken = await auth.currentUser?.getIdToken();
     if (!idToken) throw new Error("Authentication required - please login.");
 
+    // V5.5 Hardening: Use secure proxy instead of direct GH call
     const workerBase = window.BLOGSPRO_CONFIG?.PULSE_WORKER_URL || "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
-    const pulseWorkerUrl = `${workerBase.replace(/\/+$/, '')}/dispatch?type=pulse&freq=weekly`;
-    const response = await fetch(pulseWorkerUrl, {
+    const triggerUrl = `${workerBase.replace(/\/+$/, '')}/api/trigger-github`;
+    
+    const response = await fetch(triggerUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${idToken}`,
@@ -201,9 +203,6 @@ export async function triggerTerminalDispatch() {
     });
 
     if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-         throw new Error('Unauthorized. Access restricted to 2026 Strategy Cluster.');
-      }
       const errData = await response.json().catch(() => ({}));
       throw new Error(errData.error || `Dispatch failed: ${response.statusText}`);
     }
@@ -491,47 +490,11 @@ window.triggerTerminalDispatch = triggerTerminalDispatch;
 
 document.addEventListener('DOMContentLoaded', () => {
   const status = document.getElementById('ghPatStatus');
-  if (status) status.textContent = 'Worker mode active. One-click orchestration enabled.';
+  if (status) status.textContent = 'Institutional Key Management Active (Cloud Mode)';
   
   // V7.0: Auto-load telemetry
   if (window.initSwarmMonitoring) window.initSwarmMonitoring();
 });
-// UI Initialization for Manual PAT Override
-if (typeof document !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', () => {
-    const patInput = document.getElementById('ghPatInput');
-    if (patInput) {
-      // 1. Initial Load
-      const savedPat = localStorage.getItem('bp_gh_pat');
-      if (savedPat) {
-        patInput.value = savedPat;
-        DISPATCH_CONFIG.ghToken = savedPat;
-      }
-
-      // 2. Sync on Change
-      patInput.addEventListener('input', (e) => {
-        const val = e.target.value.trim();
-        localStorage.setItem('bp_gh_pat', val);
-        DISPATCH_CONFIG.ghToken = val;
-      });
-    }
-  });
-
-  // Export for emergency manual trigger check
-  window.triggerDirectDispatchOverride = async () => {
-    const pat = localStorage.getItem('bp_gh_pat');
-    if (!pat) {
-       showToast("GitHub PAT required for manual override.", "error");
-       return;
-    }
-    try {
-      await triggerWorkflowDirect('manual');
-      showToast("Manual override success!", "success");
-    } catch(e) {
-      showToast(e.message, "error");
-    }
-  };
-}
 
 // 🏺 [V8.4] INSTITUTIONAL HIL CONSENSUS SERVICE
 // --------------------------------------------------

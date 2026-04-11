@@ -6,10 +6,13 @@
       --muted:#8896b3;--border:rgba(201,168,76,0.2);
       --green:#22c55e;--red:#ef4444;
       --blue:#3b82f6;--blue2:#93c5fd;
+      --emerald:#10b981;
       --purple:#a855f7;--purple2:#d8b4fe;
       --serif:'Cormorant Garamond',Georgia,serif;
       --sans:'DM Sans','Noto Sans',Arial,sans-serif;
+      --mono:'JetBrains Mono','Fira Code','Courier New',monospace;
       --sidebar:240px;
+      --glass:rgba(15, 22, 40, 0.7);
     }
     html,body{height:100%}
     body{background:var(--navy);color:var(--cream);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:flex;overflow-x:hidden}
@@ -661,10 +664,163 @@
       color: var(--purple2);
       font-weight: 700;
     }
-    .manuscript-content code {
-      background: rgba(0,0,0,0.3);
-      padding: 0.1rem 0.3rem;
-      border-radius: 3px;
+    /* 🏺 Institutional Reengineering (BlogsPro 5.5) */
+
+    .inst-health-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 1.2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+      animation: fadeInLog 0.6s ease-out;
+    }
+    .inst-health-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .inst-health-item b { color: var(--cream); }
+    .inst-health-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+    }
+    .inst-health-dot.pulse { animation: pulse 1.5s infinite; }
+
+    .inst-pane {
+      background: var(--navy2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    .inst-pane:hover {
+      border-color: rgba(201, 168, 76, 0.4);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .inst-pane-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.2rem;
+      padding-bottom: 0.8rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .inst-pane-title {
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      font-weight: 700;
       color: var(--gold);
-      font-family: 'Fira Code', monospace;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .inst-pane-subtitle {
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    /* V7.0 Terminal Newsfeed Integration */
+    .newsfeed-log {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(201, 168, 76, 0.2);
+      border-radius: 4px;
+      padding: 0.8rem;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: #a1a1aa;
+      max-height: 250px;
+      overflow-y: auto;
+      margin-top: 1rem;
+      line-height: 1.5;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
+    }
+    .newsfeed-entry {
+      margin-bottom: 0.4rem;
+      display: flex;
+      gap: 0.75rem;
+      animation: fadeInLog 0.3s ease-out;
+    }
+    .newsfeed-ts { color: var(--gold); opacity: 0.8; min-width: 68px; }
+    .newsfeed-msg { color: var(--cream); flex: 1; }
+    .newsfeed-stage { 
+      font-weight: 700; 
+      text-transform: uppercase; 
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.06);
+    }
+
+    /* Institutional News Wire */
+    #institutionalNewsWire {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 0.5rem;
+    }
+    .news-item {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 6px;
+      padding: 1rem;
+      transition: all 0.2s;
+    }
+    .news-item:hover {
+      background: rgba(201, 168, 76, 0.05);
+      border-color: rgba(201, 168, 76, 0.2);
+      transform: translateX(6px);
+    }
+    .news-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+    .news-source { background: rgba(201, 168, 76, 0.1); padding: 1px 6px; border-radius: 2px; }
+    .news-time { color: var(--muted); }
+    .news-title {
+      font-family: var(--sans);
+      font-size: 0.88rem;
+      color: var(--cream);
+      line-height: 1.45;
+      margin: 0.3rem 0;
+    }
+    .news-link {
+      font-size: 0.68rem;
+      color: var(--blue2);
+      text-decoration: none;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .news-link::after { content: '↗'; font-size: 0.6rem; }
+    .news-link:hover { text-decoration: underline; }
+
+    @keyframes fadeInLog {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }

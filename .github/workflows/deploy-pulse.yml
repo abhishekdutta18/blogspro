@@ -36,7 +36,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment: ["data-hub", "relevance", "auditor", "seo", "templates"]
+        environment: ["data-hub", "relevance", "auditor", "seo", "templates", "upstox"]
     steps:
       - uses: "actions/checkout@v4"
       - uses: "actions/setup-node@v4"
@@ -125,7 +125,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: "${{ secrets.TELEGRAM_BOT_TOKEN }}"
           TELEGRAM_CHAT_ID: "${{ secrets.TELEGRAM_CHAT_ID }}"
         run: |
-          for env in data-hub relevance auditor seo pulse miro-sync mirofish newsletter templates; do
+          for env in data-hub relevance auditor seo upstox pulse miro-sync mirofish newsletter templates; do
             echo "🔐 Pushing secrets to $env..."
 
             CONF="wrangler.toml"

@@ -25,6 +25,7 @@ async function getFs() {
 // --------------------------------------------------
 async function getGoogleAccessToken(env) {
     let sa = null;
+    const fs = await getFs();
 
     // V9.1: Robust Absolute Path Resolution for Institutional Credentials
     if (isNode && fs) {
@@ -37,31 +38,24 @@ async function getGoogleAccessToken(env) {
                 path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'knowledge', 'firebase-service-account.json')
             ];
 
-            const fs = await getFs();
             for (const saPath of possiblePaths) {
-                if (fs && fs.existsSync(saPath)) {
-                    sa = JSON.parse(fs.readFileSync(saPath, 'utf8'));
-                    break;
+                if (fs.existsSync(saPath)) {
+                    try {
+                        sa = JSON.parse(fs.readFileSync(saPath, 'utf8'));
+                        // 💧 HYDRATE & HARDEN (V5.4.4)
+                        if (sa.private_key) sa.private_key = normalizeInstitutionalPem(sa.private_key);
+                        if (!sa.client_email && sa.project_id) {
+                            sa.client_email = `firebase-adminsdk-fbsvc@${sa.project_id}.iam.gserviceaccount.com`;
+                        }
+                        console.log(`🛡️ [StorageBridge] Keyfile Loaded: ${saPath}`);
+                        break;
+                    } catch (e) {
+                         console.warn(`⚠️ [StorageBridge] Failed to parse ${saPath}:`, e.message);
+                    }
                 }
             }
         } catch (e) {
-            console.warn("⚠️ [StorageBridge] Failed to load sa-file:", e.message);
-        }
-    }
-
-    // [V9.3] Institutional Priority Logic: Match firebase-service.js stability
-    const fs = await getFs();
-    if (fs && fs.existsSync(saFile)) {
-        try {
-            sa = JSON.parse(fs.readFileSync(saFile, 'utf8'));
-            // 💧 HYDRATE & HARDEN (V5.4.4)
-            if (sa.private_key) sa.private_key = normalizeInstitutionalPem(sa.private_key);
-            if (!sa.client_email && sa.project_id) {
-                sa.client_email = `firebase-adminsdk-fbsvc@${sa.project_id}.iam.gserviceaccount.com`;
-            }
-            console.log(`🛡️ [StorageBridge] Keyfile Hydrated: ${sa.client_email}`);
-        } catch (e) {
-            console.warn("⚠️ [StorageBridge] Keyfile Load Fail:", e.message);
+            console.warn("⚠️ [StorageBridge] Node FS discovery failed:", e.message);
         }
     }
 

@@ -330,7 +330,11 @@ async function fetchUpstoxData() {
                 const json = await res.json();
                 const d = json.data || {};
                 const summary = `NIFTY: ${d["NSE_INDEX|Nifty 50"]?.last_price || "N/A"} | BANK NIFTY: ${d["NSE_INDEX|Nifty Bank"]?.last_price || "N/A"}`;
+                console.log("✅ [Data-Pulse] Upstox REST Sync Successful.");
                 return { summary, raw: d, source: "rest" };
+            } else {
+                const errText = await res.text().catch(() => "Unknown");
+                console.warn(`⚠️ [Data-Pulse] Upstox REST Fail (${res.status}): ${errText}`);
             }
         } catch (e) {
             console.warn("⚠️ [Data-Pulse] Upstox REST Fallback:", e.message);
@@ -340,14 +344,15 @@ async function fetchUpstoxData() {
 
     // Fallback to Stable Worker
     try {
-        console.log("📡 [Data-Pulse] Fetching Upstox via Worker...");
+        console.log("📡 [Data-Pulse] Fetching Upstox via Worker proxy...");
         const res = await _fetch(stableWorker);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        
         const json = await res.json();
-        if (json.status === "success") {
-            const d = json.data;
+        if (json.status === "success" || json.data) {
+            const d = json.data || {};
             const summary = `NIFTY: ${d["NSE_INDEX|Nifty 50"]?.last_price || d["NSE_INDEX:Nifty 50"]?.last_price || "N/A"} | BANK NIFTY: ${d["NSE_INDEX|Nifty Bank"]?.last_price || d["NSE_INDEX:Nifty Bank"]?.last_price || "N/A"}`;
             return { summary, raw: d, source: "worker" };
-
         }
     } catch (e) {
         console.error("❌ [Data-Pulse] Upstox Proxy Failure:", e.message);
