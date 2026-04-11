@@ -1,5 +1,5 @@
-import { 
-    collection, query, orderBy, limit, getDocs 
+import {
+    collection, query, orderBy, limit, getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { initNewsWire } from './news-wire.js';
 
@@ -7,7 +7,7 @@ import { initNewsWire } from './news-wire.js';
  * BlogsPro Strategic Intelligence Hub
  * Fetches and renders the latest AI-generated market pulses & articles on the homepage.
  */
-export async function initIntelHub() {
+export async function initIntelHub(db) {
     const hubContainer = document.getElementById('intel-hub-root');
     
     // Initialize News Wire (Institutional Pulse Hub)
