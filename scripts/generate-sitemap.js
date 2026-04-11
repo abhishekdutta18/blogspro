@@ -117,7 +117,7 @@ async function generateSitemap() {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}
 </urlset>`;
 
-    fs.writeFileSync(path.join(__dirname, '../sitemap.xml'), sitemap);
+    fs.writeFileSync(path.join(__dirname, '../public/sitemap.xml'), sitemap);
     console.log("✓ sitemap.xml updated successfully!");
 
   } catch (err) {

@@ -10,7 +10,7 @@ const PROJECT_ID = 'blogspro-ai';
 const API_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
 
 async function buildStaticPosts() {
-  const outDir = path.join(__dirname, '../p');
+  const outDir = path.join(__dirname, '../public/p');
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }

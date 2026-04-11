@@ -194,6 +194,65 @@ export default {
       });
     }
 
+    // GitHub OAuth Redirect
+    if (path === "/auth/login/github") {
+      const redirect = url.searchParams.get("redirect") || "/";
+      const githubAuthUrl = `https://github.com/login/oauth/authorize?` + new URLSearchParams({
+        client_id: env.GITHUB_CLIENT_ID,
+        redirect_uri: `${url.origin}/auth/callback/github`,
+        scope: "read:user user:email",
+        state: redirect
+      });
+      return Response.redirect(githubAuthUrl);
+    }
+
+    // GitHub Callback
+    if (path === "/auth/callback/github") {
+      const code = url.searchParams.get("code");
+      const state = url.searchParams.get("state") || "/";
+      if (!code) return Response.redirect(`${url.origin}/login.html?error=code_missing`);
+
+      // Exchange code for token
+      const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          client_id: env.GITHUB_CLIENT_ID,
+          client_secret: env.GITHUB_CLIENT_SECRET,
+          code
+        })
+      });
+      if (!tokenRes.ok) return Response.redirect(`${url.origin}/login.html?error=unauthorized`);
+      const tokenData = await tokenRes.json();
+      const accessToken = tokenData.access_token;
+
+      // Get user info
+      const userRes = await fetch("https://api.github.com/user", {
+        headers: { "Authorization": `token ${accessToken}`, "User-Agent": "BlogsPro-Auth-Proxy" }
+      });
+      const userData = await userRes.json();
+      const uid = `github:${userData.id}`;
+      const email = userData.email || `${userData.login}@github.com`;
+
+      // Role check via Firestore
+      let role = null;
+      try {
+        const token = await getAccessToken(serviceAccount);
+        role = await fetchRole(projectId, token, uid);
+      } catch (e) {}
+
+      if (role !== "admin") return Response.redirect(`${url.origin}/login.html?error=unauthorized&reason=${role || 'missing_role'}`);
+
+      const jwt = await signJwt({ uid, email, role }, sessionSecret);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          "Location": state.startsWith("http") ? state : `${url.origin}/${state.replace(/^\//,'')}`,
+          ...setSessionCookie(jwt)
+        }
+      });
+    }
+
     return jsonResponse({ error: "Not found" }, 404);
   }
 };

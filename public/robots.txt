@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Allow: /briefings/
+Allow: /articles/
+Allow: /posts/
+
+# Sitemap location
+Sitemap: https://blogspro.in/sitemap.xml
