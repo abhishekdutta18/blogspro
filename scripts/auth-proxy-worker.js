@@ -58,10 +58,16 @@ async function fetchRole(projectId, accessToken, uid) {
   return doc.fields?.role?.stringValue || null;
 }
 
-function jsonResponse(body, status = 200, headers = {}) {
+function jsonResponse(body, status = 200, headers = {}, req = null) {
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": req?.headers.get("Origin") || "*",
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json", ...headers }
+    headers: { "Content-Type": "application/json", ...corsHeaders, ...headers }
   });
 }
 
@@ -76,8 +82,22 @@ export default {
     const url = new URL(req.url);
     const path = url.pathname;
 
+    // CORS Preflight
+    if (req.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": req.headers.get("Origin") || "*",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Access-Control-Allow-Credentials": "true",
+          "Access-Control-Max-Age": "86400",
+        }
+      });
+    }
+
     // Health
-    if (path === "/health") return jsonResponse({ ok: true, ts: Date.now() });
+    if (path === "/health") return jsonResponse({ ok: true, ts: Date.now() }, 200, {}, req);
 
     // Parse service account & config
     let serviceAccount = null;
@@ -85,14 +105,14 @@ export default {
     const projectId = env.FIREBASE_PROJECT_ID || serviceAccount?.project_id;
     const sessionSecret = env.SESSION_SECRET;
     if (!serviceAccount?.private_key || !sessionSecret || !projectId || !env.FIREBASE_WEB_API_KEY) {
-      return jsonResponse({ error: "Server misconfigured" }, 500);
+    return jsonResponse({ error: "Not found" }, 404, {}, req);
     }
 
     // Login
     if (path === "/auth/login" && req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       const { email, password } = body;
-      if (!email || !password) return jsonResponse({ error: "Email and password required" }, 400);
+      if (!email || !password) return jsonResponse({ error: "Email and password required" }, 400, {}, req);
 
       // Firebase Auth REST: signInWithPassword
       const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${env.FIREBASE_WEB_API_KEY}`, {
@@ -102,7 +122,7 @@ export default {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        return jsonResponse({ error: err.error?.message || "Auth failed" }, 401);
+        return jsonResponse({ error: err.error?.message || "Auth failed" }, 401, {}, req);
       }
       const data = await res.json();
       const uid = data.localId;
@@ -113,10 +133,10 @@ export default {
         const token = await getAccessToken(serviceAccount);
         role = await fetchRole(projectId, token, uid);
       } catch (e) {}
-      if (role !== "admin") return jsonResponse({ error: "Unauthorized" }, 403);
+      if (role !== "admin") return jsonResponse({ error: "Unauthorized" }, 403, {}, req);
 
       const jwt = await signJwt({ uid, email, role }, sessionSecret);
-      return jsonResponse({ success: true, role }, 200, setSessionCookie(jwt));
+      return jsonResponse({ success: true, role }, 200, setSessionCookie(jwt), req);
     }
 
     // Logout
@@ -128,11 +148,11 @@ export default {
     if (path === "/auth/me" && req.method === "GET") {
       const cookie = req.headers.get("Cookie") || "";
       const match = cookie.match(/bp_session=([^;]+)/);
-      if (!match) return jsonResponse({ authenticated: false }, 401);
+      if (!match) return jsonResponse({ authenticated: false }, 401, {}, req);
       const jwt = match[1];
       const payload = verifyJwt(jwt, sessionSecret);
-      if (!payload) return jsonResponse({ authenticated: false }, 401);
-      return jsonResponse({ authenticated: true, user: { uid: payload.uid, email: payload.email, role: payload.role } });
+      if (!payload) return jsonResponse({ authenticated: false }, 401, {}, req);
+      return jsonResponse({ authenticated: true, user: { uid: payload.uid, email: payload.email, role: payload.role } }, 200, {}, req);
     }
 
     // Google OAuth Redirect
@@ -253,6 +273,6 @@ export default {
       });
     }
 
-    return jsonResponse({ error: "Not found" }, 404);
+    return jsonResponse({ error: "Not found" }, 404, {}, req);
   }
 };

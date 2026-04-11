@@ -36,7 +36,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment: ["data-hub", "relevance", "auditor", "seo", "templates", "upstox"]
+        environment: ["data-hub", "relevance", "auditor", "seo", "templates", "upstox", "auth"]
     steps:
       - uses: "actions/checkout@v4"
       - uses: "actions/setup-node@v4"
