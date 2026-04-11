@@ -125,8 +125,15 @@ jobs:
           TELEGRAM_BOT_TOKEN: "${{ secrets.TELEGRAM_BOT_TOKEN }}"
           TELEGRAM_CHAT_ID: "${{ secrets.TELEGRAM_CHAT_ID }}"
           VAULT_MASTER_KEY: "${{ secrets.VAULT_MASTER_KEY }}"
+          FIREBASE_SERVICE_ACCOUNT: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
+          FIREBASE_WEB_API_KEY: "${{ secrets.FIREBASE_WEB_API_KEY }}"
+          SESSION_SECRET: "${{ secrets.SESSION_SECRET }}"
+          GOOGLE_CLIENT_ID: "${{ secrets.GOOGLE_CLIENT_ID }}"
+          GOOGLE_CLIENT_SECRET: "${{ secrets.GOOGLE_CLIENT_SECRET }}"
+          GITHUB_CLIENT_ID: "${{ secrets.GITHUB_CLIENT_ID }}"
+          GITHUB_CLIENT_SECRET: "${{ secrets.GITHUB_CLIENT_SECRET }}"
         run: |
-          for env in data-hub relevance auditor seo upstox pulse miro-sync mirofish newsletter templates; do
+          for env in data-hub relevance auditor seo upstox pulse miro-sync mirofish newsletter templates auth; do
             echo "🔐 Pushing secrets to $env..."
 
             CONF="wrangler.toml"
@@ -152,6 +159,18 @@ jobs:
             [ -z "$SENTRY_DSN" ] || echo "$SENTRY_DSN" | npx wrangler secret put SENTRY_DSN $OPTS --config $CONF
             [ -z "$TELEGRAM_BOT_TOKEN" ] || echo "$TELEGRAM_BOT_TOKEN" | npx wrangler secret put TELEGRAM_BOT_TOKEN $OPTS --config $CONF
             [ -z "$TELEGRAM_CHAT_ID" ] || echo "$TELEGRAM_CHAT_ID" | npx wrangler secret put TELEGRAM_CHAT_ID $OPTS --config $CONF
+
+            # [V12.0] Auth-specific Secret Propagation
+            if [ "$env" = "auth" ]; then
+              echo "🔐 Pushing specific Auth Proxy secrets..."
+              echo "$FIREBASE_SERVICE_ACCOUNT" | npx wrangler secret put FIREBASE_SERVICE_ACCOUNT $OPTS --config $CONF
+              echo "$FIREBASE_WEB_API_KEY" | npx wrangler secret put FIREBASE_WEB_API_KEY $OPTS --config $CONF
+              echo "$SESSION_SECRET" | npx wrangler secret put SESSION_SECRET $OPTS --config $CONF
+              echo "$GOOGLE_CLIENT_ID" | npx wrangler secret put GOOGLE_CLIENT_ID $OPTS --config $CONF
+              echo "$GOOGLE_CLIENT_SECRET" | npx wrangler secret put GOOGLE_CLIENT_SECRET $OPTS --config $CONF
+              echo "$GITHUB_CLIENT_ID" | npx wrangler secret put GITHUB_CLIENT_ID $OPTS --config $CONF
+              echo "$GITHUB_CLIENT_SECRET" | npx wrangler secret put GITHUB_CLIENT_SECRET $OPTS --config $CONF
+            fi
           done
           echo "Swarm 4.0 secrets synchronized."
 

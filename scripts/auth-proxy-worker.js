@@ -59,8 +59,10 @@ async function fetchRole(projectId, accessToken, uid) {
 }
 
 function jsonResponse(body, status = 200, headers = {}, req = null) {
+  const origin = req?.headers.get("Origin");
   const corsHeaders = {
-    "Access-Control-Allow-Origin": req?.headers.get("Origin") || "*",
+    // browser requirement: if credentials are true, origin cannot be '*'
+    "Access-Control-Allow-Origin": origin || "https://blogspro.in", 
     "Access-Control-Allow-Credentials": "true",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
@@ -84,10 +86,11 @@ export default {
 
     // CORS Preflight
     if (req.method === "OPTIONS") {
+      const origin = req.headers.get("Origin");
       return new Response(null, {
         status: 204,
         headers: {
-          "Access-Control-Allow-Origin": req.headers.get("Origin") || "*",
+          "Access-Control-Allow-Origin": origin || "https://blogspro.in",
           "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Authorization",
           "Access-Control-Allow-Credentials": "true",
