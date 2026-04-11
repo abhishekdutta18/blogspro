@@ -278,7 +278,17 @@
     GithubAuthProvider
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import firebaseConfig from "./js/firebase-config.js";
+
+  // Inline firebaseConfig to avoid cache/version drift of firebase-config.js
+  const firebaseConfig = {
+    apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
+    authDomain: "blogspro-ai.firebaseapp.com",
+    projectId: "blogspro-ai",
+    storageBucket: "blogspro-ai.firebasestorage.app",
+    messagingSenderId: "940428277283",
+    appId: "1:940428277283:web:d3bb414f0992718ca76396",
+    measurementId: "G-N7TCB31MRD"
+  };
  
   // FIX: No hardcoded ADMIN_UID — use Firestore role check like auth.js does
  
