@@ -26,6 +26,7 @@ name = "blogspro-pulse"
 main = "scripts/pulse-worker.js"
 compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
+minify = true
 
 [env.pulse.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
@@ -104,6 +105,7 @@ name = "blogspro-mirofish"
 main = "scripts/mirofish-worker.js"
 compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
+minify = true
 
 [env.mirofish.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
@@ -120,6 +122,7 @@ name = "blogspro-data-hub"
 main = "scripts/data-worker.js"
 compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
+minify = true
 
 [env.data-hub.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
@@ -131,6 +134,7 @@ name = "blogspro-relevance"
 main = "scripts/relevance-worker.js"
 compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
+minify = true
 
 [env.relevance.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
@@ -142,6 +146,7 @@ name = "blogspro-auditor"
 main = "scripts/auditor-worker.js"
 compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
+minify = true
 
 [env.auditor.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
@@ -153,6 +158,7 @@ name = "blogspro-seo"
 main = "scripts/seo-worker.js"
 compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
+minify = true
 
 [env.seo.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
@@ -164,6 +170,7 @@ name = "blogspro-templates"
 main = "scripts/template-worker.js"
 compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
+minify = true
 
 [env.templates.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"

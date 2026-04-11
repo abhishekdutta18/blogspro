@@ -1,13 +1,28 @@
 import { XMLParser } from "fast-xml-parser";
-import UpstoxClient from 'upstox-js-sdk';
 import { captureSwarmError } from './sentry-bridge.js';
 import { gateSignal } from "./gating-engine.js";
 import { NewsOrchestrator } from "./news-orchestrator.js";
-const _fetch = fetch;
+
+const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
 const _env = typeof process !== "undefined" ? process.env : {};
 
 // Singleton instance for orchestration
 const NEWS_ORCHESTRATOR = new NewsOrchestrator(_env);
+
+/**
+ * Lazy-loader for Upstox SDK to prevent 10MB+ TypeScript bloat in Worker bundles.
+ * Cloudflare Workers on the free tier have a 3MB limit.
+ */
+async function getUpstoxClient() {
+    if (!isNode) return null;
+    try {
+        const { default: UpstoxClient } = await import('upstox-js-sdk');
+        return UpstoxClient;
+    } catch (e) {
+        console.error("⚠️ [Upstox] Heavy SDK Load Failed:", e.message);
+        return null;
+    }
+}
 
 
 // Identity Layer: Institutional User-Agent to prevent 403/406/429 blocks
@@ -317,11 +332,14 @@ async function fetchUpstoxData() {
     if (token) {
         try {
             console.log("📡 [Data-Pulse] Fetching Upstox via SDK...");
-            const defaultClient = UpstoxClient.ApiClient.instance;
+            const Upstox = await getUpstoxClient();
+            if (!Upstox) return null;
+
+            const defaultClient = Upstox.ApiClient.instance;
             const OAUTH2 = defaultClient.authentications['OAUTH2'];
             OAUTH2.accessToken = token;
             
-            const api = new UpstoxClient.MarketQuoteV3Api();
+            const api = new Upstox.MarketQuoteV3Api();
             const symbols = "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank,NSE_INDEX|Nifty IT";
             
             const data = await new Promise((resolve, reject) => {
