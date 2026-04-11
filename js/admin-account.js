@@ -1,6 +1,6 @@
-import { db, showToast } from './config.js';
+import { api } from './services/api.js';
+import { showToast } from './config.js';
 import { state } from './state.js';
-import { doc, getDoc, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 function setFormValue(id, value) {
   const el = document.getElementById(id);
@@ -22,17 +22,17 @@ export async function loadAdminAccount() {
   const uid = state.currentUser?.uid;
   if (!uid) return;
   try {
-    const snap = await getDoc(doc(db, 'users', uid));
-    const profile = snap.exists() ? snap.data() : {};
-    state.currentUserProfile = profile;
-
-    setFormValue('adminAccountName', profile.name || state.currentUser?.displayName || '');
-    setFormValue('adminAccountPhotoURL', profile.photoURL || '');
-    setFormValue('adminAccountBio', profile.bio || '');
-    setFormValue('adminAccountEmail', profile.email || state.currentUser?.email || '');
-    setFormValue('adminAccountRole', profile.role || 'admin');
+    const profile = await api.data.get('users', uid);
+    if (profile) {
+      state.currentUserProfile = profile;
+      setFormValue('adminAccountName', profile.name || state.currentUser?.displayName || '');
+      setFormValue('adminAccountPhotoURL', profile.photoURL || '');
+      setFormValue('adminAccountBio', profile.bio || '');
+      setFormValue('adminAccountEmail', profile.email || state.currentUser?.email || '');
+      setFormValue('adminAccountRole', profile.role || 'admin');
+    }
   } catch (e) {
-    showToast('Failed to load account: ' + (e.message || e.code), 'error');
+    showToast('Failed to load account: ' + e.message, 'error');
   }
 }
 
@@ -55,9 +55,9 @@ export async function saveAdminAccount() {
       bio,
       email: state.currentUser?.email || state.currentUserProfile?.email || '',
       role: state.currentUserProfile?.role || 'admin',
-      updatedAt: serverTimestamp(),
+      updatedAt: new Date().toISOString(),
     };
-    await setDoc(doc(db, 'users', uid), payload, { merge: true });
+    await api.data.update('users', uid, payload);
     state.currentUserProfile = { ...(state.currentUserProfile || {}), ...payload };
 
     const initial = name?.[0] || state.currentUser?.email?.[0] || 'A';
@@ -66,7 +66,7 @@ export async function saveAdminAccount() {
 
     showToast('Account updated.', 'success');
   } catch (e) {
-    showToast('Failed to save account: ' + (e.message || e.code), 'error');
+    showToast('Failed to save account: ' + e.message, 'error');
   } finally {
     setSaveLoading(false);
   }

@@ -1,13 +1,15 @@
-import {
-    collection, query, orderBy, limit, getDocs
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// ═══════════════════════════════════════════════
+// intel-hub.js — Strategic Intelligence Hub (Proxy-based)
+// Fetches and renders AI-generated market pulses & articles via Proxy
+// ═══════════════════════════════════════════════
+import { api } from './services/api.js';
 import { initNewsWire } from './news-wire.js';
 
 /**
  * BlogsPro Strategic Intelligence Hub
  * Fetches and renders the latest AI-generated market pulses & articles on the homepage.
  */
-export async function initIntelHub(db) {
+export async function initIntelHub() {
     const hubContainer = document.getElementById('intel-hub-root');
     
     // Initialize News Wire (Institutional Pulse Hub)
@@ -17,21 +19,18 @@ export async function initIntelHub(db) {
     if (!hubContainer) return;
 
     try {
-        // 1. Fetch Latest Briefing & Article from Firestore (Real-time Serverless)
-        const [pulseSnap, articleSnap] = await Promise.all([
-            getDocs(query(collection(db, 'pulse_briefings'), orderBy('date', 'desc'), limit(10))),
-            getDocs(query(collection(db, 'articles'), orderBy('date', 'desc'), limit(10)))
+        // 1. Fetch Latest Briefing & Article via Proxy
+        const [pulseDocs, articleDocs] = await Promise.all([
+            api.data.get('pulse_briefings', null, { orderBy: 'date desc', limit: 10 }),
+            api.data.get('articles', null, { orderBy: 'date desc', limit: 10 })
         ]);
 
-        const pulseDocs = pulseSnap.docs.map(d => d.data());
-        const articleDocs = articleSnap.docs.map(d => d.data());
+        const latestDaily = (pulseDocs || []).find(p => p.frequency === 'daily') || pulseDocs?.[0];
+        const latestHourly = (pulseDocs || []).find(p => p.frequency === 'hourly');
+        const latestWeekly = (articleDocs || []).find(a => a.frequency === 'weekly') || articleDocs?.[0];
+        const latestMonthly = (articleDocs || []).find(a => a.frequency === 'monthly');
 
-        const latestDaily = pulseDocs.find(p => p.frequency === 'daily') || pulseDocs[0];
-        const latestHourly = pulseDocs.find(p => p.frequency === 'hourly');
-        const latestWeekly = articleDocs.find(a => a.frequency === 'weekly') || articleDocs[0];
-        const latestMonthly = articleDocs.find(a => a.frequency === 'monthly');
-
-        if (!latestDaily && !latestHourly && !latestWeekly && !latestMonthly) {
+        if (!pulseDocs?.length && !articleDocs?.length) {
             hubContainer.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--muted)">Waiting for first AI Intelligence pulse...</div>';
             return;
         }
@@ -40,19 +39,13 @@ export async function initIntelHub(db) {
         
         // 2. Update Global Terminal Stats
         updateHeroStats({
-            posts: pulseDocs.length + articleDocs.length,
+            posts: (pulseDocs?.length || 0) + (articleDocs?.length || 0),
             experts: 13,
-            version: "V6.5-SERVERLESS"
+            version: "V6.5-HARDENED"
         });
         
-        if (window.trackPulse) {
-            window.trackPulse('hub', 'loaded', { 
-                daily: latestDaily?.file, 
-                monthly: latestMonthly?.file 
-            });
-        }
     } catch (err) {
-        console.error('[IntelHub] Failed to load from Firestore:', err);
+        console.error('[IntelHub] Failed to load briefings:', err);
         hubContainer.innerHTML = '<div style="padding:1rem;color:#fca5a5;font-size:0.8rem">⚠️ Briefing Terminal Offline (Sync Error)</div>';
     }
 }
@@ -62,8 +55,8 @@ function updateHeroStats({ posts, experts, version }) {
     const elWords = document.getElementById('stat-words');
     const elPrec = document.getElementById('stat-prec');
 
-    if (elPosts) elPosts.innerText = experts; // 13 Experts
-    if (elWords) elWords.innerText = "50k+";
+    if (elPosts) elPosts.innerText = experts; 
+    if (elWords) elWords.innerText = "100k+";
     if (elPrec) elPrec.innerText = version;
 }
 
@@ -138,52 +131,6 @@ function renderHub(container, { daily, hourly, weekly, monthly }) {
                 </div>
             </div>
         </div>
-        <style>
-            .intel-card { background: #0c1221; border: 1px solid rgba(201,168,76,0.2); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; position: relative; overflow: hidden; }
-            .intel-header { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.8rem; }
-            .live-pulse { width: 8px; height: 8px; background: #ef4444; border-radius: 50%; animation: pulse-red 2s infinite; }
-            @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.7); } 70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
-            .intel-tag { font-size: 0.65rem; font-weight: 900; letter-spacing: 0.15em; color: var(--gold); }
-            .intel-date { margin-left: auto; font-size: 0.6rem; color: var(--muted); font-family: monospace; }
-            
-            .intel-tabs { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
-            .intel-tab { background: none; border: none; color: var(--muted); font-size: 0.7rem; font-weight: 900; letter-spacing: 0.1em; cursor: pointer; padding-bottom: 0.3rem; border-bottom: 2px solid transparent; transition: 0.2s; }
-            .intel-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
-            
-            .hub-view { display: none; }
-            .hub-view.active { display: block; }
-
-            .intel-grid { display: grid; grid-template-columns: 120px 1fr; gap: 2rem; align-items: center; }
-            .sentiment-gauge-mini { position: relative; width: 100px; }
-            .sentiment-value { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); font-size: 1.2rem; font-weight: 900; font-family: serif; }
-            .sentiment-label { text-align: center; font-size: 0.6rem; font-weight: 900; margin-top: 0.5rem; letter-spacing: 0.05em; }
-
-            .intel-title { font-family: serif; font-size: 1.4rem; color: var(--cream); margin: 0 0 0.5rem; line-height: 1.2; }
-            .intel-excerpt { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.2rem; line-height: 1.5; }
-            .intel-actions { display: flex; gap: 1rem; }
-            .intel-btn { padding: 0.6rem 1.2rem; background: var(--gold); color: #080d1a; font-size: 0.7rem; font-weight: 900; text-decoration: none; border-radius: 4px; transition: 0.2s; }
-            .intel-btn.secondary { background: rgba(255,255,255,0.05); color: var(--gold); border: 1px solid rgba(201,168,76,0.3); }
-            .intel-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(201,168,76,0.3); }
-
-            .strategy-list { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-            .strategy-item { background: rgba(255,255,255,0.02); padding: 1.2rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
-            .strat-label { font-size: 0.55rem; font-weight: 900; color: var(--gold); margin-bottom: 0.5rem; letter-spacing: 0.1em; }
-            .strat-title { color: var(--cream); font-size: 1rem; margin-bottom: 1rem; line-height: 1.3; font-family: serif; }
-            .strat-link { font-size: 0.65rem; color: var(--gold); font-weight: 900; text-decoration: none; transition: 0.2s; }
-            .strat-link:hover { padding-left: 0.5rem; }
-
-            .intel-footer { margin-top: 1.5rem; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px; overflow: hidden; }
-            .ticker-wrap { width: 100%; overflow: hidden; }
-            .ticker { display: flex; gap: 2rem; white-space: nowrap; animation: ticker-scroll 30s linear infinite; font-size: 0.6rem; font-weight: 900; color: var(--muted); letter-spacing: 0.1em; }
-            @keyframes ticker-scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-
-            @media (max-width: 600px) {
-                .intel-grid { grid-template-columns: 1fr; text-align: center; }
-                .sentiment-gauge-mini { margin: 0 auto; }
-                .intel-actions { justify-content: center; }
-                .strategy-list { grid-template-columns: 1fr; }
-            }
-        </style>
     `;
 
     // Tab Switching Logic

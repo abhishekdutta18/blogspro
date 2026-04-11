@@ -14,11 +14,9 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { callAI } from './ai-core.js';
-import { sanitize, showToast, slugify, db } from './config.js';
+import { sanitize, showToast, slugify } from './config.js';
 import { state } from './state.js';
-import {
-  collection, doc, addDoc, updateDoc, serverTimestamp
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { api } from './services/api.js';
 
 // ─────────────────────────────────────────────────────────────────
 // CONFIG
@@ -512,6 +510,7 @@ async function autoSave() {
     || state.currentUser?.displayName
     || (email.includes('@') ? email.split('@')[0] : '')
     || 'BlogsPro';
+  const now = new Date().toISOString();
   const data   = {
     title:       p.title,
     excerpt:     p.excerpt,
@@ -527,15 +526,15 @@ async function autoSave() {
     authorUid:   existing?.authorUid || state.currentUser?.uid || null,
     authorName,
     authorEmail: existing?.authorEmail || email || null,
-    updatedAt:   serverTimestamp(),
+    updatedAt:   now,
   };
 
   if (state.editingPostId) {
-    await updateDoc(doc(db, 'posts', state.editingPostId), data);
+    await api.data.update('posts', state.editingPostId, data);
   } else {
-    data.createdAt     = serverTimestamp();
-    const ref = await addDoc(collection(db, 'posts'), data);
-    state.editingPostId = ref.id;
+    data.createdAt = now;
+    const res = await api.data.create('posts', data);
+    state.editingPostId = res.id;
   }
   return state.editingPostId;
 }

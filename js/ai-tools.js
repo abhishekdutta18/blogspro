@@ -1,13 +1,6 @@
-// ═══════════════════════════════════════════════
-// ai-tools.js — Inline AI Tools suite (AIT cards)
-// Fixes: status showing, English enforcement,
-//        aitLoading works even when body is hidden,
-//        aitOpenCluster exposed globally
-// ═══════════════════════════════════════════════
-import { callAI }    from './ai-core.js';
-import { showToast, slugify, sanitize, db } from './config.js';
-import { state }     from './state.js';
-import { addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { api } from './services/api.js';
+import { showToast, slugify, sanitize } from './config.js';
+import { state } from './state.js';
 
 const EN = 'Respond ONLY in English. No preamble, no reasoning. Return ONLY the JSON requested.';
 
@@ -89,6 +82,7 @@ function attachAIToolListeners(containerId, handler) {
 
 // ── 2. Headline AI ────────────────────────────
 window.aitRunHeadlines = async () => {
+  const { callAI } = await import('./ai-core.js');
   const topic = aitGetTopic();
   const count = document.getElementById('ait-hl-count')?.value || 8;
   aitLoading('hl', true);
@@ -115,8 +109,10 @@ window.aitRunHeadlines = async () => {
         const item = e.target.closest('.ait-result-item[data-value]');
         if (!item) return;
         const title = item.dataset.value;
-        document.getElementById('postTitle').value = title;
-        document.getElementById('postSlug').value = slugify(title);
+        const tEl = document.getElementById('postTitle');
+        const sEl = document.getElementById('postSlug');
+        if (tEl) tEl.value = title;
+        if (sEl) sEl.value = slugify(title);
         showToast('Headline applied!', 'success');
       });
     }
@@ -128,6 +124,7 @@ window.aitRunHeadlines = async () => {
 
 // ── 3. Traffic Predictor ─────────────────────
 window.aitRunTraffic = async () => {
+  const { callAI } = await import('./ai-core.js');
   const topic = aitGetTopic();
   const kw    = document.getElementById('ait-traffic-kw')?.value.trim() || topic;
   aitLoading('traffic', true);
@@ -160,6 +157,7 @@ window.aitRunTraffic = async () => {
 
 // ── 4. Topic Clusters ────────────────────────
 window.aitRunClusters = async () => {
+  const { callAI } = await import('./ai-core.js');
   const topic = aitGetTopic();
   aitLoading('cluster', true);
   const result = await callAI(
@@ -193,6 +191,7 @@ window.aitRunClusters = async () => {
 
 // ── 5. Content Calendar ──────────────────────
 window.aitRunCalendar = async () => {
+  const { callAI } = await import('./ai-core.js');
   const topic    = aitGetTopic();
   const category = document.getElementById('ait-cal-cat')?.value || 'Fintech';
   aitLoading('cal', true);
@@ -228,6 +227,7 @@ window.aitRunCalendar = async () => {
 
 // ── 6. Competitor Gap ────────────────────────
 window.aitRunGap = async () => {
+  const { callAI } = await import('./ai-core.js');
   const domain = document.getElementById('ait-gap-domain')?.value.trim();
   if (!domain) { showToast('Enter a competitor domain.', 'error'); return; }
   const topic = aitGetTopic();
@@ -265,6 +265,7 @@ window.aitRunGap = async () => {
 
 // ── 7. Backlink Finder ───────────────────────
 window.aitRunBacklinks = async () => {
+  const { callAI } = await import('./ai-core.js');
   const topic = aitGetTopic();
   aitLoading('links', true);
   const result = await callAI(
@@ -291,6 +292,7 @@ window.aitRunBacklinks = async () => {
 
 // ── 8. Newsletter ────────────────────────────
 window.aitRunNewsletter = async () => {
+  const { callAI } = await import('./ai-core.js');
   const topic   = aitGetTopic();
   const style   = document.getElementById('ait-nl-style')?.value || 'roundup';
   const title   = document.getElementById('postTitle')?.value.trim() || topic;
@@ -345,6 +347,7 @@ Format: First line must be "Subject: <subject line>". Then 3-4 short paragraphs.
 
 // ── 9. Auto Blog ─────────────────────────────
 window.aitRunAutoBlog = async () => {
+  const { callAI } = await import('./ai-core.js');
   const count    = parseInt(document.getElementById('ait-auto-count')?.value) || 2;
   const pub      = document.getElementById('ait-auto-pub')?.value === 'publish';
   const topic    = aitGetTopic();
@@ -369,7 +372,6 @@ window.aitRunAutoBlog = async () => {
     if (topicR.error) { addLog(`Post ${i + 1}: topic failed — ${topicR.error}`, false); continue; }
 
     const t = topicR.text.trim().replace(/^["']|["']$/g, '');
-    // FIX: Validate title is not empty/too short
     if (!t || t.length < 10) { addLog(`Post ${i + 1}: title too short or empty, skipping`, false); continue; }
     addLog(`Writing: "${t.substring(0, 45)}…"`);
 
@@ -381,7 +383,6 @@ Requirements: Use <h2><h3><p><strong><ul><li> tags. Start with <h2>. No <h1>, no
       true, 'auto', 4000
     );
     if (artR.error) { addLog(`"${t.substring(0, 30)}" — write failed`, false); continue; }
-    // FIX: Validate content is not empty/too short
     if (!artR.text || artR.text.trim().length < 200) { addLog(`"${t.substring(0, 30)}" — content too short, skipping`, false); continue; }
 
     const metaR = await callAI(
@@ -395,7 +396,7 @@ Requirements: Use <h2><h3><p><strong><ul><li> tags. Start with <h2>. No <h1>, no
     }
 
     try {
-      await addDoc(collection(db, 'posts'), {
+      await api.data.create('posts', {
         title: t,
         excerpt: meta.summary,
         content: sanitize(artR.text),
@@ -408,8 +409,8 @@ Requirements: Use <h2><h3><p><strong><ul><li> tags. Start with <h2>. No <h1>, no
         published: pub,
         premium: false,
         autoGenerated: true,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
       done++;
       state.abSessionTotal++;

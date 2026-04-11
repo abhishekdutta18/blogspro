@@ -1,10 +1,9 @@
 // ═══════════════════════════════════════════════
-// newsletter.js — Newsletter generation and manual sending
+// newsletter.js — Newsletter generation and manual sending (Proxy-based)
 // ═══════════════════════════════════════════════
-import { db, sanitize, showToast, injectUtm, trackEvent, NEWSLETTER_CONFIG } from './config.js';
-import { state }     from './state.js';
-import { callAI }    from './ai-core.js';
-import { collection, getDocs, query, orderBy, limit, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { api } from './services/api.js';
+import { sanitize, showToast, injectUtm, trackEvent, NEWSLETTER_CONFIG } from './config.js';
+import { state } from './state.js';
 
 /**
  * Generates newsletter HTML via AI using the latest published posts.
@@ -21,8 +20,8 @@ window.generateNewsletter = async () => {
   if (btn) btn.disabled = true;
 
   try {
-    const snap  = await getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(5)));
-    const posts = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.published);
+    const postsRaw = await api.data.posts.getAll({ orderBy: 'createdAt desc', limit: 5 });
+    const posts = (postsRaw || []).filter(p => p.published);
 
     if (!posts.length) {
       if (statusEl) statusEl.textContent = 'No published posts found.';
@@ -33,6 +32,7 @@ window.generateNewsletter = async () => {
     const subject = document.getElementById('nlSubject')?.value.trim() || 'BlogsPro Weekly Digest';
     if (statusEl) statusEl.textContent = '⏳ Writing newsletter…';
 
+    const { callAI } = await import('./ai-core.js');
     const result = await callAI(
       `Write a ${style} style newsletter email for BlogsPro. Subject: "${subject}". 
        Posts: ${posts.map(p => p.title).join(', ')}. 
@@ -123,7 +123,7 @@ window.sendNewsletter = async () => {
       timestamp: new Date().toISOString()
     });
     
-    loadNewsletterHistory(); // Refresh history panel
+    window.loadNewsletterHistory(); // Refresh history panel
   } catch (err) {
     console.error('Send Newsletter Error:', err);
     showToast('Failed to send: ' + err.message, 'error');
@@ -165,13 +165,13 @@ window.copyNewsletter = () => {
 };
 
 /**
- * Saves a record of the newsletter blast to Firestore.
+ * Saves a record of the newsletter blast.
  */
 async function saveBlastHistory(data) {
   try {
-    await addDoc(collection(db, 'newsletter_blasts'), {
+    await api.data.newsletter.blasts.save({
       ...data,
-      sentAt: serverTimestamp()
+      sentAt: new Date().toISOString()
     });
     console.log('[newsletter] Blast history saved.');
   } catch (err) {
@@ -187,16 +187,15 @@ window.loadNewsletterHistory = async () => {
   if (!container) return;
 
   try {
-    const snap = await getDocs(query(collection(db, 'newsletter_blasts'), orderBy('sentAt', 'desc'), limit(10)));
-    const blasts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const blasts = await api.data.newsletter.blasts.getAll({ limit: 10 });
 
-    if (!blasts.length) {
+    if (!blasts || !blasts.length) {
       container.innerHTML = '<div style="padding:1rem;color:var(--muted);font-size:0.8rem">No previous blasts found.</div>';
       return;
     }
 
     container.innerHTML = blasts.map(b => {
-      const date = b.sentAt?.toDate?.()?.toLocaleString() || new Date(b.timestamp).toLocaleString();
+      const date = b.sentAt ? new Date(b.sentAt).toLocaleString() : (b.timestamp ? new Date(b.timestamp).toLocaleString() : '—');
       return `
         <div style="padding:0.8rem;border-bottom:1px solid var(--border);font-size:0.82rem">
           <div style="font-weight:600;color:var(--gold)">${b.subject}</div>

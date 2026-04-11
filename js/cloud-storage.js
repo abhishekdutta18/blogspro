@@ -8,7 +8,6 @@ import { showToast } from './config.js';
 import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from './constants.js';
 
 // Google Cloud Storage configuration
-// Set these in Firebase Remote Config or environment variables
 export const GCS_CONFIG = {
   projectId: null,          // Set from Remote Config: GCP_PROJECT_ID
   bucketName: null,         // Set from Remote Config: GCS_BUCKET_NAME
@@ -19,14 +18,14 @@ export const GCS_CONFIG = {
 let gcsInitialized = false;
 
 /**
- * Initialize GCS configuration from Firebase Remote Config
+ * Initialize GCS configuration from Remote Config
  * Called automatically on first storage operation
  */
 export async function initializeGCS() {
   if (gcsInitialized) return;
   
   try {
-    // Import Firebase to fetch remote config
+    // Import remote config service
     const { getRemoteConfig, getValue } = await import('./remote-config.js');
     const config = await getRemoteConfig();
     

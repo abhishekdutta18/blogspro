@@ -1,11 +1,9 @@
 // ═══════════════════════════════════════════════
-// views.js — View counter utilities
+// views.js — View counter utilities (Proxy-based)
 // Increment: called from post.html on every load
 // Read: used in admin table + index.html cards
 // ═══════════════════════════════════════════════
-import { db }          from './config.js';
-import { doc, updateDoc, increment }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { api } from './services/api.js';
 
 /**
  * Increment the view counter for a post.
@@ -18,10 +16,15 @@ export async function trackView(postId) {
   // Only count once per browser session per post
   if (sessionStorage.getItem(key)) return;
   sessionStorage.setItem(key, '1');
+
   try {
-    await updateDoc(doc(db, 'posts', postId), {
-      views: increment(1)
-    });
+    // Fetch current post via proxy
+    const post = await api.data.get('posts', postId);
+    if (!post) return;
+
+    // Standard increment (Note: Not atomic, but sufficient for views)
+    const newViews = (post.views || 0) + 1;
+    await api.data.update('posts', postId, { views: newViews });
   } catch(e) {
     // Non-fatal — view count fails silently
     console.warn('View track failed:', e.message);
@@ -30,7 +33,7 @@ export async function trackView(postId) {
 
 /**
  * Format a view count for display.
- * 1200 → "1.2k"  |  999 → "999"  |  undefined → "0"
+ * 1200 → "1.2k" | 999 → "999" | undefined → "0"
  */
 export function formatViews(n) {
   if (!n) return '0';

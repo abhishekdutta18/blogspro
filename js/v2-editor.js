@@ -1,11 +1,12 @@
 // ═══════════════════════════════════════════════
-// v2-editor.js — 3-column editor UI helpers
+// v2-editor.js — 3-column editor UI helpers (Proxy-based)
 // v2 left panel, word count sync, roadmap/participation
 // toggles, topic bridging, failed-section retry
 // ═══════════════════════════════════════════════
 import { callAI } from './ai-core.js';
 import { sanitize, showToast } from './config.js';
 import { state } from './state.js';
+import { api } from './services/api.js';
 
 // ── Tab switching (AI / Images) ──────────────
 export function v2ShowTab(tab) {
@@ -200,12 +201,12 @@ Return ONLY clean HTML using h2,h3,p,strong,em,blockquote,ul,li tags.`,
 
 // ── doLogout — called by onclick in admin.html ─
 // Bridges the onclick="doLogout()" button to initLogout's signOut logic
-import { auth } from './config.js';
-import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+window._doLogout = async () => {
+  try { await api.auth.logout(); } catch(_) {}
+  window.location.href = 'login.html';
+};
 
 // ── Generate Article button bridge ───────────
-// Both btnAI (onclick="handleGenerateClick()") and v2BeforeGenerate() call this.
-// It delegates to generateAIPost() from ai-writer.js which is registered on window.
 window.handleGenerateClick = () => {
   if (typeof window.generateAIPost === 'function') {
     window.generateAIPost();
@@ -213,11 +214,7 @@ window.handleGenerateClick = () => {
     console.error('generateAIPost not loaded yet — check ai-writer.js import in main.js');
   }
 };
-window._doLogout = async () => {
-  try { await signOut(auth); } catch(_) {}
-  window.location.href = 'login.html';
-};
-// Legacy/Guard bridge
+
 window._applyCustomWordTarget = v2ApplyCustomWC;
 window._onModelChange = (val) => {
   const m = document.getElementById('modelArticle');
@@ -240,13 +237,10 @@ window.runCitationEngine = async () => {
 };
 
 // ── triggerPostAudit — manual audit button handler ─
-// Loads post-audit.js on demand (module is not bundled by default)
-// then calls runFullAudit('manual').
 window.triggerPostAudit = async () => {
   const btn = document.getElementById('btnRunAudit');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading…'; }
 
-  // If already loaded from a previous click, call immediately
   if (typeof window.runPostAudit === 'function') {
     if (btn) { btn.disabled = false; btn.textContent = '🛡 Audit'; }
     window.runPostAudit();
@@ -256,8 +250,6 @@ window.triggerPostAudit = async () => {
   try {
     showToast('Loading audit engine…', 'info');
     await import('./post-audit.js');
-    // post-audit.js sets window.runPostAudit on load (line 860)
-    // Allow 500ms for the module's setTimeout(installHooks, 400) to complete
     await new Promise(r => setTimeout(r, 500));
     if (typeof window.runPostAudit === 'function') {
       window.runPostAudit();

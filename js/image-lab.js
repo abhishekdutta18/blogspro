@@ -1,25 +1,23 @@
-import { firebaseConfig } from './firebase-config.js';
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+import { api } from './services/api.js';
 
 let currentUser = null;
 
-// Check Auth
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        currentUser = user;
-        document.getElementById('auth-gate').style.display = 'none';
-        document.getElementById('lab-content').style.display = 'block';
-    } else {
+// Check Auth via Proxy
+async function initAuth() {
+    try {
+        const user = await api.auth.me();
+        if (user) {
+            currentUser = user;
+            document.getElementById('auth-gate').style.display = 'none';
+            document.getElementById('lab-content').style.display = 'block';
+        } else {
+            window.location.href = 'login.html';
+        }
+    } catch (err) {
         window.location.href = 'login.html';
     }
-});
+}
+initAuth();
 
 // UI Elements
 const promptInput = document.getElementById('image-prompt');
@@ -31,11 +29,8 @@ const statusMsg = document.getElementById('status-msg');
 
 // Mock generation for now (to be replaced with actual AI API)
 async function generateAIImage(prompt) {
-    // In a real scenario, this would call a backend or a direct AI API
-    // For now, we simulate a delay and use a high-quality placeholder or a pre-defined set of images
     return new Promise((resolve) => {
         setTimeout(() => {
-            // Using a high-quality random image service for demo
             resolve(`https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800&q=${encodeURIComponent(prompt)}`);
         }, 2000);
     });
@@ -55,13 +50,13 @@ window.handleGenerate = async () => {
         previewImg.style.display = 'block';
         resultContainer.classList.add('has-result');
         
-        // Log to Firebase history
+        // Log to Firestore history via Proxy
         if (currentUser) {
-            await addDoc(collection(db, 'image_generation_history'), {
+            await api.data.create('image_generation_history', {
                 uid: currentUser.uid,
                 prompt: prompt,
                 url: imageUrl,
-                createdAt: serverTimestamp()
+                createdAt: new Date().toISOString()
             });
         }
 
@@ -87,6 +82,7 @@ window.copyPlaceholder = () => {
 };
 
 function setLoading(isOn) {
+    if (!generateBtn) return;
     generateBtn.disabled = isOn;
     generateBtn.innerHTML = isOn ? '<span class="spinner"></span> Generating...' : 'Generate Magic';
     if (isOn) {
@@ -99,6 +95,7 @@ function setLoading(isOn) {
 }
 
 function showStatus(msg, type) {
+    if (!statusMsg) return;
     statusMsg.textContent = msg;
     statusMsg.className = `status-msg ${type}`;
     setTimeout(() => { statusMsg.textContent = ''; }, 4000);

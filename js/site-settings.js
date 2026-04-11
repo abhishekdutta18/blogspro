@@ -1,6 +1,8 @@
-import { db } from "./config.js";
-import { showToast } from "./config.js";
-import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// ═══════════════════════════════════════════════
+// site-settings.js — Global Website Settings (Proxy-based)
+// ═══════════════════════════════════════════════
+import { api }       from './services/api.js';
+import { showToast } from './config.js';
 
 let imagesEnabled = true;
 let saving = false;
@@ -28,7 +30,7 @@ function updateUi() {
   hint.textContent = saving
     ? "Saving setting…"
     : usingLocalFallback
-      ? "Using browser fallback mode. Firestore access is currently blocked."
+      ? "Using browser fallback mode. Syncing through restricted proxy."
       : "Turns post cover and inline content images on/off for public pages.";
 }
 
@@ -39,9 +41,9 @@ async function loadSetting() {
   }
 
   try {
-    const snap = await getDoc(doc(db, "site", "settings"));
-    if (snap.exists() && typeof snap.data().imagesEnabled === "boolean") {
-      imagesEnabled = snap.data().imagesEnabled;
+    const data = await api.data.get("site", "settings");
+    if (data && typeof data.imagesEnabled === "boolean") {
+      imagesEnabled = data.imagesEnabled;
       localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));
     } else {
       imagesEnabled = true;
@@ -61,24 +63,17 @@ window.toggleSiteImages = async function toggleSiteImages() {
   imagesEnabled = !imagesEnabled;
   updateUi();
   try {
-    await setDoc(
-      doc(db, "site", "settings"),
-      {
-        imagesEnabled,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+    await api.data.update("site", "settings", {
+      imagesEnabled,
+      updatedAt: new Date().toISOString()
+    });
     localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));
     usingLocalFallback = false;
     showToast(`Website images turned ${imagesEnabled ? "ON" : "OFF"}.`, "success");
   } catch (err) {
     localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));
     usingLocalFallback = true;
-    showToast(
-      "Saved locally. Firestore update blocked: " + (err.code || err.message),
-      "error"
-    );
+    showToast("Saved locally. Proxy update failed: " + err.message, "error");
     console.error("site settings write failed:", err);
   } finally {
     saving = false;

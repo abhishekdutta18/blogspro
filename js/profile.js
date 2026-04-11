@@ -1,28 +1,26 @@
 // ═══════════════════════════════════════════════
-// profile.js — Admin Profile management
+// profile.js — Admin Profile management (Proxy-based)
 // ═══════════════════════════════════════════════
-import { db, auth, showToast } from './config.js';
-import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { api } from './services/api.js';
+import { showToast } from './config.js';
 import { state } from './state.js';
 
 export async function loadProfile() {
-  const user = auth.currentUser || state.currentUser;
+  const user = state.currentUser;
   if (!user) return;
 
   try {
     // 1. Load Personal Profile (users/{uid})
-    const userSnap = await getDoc(doc(db, 'users', user.uid));
-    if (userSnap.exists()) {
-      const u = userSnap.data();
+    const u = await api.data.get('users', user.uid);
+    if (u) {
       document.getElementById('profName').value   = u.name || user.displayName || '';
       document.getElementById('profBio').value    = u.bio || '';
       document.getElementById('profAvatar').value = u.photoURL || user.photoURL || '';
     }
 
     // 2. Load Public Blog "About" (site/about)
-    const aboutSnap = await getDoc(doc(db, 'site', 'about'));
-    if (aboutSnap.exists()) {
-      const a = aboutSnap.data();
+    const a = await api.data.get('site', 'about');
+    if (a) {
       document.getElementById('aboutHeading').value = a.heading || '';
       document.getElementById('aboutTagline').value = a.tagline || '';
       document.getElementById('aboutBio').value     = a.bio || '';
@@ -41,7 +39,7 @@ export async function loadProfile() {
 }
 
 window.savePersonalProfile = async () => {
-  const user = auth.currentUser || state.currentUser;
+  const user = state.currentUser;
   if (!user) return;
 
   const name     = document.getElementById('profName').value.trim();
@@ -49,12 +47,11 @@ window.savePersonalProfile = async () => {
   const photoURL = document.getElementById('profAvatar').value.trim();
 
   try {
-    await setDoc(doc(db, 'users', user.uid), {
+    await api.data.update('users', user.uid, {
       name, bio, photoURL,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
+      updatedAt: new Date().toISOString()
+    });
 
-    // Update sidebar UI immediately
     if (document.getElementById('userInitial')) {
       document.getElementById('userInitial').textContent = name ? name[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : '?');
     }
@@ -79,10 +76,10 @@ window.savePublicAbout = async () => {
   };
 
   try {
-    await setDoc(doc(db, 'site', 'about'), {
+    await api.data.update('site', 'about', {
       heading, tagline, bio, mission, socials,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
+      updatedAt: new Date().toISOString()
+    });
 
     showToast('Public blog profile updated successfully.', 'success');
   } catch (err) {
@@ -91,6 +88,5 @@ window.savePublicAbout = async () => {
 };
 
 export function initProfile() {
-  // Functions are already exposed via window for inline onclicks
   console.log('[Profile] Initialized');
 }

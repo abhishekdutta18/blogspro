@@ -1,39 +1,29 @@
 // ═══════════════════════════════════════════════
-// users.js — User management
+// users.js — User management (Proxy-based)
 // ═══════════════════════════════════════════════
-import { db }        from './config.js';
+import { api } from './services/api.js';
 import { showToast } from './config.js';
-import { collection, getDocs, updateDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-const FIREBASE_TIMEOUT_MS = 12000;
-function withTimeout(promise, ms = FIREBASE_TIMEOUT_MS, label = 'request') {
-  let timer;
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
-    }),
-  ]).finally(() => clearTimeout(timer));
-}
 
 export async function loadUsers() {
   const tbody = document.getElementById('usersTableBody');
   if (!tbody) return;
   try {
-    const snap  = await withTimeout(getDocs(collection(db,'users')), FIREBASE_TIMEOUT_MS, 'users query');
-    // Filter by role only — no hardcoded UIDs or emails
-    const users = snap.docs.map(d=>({id:d.id,...d.data()}))
+    const usersRaw = await api.data.getAll('users');
+    const users = (usersRaw || [])
       .filter(u => u.role !== 'admin')
       .sort((a, b) => {
-        const aMs = a.createdAt?.toDate?.()?.getTime?.() || 0;
-        const bMs = b.createdAt?.toDate?.()?.getTime?.() || 0;
+        const aMs = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bMs = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return bMs - aMs;
       });
+    
     if (!users.length) { tbody.innerHTML=`<tr><td colspan="5"><div class="table-empty">No other users yet.</div></td></tr>`; return; }
+    
     const roleColors = {reader:'color:#8896b3',editor:'color:#93c5fd',coauthor:'color:#c9a84c'};
     const roleLabels = {reader:'Reader',editor:'Editor',coauthor:'Co-Author'};
+    
     tbody.innerHTML = users.map(u => {
-      const date  = u.createdAt?.toDate?.()?.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})||'—';
+      const date = u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—';
       const requested = u.requestedRole && u.requestedRole !== u.role
         ? `<div style="font-size:0.68rem;color:var(--gold);margin-top:0.2rem">Requested: ${roleLabels[u.requestedRole]||u.requestedRole}</div>`
         : '';
@@ -52,17 +42,18 @@ export async function loadUsers() {
         </select></td></tr>`;
     }).join('');
   } catch(e) {
+    console.error('[Users] Load failed:', e);
     tbody.innerHTML = `<tr><td colspan="5"><div class="table-empty">Users unavailable. Please retry.</div></td></tr>`;
   }
 }
 
 window.changeUserRole = async (uid, role) => {
   try {
-    await updateDoc(doc(db,'users',uid),{
+    await api.data.update('users', uid, {
       role,
       requestedRole: role,
-      roleRequestUpdatedAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      roleRequestUpdatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
     showToast(`Role updated to ${role}.`,'success');
     loadUsers();
@@ -73,17 +64,17 @@ window.changeUserRole = async (uid, role) => {
 window.backfillUserCreatedAt = async () => {
   if (!confirm('Backfill missing join dates (createdAt) for existing users?')) return;
   try {
-    const snap = await withTimeout(getDocs(collection(db, 'users')), FIREBASE_TIMEOUT_MS, 'users backfill query');
-    const missing = snap.docs.filter(d => !d.data()?.createdAt);
+    const users = await api.data.getAll('users');
+    const missing = (users || []).filter(u => !u.createdAt);
     if (!missing.length) {
       showToast('No users need backfill.', 'success');
       return;
     }
 
-    for (const d of missing) {
-      await updateDoc(doc(db, 'users', d.id), {
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+    for (const u of missing) {
+      await api.data.update('users', u.id, {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       });
     }
 

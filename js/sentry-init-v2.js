@@ -76,8 +76,6 @@
         /NetworkError/,
         /Load failed/,
         /CORS/i,
-        "<unknown>",
-        "unknown"
       ],
 
       beforeSend(event, hint) {
@@ -85,10 +83,6 @@
         // Exception: 5xx errors from the upstream BlogsPro workers MUST be sent
         const error = hint?.originalException;
         const msg   = (event.message || "") + JSON.stringify(error || "");
-
-        // Nullify structurally empty or unknown string errors that pass through window.onerror
-        if (!error && (msg.includes("<unknown>") || msg === '""' || msg === '"{}"')) return null;
-
         const isUpstreamError = /blogspro-upstox|workers\.dev/i.test(msg) && (error?.status >= 500 || event.level === "error");
 
         if (NOISY_HOSTS.some(h => msg.includes(h)) && !isUpstreamError) return null;
@@ -109,12 +103,10 @@
     // BlogsPro Intelligence Pulse Tracking
     window.trackPulse = function(freq, status, metadata = {}) {
       Sentry.withScope((scope) => {
-        Sentry.addBreadcrumb({ 
-            category: "pulse_sync",
-            message: `Pulse Sync: ${freq.toUpperCase()} - ${status}`, 
-            level: "info",
-            data: { freq, status, ...metadata }
-        });
+        scope.setTag("pulseFrequency", freq);
+        scope.setTag("ingestionStatus", status);
+        scope.setContext("pulse_metadata", metadata);
+        Sentry.captureMessage(`Pulse Sync: ${freq.toUpperCase()} - ${status}`, "info");
       });
     };
     

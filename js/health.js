@@ -1,29 +1,39 @@
-// js/health.js
-import { db } from "./config.js";
-import { doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// js/health.js (Proxy-based)
+import { api } from "./services/api.js";
 
 export function initHealthMonitor() {
     const statusBadge = document.getElementById('pipelineStatus');
     if (!statusBadge) return;
 
-    console.log("📡 Initializing Pipeline Health Monitor...");
+    console.log("📡 Initializing Pipeline Health Monitor (Polling)...");
 
-    // Real-time listener for health status
-    onSnapshot(doc(db, "site", "health"), (snap) => {
-        if (!snap.exists()) return;
-        const data = snap.data();
-        const status = data.status || 'UNKNOWN';
-        const lastRun = data.lastRun ? new Date(data.lastRun.toDate()).toLocaleString() : 'Never';
+    const refreshHealth = async () => {
+        try {
+            const data = await api.data.get("site", "health");
+            if (!data) return;
+            
+            const status = data.status || 'UNKNOWN';
+            // Firestore timestamps in flattened proxy are ISO strings or objects
+            let lastRun = 'Never';
+            if (data.lastRun) {
+                lastRun = new Date(data.lastRun).toLocaleString();
+            }
 
-        statusBadge.innerHTML = `
-            <div style="width:6px;height:6px;background:${status === 'SUCCESS' ? 'var(--emerald)' : 'var(--red)'};border-radius:50%;box-shadow:0 0 5px ${status === 'SUCCESS' ? 'var(--emerald)' : 'var(--red)'}"></div>
-            Pipeline ${status}: ${lastRun}
-        `;
+            statusBadge.innerHTML = `
+                <div style="width:6px;height:6px;background:${status === 'SUCCESS' ? 'var(--emerald)' : 'var(--red)'};border-radius:50%;box-shadow:0 0 5px ${status === 'SUCCESS' ? 'var(--emerald)' : 'var(--red)'}"></div>
+                Pipeline ${status}: ${lastRun}
+            `;
 
-        statusBadge.style.color = status === 'SUCCESS' ? 'var(--emerald)' : '#fca5a5';
-        statusBadge.style.background = status === 'SUCCESS' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)';
-        statusBadge.style.borderColor = status === 'SUCCESS' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)';
-    });
+            statusBadge.style.color = status === 'SUCCESS' ? 'var(--emerald)' : '#fca5a5';
+            statusBadge.style.background = status === 'SUCCESS' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)';
+            statusBadge.style.borderColor = status === 'SUCCESS' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)';
+        } catch (e) {
+            console.warn('[health] Health poll failed:', e.message);
+        }
+    };
+
+    refreshHealth();
+    setInterval(refreshHealth, 30000); // Poll every 30 seconds
 
     // ── Financial Health Monitor ──
     initFinancialHealth();

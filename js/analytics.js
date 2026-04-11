@@ -55,7 +55,7 @@ export function trackEvent(eventName, params = {}) {
 
 /**
  * Identifies the user in Sentry and Microsoft Clarity, and sets custom session tags.
- * @param {object|null} user - Firebase user object, or null for signed-out.
+ * @param {object|null} user - User identity object, or null for signed-out.
  * @param {'admin'|'user'|'guest'} role - User role for Clarity segmentation.
  */
 export function identifyUser(user, role = 'guest') {
