@@ -1,6 +1,11 @@
 // Pure REST Implementation for Upstox (V2 API)
 // Eliminates 10MB+ SDK dependency for edge compatibility.
 
+// Module-level USDINR cache — persists across requests within a Worker instance.
+// Seeded with a recent market rate; updated whenever live USDINR is fetched successfully.
+// This ensures MCX commodity INR conversion never silently fails even if USDINR=X is unavailable.
+let _usdinrCache = 92.70;
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -58,6 +63,16 @@ export default {
         ];
 
         const yfMap = [
+          // ── NSE Indices (Yahoo Finance fallback — active when Upstox token expires) ──
+          ["^NSEI",       "NSE_INDEX|Nifty 50",        "Nifty 50"],
+          ["^NSEBANK",    "NSE_INDEX|Nifty Bank",       "Nifty Bank"],
+          ["^BSESN",      "NSE_INDEX|Sensex",           "Sensex"],
+          ["^CNXIT",      "NSE_INDEX|Nifty IT",         "Nifty IT"],
+          ["^CNXAUTO",    "NSE_INDEX|Nifty Auto",       "Nifty Auto"],
+          ["^CNXPHARMA",  "NSE_INDEX|Nifty Pharma",     "Nifty Pharma"],
+          ["^CNXPSUBANK", "NSE_INDEX|Nifty PSU Bank",   "Nifty PSU Bank"],
+          ["^NIFMDCP50",  "NSE_INDEX|Nifty Midcap 50",  "Nifty Midcap 50"],
+          // ── NSE Stocks ──
           ["RELIANCE.NS",   "NSE_EQ:RELIANCE",    "RELIANCE"],
           ["HDFCBANK.NS",   "NSE_EQ:HDFCBANK",    "HDFCBANK"],
           ["ICICIBANK.NS",  "NSE_EQ:ICICIBANK",   "ICICIBANK"],
@@ -87,7 +102,8 @@ export default {
           ["^GDAXI",   "GLOBAL_INDEX:DAX",      "DAX"],
           ["^FCHI",    "GLOBAL_INDEX:CAC40",    "CAC 40"],
           ["^STOXX50E","GLOBAL_INDEX:EUROSTOXX","Euro Stoxx 50"],
-          ["^BSESN",   "GLOBAL_INDEX:SENSEX",   "Sensex"],
+          // ── Commodities ──
+          ["BTC-USD","COMMODITY:Bitcoin (CME)", "Bitcoin (CME)"],
           ["GC=F",  "MCX_FO:MCX Gold",    "MCX Gold"],
           ["SI=F",  "MCX_FO:MCX Silver",  "MCX Silver"],
           ["CL=F",  "MCX_FO:Crude Oil",   "Crude Oil"],
@@ -108,6 +124,7 @@ export default {
           ["GSEC10YEAR.NS", "NSE_DEBT:GSec813Y",   "G-Sec 8-13Y"],
           ["SDL26BEES.NS",  "NSE_DEBT:SDL2026",    "SDL Apr 2026"],
           ["LIQUIDBEES.NS", "NSE_DEBT:LiquidBeES", "LiquidBeES"],
+          // ── Currencies ──
           ["USDINR=X", "NSE_CDS:USDINR", "USDINR"],
           ["EURINR=X", "NSE_CDS:EURINR", "EURINR"],
           ["GBPINR=X", "NSE_CDS:GBPINR", "GBPINR"],
@@ -118,34 +135,41 @@ export default {
           ["USDJPY=X", "NSE_CDS:USDJPY", "USDJPY"],
           ["AUDUSD=X", "NSE_CDS:AUDUSD", "AUDUSD"],
           ["USDCNY=X", "NSE_CDS:USDCNY", "USDCNY"],
+          ["CNH=X",    "NSE_CDS:USDCNH", "USDCNH"],
+          ["DX=F",     "NSE_CDS:DXY",    "DXY"],
         ];
 
+        // Tries query1 first, falls back to query2 on any non-JSON / network failure
         const fetchYfChart = async ([ticker, instrKey]) => {
-          try {
-            const r = await fetch(
-              `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`,
-              { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" } }
-            );
-            const text = await r.text();
-            if (!r.ok || !text.trim().startsWith('{')) return null;
-            let json; try { json = JSON.parse(text); } catch (_) { return null; }
-            const meta = json?.chart?.result?.[0]?.meta;
-            const price = Number(meta?.regularMarketPrice);
-            const prevClose = Number(meta?.chartPreviousClose);
-            if (!Number.isFinite(price)) return null;
-            return [instrKey, {
-              last_price: price,
-              ohlc: {
-                open: Number(meta?.regularMarketOpen) || price,
-                high: Number(meta?.regularMarketDayHigh) || price,
-                low:  Number(meta?.regularMarketDayLow)  || price,
-                close: Number.isFinite(prevClose) ? prevClose : price,
-              },
-              volume: Number(meta?.regularMarketVolume) || 0,
-              net_change: Number.isFinite(prevClose) && prevClose ? price - prevClose : 0,
-              _source: "yahoo",
-            }];
-          } catch (_) { return null; }
+          const hosts = ["query1", "query2"];
+          for (const host of hosts) {
+            try {
+              const r = await fetch(
+                `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`,
+                { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" } }
+              );
+              const text = await r.text();
+              if (!r.ok || !text.trim().startsWith('{')) continue;
+              let json; try { json = JSON.parse(text); } catch (_) { continue; }
+              const meta = json?.chart?.result?.[0]?.meta;
+              const price = Number(meta?.regularMarketPrice);
+              const prevClose = Number(meta?.chartPreviousClose);
+              if (!Number.isFinite(price)) continue;
+              return [instrKey, {
+                last_price: price,
+                ohlc: {
+                  open: Number(meta?.regularMarketOpen) || price,
+                  high: Number(meta?.regularMarketDayHigh) || price,
+                  low:  Number(meta?.regularMarketDayLow)  || price,
+                  close: Number.isFinite(prevClose) ? prevClose : price,
+                },
+                volume: Number(meta?.regularMarketVolume) || 0,
+                net_change: Number.isFinite(prevClose) && prevClose ? price - prevClose : 0,
+                _source: `yahoo_${host}`,
+              }];
+            } catch (_) {}
+          }
+          return null;
         };
 
         // Fetch Upstox Quotes via REST + Yahoo Finance in parallel
@@ -168,17 +192,19 @@ export default {
             }
         }
 
-        // Yahoo Finance results
+        // Yahoo Finance results — only fills keys absent from Upstox (Upstox takes priority)
         for (const res of yfResults) {
           if (res.status === "fulfilled" && res.value) {
             const [instrKey, cardData] = res.value;
-            merged[instrKey] = cardData;
+            if (!(instrKey in merged)) merged[instrKey] = cardData;
           }
         }
 
-        // Convert commodity USD prices → INR using live USDINR rate
-        const usdinr = Number(merged["NSE_CDS:USDINR"]?.last_price);
-        if (Number.isFinite(usdinr) && usdinr > 0) {
+        // Convert commodity USD prices → INR using live USDINR rate (or cached fallback)
+        const usdinrLive = Number(merged["NSE_CDS:USDINR"]?.last_price);
+        if (Number.isFinite(usdinrLive) && usdinrLive > 0) _usdinrCache = usdinrLive;
+        const usdinr = (Number.isFinite(usdinrLive) && usdinrLive > 0) ? usdinrLive : _usdinrCache;
+        if (usdinr > 0) {
           const conversionMap = {
             "MCX_FO:MCX Gold":    (p) => p * usdinr * 10 / 31.1035,
             "MCX_FO:MCX Silver":  (p) => p * usdinr * 1000 / 31.1035,

@@ -2073,7 +2073,7 @@
           if (k.includes('INDEX') || symbol.toUpperCase().includes('NIFTY')) segments.indices.push(card);
           else if (k.includes('BSE_DEBT') || k.includes('NSE_DEBT') || k.includes('NSE_BD') || symbol.includes('GSEC') || symbol.includes('BOND')) segments.bonds.push(card);
           else if (k.includes('CDS') || k.startsWith('NSE_CDS') || k.startsWith('BSE_CDS')) segments.currency.push(card);
-          else if (k.includes('MCX') || k.startsWith('NSE_COM') || k.startsWith('BSE_COM')) segments.commodities.push(card);
+          else if (k.includes('MCX') || k.startsWith('NSE_COM') || k.startsWith('BSE_COM') || k.startsWith('COMMODITY:')) segments.commodities.push(card);
           else if (!isOption) segments.stocksOptions.push(card);
         }
         const hasAny = Object.values(segments).some((arr) => arr.length);
