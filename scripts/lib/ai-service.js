@@ -379,6 +379,61 @@ function localRegexAudit(content) {
         .trim();
 }
 
+/**
+ * [V15.3] Direct-Dial Anchor: The 'Hail Mary' pass for total swarm fleet exhaustion.
+ * Bypasses all balancers, bridges, and local cascades to hit the API directly.
+ */
+async function directDialAnchor(prompt, model, role, env) {
+    console.log(`🛰️ [Direct-Dial] Fleet exhausted. Initiating emergency direct-to-provider handshake...`);
+    
+    // 1. Direct Gemini Attempt
+    const geminiKey = env?.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+    if (geminiKey) {
+        try {
+            console.log(`🎯 [Direct-Dial] Attempting Direct Gemini Handshake (Model: ${model})...`);
+            const genAI = new GoogleGenerativeAI(geminiKey);
+            const geminiModel = genAI.getGenerativeModel({ model: model.includes('gemini') ? model : "gemini-1.5-pro" });
+            const result = await geminiModel.generateContent(prompt);
+            const response = await result.response;
+            let text = response.text();
+            
+            if (role === 'audit') text = localRegexAudit(text);
+            return text;
+        } catch (err) {
+            console.warn(`⚠️ [Direct-Dial] Gemini handshake failed: ${err.message}`);
+        }
+    }
+
+    // 2. Direct Groq Attempt
+    const groqKey = env?.GROQ_API_KEY || process.env.GROQ_API_KEY;
+    if (groqKey) {
+        try {
+            console.log(`🎯 [Direct-Dial] Attempting Direct Groq Handshake (Model: llama-3.3-70b-versatile)...`);
+            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${groqKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "llama-3.3-70b-versatile",
+                    messages: [{ role: "user", content: prompt }]
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                let text = data.choices[0].message.content;
+                if (role === 'audit') text = localRegexAudit(text);
+                return text;
+            }
+        } catch (err) {
+            console.warn(`⚠️ [Direct-Dial] Groq handshake failed: ${err.message}`);
+        }
+    }
+
+    throw new Error("FLEET_RECOVERY_FAILED: Direct-Dial Anchor failed to stabilize the swarm.");
+}
+
 async function generateMistralContent(prompt, model = "mistral-large-latest", context = {}) {
     const key = context?.MISTRAL_API_KEY || process.env.MISTRAL_KEY || process.env.MISTRAL_API_KEY;
     if (!key) throw new Error("MISTRAL_API_KEY missing.");
@@ -991,7 +1046,8 @@ export const ResourceManager = {
     getAvailable(seed = 0, requestedModel = null, context = {}) {
         const now = Date.now();
         let candidates = this.pool.filter(p => {
-            // V5.4.1: Institutional Self-Healing Logic
+            // V5.4.1: Institutional Self-Healing Logic (Blacklist Disabled V15.2)
+            /*
             if (this.failed.has(p.name)) {
                 const failTime = this.failedAt.get(p.name) || 0;
                 if (now - failTime > this.RECOVERY_TTL) {
@@ -1003,6 +1059,7 @@ export const ResourceManager = {
                 console.log(`🚫 [AI-Balancer] Skipping blacklisted node: ${p.name}`);
                 return false;
             }
+            */
             const cooldown = this.cooldowns.get(p.name);
             if (cooldown && now < cooldown) { 
                 // 🛡️ INSTITUTIONAL RETENTION: Do not skip Tier-1 nodes for minor cooldowns if pressure is high
@@ -1067,9 +1124,7 @@ export const ResourceManager = {
             console.warn(`⏳ [AI-Balancer] ${name} rate limited. Activating 60000ms cooldown.`);
             this.cooldowns.set(name, Date.now() + 60000);
         } else if (isAuth) {
-            console.error(`🚫 [AI-Balancer] Blacklisting ${name} due to terminal failure: ${error}`);
-            this.failed.add(name);
-            this.failedAt.set(name, Date.now()); // Set recovery timestamp
+            console.warn(`⚠️ [AI-Balancer] Terminal error on ${name}: ${error}. Continuing rotation (Blacklist Disabled).`);
         } else {
             console.warn(`⚠️ [AI-Balancer] ${name} failed with temporary error: ${error}. Retrying next...`);
         }
@@ -1143,8 +1198,19 @@ export async function askAI(prompt, options = {}) {
     }
     
     // [V5.4.1] Role-Aware Dispatch
-    const provider = ResourceManager.getAvailable(seed, targetModel, { role: role });
-    if (!provider) throw new Error("No available AI providers found.");
+    let provider = ResourceManager.getAvailable(seed, targetModel, { role: role });
+    
+    if (!provider) {
+        const fleetRetries = options._fleetRetries || 0;
+        if (fleetRetries < 10) {
+            console.warn(`⏳ [AI-Balancer] Fleet Exhausted. No providers available for ${role}. Pausing 30s for recovery (Cycle: ${fleetRetries + 1}/10)...`);
+            await new Promise(r => setTimeout(r, 30000));
+            return askAI(prompt, { ...options, _fleetRetries: fleetRetries + 1 });
+        }
+        
+        console.error(`🚨 [AI-Balancer] Critical Fleet Depletion. Transitioning to Direct-Dial Anchor...`);
+        return await directDialAnchor(prompt, targetModel || 'gemini-1.5-pro', role, env);
+    }
 
     ResourceManager.inflight.set(provider.name, (ResourceManager.inflight.get(provider.name) || 0) + 1);
     console.log(`🚀 [AI-Balancer] Dispatching to ${provider.name} (Role: ${role}, Retry: ${_retry}, Seed: ${seed})`);
@@ -1182,7 +1248,10 @@ export async function askAI(prompt, options = {}) {
 
         ResourceManager.markFailure(provider.name, err.message);
         
-        if (_retry >= 5) throw new Error(`AI_FLEET_EXHAUSTED: ${err.message}`);
+        if (_retry >= 5) {
+            console.error(`❌ [AI-Balancer] ${provider.name} repeatedly failed. Escalating to Fleet Recovery...`);
+            return askAI(prompt, { ...options, _retry: 0, _fleetRetries: (options._fleetRetries || 0) + 1 });
+        }
         return askAI(prompt, { ...options, _retry: _retry + 1 });
     }
 }
