@@ -175,20 +175,43 @@
 </div>
  
 <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, GithubAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { api } from "./js/services/api.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
+    authDomain: "blogspro-ai.firebaseapp.com",
+    projectId: "blogspro-ai",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
 
   let selectedRole = 'reader';
 
+  // 1. Initial State Handling
   async function redirectIfAuthenticated() {
     try {
       const me = await api.auth.me();
       if (me?.authenticated) {
-        window.location.href = me.user?.role === "admin" ? "admin.html" : "account.html";
+        window.location.href = me.user?.role === "admin" ? "admin.html" : "index.html";
       }
     } catch (_) {}
   }
   redirectIfAuthenticated();
 
+  async function handleAuthSuccess(user) {
+    const idToken = await user.getIdToken();
+    localStorage.setItem("fb_token", idToken);
+    
+    // Verify role on worker
+    const me = await api.auth.me();
+    // Use account.html or admin.html
+    window.location.href = (me?.user?.role === "admin") ? "admin.html" : "index.html";
+  }
+
+  // 2. Auth Handlers
   window.selectRole = (role) => {
     selectedRole = role;
     ['reader','editor','coauthor'].forEach(r => {
@@ -207,21 +230,38 @@
     setLoading(true); hideError();
     try {
       await api.auth.register(name, email, pass, selectedRole);
-      window.location.href = 'dashboard.html';
+      window.location.href = 'admin.html'; // Assuming admin or wait for redirect
     } catch(e) {
       showError(friendlyError(e.message));
       setLoading(false);
     }
   };
 
-  window.registerGoogle = () => {
-    api.auth.google("account.html");
+  window.registerGoogle = async () => {
+    setLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      await handleAuthSuccess(result.user);
+    } catch (e) {
+      showError(e.message || "Google registration failed.");
+      setLoading(false);
+    }
   };
 
-  window.registerGitHub = () => {
-    api.auth.github("account.html");
+  window.registerGitHub = async () => {
+    setLoading(true);
+    try {
+      const provider = new GithubAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      await handleAuthSuccess(result.user);
+    } catch (e) {
+      showError(e.message || "GitHub registration failed.");
+      setLoading(false);
+    }
   };
 
+  // 3. UI Helpers
   function setLoading(on) {
     const btn = document.getElementById('regBtn');
     if (!btn) return;

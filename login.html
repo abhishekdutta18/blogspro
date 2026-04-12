@@ -268,8 +268,20 @@
 </div>
  
 <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, GithubAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { api } from "./js/services/api.js";
 
+  const firebaseConfig = {
+    apiKey: "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY",
+    authDomain: "blogspro-ai.firebaseapp.com",
+    projectId: "blogspro-ai",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  // 1. Initial State Handling
   const urlParams = new URLSearchParams(window.location.search);
   const errorParam = urlParams.get('error');
   const reasonParam = urlParams.get('reason');
@@ -285,6 +297,20 @@
     showError(msg);
   }
 
+  async function handleAuthSuccess(user) {
+    const idToken = await user.getIdToken();
+    localStorage.setItem("fb_token", idToken);
+    
+    // Verify role on worker
+    const me = await api.auth.me();
+    if (me?.authenticated && me.user?.role === "admin") {
+      window.location.href = "admin.html";
+    } else {
+      const role = me.user?.role || "missing_role";
+      window.location.href = `login.html?error=unauthorized&reason=${role}`;
+    }
+  }
+
   async function redirectIfAuthenticated() {
     try {
       const me = await api.auth.me();
@@ -295,14 +321,29 @@
   }
   redirectIfAuthenticated();
 
+  // 2. Auth Handlers
   window.signInGoogle = async () => {
     setLoading('google', true);
-    api.auth.google("admin.html");
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      await handleAuthSuccess(result.user);
+    } catch (e) {
+      showError(e.message || "Google Sign-in failed.");
+      setLoading('google', false);
+    }
   };
 
   window.signInGitHub = async () => {
     setLoading('github', true);
-    api.auth.github("admin.html");
+    try {
+      const provider = new GithubAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      await handleAuthSuccess(result.user);
+    } catch (e) {
+      showError(e.message || "GitHub Sign-in failed.");
+      setLoading('github', false);
+    }
   };
 
   window.doLogin = async () => {
@@ -312,13 +353,20 @@
     setLoading('email', true); hideError();
     try {
       await api.auth.login(email, pass);
-      window.location.href = "admin.html";
+      const me = await api.auth.me();
+      if (me?.authenticated && me.user?.role === "admin") {
+        window.location.href = "admin.html";
+      } else {
+        showError("Access Denied: Admin role required.");
+        setLoading('email', false);
+      }
     } catch (e) {
       showError(e.message || "Sign-in failed.");
       setLoading('email', false);
     }
   };
 
+  // 3. UI Helpers
   function setLoading(provider, on) {
     const map = {
       google: { btn: 'googleBtn', ring: 'googleRing' },
