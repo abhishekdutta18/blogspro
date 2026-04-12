@@ -113,6 +113,7 @@ export default {
   async fetch(req, env) {
     const url = new URL(req.url);
     const path = url.pathname;
+    const FRONTEND_URL = "https://blogspro.in";
 
     // CORS Preflight
     if (req.method === "OPTIONS") {
@@ -320,7 +321,7 @@ export default {
     if (path === "/auth/callback/google") {
       const code = url.searchParams.get("code");
       const state = url.searchParams.get("state") || "/";
-      if (!code) return Response.redirect(`${url.origin}/login.html?error=code_missing`);
+      if (!code) return Response.redirect(`${FRONTEND_URL}/login.html?error=code_missing`);
 
       const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
@@ -333,7 +334,7 @@ export default {
           grant_type: "authorization_code",
         }),
       });
-      if (!tokenRes.ok) return Response.redirect(`${url.origin}/login.html?error=unauthorized`);
+      if (!tokenRes.ok) return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized`);
       const tokenData = await tokenRes.json();
 
       const idTokenParts = tokenData.id_token.split(".");
@@ -347,13 +348,13 @@ export default {
         role = await fetchRole(projectId, token, uid);
       } catch (e) {}
 
-      if (role !== "admin") return Response.redirect(`${url.origin}/login.html?error=unauthorized&reason=${role || "missing_role"}`);
+      if (role !== "admin") return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized&reason=${role || "missing_role"}`);
 
       const jwt = await signJwt({ uid, email, role }, sessionSecret);
       return new Response(null, {
         status: 302,
         headers: {
-          Location: state.startsWith("http") ? state : `${url.origin}/${state.replace(/^\//, "")}`,
+          Location: state.startsWith("http") ? state : `${FRONTEND_URL}/${state.replace(/^\//, "")}`,
           ...setSessionCookie(jwt),
         },
       });
@@ -375,7 +376,7 @@ export default {
     if (path === "/auth/callback/github") {
       const code = url.searchParams.get("code");
       const state = url.searchParams.get("state") || "/";
-      if (!code) return Response.redirect(`${url.origin}/login.html?error=code_missing`);
+      if (!code) return Response.redirect(`${FRONTEND_URL}/login.html?error=code_missing`);
 
       const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
         method: "POST",
@@ -386,7 +387,7 @@ export default {
           code,
         }),
       });
-      if (!tokenRes.ok) return Response.redirect(`${url.origin}/login.html?error=unauthorized`);
+      if (!tokenRes.ok) return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized`);
       const tokenData = await tokenRes.json();
       const accessToken = tokenData.access_token;
 
@@ -403,13 +404,13 @@ export default {
         role = await fetchRole(projectId, token, uid);
       } catch (e) {}
 
-      if (role !== "admin") return Response.redirect(`${url.origin}/login.html?error=unauthorized&reason=${role || "missing_role"}`);
+      if (role !== "admin") return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized&reason=${role || "missing_role"}`);
 
       const jwt = await signJwt({ uid, email, role }, sessionSecret);
       return new Response(null, {
         status: 302,
         headers: {
-          Location: state.startsWith("http") ? state : `${url.origin}/${state.replace(/^\//, "")}`,
+          Location: state.startsWith("http") ? state : `${FRONTEND_URL}/${state.replace(/^\//, "")}`,
           ...setSessionCookie(jwt),
         },
       });
