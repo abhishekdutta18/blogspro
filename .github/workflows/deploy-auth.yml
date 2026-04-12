@@ -1,0 +1,67 @@
+name: Deploy Auth Worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/auth-proxy-worker.js'
+      - 'wrangler.toml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Deploy Auth Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          environment: auth
+          command: deploy --config wrangler.toml
+          wranglerVersion: "3.114.17"
+
+      - name: Push Auth Worker secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: |
+          [ -n "$FIREBASE_SERVICE_ACCOUNT" ] && echo "$FIREBASE_SERVICE_ACCOUNT" | npx wrangler secret put FIREBASE_SERVICE_ACCOUNT --env auth --config wrangler.toml || echo "FIREBASE_SERVICE_ACCOUNT not set"
+          [ -n "$FIREBASE_WEB_API_KEY" ] && echo "$FIREBASE_WEB_API_KEY" | npx wrangler secret put FIREBASE_WEB_API_KEY --env auth --config wrangler.toml || echo "FIREBASE_WEB_API_KEY not set"
+          [ -n "$SESSION_SECRET" ] && echo "$SESSION_SECRET" | npx wrangler secret put SESSION_SECRET --env auth --config wrangler.toml || echo "SESSION_SECRET not set"
+          [ -n "$GOOGLE_CLIENT_ID" ] && echo "$GOOGLE_CLIENT_ID" | npx wrangler secret put GOOGLE_CLIENT_ID --env auth --config wrangler.toml || echo "GOOGLE_CLIENT_ID not set"
+          [ -n "$GOOGLE_CLIENT_SECRET" ] && echo "$GOOGLE_CLIENT_SECRET" | npx wrangler secret put GOOGLE_CLIENT_SECRET --env auth --config wrangler.toml || echo "GOOGLE_CLIENT_SECRET not set"
+
+  notify-failure:
+    needs: deploy
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram Failure Alert
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          [ -n "$TELEGRAM_BOT_TOKEN" ] && curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=🚨 [BlogsPro] Auth Worker Deploy Failed%0Ahttps://github.com/${REPO}/actions/runs/${RUN_ID}" \
+            -d "disable_web_page_preview=true" || echo "Telegram not configured"
