@@ -198,6 +198,24 @@ export default {
       if (!r.ok) return null;
       return fsDoc(await r.json());
     };
+    const fsCreate = async (col, docId, data) => {
+      const token = await getAccessToken(serviceAccount);
+      const fields = {};
+      for (const [k, v] of Object.entries(data)) {
+        if (typeof v === "string") fields[k] = { stringValue: v };
+        else if (typeof v === "number") fields[k] = { doubleValue: v };
+        else if (typeof v === "boolean") fields[k] = { booleanValue: v };
+      }
+      const r = await fetch(
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${col}?documentId=${docId}`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ fields }),
+        }
+      );
+      return r.ok;
+    };
     const fsQuery = async (col, opts = {}) => {
       const token = await getAccessToken(serviceAccount);
       const [orderField, orderDir] = (opts.orderBy || "").split(" ");
@@ -281,6 +299,31 @@ export default {
         role = await fetchRole(projectId, token, uid);
       } catch (e) {}
       if (role !== "admin") return jsonResponse({ error: "Unauthorized" }, 403, {}, req);
+
+      const jwt = await signJwt({ uid, email, role }, sessionSecret);
+      return jsonResponse({ success: true, role }, 200, setSessionCookie(jwt), req);
+    }
+
+    // Register
+    if (path === "/auth/register" && req.method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const { name, email, password, requestedRole } = body;
+      if (!name || !email || !password) return jsonResponse({ error: "Name, email and password required" }, 400, {}, req);
+
+      const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${env.FIREBASE_WEB_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, returnSecureToken: true }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return jsonResponse({ error: err.error?.message || "Registration failed" }, 401, {}, req);
+      }
+      const data = await res.json();
+      const uid = data.localId;
+      
+      const role = (email === "abhishekdutta18@gmail.com") ? "admin" : (requestedRole || "reader");
+      await fsCreate("users", uid, { name, email, role, createdAt: new Date().toISOString() });
 
       const jwt = await signJwt({ uid, email, role }, sessionSecret);
       return jsonResponse({ success: true, role }, 200, setSessionCookie(jwt), req);
