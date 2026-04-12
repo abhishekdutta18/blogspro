@@ -81,12 +81,26 @@ async function getAccessToken(sa) {
   return (await res.json()).access_token;
 }
 
-async function fetchRole(projectId, accessToken, uid) {
-  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${uid}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!res.ok) return null;
-  const doc = await res.json();
-  return doc.fields?.role?.stringValue || null;
+async function fetchRole(projectId, accessToken, uid, email = null) {
+  // 1. Try UID lookup
+  let url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${uid}`;
+  let res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (res.ok) {
+    const doc = await res.json();
+    if (doc.fields?.role?.stringValue) return doc.fields.role.stringValue;
+  }
+
+  // 2. Try Email lookup (User's preferred schema)
+  if (email) {
+    url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${email}`;
+    res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (res.ok) {
+      const doc = await res.json();
+      if (doc.fields?.role?.stringValue) return doc.fields.role.stringValue;
+    }
+  }
+
+  return null;
 }
 
 function jsonResponse(body, status = 200, headers = {}, req = null) {
@@ -296,7 +310,7 @@ export default {
       let role = null;
       try {
         const token = await getAccessToken(serviceAccount);
-        role = await fetchRole(projectId, token, uid);
+        role = await fetchRole(projectId, token, uid, email);
       } catch (e) {}
       if (role !== "admin") return jsonResponse({ error: "Unauthorized" }, 403, {}, req);
 
@@ -364,7 +378,7 @@ export default {
     if (path === "/auth/callback/google") {
       const code = url.searchParams.get("code");
       const state = url.searchParams.get("state") || "/";
-      if (!code) return Response.redirect(`${FRONTEND_URL}/login.html?error=code_missing&reason=code_missing_from_google`);
+      if (!code) return Response.redirect(`${FRONTEND_URL}/login.html?error=code_missing`);
 
       const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
@@ -377,7 +391,7 @@ export default {
           grant_type: "authorization_code",
         }),
       });
-      if (!tokenRes.ok) return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized&reason=token_exchange_failed`);
+      if (!tokenRes.ok) return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized`);
       const tokenData = await tokenRes.json();
 
       const idTokenParts = tokenData.id_token.split(".");
@@ -386,16 +400,16 @@ export default {
       const email = userInfo.email;
 
       let role = null;
-      if (email === "abhishekdutta18@gmail.com" || email === "abhishek@blogspro.com") {
+      if (email === "abhishekdutta18@gmail.com" || email === "abhishek@blogspro.com" || email === "abhishek.dutta1996@gmail.com") {
         role = "admin";
       } else {
         try {
           const token = await getAccessToken(serviceAccount);
-          role = await fetchRole(projectId, token, uid);
+          role = await fetchRole(projectId, token, uid, email);
         } catch (e) {}
       }
 
-      if (role !== "admin") return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized&reason=not_admin_for_${email}`);
+      if (role !== "admin") return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized&reason=${role || "missing_role"}`);
 
       const jwt = await signJwt({ uid, email, role }, sessionSecret);
       return new Response(null, {
@@ -423,7 +437,7 @@ export default {
     if (path === "/auth/callback/github") {
       const code = url.searchParams.get("code");
       const state = url.searchParams.get("state") || "/";
-      if (!code) return Response.redirect(`${FRONTEND_URL}/login.html?error=code_missing&reason=code_missing_from_google`);
+      if (!code) return Response.redirect(`${FRONTEND_URL}/login.html?error=code_missing`);
 
       const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
         method: "POST",
@@ -434,7 +448,7 @@ export default {
           code,
         }),
       });
-      if (!tokenRes.ok) return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized&reason=token_exchange_failed`);
+      if (!tokenRes.ok) return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized`);
       const tokenData = await tokenRes.json();
       const accessToken = tokenData.access_token;
 
@@ -446,16 +460,16 @@ export default {
       const email = userData.email || `${userData.login}@github.com`;
 
       let role = null;
-      if (userData.login === "abhishekdutta18" || email === "abhishekdutta18@gmail.com" || email === "abhishek@blogspro.com") {
+      if (userData.login === "abhishekdutta18" || email === "abhishekdutta18@gmail.com" || email === "abhishek@blogspro.com" || email === "abhishek.dutta1996@gmail.com") {
         role = "admin";
       } else {
         try {
           const token = await getAccessToken(serviceAccount);
-          role = await fetchRole(projectId, token, uid);
+          role = await fetchRole(projectId, token, uid, email);
         } catch (e) {}
       }
 
-      if (role !== "admin") return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized&reason=not_admin_for_${email}`);
+      if (role !== "admin") return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized&reason=${role || "missing_role"}`);
 
       const jwt = await signJwt({ uid, email, role }, sessionSecret);
       return new Response(null, {
