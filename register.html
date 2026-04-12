@@ -177,7 +177,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithPopup, signInWithCredential, GoogleAuthProvider, GithubAuthProvider, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, signInWithCredential, GoogleAuthProvider, GithubAuthProvider, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { api } from "./js/services/api.js";
 
   const firebaseConfig = {
@@ -189,14 +189,25 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
-  // Google One Tap Initialization
-  window.addEventListener('load', () => {
-    if (window.google) {
-      google.accounts.id.initialize({
-        client_id: "940428277283-bdgk8sf3d0q7jls327e0j8cce5l9a78q.apps.googleusercontent.com",
-        callback: handleOneTapResponse
-      });
-      google.accounts.id.prompt();
+  // Handle Redirect Result on Load
+  window.addEventListener('load', async () => {
+    try {
+      const result = await getRedirectResult(auth);
+      if (result) {
+        await handleAuthSuccess(result.user);
+      } else {
+        // Only trigger One Tap if no redirect result is pending
+        if (window.google) {
+          google.accounts.id.initialize({
+            client_id: "940428277283-bdgk8sf3d0q7jls327e0j8cce5l9a78q.apps.googleusercontent.com",
+            callback: handleOneTapResponse
+          });
+          google.accounts.id.prompt();
+        }
+      }
+    } catch (e) {
+      console.error("Redirect auth error:", e);
+      showError("Sign-up failed: " + (e.message || "Unknown error"));
     }
   });
 
@@ -231,8 +242,7 @@
     setLoading('google', true);
     try {
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      await handleAuthSuccess(result.user);
+      await signInWithRedirect(auth, provider);
     } catch (e) {
       showError(e.message || "Google Sign-up failed.");
       setLoading('google', false);
@@ -243,8 +253,7 @@
     setLoading('github', true);
     try {
       const provider = new GithubAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      await handleAuthSuccess(result.user);
+      await signInWithRedirect(auth, provider);
     } catch (e) {
       showError(e.message || "GitHub Sign-up failed.");
       setLoading('github', false);
