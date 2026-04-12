@@ -155,6 +155,17 @@ async function fetchRole(projectId, accessToken, uid, email = null) {
   return null;
 }
 
+function isAdmin(email) {
+  if (!email) return false;
+  const adminEmails = [
+    "abhishek.dutta1996@gmail.com",
+    "abhishekdutta18@gmail.com",
+    "abhishek@blogspro.com",
+    "abhishek.dutta1996@admin.blogspro.in"
+  ];
+  return adminEmails.includes(email.toLowerCase());
+}
+
 function jsonResponse(body, status = 200, headers = {}, req = null) {
   const origin = req?.headers.get("Origin");
   const corsHeaders = {
@@ -262,10 +273,10 @@ export default {
 
     // Role Resolution
     let role = payload?.role || "reader";
-    if (payload && !payload.role) {
-      if (payload.email === "abhishekdutta18@gmail.com" || payload.email === "abhishek@blogspro.com" || payload.email === "abhishek.dutta1996@gmail.com") {
+    if (payload && (!payload.role || payload.role === "reader")) {
+      if (isAdmin(payload.email)) {
         role = "admin";
-      } else {
+      } else if (!payload.role) {
         try {
           const accessToken = await getAccessToken(serviceAccount);
           const fRole = await fetchRole(projectId, accessToken, payload.uid, payload.email);
@@ -432,7 +443,7 @@ export default {
         }
 
         // Auto-admin for primary account, otherwise default
-        if (email === "abhishek.dutta1996@gmail.com" || email === "abhishekdutta18@gmail.com") {
+        if (isAdmin(email)) {
           role = "admin";
         }
         
@@ -470,7 +481,7 @@ export default {
       const data = await res.json();
       const uid = data.localId;
       
-      const role = (email === "abhishekdutta18@gmail.com") ? "admin" : (requestedRole || "reader");
+      const role = isAdmin(email) ? "admin" : (requestedRole || "reader");
       await fsCreate("users", uid, { name, email, role, createdAt: new Date().toISOString() });
 
       const jwt = await signJwt({ uid, email, role }, sessionSecret);
