@@ -386,7 +386,7 @@ export default {
       const email = userInfo.email;
 
       let role = null;
-      if (email === "abhishekdutta18@gmail.com") {
+      if (email === "abhishekdutta18@gmail.com" || email === "abhishek@blogspro.com") {
         role = "admin";
       } else {
         try {
@@ -446,7 +446,7 @@ export default {
       const email = userData.email || `${userData.login}@github.com`;
 
       let role = null;
-      if (userData.login === "abhishekdutta18" || email === "abhishekdutta18@gmail.com") {
+      if (userData.login === "abhishekdutta18" || email === "abhishekdutta18@gmail.com" || email === "abhishek@blogspro.com") {
         role = "admin";
       } else {
         try {
