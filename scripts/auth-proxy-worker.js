@@ -395,7 +395,7 @@ export default {
         } catch (e) {}
       }
 
-      if (role !== "admin") return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized&reason=missing_role_path_`);
+      if (role !== "admin") return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized&reason=not_admin_for_${email}`);
 
       const jwt = await signJwt({ uid, email, role }, sessionSecret);
       return new Response(null, {
@@ -455,7 +455,7 @@ export default {
         } catch (e) {}
       }
 
-      if (role !== "admin") return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized&reason=missing_role_path_`);
+      if (role !== "admin") return Response.redirect(`${FRONTEND_URL}/login.html?error=unauthorized&reason=not_admin_for_${email}`);
 
       const jwt = await signJwt({ uid, email, role }, sessionSecret);
       return new Response(null, {
