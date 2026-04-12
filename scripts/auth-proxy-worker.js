@@ -386,7 +386,7 @@ export default {
       const email = userInfo.email;
 
       let role = null;
-      if (userData.login === "abhishekdutta18" || email === "abhishekdutta18@gmail.com") {
+      if (email === "abhishekdutta18@gmail.com") {
         role = "admin";
       } else {
         try {
