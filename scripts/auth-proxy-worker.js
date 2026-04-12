@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 
+// v2 — deploy trigger for full secrets push
 // Minimal JWT (HS256)
 async function signJwt(payload, secret, expSeconds = 7 * 24 * 3600) {
   const header = { alg: "HS256", typ: "JWT" };
