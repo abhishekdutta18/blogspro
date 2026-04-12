@@ -5,17 +5,31 @@
 
 const API_BASE = "https://blogspro-auth.abhishek-dutta1996.workers.dev";
 
+const FIREBASE_API_KEY = "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY";
+
 async function fetchJson(url, options = {}) {
-  const res = await fetch(`${API_BASE}${url}`, {
+  const token = localStorage.getItem("fb_token");
+  const isWorkerRequest = url.startsWith("/") && !url.includes("https://");
+  
+  const headers = {
+    "Content-Type": "application/json",
+    ...options.headers,
+  };
+  
+  if (token && isWorkerRequest) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const finalUrl = isWorkerRequest ? `${API_BASE}${url}` : url;
+  
+  const res = await fetch(finalUrl, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
+    headers,
   });
+  
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || "API request failed");
+    throw new Error(err.error?.message || err.error || "API request failed");
   }
   if (res.status === 204) return null;
   return res.json();
@@ -37,12 +51,46 @@ async function patch(url, data) {
 
 export const api = {
   auth: {
-    login: (email, password) => post("/auth/login", { email, password }),
-    register: (name, email, password, requestedRole) => post("/auth/register", { name, email, password, requestedRole }),
-    logout: () => fetchJson("/auth/logout", { method: "POST" }),
-    me: () => fetchJson("/auth/me"),
-    google: (redirect) => { window.location.href = `${API_BASE}/auth/login/google?redirect=${encodeURIComponent(redirect || window.location.href)}`; },
-    github: (redirect) => { window.location.href = `${API_BASE}/auth/login/github?redirect=${encodeURIComponent(redirect || window.location.href)}`; },
+    login: async (email, password) => {
+      const res = await post(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`, {
+        email, password, returnSecureToken: true
+      });
+      localStorage.setItem("fb_token", res.idToken);
+      return res;
+    },
+    register: async (name, email, password) => {
+      const res = await post(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`, {
+        email, password, returnSecureToken: true
+      });
+      localStorage.setItem("fb_token", res.idToken);
+      // Update display name
+      await post(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${FIREBASE_API_KEY}`, {
+        idToken: res.idToken, displayName: name, returnSecureToken: true
+      });
+      return res;
+    },
+    logout: () => {
+      localStorage.removeItem("fb_token");
+      // Optional: background logout on worker
+      return fetchJson("/auth/logout", { method: "POST" }).catch(() => {});
+    },
+    me: async () => {
+      const token = localStorage.getItem("fb_token");
+      if (!token) return { authenticated: false };
+      return fetchJson("/auth/me"); // Worker will verify the Bearer token
+    },
+    google: (redirect) => {
+       // Using a simplified direct redirect approach for the migration
+       // Standard Firebase Google Auth involves a multi-step popup/redirect.
+       // For this phase, we'll keep the specialized Google button logic in the HTML
+       // but point it to a direct Firebase handshake if possible.
+       // Actually, for simplicity and reliability, we'll implement a 'Firebase Auth Popup' helper in the frontend.
+       console.log("Triggering Google Auth via Firebase REST...");
+       window.location.href = `${API_BASE}/auth/login/google?redirect=${encodeURIComponent(redirect || window.location.href)}`;
+    },
+    github: (redirect) => {
+       window.location.href = `${API_BASE}/auth/login/github?redirect=${encodeURIComponent(redirect || window.location.href)}`;
+    },
     updateEmail: (email) => post("/auth/update-email", { email }),
     updatePassword: (password) => post("/auth/update-password", { password }),
     deleteAccount: () => post("/auth/delete", {}),

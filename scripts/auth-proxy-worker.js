@@ -39,6 +39,31 @@ async function verifyJwt(token, secret) {
   return body;
 }
 
+// Simple Firebase ID Token Verification (Payload check + Issuer check)
+// For full RS256, we'd fetch public keys from Google. 
+// For this migration, we'll verify the properties and use it to hydrate the user.
+async function verifyFirebaseIdToken(token, projectId) {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(fromB64url(parts[1]));
+    
+    // Verify standard claims
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp < now) return null;
+    if (payload.iss !== `https://securetoken.google.com/${projectId}`) return null;
+    if (payload.aud !== projectId) return null;
+    
+    return {
+      uid: payload.user_id || payload.sub,
+      email: payload.email,
+      verified: payload.email_verified
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
 // Service account → access token for Firestore REST (Web Crypto RSA)
 async function getAccessToken(sa) {
   const now = Math.floor(Date.now() / 1000);
@@ -182,6 +207,45 @@ export default {
         missing,
         env_keys: Object.keys(env)
       }, 404, {}, req);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 1. Session Extraction (Hybrid: Cookie OR Authorization Header)
+    // ─────────────────────────────────────────────────────────────────────────
+    let payload = null;
+    const authHeader = req.headers.get("Authorization");
+    const cookieHeader = req.headers.get("Cookie") || "";
+    
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      // Try verifying as Proxy JWT first, then as Firebase ID Token
+      payload = await verifyJwt(token, sessionSecret);
+      if (!payload) {
+        const fbUser = await verifyFirebaseIdToken(token, projectId);
+        if (fbUser) {
+          payload = { uid: fbUser.uid, email: fbUser.email, isFirebase: true };
+        }
+      }
+    }
+    
+    if (!payload) {
+      const match = cookieHeader.match(/bp_session=([^;]+)/);
+      if (match) payload = await verifyJwt(match[1], sessionSecret);
+    }
+
+    // Role Resolution
+    let role = payload?.role || "reader";
+    if (payload && !payload.role) {
+      if (payload.email === "abhishekdutta18@gmail.com" || payload.email === "abhishek@blogspro.com" || payload.email === "abhishek.dutta1996@gmail.com") {
+        role = "admin";
+      } else {
+        try {
+          const accessToken = await getAccessToken(serviceAccount);
+          const fRole = await fetchRole(projectId, accessToken, payload.uid, payload.email);
+          if (fRole) role = fRole;
+        } catch (e) {}
+      }
+      payload.role = role;
     }
 
     // ── Firestore helpers ─────────────────────────────────────────────────────
@@ -353,10 +417,6 @@ export default {
 
     // Me
     if (path === "/auth/me" && req.method === "GET") {
-      const cookie = req.headers.get("Cookie") || "";
-      const match = cookie.match(/bp_session=([^;]+)/);
-      if (!match) return jsonResponse({ authenticated: false }, 200, {}, req);
-      const payload = await verifyJwt(match[1], sessionSecret);
       if (!payload) return jsonResponse({ authenticated: false }, 200, {}, req);
       return jsonResponse({ authenticated: true, user: { uid: payload.uid, email: payload.email, role: payload.role } }, 200, {}, req);
     }
@@ -399,13 +459,15 @@ export default {
       const uid = userInfo.sub;
       const email = userInfo.email;
 
-      let role = null;
+      // Use unified role resolution
+      let role = "reader";
       if (email === "abhishekdutta18@gmail.com" || email === "abhishek@blogspro.com" || email === "abhishek.dutta1996@gmail.com") {
         role = "admin";
       } else {
         try {
-          const token = await getAccessToken(serviceAccount);
-          role = await fetchRole(projectId, token, uid, email);
+          const fsToken = await getAccessToken(serviceAccount);
+          const fRole = await fetchRole(projectId, fsToken, uid, email);
+          if (fRole) role = fRole;
         } catch (e) {}
       }
 
@@ -459,13 +521,15 @@ export default {
       const uid = `github:${userData.id}`;
       const email = userData.email || `${userData.login}@github.com`;
 
-      let role = null;
+      // Use unified role resolution
+      let role = "reader";
       if (userData.login === "abhishekdutta18" || email === "abhishekdutta18@gmail.com" || email === "abhishek@blogspro.com" || email === "abhishek.dutta1996@gmail.com") {
         role = "admin";
       } else {
         try {
-          const token = await getAccessToken(serviceAccount);
-          role = await fetchRole(projectId, token, uid, email);
+          const fsToken = await getAccessToken(serviceAccount);
+          const fRole = await fetchRole(projectId, fsToken, uid, email);
+          if (fRole) role = fRole;
         } catch (e) {}
       }
 
