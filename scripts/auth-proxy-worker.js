@@ -355,9 +355,9 @@ export default {
     if (path === "/auth/me" && req.method === "GET") {
       const cookie = req.headers.get("Cookie") || "";
       const match = cookie.match(/bp_session=([^;]+)/);
-      if (!match) return jsonResponse({ authenticated: false }, 401, {}, req);
+      if (!match) return jsonResponse({ authenticated: false }, 200, {}, req);
       const payload = await verifyJwt(match[1], sessionSecret);
-      if (!payload) return jsonResponse({ authenticated: false }, 401, {}, req);
+      if (!payload) return jsonResponse({ authenticated: false }, 200, {}, req);
       return jsonResponse({ authenticated: true, user: { uid: payload.uid, email: payload.email, role: payload.role } }, 200, {}, req);
     }
 
