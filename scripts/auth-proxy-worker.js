@@ -134,8 +134,32 @@ export default {
 
     // Parse service account & config
     let serviceAccount = null;
-    try { serviceAccount = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT || "{}"); } catch (e) {}
+    try { 
+      if (env.FIREBASE_SERVICE_ACCOUNT) {
+        serviceAccount = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT); 
+      }
+    } catch (e) {
+      return jsonResponse({ error: `Service Account JSON Parse Error: ${e.message}` }, 400, {}, req);
+    }
+
     const projectId = env.FIREBASE_PROJECT_ID || serviceAccount?.project_id;
+    const sessionSecret = env.SESSION_SECRET;
+    const webApiKey = env.FIREBASE_WEB_API_KEY;
+
+    // Diagnostic Check: Pinpoint missing secrets causing 404
+    if (!serviceAccount?.private_key || !sessionSecret || !projectId || !webApiKey) {
+      const missing = [];
+      if (!serviceAccount?.private_key) missing.push("FIREBASE_SERVICE_ACCOUNT (private_key)");
+      if (!sessionSecret) missing.push("SESSION_SECRET");
+      if (!projectId) missing.push("FIREBASE_PROJECT_ID");
+      if (!webApiKey) missing.push("FIREBASE_WEB_API_KEY");
+      
+      return jsonResponse({ 
+        error: "Auth Proxy Misconfigured", 
+        missing,
+        env_keys: Object.keys(env)
+      }, 404, {}, req);
+    }
 
     // ── Firestore helpers ─────────────────────────────────────────────────────
     const fsVal = (v) => {
@@ -223,10 +247,6 @@ export default {
       }
     }
 
-    const sessionSecret = env.SESSION_SECRET;
-    if (!serviceAccount?.private_key || !sessionSecret || !projectId || !env.FIREBASE_WEB_API_KEY) {
-      return jsonResponse({ error: "Not found" }, 404, {}, req);
-    }
 
     // Login
     if (path === "/auth/login" && req.method === "POST") {
