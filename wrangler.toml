@@ -229,7 +229,6 @@ FIREBASE_PROJECT_ID = "blogspro-ai"
 name = "blogspro-auth"
 main = "scripts/auth-proxy-worker.js"
 compatibility_date = "2026-04-01"
-compatibility_flags = [ "nodejs_compat" ]
 
 [env.auth.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
