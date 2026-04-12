@@ -145,14 +145,22 @@ export default {
     const projectId = env.FIREBASE_PROJECT_ID || serviceAccount?.project_id;
     const sessionSecret = env.SESSION_SECRET;
     const webApiKey = env.FIREBASE_WEB_API_KEY;
+    const googleId = env.GOOGLE_CLIENT_ID;
+    const googleSecret = env.GOOGLE_CLIENT_SECRET;
+    const githubId = env.GITHUB_CLIENT_ID;
+    const githubSecret = env.GITHUB_CLIENT_SECRET;
 
     // Diagnostic Check: Pinpoint missing secrets causing 404
-    if (!serviceAccount?.private_key || !sessionSecret || !projectId || !webApiKey) {
+    if (!serviceAccount?.private_key || !sessionSecret || !projectId || !webApiKey || !googleId || !googleSecret || !githubId || !githubSecret) {
       const missing = [];
       if (!serviceAccount?.private_key) missing.push("FIREBASE_SERVICE_ACCOUNT (private_key)");
       if (!sessionSecret) missing.push("SESSION_SECRET");
       if (!projectId) missing.push("FIREBASE_PROJECT_ID");
       if (!webApiKey) missing.push("FIREBASE_WEB_API_KEY");
+      if (!googleId) missing.push("GOOGLE_CLIENT_ID");
+      if (!googleSecret) missing.push("GOOGLE_CLIENT_SECRET");
+      if (!githubId) missing.push("GITHUB_CLIENT_ID");
+      if (!githubSecret) missing.push("GITHUB_CLIENT_SECRET");
       
       return jsonResponse({ 
         error: "Auth Proxy Misconfigured", 
