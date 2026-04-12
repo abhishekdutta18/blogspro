@@ -2474,6 +2474,8 @@
       console.warn('About section unavailable:', err.message);
       applyAboutDefaults();
       const contentCol = document.getElementById('aboutContentCol');
+      const skeleton = document.getElementById('aboutSkeleton');
+      const avatarCol = document.getElementById('aboutAvatarCol');
       if (skeleton) skeleton.style.display = 'none';
       if (avatarCol) avatarCol.classList.remove('about-hidden');
       if (contentCol) contentCol.classList.remove('about-hidden');

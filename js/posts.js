@@ -220,8 +220,8 @@ export async function loadHybridPosts() {
     try {
         let firestorePosts = [];
         try {
-            const posts = await api.data.posts.getAll();
-            firestorePosts = posts.filter(p => p.published);
+            const posts = await api.public.data('posts');
+            firestorePosts = (posts || []).filter(p => p.published);
         } catch (err) {
             console.warn('[HybridEngine] Firestore posts unavailable');
         }
