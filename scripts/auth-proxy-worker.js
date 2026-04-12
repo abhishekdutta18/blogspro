@@ -39,25 +39,52 @@ async function verifyJwt(token, secret) {
   return body;
 }
 
-// Simple Firebase ID Token Verification (Payload check + Issuer check)
-// For full RS256, we'd fetch public keys from Google. 
-// For this migration, we'll verify the properties and use it to hydrate the user.
-async function verifyFirebaseIdToken(token, projectId) {
+// Google Public Keys Cache
+let googleKeysCache = null;
+async function getGooglePublicKeys() {
+  if (googleKeysCache) return googleKeysCache;
+  const res = await fetch("https://www.googleapis.com/oauth2/v3/certs");
+  if (!res.ok) throw new Error("failed to fetch google keys");
+  googleKeysCache = await res.json();
+  return googleKeysCache;
+}
+
+async function verifyGoogleIdToken(token, clientId) {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
-    const payload = JSON.parse(fromB64url(parts[1]));
-    
-    // Verify standard claims
+    const [hB64, pB64, sB64] = parts;
+    const header = JSON.parse(fromB64url(hB64));
+    const payload = JSON.parse(fromB64url(pB64));
+
+    // 1. Basic Claims
     const now = Math.floor(Date.now() / 1000);
     if (payload.exp < now) return null;
-    if (payload.iss !== `https://securetoken.google.com/${projectId}`) return null;
-    if (payload.aud !== projectId) return null;
+    if (payload.iss !== "https://accounts.google.com" && payload.iss !== "accounts.google.com") return null;
+    if (payload.aud !== clientId) return null;
+
+    // 2. RSA Signature Check
+    const keys = await getGooglePublicKeys();
+    const keyData = keys.keys.find(k => k.kid === header.kid);
+    if (!keyData) return null;
+
+    const key = await crypto.subtle.importKey(
+      "jwk", keyData,
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false, ["verify"]
+    );
+    const sigBytes = Uint8Array.from(fromB64url(sB64), c => c.charCodeAt(0));
+    const valid = await crypto.subtle.verify(
+      "RSASSA-PKCS1-v1_5", key, sigBytes, new TextEncoder().encode(`${hB64}.${pB64}`)
+    );
     
+    if (!valid) return null;
     return {
-      uid: payload.user_id || payload.sub,
+      uid: payload.sub,
       email: payload.email,
-      verified: payload.email_verified
+      verified: payload.email_verified,
+      name: payload.name,
+      picture: payload.picture
     };
   } catch (e) {
     return null;
@@ -370,16 +397,59 @@ export default {
       }
       const data = await res.json();
       const uid = data.localId;
+      const sa = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT);
 
       let role = null;
       try {
-        const token = await getAccessToken(serviceAccount);
+        const token = await getAccessToken(sa);
         role = await fetchRole(projectId, token, uid, email);
       } catch (e) {}
       if (role !== "admin") return jsonResponse({ error: "Unauthorized" }, 403, {}, req);
 
       const jwt = await signJwt({ uid, email, role }, sessionSecret);
       return jsonResponse({ success: true, role }, 200, setSessionCookie(jwt), req);
+    }
+
+    // Google Callback (GSI login_uri)
+    if (path === "/auth/callback/google" && req.method === "POST") {
+      try {
+        const formData = await req.formData();
+        const credential = formData.get("credential");
+        if (!credential) return jsonResponse({ error: "No credential received" }, 400, {}, req);
+
+        const googleUser = await verifyGoogleIdToken(credential, env.GOOGLE_CLIENT_ID);
+        if (!googleUser) return jsonResponse({ error: "Invalid Google token" }, 401, {}, req);
+
+        const { uid, email } = googleUser;
+        const sa = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT);
+        
+        let role = null;
+        try {
+          const accessToken = await getAccessToken(sa);
+          role = await fetchRole(env.FIREBASE_PROJECT_ID, accessToken, uid, email);
+        } catch (e) {
+          console.error("Role fetch error:", e);
+        }
+
+        // Auto-admin for primary account, otherwise default
+        if (email === "abhishek.dutta1996@gmail.com" || email === "abhishekdutta18@gmail.com") {
+          role = "admin";
+        }
+        
+        const jwt = await signJwt({ uid, email, role: role || "reader" }, sessionSecret);
+        
+        // Redirect back to admin or home
+        const redirectUrl = role === "admin" ? "https://blogspro.in/admin.html" : "https://blogspro.in/";
+        return new Response(null, {
+          status: 303,
+          headers: {
+            "Location": redirectUrl,
+            ...setSessionCookie(jwt)
+          }
+        });
+      } catch (e) {
+        return jsonResponse({ error: "Callback processing failed" }, 500, {}, req);
+      }
     }
 
     // Register
