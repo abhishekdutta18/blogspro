@@ -267,9 +267,10 @@
   <a class="back-link" href="index.html">← Back to blog</a>
 </div>
  
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithPopup, GoogleAuthProvider, GithubAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, signInWithPopup, signInWithCredential, GoogleAuthProvider, GithubAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { api } from "./js/services/api.js";
 
   const firebaseConfig = {
@@ -281,7 +282,7 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
-  // 1. Initial State Handling
+  // 1. Initial State & Google One Tap
   const urlParams = new URLSearchParams(window.location.search);
   const errorParam = urlParams.get('error');
   const reasonParam = urlParams.get('reason');
@@ -295,6 +296,29 @@
       msg = 'Security Error: You do not have permission to verify your role. Please sign out and sign in again.';
     }
     showError(msg);
+  }
+
+  // Google One Tap Initialization
+  window.addEventListener('load', () => {
+    if (window.google) {
+      google.accounts.id.initialize({
+        client_id: "940428277283-bdgk8sf3d0q7jls327e0j8cce5l9a78q.apps.googleusercontent.com",
+        callback: handleOneTapResponse
+      });
+      google.accounts.id.prompt();
+    }
+  });
+
+  async function handleOneTapResponse(response) {
+    setLoading('google', true);
+    try {
+      const credential = GoogleAuthProvider.credential(response.credential);
+      const result = await signInWithCredential(auth, credential);
+      await handleAuthSuccess(result.user);
+    } catch (e) {
+      showError("One Tap failed: " + (e.message || "Unknown error"));
+      setLoading('google', false);
+    }
   }
 
   async function handleAuthSuccess(user) {
@@ -326,6 +350,7 @@
     setLoading('google', true);
     try {
       const provider = new GoogleAuthProvider();
+      // ux_mode: 'popup' by default, but we can try to force same-tab if possible
       const result = await signInWithPopup(auth, provider);
       await handleAuthSuccess(result.user);
     } catch (e) {

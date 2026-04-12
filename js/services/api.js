@@ -91,9 +91,24 @@ export const api = {
     github: (redirect) => {
        window.location.href = `${API_BASE}/auth/login/github?redirect=${encodeURIComponent(redirect || window.location.href)}`;
     },
-    updateEmail: (email) => post("/auth/update-email", { email }),
-    updatePassword: (password) => post("/auth/update-password", { password }),
-    deleteAccount: () => post("/auth/delete", {}),
+    updateEmail: (email) => {
+      const idToken = localStorage.getItem("fb_token");
+      return post(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${FIREBASE_API_KEY}`, {
+        idToken, email, returnSecureToken: true
+      });
+    },
+    updatePassword: (password) => {
+      const idToken = localStorage.getItem("fb_token");
+      return post(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${FIREBASE_API_KEY}`, {
+        idToken, password, returnSecureToken: true
+      });
+    },
+    deleteAccount: () => {
+      const idToken = localStorage.getItem("fb_token");
+      return post(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${FIREBASE_API_KEY}`, {
+        idToken
+      });
+    },
   },
   data: {
     get: (col, id = null, opts = {}) => {
