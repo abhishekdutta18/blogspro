@@ -106,6 +106,87 @@ export default {
     let serviceAccount = null;
     try { serviceAccount = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT || "{}"); } catch (e) {}
     const projectId = env.FIREBASE_PROJECT_ID || serviceAccount?.project_id;
+
+    // ── Firestore helpers ─────────────────────────────────────────────────────
+    const fsVal = (v) => {
+      if (!v) return null;
+      if (v.stringValue !== undefined) return v.stringValue;
+      if (v.integerValue !== undefined) return Number(v.integerValue);
+      if (v.doubleValue !== undefined) return v.doubleValue;
+      if (v.booleanValue !== undefined) return v.booleanValue;
+      if (v.timestampValue !== undefined) return v.timestampValue;
+      if (v.nullValue !== undefined) return null;
+      if (v.arrayValue) return (v.arrayValue.values || []).map(fsVal);
+      if (v.mapValue) return Object.fromEntries(Object.entries(v.mapValue.fields || {}).map(([k, w]) => [k, fsVal(w)]));
+      return null;
+    };
+    const fsDoc = (doc) => {
+      if (!doc?.fields) return null;
+      const obj = doc.name ? { _id: doc.name.split('/').pop() } : {};
+      for (const [k, v] of Object.entries(doc.fields)) obj[k] = fsVal(v);
+      return obj;
+    };
+    const fsGet = async (col, docId) => {
+      const token = await getAccessToken(serviceAccount);
+      const r = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${col}/${docId}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) return null;
+      return fsDoc(await r.json());
+    };
+    const fsQuery = async (col, opts = {}) => {
+      const token = await getAccessToken(serviceAccount);
+      const [orderField, orderDir] = (opts.orderBy || '').split(' ');
+      const q = { structuredQuery: { from: [{ collectionId: col }] } };
+      if (orderField) q.structuredQuery.orderBy = [{ field: { fieldPath: orderField }, direction: orderDir === 'desc' ? 'DESCENDING' : 'ASCENDING' }];
+      if (opts.limit) q.structuredQuery.limit = Number(opts.limit);
+      const r = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(q) });
+      if (!r.ok) return [];
+      const rows = await r.json();
+      return (Array.isArray(rows) ? rows : []).filter(x => x.document).map(x => fsDoc(x.document)).filter(Boolean);
+    };
+
+    // ── Public Data Routes (no session required) ──────────────────────────────
+    const PUBLIC_COLLECTIONS = new Set(['posts', 'site', 'pulse_briefings', 'articles']);
+    if (path.startsWith('/api/public/data/') && serviceAccount?.private_key && projectId) {
+      const seg = path.slice('/api/public/data/'.length).split('/').filter(Boolean);
+      const col = seg[0];
+      const docId = seg[1];
+      if (!col || !PUBLIC_COLLECTIONS.has(col)) return jsonResponse({ error: "Not found" }, 404, {}, req);
+      try {
+        const opts = Object.fromEntries(url.searchParams);
+        if (docId) {
+          const doc = await fsGet(col, docId);
+          if (!doc) return jsonResponse({ error: "Not found" }, 404, {}, req);
+          return jsonResponse(doc, 200, { "Cache-Control": "public, max-age=60" }, req);
+        }
+        const docs = await fsQuery(col, opts);
+        return jsonResponse(docs, 200, { "Cache-Control": "public, max-age=30" }, req);
+      } catch (e) {
+        return jsonResponse({ error: "Data unavailable" }, 503, {}, req);
+      }
+    }
+
+    // ── Authenticated Data Routes ─────────────────────────────────────────────
+    if (path.startsWith('/api/data/') && serviceAccount?.private_key && projectId) {
+      const seg = path.slice('/api/data/'.length).split('/').filter(Boolean);
+      const col = seg[0];
+      const docId = seg[1];
+      if (!col) return jsonResponse({ error: "Not found" }, 404, {}, req);
+      try {
+        const opts = Object.fromEntries(url.searchParams);
+        if (req.method === 'GET') {
+          if (docId) {
+            const doc = await fsGet(col, docId);
+            if (!doc) return jsonResponse({ error: "Not found" }, 404, {}, req);
+            return jsonResponse(doc, 200, { "Cache-Control": "private, max-age=10" }, req);
+          }
+          const docs = await fsQuery(col, opts);
+          return jsonResponse(docs, 200, { "Cache-Control": "private, max-age=10" }, req);
+        }
+      } catch (e) {
+        return jsonResponse({ error: "Data unavailable" }, 503, {}, req);
+      }
+    }
+
     const sessionSecret = env.SESSION_SECRET;
     if (!serviceAccount?.private_key || !sessionSecret || !projectId || !env.FIREBASE_WEB_API_KEY) {
     return jsonResponse({ error: "Not found" }, 404, {}, req);
