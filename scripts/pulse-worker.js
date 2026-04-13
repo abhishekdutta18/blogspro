@@ -55,29 +55,48 @@ export default {
         })(request, env, ctx);
       }
 
-      // 3.5. KV PROXY (Instant Visibility for Autonomous Articles)
+      // 3.5. KV PROXY (Institutional "Lazy Cache" V6.5)
       if (pathname.startsWith('/briefings/') || pathname.startsWith('/articles/')) {
         try {
           const skipKV = url.searchParams.has('static');
+          const kvPath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+          const contentType = pathname.endsWith('.json') ? 'application/json' : 'text/html';
+
           if (!skipKV && env.KV) {
-            // Serve from KV for real-time autonomous updates
-            const kvPath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
-            const data = await env.KV.get(kvPath, { type: 'stream' });
-            if (data) {
-              const contentType = pathname.endsWith('.json') ? 'application/json' : 'text/html';
-              return new Response(data, {
+            // A. Attempt KV Retrieval
+            const cachedData = await env.KV.get(kvPath, { type: 'text' });
+            if (cachedData) {
+              return new Response(cachedData, {
                 headers: { 
                   'Content-Type': contentType,
-                  'X-Source': 'KV-Dynamic',
+                  'X-Source': 'KV-Dynamic (HIT)',
+                  'Access-Control-Allow-Origin': '*'
+                }
+              });
+            }
+
+            // B. Lazy Cache: Fetch from Origin (GitHub Pages) and Populate KV
+            const originUrl = `${env.BASE_URL || "https://blogspro.in"}${pathname}`;
+            const originRes = await fetch(originUrl);
+            
+            if (originRes.ok) {
+              const content = await originRes.text();
+              // Cache for 300s (5m) for high-frequency pulse content
+              ctx.waitUntil(env.KV.put(kvPath, content, { expirationTtl: 300 }));
+              
+              return new Response(content, {
+                headers: { 
+                  'Content-Type': contentType,
+                  'X-Source': 'KV-Dynamic (MISS-REPOPULATED)',
                   'Access-Control-Allow-Origin': '*'
                 }
               });
             }
           }
         } catch (e) {
-          console.warn("KV Proxy Fallback:", e.message);
+          console.warn("Institutional KV Flow Interrupted:", e.message);
         }
-        // Fallback to site bucket (handled by default at the end)
+        // Fallback to site bucket behavior if KV fails or content is not yet deployed to GH Pages
       }
 
       // 4. STATUS & TELEMETRY (Unified Institutional Bridge)

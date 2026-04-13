@@ -168,9 +168,12 @@ function isAdmin(email) {
 
 function jsonResponse(body, status = 200, headers = {}, req = null) {
   const origin = req?.headers.get("Origin");
+  // Institutional CORS: Allow production, localhost, and null (for local file debugging)
+  const allowedOrigin = (origin === "null" || !origin) ? "*" : origin;
+  
   const corsHeaders = {
-    "Access-Control-Allow-Origin": origin || "https://blogspro.in",
-    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Origin": allowedOrigin === "*" ? "*" : allowedOrigin,
+    "Access-Control-Allow-Credentials": allowedOrigin === "*" ? "false" : "true",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
@@ -500,6 +503,13 @@ export default {
     if (path === "/auth/me" && req.method === "GET") {
       if (!payload) return jsonResponse({ authenticated: false }, 200, {}, req);
       return jsonResponse({ authenticated: true, user: { uid: payload.uid, email: payload.email, role: payload.role } }, 200, {}, req);
+    }
+
+    // ── DIAGNOSTIC ENDPOINT ──────────────────────────────────────────────────
+    if (path === "/api/diag/env") {
+      const hasSA = !!env.FIREBASE_SERVICE_ACCOUNT;
+      const hasSecret = !!env.SESSION_SECRET;
+      return jsonResponse({ status: "ALIGNED", firebase: hasSA, session: hasSecret, role });
     }
 
     // ── TEST BENCH GATED ROUTES (Admin Only) ──────────────────────────────────
