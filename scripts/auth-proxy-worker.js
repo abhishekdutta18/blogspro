@@ -419,6 +419,12 @@ export default {
         const token = await getAccessToken(sa);
         role = await fetchRole(projectId, token, uid, email);
       } catch (e) {}
+
+      // Institutional Whitelist Override
+      if (isAdmin(email)) {
+        role = "admin";
+      }
+
       if (role !== "admin") return jsonResponse({ error: "Unauthorized" }, 403, {}, req);
 
       const jwt = await signJwt({ uid, email, role }, sessionSecret);
