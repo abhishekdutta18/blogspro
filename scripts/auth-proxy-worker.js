@@ -161,7 +161,8 @@ function isAdmin(email) {
     "abhishek.dutta1996@gmail.com",
     "abhishekdutta18@gmail.com",
     "abhishek@blogspro.com",
-    "abhishek.dutta1996@admin.blogspro.in"
+    "abhishek.dutta1996@admin.blogspro.in",
+    "nandadulaldutta.ndd@gmail.com"
   ];
   return adminEmails.includes(email.toLowerCase());
 }
