@@ -21,16 +21,16 @@ export function routeToBestModel(taskType, env = {}) {
             'executive': "x-ai/grok-1"
         },
         'draft': {
-            'high_density': "gemini-1.5-pro",
+            'high_density': "gemini-3.1-pro-preview",
             'standard': "gemma4" // Local Enhanced formatting
         },
         'audit': {
             'strict': "gemma4", // user-specified Specialist structurer
-            'light': "llama-3.1-8b-instant"
+            'light': "meta-llama-4-8b-instruct"
         },
         'fidelity': {
             'repair': "gemma4", // Local Self-healing pass
-            'cleanup': "llama-3.1-8b-instant"
+            'cleanup': "meta-llama-4-8b-instruct"
         }
     };
 
@@ -45,7 +45,7 @@ export function routeToBestModel(taskType, env = {}) {
         case 'fidelity':
             return tree.fidelity.repair;
         default:
-            return "llama3.1-8b";
+            return "meta-llama-4-8b-instruct";
     }
 }
 

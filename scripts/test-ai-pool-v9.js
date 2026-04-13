@@ -12,7 +12,7 @@ async function testPool() {
     console.log("🦾 [BlogsPro-AI] Starting Institutional Resource Pool Verification...");
     
     // Initialize pool with current environment
-    ResourceManager.init(process.env, true);
+    await ResourceManager.init(process.env, true);
     
     if (ResourceManager.pool.length === 0) {
         console.error("❌ [AI-Pool] ERROR: No nodes found in pool. Verify .env keys.");

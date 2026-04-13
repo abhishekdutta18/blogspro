@@ -156,6 +156,9 @@ export default {
             GEMINI: env.GEMINI_API_KEY || null,
             GROQ: env.GROQ_API_KEY || null,
             MISTRAL: env.MISTRAL_API_KEY || null,
+            SAMBANOVA: env.SAMBANOVA_API_KEY || null,
+            HUGGINGFACE: env.HF_TOKEN || null,
+            OLLAMA_PROD: env.OLLAMA_PROD_URL || null,
             INNGEST: env.INNGEST_SIGNING_KEY || null,
             SENTRY: env.SENTRY_DSN || null
           } 
@@ -341,6 +344,66 @@ export default {
         } catch (e) {
           return wrapResponse({ error: "Webhook Process Failed" }, 400);
         }
+      }
+
+      // 9. TEST BENCH INTERNAL AUDIT (Admin Proxy Only)
+      if (pathname === "/api/internal/audit" && request.method === "POST") {
+        const authHeader = request.headers.get("Authorization")?.replace('Bearer ', '') || "";
+        if (!authHeader || authHeader !== env.VAULT_MASTER_KEY) {
+          return wrapResponse({ error: "Unauthorized Internal Audit Access" }, 403);
+        }
+
+        let body = {};
+        try { body = await request.json(); } catch (e) { return wrapResponse({ error: "Invalid JSON" }, 400); }
+
+        const { text, model, ruleset } = body;
+        if (!text) return wrapResponse({ error: "Missing text for audit." }, 400);
+
+        // Map model & provider (leveraging existing handlers)
+        const targetModel = model || "gemini-3.1-pro-preview";
+        const provider = targetModel.includes('gemini') ? 'gemini' : (targetModel.includes('llama') ? 'sambanova' : 'groq');
+        
+        const auditPrompt = `
+          Perform an institutional audit on the following sample text.
+          Focus: ${ruleset || 'General Fidelity, Jargon Purging, and Formatting Consistency'}.
+          Text: """${text}"""
+          
+          Return your feedback in clear sections: [Fidelity Score], [Critical Issues], [Recommended Repair].
+        `;
+
+        try {
+          let response = "";
+          if (provider === 'gemini') response = await handleGeminiGateway(auditPrompt, targetModel, env);
+          else if (provider === 'sambanova') response = await handleSambaNovaGateway(auditPrompt, targetModel, env);
+          else response = await handleGroqGateway(auditPrompt, targetModel, env);
+          
+          return wrapResponse({ success: true, feedback: response, model: targetModel });
+        } catch (e) {
+          return wrapResponse({ error: `Audit Failure: ${e.message}` }, 500);
+        }
+      }
+
+      // 10. REAL-TIME TELEMETRY BRIDGE (Internal)
+      if (pathname === "/api/swarm/telemetry") {
+        // Reuse logic from /status but with higher detail if needed
+        const PROJECT_ID = env.FIREBASE_PROJECT_ID;
+        const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/telemetry_logs?pageSize=50&orderBy=timestamp desc`;
+        
+        const token = await getGoogleAccessToken(env);
+        const headers = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const logRes = await fetch(firestoreUrl, { headers });
+        const data = await logRes.json();
+        const logs = (data.documents || []).map(doc => ({
+          event: doc.fields?.event?.stringValue,
+          status: doc.fields?.status?.stringValue,
+          timestamp: doc.fields?.timestamp?.timestampValue,
+          message: doc.fields?.message?.stringValue,
+          details: doc.fields?.details?.mapValue?.fields ? JSON.stringify(doc.fields.details.mapValue.fields) : null
+        }));
+
+        return wrapResponse({ status: "OK", logs });
       }
 
       return wrapResponse({ error: "Not Found" }, 404);

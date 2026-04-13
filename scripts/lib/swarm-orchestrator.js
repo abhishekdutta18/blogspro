@@ -545,7 +545,7 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
           console.warn(`⚠️ [Swarm-Recovery] AI Fleet Exhausted for Job [${id}]. Initiating 30s Cooldown & Pool Rejuvenation...`);
           const { ResourceManager } = await import("./ai-service.js");
           await new Promise(r => setTimeout(r, 30000));
-          ResourceManager.init(env, true); // Force full pool refresh
+          await ResourceManager.init(env, true); // Force full pool refresh
           return await _executeSwarmInternal(frequency, semanticDigest, historicalData, type, env, id, isArticle, extended, targetVerticals);
       }
       throw err;
@@ -558,12 +558,12 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
   
   const globalNewsPulse = [];
 
-  // MARCH 2026: Institutional Pre-flight Audit
+  // APRIL 2026: Institutional Pre-flight Audit
   let nodeCount = 0;
   try {
       // Ensure AI pool is initialized to get accurate count
       const { ResourceManager } = await import("./ai-service.js");
-      if (ResourceManager.pool.length === 0) ResourceManager.init(env);
+      if (ResourceManager.pool.length === 0) await ResourceManager.init(env);
       nodeCount = ResourceManager.pool.length - ResourceManager.failed.size;
   } catch (e) {}
 
@@ -727,7 +727,7 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
       }
   }
   
-  const executiveStrategy = await askAI(getEditorPrompt(consensusData.summary, frequency), { role: 'edit', env, model: 'node-edit' });
+  const executiveStrategy = await askAI(getEditorPrompt(consensusData.summary, frequency), { role: 'edit', env, model: 'gemini-3.1-pro-preview' });
 
   // [V7.0] Institutional Memory Snapshot (Global Consolidation)
   if (frequency !== 'hourly') {

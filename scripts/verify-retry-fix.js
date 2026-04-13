@@ -4,7 +4,7 @@ async function testDecoupling() {
     console.log("🧪 [Test] Starting Institutional Retry Decoupling Verification...");
     
     // 1. Force fail a provider
-    ResourceManager.init({}, true);
+    await ResourceManager.init({}, true);
     const originalFn = ResourceManager.pool[0].fn;
     ResourceManager.pool[0].fn = async () => { throw new Error("INTENTIONAL_FAILURE"); };
 

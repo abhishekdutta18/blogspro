@@ -502,6 +502,32 @@ export default {
       return jsonResponse({ authenticated: true, user: { uid: payload.uid, email: payload.email, role: payload.role } }, 200, {}, req);
     }
 
+    // ── TEST BENCH GATED ROUTES (Admin Only) ──────────────────────────────────
+    if (path.startsWith("/api/testbench")) {
+      if (role !== "admin") return jsonResponse({ error: "Access Denied: Admin role required for Test Bench" }, 403, {}, req);
+      
+      const PULSE_URL = env.PULSE_URL || "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
+      
+      // Proxy Audit Request
+      if (path === "/api/testbench/audit" && req.method === "POST") {
+        const body = await req.json();
+        const res = await fetch(`${PULSE_URL}/api/internal/audit`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${env.INTERNAL_ACCESS_TOKEN || ''}` },
+          body: JSON.stringify(body)
+        });
+        return new Response(res.body, { status: res.status, headers: { ...res.headers, "Access-Control-Allow-Origin": "*" } });
+      }
+
+      // Proxy Tracer Logs
+      if (path === "/api/testbench/tracer") {
+        const res = await fetch(`${PULSE_URL}/api/swarm/telemetry`, {
+          headers: { "Authorization": `Bearer ${env.INTERNAL_ACCESS_TOKEN || ''}` }
+        });
+        return new Response(res.body, { status: res.status, headers: { ...res.headers, "Access-Control-Allow-Origin": "*" } });
+      }
+    }
+
     return jsonResponse({ error: "Not found" }, 404, {}, req);
   },
 };
