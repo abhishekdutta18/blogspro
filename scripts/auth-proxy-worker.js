@@ -186,7 +186,7 @@ function jsonResponse(body, status = 200, headers = {}, req = null) {
 
 function setSessionCookie(jwt) {
   return {
-    "Set-Cookie": `bp_session=${jwt}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${7 * 24 * 3600}`,
+    "Set-Cookie": `bp_session=${jwt}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${7 * 24 * 3600}`,
   };
 }
 
@@ -502,7 +502,7 @@ export default {
     if (path === "/auth/logout" && req.method === "POST") {
       return new Response(null, {
         status: 204,
-        headers: { "Set-Cookie": "bp_session=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax" },
+        headers: { "Set-Cookie": "bp_session=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None" },
       });
     }
 
