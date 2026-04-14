@@ -161,8 +161,16 @@ async function syncToFirestore(collectionName, data, env) {
     return false;
   }
 
-  const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/${collectionName}`;
-  
+  // V12.6: Support idempotent UPSERT via custom document ID
+  const docId = data.id || data.docId;
+  let url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/${collectionName}`;
+  let method = "POST";
+
+  if (docId) {
+    url += `/${docId}`;
+    method = "PATCH";
+  }
+
   // Transform flat JS object to Firestore-compatible fields JSON
   const fields = {};
   for (const [key, value] of Object.entries(data)) {
@@ -170,25 +178,87 @@ async function syncToFirestore(collectionName, data, env) {
     else if (typeof value === 'boolean') fields[key] = { booleanValue: value };
     else fields[key] = { stringValue: String(value) };
   }
+
   try {
     const headers = { "Content-Type": "application/json" };
     const token = await getGoogleAccessToken(env);
     if (token) headers["Authorization"] = `Bearer ${token}`;
+
     const res = await fetch(url, {
-      method: "POST",
+      method: method,
       headers: headers,
       body: JSON.stringify({ fields })
     });
+
     if (!res.ok) {
-      console.error(`❌ Firestore Sync Fail (${collectionName}):`, await res.text());
+      console.error(`❌ Firestore Sync Fail (${collectionName}${docId ? '/' + docId : ''}):`, await res.text());
       return false;
     }
-    console.log(`📡 [Firestore] Successfully synced record to '${collectionName}'`);
+    console.log(`📡 [Firestore] Successfully ${docId ? 'upserted' : 'synced'} record to '${collectionName}'`);
     return true;
   } catch (e) {
     console.error(`⚠️ Firestore Connection Error:`, e.message);
     return false;
   }
+}
+
+/**
+ * 🛰️ [V15.0] Swarm Idempotency Check
+ * Queries telemetry logs to see if a run for this frequency/period is already complete or active.
+ */
+async function checkPeriodStatus(frequency, periodId, env) {
+    if (!env || !env.FIREBASE_PROJECT_ID) return { status: 'unknown' };
+    
+    // Structured Query for efficiency
+    const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery`;
+    const token = await getGoogleAccessToken(env);
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const query = {
+        structuredQuery: {
+            from: [{ collectionId: 'telemetry_logs' }],
+            where: {
+                fieldFilter: { field: { fieldPath: 'periodId' }, op: 'EQUAL', value: { stringValue: periodId } }
+            },
+            limit: 20,
+            orderBy: [{ field: { fieldPath: 'timestamp' }, direction: 'DESCENDING' }]
+        }
+    };
+
+    try {
+        const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(query) });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        
+        // Firestore runQuery returns an array of objects, some might be empty or missing document
+        const results = Array.isArray(data) ? data : [];
+        const logs = results.filter(d => d.document).map(d => {
+            const fields = d.document.fields;
+            return {
+                event: fields.event?.stringValue,
+                status: fields.status?.stringValue,
+                frequency: fields.frequency?.stringValue,
+                timestamp: fields.timestamp?.timestampValue,
+                jobId: fields.jobId?.stringValue
+            };
+        }).filter(l => l.frequency === frequency); // V15.2 In-memory frequency filter to avoid composite index
+
+        if (logs.some(l => l.event === 'SWARM_COMPLETE' && l.status === 'success')) return { status: 'SUCCESS' };
+        
+        const latestStart = logs.find(l => l.event === 'SWARM_START');
+        if (latestStart) {
+            const startTs = new Date(latestStart.timestamp).getTime();
+            const now = Date.now();
+            // If run started less than 2 hours ago, consider it an active lock
+            if (now - startTs < 2 * 60 * 60 * 1000) return { status: 'ACTIVE', jobId: latestStart.jobId };
+        }
+
+        return { status: 'IDLE' };
+    } catch (e) {
+        console.warn(`⚠️ [Idempotency] Status check failed: ${e.message}`);
+        return { status: 'unknown' };
+    }
 }
 
 /**
@@ -434,36 +504,50 @@ async function pushTelemetryLog(event, metadata = {}, env) {
  * High-fidelity institutional audit logger.
  */
 export async function pushSovereignTrace(event, metadata = {}, env) {
-  if (!env || !env.FIREBASE_PROJECT_ID) return;
-  try {
-    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/telemetry_logs`;
-    const headers = { "Content-Type": "application/json" };
-    const token = await getGoogleAccessToken(env);
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-    
-    // Normalize numeric values for Firestore REST API
-    const latency = metadata.latency ? metadata.latency.toString() : '0';
-    
-    const payload = {
-      fields: {
-        event: { stringValue: event },
-        timestamp: { timestampValue: new Date().toISOString() },
-        frequency: { stringValue: metadata.frequency || 'unknown' },
-        jobId: { stringValue: metadata.jobId || 'local' },
-        status: { stringValue: metadata.status || 'info' },
-        latency: { integerValue: latency },
-        role: { stringValue: metadata.role || 'generic' },
-        model: { stringValue: metadata.model || 'unknown' },
-        vertical: { stringValue: metadata.vertical || 'global' },
-        message: { stringValue: metadata.message || '' },
-        details: { stringValue: JSON.stringify(metadata.details || {}) }
-      }
-    };
-    
-    const res = await fetch(firestoreUrl, { method: "POST", headers, body: JSON.stringify(payload) });
-    if (!res.ok) console.warn("⚠️ [Trace] Bridge Stalled:", await res.text());
-  } catch (e) {
-    console.warn("⚠️ [Trace] Failed to push breadcrumb:", e.message);
+  if (!env) return;
+  
+  // 1. Bridge to Firestore (Persistent Ledger)
+  if (env.FIREBASE_PROJECT_ID) {
+    try {
+        const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/telemetry_logs`;
+        const headers = { "Content-Type": "application/json" };
+        const token = await getGoogleAccessToken(env);
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        
+        const payload = {
+          fields: {
+            event: { stringValue: event },
+            timestamp: { timestampValue: new Date().toISOString() },
+            frequency: { stringValue: metadata.frequency || 'unknown' },
+            jobId: { stringValue: metadata.jobId || 'local' },
+            status: { stringValue: metadata.status || 'info' },
+            message: { stringValue: metadata.message || '' },
+            details: { stringValue: JSON.stringify(metadata.details || {}) }
+          }
+        };
+        await fetch(firestoreUrl, { method: "POST", headers, body: JSON.stringify(payload) });
+    } catch (e) {
+        console.warn("⚠️ [Trace] Firestore bridge stalled:", e.message);
+    }
+  }
+
+  // 2. Bridge to Auth Proxy (Real-time Dashboard Pulse)
+  const proxyHub = env.AUTH_PROXY_URL || "https://blogspro-auth.abhishek-dutta1996.workers.dev/telemetry";
+  const masterSecret = env.INSTITUTIONAL_MASTER_SECRET;
+  
+  if (masterSecret) {
+    try {
+      await fetch(proxyHub, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${masterSecret}`
+        },
+        body: JSON.stringify({ event, ...metadata })
+      });
+    } catch (e) {
+      // Non-fatal, just quiet
+    }
   }
 }
 
@@ -624,7 +708,7 @@ async function loadFromGDriveBucket(jobId, env) {
  * Saves a file to the project's primary Cloud Storage bucket.
  */
 async function saveToCloudBucket(fileName, content, env) {
-    const bucket = env.FIREBASE_STORAGE_BUCKET || "blogspro-asset";
+    const bucket = env.FIREBASE_STORAGE_BUCKET || "blogspro-ai.firebasestorage.app";
     if (!bucket) {
         console.warn("⚠️ [CloudBridge] No bucket configured.");
         return null;
@@ -658,7 +742,7 @@ async function saveToCloudBucket(fileName, content, env) {
  * 🛰️ [V10.5] GCS Cloud Bucket Retrieval
  */
 async function loadFromCloudBucket(jobId, env) {
-    const bucket = env.FIREBASE_STORAGE_BUCKET || "blogspro-asset";
+    const bucket = env.FIREBASE_STORAGE_BUCKET || "blogspro-ai.firebasestorage.app";
     if (!bucket || !jobId) return [];
 
     try {
@@ -688,6 +772,46 @@ async function loadFromCloudBucket(jobId, env) {
     }
 }
 
+/**
+ * [V12.7] pushSovereignNewsletter
+ * ----------------------------
+ * Centralized newsletter dispatch for institutional masterpieces.
+ */
+async function pushSovereignNewsletter(subject, html, env) {
+  const newsletterUrl = env.NEWSLETTER_WORKER_URL || "https://newsletter.blogspro.in";
+  const secret = env.NEWSLETTER_SECRET;
+
+  if (!newsletterUrl || !secret) {
+    console.warn("⚠️ [Newsletter] NEWSLETTER_WORKER_URL or SECRET missing. Skipping dispatch.");
+    return false;
+  }
+
+  try {
+    console.log(`💎 [Newsletter] Dispatching Masterpiece: ${subject}`);
+    const res = await fetch(newsletterUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subject,
+        html,
+        secret,
+        from: env.NEWSLETTER_FROM || "BlogsPro Institutional Hub"
+      })
+    });
+
+    if (res.ok) {
+      console.log(`✅ [Newsletter] Distribution Completed Successfully.`);
+      return true;
+    } else {
+      console.warn(`⚠️ [Newsletter] Worker rejected dispatch: ${res.status}`);
+      return false;
+    }
+  } catch (err) {
+    console.error(`❌ [Newsletter] Connection failed:`, err.message);
+    return false;
+  }
+}
+
 export {
   getGoogleAccessToken,
   syncToFirestore,
@@ -701,5 +825,7 @@ export {
   pushTelemetryLog,
   saveToCloudBucket,
   loadFromCloudBucket,
-  saveToGDriveBucket
+  saveToGDriveBucket,
+  checkPeriodStatus,
+  pushSovereignNewsletter
 };

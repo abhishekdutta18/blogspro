@@ -133,6 +133,48 @@ async function getAccessToken(sa) {
   return (await res.json()).access_token;
 }
 
+// ── Firebase ID Token Verification (Web Crypto RSA) ─────────────────────────
+async function verifyFirebaseIdToken(token, projectId) {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const [hB64, pB64, sB64] = parts;
+    const header = JSON.parse(fromB64url(hB64));
+    const payload = JSON.parse(fromB64url(pB64));
+
+    // 1. Basic Claims
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp < now) return null;
+    if (payload.aud !== projectId) return null;
+    if (payload.iss !== `https://securetoken.google.com/${projectId}`) return null;
+    if (!payload.sub) return null;
+
+    // 2. RSA Signature Check (Google JWK)
+    const jwkRes = await fetch("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com");
+    if (!jwkRes.ok) return null;
+    const jwkData = await jwkRes.json();
+    const jwk = jwkData.keys.find(k => k.kid === header.kid);
+    if (!jwk) return null;
+
+    const cryptoKey = await crypto.subtle.importKey(
+      "jwk", jwk,
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false, ["verify"]
+    );
+
+    const sigBytes = Uint8Array.from(fromB64url(sB64), c => c.charCodeAt(0));
+    const valid = await crypto.subtle.verify(
+      "RSASSA-PKCS1-v1_5", cryptoKey, sigBytes, new TextEncoder().encode(`${hB64}.${pB64}`)
+    );
+
+    if (!valid) return null;
+    return { uid: payload.sub, email: payload.email };
+  } catch (e) {
+    console.error("Firebase Verify Error:", e);
+    return null;
+  }
+}
+
 async function fetchRole(projectId, accessToken, uid, email = null) {
   // 1. Try UID lookup
   let url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${uid}`;
@@ -169,14 +211,20 @@ function isAdmin(email) {
 
 function jsonResponse(body, status = 200, headers = {}, req = null) {
   const origin = req?.headers.get("Origin");
-  // Institutional CORS: Allow production, localhost, and null (for local file debugging)
-  const allowedOrigin = (origin === "null" || !origin) ? "*" : origin;
+  // Institutional CORS: Allow production, localhost, and specific subdomains
+  const allowedOrigins = [
+    "https://blogspro.in",
+    "https://admin.blogspro.in",
+    "http://localhost:8888",
+    "http://127.0.0.1:8888"
+  ];
+  const allowedOrigin = (origin && allowedOrigins.includes(origin)) ? origin : (origin === "null" ? "null" : allowedOrigins[0]);
   
   const corsHeaders = {
-    "Access-Control-Allow-Origin": allowedOrigin === "*" ? "*" : allowedOrigin,
-    "Access-Control-Allow-Credentials": allowedOrigin === "*" ? "false" : "true",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
   };
   return new Response(JSON.stringify(body), {
     status,
@@ -196,15 +244,18 @@ export default {
     const path = url.pathname;
     const FRONTEND_URL = "https://blogspro.in";
 
-    // CORS Preflight
+    // CORS Preflight (Institutional Hardening V12.5)
     if (req.method === "OPTIONS") {
       const origin = req.headers.get("Origin");
+      const allowedOrigins = ["https://blogspro.in", "https://admin.blogspro.in", "http://localhost:8888"];
+      const responseOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+      
       return new Response(null, {
         status: 204,
         headers: {
-          "Access-Control-Allow-Origin": origin || "https://blogspro.in",
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Access-Control-Allow-Origin": responseOrigin,
+          "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
           "Access-Control-Allow-Credentials": "true",
           "Access-Control-Max-Age": "86400",
         },
@@ -394,7 +445,6 @@ export default {
       }
     }
 
-
     // Login
     if (path === "/auth/login" && req.method === "POST") {
       const body = await req.json().catch(() => ({}));
@@ -428,7 +478,7 @@ export default {
       if (role !== "admin") return jsonResponse({ error: "Unauthorized" }, 403, {}, req);
 
       const jwt = await signJwt({ uid, email, role }, sessionSecret);
-      return jsonResponse({ success: true, role }, 200, setSessionCookie(jwt), req);
+      return jsonResponse({ success: true, role, token: jwt }, 200, setSessionCookie(jwt), req);
     }
 
     // Google Callback (GSI login_uri)
@@ -459,8 +509,8 @@ export default {
         
         const jwt = await signJwt({ uid, email, role: role || "reader" }, sessionSecret);
         
-        // Redirect back to admin or home
-        const redirectUrl = role === "admin" ? "https://blogspro.in/admin.html" : "https://blogspro.in/";
+        // Redirect to login.html with token for localStorage capture (Institutional Bridge)
+        const redirectUrl = `https://blogspro.in/login.html?token=${jwt}`;
         return new Response(null, {
           status: 303,
           headers: {
@@ -495,7 +545,7 @@ export default {
       await fsCreate("users", uid, { name, email, role, createdAt: new Date().toISOString() });
 
       const jwt = await signJwt({ uid, email, role }, sessionSecret);
-      return jsonResponse({ success: true, role }, 200, setSessionCookie(jwt), req);
+      return jsonResponse({ success: true, role, token: jwt }, 200, setSessionCookie(jwt), req);
     }
 
     // Logout
@@ -509,7 +559,12 @@ export default {
     // Me
     if (path === "/auth/me" && req.method === "GET") {
       if (!payload) return jsonResponse({ authenticated: false }, 200, {}, req);
-      return jsonResponse({ authenticated: true, user: { uid: payload.uid, email: payload.email, role: payload.role } }, 200, {}, req);
+      const jwt = await signJwt({ uid: payload.uid, email: payload.email, role: payload.role }, sessionSecret);
+      return jsonResponse({ 
+        authenticated: true, 
+        user: { uid: payload.uid, email: payload.email, role: payload.role },
+        token: jwt
+      }, 200, {}, req);
     }
 
     // ── DIAGNOSTIC ENDPOINT ──────────────────────────────────────────────────
