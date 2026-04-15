@@ -221,7 +221,10 @@ export async function loadHybridPosts() {
         let firestorePosts = [];
         try {
             const posts = await api.public.data('posts');
-            firestorePosts = (posts || []).filter(p => p.published);
+            firestorePosts = (posts || []).filter(p => p.published).map(p => ({
+                ...p,
+                id: p._id  // _id is the Firestore document ID; use it for reliable fsGet lookups
+            }));
         } catch (err) {
             console.warn('[HybridEngine] Firestore posts unavailable');
         }
@@ -239,16 +242,21 @@ export async function loadHybridPosts() {
                 .catch(() => [])
         ));
 
-        let aiPosts = aiResults.flat().map(pulse => ({
-            id: pulse.fileName,
-            title: pulse.title,
-            excerpt: pulse.excerpt || "Institutional Strategic Intelligence",
-            category: pulse.type === 'briefing' ? 'Pulse' : 'Strategic',
-            authorName: "BlogsPro Research Desk",
-            createdAt: new Date(pulse.timestamp || Date.now()).toISOString(),
-            isAI: true,
-            path: pulse.type === 'briefing' ? `briefings/${pulse.frequency}/${pulse.fileName}` : `articles/${pulse.frequency}/${pulse.fileName}`
-        }));
+        let aiPosts = aiResults.flat()
+            .filter(pulse => {
+                const text = (pulse.title || '') + ' ' + (pulse.excerpt || '');
+                return !text.includes('[DRY-RUN') && !text.includes('DRY-RUN MOCK');
+            })
+            .map(pulse => ({
+                id: pulse.fileName,
+                title: pulse.title,
+                excerpt: pulse.excerpt || "Institutional Strategic Intelligence",
+                category: pulse.type === 'briefing' ? 'Pulse' : 'Strategic',
+                authorName: "BlogsPro Research Desk",
+                createdAt: new Date(pulse.timestamp || Date.now()).toISOString(),
+                isAI: true,
+                path: pulse.type === 'briefing' ? `briefings/${pulse.frequency}/${pulse.fileName}` : `articles/${pulse.frequency}/${pulse.fileName}`
+            }));
 
         let all = [...firestorePosts, ...aiPosts].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
