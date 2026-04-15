@@ -2434,7 +2434,7 @@
   window.openPostById = async (encodedId) => {
     const id = decodeURIComponent(String(encodedId || ''));
     const post = allPosts.find(p => p.id === id);
-    if (post && post.path) { window.location.href = post.path; return; }
+    if (post && post.isAI && post.path) { window.location.href = post.path; return; }
     window.location.href = `post.html?id=${id}`;
   };
 
