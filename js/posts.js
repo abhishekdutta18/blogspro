@@ -221,7 +221,13 @@ export async function loadHybridPosts() {
         let firestorePosts = [];
         try {
             const posts = await api.public.data('posts');
-            firestorePosts = (posts || []).filter(p => p.published).map(p => ({
+            const isMockPost = (p) => {
+                const text = (p.title || '') + ' ' + (p.excerpt || '');
+                return text.includes('[DRY-RUN') || text.includes('DRY-RUN MOCK') ||
+                       text.toLowerCase().includes('density mock') ||
+                       (p.title || '').includes('Verification Draft');
+            };
+            firestorePosts = (posts || []).filter(p => p.published && !isMockPost(p)).map(p => ({
                 ...p,
                 id: p._id  // _id is the Firestore document ID; use it for reliable fsGet lookups
             }));

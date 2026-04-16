@@ -2655,7 +2655,7 @@
     initForexCalendarControls();
     const indiaOk = await loadIndiaCalendarData().catch(() => false);
     const marketOk = await loadUpstoxMarketData({ showLoading: true }).catch(() => false);
-    const allOk = settingsOk && postsOk && aboutOk && forexOk && indiaOk && marketOk;
+    const allOk = settingsOk && postsOk && forexOk && indiaOk && marketOk; // aboutOk excluded: falls back gracefully
     setIntegrationStatus(
       allOk ? 'online' : 'degraded',
       allOk ? 'Integrations: Online' : 'Integrations: Degraded'
