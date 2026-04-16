@@ -12,11 +12,9 @@ name = "blogspro-kv-cache"
 main = "workers/kv-cache.js"
 compatibility_date = "2026-04-01"
 
-[env.kv-cache.kv_namespaces]
-# Replace id with your KV namespace ID
-bindings = [
-  { binding = "CACHE_KV", id = "9caa7afdf7e94adb99cecf221275d63d" }
-]
+[[env.kv-cache.kv_namespaces]]
+binding = "CACHE_KV"
+id = "9caa7afdf7e94adb99cecf221275d63d"
 
 [vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
