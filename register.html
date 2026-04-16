@@ -129,6 +129,10 @@
     <label>Password</label>
     <input type="password" id="regPass" placeholder="Min. 6 characters" />
   </div>
+  <div class="form-row">
+    <label>Confirm Password</label>
+    <input type="password" id="regConfirm" placeholder="Repeat password" />
+  </div>
  
   <div class="form-row">
     <label>Access Role Application</label>
@@ -168,7 +172,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GithubAuthProvider, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, signInWithRedirect, getRedirectResult, GithubAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { api } from "./js/services/api.js";
 
   const firebaseConfig = {
@@ -180,51 +184,57 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
+  // Role selection state
+  let selectedRole = 'reader';
+  window.selectRole = (role) => {
+    selectedRole = role;
+    ['reader', 'editor', 'coauthor'].forEach(r => {
+      const card = document.getElementById('card-' + r);
+      if (card) card.classList.toggle('selected', r === role);
+    });
+  };
+
   // Handle Redirect Result on Load
   window.addEventListener('load', async () => {
-    // 1. Check for Pending GitHub/Firebase Redirects
+    // 1. Check for Pending GitHub Redirects
     try {
       const result = await getRedirectResult(auth);
-      if (result) await handleAuthSuccess(result.user);
+      if (result) await handleSocialAuthSuccess(result.user);
     } catch (e) {
       console.error("Redirect auth error:", e);
     }
 
-    // 2. Initialize GSI (Zero-Firebase-Link Flow)
+    // 2. Initialize Google GSI button
     if (window.google) {
       google.accounts.id.initialize({
         client_id: "940428277283-bdgk8sf3d0q7jls327e0j8cce5l9a78q.apps.googleusercontent.com",
         login_uri: "https://blogspro-auth.abhishek-dutta1996.workers.dev/auth/callback/google",
         ux_mode: "redirect",
-        auto_select: true
+        auto_select: false
       });
-      
-      // Render Branded Button
       google.accounts.id.renderButton(
         document.getElementById("googleBtn"),
         { theme: "filled_blue", size: "large", width: 370 }
       );
-
-      // Trigger One Tap Overlay
-      google.accounts.id.prompt();
     }
   });
 
-  async function handleAuthSuccess(user) {
+  // Social login: admins → admin.html, everyone else → index.html
+  async function handleSocialAuthSuccess(user) {
     const idToken = await user.getIdToken();
     localStorage.setItem("fb_token", idToken);
-    
-    // Check if admin (role check on worker)
-    const me = await api.auth.me();
-    if (me?.authenticated && me.user?.role === "admin") {
-      window.location.href = "admin.html";
-    } else {
-      const role = me.user?.role || "reader";
-      window.location.href = "login.html?error=unauthorized&reason=" + role;
+    try {
+      const me = await api.auth.me();
+      if (me?.authenticated && me.user?.role === "admin") {
+        window.location.href = "admin.html";
+      } else {
+        window.location.href = "index.html";
+      }
+    } catch (_) {
+      window.location.href = "index.html";
     }
   }
 
-  // Auth Handlers
   window.signUpGitHub = async () => {
     setLoading('github', true);
     try {
@@ -237,18 +247,29 @@
   };
 
   window.doRegister = async () => {
-    const email = document.getElementById('email').value.trim();
-    const pass  = document.getElementById('password').value;
-    const confirm = document.getElementById('confirmPassword').value;
+    const name    = document.getElementById('regName').value.trim();
+    const email   = document.getElementById('regEmail').value.trim();
+    const pass    = document.getElementById('regPass').value;
+    const confirm = document.getElementById('regConfirm').value;
 
-    if (!email || !pass || !confirm) { showError('Please fill all fields.'); return; }
-    if (pass !== confirm) { showError('Passwords do not match.'); return; }
-    if (pass.length < 6) { showError('Password must be at least 6 characters.'); return; }
+    if (!name)              { showError('Please enter your full name.'); return; }
+    if (!email || !pass)    { showError('Please fill all fields.'); return; }
+    if (pass !== confirm)   { showError('Passwords do not match.'); return; }
+    if (pass.length < 6)    { showError('Password must be at least 6 characters.'); return; }
 
     setLoading('email', true); hideError();
     try {
-      const result = await createUserWithEmailAndPassword(auth, email, pass);
-      await handleAuthSuccess(result.user);
+      await api.auth.register(name, email, pass);
+      try {
+        const me = await api.auth.me();
+        if (me?.authenticated && me.user?.role === "admin") {
+          window.location.href = "admin.html";
+        } else {
+          window.location.href = "index.html";
+        }
+      } catch (_) {
+        window.location.href = "index.html";
+      }
     } catch (e) {
       showError(e.message || "Registration failed.");
       setLoading('email', false);
@@ -257,8 +278,8 @@
 
   function setLoading(provider, on) {
     const map = {
-      github: { btn: 'githubBtn', ring: 'githubRing' },
-      email:  { btn: 'registerBtn', ring: 'emailRing', txt: 'btnText' },
+      github: { btn: 'githubBtn',  ring: 'githubRing' },
+      email:  { btn: 'regBtn',     ring: 'regRing',    txt: 'regBtnText' },
     };
     const { btn, ring, txt } = map[provider];
     const button = document.getElementById(btn);
