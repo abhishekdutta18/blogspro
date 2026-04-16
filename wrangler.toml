@@ -1,10 +1,10 @@
 # ============================================
 
-# Default target (avoids “Missing entry-point” when no env is specified)
-name = “blogspro-upstox”
-main = “api/upstox-worker.js”
-compatibility_date = “2026-04-01”
-account_id = “b3f4edff1fdc616f329e7d7cb6698307”
+# Default target (avoids "Missing entry-point" when no env is specified)
+name = "blogspro-upstox"
+main = "api/upstox-worker.js"
+compatibility_date = "2026-04-01"
+account_id = "b3f4edff1fdc616f329e7d7cb6698307"
 
 # KV cache worker (bind CACHE_KV before deploy)
 [env.kv-cache]
