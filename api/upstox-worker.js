@@ -62,41 +62,6 @@ export default {
           "NSE_INDEX|Nifty Infra", "NSE_INDEX|Nifty Media"
         ];
 
-        // Build near-month NSE_CDS futures instrument keys for Upstox LTP
-        // NSE CDS expires on the last business day (Mon-Fri) of each month
-        const cdsFutKey = (pair) => {
-          const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-          const now = new Date();
-          let y = now.getUTCFullYear(), m = now.getUTCMonth();
-          const lastBiz = (yr, mo) => {
-            const d = new Date(Date.UTC(yr, mo + 1, 0)); // last calendar day
-            while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() - 1);
-            return d;
-          };
-          let exp = lastBiz(y, m);
-          // If today is at or past expiry, roll to next month
-          if (now.getTime() >= exp.getTime()) {
-            m++; if (m > 11) { m = 0; y++; }
-            exp = lastBiz(y, m);
-          }
-          const dd = String(exp.getUTCDate()).padStart(2, '0');
-          const mmm = months[exp.getUTCMonth()];
-          const yy = String(exp.getUTCFullYear()).slice(-2);
-          return `NSE_CDS|${pair}${dd}${mmm}${yy}FUT`;
-        };
-
-        // NSE CDS pairs: INR pairs + cross-currency pairs (available on NSE since 2018)
-        const cdsPairs = [
-          ['USDINR', 'NSE_CDS:USDINR'], ['EURINR', 'NSE_CDS:EURINR'],
-          ['GBPINR', 'NSE_CDS:GBPINR'], ['JPYINR', 'NSE_CDS:JPYINR'],
-          ['AUDINR', 'NSE_CDS:AUDINR'], ['EURUSD', 'NSE_CDS:EURUSD'],
-          ['GBPUSD', 'NSE_CDS:GBPUSD'], ['USDJPY', 'NSE_CDS:USDJPY'],
-          ['AUDUSD', 'NSE_CDS:AUDUSD'],
-        ];
-        const cdsKeys = cdsPairs.map(([pair, outKey]) => ({
-          instrKey: cdsFutKey(pair), outKey,
-        }));
-
         const yfMap = [
           // ── NSE Indices (Yahoo Finance fallback — active when Upstox token expires) ──
           ["^NSEI",       "NSE_INDEX|Nifty 50",        "Nifty 50"],
@@ -207,30 +172,21 @@ export default {
           return null;
         };
 
-        // Fetch Upstox Quotes (NSE indices + NSE_CDS futures) and Yahoo Finance in parallel
-        const allUpstoxKeys = [...nseIndexSymbols, ...cdsKeys.map(c => c.instrKey)];
+        // Fetch Upstox Quotes via REST + Yahoo Finance in parallel
         const [upstoxRes, ...yfResults] = await Promise.allSettled([
-          fetchUpstox(`/market-quote/ltp?instrument_key=${encodeURIComponent(allUpstoxKeys.join(","))}`, token),
+          fetchUpstox(`/market-quote/ltp?instrument_key=${encodeURIComponent(nseIndexSymbols.join(","))}`, token),
           ...yfMap.map(fetchYfChart),
         ]);
 
         const merged = {};
 
-        // Upstox NSE indices + NSE_CDS futures
+        // Upstox NSE indices
         let tokenExpired = false;
         if (upstoxRes.status === "fulfilled") {
             const rawRes = upstoxRes.value;
             if (rawRes.ok) {
                 const upstoxValue = await rawRes.json();
-                const upData = upstoxValue.data || {};
-                Object.assign(merged, upData);
-                // Remap CDS futures keys (e.g. NSE_CDS:USDINR30APR26FUT) → canonical (NSE_CDS:USDINR)
-                for (const { instrKey, outKey } of cdsKeys) {
-                  const upKey = instrKey.replace('|', ':'); // Upstox returns ':' not '|'
-                  if (upData[upKey] && !merged[outKey]) {
-                    merged[outKey] = { ...upData[upKey], _source: 'upstox_cds' };
-                  }
-                }
+                Object.assign(merged, upstoxValue.data || {});
             } else if (rawRes.status === 401) {
                 tokenExpired = true;
             }
