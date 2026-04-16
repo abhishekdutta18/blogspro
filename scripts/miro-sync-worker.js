@@ -37,8 +37,17 @@ export class MiroSyncS {
       return new Response(null, { status: 101, webSocket: client });
     }
 
+    // [V7.0] Sync Checkpoint: Persist current state and return size
+    if (url.pathname === '/sync' && request.method === 'POST') {
+      const update = Y.encodeStateAsUpdate(this.doc);
+      await this.state.storage.put('doc', update);
+      return new Response(JSON.stringify({ success: true, size: update.byteLength }), {
+        headers: { 'Content-Type': 'application/json', "Access-Control-Allow-Origin": "*" }
+      });
+    }
+
     // 0.5 [V7.0] Manual Archival Trigger
-    if (url.pathname === '/archive') {
+    if (url.pathname === '/archive' && request.method === 'GET') {
       await this.archiveToFirebase();
       return new Response(JSON.stringify({ 
         success: true, 
@@ -578,11 +587,8 @@ const TERMINAL_HTML = `
             <section>
                 <div class="metrics-grid">
                     <div class="m-card">
-                        <div class="stat-card">
-                          <div class="stat-label">ARCHIVE STATUS</div>
-                          <div class="stat-value" style="color: #00ff88;">LIFETIME</div>
-                          <div class="stat-sub">V7.0 Deep Storage Active</div>
-                        </div>
+                        <div class="m-val" id="storage-active" style="color:var(--gold)">0</div>
+                        <div class="m-lbl">Active Jobs</div>
                     </div>
                     <div class="m-card">
                         <div class="m-val" style="color:var(--ok)">98.2%</div>

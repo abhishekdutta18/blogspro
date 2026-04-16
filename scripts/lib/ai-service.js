@@ -1039,6 +1039,7 @@ export const ResourceManager = {
         const activeKeys = {
             Groq: sanitize(env.GROQ_API_KEY || process.env.GROQ_API_KEY || process.env.GROQ_KEY, 'Groq', true),
             Gemini: sanitize(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY, 'Gemini', true),
+            Cerebras: sanitize(env.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY, 'Cerebras', true),
             HF_TOKEN: sanitize(env.HF_TOKEN || process.env.HF_TOKEN, 'HuggingFace', true),
             SambaNova: sanitize(env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_KEY, 'SambaNova', true),
             Ollama: (process.env.GITHUB_ACTIONS === 'true' && !env.OLLAMA_HOST) ? null : (env.OLLAMA_HOST || process.env.OLLAMA_HOST || "http://127.0.0.1:11434").trim(),
