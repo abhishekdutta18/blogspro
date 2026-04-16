@@ -15,6 +15,7 @@ export default {
     const url = new URL(request.url);
     const frequency = url.searchParams.get("freq") || "hourly";
     const type = url.searchParams.get("type") || "briefing"; // 'briefing' or 'article'
+    const modelOverride = url.searchParams.get("model") || "auto";
     const authHeader = request.headers.get("Authorization");
 
     if (env.NEWSLETTER_SECRET && authHeader !== `Bearer ${env.NEWSLETTER_SECRET}`) {
@@ -27,9 +28,9 @@ export default {
 
       let result;
       if (type === "article") {
-        result = await generateArticleJob(frequency, env, jobId, step);
+        result = await generateArticleJob(frequency, env, jobId, step, modelOverride);
       } else {
-        result = await generateBriefingJob(frequency, env);
+        result = await generateBriefingJob(frequency, env, modelOverride);
       }
       return new Response(JSON.stringify({ status: "success", result }), {
         headers: { "Content-Type": "application/json" }
@@ -108,14 +109,14 @@ async function notifyTelegram(entry, type, env) {
 }
 
 // --- BRIEFING JOB ---
-export async function generateBriefingJob(frequency, env) {
+export async function generateBriefingJob(frequency, env, modelOverride = "auto") {
   // Environmental shimming
   if (typeof process === "undefined") globalThis.process = { env: {} };
   Object.assign(process.env, env);
 
   const mktInfo = getMarketContext();
   const [ mktData, calendar, sentiment, news, rbi, sebi, upstox, pulse, mf, pevc, ins, gift, banks ] = await Promise.all([
-    fetchMultiAssetData(), fetchEconomicCalendar(), fetchSentimentData(), fetchUniversalNews(),
+    fetchMultiAssetData(modelOverride), fetchEconomicCalendar(), fetchSentimentData(), fetchUniversalNews(),
     fetchRBIData(), fetchSEBIData(), fetchUpstoxData(), fetchMacroPulse(),
     fetchMFData(), fetchPEVCData(), fetchInsuranceData(), fetchGIFTCityData(), fetchCentralBankPulse()
   ]);
@@ -123,12 +124,12 @@ export async function generateBriefingJob(frequency, env) {
   const marketContext = `--- MARKET SESSIONS ---\nIST: ${mktInfo.timestamp}\n--- ASSETS ---\n${mktData.summary}\n--- PULSE ---\n${sentiment.summary} | ${calendar.text}\n--- VERTICALS ---\n${mf.summary} | ${pevc.summary} | ${gift.summary}\n--- NEWS ---\n${news}`.trim();
 
   const mainPrompt = getBriefingPrompt(frequency, marketContext, mktInfo);
-  let rawContent = await askAI(mainPrompt, { role: 'generate', env });
+  let rawContent = await askAI(mainPrompt, { role: 'generate', env, model: modelOverride !== 'auto' ? modelOverride : 'node-generate' });
 
-  const swarmForecast = await generateMiroForecast(marketContext, env);
+  const swarmForecast = await generateMiroForecast(marketContext, env, modelOverride);
   rawContent = rawContent.replace("<h2>GIFT CITY INTELLIGENCE PULSE</h2>", `<h2>MIROFISH INTELLIGENCE FORECAST</h2>\n${swarmForecast}\n\n<h2>GIFT CITY INTELLIGENCE PULSE</h2>`);
 
-  const cleanContent = await askAI(getSanitizerPrompt(rawContent), { role: 'audit', env });
+  const cleanContent = await askAI(getSanitizerPrompt(rawContent), { role: 'audit', env, model: modelOverride !== 'auto' ? modelOverride : 'node-audit' });
 
   const fileName = `pulse-${frequency}-${Date.now()}.html`;
   await saveBriefing(fileName, cleanContent, frequency, env);
@@ -162,7 +163,7 @@ const VERTICALS = [
 ];
 
 // --- ARTICLE JOB (RECURSIVE STATEFUL) ---
-export async function generateArticleJob(frequency, env, jobId = null, verticalIndex = 0) {
+export async function generateArticleJob(frequency, env, jobId = null, verticalIndex = 0, modelOverride = "auto") {
   if (typeof process === "undefined") globalThis.process = { env: {} };
   Object.assign(process.env, env);
 
@@ -182,7 +183,7 @@ export async function generateArticleJob(frequency, env, jobId = null, verticalI
   const vData = macro.summary; // Fallback to pulse
 
   const prompt = getArticlePrompt(frequency, v.name, v.id, vData, macro.summary, universal, "Baseline focus.");
-  const content = await askAI(prompt, { role: 'generate', env });
+  const content = await askAI(prompt, { role: 'generate', env, model: modelOverride !== 'auto' ? modelOverride : 'node-generate' });
   const { content: corrected } = applyContentCorrections(content, `STRATEGY_${v.id.toUpperCase()}`);
   
   const sectionContent = `<section id="${v.id}">${corrected}</section>\n`;
@@ -198,7 +199,7 @@ export async function generateArticleJob(frequency, env, jobId = null, verticalI
   // Check if we need more steps
   if (verticalIndex < totalVerticals - 1) {
     // Trigger next step
-    const nextUrl = new URL(`https://blogspro-gen.abhishek-dutta1996.workers.dev/?freq=${frequency}&type=article&jobId=${id}&step=${verticalIndex + 1}`);
+    const nextUrl = new URL(`https://blogspro-gen.abhishek-dutta1996.workers.dev/?freq=${frequency}&type=article&jobId=${id}&step=${verticalIndex + 1}&model=${modelOverride}`);
     
     // We use wait until to prevent termination while calling itself
     // Or just fetch and return
@@ -209,10 +210,10 @@ export async function generateArticleJob(frequency, env, jobId = null, verticalI
     return { jobId: id, status: "pending", vertical: v.name };
   } else {
     // FINALIZATION
-    const swarmForecast = await generateMiroForecast(macro.summary, env);
+    const swarmForecast = await generateMiroForecast(macro.summary, env, modelOverride);
     const finalContent = `<h2>MIROFISH STRATEGIC OUTLOOK</h2>\n${swarmForecast}\n\n` + accumulated;
 
-    const cleanContent = await askAI(getSanitizerPrompt(finalContent), { role: 'audit', env });
+    const cleanContent = await askAI(getSanitizerPrompt(finalContent), { role: 'audit', env, model: modelOverride !== 'auto' ? modelOverride : 'node-audit' });
     const fileName = `strategy-${frequency}-${Date.now()}.html`;
     await saveBriefing(fileName, cleanContent, frequency, env);
 

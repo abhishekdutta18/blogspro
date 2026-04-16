@@ -41,7 +41,7 @@ export function gateSignal(rawData, threshold = 0.001) {
 /**
  * V7.0 Hybrid Gating: Rules-based + AI-driven semantic filter
  */
-export async function hybridGateSignal(rawData, env, threshold = 0.001) {
+export async function hybridGateSignal(rawData, env, modelOverride = "auto", threshold = 0.001) {
   // 1. Rules-based pass (Hyper-fast)
   const { filtered: rulesFiltered, noiseCount: rulesNoise } = gateSignal(rawData, threshold);
   if (rulesFiltered.length === 0) return { filtered: [], noiseCount: rulesNoise, summary: "All signals gated by rules-engine." };
@@ -49,8 +49,9 @@ export async function hybridGateSignal(rawData, env, threshold = 0.001) {
   // 2. AI-driven semantic pass
   try {
     console.log("🧠 [Gating-Engine] Executing AI semantic audit...");
+    const model = modelOverride !== 'auto' ? modelOverride : 'llama-3.1-8b-instant';
     const aiRes = await askAI(getSemanticGatingPrompt(rulesFiltered.slice(0, 20)), { 
-      role: 'research', env, model: 'llama-3.1-8b-instant' 
+      role: 'research', env, model, isSpeculative: true 
     });
     
     const cleaned = aiRes.replace(/```json\n?|```/g, '').trim();

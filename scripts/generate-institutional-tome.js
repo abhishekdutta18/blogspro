@@ -7,12 +7,66 @@ import { getRecentSnapshots,
   getHistoricalData, 
   syncToFirestore,
   pushTelemetryLog,
-  saveToCloudBucket
+  saveToCloudBucket,
+  checkPeriodStatus,
+  pushSovereignNewsletter
 } from "./lib/storage-bridge.js";
 import { uploadToStorage } from './lib/firebase-service.js';
 import { runSwarmAudit } from './lib/mirofish-qa-service.js';
 import { dispatchTelegramAlert } from './lib/social-utils.js';
 import { initNodeSentry, logSwarmBreadcrumb, captureSwarmError, flushSentry } from "./lib/sentry-bridge.js";
+
+/**
+ * [V16.1] Homepage Registration Bridge
+ * Ensures generated institutional articles appear in both the static index and the Firestore feed.
+ */
+async function registerPostOnHomepage(fileName, result, frequency, env) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const type = 'article';
+    const category = 'Strategic Research';
+    const publicDomain = (env && env.ASSET_DOMAIN) || "https://blogspro.in";
+    const publicUrl = `${publicDomain}/articles/${frequency}/${fileName}`;
+    
+    const title = result.title || `Institutional Strategic Pulse [${frequency.toUpperCase()}]`;
+    const excerpt = result.excerpt || `Latest institutional strategic synthesis for the ${frequency} cycle. 2026-2027 Roadmap.`;
+
+    // 1. Update Static Index (For loadHybridPosts)
+    const indexDir = path.join(process.cwd(), 'articles', frequency);
+    const indexPath = path.join(indexDir, 'index.json');
+    if (!fs.existsSync(indexDir)) fs.mkdirSync(indexDir, { recursive: true });
+    
+    let index = fs.existsSync(indexPath) ? JSON.parse(fs.readFileSync(indexPath, 'utf-8')) : [];
+    const record = { title, date: today, timestamp: Date.now(), excerpt, fileName, type, frequency };
+    
+    // Add to front, keep last 20
+    index = [record, ...index.filter(i => i.fileName !== fileName)].slice(0, 20);
+    fs.writeFileSync(indexPath, JSON.stringify(index, null, 2));
+    console.log(`✅ [Dashboard] Static Index Updated: ${indexPath}`);
+
+    // 2. Sync to Firestore 'posts' (For main homepage grid & admin dashboard)
+    const docId = `swarm-${frequency}-${today}`;
+    await syncToFirestore('posts', {
+      id: docId,
+      title,
+      excerpt,
+      content: result.final.replace(/<[^>]*>?/gm, ' ').slice(0, 1000), // snippet for search
+      path: publicUrl,
+      category,
+      authorName: 'BlogsPro Institutional Hub',
+      published: true,
+      stage: 'published',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      views: 0
+    }, env);
+    console.log(`📡 [Dashboard] Post Registered in Firestore: posts/${docId}`);
+
+  } catch (err) {
+    console.warn(`⚠️ [Dashboard] Homepage registration failed:`, err.message);
+    captureSwarmError(err, { stage: 'homepage_registration', fileName, frequency });
+  }
+}
 
 async function runInstitutionalSwarm() {
   const start = Date.now();
@@ -20,8 +74,32 @@ async function runInstitutionalSwarm() {
   const type = process.argv.find(a => a.startsWith('--type='))?.split('=')[1] || 'article';
   const mode = process.argv.find(a => a.startsWith('--mode='))?.split('=')[1] || 'standard';
   const targetVerticalId = process.argv.find(a => a.startsWith('--vertical='))?.split('=')[1];
+  const modelOverride = process.argv.find(a => a.startsWith('--model='))?.split('=')[1] || 'auto';
   const extended = process.argv.includes('--extended');
+  const force = process.argv.includes('--force');
   const id = process.env.SWARM_JOB_ID || `swarm-${frequency}-${Date.now()}`;
+
+  // 0. DETERMINISTIC PERIOD IDENTIFIER (V15.0 Idempotency)
+  const calculatePeriodId = (freq) => {
+    const now = new Date();
+    const YYYY = now.getFullYear();
+    const MM = String(now.getMonth() + 1).padStart(2, '0');
+    const DD = String(now.getDate()).padStart(2, '0');
+    
+    if (freq === 'hourly') return `H_${YYYY}-${MM}-${DD}_${String(now.getHours()).padStart(2, '0')}`;
+    if (freq === 'daily')  return `D_${YYYY}-${MM}-${DD}`;
+    if (freq === 'monthly') return `M_${YYYY}-${MM}`;
+    if (freq === 'weekly') {
+      // Simple ISO week calculation
+      const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+      d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+      return `W_${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+    }
+    return `X_${Date.now()}`; // Fallback
+  };
+  const periodId = calculatePeriodId(frequency);
 
   // 0. INITIALIZE SENTRY (Node.js)
   initNodeSentry(process.env.SENTRY_DSN, frequency);
@@ -32,11 +110,28 @@ async function runInstitutionalSwarm() {
   const { ResourceManager } = await import("./lib/ai-service.js");
   await ResourceManager.init(process.env);
   
-  // 0.2 INITIALIZE TRACE (Firestore)
+  // 0.2 IDEMPOTENCY GUARD (V15.1)
+  if (!force) {
+    console.log(`🛡️ [Guard] Checking status for [${frequency}] period [${periodId}]...`);
+    const status = await checkPeriodStatus(frequency, periodId, process.env);
+    if (status.status === 'SUCCESS') {
+        console.log(`✅ [Guard] Period ${periodId} already completed successfully. Aborting Redundant Dispatch.`);
+        process.exit(0);
+    }
+    if (status.status === 'ACTIVE') {
+        console.warn(`🛑 [Guard] Period ${periodId} is currently ACTIVE (Job: ${status.jobId}). Prevention of concurrent run.`);
+        process.exit(0);
+    }
+  } else {
+    console.log(`⚠️ [Guard] FORCED generation active. Skipping idempotency checks.`);
+  }
+
+  // 0.3 INITIALIZE TRACE (Firestore)
   console.log(`📡 [Trace] Initializing Institutional Audit Log...`);
   await pushTelemetryLog("SWARM_START", { 
     frequency, 
     jobId: id, 
+    periodId,
     status: "initializing",
     message: `Initializing BlogsPro Institutional Synthesis [${frequency}]`
   }, process.env);
@@ -96,11 +191,24 @@ async function runInstitutionalSwarm() {
     },
     MIRO_SYNC: {
       fetch: async (url, options) => {
-        const localHub = "http://localhost:8787/telemetry";
+        // [V12.4] Hardened Institutional Pulse Bridge
+        const productionHub = env.AUTH_PROXY_URL || "https://blogspro-auth.abhishek-dutta1996.workers.dev/telemetry";
+        const masterSecret = env.INSTITUTIONAL_MASTER_SECRET;
+        
         try {
-          const res = await fetch(localHub, { ...options, headers: { ...options.headers, "Content-Type": "application/json" } });
+          const res = await fetch(productionHub, { 
+            ...options, 
+            headers: { 
+              ...options.headers, 
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${masterSecret}`
+            } 
+          });
           if (res.ok) return res;
-        } catch (e) { return { json: async () => ({ status: 'local-offline' }), ok: true }; }
+          else console.warn(`⚠️ [SwarmTele] Hub rejected pulse: ${res.status}`);
+        } catch (e) { 
+          return { json: async () => ({ status: 'hub-offline', error: e.message }), ok: true }; 
+        }
       }
     },
     BLOOMBERG_ASSETS: {
@@ -126,12 +234,13 @@ async function runInstitutionalSwarm() {
             tome_type: "article",
             key: `snapshots/genesis_${frequency}_${Date.now()}.json`
         };
-        await pushTelemetryLog("COLD_START", { frequency, jobId: id, status: "warn", message: "No snapshots found. Initializing genesis context." }, env);
+        await pushTelemetryLog("COLD_START", { frequency, jobId: id, periodId, status: "warn", message: "No snapshots found. Initializing genesis context." }, env);
     } else {
         semanticDigest = snapshots[0];
     }
     console.log(`📊 [Swarm] Context Primed: [Snapshot: ${semanticDigest.timestamp}] [Historical: ${historical ? 'OK' : 'MISS'}]`);
 
+    let result;
     // --- 🎛️ MODE BRANCHING: Worker vs Assemble (V12.0) ---
     if (mode === 'worker' && targetVerticalId) {
         console.log(`👷 [Worker-Mode] Commencing Parallel Research for Vertical: ${targetVerticalId}`);
@@ -145,7 +254,7 @@ async function runInstitutionalSwarm() {
         const historical = await getHistoricalData(env);
 
         const { executeSingleVerticalSwarm } = await import("./lib/swarm-orchestrator.js");
-        const fragment = await executeSingleVerticalSwarm(vertical, 1, frequency, semanticDigest, historical, env, id, extended);
+        const fragment = await executeSingleVerticalSwarm(vertical, 1, frequency, semanticDigest, historical, env, id, extended, modelOverride);
 
         // Save Fragment for Assembly
         const sectorPath = path.join(process.cwd(), 'manuscripts', 'v7', 'sectors');
@@ -212,33 +321,25 @@ async function runInstitutionalSwarm() {
         const { finalizeManuscript } = await import("./lib/swarm-orchestrator.js");
         
         const consensusSummary = "Consolidated Institutional Consensus Desk [V12.Masterpiece]";
-        const result = await finalizeManuscript(fragments, consensusSummary, frequency, type, env, id);
-
-        // 3. ARCHIVE MASTER Tome
-        const fileName = `swarm-${frequency}-${Date.now()}.html`;
-        const outPath = path.join(process.cwd(), 'dist', fileName);
-        fs.mkdirSync(path.dirname(outPath), { recursive: true });
-        fs.writeFileSync(outPath, result.final);
-
-        console.log(`👑 [Masterpiece-Success] Tome synthesized and archived: ${outPath}`);
+        result = await finalizeManuscript(fragments, consensusSummary, frequency, type, env, id, modelOverride);
         
         // Final PDF generation & Sync
-        await pushTelemetryLog("TOME_DISPATCH", { jobId: id, frequency, status: "complete", message: "Institutional Masterpiece Finalized." }, env);
-        return;
+        await pushTelemetryLog("TOME_ASSEMBLY", { jobId: id, frequency, periodId, status: "complete", message: "Institutional Masterpiece Assembled." }, env);
+    } else {
+        // --- 🧬 STANDARD/SERIAL MODE (Legacy) ---
+        console.log(`🏃 [Standard-Mode] Running Sequential Institutional Swarm...`);
+
+        // 3. EXECUTE SWARM (Aligning with exact 6-argument signature)
+        result = await executeMultiAgentSwarm(
+            frequency,       // 1. frequency
+            semanticDigest,  // 2. semanticDigest
+            historical,      // 3. historicalData
+            type,            // 4. type
+            env,             // 5. env
+            id,              // 6. jobId
+            modelOverride    // 7. modelOverride
+        );
     }
-
-    // --- 🧬 STANDARD/SERIAL MODE (Legacy) ---
-    console.log(`🏃 [Standard-Mode] Running Sequential Institutional Swarm...`);
-
-    // 3. EXECUTE SWARM (Aligning with exact 6-argument signature)
-    const result = await executeMultiAgentSwarm(
-        frequency,       // 1. frequency
-        semanticDigest,  // 2. semanticDigest
-        historical,      // 3. historicalData
-        type,            // 4. type
-        env,             // 5. env
-        id               // 6. jobId
-    );
 
     // 4. QUALITY ASSURANCE: Institutional Swarm Review
     let auditStatus = "PENDING";
@@ -268,17 +369,26 @@ async function runInstitutionalSwarm() {
     fs.writeFileSync(outPath, finalHtml);
     console.log(`💾 [Swarm] Archive Phase: Saved locally to ${outPath} [Status: ${auditStatus}]`);
 
-    // --- 🏺 ARCHIVAL PHASE: Persistent Cloud/Local Storage ---
-    try {
-        const destination = `${frequency}/${fileName}`;
-        logSwarmBreadcrumb(`Starting Firebase Archival: ${destination}`, { size: result.final.length });
-        await uploadToStorage(outPath, destination, 'text/html');
-        console.log(`🌐 [Swarm] Archive Phase: Uploaded to Firebase Storage (${destination})`);
-        logSwarmBreadcrumb(`Firebase Archival Successful: ${destination}`);
-    } catch (e) {
-        console.warn(`⚠️ [Swarm] Firebase Upload Failed:`, e.message);
-        captureSwarmError(e, { stage: 'archival', frequency, fileName });
-        // We don't throw here to allow GitHub Output bridge to still run
+    // --- 🌍 GITHUB PAGES SYNCHRONIZATION: Sovereign Origin Push ---
+    const ghToken = process.env.GH_TOKEN || process.env.GH_PAT;
+    const ghOwner = process.env.GH_OWNER || "abhishekdutta18";
+    const ghRepo = process.env.GH_REPO || "blogspro";
+
+    if (ghToken && !process.env.SKIP_GITHUB_PUSH) {
+        try {
+            const { pushMultipleToGitHub } = await import('./lib/storage-bridge.js');
+            const filesToPush = [
+                { path: `articles/${frequency}/${fileName}`, localPath: outPath },
+                { path: `articles/${frequency}/index.json`, localPath: path.join(process.cwd(), 'articles', frequency, 'index.json') }
+            ];
+            
+            console.log(`📡 [GitHub] Initiating Sovereign Push for ${frequency} cycle...`);
+            await pushMultipleToGitHub(filesToPush, `institutional: archival for ${frequency} pulse [${id}]`, ghOwner, ghRepo, ghToken);
+            console.log(`✅ [GitHub] Sovereign Sync Successful. manuscript is live on GitHub Pages.`);
+        } catch (ghErr) {
+            console.warn(`⚠️ [GitHub] Sovereign Sync Failed (Non-Fatal):`, ghErr.message);
+            captureSwarmError(ghErr, { stage: 'github_archival', frequency, fileName });
+        }
     }
 
     // --- 🛰️ GITHUB OUTPUT BRIDGE: For Automated PDF Generation ---
@@ -292,50 +402,38 @@ async function runInstitutionalSwarm() {
 
     console.log(`✅ [Dashboard] Institutional Workflow Finalized. [Words: ${result.wordCount}]`);
 
+    // --- 🌍 HOMEPAGE INTEGRATION: Public Feed Registration ---
+    await registerPostOnHomepage(fileName, result, frequency, process.env);
+
     // --- 📢 DISPATCH PHASE: Automated Production Release ---
     try {
         console.log(`📢 [Dispatch] Initiating Institutional Release Cascade...`);
         const env = process.env;
 
         // 1. Telegram Dispatch
+        const publicDomain = env.ASSET_DOMAIN || "https://blogspro.in";
+        const publicUrl = `${publicDomain}/articles/${frequency}/${fileName}`;
+
         const telegramSummary = {
-            title: `Institutional Article Released: ${result.title}`,
-            abstract: result.final.replace(/<[^>]*>?/gm, '').slice(0, 300) + "...",
-            wordCount: result.wordCount
+            title: result.title || `Institutional Strategic Pulse [${frequency.toUpperCase()}]`,
+            abstract: result.excerpt || "Strategic research synthesis for the current institutional cycle.",
+            wordCount: result.wordCount,
+            frequency,
+            url: publicUrl
         };
         await dispatchTelegramAlert(telegramSummary, env);
         console.log(`💎 [Dispatch] Telegram Strategic Alert Sent.`);
 
-        // 2. Newsletter Dispatch (Cloudflare Worker Bridge)
-        const newsletterUrl = env.NEWSLETTER_WORKER_URL || "https://newsletter.blogspro.in";
-        if (newsletterUrl && env.NEWSLETTER_SECRET) {
-            console.log(`💎 [Dispatch] Invoking Newsletter Worker: ${newsletterUrl}`);
-            const newsletterRes = await fetch(newsletterUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    subject: `BlogsPro Institutional: ${result.title}`,
-                    html: result.final,
-                    secret: env.NEWSLETTER_SECRET,
-                    from: "BlogsPro Intelligence"
-                })
-            });
-
-            if (newsletterRes.ok) {
-                console.log(`💎 [Dispatch] Newsletter Distribution Completed Successfully.`);
-            } else {
-                console.warn(`⚠️ [Dispatch] Newsletter Worker Response: ${newsletterRes.status}`);
-            }
-        } else {
-            console.warn(`⚠️ [Dispatch] NEWSLETTER_WORKER_URL or SECRET missing. Skipping email phase.`);
-        }
-    } catch (dispatchErr) {
+        // 2. Newsletter Dispatch (Consolidated Bridge)
+        await pushSovereignNewsletter(`BlogsPro Institutional: ${result.title}`, result.final, process.env);
+      } catch (dispatchErr) {
         console.warn(`⚠️ [Dispatch] Release Cascade Encountered Non-Fatal Error:`, dispatchErr.message);
         captureSwarmError(dispatchErr, { stage: 'dispatch_cascade', jobId: id });
     }
     await pushTelemetryLog("SWARM_COMPLETE", { 
         frequency, 
         jobId: id, 
+        periodId,
         status: "success", 
         latency: Date.now() - start,
         message: `Institutional Dispatch Finalized: ${result.wordCount} words.`,
@@ -348,6 +446,7 @@ async function runInstitutionalSwarm() {
     await pushTelemetryLog("SWARM_ERROR", { 
         frequency: fallbackFreq, 
         jobId: id, 
+        periodId: calculatePeriodId(fallbackFreq),
         status: "error", 
         message: `Pipeline Critical Failure: ${error.message}`
     }, process.env);

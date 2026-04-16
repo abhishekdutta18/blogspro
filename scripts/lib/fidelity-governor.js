@@ -56,36 +56,16 @@ export function validateAndRepair(content, options = { threshold: 500 }) {
     // 🛡️ [V10.8] DENSITY SENTINEL with Multi-Theme Self-Healing
     const density = validateDensity(content, options.threshold);
     if (!density.ok) {
-        console.warn(`⚠️ [Governor] Critical Density Failure: ${density.count}/${options.threshold} words. Initiating healing...`);
-        status = "repaired";
-        errors.push(`Density Restored: ${density.count} -> ${options.threshold}`);
+        console.warn(`🚨 [Governor] Institutional Density Failure: ${density.count}/${options.threshold} words. Flagging for review.`);
+        status = "error";
+        errors.push(`Density Failure: ${density.count} words (Threshold: ${options.threshold})`);
         
-        // Institutional Themes for Dynamic Appendix
-        const themes = [
-            `<h4>Institutional Strategy & Position Drift</h4>
-             <p>The current sector rotation indicates a high-probability drift between traditional equity alpha and digital asset infrastructure. 
-             Risk parity desks are observing widespread consolidation across the AP-GIFT corridor. 
-             Strategic participants are advised to maintain a 12% baseline exposure while liquidity rotation completes in the broader Nifty indices.</p>`,
-            
-            `<h4>Macro-Financial Risk Vectors</h4>
-             <p>Beyond the primary thesis, secondary volatility markers suggest a 15-basis point divergence in sovereign credit spreads. 
-             This "Alpha Leak" necessitates a renewed focus on cross-border liquidity rails, particularly within EM-Asia-Pacific hubs. 
-             Auditors should monitor DII positioning for signs of exhaustion in mid-term tranches.</p>`,
-             
-            `<h4>Flow-Driven Sentiment Appendix</h4>
-             <p>Proprietary sentiment aggregates confirm a 0.82 correlation between dark-pool institutional positioning and retail momentum signals.
-             As parity thresholds are tested, the Swarm observes a 4.2% hedge-ratio adjustment across strategic long-only desks. 
-             Positioning remains tactically neutral until yield curve stabilization is confirmed.</p>`
-        ];
-        
-        // Rotate theme based on content length to provide variety
-        const chosenTheme = themes[content.length % themes.length];
-        
-        repairedContent += `\n\n<section class="institutional-appendix">\n${chosenTheme}\n</section>`;
-        repairedContent += `\n<!-- DENSITY_HEALED: Word count was ${density.count}. Appended Strategic Appendix. -->`;
+        // Truth-First Architecture: No synthetic jargon injection.
+        repairedContent += `\n<!-- FIDELITY_WARNING: Content below institutional density threshold (${density.count} words). -->`;
     } else {
         repairedContent += `\n<!-- DENSITY_SUCCESS: ${density.count} words. -->`;
     }
+
 
     // 2. CHART DATA FIDELITY
     const charts = extractChartData(repairedContent);

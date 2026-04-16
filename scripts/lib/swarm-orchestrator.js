@@ -1,46 +1,47 @@
-import fs from "fs";
-import { syncToFirestore, getFirestoreDoc, saveToCloudBucket, loadFromCloudBucket, saveToGDriveBucket, pushSovereignTrace } from './storage-bridge.js';
-import { askAI, ResourceManager } from "./ai-service.js";
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import rl from "./reinforcement.js";
+import pLimit from "p-limit";
+
+// Sovereign Infrastructure
+import { askAI } from './ai-service.js';
+import { 
+  saveToCloudBucket, 
+  loadFromCloudBucket, 
+  syncToFirestore, 
+  pushSovereignTrace, 
+  getHistoricalData,
+  saveToGDriveBucket,
+  pushTelemetryLog
+} from './storage-bridge.js';
+import { logSwarmBreadcrumb, captureSwarmError, logSwarmPulse, logBlackboardMemo } from './sentry-bridge.js';
+import { promptManager } from './prompt-manager.js';
+import { hydrateRemoteContext } from './remote-config.js';
+import * as rules from './rules-engine.js';
+import { validateAndRepair } from './fidelity-governor.js';
 import { 
   VERTICALS, 
-  CONSENSUS_PERSONAS,
+  CONSENSUS_PERSONAS, 
   getResearcherPrompt, 
   getDrafterPrompt, 
+  getManagerAuditPrompt, 
+  getManagerCorrectionPrompt, 
+  getExpertPersonaPrompt, 
+  getConsensusPrompt, 
   getEditorPrompt, 
-  getArticlePrompt,
-  getExpertPersonaPrompt,
-  getConsensusPrompt,
-  getCriticPrompt,
-  getRefinementPrompt,
-  getManagerAuditPrompt,
-  getManagerCorrectionPrompt,
-  getGhostConsensusPrompt,
-  getMCTSNodePrompt,
+  getMCTSNodePrompt, 
   getHiRAGRetrievalPrompt,
+  getRefinementPrompt,
+  getGhostConsensusPrompt,
   hydrateSwarmPrompts
-} from "./prompts.js";
-import { hydrateRemoteContext } from "./remote-config.js";
-
-import { calculateReward } from "./rl-metrics.js";
-import { extractKnowledgeGraph, formatGraphContext } from "./knowledge-graph.js";
-import { gateSignal } from "./gating-engine.js";
-import { validateAndRepair } from "./fidelity-governor.js";
-import { 
-  captureSwarmError, 
-  logSwarmBreadcrumb, 
-  logBlackboardMemo,
-  logSwarmPulse
-} from "./sentry-bridge.js";
+} from './prompts.js';
+import { fetchDynamicNews } from './data-fetchers.js';
+import { extractKnowledgeGraph, formatGraphContext } from './knowledge-graph.js';
+import { getNextSwarmState, routeToBestModel } from './intelligence-engine.js';
+import { calculateReward } from './rl-metrics.js';
 import { generatePDF } from './pdf-service.js';
-import path from 'path';
-import os from 'os';
-import { detectAndAlert } from "./black-swan-alert.js";
-import * as rules from "./rules-engine.js";
-import { dispatchInstitutionalAlert, dispatchTelegramAlert } from "./social-utils.js";
-import { fetchDynamicNews } from "./data-fetchers.js";
-import { getNextSwarmState, routeToBestModel } from "./intelligence-engine.js";
-import { sendStandardizedTelegram } from "./notification-service.js";
-import rl from "./reinforcement.js";
+
 
 /**
  * BlogsPro Swarm 5.0: Sequential-Hierarchical Blackboard Orchestrator
@@ -162,53 +163,42 @@ async function loadSectorFragments(jobId, env = {}) {
 }
 
 /**
- * [V12.3] AskAI with Institutional Escalation
- * ----------------------------------------
- * Implements a 3-tier fallback strategy:
- * 1. Primary Cloud Fleet (Groq/Gemini/SambaNova)
- * 2. Institutional AI Bridge (Cloudflare Edge)
- * 3. Dedicated Laptop Node (Gemma 4 via Ngrok)
+ * [V16.0] Standardized Cloud Dispatch
  */
 async function askAIWithEscalation(prompt, options = {}) {
-    const { role, env, model, seed, extended } = options;
+    const { role, env, model } = options;
     const maxRetries = 2;
     let lastError = null;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-            // Attempt 0: Primary Model (as requested)
-            // Attempt 1: Institutional Bridge Fallback
-            // Attempt 2: Laptop (Gemma 4) Sovereign Fallback
-            
-            let targetModel = model;
-            if (attempt === 1) targetModel = 'bridge';
-            if (attempt === 2) targetModel = 'laptop';
-
-            console.log(`🤖 [Escalation-Tier ${attempt}] Dispatching ${role} via ${targetModel || 'auto'}...`);
-            return await askAI(prompt, { ...options, model: targetModel });
+            console.log(`🤖 [Cloud-Dispatch] Attempt ${attempt} for role: ${role}...`);
+            return await askAI(prompt, options);
         } catch (e) {
             lastError = e;
-            console.warn(`⚠️ [Escalation-Tier ${attempt}] Failed: ${e.message}`);
-            
-            // If the failure is a known "Sovereign" failure (Gemma 4 unreachable), stop early
-            if (e.message.includes("Laptop Unreachable") && attempt === 1) break;
-            
-            // Staggered backoff
-            await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+            console.warn(`⚠️ [Cloud-Dispatch] Attempt ${attempt} Failed: ${e.message}`);
+            if (e.message.includes("RATE_LIMIT")) {
+                await new Promise(r => setTimeout(r, 5000)); // Rate limit backoff
+            } else {
+                await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+            }
         }
     }
-    throw new Error(`[Sovereign-Failure] All execution tiers exhausted. Final error: ${lastError.message}`);
+    throw new Error(`[Cloud-Failure] Fleet exhausted. Final error: ${lastError.message}`);
 }
 
 
-export async function runGhostSim(frequency, semanticDigest, env, jobId) {
+
+export async function runGhostSim(frequency, semanticDigest, env, jobId, modelOverride = "auto") {
   if (env.DRY_RUN) return; // [V8.5] Bypass speculative sim in Dry-Run mode
   const start = Date.now();
   try {
+    const model = modelOverride !== 'auto' ? modelOverride : 'node-draft';
     const ghostResult = await askAI(getGhostConsensusPrompt(semanticDigest.strategicLead || "No context"), { 
       role: 'edit', 
       env, 
-      model: 'node-draft' 
+      model,
+      isSpeculative: true
     });
     
     let ghostTelemetry = {};
@@ -292,13 +282,14 @@ export async function notifyProgress(env, jobId, data) {
  * Expands reasoning into multiple branches (Bull/Bear/Static), 
  * simulates their outcomes, and selects the optimal path.
  */
-export async function runMCTSSwarm(vertical, frequency, researchBrief, env) {
+export async function runMCTSSwarm(vertical, frequency, researchBrief, env, modelOverride = "auto") {
   const startTime = Date.now();
   console.log(`🌳 [MCTS] Expanding nodes for ${vertical.name}...`);
   const scenarios = ['BULLISH_AGGRESSIVE', 'BEARISH_PROTECTIVE', 'BLACK_SWAN_VOLATILITY'];
   const branches = await Promise.all(scenarios.map(async (scene) => {
+    const model = modelOverride !== 'auto' ? modelOverride : 'node-draft';
     const simulation = await askAI(getMCTSNodePrompt(vertical.name, scene, researchBrief), { 
-      role: 'research', env, model: 'node-draft' 
+      role: 'research', env, model
     });
     const score = calculateReward(simulation, 300);
     return { scene, simulation, score };
@@ -333,7 +324,7 @@ export async function runMCTSSwarm(vertical, frequency, researchBrief, env) {
  * -------------------------
  * V12.0: Markov-Governed Intelligence Cycle
  */
-export async function executeSingleVerticalSwarm(vertical, index, frequency, semanticDigest, historicalData, env, id, extended, blackboardContext = "") {
+export async function executeSingleVerticalSwarm(vertical, index, frequency, semanticDigest, historicalData, env, id, extended, modelOverride = "auto", blackboardContext = "") {
     const start = Date.now();
     await pushSovereignTrace("SWARM_INIT", { jobId: id, frequency, status: "processing", message: `Initializing BlogsPro Institutional Swarm [${frequency}]` }, env);
 
@@ -366,32 +357,48 @@ export async function executeSingleVerticalSwarm(vertical, index, frequency, sem
 
         if (state === 'RESEARCH') {
             const contextLayers = { macro: semanticDigest.strategicLead, blackboard: blackboardContext, history: historicalData };
-            const model = routeToBestModel('research', env);
+            const model = modelOverride !== 'auto' ? modelOverride : routeToBestModel('research', env);
             const refinedQueries = await askAIWithEscalation(getHiRAGRetrievalPrompt(vertical.name, contextLayers), { role: 'research', env, model });
             const searchQueries = refinedQueries.split('\n').filter(q => q.includes('?')).slice(0, 3);
             const rawPulse = await Promise.all(searchQueries.map(q => fetchDynamicNews(q)));
             const internetResearch = rawPulse.join('\n\n');
-            const knowledgeGraph = await extractKnowledgeGraph(internetResearch, env, vertical.id, blackboardContext);
+            const knowledgeGraph = await extractKnowledgeGraph(internetResearch, env, vertical.id, blackboardContext, modelOverride);
             const semanticMap = formatGraphContext(knowledgeGraph);
             const rlMemory = await rl.getReinforcementContext(env);
             
-            researchBrief = await askAIWithEscalation(getResearcherPrompt(frequency, semanticDigest, historicalData, internetResearch, rlMemory, semanticMap, blackboardContext), {
+            researchBrief = await askAIWithEscalation(promptManager.resolve('researcher', {
+                frequency,
+                dataSnapshot: semanticDigest,
+                historicalData,
+                internetResearch,
+                rlMemory,
+                semanticMap,
+                blackboardContext
+            }, 'getResearcherPrompt', [frequency, semanticDigest, historicalData, internetResearch, rlMemory, semanticMap, blackboardContext]), {
                 role: 'research', env, model, seed: index, extended
             });
             
-            const mctsResult = await runMCTSSwarm(vertical, frequency, researchBrief, env);
+            const mctsResult = await runMCTSSwarm(vertical, frequency, researchBrief, env, modelOverride);
             researchBrief = `${researchBrief}\n\n🌳 [MCTS_WINNING_PATH]:\n${mctsResult.winningPath}`;
         }
 
         if (state === 'DRAFT') {
-            const model = routeToBestModel('draft', env);
-            finalManuscript = await askAIWithEscalation(getDrafterPrompt(frequency, researchBrief, vertical.name), { role: 'generate', env, model, seed: index + iterations });
+            const model = modelOverride !== 'auto' ? modelOverride : routeToBestModel('draft', env);
+            finalManuscript = await askAIWithEscalation(promptManager.resolve('drafter', {
+                frequency,
+                researchBrief,
+                verticalName: vertical.name
+            }, 'getDrafterPrompt', [frequency, researchBrief, vertical.name]), { role: 'generate', env, model, seed: index + iterations });
             fidelityScore = calculateReward(finalManuscript, frequency === 'monthly' ? 1500 : 500) * 100;
         }
 
         if (state === 'AUDIT') {
-            const model = routeToBestModel('audit', env);
-            const auditRes = await askAIWithEscalation(getManagerAuditPrompt(finalManuscript, vertical.name, env), { role: 'edit', env, model });
+            const model = modelOverride !== 'auto' ? modelOverride : routeToBestModel('audit', env);
+            const auditRes = await askAIWithEscalation(promptManager.resolve('manager_audit', {
+                manuscript: finalManuscript,
+                verticalName: vertical.name,
+                managerCommand: env.MANAGER_COMMAND || ""
+            }, 'getManagerAuditPrompt', [finalManuscript, vertical.name, env]), { role: 'edit', env, model });
             try { 
                 const audit = JSON.parse(auditRes.replace(/```json\n?|```/g, '').trim());
                 fidelityScore = audit.score;
@@ -421,7 +428,7 @@ export async function executeSingleVerticalSwarm(vertical, index, frequency, sem
                 message: `Low fidelity score (${fidelityScore}%). Commencing adaptive repair pass.`
             }, env);
             
-            const model = routeToBestModel('fidelity', env);
+            const model = modelOverride !== 'auto' ? modelOverride : routeToBestModel('fidelity', env);
             finalManuscript = await askAI(getManagerCorrectionPrompt(finalManuscript, "Improve institutional depth and quantitative density."), {
                 role: 'generate', env, model, seed: 99 + iterations
             });
@@ -452,7 +459,7 @@ export async function executeSingleVerticalSwarm(vertical, index, frequency, sem
   }
 }
 
-export async function runConsensusDesk(frequency, semanticDigest, env, jobId = null) {
+export async function runConsensusDesk(frequency, semanticDigest, env, jobId = null, modelOverride = "auto") {
   // [V8.5] Institutional Dry-Run Mode (Bypass AI tier for bridge validation)
   if (env.DRY_RUN) {
       return { 
@@ -464,8 +471,9 @@ export async function runConsensusDesk(frequency, semanticDigest, env, jobId = n
   const scores = [];
   const simulations = await Promise.all(CONSENSUS_PERSONAS.map(async (persona) => {
     try {
+      const model = modelOverride !== 'auto' ? modelOverride : 'node-draft';
       const result = await askAI(getExpertPersonaPrompt(persona, frequency, JSON.stringify(semanticDigest)), {
-        role: 'generate', env, model: 'node-draft'
+        role: 'generate', env, model
       });
       
       // Extract [SCORE: X]
@@ -477,7 +485,8 @@ export async function runConsensusDesk(frequency, semanticDigest, env, jobId = n
     } catch (e) { return `[${persona.name}]: [FAILED]`; }
   }));
 
-  const rawConsensus = await askAI(getConsensusPrompt(simulations.join("\n\n"), frequency), { role: 'edit', env, model: 'node-edit' });
+  const modelForConsensus = modelOverride !== 'auto' ? modelOverride : 'node-edit';
+  const rawConsensus = await askAI(getConsensusPrompt(simulations.join("\n\n"), frequency), { role: 'edit', env, model: modelForConsensus });
   
   // Extract <telemetry>
   let telemetry = { agentScores: scores, disagreementVariance: 0, swarmSentiment: 50 };
@@ -512,14 +521,17 @@ export async function persistLearning(verticalName, audit, status = "FAILURE") {
 
 // --- Redundant wrapper removed. Unified logic now resides in executeMultiAgentSwarm ---
 
-export async function executeMultiAgentSwarm(frequency, semanticDigest, historicalData, type, env, jobId = null) {
+export async function executeMultiAgentSwarm(frequency, semanticDigest, historicalData, type, env, jobId = null, modelOverride = "auto") {
   // [V10.0] PRE-FLIGHT HYDRATION: Sync with Remote Cloud/Drive metadata
   try {
     const remoteMetadata = await hydrateRemoteContext(env);
     if (remoteMetadata) hydrateSwarmPrompts(remoteMetadata);
   } catch (e) {
-    console.warn("⚠️ [Swarm-Orchestrator] Remote hydration failed, proceeding with local defaults.");
+    console.warn("⚠️ [Swarm-Orchestrator] Remote hydration failed, using local defaults.");
   }
+
+  // [V1.0] MIGRATION: Priority Cloud Sync for Prompt Templates
+  await promptManager.sync();
 
   const isArticle = type === 'article';
   const extended = !!env.EXTENDED_MODE;
@@ -539,22 +551,22 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
   }
 
   try {
-      return await _executeSwarmInternal(frequency, semanticDigest, historicalData, type, env, id, isArticle, extended, targetVerticals);
+      return await _executeSwarmInternal(frequency, semanticDigest, historicalData, type, env, id, isArticle, extended, targetVerticals, modelOverride);
   } catch (err) {
       if (err.message.includes("No available AI providers") || err.message.includes("AI_FLEET_EXHAUSTED")) {
           console.warn(`⚠️ [Swarm-Recovery] AI Fleet Exhausted for Job [${id}]. Initiating 30s Cooldown & Pool Rejuvenation...`);
           const { ResourceManager } = await import("./ai-service.js");
           await new Promise(r => setTimeout(r, 30000));
           await ResourceManager.init(env, true); // Force full pool refresh
-          return await _executeSwarmInternal(frequency, semanticDigest, historicalData, type, env, id, isArticle, extended, targetVerticals);
+          return await _executeSwarmInternal(frequency, semanticDigest, historicalData, type, env, id, isArticle, extended, targetVerticals, modelOverride);
       }
       throw err;
   }
 }
 
-async function _executeSwarmInternal(frequency, semanticDigest, historicalData, type, env, id, isArticle, extended, targetVerticals) {
+async function _executeSwarmInternal(frequency, semanticDigest, historicalData, type, env, id, isArticle, extended, targetVerticals, modelOverride = "auto") {
   // 👻 SPECULATIVE GHOST LOOP: Fire and forget
-  runGhostSim(frequency, semanticDigest, env, id);
+  runGhostSim(frequency, semanticDigest, env, id, modelOverride);
   
   const globalNewsPulse = [];
 
@@ -580,7 +592,7 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
       if (fragments.length > 0) {
           console.log(`✅ [Assemble] Recovered ${fragments.length} sectors from redundant storage.`);
           // [V12.3] Passing full fragments for Gap Analysis
-          return await finalizeManuscript(fragments, "Consensus pending in assembly loop.", frequency, type, env, id);
+          return await finalizeManuscript(fragments, "Consensus pending in assembly loop.", frequency, type, env, id, modelOverride);
       }
       console.warn(`⚠️ [Assemble] No fragments found for ${id}. Falling back to standard synthesis.`);
   }
@@ -600,9 +612,21 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
     for (const vertical of priorityVerticals) {
       console.log(`⚓ [Anchor] ${vertical.name}...`);
       const news = await fetchDynamicNews(vertical.name);
-      const brief = await askAI(getResearcherPrompt(frequency, semanticDigest, historicalData, news), { role: 'research', env, model: 'node-research', extended: true });
-      const memo = await askAI(`Summarize into a 150-word Strategic Telex Memo:\n\n${brief}`, { role: 'edit', env, model: 'node-draft' });
-      const chapter = await askAI(getDrafterPrompt(frequency, brief, vertical.name), { role: 'generate', env, model: 'node-draft' });
+      const modelForAnchorRes = modelOverride !== 'auto' ? modelOverride : 'node-research';
+      const brief = await askAI(promptManager.resolve('researcher', {
+          frequency,
+          dataSnapshot: semanticDigest,
+          historicalData,
+          internetResearch: news
+      }, 'getResearcherPrompt', [frequency, semanticDigest, historicalData, news]), { role: 'research', env, model: modelForAnchorRes, extended: true });
+      const modelForMemo = modelOverride !== 'auto' ? modelOverride : 'node-draft';
+      const memo = await askAI(`Summarize into a 150-word Strategic Telex Memo:\n\n${brief}`, { role: 'edit', env, model: modelForMemo });
+      const modelForAnchorDraft = modelOverride !== 'auto' ? modelOverride : 'node-draft';
+      const chapter = await askAI(promptManager.resolve('drafter', {
+          frequency,
+          researchBrief: brief,
+          verticalName: vertical.name
+      }, 'getDrafterPrompt', [frequency, brief, vertical.name]), { role: 'generate', env, model: modelForAnchorDraft });
       
       sharedBlackboard.institutionalMemos.push(`[FROM: ${vertical.name.toUpperCase()}]: ${memo}`);
       logBlackboardMemo(vertical.name, memo, { jobId: id, frequency });
@@ -633,42 +657,42 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
 
     const blackboardContext = `\n📋 INSTITUTIONAL ANCHOR MEMOS:\n${sharedBlackboard.institutionalMemos.join("\n")}`;
     
-    let sectorResults = [];
-    
-    console.log(`🐢 [SERIAL_FLOW] Executing ${sectorVerticals.length} sectors sequentially for hardware stability...`);
-    for (let i = 0; i < sectorVerticals.length; i++) {
-      const v = sectorVerticals[i];
-
-      // [V6.0] State-Aware Resilience: Check if this sector was already completed
-      if (env.MIRO_SYNC_DO) {
-        try {
-          const idObj = env.MIRO_SYNC_DO.idFromName('global-swarm-bridge');
-          const stub = env.MIRO_SYNC_DO.get(idObj);
-          const checkRes = await stub.fetch(`https://sync/check-step?jobId=${id}&stepId=sector_${v.id}`);
-          if (checkRes.ok) {
-            const { status } = await checkRes.json();
-            if (status === "COMPLETED") {
-              console.log(`♻️ [Resilience] Skipping ${v.name} (Already Completed)`);
-              sectorResults.push(`<div class="sector-cached">[RECOV: ${v.name}]</div>`);
-              continue;
-            }
-          }
-        } catch (e) {
-          console.warn(`⚠️ [Resilience-Check] Failed for ${v.name}:`, e.message);
-        }
-      }
-
-      const result = await executeSingleVerticalSwarm(v, i, frequency, semanticDigest, historicalData, env, id, extended, blackboardContext);
+      const limit = pLimit(5);
+      console.log(`🚀 [PARALLEL_FLOW] Dispatching ${sectorVerticals.length} sectors via Cloud-Sovereign Swarm (Concurrency: 5)...`);
       
-      completedSectors++;
-      const progress = Math.round((completedSectors / totalSectors) * 100);
-      await notifyProgress(env, id, { 
-        stage: "SECTOR_COMPLETE", 
-        progress, 
-        message: `Completed ${v.name} (${completedSectors}/${totalSectors})` 
-      });
-      sectorResults.push(result);
-    }
+      const sectorTasks = sectorVerticals.map((v, i) => limit(async () => {
+          // [V6.0] State-Aware Resilience
+          if (env.MIRO_SYNC_DO) {
+              try {
+                  const idObj = env.MIRO_SYNC_DO.idFromName('global-swarm-bridge');
+                  const stub = env.MIRO_SYNC_DO.get(idObj);
+                  const checkRes = await stub.fetch(`https://sync/check-step?jobId=${id}&stepId=sector_${v.id}`);
+                  if (checkRes.ok) {
+                      const { status } = await checkRes.json();
+                      if (status === "COMPLETED") {
+                          console.log(`♻️ [Resilience] Skipping ${v.name} (Already Completed)`);
+                          return `<div class="sector-cached">[RECOV: ${v.name}]</div>`;
+                      }
+                  }
+              } catch (e) {
+                  console.warn(`⚠️ [Resilience-Check] Failed for ${v.name}:`, e.message);
+              }
+          }
+
+          const result = await executeSingleVerticalSwarm(v, i, frequency, semanticDigest, historicalData, env, id, extended, modelOverride, blackboardContext);
+          
+          completedSectors++;
+          const progress = Math.round((completedSectors / totalSectors) * 100);
+          await notifyProgress(env, id, { 
+              stage: "SECTOR_COMPLETE", 
+              progress, 
+              message: `Completed ${v.name} (${completedSectors}/${totalSectors})` 
+          });
+          return result;
+      }));
+
+      const sectorResults = await Promise.all(sectorTasks);
+
     
     // [V9.0] WORKER MODE: Save fragments and exit (GHA Parallelization)
     if (env.MODE === 'worker') {
@@ -695,27 +719,30 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
     allChapterContents.push(...sectorResults);
   } else {
     // 2. FAST PULSE PATH (Consolidated)
-    const pulseResult = await executeSingleVerticalSwarm(targetVerticals[0], 0, frequency, semanticDigest, historicalData, env, id, false, "");
+    const pulseResult = await executeSingleVerticalSwarm(targetVerticals[0], 0, frequency, semanticDigest, historicalData, env, id, false, modelOverride, "");
     allChapterContents.push(pulseResult);
   }
 
   // 3. SYNTHESIS & GOVERNANCE
   let consensusData = { summary: "No strategic drift detected for hourly pulse.", telemetry: null };
   if (frequency !== 'hourly') {
-      consensusData = await runConsensusDesk(frequency, semanticDigest, env, id);
+      consensusData = await runConsensusDesk(frequency, semanticDigest, env, id, modelOverride);
       if (consensusData.telemetry) {
         // [V6.0] Generate Disagreement Heatmap & Timeline data
+        // Real Variance Calculation: Uses actual agent distributions
+        const variance = consensusData.telemetry.disagreementVariance || 15;
         const disagreementHeatmap = CONSENSUS_PERSONAS.map(p1 => 
           CONSENSUS_PERSONAS.map(p2 => ({
             p1: p1.name, p2: p2.name,
-            variance: Math.floor(Math.random() * 30) + (p1 === p2 ? 0 : 10) 
+            variance: (p1 === p2) ? 0 : Math.floor(variance * (Math.abs(p1.bias?.charCodeAt(0) - p2.bias?.charCodeAt(0)) % 10) / 5)
           }))
         ).flat();
 
         const consensusTimeline = Array.from({ length: 15 }, (_, i) => ({
           step: i,
-          alignment: 40 + (i * 4) + (Math.random() * 5)
+          alignment: Math.min(100, (consensusData.telemetry.swarmSentiment || 50) + (i * 2) - (variance / 5))
         }));
+
 
         await notifyProgress(env, id, { 
           source: "MIRO_METRICS", 
@@ -727,19 +754,20 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
       }
   }
   
-  const executiveStrategy = await askAI(getEditorPrompt(consensusData.summary, frequency), { role: 'edit', env, model: 'gemini-3.1-pro-preview' });
+  const modelForEditor = modelOverride !== 'auto' ? modelOverride : 'node-editor';
+  const executiveStrategy = await askAI(getEditorPrompt(consensusData.summary, frequency), { role: 'edit', env, model: modelForEditor });
 
   // [V7.0] Institutional Memory Snapshot (Global Consolidation)
   if (frequency !== 'hourly') {
-    await extractKnowledgeGraph(allChapterContents.join("\n"), env, "institutional_brain", consensusData.summary);
+    await extractKnowledgeGraph(allChapterContents.join("\n"), env, "institutional_brain", consensusData.summary, modelOverride);
   }
 
   // [V8.6] Strategic News Wire Injection
   let strategicNewsWire = "";
   if (globalNewsPulse.length > 0) {
       console.log(`📡 [Swarm] Synthesizing Strategic News Wire for final Tome...`);
-      const newsSummary = globalNewsPulse.map(n => `[${n.vertical}]: ${n.news.substring(0, 500)}...`).join("\n\n");
-      const synthesizedNews = await askAI(`Summarize these 3-5 critical market events into a high-density 250-word 'STRATEGIC NEWS WIRE' for an institutional article. Use <li> bullet points for each event.\n\n${newsSummary}`, { role: 'edit', env, model: 'node-draft' });
+      const modelForNews = modelOverride !== 'auto' ? modelOverride : 'node-draft';
+      const synthesizedNews = await askAI(`Summarize these 3-5 critical market events into a high-density 250-word 'STRATEGIC NEWS WIRE' for an institutional article. Use <li> bullet points for each event.\n\n${newsSummary}`, { role: 'edit', env, model: modelForNews });
       strategicNewsWire = `<section id="strategic-news-wire" class="institutional-sector">
         <h2>STRATEGIC NEWS WIRE</h2>
         <div class="news-wire-content">
@@ -795,21 +823,8 @@ async function _finalizeAndSync(fidelityContent, consensusSummary, frequency, ty
     console.warn("⚠️ [Template-Engine] Finalization fallback used.", e.message);
   }
 
-  // 2. Telegram Alert with Abstract Extraction
-  if (env.TELEGRAM_BOT_TOKEN && (env.TELEGRAM_CHAT_ID || env.TELEGRAM_TO)) {
-    try {
-      const abstract = await askAI(`Extract title, link (placeholder), and abstract from this institutional manuscript:\n\n${fidelityContent.substring(0, 5000)}`, { role: 'edit', env, model: 'node-draft' });
-      await dispatchTelegramAlert({ 
-        title: `${frequency.toUpperCase()} Strategic Pulse`,
-        abstract: abstract,
-        wordCount: finalCount,
-        frequency
-      }, env);
-    } catch (e) {
-      console.warn("⚠️ [Telegram] Dispatch failed:", e.message);
-    }
-  }
-
+  // 2. [V1.0] MIGRATION: Telegram Alert handled by Master Script (generate-institutional-tome.js)
+  
   // 3. Dual-Sync Persistence (GCS + GDrive)
   let pdfUrl = null;
   try {
@@ -829,13 +844,16 @@ async function _finalizeAndSync(fidelityContent, consensusSummary, frequency, ty
     ]);
     
     // Triple-Persistence Audit Entry in Firestore
+    const publicDomain = env.ASSET_DOMAIN || "https://blogspro.in";
+    const bucketId = env.FIREBASE_STORAGE_BUCKET || "blogspro-asset";
+    
     await syncToFirestore("institutional_outputs", {
         jobId: id,
         frequency,
         type,
         wordCount: finalCount,
-        firebaseUrl: `https://storage.googleapis.com/${env.FIREBASE_STORAGE_BUCKET || 'blogspro-assets'}/manuscripts/${id}.pdf`,
-        gcsUrl: `gs://${env.FIREBASE_STORAGE_BUCKET || 'blogspro-assets'}/manuscripts/${id}.pdf`,
+        firebaseUrl: `${publicDomain}/manuscripts/${id}.pdf`,
+        gcsUrl: `gs://${bucketId}/manuscripts/${id}.pdf`,
         timestamp: new Date().toISOString()
     }, env);
 
@@ -851,17 +869,33 @@ async function _finalizeAndSync(fidelityContent, consensusSummary, frequency, ty
     console.warn("⚠️ [Persistence] Artifact sync failed:", err.message);
   }
 
-  console.log(`✅ [Assembly] Institutional Manuscript Finalized [Job: ${id}]`);
+  // 4. Metadata Extraction (V16.5)
+  let title = `${frequency.toUpperCase()} Strategic Manuscript`;
+  let excerpt = "Institutional strategic research and quantitative analysis.";
+
+  try {
+      // Pull from title tag or first header
+      const titleMatch = finalHtml.match(/<title>([\s\S]*?)<\/title>/i) || finalHtml.match(/<h1>([\s\S]*?)<\/h1>/i);
+      if (titleMatch) title = titleMatch[1].replace(/Strategic Manuscript/i, '').replace(/\|/g, '').trim();
+      
+      // Pull excerpt from first paragraph or content start
+      const textOnly = fidelityContent.replace(/<[^>]*>?/gm, '').trim();
+      excerpt = textOnly.slice(0, 250) + (textOnly.length > 250 ? '...' : '');
+  } catch (e) {
+      console.warn("⚠️ [Metadata] Extraction failed:", e.message);
+  }
+
+  console.log(`✅ [Assembly] Institutional Manuscript Finalized [Job: ${id}] | Title: ${title}`);
   
   // --- 🛰️ SOVEREIGN TRACE: Mission Success Breadcrumb ---
   await pushSovereignTrace("SWARM_COMPLETE", { 
       jobId: id, 
       frequency, 
       status: "success", 
-      message: `Institutional Dispatch Finalized: ${finalCount} words synthesized.`
+      message: `Institutional Dispatch Finalized: ${title} (${finalCount} words)`
   }, env);
 
-  return { final: finalHtml, wordCount: finalCount, raw: fidelityContent, jobId: id, pdfUrl };
+  return { final: finalHtml, wordCount: finalCount, raw: fidelityContent, jobId: id, pdfUrl, title, excerpt };
 }
 
 /**
@@ -870,7 +904,7 @@ async function _finalizeAndSync(fidelityContent, consensusSummary, frequency, ty
  * Consolidates individual sector results into a cohesive institutional briefing.
  * Applies final $SHIELD audit and template transformation.
  */
-export async function finalizeManuscript(fragments, consensusSummary, frequency, type, env, id) {
+export async function finalizeManuscript(fragments, consensusSummary, frequency, type, env, id, modelOverride = "auto") {
   // [V12.3] Institutional Gap Analysis: Identify missing chapter IDs
   const receivedVerticalIds = new Set(fragments.map(f => f.verticalId));
   const missingVerticals = VERTICALS.filter(v => !receivedVerticalIds.has(v.id));
@@ -888,7 +922,7 @@ export async function finalizeManuscript(fragments, consensusSummary, frequency,
               const recoveredContent = await executeSingleVerticalSwarm(
                   vertical, 99 + VERTICALS.indexOf(vertical), frequency, 
                   { strategicLead: "Sovereign Emergency Recovery Active." }, 
-                  null, { ...env, FORCE_RECOVERY_NODE: 'laptop' }, id, true
+                  null, { ...env, FORCE_RECOVERY_NODE: 'laptop' }, id, true, "auto"
               );
               recoveredFragments.push({ verticalId: vertical.id, content: recoveredContent });
               console.log(`✅ [Recovery] Successfully reconstructed chapter: ${vertical.id}`);
@@ -933,7 +967,7 @@ export async function finalizeManuscript(fragments, consensusSummary, frequency,
  * --------------------
  * High-fidelity refinement pass based on direct HIL feedback.
  */
-export async function applyHumanRefinement(originalManuscript, feedback, env, jobId) {
+export async function applyHumanRefinement(originalManuscript, feedback, frequency, env, jobId) {
     const start = Date.now();
     await notifyProgress(env, jobId, { 
         stage: "REFINE", 

@@ -87,24 +87,44 @@ function escapeHTML(str) {
  */
 export async function dispatchTelegramAlert(summary, env) {
   const { sendStandardizedTelegram } = await import("./notification-service.js");
-  const isGhost = summary.abstract?.includes('ghost-metadata') || summary.title?.includes('[GHOST]');
   
-  const icon = isGhost ? "👻 <b>[GHOST_MODE]</b>" : "🚨";
-  const processedAbstract = summary.abstract?.replace(/<ghost-metadata.*?\/>/g, '').trim();
-  
-  const safeTitle = escapeHTML(summary.title || "Institutional Article Released");
-  const safeAbstract = escapeHTML(processedAbstract || "");
-  const safeWordCount = escapeHTML(String(summary.wordCount || 0));
+  // 1. [V1.1] JSON AUTO-PARSER: Clean up AI "JSON leakage" in abstract
+  let cleanAbstract = summary.abstract || "";
+  let cleanTitle = summary.title || "Institutional Strategic Pulse";
+  let cleanLink = summary.url || summary.link || "https://blogspro.in/pulse";
 
-  const text = `${icon} <b>${safeTitle}</b>\n\n` +
-               `${safeAbstract}\n\n` +
-               `📊 <b>Word Count:</b> ${safeWordCount}\n` +
-               `🔗 <a href="https://blogspro.in/pulse">View Full Manuscript</a>`;
-  
-  if (isGhost) {
-      console.log("👻 [Social-Bridge] Ghost Simulation detected in abstract. Signaling Admin...");
+  if (typeof cleanAbstract === 'string' && cleanAbstract.trim().startsWith('{')) {
+    try {
+      // Strip potential markdown code blocks first
+      const jsonStr = cleanAbstract.replace(/```json\n?|```/g, '').trim();
+      const parsed = JSON.parse(jsonStr);
+      cleanTitle = parsed.title || cleanTitle;
+      cleanAbstract = parsed.abstract || parsed.summary || parsed.excerpt || cleanAbstract;
+      if (parsed.link && parsed.link.includes('https://')) {
+          // Only override link if it looks like a real institutional URL, not a placeholder
+          if (!parsed.link.includes('example.com')) cleanLink = parsed.link;
+      }
+    } catch (e) {
+      console.warn("⚠️ [Social-Bridge] Failed to parse JSON abstract, using raw fallback.");
+    }
   }
 
+  // 2. [V1.2] AESTHETIC REFINEMENT: Sectional Hardening
+  const freq = (summary.frequency || "Strategic").toUpperCase();
+  const icon = summary.isGhost ? "👻 <b>[GHOST_MODE]</b>" : "🚨";
+  
+  const safeTitle = escapeHTML(cleanTitle);
+  const safeAbstract = escapeHTML(cleanAbstract.replace(/<[^>]*>?/gm, '')); // Secondary tag-strip
+  const safeWordCount = escapeHTML(String(summary.wordCount || 0));
+
+  const text = `${icon} <b>${freq} Strategic Pulse</b>\n` +
+               `━━━━━━━━━━━━━━━━━━━━\n\n` +
+               `<b>${safeTitle}</b>\n\n` +
+               `<i>${safeAbstract}</i>\n\n` +
+               `📊 <b>Density:</b> ${safeWordCount} words\n` +
+               `🚀 <b>Registry:</b> ${env.FIREBASE_PROJECT_ID || 'blogspro-ai'}\n\n` +
+               `🔗 <a href="${cleanLink}"><b>View Full Manuscript</b></a>`;
+  
   const res = await sendStandardizedTelegram(text, env, { parseMode: 'HTML' });
   return res.success;
 }

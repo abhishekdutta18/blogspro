@@ -22,6 +22,16 @@ on:
         required: false
         default: false
         type: boolean
+      model:
+        description: 'Target AI Model (Groq, SambaNova, Cerebras)'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - groq
+          - sambanova
+          - cerebras
 
 concurrency:
   group: sovereign-swarm-lock
@@ -82,7 +92,8 @@ jobs:
           SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}"
         run: |
           FREQ="${{ github.event.inputs.frequency || 'monthly' }}"
-          node scripts/generate-institutional-tome.js --freq=$FREQ --type=article --mode=worker --vertical=${{ matrix.vertical }}
+          MODEL="${{ github.event.inputs.model || 'auto' }}"
+          node scripts/generate-institutional-tome.js --freq=$FREQ --type=article --mode=worker --vertical=${{ matrix.vertical }} --model=$MODEL
       
       - name: Upload Sector Fragment Artifact
         uses: actions/upload-artifact@v4
@@ -132,13 +143,14 @@ jobs:
           SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}"
         run: |
           FREQ="${{ github.event.inputs.frequency || 'monthly' }}"
+          MODEL="${{ github.event.inputs.model || 'auto' }}"
           
           if [ "$FREQ" == "hourly" ]; then
              # Fast Pulse: Single runner
              node scripts/generate-briefing.js --freq=$FREQ
           else
              # Daily, Weekly, Monthly: Parallel Reengineering
-             node scripts/generate-institutional-tome.js --freq=$FREQ --type=article --mode=assemble
+             node scripts/generate-institutional-tome.js --freq=$FREQ --type=article --mode=assemble --model=$MODEL
           fi
 
       - name: Commit and Push Results

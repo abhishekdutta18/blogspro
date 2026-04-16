@@ -1,56 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-const _fetch = fetch;
-let http = null; // Lazy loaded for Node only
+// Purged: Local LLM fallback logic
 
-
-// MARCH 2026: Robust local request handler to bypass global fetch instability
-async function localRequest(url, options) {
-    if (!http) {
-        try {
-            const { default: h } = await import('node:http');
-            http = h;
-        } catch (e) {
-            throw new Error("Local request (Ollama) requires a Node.js environment.");
-        }
-    }
-    return new Promise((resolve, reject) => {
-        const body = options.body || '';
-        const urlObj = new URL(url);
-        const reqOptions = {
-            hostname: urlObj.hostname,
-            port: urlObj.port,
-            path: urlObj.pathname + urlObj.search,
-            method: options.method || 'POST',
-            headers: {
-                ...options.headers,
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(body)
-            },
-            timeout: 900000 // 15 minute timeout for heavy local generations (M1-8GB Optimized)
-        };
-
-        const req = http.request(reqOptions, (res) => {
-            let resData = '';
-            res.on('data', (chunk) => resData += chunk);
-            res.on('end', () => {
-                resolve({
-                    ok: res.statusCode >= 200 && res.statusCode < 300,
-                    status: res.statusCode,
-                    text: async () => resData,
-                    json: async () => JSON.parse(resData)
-                });
-            });
-        });
-
-        req.on('error', (e) => reject(e));
-        req.on('timeout', () => {
-            req.destroy();
-            reject(new Error('Local Request Timeout'));
-        });
-        req.write(body);
-        req.end();
-    });
-}
 import { pushSovereignTrace } from "./storage-bridge.js";
 import { VERTICALS } from "./prompts.js";
 import { Cerebras } from "@cerebras/cerebras_cloud_sdk";
@@ -62,7 +11,6 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // --- RESILIENT ENV NORMALIZATION ---
 const normalizeEnv = () => {
-    process.env.GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY || process.env.GOOGLE_API_KEY;
     process.env.GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.GROQ_KEY;
     process.env.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || process.env.MISTRAL_KEY;
     process.env.OPENROUTER_KEY = process.env.OPENROUTER_KEY || process.env.OPENROUTER_API_KEY;
@@ -83,22 +31,20 @@ function mapLegacyModel(model) {
     if (!model) return model;
     const lower = model.toLowerCase();
     
-    // 1. Gemini Migration (1.5 -> 3.1)
-    if (lower.includes('gemini-1.5')) {
-        if (lower.includes('pro')) return "gemini-3.1-pro-preview";
-        return "gemini-2.5-flash";
-    }
-    if (lower === 'gemini-pro') return "gemini-3.1-pro-preview";
+    // 1. Gemini Migration (Purged)
+    // Legacy mapping removed. All requests now route to Llama-based fleet.
 
-    // 2. Llama Migration (3.1/3.3 -> 4.0)
+
+    // 2. Llama Migration (3.1/3.3 -> 4.0 [REVERTED: 404 on providers])
     if (lower.includes('llama-3.1') || lower.includes('llama-3.3') || lower.includes('llama3')) {
-        if (lower.includes('70b')) return "meta-llama-4-70b-instruct";
-        if (lower.includes('8b')) return "meta-llama-4-8b-instruct";
-        return "meta-llama-4-70b-instruct";
+        if (lower.includes('405b')) return "Meta-Llama-3.1-405B-Instruct-v2";
+        if (lower.includes('70b')) return "llama-3.3-70b";
+        if (lower.includes('8b')) return "llama-3.1-8b";
+        return "llama-3.3-70b";
     }
 
     // 3. DeepSeek Migration
-    if (lower.includes('deepseek-v3')) return "DeepSeek-V4"; // Projected lineage for 2026
+    if (lower.includes('deepseek-v3')) return "DeepSeek-V3"; // Fixed: Removed hallucinated V4 projected lineage
 
     return model;
 }
@@ -159,7 +105,7 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
     const messages = [{ role: "user", content: prompt }];
     
     try {
-        let res = await _fetch("https://api.groq.com/openai/v1/chat/completions", {
+        let res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             signal: controller.signal,
             headers: {
@@ -197,21 +143,21 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
                     // Standard: fetchDocument is imported from ./data-fetchers.js
                     const doc = await fetchDocument(args.url);
                     if (doc) {
-                        console.log(`👁️ [Groq-Vision Bridge] Requesting Gemini OCR (Chart-Enabled)...`);
-                        const ocrResult = await generateGeminiContent(`
-                            TASK: Extract all institutional metrics, tables, and financial data.
-                            CHART RULE: Identify any charts, plots, or data series. If found, format them EXACTLY as a JSON array: [["Label", Value], ...].
-                            Output the raw data first, then the JSON chart blocks.
-                        `, "gemini-1.5-flash", { 
-                            ...context, vision_payload: doc 
-                        });
+                    console.log(`👁️ [Groq-Vision Bridge] Requesting High-Fidelity OCR (Llama-4-70B)...`);
+                    const ocrResult = await generateGroqContent(`
+                        TASK: Extract all institutional metrics, tables, and financial data.
+                        CHART RULE: Identify any charts, plots, or data series. If found, format them EXACTLY as a JSON array: [["Label", Value], ...].
+                        Output the raw data first, then the JSON chart blocks.
+                    `, "llama-3.1-70b-versatile", { 
+                        ...context, vision_payload: doc 
+                    });
                         messages.push({ role: "tool", tool_call_id: toolCall.id, content: ocrResult });
                     } else {
                         messages.push({ role: "tool", tool_call_id: toolCall.id, content: "Error: Document unreachable." });
                     }
                 }
             }
-            res = await _fetch("https://api.groq.com/openai/v1/chat/completions", {
+            res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
                 body: JSON.stringify({ model, messages, temperature: 0.2 })
@@ -245,7 +191,7 @@ async function generateKimiContent(prompt) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120000);
     try {
-        const res = await _fetch("https://api.moonshot.cn/v1/chat/completions", {
+        const res = await fetch("https://api.moonshot.cn/v1/chat/completions", {
             method: "POST",
             signal: controller.signal,
             headers: {
@@ -269,129 +215,19 @@ async function generateKimiContent(prompt) {
     }
 }
 
-async function generateGeminiContent(prompt, model = "gemini-2.5-flash", context = {}) {
-    // [V6.2] Shield Activation
-    model = mapLegacyModel(model);
+// generateGeminiContent Purged 2026-04-13. 
+// Institutional policy forbids Google AI dependency. 
+// Use generateSambaNovaContent or generateCerebrasContent instead.
 
-    // Principal: GEMINI_API_KEY (Institutional Standard)
-    const key = context?.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
-    if (!key) throw new Error("GEMINI_API_KEY missing.");
-
-    // Standard v1 for institutional stability in April 2026
-    const genAI = new GoogleGenerativeAI(key);
-    
-    // Default high-fidelity list for April 2026 institutional pass
-    let models = [
-        "gemini-2.5-flash", 
-        "gemini-3.1-pro-preview",
-        "gemini-3.1-flash-lite"
-    ];
-
-    // If a specific Gemini model is requested, move it to the front
-    if (model?.includes('gemini')) {
-        models = [model, ...models.filter(m => m !== model)];
-    }
-    
-    // FREE-TIER THROTTLER: Add a small jittered jitter to stay within RPM limits
-    const jitter = Math.floor(Math.random() * 1000) + 500;
-    await sleep(jitter);
-
-    for (const model of models) {
-        try {
-            console.log(`🔍 [Gemini-Fleet] Attempting via ${model}...`);
-            // [V15.5] Vault-Ready Handshake: Fallback between v1 and v1beta
-            const genAI = new GoogleGenerativeAI(key, { apiVersion: context.geminiVersion || 'v1' });
-            const genModel = genAI.getGenerativeModel({ 
-                model: model.includes('gemini') ? model : "gemini-1.5-flash"
-            });
-            const chat = genModel.startChat();
-            
-            // Handle Vision Payload (OCR direct pass)
-            let initialContent = prompt;
-            if (context.vision_payload) {
-                initialContent = [
-                    prompt,
-                    { inlineData: { data: context.vision_payload.base64, mimeType: context.vision_payload.mimeType } }
-                ];
-            }
-
-            let result = await chat.sendMessage(initialContent);
-            let response = result.response;
-            
-            // --- TOOL CALL HANDLING LOOP ---
-            const maxCalls = 5; 
-            let callCount = 0;
-            while (response.functionCalls()?.length > 0 && callCount < maxCalls) {
-                callCount++;
-                const calls = response.functionCalls();
-                const toolResults = [];
-
-                for (const call of calls) {
-                    if (call.name === "search_web") {
-                        const searchResult = await fetchDynamicNews(call.args.query);
-                        toolResults.push({ functionResponse: { name: "search_web", response: { content: searchResult } } });
-                    } else if (call.name === "read_page") {
-                        const pageText = await fetchFullPageContent(call.args.url);
-                        toolResults.push({ functionResponse: { name: "read_page", response: { content: pageText } } });
-                    } else if (call.name === "vision_parse") {
-                        const doc = await fetchDocument(call.args.url);
-                        if (doc) {
-                            const visionResult = await genModel.generateContent([
-                                `
-                                TASK: Analyze this institutional document for current-year (2026) data.
-                                CHART INJECTION RULE: Scrape every data series, bar chart, or trend line.
-                                If a chart is detected, output a JSON array [["Label", Value], ...] followed by the vertical source title.
-                                `,
-                                { inlineData: { data: doc.base64, mimeType: doc.mimeType } }
-                            ]);
-                            toolResults.push({ functionResponse: { name: "vision_parse", response: { content: visionResult.response.text() } } });
-                        } else {
-                            toolResults.push({ functionResponse: { name: "vision_parse", response: { content: "Error: Document unreachable." } } });
-                        }
-                    }
-                }
-
-                result = await chat.sendMessage(toolResults);
-                response = result.response;
-            }
-
-            console.log(`✅ [Gemini-Fleet] ${model} succeeded (Tools used: ${callCount > 0}).`);
-            return response.text();
-        } catch (err) {
-            const msg = err.message || "";
-            // [DIAGNOSTIC] Log actual error to identify Vault/Key issues
-            console.warn(`❌ [Gemini-Fleet] ${model} failed: ${msg}`);
-
-            // Detect terminal 'Dropped' / 'Not Found' / 'Deprecated'
-            if (msg.includes('404') || msg.includes('not found') || msg.includes('NOT_FOUND') || msg.includes('DEPRECATED') || msg.includes('model is not found')) {
-                console.warn(`⚠️ [Gemini-Fleet] ${model} dropped/deprecated/unreachable. Rotating...`);
-                continue;
-            }
-            // Permissions / Key failure — terminate rotation but allow top-level failover
-            if (msg.includes('403') || msg.includes('permission') || msg.includes('PERMISSION_DENIED') || msg.includes('API_KEY_INVALID')) {
-                console.error(`🚫 [Gemini-Fleet] Access Denied for ${model}. Key may be invalid or restricted.`);
-                throw new Error("GEMINI_PERMISSION_DENIED");
-            }
-            // Rate limit — short wait then rotate
-            if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
-                console.warn(`⏳ [Gemini-Fleet] ${model} rate limited. Rotating to next model...`);
-                continue;
-            }
-            console.warn(`❌ [Gemini-Fleet] ${model} rotation continue: ${msg}`);
-        }
-    }
-    throw new Error("GEMINI_FLEET_EXHAUSTED");
-}
 
 /**
  * Echo Detector: Identifies if the AI output is actually the prompt itself.
  */
 function isEcho(content) {
-    if (content === undefined || content === null) return false; // Fail safe
+    if (content === undefined || content === null) return false;
     const tokens = ["GLOBAL TEMPORAL GROUNDING", "INSTITUTIONAL_PERSONA", "QUANTITATIVE DRAFTER"];
     return tokens.some(t => content.includes(t));
 }
-
 
 /**
  * Emergency Fallback: If no LLM is available to audit/sanitize, 
@@ -400,7 +236,6 @@ function isEcho(content) {
 function localRegexAudit(content) {
     console.log("🛠️ Applying Ultra-Hardened Emergency Local Regex Audit...");
     return content
-        // Strip common system instruction blocks
         .replace(/REMOVE all markdown backticks[\s\S]*?institutional blocks\./gi, '')
         .replace(/CONTENT: Clean this institutional market report for terminal delivery\./gi, '')
         .replace(/<rule-check>[\s\S]*?<\/rule-check>/gi, '')
@@ -411,99 +246,52 @@ function localRegexAudit(content) {
 }
 
 /**
+ * [V15.8] Content Integrity Audit
+ * Detects if a response is actually an HTML error page or a 404/Null state.
+ */
+function isValidIntelligence(text) {
+    if (!text || text.length < 15) return false;
+    const lower = text.toLowerCase();
+    if (lower.includes('<!doctype html>')) return false;
+    if (lower.includes('<html')) return false;
+    if (lower.includes('404 Not Found')) return false;
+    if (lower.includes('502 Bad Gateway')) return false;
+    return true;
+}
+
+/**
  * [V15.3] Direct-Dial Anchor: The 'Hail Mary' pass for total swarm fleet exhaustion.
  * Bypasses all balancers, bridges, and local cascades to hit the API directly.
  */
 async function directDialAnchor(prompt, model, role, env) {
     console.log(`🛰️ [Direct-Dial] Fleet exhausted. Initiating emergency direct-to-provider handshake...`);
     
-    const targetModel = mapLegacyModel(model);
+    // [V15.7] Sovereign Fallback Priority
+    const fallbacks = [
+        { name: "SambaNova", fn: generateSambaNovaContent, key: env?.SAMBANOVA_API_KEY || process.env.SAMBANOVA_API_KEY, model: "Meta-Llama-3.1-405B-Instruct-v2" },
+        { name: "Cerebras", fn: generateCerebrasContent, key: env?.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY, model: "llama-3.3-70b" },
+        { name: "Groq", fn: (p, m, c) => generateGroqContent(p, "llama-3.3-70b-versatile", c), key: env?.GROQ_API_KEY || process.env.GROQ_API_KEY, model: "llama-3.3-70b-versatile" },
+        { name: "HuggingFace", fn: generateHuggingFaceContent, key: env?.HF_TOKEN || process.env.HF_TOKEN, model: "mistralai/Mistral-7B-Instruct-v0.3" }
+    ];
 
-    // 1. Direct Gemini Attempt
-    const geminiKey = env?.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-    if (geminiKey) {
-        try {
-            console.log(`🎯 [Direct-Dial] Attempting Direct Gemini Handshake (Model: ${targetModel})...`);
-            const genAI = new GoogleGenerativeAI(geminiKey);
-            const geminiModel = genAI.getGenerativeModel({ model: targetModel || "gemini-3.1-pro-preview" });
-            const result = await geminiModel.generateContent(prompt);
-            const response = await result.response;
-            let text = response.text();
-            
-            if (role === 'audit') text = localRegexAudit(text);
-            return text;
-        } catch (err) {
-            console.warn(`⚠️ [Direct-Dial] Gemini handshake failed: ${err.message}`);
-        }
-    }
-
-    // 2. Direct Groq Attempt
-    const groqKey = env?.GROQ_API_KEY || process.env.GROQ_API_KEY;
-    if (groqKey) {
-        try {
-            console.log(`🎯 [Direct-Dial] Attempting Direct Groq Handshake (Model: llama-3.3-70b-versatile)...`);
-            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${groqKey}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    model: "llama-3.3-70b-versatile",
-                    messages: [{ role: "user", content: prompt }]
-                })
-            });
-            if (res.ok) {
-                const data = await res.json();
-                let text = data.choices[0].message.content;
-                if (role === 'audit') text = localRegexAudit(text);
-                return text;
+    for (const fb of fallbacks) {
+        if (fb.key && !fb.key.includes('1_2_3_4_5') && fb.key.length > 20) {
+            try {
+                console.log(`🎯 [Direct-Dial] Attempting Direct ${fb.name} Handshake (Model: ${fb.model})...`);
+                const response = await fb.fn(prompt, fb.model, env);
+                if (isValidIntelligence(response)) return response;
+                console.warn(`⚠️ [Direct-Dial] ${fb.name} returned invalid/corrupted intelligence.`);
+            } catch (err) {
+                console.warn(`⚠️ [Direct-Dial] ${fb.name} handshake failed: ${err.message}`);
             }
-        } catch (err) {
-            console.warn(`⚠️ [Direct-Dial] Groq handshake failed: ${err.message}`);
         }
     }
 
     throw new Error("FLEET_RECOVERY_FAILED");
 }
 
-/**
- * [V15.5] Ghost Simulation Fallback: The terminal autonomous synthesis engine.
- * Triggers only when cloud, edge, and direct-dial tiers have all failed.
- */
-function generateEmergencyGhostFallback(prompt, role, env) {
-    console.log(`👻 [Ghost-Simulation] TOTAL FLEET EXHAUSTION. Commencing autonomous content synthesis...`);
-    
-    // 1. Keyword Extraction (Basic Tokenization)
-    const keywords = prompt.match(/\b[A-Z][A-Z\d_]{3,}\b|\b(crypto|macro|tech|market|policy|institutional)\b/gi) || ["Strategic", "Institutional"];
-    const topKeywords = [...new Set(keywords)].slice(0, 5).map(k => k.charAt(0).toUpperCase() + k.slice(1).toLowerCase());
+// Purged: Ghost Simulation (Fraudulent fallback)
 
-    // 2. Deterministic Structural Synthesis
-    const timestamp = new Date().toISOString();
-    const leadKeyword = topKeywords[0] || "Strategic";
-    
-    let simulatedResponse = `<h2>${leadKeyword} Consensus: Institutional Strategic Synthesis</h2>\n`;
-    simulatedResponse += `<details id="meta-excerpt" style="display:none">Deterministic Ghost Synthesis triggered at ${timestamp}. Resource constraints forced autonomous structural mapping for project: ${topKeywords.join(', ')}.</details>\n\n`;
-    
-    simulatedResponse += `The current institutional landscape for **${topKeywords.join(' and ')}** reflects a period of heightened structural recalibration. Systemic signals indicate a transition into a "Ghost State" where autonomous logic dictates the current strategic narrative.\n\n`;
-
-    simulatedResponse += `### Observed Data Matrix\n\n`;
-    simulatedResponse += `| Vertical Component | Status | Strategic Delta |\n`;
-    simulatedResponse += `|:-------------------|:-------|:----------------|\n`;
-    topKeywords.forEach(k => {
-        simulatedResponse += `| ${k} Analysis | STABLE | +0.0 (Simulated) |\n`;
-    });
-
-    simulatedResponse += `\n**SENTIMENT_SCORE: 50** | **POLL: System Status?** | **OPTIONS: RECOVERY, STALL, GHOST**\n`;
-    
-    const chartData = topKeywords.map((k, i) => `["${k}", ${50 + i}]`).join(', ');
-    simulatedResponse += `<chart-data>[${chartData}]</chart-data>\n`;
-    
-    simulatedResponse += `\n<!-- GHOST_SIMULATION_ACTIVE: This manuscript was synthesized via autonomous fallback logic due to total provider exhaustion. -->\n`;
-    simulatedResponse += `<ghost-metadata origin="simulation" timestamp="${timestamp}" role="${role}" />\n`;
-
-    return simulatedResponse;
-}
 
 async function generateMistralContent(prompt, model = "mistral-large-latest", context = {}) {
     const key = context?.MISTRAL_API_KEY || process.env.MISTRAL_KEY || process.env.MISTRAL_API_KEY;
@@ -517,7 +305,7 @@ async function generateMistralContent(prompt, model = "mistral-large-latest", co
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120000);
     try {
-        const res = await _fetch("https://api.mistral.ai/v1/chat/completions", {
+        const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
             method: "POST",
             signal: controller.signal,
             headers: {
@@ -553,7 +341,7 @@ async function generateTogetherContent(prompt, model = "meta-llama/Llama-3-70b-c
         model = "meta-llama/Llama-3-70b-chat-hf";
     }
 
-    const res = await _fetch("https://api.together.xyz/v1/chat/completions", {
+    const res = await fetch("https://api.together.xyz/v1/chat/completions", {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${key}`,
@@ -583,7 +371,7 @@ async function generateDeepInfraContent(prompt, model = "meta-llama/Meta-Llama-3
         model = "meta-llama/Meta-Llama-3-8B-Instruct";
     }
 
-    const res = await _fetch("https://api.deepinfra.com/v1/openai/chat/completions", {
+    const res = await fetch("https://api.deepinfra.com/v1/openai/chat/completions", {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${key}`,
@@ -612,7 +400,7 @@ async function generateOpenRouterContent(prompt, model = "anthropic/claude-3.5-s
         model = "anthropic/claude-3.5-sonnet";
     }
 
-    const res = await _fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${String(key).trim()}`,
@@ -647,7 +435,7 @@ async function generateGithubContent(prompt, model = "gpt-4o-mini", context = {}
         model = "gpt-4o-mini";
     }
 
-    const res = await _fetch("https://models.inference.ai.azure.com/chat/completions", {
+    const res = await fetch("https://models.inference.ai.azure.com/chat/completions", {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${key}`,
@@ -678,7 +466,7 @@ async function generateCloudflareContent(prompt, model = "@cf/meta/llama-3-8b-in
         model = "@cf/meta/llama-3-8b-instruct";
     }
 
-    const res = await _fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`, {
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${key}` },
         body: JSON.stringify({
@@ -704,7 +492,7 @@ async function generateSambaNovaContent(prompt, model = "Meta-Llama-4-70B-Instru
     // [V6.2] Shield Activation
     const targetModel = mapLegacyModel(model) || "Meta-Llama-4-70B-Instruct";
 
-    const res = await _fetch("https://api.sambanova.ai/v1/chat/completions", {
+    const res = await fetch("https://api.sambanova.ai/v1/chat/completions", {
         method: "POST",
         headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -735,7 +523,9 @@ async function generateInstitutionalBridgeContent(prompt, model, context = {}) {
     if (!bridgeUrl) {
         // Probe Pattern: If we know the project name, we can guess the worker URL
         const projectId = process.env.FIREBASE_PROJECT_ID || "blogspro";
+        // V15.7: Secondary candidate discovery (Pulse-V2)
         const candidateUrl = `https://${projectId}-pulse.abhishek-dutta1996.workers.dev/ai-gateway`;
+        const v2Url = `https://${projectId}-pulse.abhishek-dutta1996.workers.dev/ai`;
         const fallbackUrl = "https://blogspro-pulse.abhishek-dutta1996.workers.dev/ai-gateway";
         
         // Initial handshake to prioritize the candidate
@@ -749,13 +539,13 @@ async function generateInstitutionalBridgeContent(prompt, model, context = {}) {
     // Model Mapping: Map node roles to edge providers
     let provider = 'groq';
     const lModel = model?.toLowerCase() || "";
-    if (lModel.includes('gemini') || lModel.includes('google')) provider = 'gemini';
+
     if (lModel.includes('huggingface') || lModel.includes('hf') || lModel.includes('mistral')) provider = 'huggingface';
     if (lModel.includes('samba') || lModel.includes('deepseek') || lModel.includes('1t')) provider = 'sambanova';
 
     console.log(`🛰️ [AI-Bridge] Requesting ${provider}/${model} via Cloudflare Edge...`);
 
-    const res = await _fetch(bridgeUrl, {
+    const res = await fetch(bridgeUrl, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -769,8 +559,24 @@ async function generateInstitutionalBridgeContent(prompt, model, context = {}) {
         throw new Error(`AI-Bridge Error: ${res.status} ${errText}`);
     }
 
+    // [V15.8] HARDENED: Verify that the bridge returned valid JSON, not a 404 HTML page
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+        const sniff = await res.text();
+        if (isValidIntelligence(sniff)) {
+             // If it's pure text but valid (unlikely for the bridge), maybe it's okay? 
+             // No, the bridge MUST return JSON.
+        }
+        throw new Error(`AI-Bridge Error: Expected JSON, got ${contentType}. Possible 404/HTML leakage.`);
+    }
+
     const data = await res.json();
-    if (data.success && data.response) return data.response;
+    if (data.success && data.response) {
+        if (!isValidIntelligence(data.response)) {
+            throw new Error("AI-Bridge Error: Response failed content-integrity audit (detected HTML or corruption).");
+        }
+        return data.response;
+    }
     throw new Error(`AI-Bridge Error: ${data.error || "Malformed bridge response"}`);
 }
 
@@ -807,86 +613,15 @@ async function generateCerebrasContent(prompt, model = "llama-4-8b", context = {
     }
 }
 
-async function generateOllamaContent(prompt, model = "llama3.1", context = {}) {
-    try {
-        const defaultHost = "http://127.0.0.1:11434";
-        const host = context.targetHost || process.env.OLLAMA_HOST || defaultHost;
-        const apiKey = context.targetKey || process.env.OLLAMA_PROD_KEY;
+// Purged: Ollama and Local Cascade logic
 
-        let targetModel = model?.toLowerCase() || "gemma4:e4b";
-        if (targetModel.includes('node-') || !targetModel.includes(':') || /gemini|gpt|claude|llama|gemma/.test(targetModel)) {
-            targetModel = "gemma4:e4b";
-        }
-
-        const headers = { "Content-Type": "application/json" };
-        if (apiKey && apiKey.includes('.')) {
-            const [id, secret] = apiKey.split('.');
-            headers["CF-Access-Client-Id"] = id;
-            headers["CF-Access-Client-Secret"] = secret;
-        } else if (apiKey) {
-            headers["Authorization"] = `Bearer ${apiKey}`;
-        }
-
-        if (/ngrok-free/.test(host)) {
-            headers["ngrok-skip-browser-warning"] = "69420";
-        }
-
-        if (/127\.0\.0\.1|localhost/.test(host)) {
-            // [V15.5] Reduced noise floor sleep for higher throughput in production
-            await sleep(500); 
-        }
-
-        const targetHost = host.replace('127.0.0.1', 'localhost');
-        const fetcher = (/localhost|127\.0\.0\.1/.test(targetHost)) ? localRequest : _fetch;
-
-        console.log(`🚀 [Ollama] Dispatching to ${targetHost} [Model: ${targetModel}]...`);
-
-        const res = await fetcher(`${targetHost}/api/generate`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ model: targetModel, prompt, stream: false })
-        });
-
-        if (!res.ok) {
-            const txt = await res.text();
-            throw new Error(`HTTP ${res.status}: ${txt}`);
-        }
-
-        const data = await res.json();
-        if (data && data.response) return data.response;
-        throw new Error("Empty response");
-    } catch (err) {
-        throw new Error(`Ollama Swarm Failure: ${err.message}`);
-    }
-}
-
-// V7.1: Institutional Local Cascade (Multiple Model Resilience)
-async function generateLocalCascade(prompt, model, context = {}) {
-    const localEndpoints = [
-        { name: "Ollama-Default", host: "http://127.0.0.1:11434" },
-        { name: "LM-Studio", host: "http://127.0.0.1:1234" },
-        { name: "Ollama-Alt", host: "http://127.0.0.1:11435" }
-    ];
-
-    let lastError = null;
-    for (const endpoint of localEndpoints) {
-        try {
-            console.log(`🏠 [Local-Cascade] Attempting ${endpoint.name} (${model})...`);
-            return await generateOllamaContent(prompt, model, { ...context, targetHost: endpoint.host });
-        } catch (err) {
-            console.warn(`🏠 [Local-Cascade] ${endpoint.name} failed: ${err.message}`);
-            lastError = err;
-        }
-    }
-    throw lastError || new Error("LOCAL_CASCADE_EXHAUSTED");
-}
 
 async function generateHuggingFaceContent(prompt, model = "mistralai/Mistral-7B-Instruct-v0.3", context = {}) {
     const key = context?.HF_TOKEN || process.env.HF_TOKEN;
     if (!key) throw new Error("HF_TOKEN missing.");
 
     // MARCH 2026 UPDATE: Using router.huggingface.co for institutional stability
-    const res = await _fetch(`https://router.huggingface.co/hf/v1/chat/completions`, {
+    const res = await fetch(`https://router.huggingface.co/hf/v1/chat/completions`, {
         method: "POST",
         headers: { 
             "Authorization": `Bearer ${key}`, 
@@ -911,7 +646,7 @@ async function generateQwenContent(prompt, model = "qwen-2.5-72b-instruct", cont
     if (!key) throw new Error("QWEB_API_KEY missing.");
 
     // Using OpenAI-compatible DashScope or Together endpoint
-    const res = await _fetch("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", {
+    const res = await fetch("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", {
         method: "POST",
         headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -995,7 +730,7 @@ export const ResourceManager = {
         const fetchedSecrets = await fetchVaultSecrets(env);
         if (fetchedSecrets) {
             // Hot-patch the environment with real secrets (mapped to .env keys)
-            if (fetchedSecrets.GEMINI) env.GEMINI_API_KEY = fetchedSecrets.GEMINI;
+            // if (fetchedSecrets.GEMINI) env.GEMINI_API_KEY = fetchedSecrets.GEMINI; // Purged
             if (fetchedSecrets.GROQ) env.GROQ_API_KEY = fetchedSecrets.GROQ;
             if (fetchedSecrets.MISTRAL) env.MISTRAL_API_KEY = fetchedSecrets.MISTRAL;
             if (fetchedSecrets.SAMBANOVA) env.SAMBANOVA_API_KEY = fetchedSecrets.SAMBANOVA;
@@ -1040,12 +775,12 @@ export const ResourceManager = {
 
         const activeKeys = {
             Groq: sanitize(env.GROQ_API_KEY || process.env.GROQ_API_KEY || process.env.GROQ_KEY, 'Groq', true),
-            Gemini: sanitize(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY, 'Gemini', true),
+            // Gemini: sanitize(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY, 'Gemini', true), // Purged
             Cerebras: sanitize(env.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY, 'Cerebras', true),
             HF_TOKEN: sanitize(env.HF_TOKEN || process.env.HF_TOKEN, 'HuggingFace', true),
             SambaNova: sanitize(env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_KEY, 'SambaNova', true),
-            Ollama: (process.env.GITHUB_ACTIONS === 'true' && !env.OLLAMA_HOST) ? null : (env.OLLAMA_HOST || process.env.OLLAMA_HOST || "http://127.0.0.1:11434").trim(),
-            OllamaProd: (env.OLLAMA_PROD_URL || process.env.OLLAMA_PROD_URL || "").trim(),
+            // Ollama Purged 2026-04-14
+
             Cloudflare: sanitize(env.CF_API_TOKEN || process.env.CF_API_TOKEN || env.CLOUDFLARE_API_TOKEN || env.CF_API_KEY, 'Cloudflare', false)
         };
 
@@ -1053,18 +788,18 @@ export const ResourceManager = {
             console.log("☁️  [AI-Balancer] GHA Mode Detected: Forcing Cloud-First Intelligence.");
         }
         
-        // Fix SambaNova/Cerebras cross-contamination
-        if (activeKeys.SambaNova && activeKeys.SambaNova.startsWith('csk-')) activeKeys.SambaNova = null;
-        if (activeKeys.Cerebras && !activeKeys.Cerebras.startsWith('csk-')) activeKeys.Cerebras = null;
+        // Fix SambaNova/Cerebras cross-contamination (Relaxed for V15.7)
         if (activeKeys.HuggingFace && !activeKeys.HuggingFace.startsWith('hf_')) activeKeys.HuggingFace = null;
         if (activeKeys.Cloudflare && !activeKeys.Cloudflare.startsWith('cfut_')) {
              if (activeKeys.Cloudflare && activeKeys.Cloudflare.length < 30) activeKeys.Cloudflare = null;
         }
 
         this.pool = [];
-        // TIER 1: INSTITUTIONAL RESEARCH & EDITING (High Precision)
-        if (activeKeys.Gemini) {
-            this.pool.push({ name: 'Gemini-3.1-Pro', fn: (p, m, c) => generateGeminiContent(p, "gemini-3.1-pro-preview", c), tier: 1, roles: ['research', 'edit', 'manager', 'draft', 'generate'], match: /gemini-pro|gemini-|node-research|node-edit|node-manager|node-draft|node-generate/i });
+        // TIER 1: INSTITUTIONAL RESEARCH & EDITING (High Precision Sovereign Anchor)
+        if (activeKeys.SambaNova) {
+            // [V15.6] SambaNova 405B: The Primary Strategic Anchor for the Cynical Reconstruction
+            this.pool.push({ name: 'SambaNova-405B-Anchor', fn: (p, m, c) => generateSambaNovaContent(p, "Meta-Llama-3.1-405B-Instruct-v2", c), tier: 1, roles: ['research', 'manager', 'consolidate'], match: /sambanova|405b|anchor/i });
+            this.pool.push({ name: 'DeepSeek-V3-MoE', fn: (p, m, c) => generateSambaNovaContent(p, "DeepSeek-V3", c), tier: 1, roles: ['research', 'edit'], match: /deepseek|v3|reasoning/i });
         }
         if (activeKeys.Cerebras) {
             this.pool.push({ name: 'Cerebras-Llama-4-70B', fn: (p, m, c) => generateCerebrasContent(p, m || "llama-4-70b", c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /cerebras|llama-4|llama|node-research|node-edit|node-draft|node-audit|node-generate/i });
@@ -1076,37 +811,11 @@ export const ResourceManager = {
 
         // TIER 2: HIGH-THROUGHPUT DRAFTING (Cost-Efficient)
         if (activeKeys.SambaNova) {
-            this.pool.push({ name: 'SambaNova-405B-Anchor', fn: (p, m, c) => generateSambaNovaContent(p, "Meta-Llama-3.1-405B-Instruct-v2", c), tier: 1, roles: ['research', 'manager'], match: /sambanova|405b|anchor/i });
-            this.pool.push({ name: 'DeepSeek-V3-MoE', fn: (p, m, c) => generateSambaNovaContent(p, "DeepSeek-V3", c), tier: 1, roles: ['research', 'edit'], match: /deepseek|v3|reasoning/i });
             this.pool.push({ name: 'SambaNova-70B', fn: generateSambaNovaContent, tier: 2, roles: ['draft'], match: /sambanova|node-draft/i });
         }
-        if (activeKeys.Ollama) {
-            this.pool.push({ 
-                name: 'Ollama-Local', 
-                fn: (p, m, c) => generateOllamaContent(p, m, { ...c, targetHost: activeKeys.Ollama }), 
-                tier: 3, 
-                roles: ['utility', 'audit', 'repair'], 
-                match: /ollama|local|llama|mistral|phi|gemma|qwen|utility|audit|repair/i 
-            }); 
-            this.pool.push({ 
-                name: 'Gemma-4-Specialist', 
-                fn: (p, m, c) => generateOllamaContent(p, "gemma4:e4b", { ...c, targetHost: activeKeys.Ollama }), 
-                tier: 2, 
-                roles: ['audit', 'repair'], 
-                match: /gemma4|node-audit|node-repair/i 
-            });
-        }
-        const ollamaProdUrl = activeKeys.OllamaProd || process.env.OLLAMA_PROD_URL;
-        if (ollamaProdUrl && !isPlaceholder(ollamaProdUrl)) {
-             // [V8.6] Institutional Pre-flight Connectivity Audit
-             this.pool.push({ 
-                name: 'Ollama-Prod', 
-                fn: (p, m, c) => generateOllamaContent(p, m, { ...c, targetHost: ollamaProdUrl, targetKey: process.env.OLLAMA_PROD_KEY }), 
-                tier: 2, 
-                roles: ['research', 'edit', 'manager', 'draft', 'audit', 'utility'],
-                match: /ollama-prod|remote|llama|mistral|phi|gemma|qwen|research|edit|manager|draft|audit/i 
-            });
-        }
+
+        // Purged: Local Ollama Pool initialization
+
 
         // TIER 3: RESILIENCE FALLBACKS
         if (activeKeys.Cloudflare) {
@@ -1124,17 +833,10 @@ export const ResourceManager = {
         }
 
         // TIER 4: INSTITUTIONAL ANCHOR (Extreme Resilience)
-        if (ollamaProdUrl && !isPlaceholder(ollamaProdUrl)) {
-            this.pool.push({ 
-                name: 'Institutional-Laptop', 
-                fn: (p, m, c) => generateOllamaContent(p, "gemma4:e4b", { ...c, targetHost: ollamaProdUrl, targetKey: env.OLLAMA_PROD_KEY || process.env.OLLAMA_PROD_KEY }), 
-                tier: 1, 
-                roles: ['audit', 'repair', 'research'],
-                match: /laptop|anchor|institutional|gemma4|node-audit/i 
-            });
-        }
+        // Purged: Institutional Laptop Anchor logic
 
-        // TIER 4: INSTITUTIONAL BRIDGE (Restores Groq/Gemini via Cloudflare)
+
+        // TIER 4: INSTITUTIONAL BRIDGE (Restores Groq/Llama via Cloudflare)
         if (isBridgeActive) {
             this.pool.push({ 
                 name: 'Cloudflare-Gateway', 
@@ -1148,7 +850,7 @@ export const ResourceManager = {
             // These act as direct mappings to the Edge Bridge to ensure high-parameter utilization.
             this.pool.push({ name: 'Groq-70B-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "llama-3.3-70b-versatile", c), tier: 1, roles: ['research', 'edit'], match: /groq|node-research|70b/i });
             this.pool.push({ name: 'DeepSeek-V3-1T', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "DeepSeek-V3", c), tier: 1, roles: ['research', 'edit'], match: /deepseek|v3|1t|reasoning/i });
-            this.pool.push({ name: 'Gemini-Pro-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "gemini-3.1-pro-preview", c), tier: 1, roles: ['research', 'edit', 'manager'], match: /gemini-pro|google/i });
+            // [REMOVED] Gemini-Pro-Proxy
             this.pool.push({ name: 'HuggingFace-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, m || "mistralai/Mistral-7B-Instruct-v0.3", c), tier: 2, roles: ['utility', 'audit'], match: /huggingface|hf|mistral/i });
             
             // [V12.0] Gemma-4 Shadow Audit (Cloud Proxy for GHA Continuity)
@@ -1182,12 +884,13 @@ export const ResourceManager = {
                 return false;
             }
 
+            // [V16.0] Terminal Blacklist Check (The Suicide Loop Fix)
+            if (this.failed.has(p.name)) {
+                return false;
+            }
+
             const cooldown = this.cooldowns.get(p.name);
             if (cooldown && now < cooldown) { 
-                // 🛡️ INSTITUTIONAL RETENTION: Do not skip Tier-1 nodes for minor cooldowns if pressure is high
-                if (p.tier === 1 && (cooldown - now) < 60000) {
-                   return true; 
-                }
                 console.log(`⏳ [AI-Balancer] Skipping node on cooldown (${Math.ceil((cooldown - now)/1000)}s): ${p.name}`);
                 return false;
             }
@@ -1251,7 +954,9 @@ export const ResourceManager = {
             console.warn(`⏳ [AI-Balancer] ${name} rate limited. Activating 60000ms cooldown.`);
             this.cooldowns.set(name, Date.now() + 60000);
         } else if (isAuth) {
-            console.warn(`⚠️ [AI-Balancer] Terminal error on ${name}: ${error}. Continuing rotation (Blacklist Disabled).`);
+            console.error(`🚫 [AI-Balancer] Terminal error on ${name}: ${error}. Blacklisting node...`);
+            this.failed.add(name);
+            this.failedAt.set(name, Date.now());
         } else {
             console.warn(`⚠️ [AI-Balancer] ${name} failed with temporary error: ${error}. Retrying next...`);
         }
@@ -1262,11 +967,10 @@ export const ResourceManager = {
      * Forces all blacklisted nodes back into rotation.
      */
     forcePoolHeal() {
-        if (this.failed.size === 0 && this.cooldowns.size === 0) return;
+        if (this.failed.size === 0) return;
         console.log(`🩹 [AI-Balancer] Institutional Force-Heal Activated. Purging blacklist (${this.failed.size} nodes)...`);
         this.failed.clear();
         this.failedAt.clear();
-        this.cooldowns.clear();
     },
 
     /**
@@ -1276,13 +980,14 @@ export const ResourceManager = {
     async emergencyReset(env = {}) {
         console.warn("🚨 [AI-Balancer] POOL DEPLETION DETECTED. Commencing Emergency Fleet Reset...");
         this.failed.clear();
-        this.cooldowns.clear();
         this.inflight.clear();
         await this.init(env, true); // Force a full vault re-sync and pool rebuild
     },
 
     revaluateFleet() {
-        this.forcePoolHeal();
+        console.log("♻️ [AI-Balancer] Harvesting fresh fleet nodes...");
+        this.failed.clear();
+        // Preserving temporary cooldowns to prevent recursive 429 loops (The Suicide Loop Fix)
     }
 };
 
@@ -1317,28 +1022,38 @@ export async function askAI(prompt, options = {}) {
         console.log(`🛡️ [AI-Override] Using mandatory model: ${targetModel}`);
     }
 
-    // 2. Cascade Logic (User Override: Local-First)
-    if (role === 'node-research' || role === 'node-audit') {
-        try {
-            return await generateLocalCascade(prompt, targetModel || 'llama3.1:latest', { role, env });
-        } catch (e) {
-            console.log(`🔄 [Cascade-Fallback] Local models (Ollama/LM) exhausted. Rotating to Cloud Pool...`);
-        }
-    }
+    // Local Cascade Purged
+
 
     // 3. Optional: Semantic Compression for Telemetry
     if (role === 'compress') {
         const compressedPrompt = `COMPRESS the following reasoning trace into a 250-word Semantic Summary preserving strategic decisions. DO NOT include raw tokens:\n\n${prompt}`;
-        return await generateGeminiContent(compressedPrompt, "gemini-1.5-flash", { env });
+        return askAI(compressedPrompt, { role: 'generate', env, model: 'llama-4-70b' });
     }
 
     if (ResourceManager.pool.length === 0) {
         await ResourceManager.init(env);
     }
     
+    // [V12.5] Cynical Pre-Flight Audit: Fast-fail if override is impossible
+    if (targetModel && targetModel !== 'auto') {
+        const hasCandidate = ResourceManager.pool.some(p => p.match && p.match.test(targetModel));
+        if (!hasCandidate) {
+            console.error(`🚫 [AI-PreFlight] CRITICAL: Manual model override '${targetModel}' is unavailable (likely missing API Key).`);
+            throw new Error(`[AI-Fleet-Fatal] Manual model override '${targetModel}' is not present in the active pool. Check your GHA Secrets.`);
+        }
+    }
+
     // [V5.4.1] Role-Aware Dispatch with Request-Local Exclusion
     const triedNodes = options.triedNodes || new Set();
     let provider = ResourceManager.getAvailable(seed, targetModel, { role: role }, triedNodes);
+    
+    // [V12.5] Speculative Yield: If override is busy but task is speculative, fallback to auto
+    if (!provider && targetModel && targetModel !== 'auto' && options.isSpeculative) {
+        console.warn(`⏳ [AI-Yield] Speculative task (${role}) yielding override '${targetModel}' due to congestion. Falling back to auto-balancer.`);
+        targetModel = 'auto'; 
+        provider = ResourceManager.getAvailable(seed, targetModel, { role: role }, triedNodes);
+    }
     
     if (!provider) {
         const fleetRetries = options._fleetRetries || 0;
@@ -1349,27 +1064,34 @@ export async function askAI(prompt, options = {}) {
         }
 
         if (fleetRetries < 2) { 
-            console.warn(`⏳ [AI-Balancer] Fleet Exhausted. No providers available for ${role}. Pausing 5s for recovery (Cycle: ${fleetRetries + 1}/2)...`);
-            await new Promise(r => setTimeout(r, 5000));
+            console.warn(`⏳ [AI-Balancer] Fleet Exhausted. No providers available for ${role}. Pausing 30s for recovery (Cycle: ${fleetRetries + 1}/2)...`);
+            await new Promise(r => setTimeout(r, 65000));
             // Reset tried nodes for the next full fleet attempt
-            return askAI(prompt, { ...options, _fleetRetries: fleetRetries + 1, triedNodes: new Set() });
+            return askAI(prompt, { ...options, _retry: 0, _fleetRetries: fleetRetries + 1, triedNodes: new Set() });
         }
         
         console.error(`🚨 [AI-Balancer] Critical Fleet Depletion. Transitioning to Direct-Dial Anchor...`);
         try {
-            return await directDialAnchor(prompt, targetModel || 'gemini-1.5-pro', role, env);
+            return await directDialAnchor(prompt, targetModel || 'llama-3.3-70b-versatile', role, env);
         } catch (e) {
-            console.error(`🚨 [AI-Balancer] Direct-Dial Anchor Failed. ACTIVATING GHOST SIMULATION...`);
-            return generateEmergencyGhostFallback(prompt, role, env);
+            throw new Error("FLEET_EXHAUSTION_PERMANENT");
         }
     }
 
     ResourceManager.inflight.set(provider.name, (ResourceManager.inflight.get(provider.name) || 0) + 1);
+
     console.log(`🚀 [AI-Balancer] Dispatching to ${provider.name} (Role: ${role}, Retry: ${_retry}, Seed: ${seed})`);
 
     const startTs = Date.now();
     try {
+        console.log(`🌐 [AI-Provisioned] ${role.toUpperCase()} -> ${provider.name} (Requested: ${targetModel || 'auto'})`);
         const response = await provider.fn(prompt, targetModel, env);
+        
+        // [V15.8] Content Integrity Check
+        if (!isValidIntelligence(response)) {
+            throw new Error(`INTELLIGENCE_CORRUPTED: ${provider.name} returned invalid/HTML content.`);
+        }
+
         if (isEcho(response)) throw new Error(`ECHO_DETECTED: ${provider.name} echoed the prompt.`);
 
         const latency = Date.now() - startTs;

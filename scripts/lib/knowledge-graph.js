@@ -8,7 +8,7 @@ import { pushTelemetryLog } from "./storage-bridge.js";
  * Extracts relational entities from unstructured market pulses.
  */
 
-export async function extractKnowledgeGraph(data, env, verticalId = "global", blackboardContext = "") {
+export async function extractKnowledgeGraph(data, env, verticalId = "global", blackboardContext = "", modelOverride = "auto") {
     if (!data) return { entities: [], relationships: [] };
 
     const kvKey = `graph-v7-unified-brain`;
@@ -32,9 +32,10 @@ export async function extractKnowledgeGraph(data, env, verticalId = "global", bl
 
         while (attempts <= maxAttempts && !graph) {
             try {
+                const model = modelOverride !== 'auto' ? modelOverride : 'node-research';
                 const result = await askAI(
                     attempts === 0 ? getGraphRAGExtractorPrompt(data + context) : getGraphRAGMergePrompt(existingGraph, data + context), 
-                    { role: 'research', env, model: 'node-research' }
+                    { role: 'research', env, model, isSpeculative: true }
                 );
                 graph = extractJson(result);
                 if (!graph) throw new Error("JSON malformed");
@@ -96,12 +97,14 @@ function forceBlindExtraction(text) {
     };
 }
 
-export async function semanticGating(dataSnapshot, env) {
+export async function semanticGating(dataSnapshot, env, modelOverride = "auto") {
     try {
+        const model = modelOverride !== 'auto' ? modelOverride : 'node-extract';
         const result = await askAI(getSemanticGatingPrompt(dataSnapshot), {
             role: 'research',
             env,
-            model: 'node-extract' 
+            model,
+            isSpeculative: true
         });
         const cleaned = result.replace(/```json\n?|```/g, '').trim();
         return JSON.parse(cleaned);

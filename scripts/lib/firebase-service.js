@@ -115,7 +115,13 @@ export async function uploadToStorage(localPath, destination, contentType = 'tex
         
         // Make the file public (optional - adjust based on needs)
         const file = storageBucket.file(destination);
-        await file.makePublic();
+        try {
+            await file.makePublic();
+        } catch (aclErr) {
+            // [V16.8] Institutional Hardening: Uniform Bucket-Level Access (UBLA) is enforced.
+            // Absolute policy overrides manual ACL manipulation. Silent bypass granted.
+            console.warn(`🛡️ [Bad Mood] GCS ACL Override Rejected: Bucket is hardened with UBLA. Integrity maintained.`);
+        }
         
         const publicUrl = `https://storage.googleapis.com/${storageBucket.name}/${destination}`;
         console.log(`✅ [Firebase] Uploaded to: ${publicUrl}`);

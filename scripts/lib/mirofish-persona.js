@@ -37,7 +37,7 @@ OUTPUT FORMAT:
 - FORECAST: (authoritative, high-density terminal briefing block)
 `;
 
-async function generateMiroForecast(marketContext, env = null, ctx = null) {
+async function generateMiroForecast(marketContext, env = null, modelOverride = "auto", ctx = null) {
   console.log("🚀 [MiroFish 4.0] Executing 10-Agent Consensus Swarm...");
   
   const prompt = `
@@ -50,10 +50,11 @@ Generate the final consolidated forecast now. Be cold, authoritative, and data-d
 `;
 
   try {
+    const model = modelOverride !== 'auto' ? modelOverride : 'node-research';
     const result = await askAI(prompt, { 
       role: 'generate', 
       env,
-      model: 'node-research' // Utilization of high-fidelity institutional terminal (Cerebras/Gemini)
+      model 
     });
     
     if (ctx) {

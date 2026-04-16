@@ -67,10 +67,12 @@ function extractJson(text) {
 function normalizeInstitutionalPem(pem) {
     if (!pem || typeof pem !== 'string') return "";
     
-    // 1. Purge all existing headers, footers, whitespace, and literal \n sequences
+    // 1. Purge all existing headers, footers, whitespace, and both escaped and raw newlines
     const base64 = pem.replace(/-----BEGIN PRIVATE KEY-----/g, "")
                       .replace(/-----END PRIVATE KEY-----/g, "")
                       .replace(/\\n/g, "")
+                      .replace(/\n/g, "")
+                      .replace(/\r/g, "")
                       .replace(/\s+/g, "");
                       
     // 2. Re-chunk into 64-character rows

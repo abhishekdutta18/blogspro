@@ -38,6 +38,19 @@ export function sanitizePayload(content, auditContext = {}) {
   // 🛡️ GHOST PROMPT REMOVAL
   sanitized = stripGhostPrompts(sanitized);
 
+  // 🛡️ TRUTH-FIRST SURGICAL PURGE: Remove content flagged for zero grounding
+  if (sanitized.includes("<audit-purge")) {
+    const purgeCount = (sanitized.match(/<audit-purge/g) || []).length;
+    console.warn(`🛑 [RulesEngine] Performing surgical purge of ${purgeCount} ungrounded segments for ${verticalId}`);
+    
+    pushSovereignTrace("SHIELD_PURGE", {
+        jobId, vertical: verticalId, status: "warn", role: "shield",
+        message: `Surgically purged ${purgeCount} ungrounded segments.`
+    }, env).catch(() => {});
+
+    sanitized = sanitized.replace(/<audit-purge[\s\S]*?>[\s\S]*?<\/audit-purge>/gi, "<!-- [AUDIT] Ungrounded fragment purged to maintain institutional integrity. -->");
+  }
+
   return sanitized.trim();
 }
 
@@ -177,25 +190,8 @@ export function injectVisuals(content, verticalName, verticalId, auditContext = 
     return match;
   });
 
-  // 3. Absolute Fallback: If ZERO charts/placeholders exist, inject a baseline at top
-  if (!updated.includes('terminal-chart') && !updated.includes('<chart-data>')) {
-    console.log(`⚠️ [RulesEngine] Visual Deficit detected for ${verticalName}. Injecting baseline fallback.`);
-    const fallbackId = `chart_${verticalId}_fallback`;
-    const injection = `\n<div class="card terminal-chart" id="${fallbackId}"></div>\n<chart-data>{"id": "${fallbackId}", "type": "bar", "data": [["Baseline", 0]]}</chart-data>\n`;
-    
-    pushSovereignTrace("SHIELD_REPAIR", {
-        jobId, vertical: verticalId, status: "warn", role: "shield",
-        message: `Visual deficit resolved: Injected baseline chart fallback for ${verticalName}.`
-    }, env).catch(() => {});
-    
-    if (updated.includes('<section class="manuscript-body">')) {
-      updated = updated.replace('<section class="manuscript-body">', '<section class="manuscript-body">' + injection);
-    } else if (updated.includes('</h2>')) {
-      updated = updated.replace('</h2>', '</h2>' + injection);
-    } else {
-      updated = injection + updated;
-    }
-  }
+  // 3. Absolute Fallback: Removed. In a Truth-First system, we do not inject placeholders.
+  // Visual deficits are handled as part of the manuscript's purely analytical narrative.
   
   return updated;
 }
@@ -217,7 +213,12 @@ export function hardenJson(content, verticalId = "default", auditContext = {}) {
       const uniqueId = `chart_${verticalId}_${chartIndex++}`;
       
       if (Array.isArray(payload)) {
-        payload = { id: uniqueId, data: payload };
+        // Recovery for malformed array-only responses
+        payload = { 
+          id: uniqueId, 
+          labels: payload.map(i => Array.isArray(i) ? i[0] : 'Item'),
+          datasets: [{ name: "Value", values: payload.map(i => Array.isArray(i) ? i[1] : 0) }]
+        };
       } else {
         payload.id = uniqueId;
       }
@@ -225,7 +226,7 @@ export function hardenJson(content, verticalId = "default", auditContext = {}) {
       return `<chart-data>${JSON.stringify(payload)}</chart-data>`;
     } catch (e) {
       const fallbackId = `chart_${verticalId}_err_${chartIndex++}`;
-      return `<chart-data>{"id": "${fallbackId}", "data": [["Error", 0]]}</chart-data>`;
+      return `<chart-data>{"id": "${fallbackId}", "labels": ["Error"], "datasets": [{"name": "Failure", "values": [0]}]}</chart-data>`;
     }
   });
 }

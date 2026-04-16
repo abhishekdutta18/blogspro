@@ -50,7 +50,7 @@ async function fetchWithTimeout(url, options = {}, timeout = 30000) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     try {
-        const response = await _fetch(url, { 
+        const response = await fetch(url, { 
             ...options, 
             headers: { "User-Agent": UA, ...(options.headers || {}) },
             signal: controller.signal 
@@ -90,10 +90,10 @@ async function fetchEconomicCalendar() {
     }
 }
 
-async function fetchMultiAssetData() {
+async function fetchMultiAssetData(modelOverride = "auto") {
     const fetchScanner = async (market, symbols) => {
         try {
-            const res = await _fetch(`https://scanner.tradingview.com/${market}/scan`, {
+            const res = await fetch(`https://scanner.tradingview.com/${market}/scan`, {
                 method: "POST",
                 headers: { "User-Agent": UA },
                 body: JSON.stringify({
@@ -129,7 +129,7 @@ async function fetchMultiAssetData() {
         
         // --- V7.0 HYBRID TICK-BY-TICK SIGNAL GATING ---
         // Uses Rules + AI to purge market noise and macro static
-        const { filtered, noiseCount, summary } = await hybridGateSignal(rawData, null, 0.001); 
+        const { filtered, noiseCount, summary } = await hybridGateSignal(rawData, null, modelOverride, 0.001); 
         console.log(`📡 [Data-Pulse] ${summary}`);
 
         const formattedData = filtered.map(item => {
@@ -268,9 +268,9 @@ async function fetchCCILData() {
 async function fetchMacroPulse() {
     try {
         const [indiaGDP, usCPI, euGDP] = await Promise.all([
-            _fetch("https://api.worldbank.org/v2/country/IND/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=1").then(r => r.json()),
-            _fetch("https://api.worldbank.org/v2/country/USA/indicator/FP.CPI.TOTL.ZG?format=json&per_page=1").then(r => r.json()),
-            _fetch("https://api.worldbank.org/v2/country/EMU/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=1").then(r => r.json())
+            fetch("https://api.worldbank.org/v2/country/IND/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=1").then(r => r.json()),
+            fetch("https://api.worldbank.org/v2/country/USA/indicator/FP.CPI.TOTL.ZG?format=json&per_page=1").then(r => r.json()),
+            fetch("https://api.worldbank.org/v2/country/EMU/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=1").then(r => r.json())
         ]);
         
         const iVal = indiaGDP?.[1]?.[0]?.value?.toFixed(2);
@@ -319,7 +319,7 @@ async function fetchUpstoxData() {
             const symbols = "NSE_INDEX|Nifty 50,NSE_INDEX|Nifty Bank,NSE_INDEX|Nifty IT";
             const url = `https://api.upstox.com/v2/market-quote/ltp?instrument_key=${encodeURIComponent(symbols)}`;
             
-            const res = await _fetch(url, {
+            const res = await fetch(url, {
                 headers: {
                     "Authorization": `Bearer ${token}`,
                     "Accept": "application/json"
@@ -345,7 +345,7 @@ async function fetchUpstoxData() {
     // Fallback to Stable Worker
     try {
         console.log("📡 [Data-Pulse] Fetching Upstox via Worker proxy...");
-        const res = await _fetch(stableWorker);
+        const res = await fetch(stableWorker);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
         const json = await res.json();
@@ -424,7 +424,7 @@ async function fetchGIFTCityData() {
 async function fetchDocument(url) {
     try {
         console.log(`👁️ [Data-Pulse] Downloading Document for Vision: ${url.substring(0, 50)}...`);
-        const res = await _fetch(url, {
+        const res = await fetch(url, {
             headers: { "User-Agent": UA }
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

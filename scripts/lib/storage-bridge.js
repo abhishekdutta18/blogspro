@@ -308,9 +308,10 @@ export async function getFirestoreDoc(collectionName, docId, env) {
 
 async function saveBriefing(fileName, content, frequency, env = null) {
   const key = `briefings/${frequency}/${fileName}`;
-  if (env && env.FIREBASE_STORAGE_BUCKET) {
-    console.log(`📠 [Firebase Storage] Uploading: ${key}`);
-    const url = `https://storage.googleapis.com/upload/storage/v1/b/${env.FIREBASE_STORAGE_BUCKET}/o?uploadType=media&name=${encodeURIComponent(key)}`;
+  if (env && (env.FIREBASE_STORAGE_BUCKET || "blogspro-asset")) {
+    const bucket = env.FIREBASE_STORAGE_BUCKET || "blogspro-asset";
+    console.log(`📠 [Firebase Storage] Uploading: ${key} to ${bucket}`);
+    const url = `https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${encodeURIComponent(key)}`;
     try {
       const headers = { "Content-Type": "text/html" };
       const token = await getGoogleAccessToken(env);
@@ -708,7 +709,7 @@ async function loadFromGDriveBucket(jobId, env) {
  * Saves a file to the project's primary Cloud Storage bucket.
  */
 async function saveToCloudBucket(fileName, content, env) {
-    const bucket = env.FIREBASE_STORAGE_BUCKET || "blogspro-ai.firebasestorage.app";
+    const bucket = env.FIREBASE_STORAGE_BUCKET || "blogspro-asset";
     if (!bucket) {
         console.warn("⚠️ [CloudBridge] No bucket configured.");
         return null;
@@ -812,6 +813,60 @@ async function pushSovereignNewsletter(subject, html, env) {
   }
 }
 
+/**
+ * 🛰️ [V15.7] Sovereign GitHub Sync
+ * Commits one or more files directly to the repository using the GH Contents API.
+ */
+async function pushMultipleToGitHub(filesToPush, commitMsg, owner, repo, token, branch = 'main') {
+    const authHeader = `Bearer ${token}`;
+    
+    for (const file of filesToPush) {
+        const { path: ghPath, localPath } = file;
+        const fs = await getFs();
+        if (!fs) throw new Error("FS unavailable for GitHub push");
+        
+        const content = fs.readFileSync(localPath, 'utf8');
+        const encoded = Buffer.from(content).toString('base64');
+        
+        // 1. Get current SHA if exists
+        const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${ghPath}?ref=${branch}`;
+        const getRes = await fetch(getUrl, {
+            headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github+json', 'User-Agent': 'blogspro-swarm' }
+        });
+        
+        let sha = null;
+        if (getRes.status === 200) {
+            const data = await getRes.json();
+            sha = data.sha;
+        }
+
+        // 2. Put Content
+        const putUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${ghPath}`;
+        const body = {
+            message: commitMsg,
+            content: encoded,
+            branch: branch,
+            ...(sha ? { sha } : {})
+        };
+
+        const putRes = await fetch(putUrl, {
+            method: 'PUT',
+            headers: { 
+                'Authorization': authHeader, 
+                'Content-Type': 'application/json',
+                'User-Agent': 'blogspro-swarm'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!putRes.ok) {
+            const errText = await putRes.text();
+            throw new Error(`GitHub Push Failed [${ghPath}]: ${errText}`);
+        }
+        console.log(`✓ [GitHub] Synchronized: ${ghPath}`);
+    }
+}
+
 export {
   getGoogleAccessToken,
   syncToFirestore,
@@ -827,5 +882,6 @@ export {
   loadFromCloudBucket,
   saveToGDriveBucket,
   checkPeriodStatus,
-  pushSovereignNewsletter
+  pushSovereignNewsletter,
+  pushMultipleToGitHub
 };

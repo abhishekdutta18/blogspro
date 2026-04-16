@@ -105,12 +105,13 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
         :root {
-            --nexus-bg: #050505;
-            --nexus-sidebar: #0A0A0A;
-            --nexus-accent: #BFA100; 
-            --nexus-text-main: #F8FAFC; 
-            --nexus-text-muted: #94A3B8; 
-            --nexus-border: rgba(191,161,0,0.2);
+            --nexus-bg: #030303;
+            --nexus-sidebar: #050505;
+            --nexus-accent: #9B1C1C; /* Deep Institutional Crimson */
+            --nexus-text-main: #E2E8F0; 
+            --nexus-text-muted: #64748B; 
+            --nexus-border: rgba(155,28,28,0.25);
+            --nexus-glow: rgba(155,28,28,0.15);
         }
         body { background: var(--nexus-bg); color: var(--nexus-text-muted); font-family: 'Mulish', sans-serif; margin: 0; min-height: 100vh; overflow-x: hidden; }
         
