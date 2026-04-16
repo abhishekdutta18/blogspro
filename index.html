@@ -1774,10 +1774,10 @@
     };
 
     const loadIndianFxRates = async () => {
-      // Frankfurter (ECB data) — free, CORS-enabled, no key needed
+      // open.er-api.com — free, no key, proper CORS headers on all responses
       const res = await withTimeout(
-        fetch('https://api.frankfurter.app/latest?from=USD&to=INR,EUR,GBP,JPY,CHF,AUD,SGD,CAD', { cache: 'no-store' }),
-        10000, 'frankfurter fx'
+        fetch('https://open.er-api.com/v6/latest/USD', { cache: 'no-store' }),
+        10000, 'fx rates'
       );
       if (!res.ok) throw new Error(`FX HTTP ${res.status}`);
       const json = await res.json();
