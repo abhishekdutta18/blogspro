@@ -16,32 +16,32 @@ async function auditBalancer() {
     await ResourceManager.init();
 
     const testRoles = ['research', 'edit', 'draft', 'generate'];
-    const nodesToTest = ['Gemini-Pro', 'Groq', 'Cerebras-70B'];
+    const nodesToTest = ['SambaNova-405B', 'Groq', 'Cerebras-70B'];
 
     for (const role of testRoles) {
         console.log(`\n--- Auditing Role: ${role} ---`);
         const result = ResourceManager.getAvailable(0, `node-${role}`);
-        if (result && nodesToTest.includes(result.name)) {
+        if (result && nodesToTest.some(n => result.name.includes(n))) {
             console.log(`✅ [Strategy] Balancer correctly prioritized Cloud-First node: ${result.name}`);
         } else {
             console.warn(`⚠️ [Strategy] Balancer picked non-optimal node for ${role}: ${result?.name || 'NONE'}`);
         }
     }
 
-    console.log("\n📡 [CONNECTIVITY] Testing Gemini-Pro...");
+    console.log("\n📡 [CONNECTIVITY] Testing SambaNova-405B...");
     try {
-        const geminiResponse = await askAI("Respond with 'GEMINI_OK'", { role: 'research', model: 'gemini-pro' });
-        console.log(`✅ Gemini Response: ${geminiResponse}`);
+        const sambaResponse = await askAI("Respond with 'SAMBANOVA_OK'", { role: 'research', model: 'llama-3.1-405b' });
+        console.log(`✅ SambaNova Response: ${sambaResponse}`);
     } catch (e) {
-        console.error(`❌ Gemini Failed: ${e.message}`);
+        console.error(`❌ SambaNova Failed: ${e.message}`);
     }
 
-    console.log("\n📡 [CONNECTIVITY] Testing Groq...");
+    console.log("\n📡 [CONNECTIVITY] Testing Cerebras-70B...");
     try {
-        const groqResponse = await askAI("Respond with 'GROQ_OK'", { role: 'draft', model: 'groq' });
-        console.log(`✅ Groq Response: ${groqResponse}`);
+        const cerebrasResponse = await askAI("Respond with 'CEREBRAS_OK'", { role: 'draft', model: 'llama-3.1-70b' });
+        console.log(`✅ Cerebras Response: ${cerebrasResponse}`);
     } catch (e) {
-        console.error(`❌ Groq Failed: ${e.message}`);
+        console.error(`❌ Cerebras Failed: ${e.message}`);
     }
 }
 

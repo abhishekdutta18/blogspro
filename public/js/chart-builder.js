@@ -75,22 +75,22 @@ export async function initBpCharts(containerEl = document.body) {
 }
 
 function _renderGcChart(el, data) {
-  const { type, labels = [], datasets = [], unit = '' } = data;
+  const norm = normalizeChartData(data);
+  const { type, labels = [], datasets = [], unit = '' } = norm;
   const vis = google.visualization;
 
   if (type === 'bar') {
     const multiSeries = datasets.length > 1;
-    const cols = [['string', 'Label'], ...datasets.map(ds => ['number', ds.name || ''])];
-    const rows = labels.map((lbl, i) =>
-      [String(lbl), ...datasets.map(ds => toNum(ds.values[i]) || 0)]
-    );
-    const dt = vis.arrayToDataTable([cols.map(c => ({ type: c[0], label: c[1] })), ...rows]);
-    // arrayToDataTable needs first row as column headers when not using objects
     const dtFlat = vis.arrayToDataTable([
       ['Label', ...datasets.map(ds => ds.name || 'Value')],
       ...labels.map((lbl, i) => [String(lbl), ...datasets.map(ds => toNum(ds.values[i]) || 0)])
     ]);
-    el.style.height = Math.max(180, labels.length * 36 + 60) + 'px';
+    
+    // Responsive height: prevents clipping if labels are long
+    const rowHeight = 36;
+    const chartHeight = Math.max(180, labels.length * rowHeight + 80);
+    el.style.height = `${chartHeight}px`;
+
     new vis.BarChart(el).draw(dtFlat, {
       ...GC_THEME,
       isStacked: false,
@@ -124,7 +124,7 @@ function _renderGcChart(el, data) {
       ['Label', 'Value'],
       ...labels.map((lbl, i) => [String(lbl), toNum(series.values[i]) || 0])
     ]);
-    el.style.height = '240px';
+    el.style.height = '260px';
     new vis.PieChart(el).draw(dtFlat, {
       ...GC_THEME,
       pieHole: 0.4,
@@ -134,7 +134,27 @@ function _renderGcChart(el, data) {
     });
 
   }
-  // stats + table: no Google Charts equivalent — fallback SVG/HTML is kept
+}
+
+/**
+ * Ensures chart data follows the V17.0 labels/datasets schema.
+ * Automatically upgrades legacy 'data' arrays.
+ */
+function normalizeChartData(data) {
+  if (!data) return { labels: [], datasets: [] };
+  const d = { ...data };
+  
+  if (d.data && Array.isArray(d.data) && !d.datasets) {
+    d.labels = d.data.map(i => Array.isArray(i) ? i[0] : 'Item');
+    d.datasets = [{ 
+      name: d.unit || 'Value', 
+      values: d.data.map(i => Array.isArray(i) ? i[1] : 0) 
+    }];
+  }
+  
+  if (!d.labels) d.labels = [];
+  if (!d.datasets) d.datasets = [];
+  return d;
 }
 
 // HTML-escape AI-generated strings before injecting into HTML
@@ -199,44 +219,25 @@ function formatValue(v, unit = '') {
 // Returns a self-contained HTML string or '' on failure
 // ─────────────────────────────────────────────
 export async function generateChartForSection(topic, sectionTitle, category, model) {
-
-  // Generate a unique chart ID for referencing
   const chartId = `chart-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
 
   const result = await callAI(
-    `You are a data analyst. Generate a data visualization for a ${category} article.
-Article topic: "${topic}"
-Section: "${sectionTitle}"
+    `You are an institutional data analyst. Generate a visualization for a ${category} article.
+Article: "${topic}" | Section: "${sectionTitle}"
 
-Pick the best chart type and generate REAL, SPECIFIC numeric data relevant to this section.
+Pick the best chart type and generate REAL, SPECIFIC numeric data.
 
-CRITICAL: Return ONLY a raw JSON object. No markdown, no backticks, no explanation. Start with {
-
+CRITICAL: Return ONLY a raw JSON object. No markdown.
 REQUIRED FIELDS:
-- "name": A unique descriptive name for this chart (e.g. "Fig 1: UPI Transaction Volume 2020-2024")
-- "title": Display title shown above the chart
-- "source": Citation source (e.g. "Source: RBI Annual Report 2024", "Source: NPCI Dashboard")
-- "subtitle": Brief description of what the data shows
+- "name": "Fig N: Descriptive Title"
+- "title": Clear Display Title
+- "source": VERIFIABLE Citation (e.g. "RBI Annual Report 2024"). 
+- "subtitle": Contextual description.
 
-Example for a bar chart:
-{"type":"bar","name":"Fig 1: Top 5 Fintech Markets","title":"Top 5 Fintech Markets by Investment","subtitle":"2024 data","labels":["USA","China","UK","India","Brazil"],"datasets":[{"name":"Investment $B","values":[89,52,31,8,4]}],"unit":"$B","source":"Source: CB Insights Global Fintech Report 2024"}
-
-Example for a stats chart:
-{"type":"stats","name":"Fig 2: Global Fintech Key Metrics","title":"Key Market Statistics","subtitle":"Global fintech 2024","labels":["Market Size","YoY Growth","Active Users","Funding Rounds"],"datasets":[{"name":"values","values":["$340B","23%","4.8B","2,847"]}],"unit":"","source":"Source: Statista Digital Payments Report 2024"}
-
-Example for a table:
-{"type":"table","name":"Table 1: Banking Model Comparison","title":"Feature Comparison","subtitle":"","labels":["Speed","Cost","Security","Ease of Use"],"datasets":[{"name":"Provider A","values":["Fast","Low","High","Easy"]},{"name":"Provider B","values":["Medium","Medium","High","Medium"]}],"unit":"","source":"Source: Deloitte Banking Survey 2024"}
-
-Rules:
-- "name" MUST start with "Fig N:" or "Table N:" followed by a descriptive name
-- "source" MUST cite a real organization (RBI, SEBI, NPCI, World Bank, McKinsey, PwC, Statista, etc.)
-- ALL numbers must be realistic for the topic — do NOT use placeholder zeros
-- labels array and values array MUST have the same length
-- For stats type: values can be strings like "23%" or "$340B"
-- Choose: bar (comparisons), line (trends over time with years as labels), pie (market share), stats (key numbers), table (feature comparison)`,
-    true,
-    "gemini",
-    512
+TRUTH-FIRST RULE:
+If you cannot find a REAL, NON-HALLUCINATED source for this specific data, return exactly: {"error": "NO_REAL_SOURCE"}
+Placeholder citations like "Internal Analysis" or "General Market Industry" are BANNED.`,
+    true, "gemini", 512
   );
 
   if (result.error || !result.text) return '';
@@ -244,40 +245,28 @@ Rules:
   let data;
   try {
     let raw = result.text.replace(/```json|```/gi, '').trim();
-    const s = raw.indexOf('{');
-    const e = raw.lastIndexOf('}');
-    if (s === -1 || e === -1) return '';
-    data = JSON.parse(raw.substring(s, e + 1));
+    data = JSON.parse(raw.substring(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
   } catch(_) { return ''; }
 
-  // ── VALIDATION ENGINE ──────────────────────────
-  if (!data?.type || !data?.labels?.length) return '';
-  if (!data.datasets?.[0]?.values?.length) return '';
-  // Normalize lengths to avoid ingestion errors
-  const minLen = Math.min(
-    data.labels.length,
-    ...data.datasets.map(ds => (ds.values || []).length)
-  );
-  data.labels = data.labels.slice(0, minLen);
-  data.datasets = data.datasets.map(ds => ({ ...ds, values: (ds.values || []).slice(0, minLen) }));
-  if (!minLen) return '';
+  // 🛡️ TRUTH-FIRST KILL-SWITCH
+  const BANNED_SOURCES = ['INTERNAL', 'ESTIMATE', 'GENERAL', 'PLACEHOLDER', 'UNKNOWN', 'INDUSTRY ANALYSIS'];
+  const src = (data.source || '').toUpperCase();
+  const isHallucinated = BANNED_SOURCES.some(b => src.includes(b)) || !data.source || data.error === 'NO_REAL_SOURCE';
 
-  // Validate chart name exists
-  if (!data.name) data.name = `${data.type === 'table' ? 'Table' : 'Fig'}: ${data.title || sectionTitle}`;
-
-  // Validate source citation exists
-  if (!data.source) data.source = `Source: Industry analysis for "${sectionTitle}"`;
-
-  // Validate numeric data is realistic (reject all-zero datasets)
-  if (data.type !== 'stats' && data.type !== 'table') {
-    const numVals = data.datasets[0].values.map(Number).filter(v => !isNaN(v));
-    const allZero = numVals.every(v => v === 0);
-    const allSame = numVals.length > 2 && new Set(numVals).size === 1;
-    if (allZero) return ''; // Reject placeholder data
-    if (allSame) return ''; // Reject suspiciously uniform data
+  if (isHallucinated) {
+    console.warn(`🛑 [Truth-First] Specific chart omitted due to hallucinated source: ${data.source}`);
+    return ''; // Silent omission of the ungrounded visualization
   }
 
-  // Inject the chartId for referencing
+  // ── VALIDATION & NORMALIZATION ──────────────────
+  data = normalizeChartData(data);
+  if (!data.labels.length || !data.datasets?.[0]?.values?.length) return '';
+  
+  const minLen = Math.min(data.labels.length, ...data.datasets.map(ds => (ds.values || []).length));
+  data.labels = data.labels.slice(0, minLen);
+  data.datasets = data.datasets.map(ds => ({ ...ds, values: (ds.values || []).slice(0, minLen) }));
+
+  if (!data.name) data.name = `${data.type === 'table' ? 'Table' : 'Fig'}: ${data.title || sectionTitle}`;
   data._chartId = chartId;
 
   switch(data.type) {
@@ -428,12 +417,32 @@ function buildLineChart(data) {
 function buildPieChart(data) {
   const series = data.datasets?.[0];
   if (!series?.values?.length) return '';
-  const vals  = series.values.map(toNum).filter(v => !isNaN(v) && v > 0);
-  const total = vals.reduce((a, b) => a + b, 0) || 1;
-  const CX = 90, CY = 90, R = 72, IR = 40; // donut
+  const rawVals = series.values.map(toNum).filter(v => !isNaN(v) && v > 0);
+  const total   = rawVals.reduce((a, b) => a + b, 0) || 1;
+  const CX = 90, CY = 90, R = 72, IR = 40; 
+  
+  // 🛡️ MATH HARDENING: Largest Remainder Method for precise 100% sum
+  // Prevents "Institutional Poison" (99% or 101% labels)
+  const pctsWithRemainder = rawVals.map((v, i) => {
+    const exact = (v / total) * 100;
+    return { index: i, val: v, floor: Math.floor(exact), remainder: exact - Math.floor(exact) };
+  });
+  
+  const currentSum = pctsWithRemainder.reduce((a, b) => a + b.floor, 0);
+  const diff = 100 - currentSum;
+  
+  // Sort by remainder descending and distribute the difference
+  if (diff > 0) {
+    const sorted = [...pctsWithRemainder].sort((a, b) => b.remainder - a.remainder);
+    for (let i = 0; i < diff; i++) {
+      sorted[i].floor += 1;
+    }
+  }
+
+  const pcts = pctsWithRemainder.map(p => p.floor);
   let angle = -Math.PI / 2;
 
-  const slices = vals.map((v, i) => {
+  const slices = rawVals.map((v, i) => {
     const sweep = (v / total) * 2 * Math.PI;
     const x1 = CX + R * Math.cos(angle);
     const y1 = CY + R * Math.sin(angle);
@@ -446,11 +455,11 @@ function buildPieChart(data) {
     const yi2 = CY + IR * Math.sin(angle);
     const large = sweep > Math.PI ? 1 : 0;
     const color = THEME.palette[i % THEME.palette.length];
-    const pct   = Math.round((v / total) * 100);
+    
     return {
       path: `<path d="M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} L ${xi2} ${yi2} A ${IR} ${IR} 0 ${large} 0 ${xi1} ${yi1} Z"
                fill="${color}" opacity="0.9"/>`,
-      color, label: data.labels[i] || `Item ${i+1}`, pct, val: v
+      color, label: data.labels[i] || `Item ${i+1}`, pct: pcts[i], val: v
     };
   });
 
@@ -466,7 +475,7 @@ function buildPieChart(data) {
   const svg = `<svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg" style="width:180px;height:180px;flex-shrink:0">
     ${slices.map(s => s.path).join('')}
     <circle cx="${CX}" cy="${CY}" r="${IR - 3}" fill="${THEME.bg2}"/>
-    <text x="${CX}" y="${CY - 6}" text-anchor="middle" font-size="11" fill="${THEME.cream}" font-weight="700">${esc(formatValue(vals.reduce((a,b)=>a+b,0), data.unit || ''))}</text>
+    <text x="${CX}" y="${CY - 6}" text-anchor="middle" font-size="11" fill="${THEME.cream}" font-weight="700">${esc(formatValue(rawVals.reduce((a,b)=>a+b,0), data.unit || ''))}</text>
     <text x="${CX}" y="${CY + 10}" text-anchor="middle" font-size="9" fill="${THEME.muted}">Total</text>
   </svg>`;
 

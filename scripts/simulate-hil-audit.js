@@ -43,7 +43,7 @@ async function simulateHILAudit() {
         const feedback = "Increase emphasis on the GIFT City arbitrage Corridor and add a warning about liquidity risk.";
         
         // This will call askAI, generate a new PDF, and sync back to Firestore
-        const refinedContent = await applyHumanRefinement(initialContent, feedback, env, jobId);
+        const refinedContent = await applyHumanRefinement(initialContent, feedback, initialAuditData.frequency, env, jobId);
         
         console.log(`✅ [Success] HIL Refinement Loop completed for Job: ${jobId}`);
         console.log(`📄 Refined content length: ${refinedContent.length} bytes.`);

@@ -1,88 +1,82 @@
-import fs from 'fs';
-import path from 'path';
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
+/**
+ * Telegram Diagnostic Tool (V1.0)
+ * ------------------------------
+ * Verifies bot token validity and retrieves recent updates to identify correct Chat IDs.
+ */
+import 'dotenv/config';
 
-dotenv.config();
+async function diagnose() {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) {
+        console.error("❌ No TELEGRAM_BOT_TOKEN found in .env");
+        return;
+    }
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+    console.log(`📡 [Diagnostic] Testing Bot Token: ${token.split(':')[0]}:[REDACTED]`);
 
-async function testToken(token) {
-    if (!token || token.includes('1_2_3')) return { valid: false, reason: 'Placeholder' };
+    // 1. Test /getMe
     try {
-        const res = await fetch(`https://api.telegram.org/bot${token}/getMe`);
-        const data = await res.json();
-        return { valid: res.ok, info: data.result, error: data.description };
+        const meRes = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+        const meData = await meRes.json();
+        if (meData.ok) {
+            console.log(`✅ [getMe] Active Bot: @${meData.result.username} (ID: ${meData.result.id})`);
+        } else {
+            console.error(`❌ [getMe] Failed: ${meData.description}`);
+            return;
+        }
     } catch (e) {
-        return { valid: false, error: e.message };
+        console.error(`❌ [getMe] Network error: ${e.message}`);
+        return;
     }
-}
 
-async function testDelivery(token, chatId) {
-    if (!token || !chatId || chatId.includes('your-')) return { success: false, reason: 'Missing/Placeholder' };
+    // 1.5 Delete Webhook to allow getUpdates
     try {
-        const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: String(chatId),
-                text: `🔒 BlogsPro Institutional Audit\n\nDiagnostic Handshake: ${new Date().toISOString()}\nStatus: OPERATIONAL\nNode: ${process.env.COMPUTERNAME || 'Local Terminal'}`,
-                parse_mode: 'HTML'
-            })
-        });
-        const data = await res.json();
-        return { success: res.ok, error: data.description };
+        console.log("🧹 [Diagnostic] Clearing active webhooks to enable manual polling...");
+        await fetch(`https://api.telegram.org/bot${token}/deleteWebhook`);
+    } catch (e) {}
+
+    // 2. Test /getUpdates
+    try {
+        console.log("🔍 [getUpdates] Searching for recent group interactions...");
+        const upRes = await fetch(`https://api.telegram.org/bot${token}/getUpdates`);
+        const upData = await upRes.json();
+        
+        if (!upData.ok) {
+            console.error(`❌ [getUpdates] Failed: ${upData.description}`);
+            return;
+        }
+
+        if (upData.result.length === 0) {
+            console.warn("⚠️ [getUpdates] No recent updates found. TIP: Send a message to the bot or add it to a group now.");
+        } else {
+            console.log(`📝 [getUpdates] Found ${upData.result.length} recent interactions:`);
+            upData.result.forEach(update => {
+                const chat = update.message?.chat || update.my_chat_member?.chat;
+                if (chat) {
+                    console.log(`   - Chat Title: "${chat.title || 'Private'}" | ID: ${chat.id} | Type: ${chat.type}`);
+                }
+            });
+        }
     } catch (e) {
-        return { success: false, error: e.message };
+        console.error(`❌ [getUpdates] Network error: ${e.message}`);
+    }
+
+    // 3. Verify specifically the ID in .env
+    const envId = process.env.TELEGRAM_CHAT_ID;
+    if (envId) {
+        console.log(`\n🧐 [Target-Check] Verifying Chat ID from .env: ${envId}`);
+        try {
+            const chatRes = await fetch(`https://api.telegram.org/bot${token}/getChat?chat_id=${envId}`);
+            const chatData = await chatRes.json();
+            if (chatData.ok) {
+                console.log(`✅ [getChat] Found target: "${chatData.result.title}" (Type: ${chatData.result.type})`);
+            } else {
+                console.warn(`❌ [getChat] Target NOT FOUND: ${chatData.description}`);
+            }
+        } catch (e) {
+            console.error(`❌ [getChat] Network error: ${e.message}`);
+        }
     }
 }
 
-async function runDiagnosis() {
-    console.log("🦾 [BlogsPro-Audit] Starting Multi-Variant Handshake Diagnostic...\n");
-
-    const variants = {
-        tokens: ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_TOKEN', 'BOT_TOKEN'],
-        ids: ['TELEGRAM_CHAT_ID', 'TELEGRAM_TO', 'TELEGRAM_ADMIN_CHAT_ID', 'CHAT_ID']
-    };
-
-    const foundTokens = new Set();
-    const foundIds = new Set();
-
-    console.log("📋 Found Environment Variables:");
-    [...variants.tokens, ...variants.ids].forEach(key => {
-        const val = process.env[key];
-        if (val) {
-            console.log(`- ${key}: ${val.substring(0, 5)}...${val.substring(val.length - 4)}`);
-            if (variants.tokens.includes(key)) foundTokens.add({ key, val });
-            else foundIds.add({ key, val });
-        }
-    });
-
-    console.log("\n🧪 Validating Tokens (getMe):");
-    const validTokens = [];
-    for (const t of foundTokens) {
-        const status = await testToken(t.val);
-        console.log(`- ${t.key}: ${status.valid ? '✅ VALID (' + status.info.username + ')' : '❌ INVALID (' + (status.error || status.reason) + ')'}`);
-        if (status.valid) validTokens.push(t);
-    }
-
-    console.log("\n📡 Testing Delivery (sendMessage):");
-    for (const t of validTokens) {
-        for (const i of foundIds) {
-            const status = await testDelivery(t.val, i.val);
-            console.log(`- ${t.key} + ${i.key}: ${status.success ? '✅ DELIVERED' : '❌ FAILED (' + status.error + ')'}`);
-        }
-    }
-
-    if (foundIds.size === 0 || Array.from(foundIds).every(i => i.val.includes('your-'))) {
-        console.log("\n🕵️ [Capture-Mode] HELP: No valid Chat ID found.");
-        console.log("1. Add your Telegram Bot as an Admin to your target group.");
-        console.log("2. Send the command /status or /id to the bot in that group.");
-        console.log("3. Since the webhook is active, check the BlogsPro Sentry Worker logs or run 'node scripts/trace-telegram-id.js' in 2 minutes.");
-    }
-
-    console.log("\n✅ Diagnosis Complete.");
-}
-
-runDiagnosis().catch(console.error);
+diagnose();

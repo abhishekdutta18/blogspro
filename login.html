@@ -277,10 +277,19 @@
   const urlParams = new URLSearchParams(window.location.search);
   const errorParam = urlParams.get('error');
   const reasonParam = urlParams.get('reason');
+  const tokenParam  = urlParams.get('token');
   
+  // 1. Bearer Token Bridge: Capture token from URL (Redirect Flow)
+  if (tokenParam) {
+    console.log("[Institutional Bridge] Capturing session token from redirect...");
+    localStorage.setItem("fb_token", tokenParam);
+    // Redirect to admin immediately to complete the handshake
+    window.location.href = "admin.html";
+  }
+
   // Google Direct Handshake Initialization
   window.addEventListener('load', async () => {
-    // 1. Check for Pending GitHub/Firebase Redirects
+    // 1. Check for Pending GitHub/Firebase Redirects (Legacy Fallback)
     try {
       const result = await getRedirectResult(auth);
       if (result) await handleAuthSuccess(result.user);
@@ -288,7 +297,7 @@
       console.error("Redirect auth error:", e);
     }
 
-    // 2. Initialize GSI (Zero-Firebase-Link Flow)
+    // 2. Initialize GSI (Resilient Proxy Handshake)
     if (window.google) {
       google.accounts.id.initialize({
         client_id: "940428277283-bdgk8sf3d0q7jls327e0j8cce5l9a78q.apps.googleusercontent.com",

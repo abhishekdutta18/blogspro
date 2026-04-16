@@ -235,11 +235,17 @@ export async function loadHybridPosts() {
             console.warn('[HybridEngine] Firestore posts unavailable');
         }
 
+        const isFileProtocol = window.location.protocol === 'file:';
+        if (isFileProtocol) {
+            console.error('[BlogsPro] Security Block: Accessing via file:// protocol. Local article indices cannot be fetched due to CORS policies. Please serve via HTTP (e.g., npx serve .)');
+        }
+
         const origin = window.location.origin;
-        const briefingIndices = [
+        const briefingIndices = isFileProtocol ? [] : [
             `${origin}/briefings/daily/index.json`,
             `${origin}/briefings/hourly/index.json`,
-            `${origin}/articles/weekly/index.json`
+            `${origin}/articles/weekly/index.json`,
+            `${origin}/articles/monthly/index.json`
         ];
 
         const aiResults = await Promise.all(briefingIndices.map(url => 

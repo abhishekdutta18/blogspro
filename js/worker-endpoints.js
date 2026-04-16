@@ -34,12 +34,21 @@ export function workerUrl(path = "", base = null) {
 
 export async function workerFetch(path, init = {}) {
   const candidates = workerCandidates(path);
+  const TIMEOUT_MS = 12000;
   
   let lastError = null;
   for (const base of candidates) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    
     try {
       const url = workerUrl(path, base);
-      const res = await fetch(url, init);
+      const res = await fetch(url, {
+        ...init,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
       if (res.ok) return res;
       if (res.status >= 500) {
         lastError = new Error(`Worker Error (${res.status}): ${res.statusText}`);
@@ -47,7 +56,11 @@ export async function workerFetch(path, init = {}) {
       }
       return res;
     } catch (err) {
+      clearTimeout(timeoutId);
       lastError = err;
+      if (err.name === 'AbortError') {
+        console.warn(`[workerFetch] Timeout reached for ${base}. Skipping.`);
+      }
     }
   }
   throw lastError || new Error("All worker candidates failed.");

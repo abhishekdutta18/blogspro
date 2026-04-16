@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { NewsOrchestrator } from './scripts/lib/news-orchestrator.js';
+import { NewsOrchestrator } from './lib/news-orchestrator.js';
 
 async function test() {
     const orchestrator = new NewsOrchestrator(process.env);

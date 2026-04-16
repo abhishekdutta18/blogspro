@@ -31,9 +31,15 @@ kv_namespaces = [
   { binding = "KV", id = "9caa7afdf7e94adb99cecf221275d63d" }
 ]
 
+# Captures all article traffic for proxying
+# routes = [
+#   { pattern = "blogspro.in/articles/*", zone_name = "blogspro.in" },
+#   { pattern = "blogspro.in/briefings/*", zone_name = "blogspro.in" }
+# ]
+
 [env.pulse.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
+FIREBASE_STORAGE_BUCKET = "blogspro-asset"
 BASE_URL = "https://blogspro.in"
 PROJECT_DOMAIN = "blogspro.in"
 SAMBANOVA_MODEL = "Meta-Llama-4-70B-Instruct"
@@ -112,7 +118,7 @@ minify = true
 
 [env.mirofish.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
+FIREBASE_STORAGE_BUCKET = "blogspro-asset"
 
 [[env.mirofish.durable_objects.bindings]]
 name = "MIRO_SYNC_DO"
@@ -129,7 +135,7 @@ minify = true
 
 [env.data-hub.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
+FIREBASE_STORAGE_BUCKET = "blogspro-asset"
 
 # --- RELEVANCE WORKER ---
 [env.relevance]
@@ -141,7 +147,7 @@ minify = true
 
 [env.relevance.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
+FIREBASE_STORAGE_BUCKET = "blogspro-asset"
 
 # --- AUDITOR WORKER ---
 [env.auditor]
@@ -153,7 +159,7 @@ minify = true
 
 [env.auditor.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
+FIREBASE_STORAGE_BUCKET = "blogspro-asset"
 
 # --- SEO MANAGER WORKER ---
 [env.seo]
@@ -165,7 +171,7 @@ minify = true
 
 [env.seo.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
+FIREBASE_STORAGE_BUCKET = "blogspro-asset"
 
 # --- TEMPLATE ENGINE ---
 [env.templates]
@@ -177,7 +183,7 @@ minify = true
 
 [env.templates.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
+FIREBASE_STORAGE_BUCKET = "blogspro-asset"
 
 # --- HIL AUDIT STATION ---
 [env.hil-station]
@@ -189,7 +195,7 @@ compatibility_flags = [ "nodejs_compat" ]
 [env.hil-station.vars]
 ENVIRONMENT = "hil-station"
 FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
+FIREBASE_STORAGE_BUCKET = "blogspro-asset"
 TELEGRAM_BOT_TOKEN = "PASTE_TOKEN_HERE"
 TELEGRAM_ADMIN_CHAT_ID = "PASTE_CHAT_ID_HERE"
 HIL_STATION_URL = "https://hil.blogspro.in"
@@ -204,7 +210,7 @@ compatibility_flags = [ "nodejs_compat" ]
 
 [env.miro-sync.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
+FIREBASE_STORAGE_BUCKET = "blogspro-asset"
 
 [env.miro-sync.durable_objects]
 bindings = [

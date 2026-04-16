@@ -43,12 +43,12 @@ async function audit() {
         console.log("\n--- [4] DOMESTIC TERMINAL (Upstox) ---");
         if (upstox.status === 'fulfilled') console.log(`✅ Pulse: ${upstox.value.summary}`);
 
-        console.log("\n--- [5] AI CONSENSUS (Gemini 3.1 Fleet) ---");
+        console.log("\n--- [5] AI CONSENSUS (Institutional Fleet) ---");
         try {
             const aiTest = await askAI("Test institutional pulse. Respond with 1 word: ACTIVE.", { role: 'audit' });
-            console.log(`✅ Gemini Status: ${aiTest}`);
+            console.log(`✅ Fleet Status: ${aiTest}`);
         } catch (e) {
-            console.error(`❌ Gemini Fail: ${e.message}`);
+            console.error(`❌ Fleet Fail: ${e.message}`);
         }
 
         console.log("\n🏁 AUDIT COMPLETE.");

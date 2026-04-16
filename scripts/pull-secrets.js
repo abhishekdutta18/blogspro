@@ -45,7 +45,7 @@ async function pullSecrets() {
                 
                 // Map to local keys (handle naming variations)
                 let localKey = name;
-                if (name === 'GEMINI_API_KEY' && !currentEnv['GEMINI_API_KEY']) localKey = 'GEMINI_KEY';
+                // if (name === 'GEMINI_API_KEY' && !currentEnv['GEMINI_API_KEY']) localKey = 'GEMINI_KEY'; // Purged
                 if (name === 'GROQ_API_KEY' && !currentEnv['GROQ_API_KEY']) localKey = 'GROQ_KEY';
                 if (name === 'MISTRAL_API_KEY' && !currentEnv['MISTRAL_API_KEY']) localKey = 'MISTRAL_KEY';
 
