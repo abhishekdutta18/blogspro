@@ -1401,6 +1401,9 @@
   let cryptoCache = null;
   let cryptoCacheAt = 0;
   const CRYPTO_CACHE_TTL = 60000; // 1 minute
+  let fxCache = null;
+  let fxCacheAt = 0;
+  const FX_CACHE_TTL = 300000; // 5 minutes
   let marketRefreshTimer = null;
   let marketRefreshInFlight = false;
   let marketRefreshTick = 0;
@@ -1686,9 +1689,23 @@
       }
       analysisEl.textContent = `Context: ${buildAnalysis(events)}`;
       const baseNow = Date.now();
+      const parseEventDate = (raw) => {
+        if (!raw) return NaN;
+        let d = new Date(raw);
+        if (!isNaN(d.getTime())) return d.getTime();
+        // Handle "MM-DD-YYYY HH:MMam/pm" from ForexFactory
+        const m = String(raw).match(/^(\d{1,2})-(\d{1,2})-(\d{4})\s+(\d{1,2}):(\d{2})(am|pm)/i);
+        if (m) {
+          let h = Number(m[4]);
+          if (m[6].toLowerCase() === 'pm' && h < 12) h += 12;
+          if (m[6].toLowerCase() === 'am' && h === 12) h = 0;
+          return new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2]), h, Number(m[5])).getTime();
+        }
+        return NaN;
+      };
       const hydrated = events.map((e, idx) => {
-        const t = new Date(e.date || e.Date || e.datetime || 0).getTime();
-        if (Number.isFinite(t) && t > 0) return { ...e, __ts: t };
+        const t = parseEventDate(e.date || e.Date || e.datetime);
+        if (Number.isFinite(t) && t > 0) return { ...e, __ts: t, date: new Date(t).toISOString() };
         return { ...e, __ts: baseNow + ((idx + 1) * 6 * 3600 * 1000) };
       });
       const sorted = hydrated.slice().sort((a, b) => a.__ts - b.__ts);
@@ -1756,6 +1773,37 @@
       }).filter(Boolean);
     };
 
+    const loadIndianFxRates = async () => {
+      // Frankfurter (ECB data) — free, CORS-enabled, no key needed
+      const res = await withTimeout(
+        fetch('https://api.frankfurter.app/latest?from=USD&to=INR,EUR,GBP,JPY,CHF,AUD,SGD,CAD', { cache: 'no-store' }),
+        10000, 'frankfurter fx'
+      );
+      if (!res.ok) throw new Error(`FX HTTP ${res.status}`);
+      const json = await res.json();
+      const r = json?.rates || {};
+      const inr = Number(r.INR);
+      if (!Number.isFinite(inr) || inr <= 0) throw new Error('FX no INR rate');
+      const pairs = [
+        ['USDINR', inr, null],
+        ['EURINR', inr / Number(r.EUR), null],
+        ['GBPINR', inr / Number(r.GBP), null],
+        ['JPYINR', inr / Number(r.JPY), null],
+        ['CHFINR', inr / Number(r.CHF), null],
+        ['AUDINR', inr / Number(r.AUD), null],
+        ['SGDINR', inr / Number(r.SGD), null],
+        ['CADINR', inr / Number(r.CAD), null],
+        ['EURUSD', 1 / Number(r.EUR), null],
+        ['GBPUSD', 1 / Number(r.GBP), null],
+      ];
+      return pairs
+        .map(([sym, price]) => {
+          if (!Number.isFinite(price) || price <= 0) return null;
+          return { symbol: sym, price, change: 0, source: 'ecb', _live: true };
+        })
+        .filter(Boolean);
+    };
+
     const fmtNum = (n) => {
       const x = Number(n);
       if (!Number.isFinite(x)) return '--';
@@ -1798,6 +1846,7 @@
         if (!c._live) return { label: 'Ref.', cls: '' };
         return isLiveCard(c, key) ? { label: 'Live', cls: 'live' } : { label: 'Closed', cls: 'closed' };
       };
+      const isBondYield = (c) => Number.isFinite(Number(c.price)) && Number(c.price) < 20;
       const detailText = (c, key) => {
         const open = Number.isFinite(Number(c.open)) ? Number(c.open) : NaN;
         const high = Number.isFinite(Number(c.high)) ? Number(c.high) : NaN;
@@ -1805,8 +1854,9 @@
         const vol = Number.isFinite(Number(c.volume)) ? Number(c.volume) : NaN;
         const yld = Number.isFinite(Number(c.yield)) ? Number(c.yield) : NaN;
         if (key === 'bonds') {
+          if (isBondYield(c)) return `Yield ${Number(c.price).toFixed(3)}%`;
           if (Number.isFinite(yld)) return `Yield ${yld.toFixed(2)}%`;
-          return Number.isFinite(open) && Number.isFinite(high) && Number.isFinite(low) ? `O ${fmtNum(open)} · H ${fmtNum(high)} · L ${fmtNum(low)}` : 'Yield --';
+          return Number.isFinite(open) && Number.isFinite(high) && Number.isFinite(low) ? `O ${fmtNum(open)} · H ${fmtNum(high)} · L ${fmtNum(low)}` : '--';
         }
         const core = Number.isFinite(open) && Number.isFinite(high) && Number.isFinite(low)
           ? `O ${fmtNum(open)} · H ${fmtNum(high)} · L ${fmtNum(low)}`
@@ -1824,11 +1874,11 @@
         if (Number.isFinite(high) && Number.isFinite(low)) return `Range ${fmtNum(low)} - ${fmtNum(high)}`;
         return `Prev ${Number.isFinite(prev) ? fmtNum(prev) : '--'} · Vol ${Number.isFinite(vol) ? fmtNum(vol) : '--'}`;
       };
-      const pricePrefix = (symbol, key) => {
+      const pricePrefix = (symbol, key, card) => {
         const s = String(symbol || '').toUpperCase();
         if (key === 'crypto') return '$';
         if (key === 'stocksOptions') return '₹';
-        if (key === 'bonds') return '₹';
+        if (key === 'bonds') return isBondYield(card) ? '' : '₹';
         if (key === 'indices') return '';
         if (key === 'currency') return '';
         if (key === 'commodities') {
@@ -1854,11 +1904,15 @@
       };
       el.innerHTML = items.map((raw) => {
         const c = raw;
-        const isUp = Number(c.change) >= 0;
-        const sign = isUp ? '+' : '';
+        const chgNum = Number(c.change || 0);
+        const isUp = chgNum >= 0;
+        const sign = chgNum > 0 ? '+' : '';
         const symbolText = String(c.symbol || '--').replace(/</g, '&lt;');
         const codeText = symbolText.replace(/[^A-Za-z0-9]/g, '').slice(0, 10) || '--';
         const st = tradingStatus(c, segmentKey);
+        const priceDisplay = segmentKey === 'bonds' && isBondYield(c)
+          ? `${fmtNum(c.price)}%`
+          : `${pricePrefix(symbolText, segmentKey, c)}${fmtNum(c.price)}`;
         return `
           <div class="market-row">
             <div class="market-top">
@@ -1869,8 +1923,8 @@
               <div class="market-status ${st.cls}">${st.label}</div>
             </div>
             <div class="market-code">SYM ${codeText}</div>
-            <div class="market-price">${pricePrefix(symbolText, segmentKey)}${fmtNum(c.price)}</div>
-            <div class="market-change ${isUp ? 'up' : 'down'}">${sign}${Number(c.change || 0).toFixed(2)}%</div>
+            <div class="market-price">${priceDisplay}</div>
+            <div class="market-change ${isUp ? 'up' : 'down'}">${sign}${chgNum.toFixed(2)}%</div>
             <div class="market-extra">${detailText(c, segmentKey)}</div>
             <div class="market-extra2">${detailText2(c, segmentKey)}</div>
           </div>
@@ -1902,10 +1956,11 @@
           const last = Number(val?.last_price ?? val?.ltp ?? val?.ohlc?.close);
           const prev = Number(val?.ohlc?.close ?? val?.prev_close_price ?? 0);
           if (!Number.isFinite(last)) continue;
-          // Prefer net_change (absolute Δ) from Upstox to avoid stale ohlc.close == last_price giving 0%
+          // net_change = last - prev_close; so prev_close = last - net_change (always correct denominator)
           const netChg = Number(val?.net_change);
-          const pct = Number.isFinite(netChg) && netChg !== 0
-            ? (prev && prev !== last ? netChg / (last - netChg) * 100 : (last > 0 ? netChg / last * 100 : 0))
+          const prevClose = last - netChg;
+          const pct = Number.isFinite(netChg) && netChg !== 0 && prevClose !== 0
+            ? netChg / prevClose * 100
             : (prev && prev !== last ? ((last - prev) / prev) * 100 : 0);
           const card = { symbol, price: last, change: pct, open: Number(val?.ohlc?.open), high: Number(val?.ohlc?.high ?? val?.high), low: Number(val?.ohlc?.low ?? val?.low), prev: Number(val?.ohlc?.close ?? val?.prev_close_price), volume: Number(val?.volume ?? val?.vol ?? val?.total_volume), yield: Number(val?.yield ?? val?.ytm ?? val?.yield_to_maturity), _live: true };
           const k = String(instrument).toUpperCase();
@@ -1915,9 +1970,8 @@
           if (isCrypto) { segments.crypto.push(card); continue; }
           if (k.includes('INDEX') || symbol.toUpperCase().includes('NIFTY')) segments.indices.push(card);
           else if (k.includes('BSE_DEBT') || k.includes('NSE_DEBT') || k.includes('NSE_BD') || symbol.includes('GSEC') || symbol.includes('BOND')) segments.bonds.push(card);
-          else if (k.includes('CDS') || k.startsWith('NSE_CDS') || k.startsWith('BSE_CDS')) segments.currency.push(card);
           else if (k.includes('MCX') || k.startsWith('NSE_COM') || k.startsWith('BSE_COM')) segments.commodities.push(card);
-          else if (!isOption) segments.stocksOptions.push(card);
+          else if (!isOption && !k.includes('CDS')) segments.stocksOptions.push(card);
         }
         const hasAny = Object.values(segments).some((arr) => arr.length);
         if (!hasAny) continue;
@@ -1929,10 +1983,18 @@
             if (cryptoRows.length) { cryptoCache = cryptoRows; cryptoCacheAt = Date.now(); segments.crypto = cryptoRows; }
           }
         } catch (_) {}
+        try {
+          if (fxCache && (Date.now() - fxCacheAt) < FX_CACHE_TTL) {
+            segments.currency = fxCache;
+          } else {
+            const fxRows = await loadIndianFxRates();
+            if (fxRows.length) { fxCache = fxRows; fxCacheAt = Date.now(); segments.currency = fxRows; }
+          }
+        } catch (_) {}
         renderCards(segmentIndices, segments.indices.slice(0, 30), 'indices');
         renderCards(segmentStocksOptions, segments.stocksOptions.slice(0, 30), 'stocksOptions');
         renderCards(segmentBonds, segments.bonds.slice(0, 16), 'bonds');
-        renderCards(segmentCurrency, segments.currency.slice(0, 16), 'currency');
+        renderCards(segmentCurrency, segments.currency.slice(0, 10), 'currency');
         renderCards(segmentCommodities, segments.commodities.slice(0, 16), 'commodities');
         renderCards(segmentCrypto, segments.crypto.slice(0, 20), 'crypto');
         skeletonEl.style.display = 'none';
