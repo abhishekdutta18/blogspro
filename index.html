@@ -1971,7 +1971,8 @@
           if (k.includes('INDEX') || symbol.toUpperCase().includes('NIFTY')) segments.indices.push(card);
           else if (k.includes('BSE_DEBT') || k.includes('NSE_DEBT') || k.includes('NSE_BD') || symbol.includes('GSEC') || symbol.includes('BOND')) segments.bonds.push(card);
           else if (k.includes('MCX') || k.startsWith('NSE_COM') || k.startsWith('BSE_COM')) segments.commodities.push(card);
-          else if (!isOption && !k.includes('CDS')) segments.stocksOptions.push(card);
+          else if (k.includes('CDS') || k.startsWith('NSE_CDS')) segments.currency.push(card);
+          else if (!isOption) segments.stocksOptions.push(card);
         }
         const hasAny = Object.values(segments).some((arr) => arr.length);
         if (!hasAny) continue;
@@ -1983,14 +1984,17 @@
             if (cryptoRows.length) { cryptoCache = cryptoRows; cryptoCacheAt = Date.now(); segments.crypto = cryptoRows; }
           }
         } catch (_) {}
-        try {
-          if (fxCache && (Date.now() - fxCacheAt) < FX_CACHE_TTL) {
-            segments.currency = fxCache;
-          } else {
-            const fxRows = await loadIndianFxRates();
-            if (fxRows.length) { fxCache = fxRows; fxCacheAt = Date.now(); segments.currency = fxRows; }
-          }
-        } catch (_) {}
+        // Currency: use Upstox NSE_CDS pairs as primary; fall back to open.er-api.com if none
+        if (!segments.currency.length) {
+          try {
+            if (fxCache && (Date.now() - fxCacheAt) < FX_CACHE_TTL) {
+              segments.currency = fxCache;
+            } else {
+              const fxRows = await loadIndianFxRates();
+              if (fxRows.length) { fxCache = fxRows; fxCacheAt = Date.now(); segments.currency = fxRows; }
+            }
+          } catch (_) {}
+        }
         renderCards(segmentIndices, segments.indices.slice(0, 30), 'indices');
         renderCards(segmentStocksOptions, segments.stocksOptions.slice(0, 30), 'stocksOptions');
         renderCards(segmentBonds, segments.bonds.slice(0, 16), 'bonds');
