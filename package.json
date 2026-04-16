@@ -23,6 +23,7 @@
     "google-charts": "^2.0.0",
     "inngest": "^4.1.0",
     "toucan-js": "^4.1.1",
+    "upstox-js-sdk": "^2.24.0",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.30"
   },

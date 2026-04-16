@@ -109,7 +109,9 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
 
     // Sanitization: Ensure model is valid for Groq
     if (model === "llama3.1-8b") model = "llama-3.1-8b-instant";
-    if (!model?.includes('llama') && !model?.includes('mixtral')) {
+    // Only reset to default if the model isn't a recognized Groq-compatible model
+    const groqCompatible = ['llama', 'mixtral', 'gemma', 'whisper', 'distil-'];
+    if (!groqCompatible.some(prefix => model?.toLowerCase().includes(prefix))) {
         model = "llama-3.3-70b-versatile";
     }
 
@@ -219,7 +221,7 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
 
         if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
         
-        if (data.error && (data.error.code === "rate_limit_exceeded" || data.error.message?.toLowerCase().includes('rate limit') || data.error.message?.includes('TPD'))) {
+        if (data.error && (data.error.code === "rate_limit_exceeded" || data.error.message?.toLowerCase().includes('rate limit') || data.error.message?.includes('TPD') || data.error.message?.includes('TPM') || data.error.message?.includes('tokens per'))) {
             console.warn(`⏳ Groq Rate/Size Limit. Error: ${data.error.message}`);
             // If 70b is too large or rate limited, fallback to 8b
             if (model.includes("70b")) {
