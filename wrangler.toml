@@ -235,4 +235,3 @@ compatibility_date = "2026-04-01"
 
 [env.auth.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
-GOOGLE_CLIENT_ID = "940428277283-bdgk8sf3d0q7jls327e0j8cce5l9a78q.apps.googleusercontent.com"
