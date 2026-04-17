@@ -30,8 +30,8 @@
     import { api } from './js/services/api.js';
     // IMMEDIATE AUTH GUARD
     api.auth.me().then(res => {
-      if (!res.authenticated || res.user.role !== 'admin') {
-        window.location.href = 'login.html?error=unauthorized&reason=' + (res.authenticated ? res.user.role : 'logged_out');
+      if (!res.authenticated || res.user?.role !== 'admin') {
+        window.location.href = 'login.html?error=unauthorized&reason=' + (res.authenticated ? (res.user?.role || 'missing_role') : 'logged_out');
       }
     }).catch(() => {
       window.location.href = 'login.html?error=network_failure';

@@ -27,7 +27,12 @@ async function runInstitutionalSwarm() {
   initNodeSentry(process.env.SENTRY_DSN, frequency);
   logSwarmBreadcrumb(`Starting Institutional Batch: ${frequency}`, { id, extended });
 
-  // 0.1 INITIALIZE TRACE (Firestore)
+  // 0.1 INITIALIZE AI FLEET (V16.0 Ecosystem Upgrade)
+  console.log(`🔍 [AI-Balancer] Synchronizing Institutional AI Vault...`);
+  const { ResourceManager } = await import("./lib/ai-service.js");
+  await ResourceManager.init(process.env);
+  
+  // 0.2 INITIALIZE TRACE (Firestore)
   console.log(`📡 [Trace] Initializing Institutional Audit Log...`);
   await pushTelemetryLog("SWARM_START", { 
     frequency, 

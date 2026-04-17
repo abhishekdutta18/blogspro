@@ -1,9 +1,10 @@
 # ============================================
 
-# Default target (avoids “Missing entry-point” when no env is specified)
+# Default target (avoids "Missing entry-point" when no env is specified)
 name = "blogspro-upstox"
 main = "api/upstox-worker.js"
 compatibility_date = "2026-04-01"
+account_id = "b3f4edff1fdc616f329e7d7cb6698307"
 
 # KV cache worker (bind CACHE_KV before deploy)
 [env.kv-cache]
@@ -11,11 +12,9 @@ name = "blogspro-kv-cache"
 main = "workers/kv-cache.js"
 compatibility_date = "2026-04-01"
 
-[env.kv-cache.kv_namespaces]
-# Replace id with your KV namespace ID
-bindings = [
-  { binding = "CACHE_KV", id = "9caa7afdf7e94adb99cecf221275d63d" }
-]
+[[env.kv-cache.kv_namespaces]]
+binding = "CACHE_KV"
+id = "9caa7afdf7e94adb99cecf221275d63d"
 
 [vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
@@ -28,13 +27,17 @@ compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
 minify = true
 
+kv_namespaces = [
+  { binding = "KV", id = "9caa7afdf7e94adb99cecf221275d63d" }
+]
+
 [env.pulse.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
 FIREBASE_STORAGE_BUCKET = "blogspro-ai.firebasestorage.app"
 BASE_URL = "https://blogspro.in"
 PROJECT_DOMAIN = "blogspro.in"
-GROQ_MODEL = "llama-3.3-70b-versatile"
-GEMINI_MODEL = "gemini-1.5-pro"
+SAMBANOVA_MODEL = "Meta-Llama-4-70B-Instruct"
+CEREBRAS_MODEL = "llama-4-70b"
 MISTRAL_MODEL = "mistral-large-latest"
 INNGEST_EVENT_KEY = "iyn6A_cYtMybjJhGswI7zr_CX6HkT3R_bCqepOty9yufd_ax_OfkE9RDsQ_8tyMvM6TvWoJDvLm6IREcyjoMTg"
 INNGEST_SIGNING_KEY = "signkey-prod-da8bf4172979eda4d892588ea271764fc3989d474a260eddbbd846b5aab8406a"
@@ -232,4 +235,3 @@ compatibility_date = "2026-04-01"
 
 [env.auth.vars]
 FIREBASE_PROJECT_ID = "blogspro-ai"
-GOOGLE_CLIENT_ID = "940428277283-bdgk8sf3d0q7jls327e0j8cce5l9a78q.apps.googleusercontent.com"

@@ -164,5 +164,10 @@ export const api = {
     },
     trackView: (id) => post(`/api/public/track/view/${id}`, {}),
     subscribe: (email) => post(`/api/public/newsletter/subscribe`, { email })
+  },
+  testbench: {
+    audit: (text, model = "gemini-3.1-pro-preview", ruleset = "General Fidelity") => 
+      post("/api/testbench/audit", { text, model, ruleset }),
+    tracer: () => fetchJson("/api/testbench/tracer")
   }
 };

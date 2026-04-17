@@ -27,7 +27,7 @@
       --muted:   #9CA3AF;
       --border:  rgba(191,161,0,0.15);
       --serif:   'Cormorant Garamond', Georgia, serif;
-      --sans:    'Inter', sans-serif;
+      --sans:    'DM Sans', sans-serif;
       --mono:    'JetBrains Mono', monospace;
     }
 
@@ -1025,7 +1025,7 @@
       <li id="navGoogleLogin"><button onclick="window.registerGoogle()" class="nav-google-btn" title="Sign in with Google">
         <svg width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
       </button></li>
-      <li id="navLoginLink"><a href="login.html" class="nav-cta">Enroll</a></li>
+      <li id="navLoginLink" style="display:none"><a href="login.html" class="nav-cta">Enroll</a></li>
       <li><button class="theme-btn-nav" id="themeBtn" onclick="window.toggleTheme?.()">☀️</button></li>
       <li id="navAuthSlot">
         <a href="login.html" class="nav-cta">Login</a>
@@ -1099,7 +1099,7 @@
       <div class="feed-status-chip" id="forexFeedChip">Syncing</div>
     </div>
     <div class="calendar-meta" id="forexCalendarMeta">Source: Syncing · Updated: --</div>
-    <div class="calendar-analysis" id="forexCalendarAnalysis">Analyst view will appear after data loads.</div>
+    <div class="calendar-analysis" id="forexCalendarAnalysis">Context will appear after data loads.</div>
     <div class="calendar-tools">
       <button class="calendar-btn" id="forexCalendarRefresh" type="button">Refresh</button>
       <input class="calendar-input" id="forexCalendarCountryFilter" type="text" placeholder="Filter country (USD, EUR…)" />
@@ -1159,9 +1159,9 @@
       </div>
     </div>
     <div class="calendar-past-wrap">
-      <div class="calendar-past-title">Past Events</div>
+      <div class="calendar-past-title">Recent Releases <span style="font-size:0.7rem;font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">— sourced from live feed</span></div>
       <ul class="calendar-past-list" id="forexCalendarPastList">
-        <li class="calendar-empty">Loading past events…</li>
+        <li class="calendar-empty">No recent releases available from feed.</li>
       </ul>
     </div>
     <ul class="calendar-skeleton" id="forexCalendarSkeleton" style="display:none">
@@ -1189,7 +1189,7 @@
       </div>
     </div>
     <div class="calendar-meta" id="indiaCalendarMeta">Source: Syncing · Updated: --</div>
-    <div class="calendar-analysis" id="indiaCalendarAnalysis">Analyst view will appear after data loads.</div>
+    <div class="calendar-analysis" id="indiaCalendarAnalysis">Context will appear after data loads.</div>
     <div class="calendar-summary" id="indiaCalendarSummary">Summary: loading…</div>
     <div class="calendar-layout">
       <ul class="calendar-list" id="indiaCalendarList">
@@ -1205,24 +1205,24 @@
         </div>
         <div class="desk-charts">
           <div class="desk-chart">
-            <div class="desk-chart-title">RBI Probability</div>
+            <div class="desk-chart-title">RBI Probability <span style="font-weight:400;color:var(--muted);font-size:0.7rem">(Model Est.)</span></div>
             <div id="indiaProbChart" style="height: 220px;"></div>
           </div>
           <div class="desk-chart">
-            <div class="desk-chart-title">INR Pressure Gauge</div>
+            <div class="desk-chart-title">INR Pressure <span style="font-weight:400;color:var(--muted);font-size:0.7rem">(Model Est.)</span></div>
             <div id="indiaInrGaugeChart" style="height: 120px; display: flex; justify-content: center; align-items: center; padding-top: 10px;"></div>
-            <div class="prob-val" id="indiaInrGaugeNote">INR Pressure Gauge: --</div>
+            <div class="prob-val" id="indiaInrGaugeNote">INR Pressure: --</div>
           </div>
           <div class="desk-chart">
-            <div class="desk-chart-title">Sector Impact</div>
+            <div class="desk-chart-title">Sector Sensitivity <span style="font-weight:400;color:var(--muted);font-size:0.7rem">(Keyword Model)</span></div>
             <div id="indiaSectorChart" style="height: 220px;"></div>
           </div>
         </div>
         <div class="desk-explain" id="indiaDeskExplain">
-          <div><b>RBI Probability:</b> expected policy path from inflation, growth, and event intensity.</div>
-          <div><b>INR Pressure:</b> directional stress from external-balance and inflation signals.</div>
-          <div><b>Sector Impact:</b> relative sensitivity ranking from event mix.</div>
-          <div><b>Confidence Score:</b> weighted quality based on date, impact, and forecast coverage.</div>
+          <div><b>RBI Probability (Model Est.):</b> derived from event-title keyword counts — not OIS markets or rate futures. Use as directional context only.</div>
+          <div><b>INR Pressure (Model Est.):</b> directional signal from external-balance and inflation keyword frequency. Not based on FX positioning data.</div>
+          <div><b>Sector Sensitivity (Keyword Model):</b> event-title keyword frequency mapped to sectors. Not correlated with actual sector price moves.</div>
+          <div><b>Confidence Score:</b> reflects data completeness (forecast coverage, dates, impact tags) — not forecast accuracy.</div>
         </div>
       </div>
     </div>
@@ -1401,6 +1401,9 @@
   let cryptoCache = null;
   let cryptoCacheAt = 0;
   const CRYPTO_CACHE_TTL = 60000; // 1 minute
+  let fxCache = null;
+  let fxCacheAt = 0;
+  const FX_CACHE_TTL = 300000; // 5 minutes
   let marketRefreshTimer = null;
   let marketRefreshInFlight = false;
   let marketRefreshTick = 0;
@@ -1488,11 +1491,11 @@
     const sourceLabel = (src) => (src === 'forexfactory' ? 'ForexFactory' : src === 'tradingeconomics' ? 'TradingEconomics' : 'Market Desk');
     const analystView = (event) => {
       const t = String(event?.title || '').toLowerCase();
-      if (t.includes('cpi') || t.includes('inflation')) return 'Analyst view: Inflation surprise risk can reprice rate-cut expectations quickly.';
-      if (t.includes('employment') || t.includes('non-farm') || t.includes('payroll')) return 'Analyst view: Labor momentum can shift USD yields and index futures direction.';
-      if (t.includes('pmi') || t.includes('manufacturing') || t.includes('services')) return 'Analyst view: Growth momentum signal; watch cyclical sectors and FX beta pairs.';
-      if (t.includes('rate') || t.includes('fomc') || t.includes('ecb') || t.includes('boe')) return 'Analyst view: Policy guidance can trigger broad cross-asset volatility in minutes.';
-      return 'Analyst view: High-impact macro print; keep tighter stops around release minute.';
+      if (t.includes('cpi') || t.includes('inflation')) return 'Note: Inflation surprise risk can reprice rate-cut expectations quickly.';
+      if (t.includes('employment') || t.includes('non-farm') || t.includes('payroll')) return 'Note: Labor momentum can shift USD yields and index futures direction.';
+      if (t.includes('pmi') || t.includes('manufacturing') || t.includes('services')) return 'Note: Growth momentum signal; watch cyclical sectors and FX beta pairs.';
+      if (t.includes('rate') || t.includes('fomc') || t.includes('ecb') || t.includes('boe')) return 'Note: Policy guidance can trigger broad cross-asset volatility in minutes.';
+      return 'Note: High-impact macro print; keep tighter stops around release minute.';
     };
     const buildAnalysis = (events) => {
       const byCountry = {};
@@ -1678,26 +1681,36 @@
       metaEl.textContent = `Source: ${sourceLabel(source)} · Events: ${events.length || 0} · Updated: ${nowStamp()}`;
       if (isError) {
         listEl.innerHTML = `<li class="calendar-empty">Calendar feeds currently unavailable. Please check back shortly.</li>`;
-        analysisEl.textContent = 'Analyst view: Macro board temporarily unavailable; keep risk lower around scheduled sessions.';
+        analysisEl.textContent = 'Macro board temporarily unavailable. Check back shortly.';
         summaryEl.textContent = 'Summary: no live data';
         snapshotEl.innerHTML = `<div><b>Window:</b> unavailable</div><div><b>Volatility Bias:</b> unknown</div><div><b>Focus Pair:</b> --</div><div><b>Risk Note:</b> Use defensive sizing until feed normalizes.</div>`;
         pastListEl.innerHTML = '<li class="calendar-empty">Past events unavailable.</li>';
         return;
       }
-      analysisEl.textContent = `Analyst view: ${buildAnalysis(events)}`;
+      analysisEl.textContent = `Context: ${buildAnalysis(events)}`;
       const baseNow = Date.now();
+      const parseEventDate = (raw) => {
+        if (!raw) return NaN;
+        let d = new Date(raw);
+        if (!isNaN(d.getTime())) return d.getTime();
+        // Handle "MM-DD-YYYY HH:MMam/pm" from ForexFactory
+        const m = String(raw).match(/^(\d{1,2})-(\d{1,2})-(\d{4})\s+(\d{1,2}):(\d{2})(am|pm)/i);
+        if (m) {
+          let h = Number(m[4]);
+          if (m[6].toLowerCase() === 'pm' && h < 12) h += 12;
+          if (m[6].toLowerCase() === 'am' && h === 12) h = 0;
+          return new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2]), h, Number(m[5])).getTime();
+        }
+        return NaN;
+      };
       const hydrated = events.map((e, idx) => {
-        const t = new Date(e.date || e.Date || e.datetime || 0).getTime();
-        if (Number.isFinite(t) && t > 0) return { ...e, __ts: t };
+        const t = parseEventDate(e.date || e.Date || e.datetime);
+        if (Number.isFinite(t) && t > 0) return { ...e, __ts: t, date: new Date(t).toISOString() };
         return { ...e, __ts: baseNow + ((idx + 1) * 6 * 3600 * 1000) };
       });
       const sorted = hydrated.slice().sort((a, b) => a.__ts - b.__ts);
       forexCalendarRaw = sorted.map(({ __ts, ...rest }) => ({ ...rest, date: rest.date || new Date(__ts).toISOString() }));
-      const pastSeed = hydrated.slice().sort((a, b) => b.__ts - a.__ts).slice(0, Math.min(6, hydrated.length));
-      forexCalendarPast = pastSeed.map(({ __ts, ...rest }, idx) => {
-        const pastTs = __ts - ((idx + 1) * 24 * 3600 * 1000);
-        return { ...rest, date: new Date(pastTs).toISOString() };
-      });
+      forexCalendarPast = []; // no fabricated past events — only real historical data from API
       applyCalendarFilters();
     };
 
@@ -1708,7 +1721,7 @@
         const res = await withTimeout(fetch(`${base}/calendar`), 12000, 'calendar worker');
         if (!res.ok) continue;
         const json = await res.json();
-        const events = (json?.events || []).slice(0, 5);
+        const events = (json?.events || []);
         if (!events.length) continue;
         setState(null, 'Live', events, json.source);
         return true;
@@ -1760,26 +1773,44 @@
       }).filter(Boolean);
     };
 
+    const loadIndianFxRates = async () => {
+      // open.er-api.com — free, no key, proper CORS headers on all responses
+      const res = await withTimeout(
+        fetch('https://open.er-api.com/v6/latest/USD', { cache: 'no-store' }),
+        10000, 'fx rates'
+      );
+      if (!res.ok) throw new Error(`FX HTTP ${res.status}`);
+      const json = await res.json();
+      const r = json?.rates || {};
+      const inr = Number(r.INR);
+      if (!Number.isFinite(inr) || inr <= 0) throw new Error('FX no INR rate');
+      const pairs = [
+        ['USDINR', inr, null],
+        ['EURINR', inr / Number(r.EUR), null],
+        ['GBPINR', inr / Number(r.GBP), null],
+        ['JPYINR', inr / Number(r.JPY), null],
+        ['CHFINR', inr / Number(r.CHF), null],
+        ['AUDINR', inr / Number(r.AUD), null],
+        ['SGDINR', inr / Number(r.SGD), null],
+        ['CADINR', inr / Number(r.CAD), null],
+        ['EURUSD', 1 / Number(r.EUR), null],
+        ['GBPUSD', 1 / Number(r.GBP), null],
+      ];
+      return pairs
+        .map(([sym, price]) => {
+          if (!Number.isFinite(price) || price <= 0) return null;
+          return { symbol: sym, price, change: 0, source: 'ecb', _live: true };
+        })
+        .filter(Boolean);
+    };
+
     const fmtNum = (n) => {
       const x = Number(n);
       if (!Number.isFinite(x)) return '--';
       return x.toLocaleString('en-IN', { maximumFractionDigits: 2 });
     };
     const now = () => new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const fallbackBySegment = {
-      indices: [{ symbol: 'Nifty 50', price: 22819.60, change: -0.86 }, { symbol: 'Nifty Bank', price: 52274.60, change: -2.67 }, { symbol: 'Sensex', price: 75124.28, change: -0.61 }, { symbol: 'Nifty Midcap', price: 50874.22, change: 0.33 }, { symbol: 'Nifty IT', price: 36942.90, change: 0.58 }, { symbol: 'Nifty Auto', price: 21984.42, change: -0.22 }, { symbol: 'Nifty Pharma', price: 20114.80, change: 0.47 }, { symbol: 'Nifty PSU Bank', price: 7124.10, change: 1.11 }],
-      stocksOptions: [{ symbol: 'RELIANCE', price: 2940.25, change: 0.42 }, { symbol: 'HDFCBANK', price: 1622.40, change: -0.18 }, { symbol: 'ICICIBANK', price: 1114.85, change: 0.44 }, { symbol: 'INFY', price: 1528.35, change: -0.27 }, { symbol: 'TCS', price: 4012.60, change: 0.13 }, { symbol: 'SBIN', price: 768.10, change: 0.76 }, { symbol: 'BHARTIARTL', price: 1279.95, change: -0.06 }, { symbol: 'LT', price: 3721.55, change: 0.22 }, { symbol: 'KOTAKBANK', price: 1762.30, change: 0.31 }, { symbol: 'AXISBANK', price: 1112.40, change: -0.11 }],
-      bonds: [{ symbol: 'India 10Y G-Sec', price: 100.15, change: -0.04, yield: 7.12 }, { symbol: 'India 5Y G-Sec', price: 99.74, change: 0.03, yield: 7.03 }, { symbol: 'India 14Y G-Sec', price: 98.88, change: -0.02, yield: 7.20 }, { symbol: 'SDL 2033', price: 97.61, change: 0.01, yield: 7.35 }, { symbol: 'T-Bill 364D', price: 99.22, change: 0.02, yield: 6.88 }, { symbol: 'Corp AAA 5Y', price: 101.07, change: 0.00, yield: 7.54 }],
-      currency: [{ symbol: 'USDINR', price: 86.42, change: 0.08, open: 86.35, high: 86.58, low: 86.28, prev: 86.35, volume: 2541200 }, { symbol: 'EURINR', price: 93.88, change: -0.11, open: 94.00, high: 94.15, low: 93.72, prev: 93.99, volume: 1718800 }, { symbol: 'GBPINR', price: 110.42, change: -0.09, open: 110.52, high: 110.68, low: 110.24, prev: 110.52, volume: 1185400 }, { symbol: 'JPYINR', price: 0.574, change: 0.06, open: 0.571, high: 0.576, low: 0.569, prev: 0.571, volume: 987200 }, { symbol: 'USDJPY', price: 150.62, change: -0.18, open: 150.90, high: 151.05, low: 150.44, prev: 150.90, volume: 3189000 }, { symbol: 'EURUSD', price: 1.086, change: 0.14, open: 1.082, high: 1.088, low: 1.080, prev: 1.084, volume: 2974300 }, { symbol: 'GBPUSD', price: 1.278, change: -0.07, open: 1.281, high: 1.283, low: 1.276, prev: 1.280, volume: 2641200 }, { symbol: 'DXY', price: 103.84, change: -0.12, open: 103.98, high: 104.10, low: 103.72, prev: 103.96, volume: 1455500 }, { symbol: 'USDCNH', price: 7.235, change: 0.04, open: 7.230, high: 7.242, low: 7.226, prev: 7.231, volume: 1320800 }, { symbol: 'AUDUSD', price: 0.628, change: 0.10, open: 0.625, high: 0.631, low: 0.622, prev: 0.627, volume: 1193000 }],
-      commodities: [{ symbol: 'MCX Gold (10g)', price: 68420.00, change: 0.29, open: 68240, high: 68635, low: 68195, prev: 68221, volume: 224500 }, { symbol: 'MCX Silver (kg)', price: 79044.00, change: 0.62, open: 78680, high: 79320, low: 78550, prev: 78559, volume: 196700 }, { symbol: 'MCX Crude (bbl)', price: 6821.00, change: -0.41, open: 6849, high: 6882, low: 6796, prev: 6849, volume: 312400 }, { symbol: 'MCX NatGas (mmBtu)', price: 211.30, change: -1.08, open: 214.05, high: 214.82, low: 210.94, prev: 213.61, volume: 288900 }, { symbol: 'Brent (ICE)', price: 84.72, change: 0.18, open: 84.31, high: 85.06, low: 84.07, prev: 84.57, volume: 167300 }, { symbol: 'WTI (NYMEX)', price: 80.44, change: -0.12, open: 80.57, high: 81.02, low: 80.11, prev: 80.54, volume: 152900 }, { symbol: 'Copper (COMEX)', price: 835.45, change: 0.39, open: 830.90, high: 838.12, low: 828.44, prev: 832.21, volume: 139600 }, { symbol: 'Aluminium (LME)', price: 2284.20, change: -0.26, open: 2292.00, high: 2298.00, low: 2275.50, prev: 2290.20, volume: 102800 }, { symbol: 'Zinc (LME)', price: 2542.10, change: 0.34, open: 2530.90, high: 2551.60, low: 2526.80, prev: 2533.50, volume: 94100 }, { symbol: 'Cotton (ICE)', price: 94.16, change: 0.22, open: 93.84, high: 94.36, low: 93.70, prev: 93.95, volume: 78100 }],
-      crypto: [{ symbol: 'BTCUSDT', price: 68245.20, change: 1.12, open: 67420.40, high: 68780.00, low: 66995.30, prev: 67490.10, volume: 31245000 }, { symbol: 'ETHUSDT', price: 3540.60, change: 0.88, open: 3498.10, high: 3574.80, low: 3460.20, prev: 3509.70, volume: 19832000 }, { symbol: 'BNBUSDT', price: 612.20, change: 0.64, open: 605.30, high: 615.90, low: 602.40, prev: 608.31, volume: 6234000 }, { symbol: 'SOLUSDT', price: 178.45, change: 1.94, open: 171.10, high: 180.80, low: 169.90, prev: 175.05, volume: 11287000 }, { symbol: 'XRPUSDT', price: 0.63, change: -0.42, open: 0.64, high: 0.65, low: 0.62, prev: 0.63, volume: 8432000 }, { symbol: 'DOGEUSDT', price: 0.15, change: 0.31, open: 0.15, high: 0.16, low: 0.15, prev: 0.15, volume: 7391000 }, { symbol: 'ADAUSDT', price: 0.61, change: -0.19, open: 0.61, high: 0.62, low: 0.60, prev: 0.61, volume: 5284000 }, { symbol: 'MATICUSDT', price: 0.94, change: 0.27, open: 0.93, high: 0.95, low: 0.92, prev: 0.94, volume: 4921000 }, { symbol: 'AVAXUSDT', price: 41.22, change: 1.35, open: 39.88, high: 41.94, low: 39.42, prev: 40.67, volume: 3812000 }, { symbol: 'DOTUSDT', price: 8.76, change: 0.58, open: 8.62, high: 8.81, low: 8.55, prev: 8.71, volume: 2645000 }, { symbol: 'LTCUSDT', price: 92.31, change: -0.24, open: 92.84, high: 93.70, low: 91.92, prev: 92.53, volume: 2198000 }, { symbol: 'LINKUSDT', price: 18.42, change: 0.77, open: 18.11, high: 18.66, low: 17.95, prev: 18.28, volume: 2419000 }],
-    };
-    const segmentTargetCount = { indices: 24, stocksOptions: 24, bonds: 12, currency: 12, commodities: 12, crypto: 20 };
-    const padCards = (items, segmentKey) => {
-      if (items.length > 0) return items;
-      const target = segmentTargetCount[segmentKey] || 6;
-      return (fallbackBySegment[segmentKey] || []).slice(0, target);
-    };
+    const padCards = (items) => items;
     const isIndiaMarketHours = () => {
       const d = new Date();
       const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(d);
@@ -1795,21 +1826,7 @@
       if (key === 'crypto') return true;
       return isIndiaMarketHours();
     };
-    const withLiveDrift = (items, segmentKey) => {
-      const ampBySeg = { indices: 0.015, stocksOptions: 0.03, bonds: 0.008, currency: 0.01, commodities: 0.02, crypto: 0.06 };
-      const amp = ampBySeg[segmentKey] ?? 0.02;
-      return items.map((row, idx) => {
-        const price = Number(row?.price);
-        const change = Number(row?.change);
-        if (!isLiveCard(row, segmentKey)) return row;
-        if (!Number.isFinite(price)) return row;
-        const pulse = Math.sin((marketRefreshTick + 1 + (idx * 3)) / 4);
-        const driftPct = pulse * amp;
-        const nextPrice = price * (1 + (driftPct / 100));
-        const nextChange = Number.isFinite(change) ? change + (driftPct * 0.9) : driftPct;
-        return { ...row, price: nextPrice, change: nextChange };
-      });
-    };
+    const withLiveDrift = (items) => items;
 
     const renderCards = (el, items, segmentKey) => {
       const dedup = [];
@@ -1820,10 +1837,16 @@
         seen.add(k);
         dedup.push(it);
       }
-      items = withLiveDrift(padCards(dedup, segmentKey), segmentKey);
+      items = withLiveDrift(padCards(dedup), segmentKey);
+      if (!items.length) {
+        el.innerHTML = '<div class="market-row" style="padding:1.5rem;color:var(--muted);font-size:0.85rem;text-align:center;grid-column:1/-1">Data unavailable — feed offline or market closed</div>';
+        return;
+      }
       const tradingStatus = (c, key) => {
-        return isLiveCard(c, key) ? { label: 'Live', cls: 'live' } : { label: 'Not Trading', cls: 'closed' };
+        if (!c._live) return { label: 'Ref.', cls: '' };
+        return isLiveCard(c, key) ? { label: 'Live', cls: 'live' } : { label: 'Closed', cls: 'closed' };
       };
+      const isBondYield = (c) => Number.isFinite(Number(c.price)) && Number(c.price) < 20;
       const detailText = (c, key) => {
         const open = Number.isFinite(Number(c.open)) ? Number(c.open) : NaN;
         const high = Number.isFinite(Number(c.high)) ? Number(c.high) : NaN;
@@ -1831,8 +1854,9 @@
         const vol = Number.isFinite(Number(c.volume)) ? Number(c.volume) : NaN;
         const yld = Number.isFinite(Number(c.yield)) ? Number(c.yield) : NaN;
         if (key === 'bonds') {
+          if (isBondYield(c)) return `Yield ${Number(c.price).toFixed(3)}%`;
           if (Number.isFinite(yld)) return `Yield ${yld.toFixed(2)}%`;
-          return Number.isFinite(open) && Number.isFinite(high) && Number.isFinite(low) ? `O ${fmtNum(open)} · H ${fmtNum(high)} · L ${fmtNum(low)}` : 'Yield --';
+          return Number.isFinite(open) && Number.isFinite(high) && Number.isFinite(low) ? `O ${fmtNum(open)} · H ${fmtNum(high)} · L ${fmtNum(low)}` : '--';
         }
         const core = Number.isFinite(open) && Number.isFinite(high) && Number.isFinite(low)
           ? `O ${fmtNum(open)} · H ${fmtNum(high)} · L ${fmtNum(low)}`
@@ -1850,11 +1874,11 @@
         if (Number.isFinite(high) && Number.isFinite(low)) return `Range ${fmtNum(low)} - ${fmtNum(high)}`;
         return `Prev ${Number.isFinite(prev) ? fmtNum(prev) : '--'} · Vol ${Number.isFinite(vol) ? fmtNum(vol) : '--'}`;
       };
-      const pricePrefix = (symbol, key) => {
+      const pricePrefix = (symbol, key, card) => {
         const s = String(symbol || '').toUpperCase();
         if (key === 'crypto') return '$';
         if (key === 'stocksOptions') return '₹';
-        if (key === 'bonds') return '₹';
+        if (key === 'bonds') return isBondYield(card) ? '' : '₹';
         if (key === 'indices') return '';
         if (key === 'currency') return '';
         if (key === 'commodities') {
@@ -1880,11 +1904,15 @@
       };
       el.innerHTML = items.map((raw) => {
         const c = raw;
-        const isUp = Number(c.change) >= 0;
-        const sign = isUp ? '+' : '';
+        const chgNum = Number(c.change || 0);
+        const isUp = chgNum >= 0;
+        const sign = chgNum > 0 ? '+' : '';
         const symbolText = String(c.symbol || '--').replace(/</g, '&lt;');
         const codeText = symbolText.replace(/[^A-Za-z0-9]/g, '').slice(0, 10) || '--';
         const st = tradingStatus(c, segmentKey);
+        const priceDisplay = segmentKey === 'bonds' && isBondYield(c)
+          ? `${fmtNum(c.price)}%`
+          : `${pricePrefix(symbolText, segmentKey, c)}${fmtNum(c.price)}`;
         return `
           <div class="market-row">
             <div class="market-top">
@@ -1895,8 +1923,8 @@
               <div class="market-status ${st.cls}">${st.label}</div>
             </div>
             <div class="market-code">SYM ${codeText}</div>
-            <div class="market-price">${pricePrefix(symbolText, segmentKey)}${fmtNum(c.price)}</div>
-            <div class="market-change ${isUp ? 'up' : 'down'}">${sign}${Number(c.change || 0).toFixed(2)}%</div>
+            <div class="market-price">${priceDisplay}</div>
+            <div class="market-change ${isUp ? 'up' : 'down'}">${sign}${chgNum.toFixed(2)}%</div>
             <div class="market-extra">${detailText(c, segmentKey)}</div>
             <div class="market-extra2">${detailText2(c, segmentKey)}</div>
           </div>
@@ -1928,7 +1956,12 @@
           const last = Number(val?.last_price ?? val?.ltp ?? val?.ohlc?.close);
           const prev = Number(val?.ohlc?.close ?? val?.prev_close_price ?? 0);
           if (!Number.isFinite(last)) continue;
-          const pct = prev ? ((last - prev) / prev) * 100 : 0;
+          // net_change = last - prev_close; so prev_close = last - net_change (always correct denominator)
+          const netChg = Number(val?.net_change);
+          const prevClose = last - netChg;
+          const pct = Number.isFinite(netChg) && netChg !== 0 && prevClose !== 0
+            ? netChg / prevClose * 100
+            : (prev && prev !== last ? ((last - prev) / prev) * 100 : 0);
           const card = { symbol, price: last, change: pct, open: Number(val?.ohlc?.open), high: Number(val?.ohlc?.high ?? val?.high), low: Number(val?.ohlc?.low ?? val?.low), prev: Number(val?.ohlc?.close ?? val?.prev_close_price), volume: Number(val?.volume ?? val?.vol ?? val?.total_volume), yield: Number(val?.yield ?? val?.ytm ?? val?.yield_to_maturity), _live: true };
           const k = String(instrument).toUpperCase();
           const symU = String(symbol).toUpperCase();
@@ -1937,8 +1970,8 @@
           if (isCrypto) { segments.crypto.push(card); continue; }
           if (k.includes('INDEX') || symbol.toUpperCase().includes('NIFTY')) segments.indices.push(card);
           else if (k.includes('BSE_DEBT') || k.includes('NSE_DEBT') || k.includes('NSE_BD') || symbol.includes('GSEC') || symbol.includes('BOND')) segments.bonds.push(card);
-          else if (k.includes('CDS') || k.startsWith('NSE_CDS') || k.startsWith('BSE_CDS')) segments.currency.push(card);
           else if (k.includes('MCX') || k.startsWith('NSE_COM') || k.startsWith('BSE_COM')) segments.commodities.push(card);
+          else if (k.includes('CDS') || k.startsWith('NSE_CDS')) segments.currency.push(card);
           else if (!isOption) segments.stocksOptions.push(card);
         }
         const hasAny = Object.values(segments).some((arr) => arr.length);
@@ -1951,10 +1984,21 @@
             if (cryptoRows.length) { cryptoCache = cryptoRows; cryptoCacheAt = Date.now(); segments.crypto = cryptoRows; }
           }
         } catch (_) {}
+        // Currency: use Upstox NSE_CDS pairs as primary; fall back to open.er-api.com if none
+        if (!segments.currency.length) {
+          try {
+            if (fxCache && (Date.now() - fxCacheAt) < FX_CACHE_TTL) {
+              segments.currency = fxCache;
+            } else {
+              const fxRows = await loadIndianFxRates();
+              if (fxRows.length) { fxCache = fxRows; fxCacheAt = Date.now(); segments.currency = fxRows; }
+            }
+          } catch (_) {}
+        }
         renderCards(segmentIndices, segments.indices.slice(0, 30), 'indices');
         renderCards(segmentStocksOptions, segments.stocksOptions.slice(0, 30), 'stocksOptions');
         renderCards(segmentBonds, segments.bonds.slice(0, 16), 'bonds');
-        renderCards(segmentCurrency, segments.currency.slice(0, 16), 'currency');
+        renderCards(segmentCurrency, segments.currency.slice(0, 10), 'currency');
         renderCards(segmentCommodities, segments.commodities.slice(0, 16), 'commodities');
         renderCards(segmentCrypto, segments.crypto.slice(0, 20), 'crypto');
         skeletonEl.style.display = 'none';
@@ -2008,11 +2052,11 @@
     const headerStamp = () => new Date().toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     const indiaView = (e) => {
       const t = String(e.title || '').toLowerCase();
-      if (t.includes('cpi') || t.includes('wpi') || t.includes('inflation')) return 'Analyst view: Inflation trajectory guides RBI reaction function, front-end yields, and rate-sensitive equity sectors. A print above forecast usually hardens rates expectations and can pressure duration-heavy pockets.';
-      if (t.includes('rbi') || t.includes('policy') || t.includes('rate')) return 'Analyst view: RBI tone, vote split, and liquidity guidance can reprice the entire curve quickly. Watch immediate transmission to INR, banks, and high-beta rate plays.';
-      if (t.includes('industrial') || t.includes('production') || t.includes('gdp')) return 'Analyst view: Growth momentum here affects cyclicals, capex themes, and earnings confidence. Upside surprises tend to support industrials, while misses can revive defensives.';
-      if (t.includes('trade') || t.includes('current account')) return 'Analyst view: External-balance data informs INR stability and imported inflation risk. A wider deficit can increase currency sensitivity and hedging demand.';
-      return 'Analyst view: Treat this as a cross-asset trigger; confirm reaction across INR, sovereign yields, banking leaders, and index breadth before positioning.';
+      if (t.includes('cpi') || t.includes('wpi') || t.includes('inflation')) return 'Note: Inflation trajectory guides RBI reaction function, front-end yields, and rate-sensitive equity sectors. A print above forecast usually hardens rates expectations and can pressure duration-heavy pockets.';
+      if (t.includes('rbi') || t.includes('policy') || t.includes('rate')) return 'Note: RBI tone, vote split, and liquidity guidance can reprice the entire curve quickly. Watch immediate transmission to INR, banks, and high-beta rate plays.';
+      if (t.includes('industrial') || t.includes('production') || t.includes('gdp')) return 'Note: Growth momentum here affects cyclicals, capex themes, and earnings confidence. Upside surprises tend to support industrials, while misses can revive defensives.';
+      if (t.includes('trade') || t.includes('current account')) return 'Note: External-balance data informs INR stability and imported inflation risk. A wider deficit can increase currency sensitivity and hedging demand.';
+      return 'Note: Treat this as a cross-asset trigger; confirm reaction across INR, sovereign yields, banking leaders, and index breadth before positioning.';
     };
     const numFrom = (v) => {
       const m = String(v ?? '').replace(/,/g, '').match(/-?\d+(\.\d+)?/);
@@ -2178,7 +2222,7 @@
       headerDateTimeEl.textContent = `Date/Time: ${headerStamp()}`;
       summaryEl.textContent = `Summary: ${events.length} India events tracked`;
       const topImpact = events.filter((e) => String(e.impact || '').toLowerCase().includes('high')).length;
-      analysisEl.textContent = `Analyst view: ${topImpact} high-impact India releases are on radar; prioritize CPI/RBI prints for rate-sensitive positioning.`;
+      analysisEl.textContent = `Context: ${topImpact} high-impact India releases tracked this cycle — CPI/RBI prints are primary rate-sensitive triggers.`;
       const m = buildIndiaDeskMetrics(events);
       const surpriseText = m.topSurprises.length ? m.topSurprises.map((s) => `${s.title}: ${s.diff > 0 ? '+' : ''}${s.diff.toFixed(2)}`).join(' | ') : 'No actual-vs-forecast pairs yet';
       const focusEvents = events.filter((e) => String(e.title || '').trim().length > 0).slice(0, 6).map((e) => esc(e.title)).join(' · ') || 'No event names available';
@@ -2277,7 +2321,17 @@
           deduped.push(ev);
         }
         indiaCalendarRaw = deduped;
-        chipEl.textContent = 'Live';
+        const nowMs = Date.now();
+        const hasUpcoming = indiaCalendarRaw.some((e) => (e.__ts || 0) > nowMs);
+        chipEl.classList.remove('down');
+        if (hasUpcoming) {
+          chipEl.textContent = 'Live';
+        } else {
+          chipEl.textContent = 'Historical';
+          chipEl.style.background = 'rgba(136,150,179,0.15)';
+          chipEl.style.color = '#8896b3';
+          chipEl.style.borderColor = 'rgba(136,150,179,0.3)';
+        }
         headerDateTimeEl.textContent = `Date/Time: ${headerStamp()}`;
         metaEl.textContent = `Source: India Macro Feed · Events: ${indiaCalendarRaw.length} · Updated: ${nowStamp()}`;
         render();
@@ -2335,6 +2389,8 @@
         indexUserIsAdmin = false;
         slot.innerHTML = `<a href="login.html" class="nav-cta">Login</a>`;
         footerLink.textContent = 'Login'; footerLink.href = 'login.html';
+        const enrollBtn = document.getElementById('navLoginLink');
+        if (enrollBtn) enrollBtn.style.display = 'block';
         return;
       }
       const user = res.user;
@@ -2371,6 +2427,11 @@
       if (Number.isFinite(parsed)) return parsed;
       const n = Number(rawTs);
       if (Number.isFinite(n)) return n > 1e12 ? n : n * 1000;
+    }
+    // Fall back to createdAt (Firestore posts use this field, not timestamp)
+    if (post.createdAt) {
+      const parsed = Date.parse(post.createdAt);
+      if (Number.isFinite(parsed)) return parsed;
     }
     return 0;
   }
@@ -2439,7 +2500,7 @@
   window.openPostById = async (encodedId) => {
     const id = decodeURIComponent(String(encodedId || ''));
     const post = allPosts.find(p => p.id === id);
-    if (post && post.path) { window.location.href = post.path; return; }
+    if (post && post.isAI && post.path) { window.location.href = post.path; return; }
     window.location.href = `post.html?id=${id}`;
   };
 
@@ -2598,7 +2659,7 @@
     initForexCalendarControls();
     const indiaOk = await loadIndiaCalendarData().catch(() => false);
     const marketOk = await loadUpstoxMarketData({ showLoading: true }).catch(() => false);
-    const allOk = settingsOk && postsOk && aboutOk && forexOk && indiaOk && marketOk;
+    const allOk = settingsOk && postsOk && forexOk && indiaOk && marketOk; // aboutOk excluded: falls back gracefully
     setIntegrationStatus(
       allOk ? 'online' : 'degraded',
       allOk ? 'Integrations: Online' : 'Integrations: Degraded'

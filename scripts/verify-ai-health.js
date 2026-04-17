@@ -16,7 +16,7 @@ async function auditFleet() {
     await initNodeSentry(process.env.SENTRY_DSN, 'fleet-audit');
     
     // 2. Resource Discovery
-    ResourceManager.init(process.env);
+    await ResourceManager.init(process.env);
     const nodes = ResourceManager.pool;
     console.log(`📡 [Discovery] Identified ${nodes.length} potential AI nodes.`);
 

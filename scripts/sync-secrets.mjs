@@ -30,7 +30,7 @@ const SECRETS_TO_SYNC = [
     'NGROK_REMOTE_URL'
 ];
 
-const WORKER_ENVIRONMENTS = ['data-hub', 'relevance', 'auditor', 'seo', 'pulse', 'mirofish', 'newsletter', 'templates', 'hil-relay'];
+const WORKER_ENVIRONMENTS = ['data-hub', 'relevance', 'auditor', 'seo', 'pulse', 'mirofish', 'newsletter', 'templates', 'hil-station'];
 
 function log(msg, symbol = '🤖') {
     console.log(`${symbol} [Pulse-Sync] ${msg}`);

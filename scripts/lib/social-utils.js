@@ -74,13 +74,37 @@ export async function dispatchInstitutionalAlert(summary, webhookUrl) {
   }
 }
 
+function escapeHTML(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 /**
  * Dispatches a Telegram notification using the Bot API.
  */
 export async function dispatchTelegramAlert(summary, env) {
   const { sendStandardizedTelegram } = await import("./notification-service.js");
-  const text = `🚨 *${summary.title}*\n\n${summary.abstract}\n\n📊 *Word Count:* ${summary.wordCount}\n🔗 [View Full Manuscript](https://blogspro.in/pulse)`;
+  const isGhost = summary.abstract?.includes('ghost-metadata') || summary.title?.includes('[GHOST]');
   
-  const res = await sendStandardizedTelegram(text, env, { parseMode: 'Markdown' });
+  const icon = isGhost ? "👻 <b>[GHOST_MODE]</b>" : "🚨";
+  const processedAbstract = summary.abstract?.replace(/<ghost-metadata.*?\/>/g, '').trim();
+  
+  const safeTitle = escapeHTML(summary.title || "Institutional Article Released");
+  const safeAbstract = escapeHTML(processedAbstract || "");
+  const safeWordCount = escapeHTML(String(summary.wordCount || 0));
+
+  const text = `${icon} <b>${safeTitle}</b>\n\n` +
+               `${safeAbstract}\n\n` +
+               `📊 <b>Word Count:</b> ${safeWordCount}\n` +
+               `🔗 <a href="https://blogspro.in/pulse">View Full Manuscript</a>`;
+  
+  if (isGhost) {
+      console.log("👻 [Social-Bridge] Ghost Simulation detected in abstract. Signaling Admin...");
+  }
+
+  const res = await sendStandardizedTelegram(text, env, { parseMode: 'HTML' });
   return res.success;
 }

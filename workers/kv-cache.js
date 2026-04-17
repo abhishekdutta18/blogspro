@@ -41,7 +41,9 @@ export default {
     const text = await upstream.text();
 
     if (upstream.ok && request.method === 'GET') {
-      await env.CACHE_KV.put(key, text, { expirationTtl: 3600 }); // 1h TTL
+      // High-volatility institutional content (Briefings) = 5m, Static = 1h
+      const ttl = url.pathname.includes('/briefings/') ? 300 : 3600;
+      await env.CACHE_KV.put(key, text, { expirationTtl: ttl });
     }
 
     const headers = new Headers(upstream.headers);

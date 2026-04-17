@@ -16,7 +16,7 @@ async function runPreFlight() {
     console.log(`🔍 [Check] Raw CEREBRAS_API_KEY length: ${env.CEREBRAS_API_KEY?.length || 0}`);
     console.log(`🔍 [Check] Raw CEREBRAS_API_KEY prefix: ${env.CEREBRAS_API_KEY?.substring(0, 5)}...`);
     console.log(`🔍 [Check] Raw OLLAMA_PROD_URL: ${env.OLLAMA_PROD_URL}`);
-    ResourceManager.init(env);
+    await ResourceManager.init(env);
     
     const activeNodes = ResourceManager.pool.map(p => p.name);
     console.log(`📡 Detected Nodes: ${activeNodes.join(', ')}`);
