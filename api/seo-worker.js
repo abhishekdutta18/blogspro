@@ -57,7 +57,7 @@ export default {
             <meta property="og:title" content="${title} — BlogsPro">
             <meta property="og:description" content="${excerpt}">
             <meta property="og:image" content="${banner}">
-            <meta property="og:url" content="${request.url}">
+            <meta property="og:url" content="${_attr(request.url)}">
             <meta property="og:type" content="article">
             <meta property="article:author" content="${authorFullName}">
             <meta name="twitter:card" content="summary_large_image">

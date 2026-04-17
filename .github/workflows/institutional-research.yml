@@ -85,7 +85,7 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
         run: |
           mkdir -p ./dist
-          node scripts/generate-institutional-tome.js --freq=${{ github.event.inputs.freq }} --type=${{ github.event.inputs.type }} --extended
+          node scripts/generate-institutional-tome.js --freq="${{ github.event.inputs.freq }}" --type="${{ github.event.inputs.type }}" --extended
 
   pdf-generation:
     name: PDF Manuscript Print

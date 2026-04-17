@@ -226,7 +226,7 @@ export default {
           <body>
             <div class="card">
               <h1>Unsubscribed</h1>
-              <p>You have been successfully removed from our list. You will no longer receive daily fintech briefings from ${email}.</p>
+              <p>You have been successfully removed from our list.</p>
               <a href="https://blogspro.in">Back to BlogsPro</a>
             </div>
           </body>

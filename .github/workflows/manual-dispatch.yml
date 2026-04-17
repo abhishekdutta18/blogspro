@@ -45,7 +45,7 @@ jobs:
         id: set-matrix
         run: |
           # [V12.3] Standard GHA Config Export (via $GITHUB_OUTPUT)
-          node scripts/export-swarm-config.mjs --freq=${{ github.event.inputs.frequency || 'monthly' }}
+          node scripts/export-swarm-config.mjs --freq="${{ github.event.inputs.frequency || 'monthly' }}"
 
   # PHASE 1: PARALLEL RESEARCH WORKERS (Multi-Runner Scaling)
   research-workers:
@@ -80,9 +80,10 @@ jobs:
           OLLAMA_PROD_URL: ${{ secrets.NGROK_REMOTE_URL }}
           OLLAMA_PROD_KEY: ${{ secrets.OLLAMA_PROD_KEY }}
           SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}"
+          INPUT_FREQ: ${{ github.event.inputs.frequency || 'monthly' }}
         run: |
-          FREQ="${{ github.event.inputs.frequency || 'monthly' }}"
-          node scripts/generate-institutional-tome.js --freq=$FREQ --type=article --mode=worker --vertical=${{ matrix.vertical }}
+          FREQ="$INPUT_FREQ"
+          node scripts/generate-institutional-tome.js --freq="$FREQ" --type=article --mode=worker --vertical=${{ matrix.vertical }}
       
       - name: Upload Sector Fragment Artifact
         uses: actions/upload-artifact@v4
@@ -130,15 +131,14 @@ jobs:
           OLLAMA_PROD_URL: ${{ secrets.NGROK_REMOTE_URL }}
           OLLAMA_PROD_KEY: ${{ secrets.OLLAMA_PROD_KEY }}
           SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}"
+          INPUT_FREQ: ${{ github.event.inputs.frequency || 'monthly' }}
         run: |
-          FREQ="${{ github.event.inputs.frequency || 'monthly' }}"
-          
+          FREQ="$INPUT_FREQ"
+
           if [ "$FREQ" == "hourly" ]; then
-             # Fast Pulse: Single runner
-             node scripts/generate-briefing.js --freq=$FREQ
+             node scripts/generate-briefing.js --freq="$FREQ"
           else
-             # Daily, Weekly, Monthly: Parallel Reengineering
-             node scripts/generate-institutional-tome.js --freq=$FREQ --type=article --mode=assemble
+             node scripts/generate-institutional-tome.js --freq="$FREQ" --type=article --mode=assemble
           fi
 
       - name: Commit and Push Results
