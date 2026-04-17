@@ -17,7 +17,7 @@ AI-powered fintech blog CMS built on Firebase + GitHub Pages + Cloudflare Worker
 | Edge Workers | Cloudflare Workers (3 workers) |
 | Email | Resend API (`newsletter@mail.blogspro.in`) |
 | Error Monitoring | Sentry |
-| AI | Groq (LLaMA), Gemini, OpenRouter |
+| AI | SambaNova (LLaMA-405B), Cerebras, Groq |
 | CI/CD | GitHub Actions |
 
 ## Cloudflare Workers

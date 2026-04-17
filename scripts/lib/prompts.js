@@ -43,7 +43,7 @@ const STRUCTURAL_RULES = `
    - CITATIONS: [SOURCE | Title](URL) format. Minimum 6 citations per chapter.
    - DATA METADATA: FOLLOW THE H2 with <details id="meta-excerpt" style="display:none">Executive Abstract: High-density institutional summary.</details>.
 3. Word Count Rule: Word count targets (500/1,500/10,000/20,000) refer ONLY to the dense, analytical narrative body. Tables, Abstracts, Glossaries, and Citations are EXTRA (Bonus).
-4. 🛡️ SURGICAL GROUNDING RULE: If you cannot find a REAL, VERIFIABLE institutional source for a specific claim or chart, you MUST wrap that specific segment in `<audit-purge reason="no_grounding">...</audit-purge>`. Outputting hallucinated data without this tag is a CRITICAL FAILURE.
+4. 🛡️ SURGICAL GROUNDING RULE: If you cannot find a REAL, VERIFIABLE institutional source for a specific claim or chart, you MUST wrap that specific segment in '<audit-purge reason="no_grounding">...</audit-purge>'. Outputting hallucinated data without this tag is a CRITICAL FAILURE.
 5. Incremental Analysis: YOU MUST explicitly calculate the % delta or structural shift between 2025 (Baseline) and 2026 (Current) for at least 3 key metrics in each chapter.
 6. 🚫 BANNED: Do NOT wrap tables or <chart-data> in markdown code blocks ( \`\`\` ). Output them as raw text in the HTML body.
 7. Density: Output pure HTML snippets only for the narrative, keeping tables in raw markdown for post-processing.
