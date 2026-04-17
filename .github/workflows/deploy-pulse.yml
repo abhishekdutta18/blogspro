@@ -20,7 +20,7 @@ jobs:
           node-version: 24
           cache: "npm"
       - name: "Install dependencies"
-        run: "npm install"
+        run: "npm ci --no-audit --fund=false"
       - name: Deploy MiroSync (Wave 0)
         uses: cloudflare/wrangler-action@v3
         with:
@@ -44,7 +44,7 @@ jobs:
           node-version: 24
           cache: "npm"
       - name: "Install dependencies"
-        run: "npm install"
+        run: "npm ci --no-audit --fund=false"
       - name: "Deploy Tier [${{ matrix.environment }}]"
         uses: "cloudflare/wrangler-action@v3"
         with:
@@ -65,7 +65,7 @@ jobs:
           node-version: 24
           cache: "npm"
       - name: "Install dependencies"
-        run: "npm install"
+        run: "npm ci --no-audit --fund=false"
       - name: Deploy Base Tiers (Wave 1)
         uses: cloudflare/wrangler-action@v3
         with:
@@ -86,7 +86,7 @@ jobs:
           node-version: 24
           cache: "npm"
       - name: "Install dependencies"
-        run: "npm install"
+        run: "npm ci --no-audit --fund=false"
       - name: Deploy MiroFish (Wave 3)
         uses: cloudflare/wrangler-action@v3
         with:
@@ -107,7 +107,7 @@ jobs:
           node-version: 24
           cache: "npm"
       - name: "Install dependencies"
-        run: "npm install"
+        run: "npm ci --no-audit --fund=false"
       - name: "Push Secrets to All Tiers"
         env:
           CLOUDFLARE_API_TOKEN: "${{ secrets.CLOUDFLARE_API_TOKEN }}"
@@ -184,9 +184,6 @@ jobs:
           SWARM_TOKEN: "${{ secrets.SWARM_INTERNAL_TOKEN }}"
           BASE_URL: "https://blogspro-pulse.abhishek-dutta1996.workers.dev"
         run: |
-          echo "Initializing Swarm 4.0 Frequencies..."
-          curl -sf -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=hourly" || echo "hourly trigger attempted"
-          curl -sf -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=daily" || echo "daily trigger attempted"
-          curl -sf -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=weekly&type=article" || echo "weekly trigger attempted"
-          curl -sf -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=monthly&type=article" || echo "monthly trigger attempted"
-          echo "Swarm Initialization Complete."
+          echo "Initializing Swarm 4.0 Low-Latency Pulse..."
+          curl -sf -H "X-Swarm-Token: $SWARM_TOKEN" "$BASE_URL/?freq=hourly" || echo "⚠️ Hourly trigger attempted (non-fatal error)"
+          echo "Swarm Deployment Pulse Complete. (Heavy research cycles deferred to schedule/manual triggers)."
