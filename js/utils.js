@@ -60,9 +60,10 @@ export function sanitize(html) {
   // Fallback for pages without DOMPurify
   html = html.replace(/<(script|style|iframe|object|embed|form)[^>]*>[\s\S]*?<\/\1>/gi, '');
   html = html.replace(/<(script|style|iframe|object|embed|form)[^>]*/gi, '');
-  html = html.replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '');
-  html = html.replace(/\s+on\w+\s*=\s*[^\s>]*/gi, '');
-  html = html.replace(/(href|src)\s*=\s*["']\s*javascript:[^"']*/gi, '$1="#"');
+  html = html.replace(/[\s\t\r\n]+on\w+[\s\t\r\n]*=[\s\t\r\n]*["'][^"']*["']/gi, '');
+  html = html.replace(/[\s\t\r\n]+on\w+[\s\t\r\n]*=[\s\t\r\n]*[^\s>]*/gi, '');
+  // Block javascript:/data: in href/src, including whitespace/newline obfuscation
+  html = html.replace(/(href|src)\s*=\s*["'][\s\t\r\n]*(?:javascript|data|vbscript):[^"']*/gi, '$1="#"');
   return html;
 }
 
