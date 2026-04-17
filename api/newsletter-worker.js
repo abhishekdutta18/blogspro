@@ -277,7 +277,13 @@ export default {
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
+      let paginationRounds = 0;
+      const MAX_PAGINATION_ROUNDS = 50; // cap at ~5000 subscribers to prevent memory exhaustion
       do {
+        if (++paginationRounds > MAX_PAGINATION_ROUNDS) {
+          console.warn('[newsletter] Pagination cap hit — truncating subscriber fetch');
+          break;
+        }
         const url = pageToken ? `${baseUrl}?pageToken=${pageToken}` : baseUrl;
         const dbRes = await fetch(url, { headers });
         if (!dbRes.ok) {
@@ -307,9 +313,10 @@ export default {
       const sendBatchWithRetry = async (batch, attempt = 1) => {
         const resendPayload = batch.map(sub => {
           const unsubLink = `${workerUrl}/?email=${encodeURIComponent(sub.email)}&secret=${encodeURIComponent(secret)}`;
+          const safeName = String(sub.name || '').replace(/[<>"'&]/g, '');
           const personalHtml = html
             .replace('{{UNSUBSCRIBE_LINK}}', unsubLink)
-            .replace(/{{NAME}}/g, sub.name);
+            .replace(/{{NAME}}/g, safeName);
 
           return {
             from: `${fromName || 'BlogsPro'} <newsletter@mail.blogspro.in>`,

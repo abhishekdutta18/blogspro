@@ -37,10 +37,11 @@ export default {
         
         // Ensure post is published
         if (data.fields && data.fields.published && data.fields.published.booleanValue) {
-          const title = data.fields.title?.stringValue || 'BlogsPro Article';
-          const excerpt = data.fields.excerpt?.stringValue || title;
-          const banner = data.fields.coverImage?.stringValue || 'https://blogspro.in/og-default.jpg';
-          const authorFullName = data.fields.authorName?.stringValue || 'BlogsPro';
+          const _attr = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+          const title = _attr(data.fields.title?.stringValue || 'BlogsPro Article');
+          const excerpt = _attr(data.fields.excerpt?.stringValue || data.fields.title?.stringValue || 'BlogsPro Article');
+          const banner = /^https?:\/\//.test(data.fields.coverImage?.stringValue||'') ? data.fields.coverImage.stringValue : 'https://blogspro.in/og-default.jpg';
+          const authorFullName = _attr(data.fields.authorName?.stringValue || 'BlogsPro');
           
           // 3. Inject explicit SEO tags into the HTML template for Scrapers/Googlebot
           

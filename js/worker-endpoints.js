@@ -11,9 +11,9 @@ export function workerCandidates(path = "") {
   const p = String(path || "").replace(/^\/+/, "");
   const candidates = [];
 
-  // 1. Check for manual overrides in Local Storage
+  // 1. Check for manual overrides in Local Storage (only https:// accepted to prevent SSRF)
   const override = localStorage.getItem("bp_ai_worker_url") || localStorage.getItem("bp_ai_api_base");
-  if (override) candidates.push(normalizeBase(override));
+  if (override && /^https:\/\/.+/i.test(override)) candidates.push(normalizeBase(override));
 
   // 2. Default to Institutional Pulse
   candidates.push(PULSE_WORKER_BASE);
