@@ -294,7 +294,7 @@
         client_id: "940428277283-bdgk8sf3d0q7jls327e0j8cce5l9a78q.apps.googleusercontent.com",
         login_uri: "https://blogspro-auth.abhishek-dutta1996.workers.dev/auth/callback/google",
         ux_mode: "redirect",
-        auto_select: true
+        auto_select: false
       });
       
       // Render Branded Button
@@ -330,7 +330,7 @@
       window.location.href = "admin.html";
     } else {
       const role = me.user?.role || "missing_role";
-      window.location.href = `login.html?error=unauthorized&reason=${role}`;
+      window.location.href = `login.html?error=unauthorized&reason=${encodeURIComponent(role)}`;
     }
   }
 
@@ -350,6 +350,8 @@
     try {
       const provider = new GithubAuthProvider();
       await signInWithRedirect(auth, provider);
+      // signInWithRedirect navigates away; if we reach here the browser blocked it
+      setLoading('github', false);
     } catch (e) {
       showError(e.message || "GitHub Sign-in failed.");
       setLoading('github', false);
@@ -404,7 +406,7 @@
     if (el) el.style.display = 'none';
   }
 
-  document.addEventListener('keydown', e => {
+  document.getElementById('loginForm').addEventListener('keydown', e => {
     if (e.key === 'Enter') {
       e.preventDefault();
       window.doLogin();

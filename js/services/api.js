@@ -7,29 +7,53 @@ const API_BASE = "https://blogspro-auth.abhishek-dutta1996.workers.dev";
 
 const FIREBASE_API_KEY = "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY";
 
-async function fetchJson(url, options = {}) {
+const FIREBASE_ERROR_MESSAGES = {
+  "EMAIL_NOT_FOUND": "No account found with this email address.",
+  "INVALID_PASSWORD": "Incorrect password.",
+  "INVALID_LOGIN_CREDENTIALS": "Incorrect email or password.",
+  "USER_DISABLED": "This account has been disabled. Contact support.",
+  "TOO_MANY_ATTEMPTS_TRY_LATER": "Too many failed attempts. Please wait and try again.",
+  "EMAIL_EXISTS": "An account with this email already exists.",
+  "WEAK_PASSWORD": "Password is too weak. Use at least 8 characters.",
+  "INVALID_EMAIL": "Please enter a valid email address.",
+};
+
+function mapFirebaseError(raw) {
+  const code = raw?.error?.errors?.[0]?.message || raw?.error?.message || raw?.error || "";
+  return FIREBASE_ERROR_MESSAGES[code] || code || "Request failed";
+}
+
+async function fetchJson(url, options = {}, timeoutMs = 15000) {
   const token = localStorage.getItem("fb_token");
   const isWorkerRequest = url.startsWith("/") && !url.includes("https://");
-  
+
   const headers = {
     "Content-Type": "application/json",
     ...options.headers,
   };
-  
+
   if (token && isWorkerRequest) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
   const finalUrl = isWorkerRequest ? `${API_BASE}${url}` : url;
-  
-  const res = await fetch(finalUrl, {
-    ...options,
-    headers,
-  });
-  
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res;
+  try {
+    res = await fetch(finalUrl, { ...options, headers, signal: controller.signal });
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error("Request timed out. Please check your connection and try again.");
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error?.message || err.error || "API request failed");
+    throw new Error(mapFirebaseError(err));
   }
   if (res.status === 204) return null;
   return res.json();
@@ -58,21 +82,28 @@ export const api = {
       localStorage.setItem("fb_token", res.idToken);
       return res;
     },
-    register: async (name, email, password) => {
+    register: async (name, email, password, role = 'reader') => {
       const res = await post(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`, {
         email, password, returnSecureToken: true
       });
       localStorage.setItem("fb_token", res.idToken);
-      // Update display name
       await post(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${FIREBASE_API_KEY}`, {
         idToken: res.idToken, displayName: name, returnSecureToken: true
       });
+      // Create Firestore user document with requested role via worker
+      await fetchJson("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, role }),
+      }).catch(() => {}); // non-fatal: worker creates doc on first me() call too
       return res;
     },
-    logout: () => {
+    logout: async () => {
       localStorage.removeItem("fb_token");
-      // Optional: background logout on worker
-      return fetchJson("/auth/logout", { method: "POST" }).catch(() => {});
+      try {
+        await fetchJson("/auth/logout", { method: "POST" }, 5000);
+      } catch (_) {
+        // Token already removed locally; worker-side cleanup is best-effort
+      }
     },
     me: async () => {
       const token = localStorage.getItem("fb_token");
