@@ -450,8 +450,11 @@ auto_fixes must be a subset of the exact strings listed above — only include f
     p = JSON.parse(result.text.substring(s, e + 1));
   } catch(_) { setEditStatus('✕ Parse error', true); setEditBtnsDisabled(false); return; }
 
-  const color     = p.score >= 80 ? 'var(--green)' : p.score >= 60 ? 'var(--gold)' : '#fca5a5';
-  const autoFixes = p.auto_fixes || [];
+  const _esc = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const score = Math.max(0, Math.min(100, Number(p.score) || 0));
+  const grade = _esc(String(p.grade || '').replace(/[^A-F+\-]/g, '').substring(0, 2));
+  const color = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--gold)' : '#fca5a5';
+  const autoFixes = (p.auto_fixes || []).filter(f => ['add_statistics','improve_headings','expand_intro','add_examples','fix_tone'].includes(f));
 
   const fixBtns = autoFixes.length ? `
     <div style="margin-top:0.6rem;border-top:1px solid var(--border);padding-top:0.6rem">
@@ -474,23 +477,23 @@ auto_fixes must be a subset of the exact strings listed above — only include f
   const resultHTML = `
     <div style="background:var(--navy2);border:1px solid var(--border);border-radius:4px;padding:0.8rem;margin-top:0.5rem">
       <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:0.6rem">
-        <div style="font-size:2rem;font-weight:700;color:${color};line-height:1">${p.score}</div>
+        <div style="font-size:2rem;font-weight:700;color:${color};line-height:1">${score}</div>
         <div>
-          <div style="font-size:0.8rem;font-weight:700;color:${color}">Grade ${p.grade}</div>
+          <div style="font-size:0.8rem;font-weight:700;color:${color}">Grade ${grade}</div>
           <div style="font-size:0.7rem;color:var(--muted)">Quality Score</div>
         </div>
       </div>
-      ${(p.strengths || []).map(s => `<div style="font-size:0.72rem;color:var(--green);margin-bottom:0.2rem">✓ ${s}</div>`).join('')}
-      ${(p.improvements || []).map(i => `<div style="font-size:0.72rem;color:#fca5a5;margin-bottom:0.2rem">⚠ ${i}</div>`).join('')}
+      ${(p.strengths || []).map(s => `<div style="font-size:0.72rem;color:var(--green);margin-bottom:0.2rem">✓ ${_esc(s)}</div>`).join('')}
+      ${(p.improvements || []).map(i => `<div style="font-size:0.72rem;color:#fca5a5;margin-bottom:0.2rem">⚠ ${_esc(i)}</div>`).join('')}
       ${fixBtns}
     </div>`;
 
   const el = document.getElementById('qualityScoreResult');
   if (el) { el.style.display = 'block'; el.innerHTML = resultHTML; }
   const statusEl = document.getElementById('aiEditStatus');
-  if (statusEl) statusEl.innerHTML = `<span style="color:${color};font-weight:700">Score: ${p.score}/100 (${p.grade})</span>${resultHTML}`;
+  if (statusEl) statusEl.innerHTML = `<span style="color:${color};font-weight:700">Score: ${score}/100 (${grade})</span>${resultHTML}`;
   setEditBtnsDisabled(false);
-  showToast(`Quality Score: ${p.score}/100 — Grade ${p.grade}`, p.score >= 70 ? 'success' : 'error');
+  showToast(`Quality Score: ${score}/100 — Grade ${grade}`, score >= 70 ? 'success' : 'error');
 }
 window.runArticleQualityScore = runArticleQualityScore;
 

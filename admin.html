@@ -1733,5 +1733,28 @@ window.addEventListener('load', () => {
     });
   </script>
   <script type="module" src="js/terminal-dispatch.js"></script>
+  <script type="module">
+    import { savePost } from './js/posts.js';
+    import { api } from './js/services/api.js';
+    import { showToast } from './js/config.js';
+    window.savePostAndNotify = async () => {
+      await savePost(true);
+      try {
+        const titleEl = document.getElementById('postTitle');
+        const excerptEl = document.getElementById('postExcerpt');
+        const title = titleEl?.value?.trim() || 'New Post';
+        const excerpt = excerptEl?.value?.trim() || '';
+        await api.public.subscribe && api.data.newsletter.blasts.save({
+          subject: title,
+          body: excerpt,
+          sentAt: new Date().toISOString(),
+          auto: true,
+        });
+        showToast('Published and newsletter queued!', 'success');
+      } catch (e) {
+        showToast('Published, but newsletter failed: ' + e.message, 'error');
+      }
+    };
+  </script>
 </body>
 </html>

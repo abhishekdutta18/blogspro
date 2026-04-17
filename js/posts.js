@@ -17,7 +17,7 @@ function formatViews(n) {
 function checkIfAdmin() {
   const profile = state.currentUserProfile;
   const user = state.currentUser;
-  return profile?.role === 'admin' || user?.email === 'abhishekdutta18@gmail.com';
+  return profile?.role === 'admin';
 }
 
 export async function loadAll() {
@@ -99,6 +99,10 @@ export async function savePost(publish) {
   const readMin  = Math.max(1, Math.ceil((editor.textContent||'').split(/\s+/).filter(Boolean).length/200));
 
   if (!title) { showToast('Please add a title.','error'); return; }
+  if (publish) {
+    const wordCount = (editor.textContent||'').trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount < 100) { showToast('Published posts must have at least 100 words.','error'); return; }
+  }
 
   const saveStatus = document.getElementById('saveStatus');
   saveStatus.textContent = 'Saving…';
