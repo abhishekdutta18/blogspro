@@ -195,6 +195,52 @@ Configured in `.claude/settings.json`. Provides Claude Code direct access to:
 
 ---
 
+## Security Audit Log
+
+Continuous multi-round cynical audits run against the full codebase. Each round is committed and logged here.
+
+### Round 0 — Post-Generation Pipeline (2026-04-17)
+
+Files: `js/posts.js`, `js/ai-editor.js`, `js/ai-writer.js`, `js/ai-tools.js`, `admin.html`
+
+| # | Severity | File | Finding | Fix |
+| --- | -------- | ---- | ------- | --- |
+| 1 | CRITICAL | `js/posts.js` | Hardcoded admin email bypass in `checkIfAdmin()` | Removed — role-only check |
+| 2 | HIGH | `js/posts.js` | No minimum content gate before publish | Added 100-word floor |
+| 3 | CRITICAL | `js/ai-editor.js` | XSS: AI JSON fields (`grade`, `strengths`, `improvements`) injected raw into `innerHTML` | Escaped; auto-fix enum whitelisted |
+| 4 | CRITICAL | `js/ai-writer.js` | XSS: `err.message` and section `title` injected raw into `innerHTML` | Escaped with `_escMsg()` |
+| 5 | HIGH | `js/ai-writer.js` | `clearJobState()` not called on catch — stale job blocks resume forever | Added to catch block |
+| 6 | HIGH | `js/ai-writer.js` | `startIndex` not bounds-checked against `sections.length` — stale resume crashes | Added bounds check |
+| 7 | MEDIUM | `js/ai-writer.js` | Chart generation failure silently swallowed | Now logs with `console.warn` |
+| 8 | HIGH | `js/ai-tools.js` | No type validation or length limits on slug/tags/excerpt before Firestore write | Added sanitization + limits |
+| 9 | HIGH | `js/ai-tools.js` | No duplicate slug guard in Auto Blog | Added slug collision check against `state.allPosts` |
+| 10 | HIGH | `admin.html` | `savePostAndNotify()` was undefined — `ReferenceError` on every click | Implemented as publish + newsletter blast record |
+
+Commit: `3c684cb`
+
+---
+
+### Round 1 — Full Codebase (2026-04-17)
+
+Files: `js/editor.js`, `js/main.js`, `js/newsletter.js`, `js/worker-endpoints.js`, `js/seo-page.js`, `api/seo-worker.js`, `api/newsletter-worker.js`
+
+| # | Severity | File | Finding | Fix |
+| --- | -------- | ---- | ------- | --- |
+| 1 | CRITICAL | `js/editor.js` | XSS: `editor.innerHTML = history[historyIndex]` in undo/redo without sanitization | Wrapped with `sanitize()` |
+| 2 | CRITICAL | `js/editor.js` | URL injection: `window.prompt` image URL accepted any protocol including `javascript:` | Blocked — `https?://` required |
+| 3 | HIGH | `js/editor.js` | URL injection: `insertLink` accepted `javascript:` / `data:` URLs via `createLink` | Same protocol gate added |
+| 4 | HIGH | `js/main.js` | XSS: `err.message` injected raw into `document.body.innerHTML` on fatal boot error | Escaped with `_escHtml()` |
+| 5 | HIGH | `js/newsletter.js` | XSS: `b.subject` from Firestore rendered raw into newsletter history `innerHTML` | Escaped with `_esc()` |
+| 6 | HIGH | `js/worker-endpoints.js` | SSRF: `localStorage` override for worker URL accepted any protocol | Restricted to `https://` only |
+| 7 | HIGH | `js/seo-page.js` | Attribute injection: `c.title` from AI JSON written raw into `data-title` attribute and `innerHTML` | Escaped with inline `_e()` |
+| 8 | CRITICAL | `api/seo-worker.js` | XSS: Firestore `title`/`excerpt`/`author` interpolated raw into `<meta content="...">` HTML | HTML-entity encoded; banner URL protocol validated |
+| 9 | HIGH | `api/newsletter-worker.js` | HTML injection: subscriber `name` from Firestore used raw in `replace(/{{NAME}}/g, ...)` in email HTML | Stripped HTML chars from name |
+| 10 | HIGH | `api/newsletter-worker.js` | DoS: unbounded `do...while (pageToken)` loop could exhaust Worker memory on large subscriber lists | Capped at 50 pagination rounds |
+
+Commit: `9f1d5b8`
+
+---
+
 ## License
 
 MIT
