@@ -258,6 +258,40 @@ Commit: `441ff16`
 
 ---
 
+### Round 3 — Stored XSS, Public Mirror, API Workers (2026-04-17)
+
+Files: `js/posts.js`, `public/js/posts.js`, `public/js/editor.js`, `public/js/main.js`, `api/newsletter-worker.js`, `api/seo-worker.js`
+
+| # | Severity | File | Finding | Fix |
+| --- | -------- | ---- | ------- | --- |
+| 1 | CRITICAL | `js/posts.js` | Stored XSS: `editor.innerHTML = p.content` — Firestore post content rendered raw into admin editor | Wrapped with `sanitize()` |
+| 2 | CRITICAL | `public/js/posts.js` | Same stored XSS in public mirror (unsynchronised with root `js/`) | Same fix applied |
+| 3 | CRITICAL | `public/js/editor.js` | XSS: undo/redo without sanitize (public mirror missing Round-1 fix) | `sanitize()` added to both undo and redo |
+| 4 | HIGH | `public/js/main.js` | XSS: `err.message` raw into DOM (public mirror missing Round-1 fix) | Escaped with `_escHtml()` |
+| 5 | CRITICAL | `api/newsletter-worker.js` | Reflected XSS: `${email}` from URL query param rendered in HTML unsubscribe response | Removed email from response entirely |
+| 6 | HIGH | `api/seo-worker.js` | Reflected XSS: `request.url` injected raw into `og:url` meta tag content attribute | Passed through `_attr()` encoder |
+
+Commit: `9f57ec2`
+
+---
+
+### Round 4 — GitHub Actions & CI/CD (2026-04-17)
+
+Files: `.github/workflows/deploy-pulse.yml`, `.github/workflows/manual-dispatch.yml`, `.github/workflows/institutional-research.yml`
+
+| # | Severity | File | Finding | Fix |
+| --- | -------- | ---- | ------- | --- |
+| 1 | CRITICAL | `deploy-pulse.yml:122` | Hardcoded default secret `BPRO_SWARM_SECRET_2026` used as fallback when `SWARM_INTERNAL_TOKEN` secret is unset — anyone can impersonate the swarm auth | Removed fallback; secret must be explicitly set |
+| 2 | CRITICAL | `manual-dispatch.yml:48` | Workflow `frequency` input interpolated directly into `run:` shell command without quoting — shell injection via crafted input value | Moved to `INPUT_FREQ` env var; quoted in all `run:` commands |
+| 3 | CRITICAL | `manual-dispatch.yml:84,134` | `FREQ="${{ github.event.inputs.frequency }}"` — same unquoted interpolation in consolidator phase | Fixed: reads from `$INPUT_FREQ` env var |
+| 4 | HIGH | `institutional-research.yml:88` | `--freq=${{ inputs.freq }} --type=${{ inputs.type }}` in `run:` step — unquoted injection vector | Quoted both arguments |
+| 5 | HIGH | Multiple workflows | Third-party actions pinned to major version tags (`@v3`, `@v2`) not commit SHAs — susceptible to tag-jacking | Documented; SHA pinning recommended for future |
+| 6 | HIGH | Multiple workflows | `npm install` without `--ignore-scripts` in CI — postinstall scripts run with access to all injected secrets | Documented; migrate to `npm ci` |
+
+Commit: `9f57ec2`
+
+---
+
 ## License
 
 MIT
