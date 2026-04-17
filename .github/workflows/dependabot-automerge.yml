@@ -5,6 +5,10 @@ on:
     types: [opened, reopened]
     branches: [main]
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   label-dependabot:
     if: github.actor == 'dependabot[bot]'
