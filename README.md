@@ -241,6 +241,23 @@ Commit: `9f1d5b8`
 
 ---
 
+### Round 2 — AI Core, Workers, Analytics (2026-04-17)
+
+Files: `js/utils.js`, `api/telegram-hil.js`, `api/upstox-worker.js`
+
+| # | Severity | File | Finding | Fix |
+| --- | -------- | ---- | ------- | --- |
+| 1 | CRITICAL | `js/utils.js` | Sanitize regex missed newline/tab-obfuscated `javascript:` in href/src (e.g. `href=" \njavascript:"`) | Regex updated to strip whitespace before protocol check; added `vbscript:` and `data:` |
+| 2 | HIGH | `js/utils.js` | Event-handler regex `\s+on\w+\s*=` missed tab-separated handlers (`onload\t=`) | Regex updated to `[\s\t\r\n]+` |
+| 3 | CRITICAL | `api/telegram-hil.js` | `JSON.parse(env.FIREBASE_SERVICE_ACCOUNT)` with no error handling — malformed env var crashes entire Worker with 500 | Wrapped in `try/catch` — returns null gracefully |
+| 4 | HIGH | `api/telegram-hil.js` | Job ID from Telegram callback taken verbatim from `data.split(':')[1]` — path traversal / injection into Firestore query | Stripped to `[a-zA-Z0-9_-]{0,64}` |
+| 5 | HIGH | `api/telegram-hil.js` | `INNGEST_EVENT_KEY` appended raw to URL — if key contains `/` or `?`, breaks endpoint routing | `encodeURIComponent()` applied |
+| 6 | HIGH | `api/upstox-worker.js` | CORS check via `origin.includes('blogspro.in')` bypassable with `evil.blogspro.in.attacker.com` | Replaced with exact `Set` allowlist |
+
+Commit: `441ff16`
+
+---
+
 ## License
 
 MIT
