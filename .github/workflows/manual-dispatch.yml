@@ -133,12 +133,20 @@ jobs:
           SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}"
           INPUT_FREQ: ${{ github.event.inputs.frequency || 'monthly' }}
         run: |
-          FREQ="$INPUT_FREQ"
+          FREQ="${{ github.event.inputs.frequency || 'monthly' }}"
+          MODEL="${{ github.event.inputs.model || 'auto' }}"
+          MODE="${{ github.event.inputs.mode || 'assemble' }}"
+          TYPE="${{ github.event.inputs.type || 'article' }}"
 
           if [ "$FREQ" == "hourly" ]; then
              node scripts/generate-briefing.js --freq="$FREQ"
           else
-             node scripts/generate-institutional-tome.js --freq="$FREQ" --type=article --mode=assemble
+             # Daily, Weekly, Monthly: Parallel Reengineering
+             node scripts/generate-institutional-tome.js --freq=$FREQ --type=$TYPE --mode=$MODE --model=$MODEL
+             
+             # [V16.1] Institutional PDF Rendering Pass
+             echo "📑 Initiating PDF Reproduction..."
+             node scripts/generate-pdf.js
           fi
 
       - name: Commit and Push Results
@@ -147,5 +155,12 @@ jobs:
           git config --global user.email "bot@blogspro.in"
           git add briefings/ articles/ index.html sitemap.xml dist/ manuscripts/ *.pdf || echo "No changes"
           git commit -m "chore: autonomous hybrid dispatch [matrix=20] [skip ci]" || echo "No changes"
-          git pull --rebase origin main
-          git push || echo "Push failed, retrying in next cycle"
+          
+          # [V16.1] Resilient Git Archival with Randomized Jitter Retry
+          for i in {1..5}; do
+            git pull --rebase origin main && git push && exit 0 || {
+              echo "⚠️ [Archival] Push collision (Attempt $i). Jittering..."
+              sleep $[ ( $RANDOM % 10 ) + 1 ]s
+            }
+          done
+          echo "❌ [Archival] Sovereign push failed after 5 attempts. Manual resolution required." && exit 1

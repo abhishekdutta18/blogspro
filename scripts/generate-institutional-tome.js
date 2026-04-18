@@ -251,7 +251,12 @@ async function runInstitutionalSwarm() {
         auditStatus = "AUDIT_FAILED";
         console.warn(`⚠️ [Swarm] Institutional Review REJECTED/FAILED:`, e.message);
         captureSwarmError(e, { stage: 'qa_audit', frequency, id });
-        // In "Resilient Mode", we still allow the tome to be saved but marked as failed
+        
+        // [V16.1] Cynical Hardening: Rejections are FATAL for high-stakes frequencies
+        if (['daily', 'weekly', 'monthly'].includes(frequency)) {
+            console.error(`🚨 [Cynical-Policy] Audit rejection detected for '${frequency}'. Aborting dispatch.`);
+            throw new Error(`QA_REJECTION_FATAL: MiroFish board rejected the ${frequency} manuscript. Integrity score too low.`);
+        }
     }
 
     // 5. ARCHIVAL PHASE
