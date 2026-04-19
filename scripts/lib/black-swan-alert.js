@@ -17,8 +17,8 @@ export async function detectAndAlert(swarmResult, frequency) {
 
   console.log("🚨 [Alert] BLACK SWAN DETECTED. Raising Institutional Multi-Asset Shift Issue...");
 
-  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
-  const repo = process.env.GITHUB_REPOSITORY; // e.g. "user/repo"
+  const token = process.env.GH_PAT || process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+  const repo = process.env.GH_REPO || process.env.GITHUB_REPOSITORY || "abhishekdutta18/blogspro";
 
   if (!token || !repo) {
     console.warn("⚠️ [Alert] GitHub Token or Repository not found. Skipping issue creation.");

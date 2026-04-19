@@ -17,11 +17,37 @@ on:
           - daily
           - weekly
           - monthly
+      mode:
+        description: 'Operation Mode (worker, archive)'
+        required: true
+        default: 'worker'
+        type: choice
+        options:
+          - worker
+          - archive
+      type:
+        description: 'Asset Type (article, research)'
+        required: true
+        default: 'article'
+        type: choice
+        options:
+          - article
+          - research
       force:
         description: 'Force Regeneration (ignores existing files)'
         required: false
         default: false
         type: boolean
+      model:
+        description: 'Target AI Model (Groq, SambaNova, Cerebras)'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - groq
+          - sambanova
+          - cerebras
 
 concurrency:
   group: sovereign-swarm-lock
@@ -81,9 +107,11 @@ jobs:
           OLLAMA_PROD_KEY: ${{ secrets.OLLAMA_PROD_KEY }}
           SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}"
           INPUT_FREQ: ${{ github.event.inputs.frequency || 'monthly' }}
-        run: |
-          FREQ="$INPUT_FREQ"
-          node scripts/generate-institutional-tome.js --freq="$FREQ" --type=article --mode=worker --vertical=${{ matrix.vertical }}
+          FREQ="${{ github.event.inputs.frequency || 'monthly' }}"
+          MODEL="${{ github.event.inputs.model || 'auto' }}"
+          MODE="${{ github.event.inputs.mode || 'worker' }}"
+          TYPE="${{ github.event.inputs.type || 'article' }}"
+          node scripts/generate-institutional-tome.js --freq=$FREQ --type=$TYPE --mode=$MODE --vertical=${{ matrix.vertical }} --model=$MODEL
       
       - name: Upload Sector Fragment Artifact
         uses: actions/upload-artifact@v4

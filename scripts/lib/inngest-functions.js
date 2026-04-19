@@ -26,9 +26,9 @@ export const pulseSwarmWorkflow = inngest.createFunction(
 
       const owner = "abhishekdutta18";
       const repo = "blogspro";
-      const workflowId = "253184701"; // [V6.1] Using numeric ID for absolute reliability
+      const workflowId = "institutional-research.yml"; 
       
-      console.log(`🚀 [Inngest] Handing off ${frequency} ${type} to GitHub Actions (ID: ${workflowId})...`);
+      console.log(`🚀 [Inngest] Handing off ${frequency} ${type} to GitHub Actions (${workflowId})...`);
 
       const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/dispatches`, {
         method: "POST",

@@ -5,53 +5,64 @@ import { api }       from './services/api.js';
 import { showToast } from './config.js';
 
 let imagesEnabled = true;
+let geminiEnabled = true;
 let saving = false;
 const LOCAL_IMAGES_KEY = "bp_site_images_enabled";
+const LOCAL_GEMINI_KEY = "bp_site_gemini_enabled";
 let usingLocalFallback = false;
 
-function readLocalImagesEnabled() {
-  const raw = localStorage.getItem(LOCAL_IMAGES_KEY);
+function readLocalSetting(key) {
+  const raw = localStorage.getItem(key);
   if (raw === "true") return true;
   if (raw === "false") return false;
   return null;
 }
 
 function updateUi() {
-  const sw = document.getElementById("siteImagesSwitch");
-  const status = document.getElementById("siteImagesStatus");
-  const hint = document.getElementById("siteImagesHint");
-  if (!sw || !status || !hint) return;
+  const swImg = document.getElementById("siteImagesSwitch");
+  const stImg = document.getElementById("siteImagesStatus");
+  const swGem = document.getElementById("geminiSwitch");
+  const stGem = document.getElementById("geminiStatus");
 
-  sw.classList.toggle("on", imagesEnabled);
-  sw.classList.toggle("disabled", saving);
-  status.textContent = imagesEnabled
-    ? "ON — images are visible on public pages."
-    : "OFF — images are hidden on public pages.";
-  hint.textContent = saving
-    ? "Saving setting…"
-    : usingLocalFallback
-      ? "Using browser fallback mode. Syncing through restricted proxy."
-      : "Turns post cover and inline content images on/off for public pages.";
+  if (swImg && stImg) {
+    swImg.classList.toggle("on", imagesEnabled);
+    swImg.classList.toggle("disabled", saving);
+    stImg.textContent = imagesEnabled
+      ? "ON — images are visible on public pages."
+      : "OFF — images are hidden on public pages.";
+  }
+
+  if (swGem && stGem) {
+    swGem.classList.toggle("on", geminiEnabled);
+    swGem.classList.toggle("disabled", saving);
+    stGem.textContent = geminiEnabled
+      ? "ON — using Gemini (3.1 Pro) for strategic research."
+      : "OFF — using Llama (70B) fallback for research.";
+  }
 }
 
 async function loadSetting() {
-  const localValue = readLocalImagesEnabled();
-  if (typeof localValue === "boolean") {
-    imagesEnabled = localValue;
-  }
+  const localImg = readLocalSetting(LOCAL_IMAGES_KEY);
+  if (typeof localImg === "boolean") imagesEnabled = localImg;
+
+  const localGem = readLocalSetting(LOCAL_GEMINI_KEY);
+  if (typeof localGem === "boolean") geminiEnabled = localGem;
 
   try {
     const data = await api.data.get("site", "settings");
-    if (data && typeof data.imagesEnabled === "boolean") {
-      imagesEnabled = data.imagesEnabled;
-      localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));
-    } else {
-      imagesEnabled = true;
+    if (data) {
+      if (typeof data.imagesEnabled === "boolean") {
+        imagesEnabled = data.imagesEnabled;
+        localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));
+      }
+      if (typeof data.geminiEnabled === "boolean") {
+        geminiEnabled = data.geminiEnabled;
+        localStorage.setItem(LOCAL_GEMINI_KEY, String(geminiEnabled));
+      }
     }
     usingLocalFallback = false;
   } catch (err) {
     console.warn("site settings read failed:", err.message);
-    if (typeof localValue !== "boolean") imagesEnabled = true;
     usingLocalFallback = true;
   }
   updateUi();
@@ -74,7 +85,29 @@ window.toggleSiteImages = async function toggleSiteImages() {
     localStorage.setItem(LOCAL_IMAGES_KEY, String(imagesEnabled));
     usingLocalFallback = true;
     showToast("Saved locally. Proxy update failed: " + err.message, "error");
-    console.error("site settings write failed:", err);
+  } finally {
+    saving = false;
+    updateUi();
+  }
+};
+
+window.toggleGemini = async function toggleGemini() {
+  if (saving) return;
+  saving = true;
+  geminiEnabled = !geminiEnabled;
+  updateUi();
+  try {
+    await api.data.update("site", "settings", {
+      geminiEnabled,
+      updatedAt: new Date().toISOString()
+    });
+    localStorage.setItem(LOCAL_GEMINI_KEY, String(geminiEnabled));
+    usingLocalFallback = false;
+    showToast(`Gemini Strategic Reasoning turned ${geminiEnabled ? "ON" : "OFF"}.`, "success");
+  } catch (err) {
+    localStorage.setItem(LOCAL_GEMINI_KEY, String(geminiEnabled));
+    usingLocalFallback = true;
+    showToast("Saved locally. Proxy update failed: " + err.message, "error");
   } finally {
     saving = false;
     updateUi();
@@ -82,6 +115,6 @@ window.toggleSiteImages = async function toggleSiteImages() {
 };
 
 export function initSiteSettings() {
-  if (!document.getElementById("siteImagesSwitch")) return;
+  if (!document.getElementById("siteImagesSwitch") && !document.getElementById("geminiSwitch")) return;
   loadSetting();
 }

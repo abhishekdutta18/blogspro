@@ -20,10 +20,44 @@ async function getFs() {
     }
 }
 
+/**
+ * [V16.5] fetchWithRetry
+ * ---------------------
+ * Robust network wrapper with exponential backoff for Institutional reliability.
+ */
+async function fetchWithRetry(url, options = {}, retries = 3, backoff = 1000) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const res = await fetch(url, options);
+            if (res.ok) return res;
+            if (res.status === 429 || (res.status >= 500 && res.status < 600)) {
+                // Transient error, retry
+                const delay = backoff * Math.pow(2, i);
+                console.warn(`⏳ [Network] Transient failure (${res.status}) on ${url}. Retrying in ${delay}ms...`);
+                await new Promise(r => setTimeout(r, delay));
+                continue;
+            }
+            return res; // Terminal error (400, 401, 403, 404)
+        } catch (e) {
+            if (i === retries - 1) throw e;
+            const delay = backoff * Math.pow(2, i);
+            console.warn(`⏳ [Network] Connection error on ${url}. Retrying in ${delay}ms...`);
+            await new Promise(r => setTimeout(r, delay));
+        }
+    }
+}
+
+let cachedToken = { value: null, exp: 0 };
+
 // --------------------------------------------------
 // GOOGLE OAUTH BRIDGE : CF Workers
 // --------------------------------------------------
-async function getGoogleAccessToken(env) {
+async function getGoogleAccessToken(env, forceRefresh = false) {
+    // 1. Check Cache (V16.5: Long-Duration Protection)
+    if (!forceRefresh && cachedToken.value && Date.now() < (cachedToken.exp - 60000)) {
+        return cachedToken.value;
+    }
+
     let sa = null;
     const fs = await getFs();
 
@@ -141,12 +175,19 @@ async function getGoogleAccessToken(env) {
         const encodedSig = Buffer.from(signature).toString('base64url');
         const jwt = `${message}.${encodedSig}`;
         
-        const res = await fetch("https://oauth2.googleapis.com/token", {
+        const res = await fetchWithRetry("https://oauth2.googleapis.com/token", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
         });
         const data = await res.json();
+        
+        if (data.access_token) {
+            cachedToken = { 
+                value: data.access_token, 
+                exp: Date.now() + (data.expires_in ? data.expires_in * 1000 : 3600000) 
+            };
+        }
         return data.access_token;
     } catch (e) {
         console.error("🔌 Google OAuth Exchange Fail:", e.message);
@@ -179,12 +220,13 @@ async function syncToFirestore(collectionName, data, env) {
     else fields[key] = { stringValue: String(value) };
   }
 
-  try {
+    try {
     const headers = { "Content-Type": "application/json" };
     const token = await getGoogleAccessToken(env);
-    if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (!token) throw new Error("Auth Token Generation Failed");
+    headers["Authorization"] = `Bearer ${token}`;
 
-    const res = await fetch(url, {
+    const res = await fetchWithRetry(url, {
       method: method,
       headers: headers,
       body: JSON.stringify({ fields })
@@ -200,6 +242,27 @@ async function syncToFirestore(collectionName, data, env) {
     console.error(`⚠️ Firestore Connection Error:`, e.message);
     return false;
   }
+}
+
+/**
+ * 🛰️ [V17.0] Global Institutional Setting Retrieval
+ * Fetches the primary site settings document for global swarm policy.
+ */
+export async function getInstitutionalSettings(env) {
+    if (!env || !env.FIREBASE_PROJECT_ID) return { geminiEnabled: true };
+    try {
+        const settings = await getFirestoreDoc("site", "settings", env);
+        if (settings) {
+            console.log(`📡 [Settings] Global Policy Loaded. Gemini Enabled: ${settings.geminiEnabled ?? true}`);
+            return {
+                geminiEnabled: settings.geminiEnabled ?? true,
+                imagesEnabled: settings.imagesEnabled ?? true
+            };
+        }
+    } catch (e) {
+        console.warn(`⚠️ [Settings] Failed to fetch policy. Falling back to Gemini_Priority.`);
+    }
+    return { geminiEnabled: true };
 }
 
 /**
@@ -498,56 +561,80 @@ async function pushTelemetryLog(event, metadata = {}, env) {
     return await pushSovereignTrace(event, metadata, env);
 }
 
+let traceBuffer = [];
+let traceTimer = null;
+
+async function flushTraces(env) {
+    if (traceBuffer.length === 0) return;
+    const events = [...traceBuffer];
+    traceBuffer = [];
+    if (traceTimer) clearTimeout(traceTimer);
+    traceTimer = null;
+
+    console.log(`📡 [Trace] Flushing ${events.length} batched events to Institutional Ledger...`);
+
+    // Bridge to Firestore (Persistent Ledger)
+    if (env.FIREBASE_PROJECT_ID) {
+        try {
+            const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:commit`;
+            const token = await getGoogleAccessToken(env);
+            const headers = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+
+            const writes = events.map(meta => ({
+                update: {
+                    name: `projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/telemetry_logs/${Date.now()}_${Math.random().toString(36).substring(7)}`,
+                    fields: {
+                        event: { stringValue: meta.event },
+                        timestamp: { timestampValue: meta.timestamp || new Date().toISOString() },
+                        frequency: { stringValue: meta.frequency || 'unknown' },
+                        jobId: { stringValue: meta.jobId || 'local' },
+                        status: { stringValue: meta.status || 'info' },
+                        message: { stringValue: meta.message || '' },
+                        details: { stringValue: JSON.stringify(meta.details || {}) }
+                    }
+                }
+            }));
+
+            await fetchWithRetry(firestoreUrl, { method: "POST", headers, body: JSON.stringify({ writes }) });
+        } catch (e) {
+            console.warn("⚠️ [Trace] Batched Firestore flush failed:", e.message);
+        }
+    }
+}
+
 /**
  * [V12.3] pushSovereignTrace
  * -------------------------
- * High-fidelity institutional audit logger.
+ * High-fidelity institutional audit logger with batch buffering.
  */
 export async function pushSovereignTrace(event, metadata = {}, env) {
   if (!env) return;
   
-  // 1. Bridge to Firestore (Persistent Ledger)
-  if (env.FIREBASE_PROJECT_ID) {
-    try {
-        const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/telemetry_logs`;
-        const headers = { "Content-Type": "application/json" };
-        const token = await getGoogleAccessToken(env);
-        if (token) headers["Authorization"] = `Bearer ${token}`;
-        
-        const payload = {
-          fields: {
-            event: { stringValue: event },
-            timestamp: { timestampValue: new Date().toISOString() },
-            frequency: { stringValue: metadata.frequency || 'unknown' },
-            jobId: { stringValue: metadata.jobId || 'local' },
-            status: { stringValue: metadata.status || 'info' },
-            message: { stringValue: metadata.message || '' },
-            details: { stringValue: JSON.stringify(metadata.details || {}) }
-          }
-        };
-        await fetch(firestoreUrl, { method: "POST", headers, body: JSON.stringify(payload) });
-    } catch (e) {
-        console.warn("⚠️ [Trace] Firestore bridge stalled:", e.message);
-    }
+  // Add to buffer
+  traceBuffer.push({ event, ...metadata, timestamp: new Date().toISOString() });
+
+  // Flush strategy: 10 events or 5 seconds
+  if (traceBuffer.length >= 10) {
+      flushTraces(env);
+  } else if (!traceTimer) {
+      traceTimer = setTimeout(() => flushTraces(env), 5000);
   }
 
-  // 2. Bridge to Auth Proxy (Real-time Dashboard Pulse)
-  const proxyHub = env.AUTH_PROXY_URL || "https://blogspro-auth.abhishek-dutta1996.workers.dev/telemetry";
-  const masterSecret = env.INSTITUTIONAL_MASTER_SECRET;
-  
-  if (masterSecret) {
-    try {
-      await fetch(proxyHub, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${masterSecret}`
-        },
-        body: JSON.stringify({ event, ...metadata })
-      });
-    } catch (e) {
-      // Non-fatal, just quiet
-    }
+  // 2. Immediate Bridge to Auth Proxy (Critical Pulse only)
+  if (metadata.status === 'error' || metadata.status === 'fatal' || event === 'SWARM_COMPLETE') {
+      const proxyHub = env.AUTH_PROXY_URL || "https://blogspro-auth.abhishek-dutta1996.workers.dev/telemetry";
+      const masterSecret = env.INSTITUTIONAL_MASTER_SECRET;
+      
+      if (masterSecret) {
+        try {
+          fetch(proxyHub, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${masterSecret}` },
+            body: JSON.stringify({ event, ...metadata, buffered: false })
+          }).catch(() => {});
+        } catch (e) {}
+      }
   }
 }
 

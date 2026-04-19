@@ -65,8 +65,10 @@ export async function publishGitHubTrace(env, jobId) {
     const traceContent = traceBuffer.join("");
     const title = `Swarm Telemetry Trace: Job [${jobId}] (${new Date().toISOString()})`;
     
+    const repo = env.GH_REPO || "abhishekdutta18/blogspro";
+    
     try {
-        const res = await fetch("https://api.github.com/repos/abhishekdutta18/blogspro/issues", {
+        const res = await fetch(`https://api.github.com/repos/${repo}/issues`, {
             method: "POST",
             headers: {
                 "Authorization": `token ${env.GH_PAT}`,
@@ -83,7 +85,12 @@ export async function publishGitHubTrace(env, jobId) {
         if (res.ok) {
             console.log(`✅ [Telemetry] GitHub Trace published successfully.`);
         } else {
-            console.error(`❌ [Telemetry] GitHub Trace failed HTTP ${res.status}:`, await res.text());
+            const errBody = await res.text();
+            if (res.status === 404) {
+                console.error(`❌ [Telemetry] GitHub Trace failed with 404. CAUTION: Ensure 'GitHub Issues' are ENABLED on repo '${repo}' and your GH_PAT has 'repo' or 'public_repo' scopes.`);
+            } else {
+                console.error(`❌ [Telemetry] GitHub Trace failed HTTP ${res.status}:`, errBody);
+            }
         }
     } catch (e) {
         console.error(`❌ [Telemetry] GitHub Trace Network Error:`, e.message);
@@ -91,6 +98,8 @@ export async function publishGitHubTrace(env, jobId) {
         traceBuffer = []; // clear buffer
     }
 }
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 /**
  * 🛡️ INSTITUTIONAL TRACE: High-fidelity logger for Swarm Audit
@@ -131,7 +140,7 @@ async function saveSectorFragment(jobId, verticalId, content, env = {}) {
     console.log(`💾 [Fragment-Sync] Sector ${verticalId} saved to ${env.FIREBASE_PROJECT_ID ? 'Cloud & ' : ''}Local [${jobId}]`);
 }
 
-async function loadSectorFragments(jobId, env = {}) {
+export async function loadSectorFragments(jobId, env = {}) {
     let cloudFragments = [];
     let localFragments = [];
 
@@ -170,31 +179,43 @@ async function loadSectorFragments(jobId, env = {}) {
  * 3. Dedicated Laptop Node (Gemma 4 via Ngrok)
  */
 async function askAIWithEscalation(prompt, options = {}) {
-    const { role, env, model, seed, extended } = options;
-    const maxRetries = 2;
+    const { role, env, model, seed, extended, frequency } = options;
+    const isMonthly = frequency === 'monthly';
+    const maxRetries = isMonthly ? 4 : 2; // Increase persistence for monthly runs
     let lastError = null;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-            // Attempt 0: Primary Model (as requested)
-            // Attempt 1: Institutional Bridge Fallback
-            // Attempt 2: Laptop (Gemma 4) Sovereign Fallback
-            
+            // [V17.0] Adaptive Escalation Strategy
             let targetModel = model;
-            if (attempt === 1) targetModel = 'bridge';
-            if (attempt === 2) targetModel = 'laptop';
+            
+            if (attempt === 1) {
+                // Tier 1: Diversify to alternative high-fidelity family
+                const isGemini = model && model.includes('gemini');
+                targetModel = isGemini ? 'meta-llama-4-70b-instruct' : 'gemini-3.1-pro-preview';
+                console.log(`🔄 [Escalation Tier-1] Diversity Shift: ${model} -> ${targetModel}`);
+            } else if (attempt === 2) {
+                // Tier 2: Force reasoning-tuned node (SambaNova / DeepSeek)
+                targetModel = 'deepseek-v3';
+                console.log(`🔄 [Escalation Tier-2] Reasoning Focus: ${targetModel}`);
+            } else if (attempt === 3) {
+                // Tier 3: Direct-Dial Fallback (Cerebras/Groq Anchor)
+                targetModel = 'meta-llama-4-70b-instruct';
+                console.log(`📡 [Escalation Tier-3] Direct Cluster Handshake: ${targetModel}`);
+            } else if (attempt === 4) {
+                // Tier 4: Sovereign Local Anchor
+                targetModel = 'laptop';
+                console.log(`🏠 [Escalation Tier-4] Sovereign Final Handshake: ${targetModel}`);
+            }
 
-            console.log(`🤖 [Escalation-Tier ${attempt}] Dispatching ${role} via ${targetModel || 'auto'}...`);
-            return await askAI(prompt, { ...options, model: targetModel });
+            return await askAI(prompt, { ...options, model: targetModel, _retry: 0 }); 
         } catch (e) {
             lastError = e;
-            console.warn(`⚠️ [Escalation-Tier ${attempt}] Failed: ${e.message}`);
+            const backoff = (attempt + 1) * (isMonthly ? 5000 : 2000);
+            console.warn(`⚠️ [Escalation-Tier ${attempt}/${maxRetries}] Failed: ${e.message}. Backoff: ${backoff}ms`);
             
-            // If the failure is a known "Sovereign" failure (Gemma 4 unreachable), stop early
-            if (e.message.includes("Laptop Unreachable") && attempt === 1) break;
-            
-            // Staggered backoff
-            await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+            if (e.message.includes("Laptop Unreachable") && targetModel === 'laptop') break;
+            await new Promise(r => setTimeout(r, backoff));
         }
     }
     throw new Error(`[Sovereign-Failure] All execution tiers exhausted. Final error: ${lastError.message}`);
@@ -386,7 +407,8 @@ export async function executeSingleVerticalSwarm(vertical, index, frequency, sem
         if (state === 'DRAFT') {
             const model = routeToBestModel('draft', env);
             finalManuscript = await askAIWithEscalation(getDrafterPrompt(frequency, researchBrief, vertical.name), { role: 'generate', env, model, seed: index + iterations });
-            fidelityScore = calculateReward(finalManuscript, frequency === 'monthly' ? 1500 : 500) * 100;
+            // [V8.2] REWARD SIGNALING (Word Density)
+            fidelityScore = calculateReward(finalManuscript, frequency === 'monthly' ? 1000 : 500) * 100;
         }
 
         if (state === 'AUDIT') {
@@ -422,9 +444,19 @@ export async function executeSingleVerticalSwarm(vertical, index, frequency, sem
             }, env);
             
             const model = routeToBestModel('fidelity', env);
-            finalManuscript = await askAI(getManagerCorrectionPrompt(finalManuscript, "Improve institutional depth and quantitative density."), {
+            finalManuscript = await askAIWithEscalation(getManagerCorrectionPrompt(finalManuscript, "Improve institutional depth and quantitative density."), {
                 role: 'generate', env, model, seed: 99 + iterations
             });
+        }
+
+        // [V16.5] State Checkpoint: Save fragment after each successful state completion
+        if (finalManuscript && (state === 'DRAFT' || state === 'AUDIT' || state === 'REPAIR')) {
+            await saveSectorFragment(id, vertical.id, { 
+                manuscript: finalManuscript, 
+                brief: researchBrief, 
+                state, 
+                fidelityScore 
+            }, env);
         }
     }
 
@@ -585,7 +617,7 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
       console.warn(`⚠️ [Assemble] No fragments found for ${id}. Falling back to standard synthesis.`);
   }
 
-  const PRIORITY_VERTICAL_IDS = ['macro', 'reg', 'em', 'rates'];
+  const PRIORITY_VERTICAL_IDS = ['macro', 'banking', 'em_market', 'policy'];
   const sharedBlackboard = { strategicContext: semanticDigest.strategicLead, institutionalMemos: [], jobId: id, frequency };
   const allChapterContents = [];
 
@@ -727,7 +759,21 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
       }
   }
   
-  const executiveStrategy = await askAI(getEditorPrompt(consensusData.summary, frequency), { role: 'edit', env, model: 'gemini-3.1-pro-preview' });
+  // 9. Final Institutional Synthesis with Fleet-Retry
+  let executiveStrategy = "";
+  let synthesisRetries = 3;
+  while (synthesisRetries > 0) {
+    try {
+      console.log(`📡 [Assemble] Dispatching Chief Institutional Editor (Try: ${4 - synthesisRetries}/3)...`);
+      executiveStrategy = await askAI(getEditorPrompt(consensusData.summary, frequency), { role: 'edit', env, model: 'gemini-3.1-pro-preview' });
+      if (executiveStrategy) break;
+    } catch (e) {
+      console.warn(`⚠️ [Assemble] Executive Synthesis failed: ${e.message}. Retrying...`);
+      synthesisRetries--;
+      if (synthesisRetries === 0) throw e;
+      await sleep(5000 * (4 - synthesisRetries)); // Exponential backoff
+    }
+  }
 
   // [V7.0] Institutional Memory Snapshot (Global Consolidation)
   if (frequency !== 'hourly') {
@@ -798,7 +844,11 @@ async function _finalizeAndSync(fidelityContent, consensusSummary, frequency, ty
   // 2. Telegram Alert with Abstract Extraction
   if (env.TELEGRAM_BOT_TOKEN && (env.TELEGRAM_CHAT_ID || env.TELEGRAM_TO)) {
     try {
-      const abstract = await askAI(`Extract title, link (placeholder), and abstract from this institutional manuscript:\n\n${fidelityContent.substring(0, 5000)}`, { role: 'edit', env, model: 'node-draft' });
+      // [V15.8] SMARTER_EXTRACTOR: Prioritize Macro sector for abstract
+      const macroMatch = fidelityContent.match(/<div id="sector-macro"[\s\S]*?<\/div>/);
+      const extractionSource = macroMatch ? macroMatch[0] : fidelityContent.substring(0, 10000);
+      
+      const abstract = await askAI(`Extract title, link (placeholder), and abstract from this institutional manuscript fragment (Focus on Macro/Global first):\n\n${extractionSource}`, { role: 'edit', env, model: 'node-draft' });
       await dispatchTelegramAlert({ 
         title: `${frequency.toUpperCase()} Strategic Pulse`,
         abstract: abstract,

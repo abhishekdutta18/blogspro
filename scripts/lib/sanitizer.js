@@ -5,22 +5,20 @@
 function sanitizeInstitutionalContent(content) {
     if (!content) return "";
     
-    // 1. Strip LLM "Echoes" (Common in Free Tier Models like Gemini 1.5 Flash)
-    let clean = content
-        .replace(/^(ROLE|TASK|TASK DESCRIPTION|MANDATORY|INSTRUCTION|SYSTEM|USER|RESEARCH INPUT):.*$/gim, "")
+    // 1. Strip LLM "Echoes" (Buffered Head/Tail only V16.5)
+    const head = content.substring(0, 1000);
+    const tail = content.length > 2000 ? content.substring(content.length - 1000) : "";
+    const body = content.length > 2000 ? content.substring(1000, content.length - 1000) : "";
+
+    const cleanPart = (part) => part
+        .replace(/^(ROLE|TASK|TASK DESCRIPTION|MANDATORY|INSTRUCTION|SYSTEM|USER|RESEARCH INPUT|PROMPT):.*$/gim, "")
         .replace(/--- (SYSTEM CONTEXT|UNIVERSAL NEWS|TOP NEWS) ---[\s\S]*?--- (END|CLOSE) ---/gi, "")
-        .replace(/^(Here is|In this|This is|Clean this|As an institutional)[^\n]*/gim, "")
+        .replace(/^(Here is|In this|This is|Clean this|As an institutional|I have generated)[^\n]*/gim, "")
         .replace(/⚠️ ABSOLUTE WORD MINIMUM:.*$/gim, "")
-        .replace(/MANDATORY (CHAPTER|STRUCTURAL|OUTPUT) (STRUCTURE|REQUIREMENT):.*$/gim, "")
-        .replace(/1\. EXECUTIVE SUMMARY \(150\+ words\):.*$/gim, "")
-        .replace(/2\. CURRENT POSITIONING ANALYSIS \(400\+ words\):.*$/gim, "")
-        .replace(/3\. INSTITUTIONAL FLOW DYNAMICS \(300\+ words\):.*$/gim, "")
-        .replace(/4\. QUANTITATIVE DATA TABLE:.*$/gim, "")
-        .replace(/5\. RISK VECTORS \(300\+ words\):.*$/gim, "")
-        .replace(/6\. STRATEGIC OUTLOOK.*$/gim, "")
-        .replace(/7\. ACTIONABLE INTELLIGENCE.*$/gim, "")
-        .replace(/\[SOURCE \| Title\]\(URL\) format.*$/gim, "")
-        .trim();
+        .replace(/MANDATORY (CHAPTER|STRUCTURAL|OUTPUT) (STRUCTURE|REQUIREMENT):.*$/gim, "");
+
+    let clean = cleanPart(head) + body + cleanPart(tail);
+    clean = clean.trim();
 
     // 2. Fix common AI syntax errors in <chart-data> blocks
     const chartRegex = /<chart-data>([\s\S]*?)<\/chart-data>/g;

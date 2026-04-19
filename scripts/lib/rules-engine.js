@@ -11,9 +11,34 @@ import { pushSovereignTrace } from './storage-bridge.js';
  * 4. Institutional Sections (Abstract, Abbreviations, Citations).
  * 5. $Shield Governance (Sanitization & Anti-Hallucination).
  */
+/**
+ * [V16.5] isInstitutionalRefusal
+ * Detects if the model returned a refusal, boilerplate error, or 'I am an AI' chatter.
+ */
+function isInstitutionalRefusal(content) {
+  const refusalPatterns = [
+    /i (cannot|am not able to|apologize|can't) (fulfill|generate|complete|provide)/i,
+    /as an ai (language model|assistant)/i,
+    /my programming does not allow/i,
+    /unexpected error occurred/i,
+    /please contact support/i
+  ];
+  return refusalPatterns.some(p => p.test(content));
+}
+
 export function sanitizePayload(content, auditContext = {}) {
   const { jobId = 'local', verticalId = 'global', env = {} } = auditContext;
   if (!content) return "";
+
+  // 🛡️ [Cynical] Refusal Detection (Early Exit)
+  if (isInstitutionalRefusal(content)) {
+    pushSovereignTrace("SHIELD_ABORT", {
+        jobId, vertical: verticalId, status: "fatal", role: "shield",
+        message: "Institutional Refusal Detected. Aborting vertical synthesis."
+    }, env).catch(() => {});
+    throw new Error(`[Shield-Refusal] Model returned a refusal or non-institutional boilerplate.`);
+  }
+
   // 🛡️ GHOST SCRIPT / PROMPT STRIPPING
   let sanitized = content
     .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
@@ -46,13 +71,31 @@ export function sanitizePayload(content, auditContext = {}) {
  */
 export function stripEchos(content) {
   if (!content) return "";
-  const match = content.match(/\[\[BPRO_INTEL_START\]\]([\s\S]*?)\[\[BPRO_INTEL_END\]\]/i);
-  if (match) return match[1].trim();
+  const markerMatch = content.match(/\[\[BPRO_INTEL_START\]\]([\s\S]*?)\[\[BPRO_INTEL_END\]\]/i);
+  if (markerMatch) return markerMatch[1].trim();
   
-  // Fallback: If markers missing, strip common AI intro phrases
-  return content
-    .replace(/^(Certainly|Here is|Below is|Based on|As a|As an AI)[\s\S]*?:/i, "")
-    .replace(/(Hope this|Let me know|If you need)[\s\S]*$/i, "");
+  // [V16.5] Surgical Line-based Fallback
+  // Only strip the first 3 lines if they contain common AI conversational chatter
+  const lines = content.split('\n');
+  const chattyPatterns = /^(certainly|here is|below is|based on|as a|as an ai|i have analyzed|this report)/i;
+  
+  let startIndex = 0;
+  for (let i = 0; i < Math.min(3, lines.length); i++) {
+    if (chattyPatterns.test(lines[i].trim())) {
+        startIndex = i + 1;
+    }
+  }
+
+  // Also strip trailing chatter (last 2 lines)
+  const trailingChatty = /(hope this|let me know|if you need|thank you)/i;
+  let endIndex = lines.length;
+  for (let i = lines.length - 1; i >= Math.max(0, lines.length - 2); i--) {
+     if (trailingChatty.test(lines[i].trim())) {
+         endIndex = i;
+     }
+  }
+
+  return lines.slice(startIndex, endIndex).join('\n').trim();
 }
 
 /**

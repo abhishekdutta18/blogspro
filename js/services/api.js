@@ -23,7 +23,28 @@ function mapFirebaseError(raw) {
   return FIREBASE_ERROR_MESSAGES[code] || code || "Request failed";
 }
 
-async function fetchJson(url, options = {}, timeoutMs = 15000) {
+async function fetchWithRetry(url, options = {}, retries = 3, backoff = 1000) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const res = await fetch(url, options);
+            if (res.ok) return res;
+            if (res.status === 429 || (res.status >= 500 && res.status < 600)) {
+                const delay = backoff * Math.pow(2, i);
+                console.warn(`⏳ [API-Retry] Transient failure (${res.status}). Retrying in ${delay}ms...`);
+                await new Promise(r => setTimeout(r, delay));
+                continue;
+            }
+            return res;
+        } catch (e) {
+            if (i === retries - 1) throw e;
+            const delay = backoff * Math.pow(2, i);
+            console.warn(`⏳ [API-Retry] Connection error. Retrying in ${delay}ms...`);
+            await new Promise(r => setTimeout(r, delay));
+        }
+    }
+}
+
+async function fetchJson(url, options = {}, timeoutMs = 60000) {
   const token = localStorage.getItem("fb_token");
   const isWorkerRequest = url.startsWith("/") && !url.includes("https://");
 
@@ -43,9 +64,9 @@ async function fetchJson(url, options = {}, timeoutMs = 15000) {
 
   let res;
   try {
-    res = await fetch(finalUrl, { ...options, headers, signal: controller.signal });
+    res = await fetchWithRetry(finalUrl, { ...options, headers, signal: controller.signal });
   } catch (e) {
-    if (e.name === "AbortError") throw new Error("Request timed out. Please check your connection and try again.");
+    if (e.name === "AbortError") throw new Error("Request timed out. The AI model might be reflecting on a complex problem. Please wait or try again.");
     throw e;
   } finally {
     clearTimeout(timer);

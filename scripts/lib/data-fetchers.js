@@ -4,6 +4,7 @@ import { gateSignal } from "./gating-engine.js";
 import { NewsOrchestrator } from "./news-orchestrator.js";
 
 const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+const _fetch = fetch;
 const _env = typeof process !== "undefined" ? process.env : {};
 
 // Singleton instance for orchestration
@@ -93,16 +94,26 @@ async function fetchEconomicCalendar() {
 async function fetchMultiAssetData() {
     const fetchScanner = async (market, symbols) => {
         try {
-            const res = await _fetch(`https://scanner.tradingview.com/${market}/scan`, {
+            // [V16.5] Cynical Retry: TradingView is prone to transient blocks
+            const res = await fetchWithTimeout(`https://scanner.tradingview.com/${market}/scan`, {
                 method: "POST",
-                headers: { "User-Agent": UA },
+                headers: { "User-Agent": UA, "Content-Type": "application/json" },
                 body: JSON.stringify({
                     "symbols": { "tickers": symbols },
                     "columns": ["close", "change", "description"]
                 })
-            });
+            }, 10000); // 10s timeout
+            
+            if (!res.ok) {
+                // Return empty but log for observability
+                console.warn(`⚠️ [Scanner] ${market} segment failure (${res.status})`);
+                return { data: [] };
+            }
             return await res.json();
-        } catch (e) { return { data: [] }; }
+        } catch (e) { 
+            console.error(`❌ [Scanner] ${market} segment connectivity error:`, e.message);
+            return { data: [] }; 
+        }
     };
 
     try {
@@ -282,6 +293,17 @@ async function fetchMacroPulse() {
             raw: { india: iVal, us: uVal, eu: eVal } 
         };
     } catch (e) { 
+        console.warn(`⚠️ [MacroPulse] API failure. Attempting Storage Bridge fallback...`);
+        try {
+            const { getHistoricalData } = await import("./storage-bridge.js");
+            const historical = await getHistoricalData(_env);
+            if (historical && historical.macro) {
+                return { 
+                    summary: `[Fallback] Global Macro: India GDP ${historical.macro.india}%, US CPI ${historical.macro.us}%, EU GDP ${historical.macro.eu}%`, 
+                    raw: historical.macro 
+                };
+            }
+        } catch (fallErr) {}
         return { summary: "Global Macro: Institutional estimates prioritized.", raw: {} }; 
     }
 }

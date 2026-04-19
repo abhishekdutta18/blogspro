@@ -728,22 +728,22 @@ async function generateSambaNovaContent(prompt, model = "Meta-Llama-4-70B-Instru
  * [V7.2] Institutional AI Bridge (Cloudflare Worker Proxy)
  * Bypasses local 'Placeholder Key' limitations by routing to the edge.
  */
-async function askAI(prompt, model = 'auto', options = {}) {
-        // [V16.1] Surgical Stringifier: Force deep stringification to prevent provider-side 500 errors
-        if (typeof prompt === 'object') {
-            try {
-                prompt = JSON.stringify(prompt);
-            } catch (e) {
-                prompt = String(prompt);
-            }
+async function generateInstitutionalBridgeContent(prompt, model, context = {}) {
+    // [V16.1] Surgical Stringifier: Force deep stringification to prevent provider-side 500 errors
+    if (typeof prompt === 'object') {
+        try {
+            prompt = JSON.stringify(prompt);
+        } catch (e) {
+            prompt = String(prompt);
         }
-        
-        // --- UPSTREAM LEAK AUDIT ---
-        // If we detect an HTML error sequence in the prompt (leak from upstream 500), we block it.
-        if (typeof prompt === 'string' && (prompt.includes('<!DOCTYPE html>') || prompt.includes('<title>Error</title>'))) {
-            throw new Error(`FLEET_ERROR: Upstream HTML leak detected in AI payload. Aborting to prevent token waste.`);
-        }
+    }
     
+    // --- UPSTREAM LEAK AUDIT ---
+    // If we detect an HTML error sequence in the prompt (leak from upstream 500), we block it.
+    if (typeof prompt === 'string' && (prompt.includes('<!DOCTYPE html>') || prompt.includes('<title>Error</title>'))) {
+        throw new Error(`FLEET_ERROR: Upstream HTML leak detected in AI payload. Aborting to prevent token waste.`);
+    }
+
     // [V12.2] Adaptive Infrastructure Discovery
     let bridgeUrl = process.env.SWARM_AI_BRIDGE;
     
