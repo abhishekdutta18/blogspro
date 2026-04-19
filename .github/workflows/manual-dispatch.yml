@@ -107,6 +107,7 @@ jobs:
           OLLAMA_PROD_KEY: ${{ secrets.OLLAMA_PROD_KEY }}
           SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}"
           INPUT_FREQ: ${{ github.event.inputs.frequency || 'monthly' }}
+        run: |
           FREQ="${{ github.event.inputs.frequency || 'monthly' }}"
           MODEL="${{ github.event.inputs.model || 'auto' }}"
           MODE="${{ github.event.inputs.mode || 'worker' }}"
