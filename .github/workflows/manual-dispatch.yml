@@ -93,6 +93,7 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --fund=false
       - name: Execute Vertical Research Fragment
+
         env:
           VAULT_MASTER_KEY: ${{ secrets.VAULT_MASTER_KEY }}
           SAMBANOVA_API_KEY: ${{ secrets.SAMBANOVA_API_KEY }}
@@ -198,6 +199,7 @@ jobs:
             esac
           else
             FREQ="${{ github.event.inputs.frequency || 'daily' }}"
+
           fi
 
           MODEL="${{ github.event.inputs.model || 'auto' }}"
