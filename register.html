@@ -127,7 +127,7 @@
   </div>
   <div class="form-row">
     <label>Password</label>
-    <input type="password" id="regPass" placeholder="Min. 6 characters" />
+    <input type="password" id="regPass" placeholder="Min. 8 characters" />
   </div>
   <div class="form-row">
     <label>Confirm Password</label>
@@ -255,11 +255,11 @@
     if (!name)              { showError('Please enter your full name.'); return; }
     if (!email || !pass)    { showError('Please fill all fields.'); return; }
     if (pass !== confirm)   { showError('Passwords do not match.'); return; }
-    if (pass.length < 6)    { showError('Password must be at least 6 characters.'); return; }
+    if (pass.length < 8)    { showError('Password must be at least 8 characters.'); return; }
 
     setLoading('email', true); hideError();
     try {
-      await api.auth.register(name, email, pass);
+      await api.auth.register(name, email, pass, selectedRole);
       try {
         const me = await api.auth.me();
         if (me?.authenticated && me.user?.role === "admin") {

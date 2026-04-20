@@ -18,7 +18,9 @@ export default {
         const messageId = query.message.message_id;
 
         if (data.startsWith('approve:')) {
-          const jobId = data.split(':')[1];
+          const rawJobId = data.split(':')[1] || '';
+          const jobId = rawJobId.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 64);
+          if (!jobId) return new Response('Invalid job ID', { status: 400 });
           const success = await this.approveInstitutionalJob(jobId, env);
 
           // [V8.5] Relay Consensus Signal to Inngest (Serverless Wake-up)
@@ -82,7 +84,11 @@ export default {
 
   async getGoogleAccessToken(env) {
     if (!env.FIREBASE_SERVICE_ACCOUNT) return null;
-    const sa = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT);
+    let sa;
+    try { sa = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT); } catch (_) {
+      console.error('[telegram-hil] FIREBASE_SERVICE_ACCOUNT is not valid JSON');
+      return null;
+    }
     const now = Math.floor(Date.now() / 1000);
     
     // JWT Generation (simplified for Worker environment)
@@ -160,7 +166,7 @@ export default {
       }];
 
       try {
-          await fetch(`${url}${env.INNGEST_EVENT_KEY}`, {
+          await fetch(`${url}${encodeURIComponent(env.INNGEST_EVENT_KEY)}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)

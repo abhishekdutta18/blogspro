@@ -1,4 +1,4 @@
-import { cleanEditorHTML } from "./config.js";
+import { cleanEditorHTML, showToast } from "./config.js";
 import { callAI } from "./ai-core.js";
 import { state } from "./state.js";
 
@@ -142,23 +142,25 @@ function saveHistory() {
 
 }
 
-function undo() {
+async function undo() {
 
   if (historyIndex <= 0) return;
 
   historyIndex--;
 
-  editor.innerHTML = history[historyIndex];
+  const { sanitize } = await import('./utils.js');
+  editor.innerHTML = sanitize(history[historyIndex]);
 
 }
 
-function redo() {
+async function redo() {
 
   if (historyIndex >= history.length - 1) return;
 
   historyIndex++;
 
-  editor.innerHTML = history[historyIndex];
+  const { sanitize } = await import('./utils.js');
+  editor.innerHTML = sanitize(history[historyIndex]);
 
 }
 
@@ -215,7 +217,7 @@ function showSlashMenu() {
 
       const url = window.prompt("Image URL");
 
-      if (url) insertImage(url);
+      if (url && /^https?:\/\//i.test(url)) insertImage(url);
 
     }
 
@@ -519,9 +521,11 @@ window.fmtBlock = function(tag) {
 
 window.insertLink = function() {
   const url = window.prompt('Enter URL:');
-  if (url) {
+  if (url && /^https?:\/\//i.test(url)) {
     document.execCommand('createLink', false, url);
     saveHistory();
+  } else if (url) {
+    showToast('Only https:// links are allowed.', 'error');
   }
 };
 

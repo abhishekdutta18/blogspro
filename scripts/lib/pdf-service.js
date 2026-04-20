@@ -1,15 +1,8 @@
-// Conditional imports to prevent Worker environment crashes
-let puppeteer = null;
-let path = null;
-let fs = null;
+import puppeteer from 'puppeteer';
+import path from 'path';
+import fs from 'fs';
 
 const isNode = typeof process !== "undefined" && process.versions && process.versions.node;
-
-if (isNode) {
-    import('puppeteer').then(m => puppeteer = m.default).catch(() => {});
-    import('path').then(m => path = m.default).catch(() => {});
-    import('fs').then(m => fs = m.default).catch(() => {});
-}
 
 /**
  * Institutional PDF Generator (BlogsPro V1.0)

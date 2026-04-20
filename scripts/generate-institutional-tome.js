@@ -9,7 +9,8 @@ import { getRecentSnapshots,
   pushTelemetryLog,
   saveToCloudBucket,
   checkPeriodStatus,
-  pushSovereignNewsletter
+  pushSovereignNewsletter,
+  getInstitutionalSettings
 } from "./lib/storage-bridge.js";
 import { uploadToStorage } from './lib/firebase-service.js';
 import { runSwarmAudit } from './lib/mirofish-qa-service.js';
@@ -218,6 +219,15 @@ async function runInstitutionalSwarm() {
     }
   };
 
+  // 1.1 FETCH GLOBAL POLICY (V17.0 Override)
+  try {
+    const settings = await getInstitutionalSettings(process.env);
+    env.GEMINI_ENABLED = settings.geminiEnabled;
+    console.log(`📡 [Policy] Strategic AI Mandate: Gemini is ${env.GEMINI_ENABLED ? 'ENABLED' : 'DISABLED'}`);
+  } catch (e) {
+    env.GEMINI_ENABLED = true;
+  }
+
   console.log(`🚀 [Swarm] Initializing BlogsPro Institutional Synthesis [ID: ${id}]`);
   try {
     // 2. CONTEXT RETRIEVAL (Institutional Rule: Zero-Pollution Policy)
@@ -352,7 +362,12 @@ async function runInstitutionalSwarm() {
         auditStatus = "AUDIT_FAILED";
         console.warn(`⚠️ [Swarm] Institutional Review REJECTED/FAILED:`, e.message);
         captureSwarmError(e, { stage: 'qa_audit', frequency, id });
-        // In "Resilient Mode", we still allow the tome to be saved but marked as failed
+        
+        // [V16.1] Cynical Hardening: Rejections are FATAL for high-stakes frequencies
+        if (['daily', 'weekly', 'monthly'].includes(frequency)) {
+            console.error(`🚨 [Cynical-Policy] Audit rejection detected for '${frequency}'. Aborting dispatch.`);
+            throw new Error(`QA_REJECTION_FATAL: MiroFish board rejected the ${frequency} manuscript. Integrity score too low.`);
+        }
     }
 
     // 5. ARCHIVAL PHASE

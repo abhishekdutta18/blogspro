@@ -58,7 +58,15 @@ export async function saveAdminAccount() {
       updatedAt: new Date().toISOString(),
     };
     await api.data.update('users', uid, payload);
-    state.currentUserProfile = { ...(state.currentUserProfile || {}), ...payload };
+    
+    // [V16.5] State Reconciliation: Re-fetch from Source of Truth to avoid drift
+    const refreshed = await api.auth.me();
+    if (refreshed && refreshed.authenticated) {
+        state.currentUser = { ...state.currentUser, ...refreshed.user };
+        state.currentUserProfile = refreshed.profile;
+    } else {
+        state.currentUserProfile = { ...(state.currentUserProfile || {}), ...payload };
+    }
 
     const initial = name?.[0] || state.currentUser?.email?.[0] || 'A';
     const userInitial = document.getElementById('userInitial');

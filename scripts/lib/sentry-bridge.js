@@ -32,6 +32,12 @@ async function getSentryNode() {
 export function initWorkerSentry(request, env, ctx) {
     if (!env || !env.SENTRY_DSN) return null;
     
+    // V16.5: DSN Format Validation (Cynical Mode)
+    if (!env.SENTRY_DSN.startsWith('https://')) {
+        console.warn("⚠️ [Sentry] Invalid DSN format. Telemetry disabled.");
+        return null;
+    }
+    
     // V5.1: Null-Request Safety for CRON/Service Triggers
     const syntheticRequest = request || {
         url: `https://${env.PROJECT_DOMAIN || 'blogspro-pulse'}/scheduled-dispatch`,
@@ -105,24 +111,22 @@ export async function captureSwarmError(error, context = {}, sentryInstance = nu
     const tags = { vertical, role, ...otherTags };
     const extra = { prompt_snapshot };
 
+    // [V16.5] Ensure Node Sentry is loaded before capture
+    let Sentry = sentryInstance;
+    if (!Sentry && isNode) Sentry = await getSentryNode();
+
     if (error && error.message && error.message.includes("AI_FLEET_EXHAUSTED")) {
         const msg = `⚠️ Transient AI Exhaustion: ${error.message}`;
-        if (sentryInstance && typeof sentryInstance.captureMessage === 'function') {
-            sentryInstance.captureMessage(msg, { level: 'warning', tags, extra });
-        } else if (isNode) {
-            const Sentry = await getSentryNode();
-            if (Sentry) Sentry.captureMessage(msg, { level: 'warning', tags, extra });
+        if (Sentry && typeof Sentry.captureMessage === 'function') {
+            Sentry.captureMessage(msg, { level: 'warning', tags, extra });
         } else {
             console.warn(msg);
         }
         return;
     }
 
-    if (sentryInstance && typeof sentryInstance.captureException === 'function') {
-        sentryInstance.captureException(error, { tags, extra });
-    } else if (isNode) {
-        const Sentry = await getSentryNode();
-        if (Sentry) Sentry.captureException(error, { tags, extra });
+    if (Sentry && typeof Sentry.captureException === 'function') {
+        Sentry.captureException(error, { tags, extra });
     } else {
         console.error("❌ [Swarm Error]", error, tags);
     }
@@ -179,9 +183,10 @@ export async function logBlackboardMemo(fromVertical, memo, context = {}, sentry
     
     await logSwarmBreadcrumb(message, data, sentryInstance);
     
-    if (sentryInstance && typeof sentryInstance.captureMessage === 'function') {
-        sentryInstance.captureMessage(message, { level: 'info', extra: data });
-    } else if (isNode && SentryNode) {
-        SentryNode.captureMessage(message, { level: 'info', extra: data });
+    let Sentry = sentryInstance;
+    if (!Sentry && isNode) Sentry = await getSentryNode();
+
+    if (Sentry && typeof Sentry.captureMessage === 'function') {
+        Sentry.captureMessage(message, { level: 'info', extra: data });
     }
 }

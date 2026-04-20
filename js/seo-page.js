@@ -309,7 +309,7 @@ window.generateTopicClusters = async () => {
         <div style="font-size:0.75rem;color:var(--muted);margin-top:0.2rem">${parsed.pillar_desc||''}</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
-        ${(parsed.clusters||[]).map(c=>`<div class="result-item" style="cursor:pointer" onclick="quickNewPost(this)" data-title="${c.title}"><div class="result-item-body"><div class="result-item-title">${c.title}</div><div class="result-item-sub">${c.angle||''}</div></div></div>`).join('')}
+        ${(parsed.clusters||[]).map(c=>{const _e=(s)=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');return`<div class="result-item" style="cursor:pointer" onclick="quickNewPost(this)" data-title="${_e(c.title)}"><div class="result-item-body"><div class="result-item-title">${_e(c.title)}</div><div class="result-item-sub">${_e(c.angle||'')}</div></div></div>`;}).join('')}
       </div>`;
     showToast('Content cluster ready!','success');
   } else { showToast(result.error||'Failed.','error'); }

@@ -39,7 +39,14 @@ export default {
       }
 
       const origin = request.headers.get("Origin") || "";
-      if (origin && !origin.includes("blogspro.in") && !origin.includes("localhost")) {
+      const ALLOWED_ORIGINS = new Set([
+        "https://blogspro.in",
+        "https://www.blogspro.in",
+        "http://localhost",
+        "http://localhost:3000",
+        "http://127.0.0.1",
+      ]);
+      if (origin && !ALLOWED_ORIGINS.has(origin) && !/^http:\/\/localhost(:\d+)?$/.test(origin)) {
         return new Response("Unauthorized Origin", { status: 403, headers: CORS_HEADERS });
       }
 

@@ -117,10 +117,10 @@ ${CHART_SYNC_RULE}
 
 function getArticlePrompt(frequency, verticalName, verticalId, vData, macroSummary, news, lastSummary) {
     // Per-vertical word targets (total budget / 16 verticals)
-    const targetLength = frequency === 'monthly' ? '1,000-1,250'
+    const targetLength = frequency === 'monthly' ? '800-1,000'
                        : frequency === 'weekly'  ? '550-650'
                        : '300-400';
-    const totalWords   = frequency === 'monthly' ? '20,000' : '10,000';
+    const totalWords   = frequency === 'monthly' ? '16,000' : '10,000';
 
     return `
 ${INSTITUTIONAL_PERSONA}
@@ -182,7 +182,7 @@ GOAL: Provide the Drafter with enough granular data points, flow metrics, and di
 
 function getDrafterPrompt(frequency, researchBrief, verticalName, rlMemory = "") {
     // Per-vertical targets (total / 16 verticals, rounded up)
-    const wordTarget = frequency === 'monthly' ? 1250
+    const wordTarget = frequency === 'monthly' ? 1000
                      : frequency === 'weekly'  ? 625
                      : frequency === 'daily'   ? 1500   // daily = single consolidated pass
                      : 500;                              // hourly = single pass
@@ -255,13 +255,14 @@ OUTPUT: A bulleted list of "REQUIRED ENHANCEMENTS". Zero conversational fluff.
 `;
 }
 
-function getRefinementPrompt(draft, critique, verticalName) {
+function getRefinementPrompt(draft, critique, verticalName, frequency = 'monthly') {
+    const wordTargetRefined = frequency === 'monthly' ? '1,000-1,200' : '650-800';
     return `
 ${INSTITUTIONAL_PERSONA}
 ROLE: LEAD REFINEMENT STRATEGIST
 TASK: Re-write and expand the research chapter for '${verticalName}' by incorporating the Institutional Critique.
 
-⚠️ NEW WORD TARGET: 1,200 - 1,500 WORDS. 
+⚠️ NEW WORD TARGET: ${wordTargetRefined} WORDS. 
 FORCE-EXPAND every section. Use the critique to double-down on data-density.
 
 CRITIQUE:

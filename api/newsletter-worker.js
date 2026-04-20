@@ -226,7 +226,7 @@ export default {
           <body>
             <div class="card">
               <h1>Unsubscribed</h1>
-              <p>You have been successfully removed from our list. You will no longer receive daily fintech briefings from ${email}.</p>
+              <p>You have been successfully removed from our list.</p>
               <a href="https://blogspro.in">Back to BlogsPro</a>
             </div>
           </body>
@@ -277,7 +277,13 @@ export default {
       const headers = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
+      let paginationRounds = 0;
+      const MAX_PAGINATION_ROUNDS = 50; // cap at ~5000 subscribers to prevent memory exhaustion
       do {
+        if (++paginationRounds > MAX_PAGINATION_ROUNDS) {
+          console.warn('[newsletter] Pagination cap hit — truncating subscriber fetch');
+          break;
+        }
         const url = pageToken ? `${baseUrl}?pageToken=${pageToken}` : baseUrl;
         const dbRes = await fetch(url, { headers });
         if (!dbRes.ok) {
@@ -307,9 +313,10 @@ export default {
       const sendBatchWithRetry = async (batch, attempt = 1) => {
         const resendPayload = batch.map(sub => {
           const unsubLink = `${workerUrl}/?email=${encodeURIComponent(sub.email)}&secret=${encodeURIComponent(secret)}`;
+          const safeName = String(sub.name || '').replace(/[<>"'&]/g, '');
           const personalHtml = html
             .replace('{{UNSUBSCRIBE_LINK}}', unsubLink)
-            .replace(/{{NAME}}/g, sub.name);
+            .replace(/{{NAME}}/g, safeName);
 
           return {
             from: `${fromName || 'BlogsPro'} <newsletter@mail.blogspro.in>`,

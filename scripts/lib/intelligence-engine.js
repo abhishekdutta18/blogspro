@@ -11,42 +11,66 @@
  * Maps task types to the optimal LLM in the current resource pool.
  */
 export function routeToBestModel(taskType, env = {}) {
-    const pool = env.AI_POOL_PREFERENCE || 'hybrid';
+    const pool = (env.AI_POOL_PREFERENCE || 'hybrid').toLowerCase();
+    const isCloud = pool === 'cloud' || pool === 'hybrid';
     
+    // V16.5: Adaptive Role-to-Model Topology
     const tree = {
         'research': {
-            'high_fidelity': "DeepSeek-V3", // 671B MoE (1T class)
-            'consensus': "nvidia/nemotron-4-340b-instruct", // High-density reasoning
-            'standard': "moonshotai/kimi-k1.5-pro",
-            'executive': "x-ai/grok-1"
+            'priority': isCloud ? "gemini-3.1-pro-preview" : "meta-llama-4-70b-instruct",
+            'standard': isCloud ? "meta-llama-4-70b-instruct" : "meta-llama-4-8b-instruct",
+            'deep': "DeepSeek-V3" // Specialist for heavy research
         },
         'draft': {
             'high_density': "gemini-3.1-pro-preview",
-            'standard': "gemma4" // Local Enhanced formatting
+            'standard': "meta-llama-4-70b-instruct",
+            'local': "gemma4"
         },
         'audit': {
-            'strict': "gemma4", // user-specified Specialist structurer
-            'light': "meta-llama-4-8b-instruct"
+            'strict': isCloud ? "gemini-3.1-pro-preview" : "gemma4",
+            'standard': "meta-llama-4-8b-instruct"
         },
         'fidelity': {
-            'repair': "gemma4", // Local Self-healing pass
+            'repair': "meta-llama-4-70b-instruct",
             'cleanup': "meta-llama-4-8b-instruct"
         }
     };
 
-    // Routing Logic
+    // [V17.0] Strategic Override: Check if Gemini is disabled globally
+    let selectedModel = "meta-llama-4-8b-instruct";
+    
+    // Routing Logic: Optimized for Institutional Balance
     switch(taskType) {
         case 'research':
-            return (env.STRICT_MODE) ? tree.research.high_fidelity : tree.research.standard;
+            // In STRICT_MODE, we prioritize Deep Reasoners
+            if (env.STRICT_MODE && isCloud) selectedModel = tree.research.deep;
+            else selectedModel = env.EXTENDED_MODE ? tree.research.priority : tree.research.standard;
+            break;
+            
         case 'draft':
-            return (env.EXTENDED_MODE) ? tree.draft.high_density : tree.draft.standard;
+            if (env.MODE === 'institutional') selectedModel = tree.draft.high_density;
+            else selectedModel = env.EXTENDED_MODE ? tree.draft.standard : tree.draft.local;
+            break;
+            
         case 'audit':
-            return tree.audit.strict;
+            selectedModel = env.STRICT_MODE ? tree.audit.strict : tree.audit.standard;
+            break;
+            
         case 'fidelity':
-            return tree.fidelity.repair;
+            selectedModel = tree.fidelity.repair;
+            break;
+            
         default:
-            return "meta-llama-4-8b-instruct";
+            selectedModel = "meta-llama-4-8b-instruct";
     }
+
+    // --- GEMINI_PROTECTION_SHIELD ---
+    if (env.GEMINI_ENABLED === false && selectedModel.includes('gemini')) {
+        console.log(`🛡️ [Intelligence-Engine] Gemini disabled. Remapping ${selectedModel} -> meta-llama-4-70b-instruct`);
+        return "meta-llama-4-70b-instruct";
+    }
+
+    return selectedModel;
 }
 
 /**

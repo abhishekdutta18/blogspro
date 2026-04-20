@@ -24,9 +24,9 @@ export async function initAuth() {
     state.currentUser = user;
     state.currentUserProfile = user; // Profile info is integrated in the proxy me() response
 
-    if (user.role !== 'admin' && user.email !== 'abhishekdutta18@gmail.com') {
+    if (user.role !== 'admin') {
       await api.auth.logout();
-      window.location.href = 'login.html?error=unauthorized';
+      window.location.href = 'login.html?error=unauthorized&reason=' + encodeURIComponent(user.role || 'missing_role');
       return;
     }
 

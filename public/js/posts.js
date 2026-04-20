@@ -150,7 +150,8 @@ export async function editPost(id) {
     document.getElementById('postImage').value    = p.image||'';
     document.getElementById('postMeta').value     = p.metaDesc||'';
     document.getElementById('postTags').value     = (p.tags||[]).join(', ');
-    document.getElementById('editor').innerHTML   = p.content||'';
+    const { sanitize } = await import('./utils.js').catch(() => ({ sanitize: (h) => h }));
+    document.getElementById('editor').innerHTML   = sanitize(p.content||'');
     document.getElementById('postCategory').value = p.category||'Fintech';
     state.isPremium = p.premium === true;
     const topbarStateBadge = document.getElementById('topbarStateBadge');

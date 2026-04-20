@@ -142,23 +142,25 @@ function saveHistory() {
 
 }
 
-function undo() {
+async function undo() {
 
   if (historyIndex <= 0) return;
 
   historyIndex--;
 
-  editor.innerHTML = history[historyIndex];
+  const { sanitize } = await import('./utils.js').catch(() => ({ sanitize: (h) => h }));
+  editor.innerHTML = sanitize(history[historyIndex]);
 
 }
 
-function redo() {
+async function redo() {
 
   if (historyIndex >= history.length - 1) return;
 
   historyIndex++;
 
-  editor.innerHTML = history[historyIndex];
+  const { sanitize } = await import('./utils.js').catch(() => ({ sanitize: (h) => h }));
+  editor.innerHTML = sanitize(history[historyIndex]);
 
 }
 

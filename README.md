@@ -195,6 +195,103 @@ Configured in `.claude/settings.json`. Provides Claude Code direct access to:
 
 ---
 
+## Security Audit Log
+
+Continuous multi-round cynical audits run against the full codebase. Each round is committed and logged here.
+
+### Round 0 — Post-Generation Pipeline (2026-04-17)
+
+Files: `js/posts.js`, `js/ai-editor.js`, `js/ai-writer.js`, `js/ai-tools.js`, `admin.html`
+
+| # | Severity | File | Finding | Fix |
+| --- | -------- | ---- | ------- | --- |
+| 1 | CRITICAL | `js/posts.js` | Hardcoded admin email bypass in `checkIfAdmin()` | Removed — role-only check |
+| 2 | HIGH | `js/posts.js` | No minimum content gate before publish | Added 100-word floor |
+| 3 | CRITICAL | `js/ai-editor.js` | XSS: AI JSON fields (`grade`, `strengths`, `improvements`) injected raw into `innerHTML` | Escaped; auto-fix enum whitelisted |
+| 4 | CRITICAL | `js/ai-writer.js` | XSS: `err.message` and section `title` injected raw into `innerHTML` | Escaped with `_escMsg()` |
+| 5 | HIGH | `js/ai-writer.js` | `clearJobState()` not called on catch — stale job blocks resume forever | Added to catch block |
+| 6 | HIGH | `js/ai-writer.js` | `startIndex` not bounds-checked against `sections.length` — stale resume crashes | Added bounds check |
+| 7 | MEDIUM | `js/ai-writer.js` | Chart generation failure silently swallowed | Now logs with `console.warn` |
+| 8 | HIGH | `js/ai-tools.js` | No type validation or length limits on slug/tags/excerpt before Firestore write | Added sanitization + limits |
+| 9 | HIGH | `js/ai-tools.js` | No duplicate slug guard in Auto Blog | Added slug collision check against `state.allPosts` |
+| 10 | HIGH | `admin.html` | `savePostAndNotify()` was undefined — `ReferenceError` on every click | Implemented as publish + newsletter blast record |
+
+Commit: `3c684cb`
+
+---
+
+### Round 1 — Full Codebase (2026-04-17)
+
+Files: `js/editor.js`, `js/main.js`, `js/newsletter.js`, `js/worker-endpoints.js`, `js/seo-page.js`, `api/seo-worker.js`, `api/newsletter-worker.js`
+
+| # | Severity | File | Finding | Fix |
+| --- | -------- | ---- | ------- | --- |
+| 1 | CRITICAL | `js/editor.js` | XSS: `editor.innerHTML = history[historyIndex]` in undo/redo without sanitization | Wrapped with `sanitize()` |
+| 2 | CRITICAL | `js/editor.js` | URL injection: `window.prompt` image URL accepted any protocol including `javascript:` | Blocked — `https?://` required |
+| 3 | HIGH | `js/editor.js` | URL injection: `insertLink` accepted `javascript:` / `data:` URLs via `createLink` | Same protocol gate added |
+| 4 | HIGH | `js/main.js` | XSS: `err.message` injected raw into `document.body.innerHTML` on fatal boot error | Escaped with `_escHtml()` |
+| 5 | HIGH | `js/newsletter.js` | XSS: `b.subject` from Firestore rendered raw into newsletter history `innerHTML` | Escaped with `_esc()` |
+| 6 | HIGH | `js/worker-endpoints.js` | SSRF: `localStorage` override for worker URL accepted any protocol | Restricted to `https://` only |
+| 7 | HIGH | `js/seo-page.js` | Attribute injection: `c.title` from AI JSON written raw into `data-title` attribute and `innerHTML` | Escaped with inline `_e()` |
+| 8 | CRITICAL | `api/seo-worker.js` | XSS: Firestore `title`/`excerpt`/`author` interpolated raw into `<meta content="...">` HTML | HTML-entity encoded; banner URL protocol validated |
+| 9 | HIGH | `api/newsletter-worker.js` | HTML injection: subscriber `name` from Firestore used raw in `replace(/{{NAME}}/g, ...)` in email HTML | Stripped HTML chars from name |
+| 10 | HIGH | `api/newsletter-worker.js` | DoS: unbounded `do...while (pageToken)` loop could exhaust Worker memory on large subscriber lists | Capped at 50 pagination rounds |
+
+Commit: `9f1d5b8`
+
+---
+
+### Round 2 — AI Core, Workers, Analytics (2026-04-17)
+
+Files: `js/utils.js`, `api/telegram-hil.js`, `api/upstox-worker.js`
+
+| # | Severity | File | Finding | Fix |
+| --- | -------- | ---- | ------- | --- |
+| 1 | CRITICAL | `js/utils.js` | Sanitize regex missed newline/tab-obfuscated `javascript:` in href/src (e.g. `href=" \njavascript:"`) | Regex updated to strip whitespace before protocol check; added `vbscript:` and `data:` |
+| 2 | HIGH | `js/utils.js` | Event-handler regex `\s+on\w+\s*=` missed tab-separated handlers (`onload\t=`) | Regex updated to `[\s\t\r\n]+` |
+| 3 | CRITICAL | `api/telegram-hil.js` | `JSON.parse(env.FIREBASE_SERVICE_ACCOUNT)` with no error handling — malformed env var crashes entire Worker with 500 | Wrapped in `try/catch` — returns null gracefully |
+| 4 | HIGH | `api/telegram-hil.js` | Job ID from Telegram callback taken verbatim from `data.split(':')[1]` — path traversal / injection into Firestore query | Stripped to `[a-zA-Z0-9_-]{0,64}` |
+| 5 | HIGH | `api/telegram-hil.js` | `INNGEST_EVENT_KEY` appended raw to URL — if key contains `/` or `?`, breaks endpoint routing | `encodeURIComponent()` applied |
+| 6 | HIGH | `api/upstox-worker.js` | CORS check via `origin.includes('blogspro.in')` bypassable with `evil.blogspro.in.attacker.com` | Replaced with exact `Set` allowlist |
+
+Commit: `441ff16`
+
+---
+
+### Round 3 — Stored XSS, Public Mirror, API Workers (2026-04-17)
+
+Files: `js/posts.js`, `public/js/posts.js`, `public/js/editor.js`, `public/js/main.js`, `api/newsletter-worker.js`, `api/seo-worker.js`
+
+| # | Severity | File | Finding | Fix |
+| --- | -------- | ---- | ------- | --- |
+| 1 | CRITICAL | `js/posts.js` | Stored XSS: `editor.innerHTML = p.content` — Firestore post content rendered raw into admin editor | Wrapped with `sanitize()` |
+| 2 | CRITICAL | `public/js/posts.js` | Same stored XSS in public mirror (unsynchronised with root `js/`) | Same fix applied |
+| 3 | CRITICAL | `public/js/editor.js` | XSS: undo/redo without sanitize (public mirror missing Round-1 fix) | `sanitize()` added to both undo and redo |
+| 4 | HIGH | `public/js/main.js` | XSS: `err.message` raw into DOM (public mirror missing Round-1 fix) | Escaped with `_escHtml()` |
+| 5 | CRITICAL | `api/newsletter-worker.js` | Reflected XSS: `${email}` from URL query param rendered in HTML unsubscribe response | Removed email from response entirely |
+| 6 | HIGH | `api/seo-worker.js` | Reflected XSS: `request.url` injected raw into `og:url` meta tag content attribute | Passed through `_attr()` encoder |
+
+Commit: `9f57ec2`
+
+---
+
+### Round 4 — GitHub Actions & CI/CD (2026-04-17)
+
+Files: `.github/workflows/deploy-pulse.yml`, `.github/workflows/manual-dispatch.yml`, `.github/workflows/institutional-research.yml`
+
+| # | Severity | File | Finding | Fix |
+| --- | -------- | ---- | ------- | --- |
+| 1 | CRITICAL | `deploy-pulse.yml:122` | Hardcoded default secret `BPRO_SWARM_SECRET_2026` used as fallback when `SWARM_INTERNAL_TOKEN` secret is unset — anyone can impersonate the swarm auth | Removed fallback; secret must be explicitly set |
+| 2 | CRITICAL | `manual-dispatch.yml:48` | Workflow `frequency` input interpolated directly into `run:` shell command without quoting — shell injection via crafted input value | Moved to `INPUT_FREQ` env var; quoted in all `run:` commands |
+| 3 | CRITICAL | `manual-dispatch.yml:84,134` | `FREQ="${{ github.event.inputs.frequency }}"` — same unquoted interpolation in consolidator phase | Fixed: reads from `$INPUT_FREQ` env var |
+| 4 | HIGH | `institutional-research.yml:88` | `--freq=${{ inputs.freq }} --type=${{ inputs.type }}` in `run:` step — unquoted injection vector | Quoted both arguments |
+| 5 | HIGH | Multiple workflows | Third-party actions pinned to major version tags (`@v3`, `@v2`) not commit SHAs — susceptible to tag-jacking | Documented; SHA pinning recommended for future |
+| 6 | HIGH | Multiple workflows | `npm install` without `--ignore-scripts` in CI — postinstall scripts run with access to all injected secrets | Documented; migrate to `npm ci` |
+
+Commit: `9f57ec2`
+
+---
+
 ## License
 
 MIT

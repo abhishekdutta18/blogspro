@@ -17,6 +17,22 @@ on:
           - daily
           - weekly
           - monthly
+      mode:
+        description: 'Operation Mode (worker, archive)'
+        required: true
+        default: 'worker'
+        type: choice
+        options:
+          - worker
+          - archive
+      type:
+        description: 'Asset Type (article, research)'
+        required: true
+        default: 'article'
+        type: choice
+        options:
+          - article
+          - research
       force:
         description: 'Force Regeneration (ignores existing files)'
         required: false
@@ -55,7 +71,7 @@ jobs:
         id: set-matrix
         run: |
           # [V12.3] Standard GHA Config Export (via $GITHUB_OUTPUT)
-          node scripts/export-swarm-config.mjs --freq=${{ github.event.inputs.frequency || 'monthly' }}
+          node scripts/export-swarm-config.mjs --freq="${{ github.event.inputs.frequency || 'monthly' }}"
 
   # PHASE 1: PARALLEL RESEARCH WORKERS (Multi-Runner Scaling)
   research-workers:
@@ -97,16 +113,32 @@ jobs:
           QWEB_API_KEY: ${{ secrets.QWEB_API_KEY }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}"
+          INPUT_FREQ: ${{ github.event.inputs.frequency || 'monthly' }}
         run: |
-          FREQ="${{ github.event.inputs.frequency || 'monthly' }}"
+          # [V16.2] Sovereign Event Hardening: Deterministic Frequency & Mode Mapping
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            case "${{ github.event.schedule }}" in
+              "0 5 * * *") FREQ="daily" ;;
+              "0 6 * * 1") FREQ="weekly" ;;
+              "30 7 1 * *") FREQ="monthly" ;;
+              *) FREQ="daily" ;;
+            esac
+          else
+            FREQ="${{ github.event.inputs.frequency || 'daily' }}"
+          fi
+          
           MODEL="${{ github.event.inputs.model || 'auto' }}"
-          node scripts/generate-institutional-tome.js --freq=$FREQ --type=article --mode=worker --vertical=${{ matrix.vertical }} --model=$MODEL
+          MODE="worker"  # Force worker mode for parallel research phase
+          TYPE="${{ github.event.inputs.type || 'article' }}"
+          
+          echo "🚀 Starting Parallel Research [$FREQ] [$MODE] [Vertical: ${{ matrix.vertical }}]"
+          node scripts/generate-institutional-tome.js --freq=$FREQ --type=$TYPE --mode=$MODE --vertical=${{ matrix.vertical }} --model=$MODEL
       
       - name: Upload Sector Fragment Artifact
         uses: actions/upload-artifact@v4
         with:
           name: sector-${{ matrix.vertical }}
-          path: manuscripts/v7/sectors/swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}_${{ matrix.vertical }}.json
+          path: manuscripts/v7/sectors/*_${{ matrix.vertical }}.json
           retention-days: 1
 
   # PHASE 2: CONSOLIDATION & DISPATCH (Sovereign Synthesis)
@@ -154,17 +186,36 @@ jobs:
           OLLAMA_PROD_URL: ${{ secrets.NGROK_REMOTE_URL }}
           OLLAMA_PROD_KEY: ${{ secrets.OLLAMA_PROD_KEY }}
           # [V16.1] Consolidated Archival Telemetry
-          SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}"
+          SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'daily' }}-${{ github.run_id }}"
         run: |
-          FREQ="${{ github.event.inputs.frequency || 'monthly' }}"
-          MODEL="${{ github.event.inputs.model || 'auto' }}"
-          
-          if [ "$FREQ" == "hourly" ]; then
-             # Fast Pulse: Single runner
-             node scripts/generate-briefing.js --freq=$FREQ
+          # [V16.2] Sovereign Event Hardening: Final Synthesis
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            case "${{ github.event.schedule }}" in
+              "0 5 * * *") FREQ="daily" ;;
+              "0 6 * * 1") FREQ="weekly" ;;
+              "30 7 1 * *") FREQ="monthly" ;;
+              *) FREQ="daily" ;;
+            esac
           else
-             # Daily, Weekly, Monthly: Parallel Reengineering
-             node scripts/generate-institutional-tome.js --freq=$FREQ --type=article --mode=assemble --model=$MODEL
+            FREQ="${{ github.event.inputs.frequency || 'daily' }}"
+          fi
+
+          MODEL="${{ github.event.inputs.model || 'auto' }}"
+          MODE="assemble" # Force assemble mode for consolidation phase
+          TYPE="${{ github.event.inputs.type || 'article' }}"
+          
+          export INPUT_FREQ=$FREQ
+          echo "🏰 Commencing Institutional Assembly [$FREQ] [$MODE]"
+
+          if [ "$FREQ" == "hourly" ]; then
+             node scripts/generate-briefing.js --freq="$FREQ"
+          else
+             # [V16.2] Sequential Assembly Pass
+             node scripts/generate-institutional-tome.js --freq=$FREQ --type=$TYPE --mode=$MODE --model=$MODEL
+             
+             # [V16.1] Institutional PDF Rendering Pass
+             echo "📑 Initiating PDF Reproduction..."
+             node scripts/generate-pdf.js
           fi
 
       - name: Commit and Push Results

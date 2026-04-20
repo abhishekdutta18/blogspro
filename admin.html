@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.gstatic.com https://browser.sentry-cdn.com https://www.clarity.ms https://*.clarity.ms blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; font-src https://fonts.gstatic.com; img-src * data: blob:; connect-src *;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.gstatic.com https://browser.sentry-cdn.com https://www.clarity.ms https://*.clarity.ms blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; font-src https://fonts.gstatic.com; img-src * data: blob:; connect-src 'self' https://blogspro-auth.abhishek-dutta1996.workers.dev https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://www.googleapis.com https://sentry.io https://*.sentry.io https://www.google-analytics.com https://analytics.google.com https://*.clarity.ms https://www.googletagmanager.com https://firebaseapp.com https://*.firebaseio.com;">
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Dashboard — BlogsPro</title>
@@ -25,13 +25,18 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DED9GTRR3E');</script>
   <link rel="stylesheet" href="css/admin.css" />
+  <!-- Hide page until auth check completes — prevents flash of admin content for non-admins -->
+  <style>body { visibility: hidden; }</style>
   <!-- Production Proxy Services -->
   <script type="module">
     import { api } from './js/services/api.js';
-    // IMMEDIATE AUTH GUARD
+    // IMMEDIATE AUTH GUARD — page is hidden until this resolves
     api.auth.me().then(res => {
       if (!res.authenticated || res.user?.role !== 'admin') {
-        window.location.href = 'login.html?error=unauthorized&reason=' + (res.authenticated ? (res.user?.role || 'missing_role') : 'logged_out');
+        const reason = res.authenticated ? encodeURIComponent(res.user?.role || 'missing_role') : 'logged_out';
+        window.location.href = 'login.html?error=unauthorized&reason=' + reason;
+      } else {
+        document.body.style.visibility = 'visible';
       }
     }).catch(() => {
       window.location.href = 'login.html?error=network_failure';
@@ -47,11 +52,14 @@ function toggleSidebar() {
   if (s) s.classList.toggle('open');
   if (o) o.classList.toggle('open');
 }
-function doLogout() {
-  // Use unified api.js for logout
-  import('./js/services/api.js').then(({api}) => {
-    api.auth.logout().then(() => window.location.href = 'login.html');
-  });
+async function doLogout() {
+  try {
+    const { api } = await import('./js/services/api.js');
+    await api.auth.logout();
+  } catch (_) {
+    // Token already cleared locally by api.auth.logout; redirect regardless
+  }
+  window.location.href = 'login.html';
 }
 // Guard functions for AI drawer — will be overridden by ai-drawer.js after module load
 function openAIDrawer(...args) {
@@ -69,19 +77,12 @@ function switchDrawerTab(tab) {
   if (window._switchDrawerTab) window._switchDrawerTab(tab);
 }
 
-// ── V4.6 Diagnostic: Unified Proxy Health Check ────────
+// ── Integration badge — auth guard above already confirmed we're online ────
 window.addEventListener('load', () => {
   const badge = document.getElementById('integrationBadgeAdmin');
   const text  = document.getElementById('integrationBadgeAdminText');
-
-  import('./js/services/api.js').then(({api}) => {
-    api.auth.me().then(res => {
-      if (res.authenticated) {
-        badge.style.background = 'var(--emerald)';
-        text.textContent = 'Integrations: ONLINE';
-      }
-    });
-  });
+  if (badge) badge.style.background = 'var(--emerald)';
+  if (text)  text.textContent = 'Integrations: ONLINE';
 });
 </script>
 
@@ -254,10 +255,10 @@ window.addEventListener('load', () => {
           </div>
           <div class="toggle-row">
             <div>
-              <div style="font-size:0.92rem;font-weight:600;color:var(--cream)">AI Audio Briefings</div>
-              <div id="siteAudioStatus" style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Loading setting...</div>
+              <div style="font-size:0.92rem;font-weight:600;color:var(--cream)">Gemini Strategic Reasoning</div>
+              <div id="geminiStatus" style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Loading setting...</div>
             </div>
-            <div class="toggle-switch" id="siteAudioSwitch" onclick="toggleSiteAudio()">
+            <div class="toggle-switch" id="geminiSwitch" onclick="toggleGemini()">
               <div class="toggle-track"></div>
               <div class="toggle-dot"></div>
             </div>
@@ -1732,5 +1733,28 @@ window.addEventListener('load', () => {
     });
   </script>
   <script type="module" src="js/terminal-dispatch.js"></script>
+  <script type="module">
+    import { savePost } from './js/posts.js';
+    import { api } from './js/services/api.js';
+    import { showToast } from './js/config.js';
+    window.savePostAndNotify = async () => {
+      await savePost(true);
+      try {
+        const titleEl = document.getElementById('postTitle');
+        const excerptEl = document.getElementById('postExcerpt');
+        const title = titleEl?.value?.trim() || 'New Post';
+        const excerpt = excerptEl?.value?.trim() || '';
+        await api.public.subscribe && api.data.newsletter.blasts.save({
+          subject: title,
+          body: excerpt,
+          sentAt: new Date().toISOString(),
+          auto: true,
+        });
+        showToast('Published and newsletter queued!', 'success');
+      } catch (e) {
+        showToast('Published, but newsletter failed: ' + e.message, 'error');
+      }
+    };
+  </script>
 </body>
 </html>

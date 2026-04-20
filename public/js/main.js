@@ -76,9 +76,10 @@ async function boot() {
   } catch (err) {
     window.Sentry?.captureException(err);
     setAdminIntegrationStatus("degraded", "Integrations: Degraded");
+    const _escHtml = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     document.body.innerHTML =
       '<div style="padding:2rem;color:#fca5a5;font-family:sans-serif">' +
-      '<h2>BlogsPro failed to load</h2><p>' + err.message + '</p>' +
+      '<h2>BlogsPro failed to load</h2><p>' + _escHtml(err.message) + '</p>' +
       '<button onclick="location.reload()" style="margin-top:1rem;padding:0.5rem 1rem;cursor:pointer">Retry</button>' +
       '</div>';
     console.error('[boot] fatal:', err);

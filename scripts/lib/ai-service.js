@@ -3,7 +3,8 @@
 import { pushSovereignTrace } from "./storage-bridge.js";
 import { VERTICALS } from "./prompts.js";
 import { Cerebras } from "@cerebras/cerebras_cloud_sdk";
-import { pushTelemetryLog } from "./storage-bridge.js"; // REST-based for Worker compatibility
+import { pushTelemetryLog, saveToCloudBucket } from "./storage-bridge.js"; // REST-based for Worker compatibility
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import { fetchDynamicNews, fetchFullPageContent, fetchDocument } from "./data-fetchers.js";
 
@@ -20,22 +21,21 @@ const normalizeEnv = () => {
     process.env.QWEB_API_KEY = process.env.QWEB_API_KEY || process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY || process.env.QWEB_KEY;
     process.env.CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN || process.env.CF_API_TOKEN || process.env.CF_API_KEY;
     process.env.CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID || process.env.CLOUDFLARE_ACCOUNT_ID; 
+    process.env.GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY || process.env.GOOGLE_API_KEY;
 };
-// normalizeEnv(); // DEFERRED: Now called during ResourceManager.init to avoid race conditions
 
 /**
  * [V6.2] Deprecation Shield: Maps retired model strings to their contemporary stable replacements.
- * Handled in a single pass to ensure all handlers benefit from the migration.
  */
 function mapLegacyModel(model) {
     if (!model) return model;
     const lower = model.toLowerCase();
     
-    // 1. Gemini Migration (Purged)
-    // Legacy mapping removed. All requests now route to Llama-based fleet.
+    // 1. Gemini Migration
+    if (lower.includes('gemini-pro')) return "gemini-1.5-pro";
+    if (lower.includes('gemini-flash')) return "gemini-1.5-flash";
 
-
-    // 2. Llama Migration (3.1/3.3 -> 4.0 [REVERTED: 404 on providers])
+    // 2. Llama Migration (3.1/3.3 -> 4.0)
     if (lower.includes('llama-3.1') || lower.includes('llama-3.3') || lower.includes('llama3')) {
         if (lower.includes('405b')) return "Meta-Llama-3.1-405B-Instruct-v2";
         if (lower.includes('70b')) return "llama-3.3-70b";
@@ -44,7 +44,7 @@ function mapLegacyModel(model) {
     }
 
     // 3. DeepSeek Migration
-    if (lower.includes('deepseek-v3')) return "DeepSeek-V3"; // Fixed: Removed hallucinated V4 projected lineage
+    if (lower.includes('deepseek-v3')) return "DeepSeek-V3";
 
     return model;
 }
@@ -55,7 +55,6 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
 
     // Sanitization: Ensure model is valid for Groq
     if (model === "llama3.1-8b") model = "llama-3.1-8b-instant";
-    // Only reset to default if the model isn't a recognized Groq-compatible model
     const groqCompatible = ['llama', 'mixtral', 'gemma', 'whisper', 'distil-'];
     if (!groqCompatible.some(prefix => model?.toLowerCase().includes(prefix))) {
         model = "llama-3.3-70b-versatile";
@@ -64,42 +63,9 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120000);
     const tools = [
-        {
-            type: "function",
-            function: {
-                name: "search_web",
-                description: "Search the internet for real-time 2026 market data or institutional news.",
-                parameters: {
-                    type: "object",
-                    properties: { query: { type: "string" } },
-                    required: ["query"]
-                }
-            }
-        },
-        {
-            type: "function",
-            function: {
-                name: "read_page",
-                description: "Read the full text content of a specific URL to extract deeper details.",
-                parameters: {
-                    type: "object",
-                    properties: { url: { type: "string" } },
-                    required: ["url"]
-                }
-            }
-        },
-        {
-            type: "function",
-            function: {
-                name: "vision_parse",
-                description: "Extract text, tables, and quantitative data from a PDF or Image URL (OCR).",
-                parameters: {
-                    type: "object",
-                    properties: { url: { type: "string" } },
-                    required: ["url"]
-                }
-            }
-        }
+        { type: "function", function: { name: "search_web", description: "Search the internet.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
+        { type: "function", function: { name: "read_page", description: "Read URL.", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } },
+        { type: "function", function: { name: "vision_parse", description: "OCR.", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } }
     ];
 
     const messages = [{ role: "user", content: prompt }];
@@ -108,21 +74,11 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
         let res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             signal: controller.signal,
-            headers: {
-                "Authorization": `Bearer ${key}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model,
-                messages,
-                tools,
-                tool_choice: "auto",
-                temperature: 0.2
-            })
+            headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ model, messages, tools, tool_choice: "auto", temperature: 0.2 })
         });
         let data = await res.json();
         
-        // --- TOOL CALL HANDLING LOOP ---
         const maxCalls = 5;
         let callCount = 0;
         while (data.choices?.[0]?.message?.tool_calls && callCount < maxCalls) {
@@ -140,17 +96,12 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
                     messages.push({ role: "tool", tool_call_id: toolCall.id, content: pageText });
                 } else if (toolCall.function.name === "vision_parse") {
                     const args = JSON.parse(toolCall.function.arguments);
-                    // Standard: fetchDocument is imported from ./data-fetchers.js
                     const doc = await fetchDocument(args.url);
                     if (doc) {
-                    console.log(`👁️ [Groq-Vision Bridge] Requesting High-Fidelity OCR (Llama-4-70B)...`);
-                    const ocrResult = await generateGroqContent(`
-                        TASK: Extract all institutional metrics, tables, and financial data.
-                        CHART RULE: Identify any charts, plots, or data series. If found, format them EXACTLY as a JSON array: [["Label", Value], ...].
-                        Output the raw data first, then the JSON chart blocks.
-                    `, "llama-3.1-70b-versatile", { 
-                        ...context, vision_payload: doc 
-                    });
+                        const ocrResult = await generateGroqContent(`
+                            TASK: Extract all institutional metrics, tables, and financial data.
+                            CHART RULE: Identify any charts, plots, or data series.
+                        `, "llama-3.1-70b-versatile", { ...context, vision_payload: doc });
                         messages.push({ role: "tool", tool_call_id: toolCall.id, content: ocrResult });
                     } else {
                         messages.push({ role: "tool", tool_call_id: toolCall.id, content: "Error: Document unreachable." });
@@ -166,19 +117,7 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
         }
 
         if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
-        
-        if (data.error && (data.error.code === "rate_limit_exceeded" || data.error.message?.toLowerCase().includes('rate limit') || data.error.message?.includes('TPD') || data.error.message?.includes('TPM') || data.error.message?.includes('tokens per'))) {
-            console.warn(`⏳ Groq Rate/Size Limit. Error: ${data.error.message}`);
-            // If 70b is too large or rate limited, fallback to 8b
-            if (model.includes("70b")) {
-                console.log(`🔄 Falling back to 8b-instant immediately...`);
-                return generateGroqContent(prompt, "llama-3.1-8b-instant", context);
-            }
-            throw new Error(`RATE_LIMIT:429`);
-        }
-
-        console.error("❌ Groq API Fail Details:", JSON.stringify(data));
-        throw new Error(`Groq API Error: ${data.error?.message || "Rate limit or exhaustion"}`);
+        throw new Error(`Groq API Error: ${data.error?.message || "Unknown error"}`);
     } catch (err) {
         throw err;
     } finally {
@@ -186,312 +125,48 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
     }
 }
 
-async function generateKimiContent(prompt) {
-    if (!process.env.KIMI_API_KEY) throw new Error("KIMI_API_KEY missing.");
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120000);
-    try {
-        const res = await fetch("https://api.moonshot.cn/v1/chat/completions", {
-            method: "POST",
-            signal: controller.signal,
-            headers: {
-                "Authorization": `Bearer ${process.env.KIMI_API_KEY}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: "moonshot-v1-8k",
-                messages: [{ role: "user", content: prompt }],
-                temperature: 0.3
-            })
-        });
-        const data = await res.json();
-        if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
-        console.error("❌ Kimi API Fail Details:", JSON.stringify(data));
-        throw new Error(`Kimi API Error: ${data.error?.message || "Unknown error"}`);
-    } catch (err) {
-        throw err;
-    } finally {
-        clearTimeout(timeout);
+async function generateGeminiContent(prompt, model = "gemini-1.5-flash", context = {}) {
+    const key = context?.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
+    if (!key) throw new Error("GEMINI_API_KEY missing.");
+
+    let models = ["gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash"];
+    if (model?.includes('gemini')) {
+        models = [model, ...models.filter(m => m !== model)];
     }
-}
-
-// generateGeminiContent Purged 2026-04-13. 
-// Institutional policy forbids Google AI dependency. 
-// Use generateSambaNovaContent or generateCerebrasContent instead.
-
-
-/**
- * Echo Detector: Identifies if the AI output is actually the prompt itself.
- */
-function isEcho(content) {
-    if (content === undefined || content === null) return false;
-    const tokens = ["GLOBAL TEMPORAL GROUNDING", "INSTITUTIONAL_PERSONA", "QUANTITATIVE DRAFTER"];
-    return tokens.some(t => content.includes(t));
-}
-
-/**
- * Emergency Fallback: If no LLM is available to audit/sanitize, 
- * use regex to at least strip the most dangerous system leakage.
- */
-function localRegexAudit(content) {
-    console.log("🛠️ Applying Ultra-Hardened Emergency Local Regex Audit...");
-    return content
-        .replace(/REMOVE all markdown backticks[\s\S]*?institutional blocks\./gi, '')
-        .replace(/CONTENT: Clean this institutional market report for terminal delivery\./gi, '')
-        .replace(/<rule-check>[\s\S]*?<\/rule-check>/gi, '')
-        .replace(/--- SYSTEM CONTEXT ---[\s\S]*?--- (TOP NEWS|KEY DATA|UNIVERSAL NEWS) ---[\s\S]*?\n\s*\n/gi, '')
-        .replace(/JSON must use DOUBLE QUOTES[^\n]*/gi, '')
-        .replace(/^(Here is|In this|This is|Below is|Clean this|As an institutional)[^\n]*/gim, '')
-        .trim();
-}
-
-/**
- * [V15.8] Content Integrity Audit
- * Detects if a response is actually an HTML error page or a 404/Null state.
- */
-function isValidIntelligence(text) {
-    if (!text || text.length < 15) return false;
-    const lower = text.toLowerCase();
-    if (lower.includes('<!doctype html>')) return false;
-    if (lower.includes('<html')) return false;
-    if (lower.includes('404 Not Found')) return false;
-    if (lower.includes('502 Bad Gateway')) return false;
-    return true;
-}
-
-/**
- * [V15.3] Direct-Dial Anchor: The 'Hail Mary' pass for total swarm fleet exhaustion.
- * Bypasses all balancers, bridges, and local cascades to hit the API directly.
- */
-async function directDialAnchor(prompt, model, role, env) {
-    console.log(`🛰️ [Direct-Dial] Fleet exhausted. Initiating emergency direct-to-provider handshake...`);
     
-    // [V15.7] Sovereign Fallback Priority
-    const fallbacks = [
-        { name: "SambaNova", fn: generateSambaNovaContent, key: env?.SAMBANOVA_API_KEY || process.env.SAMBANOVA_API_KEY, model: "Meta-Llama-3.1-405B-Instruct-v2" },
-        { name: "Cerebras", fn: generateCerebrasContent, key: env?.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY, model: "llama-3.3-70b" },
-        { name: "Groq", fn: (p, m, c) => generateGroqContent(p, "llama-3.3-70b-versatile", c), key: env?.GROQ_API_KEY || process.env.GROQ_API_KEY, model: "llama-3.3-70b-versatile" },
-        { name: "HuggingFace", fn: generateHuggingFaceContent, key: env?.HF_TOKEN || process.env.HF_TOKEN, model: "mistralai/Mistral-7B-Instruct-v0.3" }
-    ];
+    await sleep(Math.floor(Math.random() * 1000) + 500);
 
-    for (const fb of fallbacks) {
-        if (fb.key && !fb.key.includes('1_2_3_4_5') && fb.key.length > 20) {
-            try {
-                console.log(`🎯 [Direct-Dial] Attempting Direct ${fb.name} Handshake (Model: ${fb.model})...`);
-                const response = await fb.fn(prompt, fb.model, env);
-                if (isValidIntelligence(response)) return response;
-                console.warn(`⚠️ [Direct-Dial] ${fb.name} returned invalid/corrupted intelligence.`);
-            } catch (err) {
-                console.warn(`⚠️ [Direct-Dial] ${fb.name} handshake failed: ${err.message}`);
+    for (const modelName of models) {
+        try {
+            console.log(`🔍 [Gemini-Fleet] Attempting via ${modelName}...`);
+            const genAI = new GoogleGenerativeAI(key);
+            const genModel = genAI.getGenerativeModel({ model: modelName });
+            
+            let initialContent = prompt;
+            if (context.vision_payload) {
+                initialContent = [
+                    prompt,
+                    { inlineData: { data: context.vision_payload.base64, mimeType: context.vision_payload.mimeType } }
+                ];
             }
+
+            const result = await genModel.generateContent(initialContent);
+            const response = await result.response;
+            return response.text();
+        } catch (err) {
+            console.warn(`❌ [Gemini-Fleet] ${modelName} failed: ${err.message}`);
+            if (err.message.includes('429') || err.message.includes('quota') || err.message.includes('404')) continue;
+            throw err;
         }
     }
-
-    throw new Error("FLEET_RECOVERY_FAILED");
+    throw new Error("GEMINI_FLEET_EXHAUSTED");
 }
 
-// Purged: Ghost Simulation (Fraudulent fallback)
-
-
-async function generateMistralContent(prompt, model = "mistral-large-latest", context = {}) {
-    const key = context?.MISTRAL_API_KEY || process.env.MISTRAL_KEY || process.env.MISTRAL_API_KEY;
-    if (!key) throw new Error("MISTRAL_API_KEY missing.");
-
-    // Sanitization: Ensure model is valid for Mistral
-    if (!model?.includes('mistral') && !model?.includes('open-mixtral')) {
-        model = "mistral-large-latest";
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120000);
-    try {
-        const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
-            method: "POST",
-            signal: controller.signal,
-            headers: {
-                "Authorization": `Bearer ${key}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model,
-                messages: [{ role: "user", content: prompt }],
-                temperature: 0.1
-            })
-        });
-        if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(`Mistral Error: ${res.status} ${errText}`);
-        }
-        const data = await res.json();
-        if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
-        throw new Error(`Mistral Error: Empty choices`);
-    } catch (err) {
-        throw err;
-    } finally {
-        clearTimeout(timeout);
-    }
-}
-
-async function generateTogetherContent(prompt, model = "meta-llama/Llama-3-70b-chat-hf", context = {}) {
-    const key = context?.TOGETHER_API_KEY || process.env.TOGETHER_KEY || process.env.TOGETHER_API_KEY;
-    if (!key) throw new Error("TOGETHER_API_KEY missing.");
-
-    // Sanitization
-    if (!model?.includes('/') && !model?.includes('llama')) {
-        model = "meta-llama/Llama-3-70b-chat-hf";
-    }
-
-    const res = await fetch("https://api.together.xyz/v1/chat/completions", {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${key}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            model,
-            messages: [{ role: "user", content: prompt }],
-            temperature: 0.2
-        })
-    });
-    if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Together Error: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
-    if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    throw new Error(`Together Error: Empty choices`);
-}
-
-async function generateDeepInfraContent(prompt, model = "meta-llama/Meta-Llama-3-8B-Instruct", context = {}) {
-    const key = context?.DEEPINFRA_API_KEY || process.env.DEEPINFRA_KEY || process.env.DEEPINFRA_API_KEY;
-    if (!key) throw new Error("DEEPINFRA_API_KEY missing.");
-
-    // Sanitization
-    if (!model?.includes('/') && !model?.includes('llama')) {
-        model = "meta-llama/Meta-Llama-3-8B-Instruct";
-    }
-
-    const res = await fetch("https://api.deepinfra.com/v1/openai/chat/completions", {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${key}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            model,
-            messages: [{ role: "user", content: prompt }]
-        })
-    });
-    if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`DeepInfra Error: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
-    if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    throw new Error(`DeepInfra Error: Empty choices`);
-}
-
-async function generateOpenRouterContent(prompt, model = "anthropic/claude-3.5-sonnet", context = {}) {
-    const key = context?.OPENROUTER_KEY || process.env.OPENROUTER_KEY;
-    if (!key) throw new Error("OPENROUTER_KEY missing.");
-
-    // Sanitization
-    if (!model?.includes('/') && !model?.includes('anthropic') && !model?.includes('openai') && !model?.includes('google')) {
-        model = "anthropic/claude-3.5-sonnet";
-    }
-
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${String(key).trim()}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://blogspro.in",
-            "X-Title": "BlogsPro Swarm"
-        },
-        body: JSON.stringify({
-            model,
-            messages: [{ role: "user", content: prompt }],
-            temperature: 0.1
-        })
-    });
-    if (!res.ok) {
-        const errText = await res.text();
-        if (res.status === 402 || errText.includes('credits') || errText.includes('balance')) {
-            throw new Error("OPENROUTER_CREDIT_EXHAUSTED");
-        }
-        throw new Error(`OpenRouter Error: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
-    if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    throw new Error(`OpenRouter Error: Empty choices`);
-}
-
-async function generateGithubContent(prompt, model = "gpt-4o-mini", context = {}) {
-    const key = context?.GITHUB_TOKEN || process.env.GITHUB_TOKEN;
-    if (!key) throw new Error("GITHUB_TOKEN missing.");
-
-    // Sanitization
-    if (!model?.includes('-')) {
-        model = "gpt-4o-mini";
-    }
-
-    const res = await fetch("https://models.inference.ai.azure.com/chat/completions", {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${key}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            model,
-            messages: [{ role: "user", content: prompt }],
-            temperature: 0.5
-        })
-    });
-    if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`GitHub Models Error: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
-    if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    throw new Error(`GitHub Models Error: ${JSON.stringify(data)}`);
-}
-
-async function generateCloudflareContent(prompt, model = "@cf/meta/llama-3-8b-instruct", context = {}) {
-    const key = context?.CLOUDFLARE_API_TOKEN || context?.CF_API_TOKEN || process.env.CLOUDFLARE_API_TOKEN || process.env.CF_API_TOKEN;
-    const accountId = context?.CF_ACCOUNT_ID || process.env.CF_ACCOUNT_ID;
-    if (!key || !accountId) throw new Error("Cloudflare keys missing.");
-
-    // Sanitization
-    if (!model?.includes('@cf')) {
-        model = "@cf/meta/llama-3-8b-instruct";
-    }
-
-    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${key}` },
-        body: JSON.stringify({
-            messages: [{ role: "user", content: prompt }]
-        })
-    });
-    if (!res.ok) {
-        const errText = await res.text();
-        if (res.status === 401) {
-            throw new Error(`Cloudflare AI 401: Unauthorized. Please check if CF_API_TOKEN has 'Workers AI: Edit' permissions for Account ${accountId}.`);
-        }
-        throw new Error(`Cloudflare Error: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
-    if (data.success && data.result) return data.result.response;
-    throw new Error(`Cloudflare AI Error: ${JSON.stringify(data)}`);
-}
-
-async function generateSambaNovaContent(prompt, model = "Meta-Llama-4-70B-Instruct", context = {}) {
+async function generateSambaNovaContent(prompt, model = "Meta-Llama-3.1-405B-Instruct-v2", context = {}) {
     const key = context?.SAMBANOVA_API_KEY || process.env.SAMBANOVA_API_KEY;
     if (!key) throw new Error("SAMBANOVA_API_KEY missing.");
 
-    // [V6.2] Shield Activation
-    const targetModel = mapLegacyModel(model) || "Meta-Llama-4-70B-Instruct";
-
+    const targetModel = mapLegacyModel(model) || "Meta-Llama-3.1-405B-Instruct-v2";
     const res = await fetch("https://api.sambanova.ai/v1/chat/completions", {
         method: "POST",
         headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
@@ -501,255 +176,33 @@ async function generateSambaNovaContent(prompt, model = "Meta-Llama-4-70B-Instru
             temperature: 0.1
         })
     });
-
-    if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`SambaNova Error: ${res.status} ${errText}`);
-    }
-
+    if (!res.ok) throw new Error(`SambaNova Error: ${res.status}`);
     const data = await res.json();
-    if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    throw new Error(`SambaNova Error: Empty choices`);
+    return data.choices[0].message.content;
 }
 
-/**
- * [V7.2] Institutional AI Bridge (Cloudflare Worker Proxy)
- * Bypasses local 'Placeholder Key' limitations by routing to the edge.
- */
-async function generateInstitutionalBridgeContent(prompt, model, context = {}) {
-    // [V12.2] Adaptive Infrastructure Discovery
-    let bridgeUrl = process.env.SWARM_AI_BRIDGE;
-    
-    if (!bridgeUrl) {
-        // Probe Pattern: If we know the project name, we can guess the worker URL
-        const projectId = process.env.FIREBASE_PROJECT_ID || "blogspro";
-        // V15.7: Secondary candidate discovery (Pulse-V2)
-        const candidateUrl = `https://${projectId}-pulse.abhishek-dutta1996.workers.dev/ai-gateway`;
-        const v2Url = `https://${projectId}-pulse.abhishek-dutta1996.workers.dev/ai`;
-        const fallbackUrl = "https://blogspro-pulse.abhishek-dutta1996.workers.dev/ai-gateway";
-        
-        // Initial handshake to prioritize the candidate
-        bridgeUrl = fallbackUrl; // Global Institutional Standard
-        console.log(`📡 [AI-Bridge-Probe] Auto-Discovery active. Targeting: ${bridgeUrl}`);
-    }
-
-    const masterKey = process.env.VAULT_MASTER_KEY;
-    if (!masterKey) throw new Error("VAULT_MASTER_KEY missing. Local-to-Edge Bridge disabled.");
-
-    // Model Mapping: Map node roles to edge providers
-    let provider = 'groq';
-    const lModel = model?.toLowerCase() || "";
-
-    if (lModel.includes('huggingface') || lModel.includes('hf') || lModel.includes('mistral')) provider = 'huggingface';
-    if (lModel.includes('samba') || lModel.includes('deepseek') || lModel.includes('1t')) provider = 'sambanova';
-
-    console.log(`🛰️ [AI-Bridge] Requesting ${provider}/${model} via Cloudflare Edge...`);
-
-    const res = await fetch(bridgeUrl, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-Vault-Auth": masterKey
-        },
-        body: JSON.stringify({ prompt, model, provider })
-    });
-
-    if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`AI-Bridge Error: ${res.status} ${errText}`);
-    }
-
-    // [V15.8] HARDENED: Verify that the bridge returned valid JSON, not a 404 HTML page
-    const contentType = res.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-        const sniff = await res.text();
-        if (isValidIntelligence(sniff)) {
-             // If it's pure text but valid (unlikely for the bridge), maybe it's okay? 
-             // No, the bridge MUST return JSON.
-        }
-        throw new Error(`AI-Bridge Error: Expected JSON, got ${contentType}. Possible 404/HTML leakage.`);
-    }
-
-    const data = await res.json();
-    if (data.success && data.response) {
-        if (!isValidIntelligence(data.response)) {
-            throw new Error("AI-Bridge Error: Response failed content-integrity audit (detected HTML or corruption).");
-        }
-        return data.response;
-    }
-    throw new Error(`AI-Bridge Error: ${data.error || "Malformed bridge response"}`);
-}
-
-async function generateCerebrasContent(prompt, model = "llama-4-8b", context = {}) {
+async function generateCerebrasContent(prompt, model = "llama-3.3-70b", context = {}) {
     const key = context?.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY;
     if (!key) throw new Error("CEREBRAS_API_KEY missing.");
-
-    // [V6.2] Shield Activation
-    const targetModel = mapLegacyModel(model) || "llama-4-70b";
-
-    try {
-        const client = new Cerebras({ apiKey: key });
-        // V6.2 INSTITUTIONAL UPGRADE: Llama 4 Series 
-        console.log(`🚀 [Cerebras] Dispatching ${targetModel} for role: ${context.role || 'generic'}...`);
-
-        const completion = await client.chat.completions.create({
-            messages: [{ role: "user", content: prompt }],
-            model: targetModel,
-            max_completion_tokens: 2048,
-            temperature: 0.2,
-            top_p: 1,
-            stream: false
-        });
-
-        if (completion.choices && completion.choices.length > 0) {
-            return completion.choices[0].message.content;
-        }
-        throw new Error("Cerebras returned an empty response.");
-    } catch (err) {
-        if (err.message?.includes('401') || err.message?.includes('Unauthorized') || err.message?.includes('API key not valid')) {
-            throw new Error("CEREBRAS_PERMISSION_DENIED");
-        }
-        throw new Error(`Cerebras Error: ${err.message}`);
-    }
-}
-
-// Purged: Ollama and Local Cascade logic
-
-
-async function generateHuggingFaceContent(prompt, model = "mistralai/Mistral-7B-Instruct-v0.3", context = {}) {
-    const key = context?.HF_TOKEN || process.env.HF_TOKEN;
-    if (!key) throw new Error("HF_TOKEN missing.");
-
-    // MARCH 2026 UPDATE: Using router.huggingface.co for institutional stability
-    const res = await fetch(`https://router.huggingface.co/hf/v1/chat/completions`, {
-        method: "POST",
-        headers: { 
-            "Authorization": `Bearer ${key}`, 
-            "Content-Type": "application/json" 
-        },
-        body: JSON.stringify({
-            model: model,
-            messages: [{ role: "user", content: prompt }]
-        })
+    const targetModel = mapLegacyModel(model) || "llama-3.3-70b";
+    const client = new Cerebras({ apiKey: key });
+    const completion = await client.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        model: targetModel,
+        temperature: 0.2
     });
-    if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`HuggingFace Error: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
-    if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    throw new Error(`HuggingFace Error: ${JSON.stringify(data)}`);
+    return completion.choices[0].message.content;
 }
 
-async function generateQwenContent(prompt, model = "qwen-2.5-72b-instruct", context = {}) {
-    const key = context?.QWEB_API_KEY || process.env.QWEB_API_KEY;
-    if (!key) throw new Error("QWEB_API_KEY missing.");
-
-    // Using OpenAI-compatible DashScope or Together endpoint
-    const res = await fetch("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-            model: "qwen-2.5-72b-instruct",
-            messages: [{ role: "user", content: prompt }]
-        })
-    });
-    if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Qwen/Qweb Error: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
-    if (data.choices && data.choices.length > 0) return data.choices[0].message.content;
-    throw new Error(`Qwen/Qweb Error: ${JSON.stringify(data)}`);
-}
-
-
-/**
- * 🛰️ [V15.5] Vault Secret Retrieval
- * Fetches real API keys from the Cloudflare Pulse Vault using the Master Key.
- */
-async function fetchVaultSecrets(env = {}) {
-    // [V15.5] Support both passed env and global process.env
-    const bridgeUrl = env.SWARM_AI_BRIDGE || process.env.SWARM_AI_BRIDGE;
-    const masterKey = env.VAULT_MASTER_KEY || process.env.VAULT_MASTER_KEY;
-
-    if (!bridgeUrl || !masterKey) {
-        return null;
-    }
-
-    const vaultUrl = bridgeUrl.replace('/ai-gateway', '/vault');
-    console.log(`📡 [AI-Vault] Attempting secret retrieval from: ${vaultUrl.substring(0, 30)}...`);
-
-    try {
-        const res = await fetch(vaultUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Vault-Auth': masterKey
-            }
-        });
-
-        if (!res.ok) {
-            console.warn(`⚠️ [AI-Vault] Handshake failed: ${res.status} ${res.statusText}`);
-            return null;
-        }
-
-        const data = await res.json();
-        if (data.status === 'authenticated' && data.secrets) {
-            console.log(`✅ [AI-Vault] Secrets Synchronized. [Keys: ${Object.keys(data.secrets).join(', ')}]`);
-            return data.secrets;
-        }
-        return null;
-    } catch (e) {
-        console.warn(`⚠️ [AI-Vault] Connectivity Error: ${e.message}`);
-        return null;
-    }
-}
-
-// --- INSTITUTIONAL AI RESOURCE MANAGER ---
+// --- Balancer and Dispatch Logic ---
 export const ResourceManager = {
     pool: [],
-    runCount: 0,
-    inflight: new Map(),
-    cooldowns: new Map(), // Rate-limit cooldowns (Short-term)
-    failed: new Set(),    // Terminal blacklisted nodes
-    failedAt: new Map(),  // Timestamp of terminal failure for self-healing
-    
-    // BlogsPro V5.4.1 Resilience Tuning
-    RECOVERY_TTL: 3600000, // 60 minutes self-healing threshold
+    cooldowns: new Map(),
+    failed: new Set(),
     
     async init(env = {}, forceRefresh = false) {
         if (this.pool.length > 0 && !forceRefresh) return;
-
-        console.log("🔍 [AI-Balancer] Initializing BlogsPro Institutional AI Balancer...");
-        
-        // Ensure environment is normalized BEFORE using it. 
         normalizeEnv();
-
-        // [V15.5] Institutional Vault Pre-flight
-        const fetchedSecrets = await fetchVaultSecrets(env);
-        if (fetchedSecrets) {
-            // Hot-patch the environment with real secrets (mapped to .env keys)
-            // if (fetchedSecrets.GEMINI) env.GEMINI_API_KEY = fetchedSecrets.GEMINI; // Purged
-            if (fetchedSecrets.GROQ) env.GROQ_API_KEY = fetchedSecrets.GROQ;
-            if (fetchedSecrets.MISTRAL) env.MISTRAL_API_KEY = fetchedSecrets.MISTRAL;
-            if (fetchedSecrets.SAMBANOVA) env.SAMBANOVA_API_KEY = fetchedSecrets.SAMBANOVA;
-            if (fetchedSecrets.HUGGINGFACE) env.HF_TOKEN = fetchedSecrets.HUGGINGFACE;
-            if (fetchedSecrets.OLLAMA_PROD) env.OLLAMA_PROD_URL = fetchedSecrets.OLLAMA_PROD;
-            if (fetchedSecrets.GH_PAT) env.GH_PAT = fetchedSecrets.GH_PAT;
-        }
-        
-        this.pool = []; 
-        this.failed = new Set();
-        this.cooldowns = new Map();
-        this.inflight = new Map();
-        
-        const isPlaceholder = (k) => {
-            if (!k || typeof k !== 'string') return true;
-            const val = k.trim();
-            return val.includes('1_2_3_4_5') || 
-                   val.includes('AIzaSyA_J0') || 
-                   val.length < 15 || 
                    val.includes('REPLACE_WITH_KEY') || 
                    val.includes('YOUR_TOKEN');
         };
