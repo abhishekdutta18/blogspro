@@ -1029,6 +1029,12 @@
   </script>
 </head>
 <body>
+<script>
+  // Prevent browser from restoring a hash-based scroll position (e.g. #briefings)
+  // so the page always starts at the hero on load.
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  window.scrollTo(0, 0);
+</script>
 
 <!-- NAV -->
 <nav>
@@ -1055,6 +1061,7 @@
 <div class="hero">
   <p class="hero-label">Fintech · Compliance · Strategy</p>
   <h1>The edge is in the <em>details.</em></h1>
+
   <p class="hero-sub">Sharp analysis on financial technology, regulatory compliance, and growth strategy for practitioners who move markets.</p>
   <div class="hero-actions">
     <a href="#posts" class="btn-primary">Read Latest</a>
@@ -1195,6 +1202,22 @@
       <div id="intel-hub-root"></div>
       <!-- Institutional News Wire Slot (Added V5.5.0) -->
       <div id="institutionalNewsWire"></div>
+    </div>
+
+    <!-- Global Indices — full width -->
+    <div class="market-wrap">
+      <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
+        <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Global Indices</span>
+        <span style="font-size:0.72rem;color:var(--muted);">Americas · Europe · Asia-Pacific · India · Commodities</span>
+      </div>
+      <div id="tvIndices" class="glass-card" style="min-height: 450px; overflow: hidden; background: var(--navy2); border: 1px solid var(--border);"></div>
+
+      <!-- Advanced Interactive Chart — full width -->
+      <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
+        <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Live Chart</span>
+        <span style="font-size:0.72rem;color:var(--muted);">NIFTY 50 — NSE</span>
+      </div>
+      <div id="tvAdvChart" class="glass-card tv-chart-wrap" style="background: var(--navy2); border: 1px solid var(--border); min-height: 500px;"></div>
     </div>
 
 <!-- INDIA CALENDAR -->
@@ -2535,22 +2558,10 @@
         return ok;
       }},
       { id: 'india', fn: () => loadIndiaCalendarData() },
-      { id: 'market', fn: () => loadUpstoxMarketData({ showLoading: true }) }
-=======
-    loadTicker();       // non-blocking
-    initMarketData();   // non-blocking — market status dot + live quotes strip
-    await loadSiteSettings();
-    await loadTerminal();
-
-    // Populate allPosts for search/filter after terminal has loaded all content
-    allPosts = [
-      ...contentState.hourly,
-      ...contentState.daily,
-      ...contentState.weekly,
-      ...contentState.monthly,
-      ...contentState.posts
->>>>>>> origin/claude/fix-index-html-Hp6Lx
+      { id: 'tvTicker', fn: () => initTVTicker() },
+      { id: 'tvHub', fn: () => initTVHub() }
     ];
+
 
     const results = await Promise.allSettled(tasks.map(t => t.fn().catch(err => {
       console.warn(`[Init] Task "${t.id}" failed:`, err.message);
@@ -2574,6 +2585,309 @@
           if (adminLink) adminLink.style.display = 'block';
           const titleEl = document.getElementById('postsTitle');
           if (titleEl) titleEl.textContent = 'Institutional Strategic Ledger';
+        }
+      }
+    });
+  })();
+
+  // ── TV Widget Functions ───────────────────────────────────────────
+  function initTVTicker() {
+      const container = document.getElementById('tvTickerContainer');
+      if (!container || container.dataset.loaded) return;
+      container.innerHTML = `
+        <div class="tradingview-widget-container">
+          <div class="tradingview-widget-container__widget"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+          {
+            "symbols": [
+              {"proName": "NSE:NIFTY",        "title": "NIFTY 50"},
+              {"proName": "BSE:SENSEX",        "title": "SENSEX"},
+              {"proName": "NSE:BANKNIFTY",     "title": "BANK NIFTY"},
+              {"proName": "INDEX:SPX",         "title": "S&P 500"},
+              {"proName": "NASDAQ:NDX",        "title": "NASDAQ 100"},
+              {"proName": "INDEX:DJI",         "title": "Dow Jones"},
+              {"proName": "INDEX:DEU40",       "title": "DAX"},
+              {"proName": "INDEX:UKX",         "title": "FTSE 100"},
+              {"proName": "INDEX:NI225",       "title": "Nikkei 225"},
+              {"proName": "INDEX:HSI",         "title": "Hang Seng"},
+              {"proName": "COMEX:GC1!",        "title": "Gold"},
+              {"proName": "NYMEX:CL1!",        "title": "WTI Crude"},
+              {"proName": "CRYPTOCAP:BTC",     "title": "Bitcoin"},
+              {"proName": "FX:USDINR",         "title": "USD/INR"},
+              {"proName": "FX:EURUSD",         "title": "EUR/USD"}
+            ],
+            "showSymbolLogo": true,
+            "colorTheme": "dark",
+            "isTransparent": true,
+            "displayMode": "adaptive",
+            "locale": "en"
+          }
+          <\/script>
+        </div>`;
+      container.dataset.loaded = "true";
+  }
+
+  function initTVHub() {
+    const container = document.getElementById('tvHubContainer');
+    if (!container || container.dataset.loaded) return;
+    container.dataset.loaded = "true";
+
+    // ── Global Indices — market quotes table ───────────────────────────────
+    const indicesEl = document.getElementById('tvIndices');
+    if (indicesEl) {
+      indicesEl.innerHTML = `
+        <div class="tradingview-widget-container" style="height:100%">
+          <div class="tradingview-widget-container__widget"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js" async>
+          {
+            "title": "Major Global Indices",
+            "symbolsGroups": [
+              {
+                "name": "India",
+                "symbols": [
+                  {"name": "NSE:NIFTY",        "displayName": "NIFTY 50"},
+                  {"name": "BSE:SENSEX",        "displayName": "SENSEX"},
+                  {"name": "NSE:BANKNIFTY",     "displayName": "BANK NIFTY"},
+                  {"name": "NSE:MIDCPNIFTY",    "displayName": "NIFTY MIDCAP"},
+                  {"name": "NSE:FINNIFTY",      "displayName": "FIN NIFTY"}
+                ]
+              },
+              {
+                "name": "Americas",
+                "symbols": [
+                  {"name": "FOREXCOM:SPXUSD",   "displayName": "S&P 500"},
+                  {"name": "NASDAQ:NDX",         "displayName": "NASDAQ 100"},
+                  {"name": "INDEX:DJI",          "displayName": "Dow Jones"},
+                  {"name": "INDEX:RUT",          "displayName": "Russell 2000"},
+                  {"name": "INDEX:TSX",          "displayName": "TSX (Canada)"}
+                ]
+              },
+              {
+                "name": "Europe",
+                "symbols": [
+                  {"name": "INDEX:DEU40",        "displayName": "DAX (Germany)"},
+                  {"name": "INDEX:UKX",          "displayName": "FTSE 100 (UK)"},
+                  {"name": "INDEX:CAC40",        "displayName": "CAC 40 (France)"},
+                  {"name": "INDEX:STOXX50E",     "displayName": "Euro Stoxx 50"},
+                  {"name": "INDEX:SMI",          "displayName": "SMI (Switzerland)"}
+                ]
+              },
+              {
+                "name": "Asia-Pacific",
+                "symbols": [
+                  {"name": "INDEX:NI225",        "displayName": "Nikkei 225 (Japan)"},
+                  {"name": "INDEX:HSI",          "displayName": "Hang Seng (HK)"},
+                  {"name": "SSE:000001",         "displayName": "Shanghai Composite"},
+                  {"name": "INDEX:KOSPI",        "displayName": "KOSPI (Korea)"},
+                  {"name": "INDEX:AS51",         "displayName": "ASX 200 (Australia)"}
+                ]
+              },
+              {
+                "name": "Commodities",
+                "symbols": [
+                  {"name": "COMEX:GC1!",         "displayName": "Gold"},
+                  {"name": "COMEX:SI1!",         "displayName": "Silver"},
+                  {"name": "NYMEX:CL1!",         "displayName": "WTI Crude Oil"},
+                  {"name": "NYMEX:NG1!",         "displayName": "Natural Gas"},
+                  {"name": "TVC:DXY",            "displayName": "US Dollar Index"}
+                ]
+              }
+            ],
+            "showSymbolLogo": true,
+            "isTransparent": true,
+            "colorTheme": "dark",
+            "locale": "en"
+          }
+          <\/script>
+        </div>`;
+    }
+
+    // ── Market Overview: Indices + Crypto tabs ──────────────────────────────
+    const heatmap = document.getElementById('tvHeatmap');
+    if (heatmap) {
+      heatmap.innerHTML = `
+        <div class="tradingview-widget-container" style="height:100%">
+          <div class="tradingview-widget-container__widget" style="height:100%"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js" async>
+          {
+            "colorTheme": "dark",
+            "dateRange": "1M",
+            "showChart": true,
+            "locale": "en",
+            "isTransparent": true,
+            "showSymbolLogo": true,
+            "showFloatingTooltip": false,
+            "width": "100%",
+            "height": "100%",
+            "tabs": [
+              {
+                "title": "Indices",
+                "symbols": [
+                  {"s": "NSE:NIFTY",         "d": "NIFTY 50"},
+                  {"s": "NSE:BANKNIFTY",     "d": "BANK NIFTY"},
+                  {"s": "BSE:SENSEX",        "d": "SENSEX"},
+                  {"s": "FOREXCOM:SPXUSD",   "d": "S&P 500"},
+                  {"s": "NASDAQ:NDX",        "d": "NASDAQ 100"},
+                  {"s": "INDEX:DJI",         "d": "Dow Jones"},
+                  {"s": "INDEX:DEU40",       "d": "DAX"},
+                  {"s": "INDEX:UKX",         "d": "FTSE 100"},
+                  {"s": "INDEX:NI225",       "d": "Nikkei 225"},
+                  {"s": "INDEX:HSI",         "d": "Hang Seng"}
+                ],
+                "originalTitle": "Indices"
+              },
+              {
+                "title": "Crypto",
+                "symbols": [
+                  {"s": "CRYPTOCAP:BTC", "d": "Bitcoin"},
+                  {"s": "CRYPTOCAP:ETH", "d": "Ethereum"},
+                  {"s": "CRYPTOCAP:SOL", "d": "Solana"},
+                  {"s": "CRYPTOCAP:BNB", "d": "BNB"}
+                ],
+                "originalTitle": "Crypto"
+              },
+              {
+                "title": "Forex",
+                "symbols": [
+                  {"s": "FX:USDINR", "d": "USD/INR"},
+                  {"s": "FX:EURUSD", "d": "EUR/USD"},
+                  {"s": "FX:GBPUSD", "d": "GBP/USD"},
+                  {"s": "FX:USDJPY", "d": "USD/JPY"},
+                  {"s": "TVC:DXY",   "d": "DXY Index"}
+                ],
+                "originalTitle": "Forex"
+              },
+              {
+                "title": "Commodities",
+                "symbols": [
+                  {"s": "COMEX:GC1!",  "d": "Gold"},
+                  {"s": "NYMEX:CL1!",  "d": "WTI Crude"},
+                  {"s": "COMEX:SI1!",  "d": "Silver"},
+                  {"s": "NYMEX:NG1!",  "d": "Natural Gas"}
+                ],
+                "originalTitle": "Commodities"
+              }
+            ]
+          }
+          <\/script>
+        </div>`;
+    }
+
+    // ── Advanced Interactive Chart (NIFTY 50) ───────────────────────────────
+    const advChart = document.getElementById('tvAdvChart');
+    if (advChart) {
+      advChart.innerHTML = `
+        <div class="tradingview-widget-container" style="height:100%">
+          <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px)"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+          {
+            "autosize": true,
+            "symbol": "NSE:NIFTY",
+            "interval": "D",
+            "timezone": "Asia/Kolkata",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "backgroundColor": "rgba(8,13,26,0)",
+            "gridColor": "rgba(201,168,76,0.06)",
+            "hide_top_toolbar": false,
+            "hide_legend": false,
+            "save_image": false,
+            "hide_volume": false,
+            "support_host": "https://www.tradingview.com"
+          }
+          <\/script>
+        </div>`;
+    }
+
+    // ── Economic Calendar ───────────────────────────────────────────────────
+    const econCal = document.getElementById('tvEconCal');
+    if (econCal) {
+      econCal.innerHTML = `
+        <div class="tradingview-widget-container" style="height:100%">
+          <div class="tradingview-widget-container__widget" style="height:100%"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+          {
+            "colorTheme": "dark",
+            "isTransparent": true,
+            "width": "100%",
+            "height": "100%",
+            "locale": "en",
+            "importanceFilter": "0,1",
+            "countryFilter": "in,us,eu,gb"
+          }
+          <\/script>
+        </div>`;
+    }
+  }
+
+  // ── Market Terminal Polling ──
+  let _pollFailures = 0;
+  const POLL_MAX_FAILURES = 3;
+  const UPSTOX_BASE = 'https://blogspro-upstox.abhishek-dutta1996.workers.dev';
+
+  window.pollMarkets = async function() {
+    const indicesBox = document.getElementById('terminal-indices');
+    const stocksBox  = document.getElementById('terminal-stocks');
+    const view       = document.getElementById('terminalView')?.value || 'india';
+
+    if (!indicesBox || !stocksBox) return;
+
+    // Stop polling after repeated failures — prevents console spam every 30s
+    if (_pollFailures >= POLL_MAX_FAILURES) {
+      clearInterval(marketPollInterval);
+      marketPollInterval = null;
+      const statusDot = document.getElementById('marketStatus');
+      if (statusDot) { statusDot.style.background = 'var(--red)'; statusDot.style.boxShadow = '0 0 6px var(--red)'; }
+      stocksBox.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);padding:0.5rem 0">Live data unavailable — market terminal offline.<br>Charts above are still active.</div>`;
+      return;
+    }
+
+    try {
+      if (view === 'india') {
+        const res  = await fetch(`${UPSTOX_BASE}/quotes`);
+        const data = await res.json();
+
+        if (data.status === 'success' && data.data) {
+          _pollFailures = 0; // reset on success
+          const d    = data.data;
+          const nifty = d['NSE_INDEX|Nifty 50'];
+          const bank  = d['NSE_INDEX|Nifty Bank'];
+          indicesBox.style.display = 'grid';
+          indicesBox.innerHTML = `
+            <div style="text-align:center"><small style="display:block;color:var(--muted)">NIFTY 50</small>
+              <b style="color:${nifty?.last_price >= nifty?.close ? 'var(--emerald)' : 'var(--red)'}">${nifty?.last_price?.toLocaleString('en-IN') || '—'}</b></div>
+            <div style="text-align:center"><small style="display:block;color:var(--muted)">BANK NIFTY</small>
+              <b style="color:${bank?.last_price >= bank?.close ? 'var(--emerald)' : 'var(--red)'}">${bank?.last_price?.toLocaleString('en-IN') || '—'}</b></div>`;
+          const symbols = ["RELIANCE", "HDFCBANK", "ICICIBANK", "INFY", "TCS"];
+          stocksBox.innerHTML = symbols.map(s => {
+            const item = d[`NSE_EQ|${s}`];
+            if (!item) return '';
+            const chg = (((item.last_price - item.close) / item.close) * 100).toFixed(2);
+            return `<div style="display:flex;justify-content:space-between;font-size:0.8rem">
+              <span>${s}</span>
+              <span style="color:${chg >= 0 ? 'var(--emerald)' : 'var(--red)'}">${item.last_price.toLocaleString('en-IN')} <small>(${chg}%)</small></span>
+            </div>`;
+          }).join('');
+        } else {
+          _pollFailures++;
+        }
+      } else {
+        const res  = await fetch(`${UPSTOX_BASE}/global`);
+        const json = await res.json();
+        if (json.status === 'success') {
+          _pollFailures = 0;
+          indicesBox.style.display = 'none';
+          stocksBox.innerHTML = json.data.map(d => {
+            const name = d.symbol.replace('^', '').replace('=F', '');
+            return `<div style="display:flex;justify-content:space-between;font-size:0.8rem;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:0.4rem">
+              <span style="color:var(--gold)">${name}</span>
+              <span style="color:${d.change >= 0 ? 'var(--emerald)' : 'var(--red)'}">${d.price.toLocaleString()} <small>(${d.change}%)</small></span>
+            </div>`;
+          }).join('');
+        } else {
+          _pollFailures++;
+>>>>>>> origin/claude/fix-page-scroll-on-load-WgLVK
         }
       }
     }).catch(() => {});

@@ -81,6 +81,27 @@
     .error-state h2 { font-family: var(--serif); font-size: 2.5rem; margin-bottom: 1.5rem; }
     
     .loading-state { text-align: center; padding: 10rem 2rem; color: var(--muted); font-family: var(--mono); }
+
+    /* Audio Summary Player */
+    .audio-summary { display: flex; align-items: center; gap: .85rem; background: rgba(191,161,0,0.06); border: 1px solid rgba(191,161,0,0.2); border-radius: 6px; padding: .75rem 1.1rem; margin-bottom: 2rem; }
+    .audio-summary-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .audio-summary-label { font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); white-space: nowrap; }
+    .audio-summary-text { font-size: .78rem; color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .audio-btn { background: transparent; border: 1px solid rgba(191,161,0,0.35); color: var(--gold); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .85rem; flex-shrink: 0; transition: all .15s; }
+    .audio-btn:hover { background: rgba(191,161,0,0.12); border-color: var(--gold); }
+    .audio-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .audio-wave { display: none; align-items: flex-end; gap: 2px; height: 16px; flex-shrink: 0; }
+    .audio-wave span { display: block; width: 3px; background: var(--gold); border-radius: 2px; animation: audioWave 0.8s ease-in-out infinite; }
+    .audio-wave span:nth-child(2) { animation-delay: .15s; }
+    .audio-wave span:nth-child(3) { animation-delay: .3s; }
+    .audio-wave.playing { display: flex; }
+    @keyframes audioWave { 0%, 100% { height: 4px } 50% { height: 14px } }
+    
+    /* Ads */
+    .ad-unit { margin: 2rem 0; text-align: center; }
+    .ad-label { font-size: .58rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); opacity: .5; display: block; margin-bottom: .3rem; }
+    .ad-leaderboard { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 1rem 0; background: rgba(255,255,255,.015); }
+
   </style>
 </head>
 <body>
@@ -155,6 +176,23 @@
           <span>By ${author}</span>
         </div>
       </header>
+
+      <div class="audio-summary" id="audioSummaryBar">
+        <span class="audio-summary-icon">🎧</span>
+        <div style="flex:1;min-width:0">
+          <div class="audio-summary-label">AI Audio Summary</div>
+          <div class="audio-summary-text" id="audioSummaryText">${p.excerpt ? DOMPurify.sanitize(p.excerpt.substring(0,80), {ALLOWED_TAGS:[]}) + '…' : 'Listen to article summary'}</div>
+        </div>
+        <div class="audio-wave" id="audioWave"><span></span><span></span><span></span></div>
+        <button class="audio-btn" id="audioBtnPlay"  title="Play"  onclick="audioPlay()">▶</button>
+        <button class="audio-btn" id="audioBtnPause" title="Pause" onclick="audioPause()" style="display:none">⏸</button>
+        <button class="audio-btn" id="audioBtnStop"  title="Stop"  onclick="audioStop()" style="display:none">⏹</button>
+      </div>
+
+      <div class="ad-unit ad-leaderboard">
+        <span class="ad-label">Advertisement</span>
+        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5696584446633401" data-ad-slot="6614122455" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      </div>
       
       <div class="article-content">${content}</div>
       
@@ -163,6 +201,9 @@
         <div class="author-info">
           <h4>${author}</h4>
           <p>Institutional Analyst covering ${category}</p>
+        </div>
+      </section>
+
         </div>
       </section>
     `;
@@ -179,5 +220,80 @@
 
   init();
 </script>
+<script>
+// ── AI Audio Summary Engine ───────────────────────────────────────────────
+(function() {
+  let _utterance = null;
+  let _audioText  = '';
+
+  function _getAudioText() {
+    const excerptEl = document.getElementById('audioSummaryText');
+    if (excerptEl) {
+      const t = excerptEl.textContent.replace(/…$/, '').trim();
+      if (t && t !== 'Listen to article summary') return t;
+    }
+    const firstPara = document.querySelector('.article-content p');
+    if (firstPara) return firstPara.textContent.trim().substring(0, 400);
+    return '';
+  }
+
+  function _setPlaying(isPlaying) {
+    const wave   = document.getElementById('audioWave');
+    const btnPlay  = document.getElementById('audioBtnPlay');
+    const btnPause = document.getElementById('audioBtnPause');
+    const btnStop  = document.getElementById('audioBtnStop');
+    if (!wave) return;
+    if (isPlaying) {
+      wave.classList.add('playing');
+      if (btnPlay)  btnPlay.style.display  = 'none';
+      if (btnPause) btnPause.style.display = '';
+      if (btnStop)  btnStop.style.display  = '';
+    } else {
+      wave.classList.remove('playing');
+      if (btnPlay)  btnPlay.style.display  = '';
+      if (btnPause) btnPause.style.display = 'none';
+      if (btnStop)  btnStop.style.display  = 'none';
+    }
+  }
+
+  window.audioPlay = function() {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    if (synth.paused) { synth.resume(); _setPlaying(true); return; }
+    synth.cancel();
+    _audioText = _getAudioText();
+    if (!_audioText) return;
+    _utterance = new SpeechSynthesisUtterance(_audioText);
+    _utterance.rate = 0.9; _utterance.pitch = 1; _utterance.lang = 'en-US';
+    _utterance.onstart = () => _setPlaying(true);
+    _utterance.onend   = () => _setPlaying(false);
+    _utterance.onerror = () => _setPlaying(false);
+    synth.speak(_utterance);
+  };
+
+  window.audioPause = function() {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    if (synth.speaking && !synth.paused) {
+      synth.pause();
+      const wave   = document.getElementById('audioWave');
+      const btnPlay  = document.getElementById('audioBtnPlay');
+      const btnPause = document.getElementById('audioBtnPause');
+      if (wave) wave.classList.remove('playing');
+      if (btnPlay) btnPlay.style.display = '';
+      if (btnPause) btnPause.style.display = 'none';
+    }
+  };
+
+  window.audioStop = function() {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    synth.cancel();
+    _setPlaying(false);
+  };
+})();
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5696584446633401" crossorigin="anonymous"></script>
+
 </body>
 </html>
