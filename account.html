@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Consolidated Sentry Configuration -->
+  <script src="js/sentry-init-v2.js"></script>
+
   <title>My Account — BlogsPro</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -345,7 +348,9 @@
   }
   function showMsg(id, m) { const e = document.getElementById(id); if (e) { e.textContent = m; e.style.display = 'block'; } }
   function hideMsg(id) { const e = document.getElementById(id); if (e) e.style.display = 'none'; }
+  
   window.doLogout = async () => { await api.auth.logout(); window.location.href = 'index.html'; };
 </script>
+
 </body>
 </html>

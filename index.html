@@ -799,20 +799,22 @@
     .filter-btn:hover, .filter-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
 
     /* ── GRID ── */
-    .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 2px; }
-    .post-card { background: var(--navy2); padding: 2rem; border: 1px solid transparent; transition: all 0.3s; cursor: pointer; position: relative; overflow: hidden; }
+    .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 1.5rem; }
+    .post-card { 
+      background: var(--navy2); 
+      padding: 2.2rem; 
+      border: 1px solid var(--border); 
+      border-radius: 8px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+      cursor: pointer; 
+      position: relative; 
+      overflow: hidden; 
+    }
     .post-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 0; background: linear-gradient(180deg, var(--gold), transparent); transition: height 0.3s; }
-    .post-card:hover { border-color: var(--border); background: #131d38; }
+    .post-card:hover { border-color: var(--gold); background: #131d38; }
     .post-card:hover::before { height: 100%; }
     .post-category { font-size: 0.85rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 1rem; }
-    .post-category.strategic { 
-        background: rgba(191,161,0,0.1); 
-        color: var(--gold2); 
-        padding: 0.25rem 0.65rem; 
-        border-radius: 3px; 
-        border: 1px solid var(--border);
-        display: inline-block;
-        box-shadow: 0 0 10px rgba(191,161,0,0.05);
+
     }
 
     }
@@ -993,9 +995,43 @@
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
       .nav-links { display: none; }
+      .nav-hamburger { display: flex; }
+      .nav-links {
+        display: none; position: absolute; top: 68px; left: 0; right: 0;
+        background: rgba(8,13,26,0.97); backdrop-filter: blur(12px);
+        flex-direction: column; padding: 1rem 2rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        gap: 0.3rem;
+      }
+      .nav-links.mobile-open { display: flex; }
+      .nav-links li { list-style: none; }
+      .nav-links a { display: block; padding: 0.7rem 0; font-size: 0.95rem; }
+      .nav-links .nav-cta { display: inline-block; margin-top: 0.5rem; text-align: center; }
+      .nav-user { padding: 0.7rem 0; }
+      section { padding: 3rem 1.25rem; }
+      .hero { padding: 3rem 1.25rem 2.5rem; min-height: 70vh; }
       .hero-stats { display: none; }
       .post-card.featured { grid-template-columns: 1fr; }
       .featured-visual { display: none; }
+      .newsletter { padding: 2.5rem 1.5rem; }
+      .newsletter-form { flex-direction: column; }
+      footer { flex-direction: column; text-align: center; }
+      .about-inner { grid-template-columns: 1fr; gap: 2.5rem; }
+      .about-skeleton-grid { grid-template-columns: 1fr; gap: 1.8rem; }
+      .about-avatar-col { flex-direction: row; text-align: left; align-items: flex-start; gap: 1.5rem; }
+      .about-avatar-wrap { width: 80px; height: 80px; flex-shrink: 0; margin-bottom: 0; }
+      .about-avatar-initial { font-size: 2rem; }
+      .about-socials { justify-content: flex-start; }
+      .feed-status-wrap { padding: 0.75rem 1rem 0; }
+      .market-wrap { padding: 0.75rem 1rem 0; }
+      .calendar-layout { grid-template-columns: 1fr; }
+      .calendar-date, .calendar-impact { text-align: left; }
+    }
+
+      .hero-stats { display: none; }
+      .post-card.featured { grid-template-columns: 1fr; }
+      .featured-visual { display: none; }
+      .newsletter { padding: 2.5rem 1.5rem; }
       .newsletter-form { flex-direction: column; }
       footer { flex-direction: column; text-align: center; }
       .about-inner { grid-template-columns: 1fr; gap: 2.5rem; }
@@ -1019,6 +1055,7 @@
     }
   </style>
   <!-- Sentry Error Tracking -->
+
   <script src="js/sentry-init-v2.js"></script>
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
@@ -1097,17 +1134,80 @@
   </div>
 </div>
 
+<!-- TOP MARKET INTELLIGENCE HUB -->
+<section class="reveal" id="tvHubContainer">
+  <div class="section-header">
+    <h2 class="section-title">Market <em>Intelligence</em></h2>
+  </div>
+  <div id="tvHubContent" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+    <!-- Terminal Widget -->
+    <div class="glass-card terminal-wrap" style="grid-column: span 1; display: flex; flex-direction: column; background: var(--navy2); border: 1px solid var(--border);">
+      <div class="terminal-header">
+        <span style="font-family: monospace; font-size: 0.75rem; color: var(--gold);">BLOGSPRO TERMINAL v2.0</span>
+        <div style="display:flex; gap:0.5rem; align-items:center">
+          <span id="marketStatus" class="status-dot"></span>
+          <select id="terminalView" onchange="pollMarkets()" style="background:transparent; border:none; color:var(--muted); font-size:0.65rem; outline:none; cursor:pointer">
+            <option value="india">IND/NSE</option>
+            <option value="global">GLOBAL</option>
+          </select>
+        </div>
+      </div>
+      <div id="terminalBody" class="terminal-body" style="background: var(--navy); color: #86efac; font-family: monospace;">
+        <div id="terminal-indices" style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem; border-bottom:1px solid var(--border); padding-bottom:0.75rem;">
+          <!-- Nifty/BankNifty Hydrated here -->
+        </div>
+        <div id="terminal-stocks" style="display:flex; flex-direction:column; gap:0.6rem;">
+          <!-- Top 5 Stocks Hydrated here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Policy Tracker -->
+    <div class="glass-card" style="padding: 1.25rem; border-left: 4px solid #60a5fa; background: var(--navy2); border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+      <h3 style="font-family: var(--serif); font-size: 1.1rem; color: #60a5fa; margin-bottom: 1rem;">Policy & Regulation</h3>
+      <div id="policyTracker" style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.85rem;">
+        <div class="policy-item">
+          <strong style="color:var(--gold); display:block; margin-bottom: 0.2rem;">RBI (Reserve Bank)</strong>
+          <p id="rbiSnippet" style="margin:0; color:var(--muted); line-height:1.4;">Fetching latest updates...</p>
+        </div>
+        <div class="policy-item">
+          <strong style="color:var(--gold); display:block; margin-bottom: 0.2rem;">SEBI (Markets Regulator)</strong>
+          <p id="sebiSnippet" style="margin:0; color:var(--muted); line-height:1.4;">Fetching latest updates...</p>
+        </div>
+        <!-- Download Center (New) -->
+        <div style="border-top:1px solid var(--border); padding-top:0.8rem; margin-top:0.5rem">
+          <strong style="display:block; font-size:0.75rem; color:var(--cream); margin-bottom:0.5rem">Regulatory Library</strong>
+          <div id="downloadHub" style="display:flex; flex-direction:column; gap:0.4rem;">
+            <span style="font-size:0.7rem; color:var(--muted)">No documents available yet.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Market Heatmap -->
+    <div id="tvHeatmap" class="glass-card" style="min-height: 250px; background: var(--navy2); border: 1px solid var(--border);"></div>
+  </div>
+</section>
+
 <!-- POSTS -->
 <section id="posts">
-  <div class="section-header">
-    <h2 class="section-title" id="postsTitle">Latest Articles</h2>
-  </div>
-  <div class="filters">
-    <button class="filter-btn active" data-cat="all">All</button>
-    <button class="filter-btn" data-cat="Fintech">Fintech</button>
-    <button class="filter-btn" data-cat="Compliance">Compliance</button>
-    <button class="filter-btn" data-cat="Strategy">Strategy</button>
-  </div>
+    <div class="section-header">
+      <h2 class="section-title">Latest <em>Articles</em></h2>
+    </div>
+
+    <div class="search-container" style="margin-bottom: 2rem;">
+      <div class="search-input-wrap" style="position: relative; display: flex; align-items: center;">
+        <span class="search-icon" style="position: absolute; left: 1rem; color: var(--muted);">🔍</span>
+        <input type="text" id="postSearch" class="search-input" placeholder="Search articles by keyword..." oninput="handleSearch(this.value)" style="width: 100%; background: var(--navy2); border: 1px solid var(--border); color: var(--cream); padding: 0.8rem 1rem 0.8rem 2.5rem; border-radius: 4px; outline: none;">
+      </div>
+      <div class="filter-chips" id="filterChips" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;">
+        <button class="filter-chip active" onclick="filterByCategory('All')">All</button>
+        <button class="filter-chip" onclick="filterByCategory('Fintech')">Fintech</button>
+        <button class="filter-chip" onclick="filterByCategory('Compliance')">Compliance</button>
+        <button class="filter-chip" onclick="filterByCategory('Strategy')">Strategy</button>
+      </div>
+    </div>
+
   <div class="posts-grid" id="postsGrid">
     <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
     <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
@@ -2542,6 +2642,8 @@
     if (n >= 1000)    return (n/1000).toFixed(1).replace(/\.0$/,'') + 'k';
     return String(n);
   }
+
+  document.getElementById('year').textContent = new Date().getFullYear();
 
   (async () => {
     // 1. Parallel Task Execution
