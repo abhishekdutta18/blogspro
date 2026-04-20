@@ -1039,6 +1039,7 @@
       </li>
     </ul>
   </div>
+
 </nav>
 
 <!-- HERO -->
@@ -1090,6 +1091,12 @@
     <button class="filter-btn" data-cat="Fintech">Fintech</button>
     <button class="filter-btn" data-cat="Compliance">Compliance</button>
     <button class="filter-btn" data-cat="Strategy">Strategy</button>
+      <button class="filter-chip" data-cat="policy" onclick="window.filterByCategory?.('Policy')">Policy</button>
+      <button class="filter-chip" data-cat="equity" onclick="window.filterByCategory?.('Equity')">Equity</button>
+      <button class="filter-chip" data-cat="tech" onclick="window.filterByCategory?.('Tech')">Tech</button>
+      <button class="filter-chip" data-cat="crypto" onclick="window.filterByCategory?.('Crypto')">Crypto</button>
+    </div>
+>>>>>>> origin/claude/fix-index-html-Hp6Lx
   </div>
   <div class="posts-grid" id="postsGrid">
     <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
@@ -1329,7 +1336,7 @@
   <div class="newsletter">
     <h2>Stay ahead of the curve.</h2>
     <p>New insights on fintech, compliance & strategy — delivered to your inbox.</p>
-    <form class="newsletter-form" onsubmit="subscribeNewsletter(event)">
+    <form class="newsletter-form" onsubmit="window.subscribeNewsletter?.(event)">
       <input type="email" id="emailInput" placeholder="your@email.com" required />
       <button type="submit" class="btn-primary" id="subBtn">
         <span id="subBtnText">Subscribe</span>
@@ -1392,9 +1399,15 @@
   import { loadHybridPosts } from "./js/posts.js";
   import { initNewsWire } from "./js/news-wire.js";
 
+<<<<<<< HEAD
   window.registerGoogle = () => {
     api.auth.google("index.html");
   };
+=======
+  import { firebaseConfig }    from "./js/firebase-config.js";
+  import { identifyUser }      from "./js/analytics.js";
+  import { initMarketData }    from "./js/market-data.js";
+>>>>>>> origin/claude/fix-index-html-Hp6Lx
 
   const LOCAL_IMAGES_KEY = 'blogspro_images_enabled';
   let imagesEnabled = true;
@@ -2507,6 +2520,7 @@
     return String(n);
   }
 
+<<<<<<< HEAD
   (async () => {
     // 1. Parallel Task Execution
     const tasks = [
@@ -2523,6 +2537,20 @@
       }},
       { id: 'india', fn: () => loadIndiaCalendarData() },
       { id: 'market', fn: () => loadUpstoxMarketData({ showLoading: true }) }
+=======
+    loadTicker();       // non-blocking
+    initMarketData();   // non-blocking — market status dot + live quotes strip
+    await loadSiteSettings();
+    await loadTerminal();
+
+    // Populate allPosts for search/filter after terminal has loaded all content
+    allPosts = [
+      ...contentState.hourly,
+      ...contentState.daily,
+      ...contentState.weekly,
+      ...contentState.monthly,
+      ...contentState.posts
+>>>>>>> origin/claude/fix-index-html-Hp6Lx
     ];
 
     const results = await Promise.allSettled(tasks.map(t => t.fn().catch(err => {
@@ -2560,6 +2588,7 @@
     
     startMarketAutoRefresh();
   })();
+
 </script>
 </body>
 </html>

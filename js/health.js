@@ -1,6 +1,7 @@
 // js/health.js (Proxy-based)
 import { api } from "./services/api.js";
 
+
 export function initHealthMonitor() {
     const statusBadge = document.getElementById('pipelineStatus');
     if (!statusBadge) return;
@@ -47,6 +48,7 @@ async function initFinancialHealth() {
         try {
             const start = Date.now();
             const res = await fetch('https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev/quotes');
+
             const latency = Date.now() - start;
             const data = await res.json();
 
