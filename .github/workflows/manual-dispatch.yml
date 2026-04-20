@@ -108,17 +108,30 @@ jobs:
           SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}"
           INPUT_FREQ: ${{ github.event.inputs.frequency || 'monthly' }}
         run: |
-          FREQ="${{ github.event.inputs.frequency || 'monthly' }}"
+          # [V16.2] Sovereign Event Hardening: Deterministic Frequency & Mode Mapping
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            case "${{ github.event.schedule }}" in
+              "0 5 * * *") FREQ="daily" ;;
+              "0 6 * * 1") FREQ="weekly" ;;
+              "30 7 1 * *") FREQ="monthly" ;;
+              *) FREQ="daily" ;;
+            esac
+          else
+            FREQ="${{ github.event.inputs.frequency || 'daily' }}"
+          fi
+          
           MODEL="${{ github.event.inputs.model || 'auto' }}"
-          MODE="${{ github.event.inputs.mode || 'worker' }}"
+          MODE="worker"  # Force worker mode for parallel research phase
           TYPE="${{ github.event.inputs.type || 'article' }}"
+          
+          echo "🚀 Starting Parallel Research [$FREQ] [$MODE] [Vertical: ${{ matrix.vertical }}]"
           node scripts/generate-institutional-tome.js --freq=$FREQ --type=$TYPE --mode=$MODE --vertical=${{ matrix.vertical }} --model=$MODEL
       
       - name: Upload Sector Fragment Artifact
         uses: actions/upload-artifact@v4
         with:
           name: sector-${{ matrix.vertical }}
-          path: manuscripts/v7/sectors/swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}_${{ matrix.vertical }}.json
+          path: manuscripts/v7/sectors/*_${{ matrix.vertical }}.json
           retention-days: 1
 
   # PHASE 2: CONSOLIDATION & DISPATCH (Sovereign Synthesis)
@@ -156,21 +169,33 @@ jobs:
           FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # Failover Tunnel for Consolidator (Audit pass)
           OLLAMA_PROD_URL: ${{ secrets.NGROK_REMOTE_URL }}
           OLLAMA_PROD_KEY: ${{ secrets.OLLAMA_PROD_KEY }}
-          SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'monthly' }}-${{ github.run_id }}"
-          INPUT_FREQ: ${{ github.event.inputs.frequency || 'monthly' }}
+          SWARM_JOB_ID: "swarm-${{ github.event.inputs.frequency || 'daily' }}-${{ github.run_id }}"
         run: |
-          FREQ="${{ github.event.inputs.frequency || 'monthly' }}"
+          # [V16.2] Sovereign Event Hardening: Final Synthesis
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            case "${{ github.event.schedule }}" in
+              "0 5 * * *") FREQ="daily" ;;
+              "0 6 * * 1") FREQ="weekly" ;;
+              "30 7 1 * *") FREQ="monthly" ;;
+              *) FREQ="daily" ;;
+            esac
+          else
+            FREQ="${{ github.event.inputs.frequency || 'daily' }}"
+          fi
+
           MODEL="${{ github.event.inputs.model || 'auto' }}"
-          MODE="${{ github.event.inputs.mode || 'assemble' }}"
+          MODE="assemble" # Force assemble mode for consolidation phase
           TYPE="${{ github.event.inputs.type || 'article' }}"
+          
+          export INPUT_FREQ=$FREQ
+          echo "🏰 Commencing Institutional Assembly [$FREQ] [$MODE]"
 
           if [ "$FREQ" == "hourly" ]; then
              node scripts/generate-briefing.js --freq="$FREQ"
           else
-             # Daily, Weekly, Monthly: Parallel Reengineering
+             # [V16.2] Sequential Assembly Pass
              node scripts/generate-institutional-tome.js --freq=$FREQ --type=$TYPE --mode=$MODE --model=$MODEL
              
              # [V16.1] Institutional PDF Rendering Pass

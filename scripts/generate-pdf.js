@@ -19,17 +19,24 @@ async function run() {
         .map(f => ({ name: f, time: fs.statSync(path.join(distDir, f)).mtime.getTime() }))
         .sort((a, b) => b.time - a.time);
 
-    if (files.length === 0) {
-        console.warn("⚠️ [PDF] No institutional manuscripts found in 'dist'.");
-        process.exit(0);
+    // [V16.2] Advanced Selection: Prioritize the manuscript matching the CURRENT workflow frequency
+    let targetFiles = files;
+    const requestedFreq = process.env.INPUT_FREQ || 'daily';
+    
+    const freqMatch = files.filter(f => f.name.includes(`swarm-${requestedFreq}-`));
+    if (freqMatch.length > 0) {
+        targetFiles = freqMatch;
+        console.log(`📡 [PDF] Targeted Frequency Matched: ${requestedFreq}`);
+    } else {
+        console.log(`⚠️ [PDF] No exact match for ${requestedFreq}. Falling back to most recent swarm artifact.`);
     }
 
-    const targetHtml = path.join(distDir, files[0].name);
+    const targetHtml = path.join(distDir, targetFiles[0].name);
     const frequency = targetHtml.includes('daily') ? 'daily' : 
                       targetHtml.includes('weekly') ? 'weekly' : 
-                      targetHtml.includes('monthly') ? 'monthly' : 'daily';
+                      targetHtml.includes('monthly') ? 'monthly' : requestedFreq;
 
-    console.log(`🚀 [PDF] Found recent manuscript: ${files[0].name}. Commencing Production...`);
+    console.log(`🚀 [PDF] Found recent manuscript: ${targetFiles[0].name}. Commencing Production...`);
     
     try {
         const pdfPath = await generatePDF(targetHtml, frequency);

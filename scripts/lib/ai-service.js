@@ -278,7 +278,7 @@ async function generateGeminiContent(prompt, model = "gemini-2.5-flash", context
     if (!key) throw new Error("GEMINI_API_KEY missing.");
 
     // Standard v1 for institutional stability in April 2026
-    const genAI = new GoogleGenerativeAI(key);
+    // [V16.2] genAI instance is now initialized per-iteration to support dynamic versioning
     
     // Default high-fidelity list for April 2026 institutional pass
     let models = [
@@ -1019,7 +1019,6 @@ export const ResourceManager = {
             if (fetchedSecrets.GH_PAT) env.GH_PAT = fetchedSecrets.GH_PAT;
         }
         
-        this.pool = []; 
         this.failed = new Set();
         this.cooldowns = new Map();
         this.inflight = new Map();
