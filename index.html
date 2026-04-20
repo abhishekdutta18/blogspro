@@ -101,7 +101,7 @@
     }
 
     body.light {
-      --navy: #f8f5ef; --navy2: #ffffff; --navy3: #f0ece4;
+      --navy: #f8f5ef; --navy2: #ffffff; --navy3: #ede8df;
       --cream: #1a1a2e; --muted: #6b7a99;
       --border: rgba(201,168,76,0.3);
     }
@@ -814,6 +814,8 @@
         display: inline-block;
         box-shadow: 0 0 10px rgba(191,161,0,0.05);
     }
+
+    }
     .post-title { font-family: var(--serif); font-size: 1.45rem; font-weight: 600; line-height: 1.3; margin-bottom: 0.8rem; transition: color 0.2s; }
     .post-card:hover .post-title { color: var(--gold2); }
     .post-excerpt { font-size: 0.88rem; color: var(--muted); line-height: 1.65; margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -1007,6 +1009,14 @@
       .calendar-layout { grid-template-columns: 1fr; }
       .calendar-date, .calendar-impact { text-align: left; }
     }
+    @media (max-width: 480px) {
+      .hero { padding: 3.5rem 1.25rem 3rem; }
+      section { padding: 3.5rem 1.25rem; }
+      .newsletter { padding: 2.5rem 1.5rem; }
+      .posts-grid { grid-template-columns: 1fr; }
+      .post-card { padding: 1.5rem; }
+      .post-card.featured { padding: 1.5rem; }
+    }
   </style>
   <!-- Sentry Error Tracking -->
   <script src="js/sentry-init-v2.js"></script>
@@ -1039,7 +1049,6 @@
       </li>
     </ul>
   </div>
-
 </nav>
 
 <!-- HERO -->
@@ -1091,12 +1100,6 @@
     <button class="filter-btn" data-cat="Fintech">Fintech</button>
     <button class="filter-btn" data-cat="Compliance">Compliance</button>
     <button class="filter-btn" data-cat="Strategy">Strategy</button>
-      <button class="filter-chip" data-cat="policy" onclick="window.filterByCategory?.('Policy')">Policy</button>
-      <button class="filter-chip" data-cat="equity" onclick="window.filterByCategory?.('Equity')">Equity</button>
-      <button class="filter-chip" data-cat="tech" onclick="window.filterByCategory?.('Tech')">Tech</button>
-      <button class="filter-chip" data-cat="crypto" onclick="window.filterByCategory?.('Crypto')">Crypto</button>
-    </div>
->>>>>>> origin/claude/fix-index-html-Hp6Lx
   </div>
   <div class="posts-grid" id="postsGrid">
     <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
@@ -1347,6 +1350,7 @@
   </div>
 </section>
 
+
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
@@ -1399,15 +1403,10 @@
   import { loadHybridPosts } from "./js/posts.js";
   import { initNewsWire } from "./js/news-wire.js";
 
-<<<<<<< HEAD
   window.registerGoogle = () => {
     api.auth.google("index.html");
   };
-=======
-  import { firebaseConfig }    from "./js/firebase-config.js";
-  import { identifyUser }      from "./js/analytics.js";
-  import { initMarketData }    from "./js/market-data.js";
->>>>>>> origin/claude/fix-index-html-Hp6Lx
+
 
   const LOCAL_IMAGES_KEY = 'blogspro_images_enabled';
   let imagesEnabled = true;
@@ -1503,6 +1502,7 @@
       const m = String(v ?? '').replace(/,/g, '').match(/-?\d+(\.\d+)?/);
       return m ? Number(m[0]) : NaN;
     };
+
 
     applyForexFiltersGlobal = null; // reset on each load; reassigned below
     const applyCalendarFilters = () => {
@@ -2520,7 +2520,6 @@
     return String(n);
   }
 
-<<<<<<< HEAD
   (async () => {
     // 1. Parallel Task Execution
     const tasks = [
