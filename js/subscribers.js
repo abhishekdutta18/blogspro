@@ -49,7 +49,6 @@ window.deleteSub   = async (id) => {
     showToast('Subscriber removed.','success');
   } catch(e) { showToast('Failed: '+e.message,'error'); }
 };
-
 window.loadSubscriberAnalytics = async () => {
   try {
     const all = await api.data.getAll('subscribers');
