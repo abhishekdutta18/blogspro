@@ -180,7 +180,27 @@ GOAL: Provide the Drafter with enough granular data points, flow metrics, and di
 `;
 }
 
-function getDrafterPrompt(frequency, researchBrief, verticalName, rlMemory = "") {
+function getThinkingPrompt(frequency, researchBrief, verticalName) {
+    return `
+${INSTITUTIONAL_PERSONA}
+ROLE: INSTITUTIONAL ARCHITECT (Sequential Thinking Mode)
+TASK: Analyze the research brief for '${verticalName}' and plan a high-density institutional manuscript.
+
+<thinking>
+1. Synthesize the core macro-to-micro delta for 2026.
+2. Identify 3 critical data points that MUST drive the narrative.
+3. Outline the internal logical flow to ensure a word count of 1000+ without fluff.
+4. Detect any "Retail Noise" in the research brief and flag it for exclusion.
+</thinking>
+
+RESEARCH BRIEF:
+${researchBrief}
+
+OUTPUT: A structured strategic plan for the Drafter. Zero conversational filler.
+`;
+}
+
+function getDrafterPrompt(frequency, researchBrief, verticalName, rlMemory = "", thinkingPlan = "") {
     const wordTarget = frequency === 'monthly' ? 1000
                      : frequency === 'weekly'  ? 625
                      : 1000;                              // hourly/daily/other consolidated
@@ -224,6 +244,10 @@ CRITICAL RULES:
 
 RESEARCH INPUT:
 ${researchBrief}
+
+${thinkingPlan ? `--- STRATEGIC THINKING PLAN (MANDATORY ADHERENCE) ---
+${thinkingPlan}
+-------------------------------------------------------` : ""}
 
 ${STRUCTURAL_RULES}
 
@@ -593,6 +617,7 @@ export {
     getEditorPrompt,
     getExpertPersonaPrompt,
     getConsensusPrompt,
+    getThinkingPrompt,
     getCriticPrompt,
     getRefinementPrompt,
     getHumanRefinementPrompt,

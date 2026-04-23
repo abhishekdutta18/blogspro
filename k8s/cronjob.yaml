@@ -39,3 +39,24 @@ spec:
             - secretRef:
                 name: blogspro-secrets
           restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: blogspro-hourly-pulse
+  namespace: blogspro
+spec:
+  schedule: "0 * * * *" # Every hour on the hour
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: blogspro-sa
+          containers:
+          - name: hourly-dispatch
+            image: gcr.io/blogspro-ai/swarm-orchestrator:latest
+            command: ["/bin/sh", "-c", "npm run ecc:governance && node scripts/lib/swarm-orchestrator.js --mode=hourly"]
+            envFrom:
+            - secretRef:
+                name: blogspro-secrets
+          restartPolicy: OnFailure

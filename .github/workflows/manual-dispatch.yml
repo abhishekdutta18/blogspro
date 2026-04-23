@@ -210,6 +210,7 @@ jobs:
           echo "🏰 Commencing Institutional Assembly [$FREQ] [$MODE]"
 
           if [ "$FREQ" == "hourly" ]; then
+             npm run ecc:governance
              node scripts/generate-institutional-tome.js --freq="$FREQ" --force
           else
              # [V16.2] Sequential Assembly Pass

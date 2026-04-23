@@ -1,0 +1,34 @@
+# [V1.0] BlogsPro Hourly Swarm Tome - Institutional Strategic Synthesis
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: hourly-swarm-tome
+  namespace: blogspro
+spec:
+  schedule: "0 * * * *" # Every hour at the top of the hour
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: blogspro-sa
+          containers:
+          - name: swarm-engine
+            image: us-central1-docker.pkg.dev/blogspro-ai/blogspro-repo/swarm-engine:latest
+            args:
+            - "node"
+            - "scripts/generate-institutional-tome.js"
+            - "--freq=hourly"
+            - "--type=briefing"
+            - "--force"
+            envFrom:
+            - secretRef:
+                name: blogspro-secrets
+            resources:
+              requests:
+                cpu: "500m"
+                memory: "1Gi"
+              limits:
+                cpu: "2"
+                memory: "4Gi"
+          restartPolicy: OnFailure

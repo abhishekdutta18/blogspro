@@ -34,6 +34,7 @@ import {
   getHiRAGRetrievalPrompt,
   getRefinementPrompt,
   getGhostConsensusPrompt,
+  getThinkingPrompt,
   hydrateSwarmPrompts
 } from './prompts.js';
 import { fetchDynamicNews } from './data-fetchers.js';
@@ -422,6 +423,7 @@ export async function executeSingleVerticalSwarm(vertical, index, frequency, sem
     let iterations = 0;
     let finalManuscript = "";
     let researchBrief = "";
+    let thinkingPlan = "";
 
     while (state !== 'FINALIZE' && state !== 'FORCE_FINALIZE') {
         state = getNextSwarmState(state, { fidelityScore, iterations, type: frequency });
@@ -463,13 +465,19 @@ export async function executeSingleVerticalSwarm(vertical, index, frequency, sem
             researchBrief = `${researchBrief}\n\n🌳 [MCTS_WINNING_PATH]:\n${mctsResult.winningPath}`;
         }
 
+        if (state === 'THINK') {
+            const model = modelOverride !== 'auto' ? modelOverride : routeToBestModel('research', env);
+            thinkingPlan = await askAIWithEscalation(getThinkingPrompt(frequency, researchBrief, vertical.name), { role: 'research', env, model });
+        }
+
         if (state === 'DRAFT') {
             const model = modelOverride !== 'auto' ? modelOverride : routeToBestModel('draft', env);
             finalManuscript = await askAIWithEscalation(promptManager.resolve('drafter', {
                 frequency,
                 researchBrief,
-                verticalName: vertical.name
-            }, 'getDrafterPrompt', [frequency, researchBrief, vertical.name]), { role: 'generate', env, model, seed: index + iterations });
+                verticalName: vertical.name,
+                thinkingPlan
+            }, 'getDrafterPrompt', [frequency, researchBrief, vertical.name, "", thinkingPlan]), { role: 'generate', env, model, seed: index + iterations });
             fidelityScore = calculateReward(finalManuscript, frequency === 'monthly' ? 1500 : 500) * 100;
         }
 

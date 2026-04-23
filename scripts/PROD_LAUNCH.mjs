@@ -60,6 +60,8 @@ async function runPass(frequency) {
     log(`💻 Executing: ${cmd}`, frequency);
     
     try {
+        log(`🛡️  Running ECC Governance Audit...`, frequency);
+        execSync('npm run ecc:governance', { stdio: 'inherit' });
         execSync(cmd, { stdio: 'inherit' });
         log(`✅ [SUCCESS] ${frequency.toUpperCase()} Pulse Complete.`, frequency);
     } catch (e) {
