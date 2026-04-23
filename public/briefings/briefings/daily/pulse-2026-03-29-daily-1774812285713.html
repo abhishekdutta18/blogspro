@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLOBAL MACRO & CROSS-ASSET STRATEGY | Nexus Institutional Terminal</title>
+    <meta name="description" content="Extreme fear protocols triggered. Geopolitical tail-risk dominating global liquidity networks. USD/INR breaking critical resistance forces defensive FPI exiting and forces immediate systemic derisking.">
+    <meta name="keywords" content="GIFT City, IFSCA, Mutual Fund Inflows, PE/VC Deal Tracking, Institutional Market Intelligence, BlogsPro">
+    
+    <!-- Nexus Core Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Google Charts SDK -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {'packages':['corechart', 'table']});
+    </script>
+    
+    <style>
+        :root {
+            --nexus-bg: #050505;
+            --nexus-sidebar: rgba(18, 18, 18, 0.98);
+            --nexus-glass: rgba(10, 10, 10, 0.9);
+            --nexus-accent: #BFA100; /* Bloomberg Gold */
+            --nexus-amber: #FFB800;  /* Data Amber */
+            --nexus-border: rgba(191, 161, 0, 0.15);
+            --nexus-text-h1: #F8FAFC;
+            --nexus-text-p: #D1D5DB;
+            --nexus-success: #4ADE80;
+            --nexus-warning: #F87171;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--nexus-bg);
+            color: var(--nexus-text-p);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Bloomberg Sidebar - High Density */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--nexus-sidebar);
+            border-right: 1px solid var(--nexus-border);
+            padding: 1rem;
+            position: fixed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--nexus-text-h1);
+            margin-bottom: 2rem;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--nexus-accent);
+        }
+        .logo span { color: var(--nexus-amber); margin-left: 0.4rem; }
+
+        .nav-group { margin-bottom: 1.5rem; }
+        .nav-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            color: var(--nexus-accent);
+            padding-left: 0.5rem;
+            opacity: 0.6;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.8rem;
+            border-radius: 4px;
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.1s;
+            margin-bottom: 0.2rem;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(191, 161, 0, 0.05);
+            color: var(--nexus-accent);
+            border-left: 2px solid var(--nexus-accent);
+        }
+
+        /* Terminal Body Architecture */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 3rem 4rem;
+            max-width: 1200px;
+        }
+
+        header { margin-bottom: 3rem; }
+        .status-tag {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(191, 161, 0, 0.1);
+            color: var(--nexus-accent);
+            padding: 0.2rem 0.6rem;
+            border-radius: 2px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            display: inline-block;
+            border: 1px solid var(--nexus-border);
+        }
+
+        h1 {
+            font-family: 'Inter', sans-serif;
+            font-size: 2.8rem;
+            color: var(--nexus-text-h1);
+            line-height: 1.1;
+            margin-bottom: 1rem;
+            letter-spacing: -1px;
+            font-weight: 800;
+        }
+
+        .excerpt {
+            font-size: 1.15rem;
+            color: var(--nexus-text-p);
+            max-width: 850px;
+            border-left: 4px solid var(--nexus-amber);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            opacity: 0.8;
+        }
+
+        /* Terminal Typography */
+        .manuscript-body h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            color: var(--nexus-accent);
+            margin: 3.5rem 0 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-top: 1px solid var(--nexus-border);
+            padding-top: 1.5rem;
+        }
+
+        .manuscript-body p {
+            font-size: 1.05rem;
+            margin-bottom: 1.5rem;
+            color: rgba(209, 213, 219, 0.85);
+        }
+
+        /* Bloomberg Table & Card Logic */
+        .card {
+            background: rgba(20, 20, 20, 0.5);
+            border: 1px solid var(--nexus-border);
+            border-left: 4px solid var(--nexus-accent);
+            padding: 1.5rem;
+            margin: 2.5rem 0;
+        }
+
+        .card-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--nexus-amber);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        th { text-align: left; padding: 0.8rem; border-bottom: 2px solid var(--nexus-accent); color: var(--nexus-accent); font-weight: 800; }
+        td { padding: 0.8rem; border-bottom: 1px solid var(--nexus-border); color: var(--nexus-amber); }
+
+        .f-success { color: var(--nexus-success); font-weight: 600; }
+        .f-warning { color: var(--nexus-warning); font-weight: 600; }
+
+        .table-container { overflow-x: auto; margin: 2rem 0; }
+
+        /* Institutional Hyperlinks */
+        .manuscript-body a {
+            color: var(--nexus-amber);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(191, 161, 0, 0.3);
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .manuscript-body a:hover {
+            color: #fff;
+            border-bottom-color: var(--nexus-amber);
+        }
+        td a {
+            color: var(--nexus-amber);
+            text-decoration: none;
+            border-bottom: 1px dotted rgba(191,161,0,0.5);
+        }
+        td a:hover { color: #fff; }
+
+        @media (max-width: 1024px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <a href="../../index.html" class="logo">NEXUS<span>TERMINAL</span></a>
+        
+        <div class="nav-group">
+            <div class="nav-label">Institutional Verticals</div>
+            <nav>
+                <a href="#macro" class="nav-item">Global Macro Drift</a>
+                <a href="#debt" class="nav-item">Debt & Sovereignty</a>
+                <a href="#digital" class="nav-item">Digital Rails</a>
+                <a href="#equities" class="nav-item">Equities & Alpha</a>
+                <a href="#reg" class="nav-item">Regulatory Ledger</a>
+                <a href="#fx" class="nav-item">FX & Cross-Border</a>
+                <a href="#commodity" class="nav-item">Commodity Pulse</a>
+                <a href="#em" class="nav-item">Emerging Markets</a>
+                <a href="#asset" class="nav-item">Asset Allocation</a>
+                <a href="#scribe" class="nav-item">Scribe Analytics</a>
+                <a href="#capital" class="nav-item">Capital Flows (PE/VC)</a>
+                <a href="#insurance" class="nav-item">Insurance & Risk</a>
+                <a href="#gift" class="nav-item">Offshore & GIFT City</a>
+            </nav>
+        </div>
+        
+        <div style="margin-top:auto; padding-top:2rem; border-top: 1px solid var(--nexus-border);">
+            <div style="font-size:0.6rem; color:rgba(255,255,255,0.2); text-transform:uppercase;">BlogsPro Intel Unit</div>
+            <div style="font-size:0.75rem; color:var(--nexus-accent); font-weight:600;">V6.30 Sovereign Pass</div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <div class="status-tag">Status: Institutional Manuscript • 30 March 2026</div>
+            <h1>GLOBAL MACRO & CROSS-ASSET STRATEGY</h1>
+            <div class="excerpt">Extreme fear protocols triggered. Geopolitical tail-risk dominating global liquidity networks. USD/INR breaking critical resistance forces defensive FPI exiting and forces immediate systemic derisking.</div>
+        </header>
+
+        <div class="manuscript-body">
+            <h2>GLOBAL MACRO & CROSS-ASSET STRATEGY</h2>
+<details id="meta-excerpt" style="display:none">Extreme fear protocols triggered. Geopolitical tail-risk dominating global liquidity networks. USD/INR breaking critical resistance forces defensive FPI exiting and forces immediate systemic derisking.</details>
+<p><p>Fear & Greed Index locked at 9. Total systemic capitulation parameters engaged. Geopolitical tail-risk triggers a violent Gamma Squeeze across energy derivatives and safe havens. Post-market Monday execution isolates structural cross-border capital flight as U.S. military contingency algorithms price Iran ground troop deployments. Citation: <a href="https://www.investors.com/market-trend/stock-market-today/dow-jones-" target="_blank" rel="noopener noreferrer">Investor's Business Daily via Yahoo</a>.</p></p>
+<p><p>Macro parity fractures. USD/INR prints 94.76 (+0.54%), rapidly compressing unhedged corporate liability margins. Regulatory Friction imminent at the 95.00 psychological threshold. Gold prints a +2.64% daily expansion to 4493.69, confirming terminal institutional hedging vectors. Domestic GDP baseline holds at 7.2%, but extreme FPI liquidation overrides intrinsic growth narratives. Institutional Consolidation frameworks face severe stress-testing ahead of Fed Chair Powell's directional pivot and critical JOLTS liquidity signals.</p></p>
+<p><p>Sectoral rotation validates terminal distribution protocols. Reliance (-4.60%), SBI (-3.88%), and Adani Enterprises (-3.37%) exhibit extreme block-selling pressure. The 2011 systemic parallel model signals a heavy distribution phase, verifying dark-pool exhaustion. Citation: <a href="https://finance.yahoo.com/news/a-bold-2011-market-call-is-echoed-in-2026-180220110.html" target="_blank" rel="noopener noreferrer">Yahoo Finance</a>. Tech-heavy fiscal misallocation vectors compound the risk-off environment; algorithmic parsing of semiconductor expenditure exposes massive structural duration risks. Citation: <a href="https://finance.yahoo.com/markets/stocks/articles/did-nvidia-40-billion-mistake-190700609.html" target="_blank" rel="noopener noreferrer">Yahoo Finance</a>.</p></p>
+<div class="table-container"><table><thead><tr><th>Metric</th><th>Observation</th><th>Alpha Impact</th></tr></thead><tbody><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Fear & Greed: 9</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Total capitulation mechanics active</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ Highprobability meanreversion vector</span></td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">USD/INR: 94.76</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#22c55e;">▲ Structural breakout / 0.54% delta</span></td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Short INR gamma, Long USD duration</td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Gold: 4493.69</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ Extreme safehaven accumulation</span></td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ Convexity pricing on geopolitical tailrisk</span></td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">DII/FPI Flows</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ Heavyweight dumping (RIL 4.6%)</span></td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ Accelerated liquidity stress for largecaps</span></td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Fed Speak / JOLTS</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Impending macro liquidity pivot</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ Volatility surface expansion across shortdated options</span></td></tr></tbody></table></div>
+<p><p>| 
+<hr style="border:1px solid var(--gold); opacity:0.2; margin:4rem 0;">
+<h2>INSTITUTIONAL CAPITULATION AND GEOPOLITICAL GAMMA SQUEEZE</h2></p>
+<p><details id="meta-excerpt" style="display:none">Extreme fear metrics trigger massive capital rotation into defensive safe havens as geopolitical risk premiums spike and U.S. mega-cap technology valuations face severe downward repricing, forcing structural EM liquidations.</details></p>
+<p><p>Systemic fragility dominates the Monday post-market session. The global macroeconomic architecture is fracturing under compounding geopolitical and idiosyncratic sector risks. Extreme fear readings (9/100) have triggered mechanical liquidation algorithms across emerging market equities, executing synchronized distributions among large-cap and high-beta constituents. Foreign Portfolio Investors (FPIs) are maintaining indiscriminate offloading mandates, superseding domestic structural growth narratives. The underlying catalyst matrix encompasses severe escalation in Middle Eastern conflict theaters and structural degradation of mega-cap technology valuations, prompting aggressive capital rotation into sovereign safe havens and physical commodities.</p></p>
+<p><p>The geopolitical risk premium exhibits severe convex pricing in derivatives markets. Forward energy curves demonstrate aggressive backwardation, signaling acute near-term supply anxiety as institutional desks flag elevated probability of crude supply shocks. Pricing models are violently adjusting to reports that <a href="https://www.investors.com/market-trend/stock-market-today/dow-jones-">Dow Jones Futures and Oil Prices Loom As U.S. Mulls Ground Troops In Iran</a>. For the Indian macroeconomic framework, this translates to immediate current account deterioration. Brent crude destabilization acts as a regressive tax on domestic consumption, mechanically neutralizing the institutional 7.2% India GDP growth projection. Consequently, the USD/INR currency pair has registered a definitive breakout to 94.76 (+0.54%), forcing the Reserve Bank of India (RBI) into complex defense mechanisms to prevent accelerated sovereign currency depreciation.</p></p>
+<p><p>Simultaneously, the foundational pillars of the artificial intelligence infrastructure trade are fracturing. Quantitative funds are unwinding leverage tethered to semiconductor monopolies following critical capital allocation scrutiny. Market sentiment deteriorated sharply after structural miscalculations surfaced at the highest tiers of tech mega-caps, questioning <a href="https://finance.yahoo.com/markets/stocks/articles/did-nvidia-40-billion-mistake-190700609.html">Did Nvidia Make a $40 Billion Mistake in Fiscal 2026?</a>. This severe tech-sector deleveraging forces multi-strategy funds to liquidate profitable EM positions to meet global margin requirements. Historical beta correlations indicate this phase mirrors previous systemic deleveraging cycles, aligning with desk observations that <a href="https://finance.yahoo.com/news/a-bold-2011-market-call-is-echoed-in-2026-180220110.html">a bold 2011 market call is echoed in 2026</a>, marked by extreme flight-to-quality dynamics, sovereign credit stress, and indiscriminate cross-border capital flight.</p></p>
+<p><table style="width:100%; text-align:left; border-collapse:collapse; margin:15px 0;">
+  <thead>
+    <tr style="border-bottom:1px solid #333;">
+      <th style="padding:8px 0;">Metric</th>
+      <th style="padding:8px 0;">Observation</th>
+      <th style="padding:8px 0;">Alpha Impact</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="border-bottom:1px solid #444;">
+      <td style="padding:8px 0;">USD/INR</td>
+      <td style="padding:8px 0;">94.76 (+0.54%) Breakout</td>
+      <td style="padding:8px 0;">Bearish for Domestic Importers</td>
+    </tr>
+    <tr style="border-bottom:1px solid #444;">
+      <td style="padding:8px 0;">Gold Spot</td>
+      <td style="padding:8px 0;">4493.69 (+2.64%) Expansion</td>
+      <td style="padding:8px 0;">Long-term Safe Haven Accumulation</td>
+    </tr>
+    <tr style="border-bottom:1px solid #444;">
+      <td style="padding:8px 0;">RIL Equities</td>
+      <td style="padding:8px 0;">1348.10 (-4.60%) Plunge</td>
+      <td style="padding:8px 0;">Nifty 50 Drag / Institutional Distribution</td>
+    </tr>
+    <tr style="border-bottom:1px solid #444;">
+      <td style="padding:8px 0;">India GDP</td>
+      <td style="padding:8px 0;">7.2% (Macro Estimate)</td>
+      <td style="padding:8px 0;">Sovereign Premium Neutralized by FPI Outflows</td>
+    </tr>
+    <tr style="border-bottom:1px solid #444;">
+      <td style="padding:8px 0;">Fear & Greed</td>
+      <td style="padding:8px 0;">Level 9 (Extreme Fear)</td>
+      <td style="padding:8px 0;">VIX Spike / Negative Gamma Squeeze</td>
+    </tr>
+    <tr style="border-bottom:1px solid #444;">
+      <td style="padding:8px 0;">Geopolitical Premium</td>
+      <td style="padding:8px 0;">Convex Crude Backwardation</td>
+      <td style="padding:8px 0;">Negative for EM Current Accounts</td>
+    </tr>
+  </tbody>
+</table></p>
+<p><p>Cross-asset flows confirm extreme capital preservation mandates. Spot Gold exhibits a massive 2.64% intraday expansion to 4493.69. This velocity of bullion accumulation points to central bank reserve hedging and massive institutional put-selling on fiat stability. Conversely, Indian mega-cap equities are absorbing the brunt of the global liquidity vacuum. Reliance Industries (1348.10, -4.60%) suffers from dual headwinds of energy market volatility and foreign fund redemptions. State Bank of India (1019.50, -3.88%) reflects mark-to-market vulnerability on its sovereign bond portfolio as global yields drift upward in response to inflationary pressures. Adani Enterprises (1823.00, -3.37%) faces high-beta contraction, typical during phases of extreme risk aversion where infrastructure and heavily leveraged balance sheets undergo aggressive repricing models.</p></p>
+<p><p>Domestic Institutional Investors (DIIs) lack the immediate liquidity buffers to counteract the sheer volume of FPI supply. Order book analysis reveals severely depleted market depth on the bid side. Gamma exposure among market makers has flipped severely negative. Retail put buying forces dealers to aggressively short Nifty and Bank Nifty futures to remain delta-neutral, accelerating downward velocity. This gamma squeeze ensures intraday relief rallies are systematically faded by volume-weighted average price (VWAP) execution algorithms.</p></p>
+<p><p>Approaching high-impact macro data releases engineer a highly combustible environment for counter-trend volatility. Federal Reserve Chair Powell’s scheduled commentary operates as the primary systemic pivot. With inflation expectations unanchoring due to crude supply threats, the probability of a dovish pivot collapses. JOLTS Job Openings, ADP Non-Farm Employment Change, and Retail Sales data will dictate the short-term trajectory of the U.S. Dollar Index (DXY). A resilient U.S. labor market print will cement a restrictive yield paradigm, further draining dollar liquidity from emerging markets. Concurrently, Canadian GDP and ISM Manufacturing PMI will offer secondary gauges on global recessionary probabilities. Institutional trading desks are actively positioning for a dollar breakout, utilizing USD/INR non-deliverable forwards (NDFs) to hedge sovereign exposure.</p></p>
+<p><p>Risk parity strategies, optimized to maintain equal risk allocations across asset classes, are currently executing forced liquidations. As sovereign bond yields spike concurrently with equity selloffs, the core mechanism of risk parity fractures, necessitating systematic deleveraging. This phenomenon explains the relentless bid for Gold and the indiscriminate selling of high-quality Indian conglomerates. The 7.2% domestic GDP print, while robust in isolation, fails to generate alpha in an environment dictated by global liquidity contraction and explosive geopolitical risk premiums. The cost of capital is effectively repricing in real-time.</p></p>
+<p><p>The term structure of the implied volatility surface indicates significant demand for tail-risk protection. Implied volatility (IV) across near-term expiry options has decoupled from realized volatility, creating severe dislocations in dispersion trading models. Funds attempting to harvest variance risk premiums are facing massive drawdowns as index constituents correlate to 1.0 on the downside. Sectoral capitulation is evident across high-beta indices, particularly in banking and discretionary consumption. The repricing of crude oil mechanically alters margin structures for refining, FMCG, and aviation sectors, forcing sell-side analysts to aggressively downgrade forward earnings per share (EPS) estimates.</p></p>
+<p><p>Institutional positioning entering the next 48 hours reflects extreme defensive posturing. The overnight index swap (OIS) curve is flattening, discounting domestic rate cut interventions by the RBI. Sovereign yields are compressing only in ultra-safe jurisdictions, while EM credit default swap (CDS) spreads widen. Portfolio managers are instructed to raise cash equivalents to maximum permissible mandates. The convergence of U.S. militarization posturing in the Middle East and structural cracks in the global tech hierarchy creates a localized singularity for capital destruction in risk assets, mandating absolute portfolio sterilization.</p></p>
+<div style="margin-top: 20px; padding: 10px; background-color: #1a1a1a; border-left: 3px solid #ffcc00; font-family: monospace;">
+  <strong></strong> 9 | <strong>
+</div>
+<div id="chart_data" class="terminal-card" style="display:none;">
+<p></div></p>
+        </div>
+
+        <footer style="margin-top: 10rem; padding-top: 3rem; border-top: 1px solid var(--nexus-border); text-align: center;">
+            <p style="font-size: 0.75rem; color: rgba(248, 250, 252, 0.4); letter-spacing: 1px;">
+                © 2026 BLOGSPRO TERMINAL • ALL RIGHTS RESERVED • INSTITUTIONAL USE ONLY
+            </p>
+        </footer>
+    </main>
+    
+<script>
+    google.charts.setOnLoadCallback(() => {
+        const render = (containerId, label, rawData, color) => {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            try {
+                const data = new google.visualization.DataTable();
+                data.addColumn('string', 'Period');
+                data.addColumn('number', label);
+                data.addRows(rawData);
+
+                const options = {
+                    backgroundColor: '#FFFFFF',
+                    colors: [color],
+                    chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
+                    legend: { position: 'bottom', alignment: 'center', textStyle: {color: '#1A1A1A', fontSize: 10} },
+                    hAxis: { 
+                        title: 'Intraday Session Period',
+                        textStyle: {color: '#333333', fontSize: 10}, 
+                        titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                        gridlines: {color: '#F0F0F0'} 
+                    },
+                    vAxis: { 
+                        title: label + ' % Delta',
+                        textStyle: {color: '#333333', fontSize: 10}, 
+                        titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                        gridlines: {color: '#F0F0F0'} 
+                    },
+                    lineWidth: 3, pointSize: 6
+                };
+                new google.visualization.AreaChart(el).draw(data, options);
+            } catch (err) { console.error("Chart Render Fail:", containerId, err); }
+        };
+        render('chart_sentiment', 'Sentiment Drift', [["Fear_Greed","9.0"],["IV_Premium","42.5"],["FPI_Liquidation","88.0"],["Gamma_Exposure",-65.4]], '#BFA100');
+        render('chart_macro', 'Macro Flux', [["India_GDP","7.2"],["USD_INR_Spread","0.54"],["Yield_Drift","4.25"],["Inflation_Est","3.8"]], '#BFA100');
+        render('chart_multi_asset', 'Multi-Asset Alpha', [["Gold_Alpha","2.64"],["RIL_Drawdown",-4.6],["SBI_Liquidation",-3.88],["Adani_Delta",-3.37]], '#BFA100');
+    });
+</script>
+
+</body>
+</html>
