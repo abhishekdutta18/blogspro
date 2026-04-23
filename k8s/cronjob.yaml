@@ -13,7 +13,7 @@ spec:
           containers:
           - name: sovereign-dispatch
             image: gcr.io/blogspro-ai/swarm-orchestrator:latest
-            command: ["node", "scripts/lib/swarm-orchestrator.js", "--mode=daily"]
+            command: ["/bin/sh", "-c", "npm run ecc:governance && node scripts/lib/swarm-orchestrator.js --mode=daily"]
             envFrom:
             - secretRef:
                 name: blogspro-secrets
@@ -34,7 +34,7 @@ spec:
           containers:
           - name: pulse-dispatch
             image: gcr.io/blogspro-ai/swarm-orchestrator:latest
-            command: ["node", "scripts/lib/swarm-orchestrator.js", "--mode=monthly"]
+            command: ["/bin/sh", "-c", "npm run ecc:governance && node scripts/lib/swarm-orchestrator.js --mode=monthly"]
             envFrom:
             - secretRef:
                 name: blogspro-secrets

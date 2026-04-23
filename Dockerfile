@@ -27,5 +27,5 @@ ENV NODE_ENV=production
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
-# 🏁 Default Command: Execute Swarm (will be overridden by CronJob args)
-CMD ["node", "scripts/generate-institutional-tome.js"]
+# 🏁 Default Command: Execute Swarm with ECC Governance Audit
+CMD ["/bin/sh", "-c", "npm run ecc:governance && node scripts/generate-institutional-tome.js"]

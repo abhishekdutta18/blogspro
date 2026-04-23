@@ -82,7 +82,8 @@ export function getNextSwarmState(currentState, metrics = {}) {
     
     const matrix = {
         'INIT': () => 'RESEARCH',
-        'RESEARCH': () => 'DRAFT',
+        'RESEARCH': () => 'THINK',
+        'THINK': () => 'DRAFT',
         'DRAFT': () => 'AUDIT',
         'AUDIT': () => {
             if (fidelityScore >= 80) return 'FINALIZE';

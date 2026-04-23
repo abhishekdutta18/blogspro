@@ -98,7 +98,7 @@ function hydrateSwarmPrompts(metadata) {
 
 
 function getBriefingPrompt(frequency, marketContext, mktInfo) {
-    const wordTarget = frequency === 'hourly' ? '400-500' : '1,200-1,500';
+    const wordTarget = (frequency === 'hourly' || frequency === 'daily') ? '1,000-1,200' : '1,500-2,000';
     return `
 ${INSTITUTIONAL_PERSONA}
 Write a high-fidelity ${frequency} market pulse (HTML). 
@@ -181,11 +181,9 @@ GOAL: Provide the Drafter with enough granular data points, flow metrics, and di
 }
 
 function getDrafterPrompt(frequency, researchBrief, verticalName, rlMemory = "") {
-    // Per-vertical targets (total / 16 verticals, rounded up)
     const wordTarget = frequency === 'monthly' ? 1000
                      : frequency === 'weekly'  ? 625
-                     : frequency === 'daily'   ? 1500   // daily = single consolidated pass
-                     : 500;                              // hourly = single pass
+                     : 1000;                              // hourly/daily/other consolidated
     return `
 ${INSTITUTIONAL_PERSONA}
 ROLE: QUANTITATIVE DRAFTER — Bloomberg Intelligence Terminal

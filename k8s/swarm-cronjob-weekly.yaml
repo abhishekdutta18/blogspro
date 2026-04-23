@@ -14,12 +14,9 @@ spec:
           containers:
           - name: swarm-engine
             image: us-central1-docker.pkg.dev/blogspro-ai/blogspro-repo/swarm-engine:latest # Updated to Artifact Registry
+            command: ["/bin/sh", "-c"]
             args:
-            - "node"
-            - "scripts/generate-institutional-tome.js"
-            - "--freq=weekly"
-            - "--type=article"
-            - "--extended"
+            - "npm run ecc:governance && node scripts/generate-institutional-tome.js --freq=weekly --type=article --extended"
             envFrom:
             - secretRef:
                 name: blogspro-secrets
