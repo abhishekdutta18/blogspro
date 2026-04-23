@@ -15,39 +15,34 @@ permissions:
   id-token: write
 
 jobs:
-  seo-build:
-    name: SEO Static Build
+  production-pipeline:
+    name: Build & Deploy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
       - name: Install dependencies
         run: npm ci --no-audit
-      - name: Build Static Posts & Sitemap
+      - name: Build & Consolidate
         env:
           FIREBASE_PROJECT_ID: "blogspro-ai"
           FIREBASE_SERVICE_ACCOUNT: \${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
+          bash scripts/consolidate-prod.sh
           node scripts/build-static.js
           node scripts/generate-sitemap.js
-      - name: Commit & Push SEO Updates
+      - name: Commit & Push Updates
         run: |
           git config --global user.name "BlogsPro Bot"
           git config --global user.email "bot@blogspro.in"
-          git add index.html sitemap.xml p/ blogs/
-          git commit -m "chore: autonomous seo build [skip ci]" || echo "No changes"
+          git add .
+          git commit -m "chore: autonomous production build [skip ci]" || echo "No changes"
           git push || echo "Push skipped"
-
-  deploy-hosting:
-    name: Firebase Hosting Deploy
-    runs-on: ubuntu-latest
-    needs: seo-build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
