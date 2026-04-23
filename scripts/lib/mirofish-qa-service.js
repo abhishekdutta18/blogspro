@@ -34,9 +34,10 @@ async function runHighFidelityAuditor(content, frequency) {
     const has2026 = /2026|2027/.test(content);
     const isStale = /2023|2024/.test(content);
 
-    // V7.0: Strict Institutional Heuristics (Python-Parallel)
-    if (frequency !== 'daily' && wordCount < 1500) {
-        throw new Error(`QA REJECT: Institutional ${frequency} manuscript is too short (${wordCount} words). Minimum 1,500 required.`);
+    // V17.0: Adjusted Institutional Heuristics for Hourly/Daily
+    const minWords = (frequency === 'hourly') ? 500 : 1500;
+    if (frequency !== 'daily' && wordCount < minWords) {
+        throw new Error(`QA REJECT: Institutional ${frequency} manuscript is too short (${wordCount} words). Minimum ${minWords} required.`);
     }
     if (isStale && !has2026) {
         throw new Error("QA REJECT: Manuscript contains stale dates (2023/2024) without 2026-2027 strategic anchoring.");
@@ -97,6 +98,7 @@ async function runHighFidelityAuditor(content, frequency) {
     const score = Math.round(((passes + (passThrough * 0.5)) / roles.length) * 100);
     const status = (passes >= 2) ? "PASS" : (passThrough > 0 ? "CAUTION" : "REJECT");
 
+    const inconclusive = audits.filter(a => a.status === "REJECT" || a.status === "INCONCLUSIVE").length;
     console.log(`✅ Swarm Consensus: ${status} (${passes}/${roles.length} approved, ${inconclusive} inconclusive). Score: ${score}%`);
 
     // Log to Institutional Telemetry

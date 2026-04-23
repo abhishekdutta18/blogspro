@@ -773,6 +773,17 @@
       .market-row { min-height: 84px; }
     }
 
+    /* ── HOURLY PULSE ── */
+    .pulse-section { background: rgba(191,161,0,0.02); border-bottom: 1px solid var(--border); padding: 3rem 2rem; max-width: 1200px; margin: 0 auto; }
+    .pulse-live-tag { display: flex; align-items: center; gap: 0.5rem; font-family: var(--mono); font-size: 0.8rem; font-weight: 700; color: #86efac; border: 1px solid rgba(134,239,172,0.3); padding: 0.25rem 0.6rem; border-radius: 4px; }
+    .pulse-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 8px #22c55e; animation: pulseDot 1.5s infinite; }
+    .pulse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+    .pulse-mini-card { background: var(--navy2); border: 1px solid var(--border); padding: 1.25rem; border-radius: 4px; transition: all 0.2s; cursor: pointer; }
+    .pulse-mini-card:hover { border-color: var(--gold); transform: translateY(-2px); background: var(--navy3); }
+    .pulse-time { font-family: var(--mono); font-size: 0.72rem; color: var(--gold); margin-bottom: 0.5rem; display: block; }
+    .pulse-mini-title { font-size: 1rem; font-weight: 600; line-height: 1.4; margin-bottom: 0.5rem; color: var(--cream); }
+    .pulse-mini-excerpt { font-size: 0.82rem; color: var(--muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
     /* ── SECTION ── */
     section { padding: 4rem 2rem; max-width: 1200px; margin: 0 auto; }
     .section-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 3rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
@@ -967,6 +978,11 @@
       50% { box-shadow: 0 0 0 5px rgba(240,204,110,0); }
     }
 
+    /* ── ADS ── */
+    .ad-unit { margin: 3rem auto; text-align: center; max-width: 1200px; padding: 0 2rem; }
+    .ad-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); opacity: 0.5; display: block; margin-bottom: 0.5rem; }
+    .ad-leaderboard { background: rgba(255,255,255,0.02); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 1.5rem 0; }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
       .nav-links { display: none; }
@@ -996,6 +1012,16 @@
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date()); gtag('config', 'G-DED9GTRR3E');
   </script>
+  <!-- Microsoft Clarity -->
+  <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "w1simalsnj");
+  </script>
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5696584446633401" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -1051,6 +1077,35 @@
     <span class="ticker-tag">Digital Banking</span><span class="ticker-sep">·</span>
     <span class="ticker-tag">Open Finance</span><span class="ticker-sep">·</span>
   </div>
+</div>
+
+<!-- HOURLY PULSE -->
+<section id="hourly-pulse" class="pulse-section" style="display: none;">
+  <div class="section-header">
+    <div style="display: flex; align-items: center; gap: 1.5rem;">
+      <h2 class="section-title">Live Intelligence Pulse</h2>
+      <div class="pulse-live-tag"><span class="pulse-dot"></span> LIVE</div>
+    </div>
+    <span class="post-date">Real-time AI surveillance across global markets</span>
+  </div>
+  <div class="pulse-grid" id="hourlyPulseGrid">
+     <!-- Hourly pulses will go here -->
+  </div>
+</section>
+
+
+<!-- AD UNIT -->
+<div class="ad-unit ad-leaderboard">
+  <span class="ad-label">Institutional Commercial Protocol</span>
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-5696584446633401"
+       data-ad-slot="6614122455"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>
+       (adsbygoogle = window.adsbygoogle || []).push({});
+  </script>
 </div>
 
 <!-- POSTS -->
@@ -2368,20 +2423,48 @@
     try {
       const hybridPosts = await loadHybridPosts();
       allPosts = hybridPosts.filter(p => !isBloombergPost(p)).sort((a, b) => postEpochMs(b) - postEpochMs(a));
+      
+      const hourlyPulses = allPosts.filter(p => p.isAI && p.frequency === 'hourly').slice(0, 4);
+      const displayPosts = allPosts.filter(p => !(p.isAI && p.frequency === 'hourly'));
+
       const postCountEl = document.getElementById('postCount');
-      if (postCountEl) postCountEl.textContent = allPosts.length;
+      if (postCountEl) postCountEl.textContent = displayPosts.length;
+      
       const postsTitleEl = document.getElementById('postsTitle');
       if (postsTitleEl) postsTitleEl.textContent = indexUserIsAdmin ? 'Institutional Strategic Ledger' : 'Recent Market Pulses (Last 3 Generations)';
-      const firestorePosts = allPosts.filter(p => !p.isAI);
+      
+      const firestorePosts = displayPosts.filter(p => !p.isAI);
       const totalViews = firestorePosts.reduce((sum, p) => sum + normalizeViews(p.views), 0);
       const tvEl = document.getElementById('totalViewCount');
       if (tvEl) tvEl.textContent = fmtViews(totalViews);
-      renderPosts(currentCat === 'all' ? allPosts : allPosts.filter(p => p.category === currentCat));
+      
+      renderHourlyPulses(hourlyPulses);
+      renderPosts(currentCat === 'all' ? displayPosts : displayPosts.filter(p => p.category === currentCat));
       return true;
     } catch(err) {
       console.error('Error loading hybrid index:', err);
       return false;
     }
+  }
+
+  function renderHourlyPulses(pulses) {
+    const grid = document.getElementById('hourlyPulseGrid');
+    const section = document.getElementById('hourly-pulse');
+    if (!grid || !section) return;
+    if (!pulses || !pulses.length) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    const esc = (s) => DOMPurify.sanitize(s || '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    grid.innerHTML = pulses.map((p, i) => {
+      const title = esc(p.title || 'Untitled Pulse');
+      const excerpt = esc(p.excerpt || 'No summary available.');
+      const date = new Date(p.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      const postId = safePostId(p.id);
+      return `<div class="pulse-mini-card" onclick="openPostById('${postId}')" style="animation-delay:${i*0.05}s">
+        <span class="pulse-time">${date} • Hourly Pulse</span>
+        <h4 class="pulse-mini-title">${title}</h4>
+        <p class="pulse-mini-excerpt">${excerpt}</p>
+      </div>`;
+    }).join('');
   }
 
   function renderPosts(posts) {

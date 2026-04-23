@@ -1,0 +1,37 @@
+# [V1.0] BlogsPro Mirofish Dashboard - Google Cloud Run Spec
+# USAGE: gcloud run services replace deploy/cloud-run-mirofish.yaml
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: mirofish
+  namespace: blogspro-swarm
+  labels:
+    cloud.googleapis.com/location: us-central1 # Update with your preferred region
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '3' # Keep scale low to save budget
+        autoscaling.knative.dev/minScale: '0' # Zero-cost when not in use
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+      - image: gcr.io/blogspro-ai/mirofish:latest # Update with your Artifact Registry path
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NODE_ENV
+          value: production
+        - name: PORT
+          value: "8080"
+        - name: FLASK_HOST
+          value: 0.0.0.0
+        # AI & GCP secrets will be pulled from Secret Manager or environment
+        envFrom:
+        - secretRef:
+            name: blogspro-secrets
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2Gi

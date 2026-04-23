@@ -13,7 +13,7 @@ async function generatePost() {
     const now = new Date();
     const dateLabel = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     const today = now.toISOString().split('T')[0];
-    const targetDir = path.join(__dirname, "..", "posts");
+    const targetDir = path.join(__dirname, "..", "public", "posts");
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
 
     console.log(`🚀 Starting Post Engine (Category: ${category})...`);

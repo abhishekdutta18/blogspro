@@ -1,0 +1,33 @@
+# [V1.0] BlogsPro Monthly Swarm Tome - Institutional Strategic Synthesis
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: monthly-swarm-tome
+  namespace: blogspro
+spec:
+  schedule: "0 0 1 * *" # 1st of every month at 00:00 UTC
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: swarm-engine
+            image: us-central1-docker.pkg.dev/blogspro-ai/blogspro-repo/swarm-engine:latest
+            args:
+            - "node"
+            - "scripts/generate-institutional-tome.js"
+            - "--freq=monthly"
+            - "--type=tome"
+            - "--extended"
+            envFrom:
+            - secretRef:
+                name: blogspro-secrets
+            resources:
+              requests:
+                cpu: "1"
+                memory: "2Gi"
+              limits:
+                cpu: "4"
+                memory: "8Gi" # Higher limits for the monthly tome
+          restartPolicy: OnFailure

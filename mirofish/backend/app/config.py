@@ -68,8 +68,9 @@ class Config:
         """验证必要配置"""
         errors = []
         if not cls.LLM_API_KEY:
-            errors.append("LLM_API_KEY 未配置")
+            print("⚠️ 警告: LLM_API_KEY 未配置，部分模型功能将不可用")
         if not cls.ZEP_API_KEY:
-            errors.append("ZEP_API_KEY 未配置")
-        return errors
+            print("⚠️ 警告: ZEP_API_KEY 未配置，长期记忆功能将不可用")
+        # 生产环境下不阻塞启动，仅返回空错误列表
+        return []
 

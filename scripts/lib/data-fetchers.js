@@ -4,7 +4,8 @@ import { gateSignal } from "./gating-engine.js";
 import { NewsOrchestrator } from "./news-orchestrator.js";
 
 const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
-const _fetch = fetch;
+// [V21.1] Removed redundant _fetch alias to prevent module-init ReferenceErrors.
+// Global fetch is utilized natively in Node 18+ and Cloudflare Workers.
 const _env = typeof process !== "undefined" ? process.env : {};
 
 // Singleton instance for orchestration

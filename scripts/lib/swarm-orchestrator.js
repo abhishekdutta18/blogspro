@@ -41,6 +41,7 @@ import { extractKnowledgeGraph, formatGraphContext } from './knowledge-graph.js'
 import { getNextSwarmState, routeToBestModel } from './intelligence-engine.js';
 import { calculateReward } from './rl-metrics.js';
 import { generatePDF } from './pdf-service.js';
+import { dispatchTelegramAlert } from './social-utils.js';
 
 
 /**
@@ -101,13 +102,27 @@ export async function publishGitHubTrace(env, jobId) {
 }
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const safeStringify = (obj, indent = 0) => {
+    try {
+        const cache = new Set();
+        return JSON.stringify(obj, (key, value) => {
+            if (typeof value === 'object' && value !== null) {
+                if (cache.has(value)) return "[Circular]";
+                cache.add(value);
+            }
+            return value;
+        }, indent);
+    } catch (e) {
+        return "[Serialization Error]";
+    }
+};
 
 /**
  * 🛡️ INSTITUTIONAL TRACE: High-fidelity logger for Swarm Audit
  */
 function logTrace(message, data = null) {
     const timestamp = new Date().toISOString();
-    const logMsg = `[${timestamp}] ${message}${data ? ' ' + JSON.stringify(data) : ''}\n`;
+    const logMsg = `[${timestamp}] ${message}${data ? ' ' + safeStringify(data) : ''}\n`;
     
     traceBuffer.push(logMsg);
     console.log(message);
@@ -118,7 +133,7 @@ function logTrace(message, data = null) {
     }
 }
 
-async function saveSectorFragment(jobId, verticalId, content, env = {}) {
+export async function saveSectorFragment(jobId, verticalId, content, env = {}) {
     const bucket = env.FIREBASE_STORAGE_BUCKET || "blogspro-asset";
     const fragmentData = { 
         jobId, 
@@ -134,9 +149,16 @@ async function saveSectorFragment(jobId, verticalId, content, env = {}) {
     }
 
     // Local Persistence (Redundancy Fallback for GHA Artifacts)
-    if (!fs.existsSync(SECTOR_DIR)) fs.mkdirSync(SECTOR_DIR, { recursive: true });
-    const filePath = path.join(SECTOR_DIR, `${jobId}_${verticalId}.json`);
-    fs.writeFileSync(filePath, JSON.stringify(fragmentData, null, 2));
+    let currentBase = process.cwd();
+    // [V21.1] Institutional Path Hardening: Ensure we are targeting the blogspro root
+    if (!currentBase.endsWith('blogspro') && fs.existsSync(path.join(currentBase, 'blogspro'))) {
+        currentBase = path.join(currentBase, 'blogspro');
+    }
+    
+    const absoluteSectorDir = path.join(currentBase, SECTOR_DIR);
+    if (!fs.existsSync(absoluteSectorDir)) fs.mkdirSync(absoluteSectorDir, { recursive: true });
+    const filePath = path.join(absoluteSectorDir, `${jobId}_${verticalId}.json`);
+    fs.writeFileSync(filePath, safeStringify(fragmentData, 2));
     
     console.log(`💾 [Fragment-Sync] Sector ${verticalId} saved to ${env.FIREBASE_PROJECT_ID ? 'Cloud & ' : ''}Local [${jobId}]`);
 }
@@ -174,10 +196,10 @@ export async function loadSectorFragments(jobId, env = {}) {
 /**
  * [V16.0] Standardized Cloud Dispatch
  */
-async function askAIWithEscalation(prompt, options = {}) {
+export async function askAIWithEscalation(prompt, options = {}) {
     const { role, env, model, seed, extended, frequency } = options;
     const isMonthly = frequency === 'monthly';
-    const maxRetries = isMonthly ? 4 : 2; // Increase persistence for monthly runs
+    const maxRetries = (frequency === 'monthly' || frequency === 'hourly') ? 4 : 2; // Institutional depth for prod runs
     let lastError = null;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -199,9 +221,9 @@ async function askAIWithEscalation(prompt, options = {}) {
                 targetModel = 'llama-3.3-70b';
                 console.log(`📡 [Escalation Tier-3] Direct Cluster Handshake: ${targetModel}`);
             } else if (attempt === 4) {
-                // Tier 4: Sovereign Local Anchor (Purged, use Gemini-Flash)
-                targetModel = 'gemini-1.5-flash';
-                console.log(`🏠 [Escalation Tier-4] Sovereign Final Handshake: ${targetModel}`);
+                // Tier 4: Cloud Sovereign Anchor (Vertex AI Model Garden)
+                targetModel = 'vertex-llama-405b';
+                console.log(`🏠 [Escalation Tier-4] Cloud Sovereign Final Handshake: ${targetModel}`);
             }
 
             return await askAI(prompt, { ...options, model: targetModel, _retry: 0 }); 
@@ -251,7 +273,7 @@ export async function runGhostSim(frequency, semanticDigest, env, jobId, modelOv
 }
 
 export async function notifyProgress(env, jobId, data) {
-  if (!env.MIRO_SYNC_DO && !env.AUTH_PROXY_URL) return;
+  if (!env.MIRO_SYNC_DO && !env.AUTH_PROXY_URL && !env.FIREBASE_PROJECT_ID) return;
   
   // [V7.0] UI-Independent High-Fidelity Progress Visualization (ANSI CLI)
   if (data.progress !== undefined) {
@@ -280,7 +302,7 @@ export async function notifyProgress(env, jobId, data) {
     console.warn("⚠️ [Sentry-Telemetry] Failed:", e.message);
   }
 
-  if (env && (env.MIRO_SYNC_DO || env.AUTH_PROXY_URL)) {
+  if (env && (env.MIRO_SYNC_DO || env.AUTH_PROXY_URL || env.FIREBASE_PROJECT_ID)) {
     try {
       const payload = { 
         source: data.source || "SWARM_PROGRESS", 
@@ -289,15 +311,34 @@ export async function notifyProgress(env, jobId, data) {
         ...data 
       };
 
-      if (env.MIRO_SYNC_DO && typeof env.MIRO_SYNC_DO.idFromName === 'function') {
-        const id = env.MIRO_SYNC_DO.idFromName('global-swarm-bridge');
-        const stub = env.MIRO_SYNC_DO.get(id);
-        await stub.fetch("https://sync/push", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-      } else if (env.AUTH_PROXY_URL) {
+      const isHourly = String(jobId || '').includes('hourly');
+
+      if (isHourly && env.FIREBASE_PROJECT_ID) {
+        // GCP Firebase Telemetry Bridge (Hourly Only)
+        await syncToFirestore('live_telemetry', { id: jobId, ...payload }, env);
+      } else if (!isHourly && env.MIRO_SYNC_DO && typeof env.MIRO_SYNC_DO.idFromName === 'function') {
+        // Cloudflare Durable Objects Bridge (Daily/Monthly)
+        try {
+          const id = env.MIRO_SYNC_DO.idFromName('global-swarm-bridge');
+          const stub = env.MIRO_SYNC_DO.get(id);
+          const res = await stub.fetch("https://sync/push", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          
+          if (!res.ok) {
+            throw new Error(`Cloudflare DO returned status: ${res.status}`);
+          }
+        } catch (cfError) {
+          console.warn(`⚠️ [Cloudflare Fallback] DO Sync Failed (${cfError.message}). Falling back to GCP Firestore...`);
+          if (env.FIREBASE_PROJECT_ID) {
+            await syncToFirestore('live_telemetry', { id: jobId, ...payload }, env);
+          }
+        }
+      }
+
+      if (env.AUTH_PROXY_URL) {
         await fetch(`${env.AUTH_PROXY_URL}/telemetry`, {
           method: "POST",
           headers: { 
@@ -307,7 +348,8 @@ export async function notifyProgress(env, jobId, data) {
           body: JSON.stringify(payload)
         });
       }
-      // [V5.3] 200ms delay to prevent DO rate-limiting in parallel fan-outs
+      
+      // [V5.3] 200ms delay to prevent rate-limiting in parallel fan-outs
       await new Promise(r => setTimeout(r, 200));
     } catch (e) {
       if (env.DEBUG) console.warn("⚠️ Telemetry Bridge Stalled:", e.message);
@@ -587,6 +629,78 @@ export async function executeMultiAgentSwarm(frequency, semanticDigest, historic
   let targetVerticals = isArticle ? VERTICALS : [{ id: "consolidated", name: "Institutional Pulse" }];
   const id = jobId || `swarm-${Date.now()}`;
   
+  if (frequency === 'hourly') {
+      console.log(`⏱️ [Hourly Prod] Bypassing swarm for fast 1000-word high-fidelity synthesis.`);
+      const prompt = `
+TASK: Generate a High-Fidelity Hourly Production Briefing.
+RESPONSE_FORMAT: JSON
+JSON_STRUCTURE:
+{
+  "title": "A sharp, specific headline based on the news",
+  "abstract": "A concise one-sentence strategic summary",
+  "content": "The full briefing content (TARGET MINIMUM 1200 WORDS, HTML paragraphs allowed)"
+}
+CONSTRAINTS:
+- TARGET MINIMUM 1200 WORDS for the content field. Provide deep, data-driven institutional analysis.
+- NO TABLES.
+- NO CHARTS.
+- USE IST (Indian Standard Time) for all timestamps and date labeling.
+- TONE: Cynical, Data-Driven, Truth-First.
+- **CRITICAL**: DO NOT mention "BlogsPro" anywhere in the content body.
+- **CRITICAL**: Use the PROVIDED LIVE NEWS to drive the analysis.
+LIVE NEWS: ${semanticDigest.liveNews || "Pulse Baseline: Stable."}
+CONTEXT: ${JSON.stringify(semanticDigest)}
+      `;
+      // Use direct escalation for the lightweight hourly run, forcing a light model to ensure availability
+      const hourlyModel = modelOverride === "auto" ? "gemini-1.5-flash" : modelOverride;
+      const rawHourly = await askAIWithEscalation(prompt, { role: 'generate', env, model: hourlyModel, frequency });
+      
+      let parsed = { title: "Hourly Strategic Pulse", abstract: "Rapid intelligence synthesis for the current cycle.", content: rawHourly };
+      try {
+          const jsonStr = rawHourly.replace(/```json\n?|```/g, '').trim();
+          const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+              try {
+                  const obj = JSON.parse(jsonMatch[0]);
+                  if (obj.title) parsed.title = obj.title;
+                  if (obj.abstract) parsed.abstract = obj.abstract;
+                  if (obj.content) parsed.content = obj.content;
+              } catch (parseErr) {
+                  console.warn(`⚠️ [Hourly] Strict JSON.parse failed, attempting Regex Extraction.`);
+                  // Fallback: Regex extraction for common fields if JSON is slightly malformed
+                  const titleMatch = jsonMatch[0].match(/"title"\s*:\s*"(.*?)"/);
+                  const abstractMatch = jsonMatch[0].match(/"abstract"\s*:\s*"(.*?)"/);
+                  const contentMatch = jsonMatch[0].match(/"content"\s*:\s*"([\s\S]*?)"\s*}/);
+                  
+                  if (titleMatch) parsed.title = titleMatch[1];
+                  if (abstractMatch) parsed.abstract = abstractMatch[1];
+                  if (contentMatch) parsed.content = contentMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+              }
+          }
+      } catch (e) {
+          console.warn(`⚠️ [Hourly] Extraction failed: ${e.message}`);
+      }
+
+      // [V17.6] CONTENT SCRUBBER: Purge AI breadcrumbs (backticks, JSON markers)
+      if (parsed.content) {
+          parsed.content = parsed.content
+              .replace(/```(html|json|markdown)?/gi, '') // Remove code block markers
+              .replace(/```/g, '') // Remove stray backticks
+              .replace(/^\s*\{\s*"content"\s*:\s*"/i, '') // Remove leading JSON fragment
+              .replace(/"\s*\}\s*$/i, '') // Remove trailing JSON fragment
+              .trim();
+      }
+
+      return {
+          final: parsed.content,
+          title: parsed.title,
+          excerpt: parsed.abstract,
+          wordCount: parsed.content.split(/\s+/).filter(Boolean).length,
+          status: "HOURLY_PROD",
+          jobId: id
+      };
+  }
+  
   // [V12.0] Parallel Matrix Partitioning: Filter for specific vertical if requested
   if (env.TARGET_VERTICAL_ID) {
     const vId = env.TARGET_VERTICAL_ID;
@@ -803,26 +917,24 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
       }
   }
   
-<<<<<<< HEAD
-  const modelForEditor = modelOverride !== 'auto' ? modelOverride : 'node-editor';
-  const executiveStrategy = await askAI(getEditorPrompt(consensusData.summary, frequency), { role: 'edit', env, model: modelForEditor });
-=======
   // 9. Final Institutional Synthesis with Fleet-Retry
   let executiveStrategy = "";
   let synthesisRetries = 3;
+  const modelForEditor = modelOverride !== 'auto' ? modelOverride : 'node-editor';
+
   while (synthesisRetries > 0) {
     try {
       console.log(`📡 [Assemble] Dispatching Chief Institutional Editor (Try: ${4 - synthesisRetries}/3)...`);
-      executiveStrategy = await askAI(getEditorPrompt(consensusData.summary, frequency), { role: 'edit', env, model: 'gemini-3.1-pro-preview' });
+      executiveStrategy = await askAI(getEditorPrompt(consensusData.summary, frequency), { role: 'edit', env, model: modelForEditor });
       if (executiveStrategy) break;
     } catch (e) {
       console.warn(`⚠️ [Assemble] Executive Synthesis failed: ${e.message}. Retrying...`);
       synthesisRetries--;
       if (synthesisRetries === 0) throw e;
-      await sleep(5000 * (4 - synthesisRetries)); // Exponential backoff
+      await new Promise(r => setTimeout(r, 5000 * (4 - synthesisRetries))); // Exponential backoff
     }
   }
->>>>>>> dispatch/hardened-groq
+
 
   // [V7.0] Institutional Memory Snapshot (Global Consolidation)
   if (frequency !== 'hourly') {
@@ -890,30 +1002,9 @@ async function _finalizeAndSync(fidelityContent, consensusSummary, frequency, ty
     console.warn("⚠️ [Template-Engine] Finalization fallback used.", e.message);
   }
 
-<<<<<<< HEAD
-  // 2. [V1.0] MIGRATION: Telegram Alert handled by Master Script (generate-institutional-tome.js)
-  
-=======
-  // 2. Telegram Alert with Abstract Extraction
-  if (env.TELEGRAM_BOT_TOKEN && (env.TELEGRAM_CHAT_ID || env.TELEGRAM_TO)) {
-    try {
-      // [V15.8] SMARTER_EXTRACTOR: Prioritize Macro sector for abstract
-      const macroMatch = fidelityContent.match(/<div id="sector-macro"[\s\S]*?<\/div>/);
-      const extractionSource = macroMatch ? macroMatch[0] : fidelityContent.substring(0, 10000);
-      
-      const abstract = await askAI(`Extract title, link (placeholder), and abstract from this institutional manuscript fragment (Focus on Macro/Global first):\n\n${extractionSource}`, { role: 'edit', env, model: 'node-draft' });
-      await dispatchTelegramAlert({ 
-        title: `${frequency.toUpperCase()} Strategic Pulse`,
-        abstract: abstract,
-        wordCount: finalCount,
-        frequency
-      }, env);
-    } catch (e) {
-      console.warn("⚠️ [Telegram] Dispatch failed:", e.message);
-    }
-  }
+  // 2. Telegram Alert: DEPRECATED HERE. Handled by generate-institutional-tome.js
+  // to prevent double-dispatch in production cycles.
 
->>>>>>> dispatch/hardened-groq
   // 3. Dual-Sync Persistence (GCS + GDrive)
   let pdfUrl = null;
   try {

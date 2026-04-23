@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blogspro-swarm-orchestrator
+  namespace: blogspro
+  labels:
+    app: swarm-orchestrator
+    tier: intelligence
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: swarm-orchestrator
+  template:
+    metadata:
+      labels:
+        app: swarm-orchestrator
+    spec:
+      serviceAccountName: blogspro-sa
+      containers:
+      - name: orchestrator
+        image: gcr.io/blogspro-ai/swarm-orchestrator:latest
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        envFrom:
+        - secretRef:
+            name: blogspro-secrets
+        volumeMounts:
+        - name: manuscripts-cache
+          mountPath: /app/manuscripts/v7
+      volumes:
+      - name: manuscripts-cache
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: blogspro

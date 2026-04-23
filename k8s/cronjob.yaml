@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: blogspro-daily-sovereign
+  namespace: blogspro
+spec:
+  schedule: "0 9 * * *" # Daily at 9:00 AM IST
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: blogspro-sa
+          containers:
+          - name: sovereign-dispatch
+            image: gcr.io/blogspro-ai/swarm-orchestrator:latest
+            command: ["node", "scripts/lib/swarm-orchestrator.js", "--mode=daily"]
+            envFrom:
+            - secretRef:
+                name: blogspro-secrets
+          restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: blogspro-monthly-pulse
+  namespace: blogspro
+spec:
+  schedule: "0 10 1 * *" # 1st of every month at 10:00 AM IST
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: blogspro-sa
+          containers:
+          - name: pulse-dispatch
+            image: gcr.io/blogspro-ai/swarm-orchestrator:latest
+            command: ["node", "scripts/lib/swarm-orchestrator.js", "--mode=monthly"]
+            envFrom:
+            - secretRef:
+                name: blogspro-secrets
+          restartPolicy: OnFailure

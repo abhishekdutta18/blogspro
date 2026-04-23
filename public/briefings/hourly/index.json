@@ -1,1 +1,47 @@
-[]
+[
+  {
+    "title": "Hourly Strategic Pulse",
+    "date": "2026-04-23",
+    "timestamp": 1776910091435,
+    "excerpt": "Rapid intelligence synthesis for the current cycle.",
+    "fileName": "swarm-hourly-1776910091421.html",
+    "type": "briefing",
+    "frequency": "hourly"
+  },
+  {
+    "title": "Global Markets on High Alert as Geopolitical Tensions Escalate",
+    "date": "2026-04-23",
+    "timestamp": 1776909797673,
+    "excerpt": "A critical analysis of the current geopolitical landscape reveals a complex web of threats and opportunities, with the global economy teetering on the brink of a major shift.",
+    "fileName": "swarm-hourly-1776909797656.html",
+    "type": "briefing",
+    "frequency": "hourly"
+  },
+  {
+    "title": "Geopolitical Genesis: Hourly Research Cycle Initiated",
+    "date": "2026-04-23",
+    "timestamp": 1776909311879,
+    "excerpt": "Geopolitical tensions escalate as Japan's Finance Minister prepares to meet banks to discuss the Mythos threat, while the US and UAE engage in talks for a possible financial lifeline.",
+    "fileName": "swarm-hourly-1776909311871.html",
+    "type": "briefing",
+    "frequency": "hourly"
+  },
+  {
+    "title": "Mythos Threat Looms: Global Financial System at Crossroads",
+    "date": "2026-04-23",
+    "timestamp": 1776882894021,
+    "excerpt": "As Japan's Finance Minister prepares to meet with banks to discuss the Mythos threat, the global financial system teeters on the brink of chaos. With MUFG Bank seeking more acquisitions and the BOJ poised to skip rate hikes, the stage is set for a high-stakes game of financial juggling.",
+    "fileName": "swarm-hourly-1776882893992.html",
+    "type": "briefing",
+    "frequency": "hourly"
+  },
+  {
+    "title": "Hourly Strategic Pulse",
+    "date": "2026-04-22",
+    "timestamp": 1776882373430,
+    "excerpt": "Rapid intelligence synthesis for the current cycle.",
+    "fileName": "swarm-hourly-1776882370212.html",
+    "type": "briefing",
+    "frequency": "hourly"
+  }
+]

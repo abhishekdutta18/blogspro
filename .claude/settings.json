@@ -38,5 +38,9 @@
         "CLOUDFLARE_ACCOUNT_ID": "b3f4edff1fdc616f329e7d7cb6698307"
       }
     }
+  },
+  "env": {
+    "MAX_THINKING_TOKENS": "10000",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50"
   }
 }

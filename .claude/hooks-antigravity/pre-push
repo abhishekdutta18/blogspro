@@ -1,0 +1,62 @@
+#!/bin/bash
+# =============================================================================
+# ECC Pre-Push Hook (Antigravity-Native)
+# Rebuilt from everything-claude-code hooks for non-Claude-Code environments.
+# =============================================================================
+# Checks:
+# 1. Branch protection — warn if pushing directly to main
+# 2. Quality gate — run lint check if available
+# =============================================================================
+
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+BOLD='\033[1m'
+
+echo -e "${CYAN}${BOLD}🛡️  ECC Pre-Push Guard${NC}"
+echo ""
+
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+REMOTE="$1"
+ERRORS=0
+
+# --- 1. BRANCH PROTECTION ---
+echo -e "${CYAN}[1/2] Branch protection...${NC}"
+
+if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
+  echo -e "  ${YELLOW}⚠ Pushing directly to '${CURRENT_BRANCH}'. Use a feature branch + PR instead.${NC}"
+  echo -e "  ${YELLOW}  Convention: claude/general-session-<id>${NC}"
+  # Warning only, don't block
+else
+  echo -e "  ${GREEN}✓ Branch: ${CURRENT_BRANCH}${NC}"
+fi
+
+# --- 2. QUALITY GATE ---
+echo -e "${CYAN}[2/2] Quality gate...${NC}"
+
+PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+
+# Check if package.json has a lint script
+if [ -f "$PROJECT_ROOT/package.json" ]; then
+  HAS_LINT=$(node -e "try{const p=require('$PROJECT_ROOT/package.json');console.log(p.scripts&&p.scripts.lint?'yes':'no')}catch{console.log('no')}" 2>/dev/null)
+  
+  if [ "$HAS_LINT" = "yes" ]; then
+    echo -e "  ${CYAN}Running lint check...${NC}"
+    cd "$PROJECT_ROOT" && npm run lint --silent 2>/dev/null
+    if [ $? -ne 0 ]; then
+      echo -e "  ${YELLOW}⚠ Lint issues found (warning only)${NC}"
+    else
+      echo -e "  ${GREEN}✓ Lint passed${NC}"
+    fi
+  else
+    echo -e "  ${GREEN}✓ No lint script found, skipping${NC}"
+  fi
+else
+  echo -e "  ${GREEN}✓ No package.json, skipping quality gate${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}${BOLD}✓ Push proceeding.${NC}"
+exit 0

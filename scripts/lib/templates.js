@@ -92,7 +92,7 @@ function parseMD(md) {
 }
 
 function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileName, rel = "../../", sentimentScore = 50, priceInfo = { last: "0", high: "0", low: "0" }, scripts = "" }) {
-    const seoDescription = excerpt || "BlogsPro Institutional Strategic Manuscript - 16-Vertical Specialized Market Synthesis.";
+    const seoDescription = excerpt || "Institutional Strategic Manuscript - 16-Vertical Specialized Market Synthesis.";
     const finalBody = parseMD(content);
 
     return `<!DOCTYPE html>

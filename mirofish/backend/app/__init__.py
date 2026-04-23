@@ -18,7 +18,9 @@ from .utils.logger import setup_logger, get_logger
 
 def create_app(config_class=Config):
     """Flask应用工厂函数"""
-    app = Flask(__name__)
+    # 🏺 [V1.0] GKE/CloudRun Hybrid Bridge: Serve frontend from backend
+    frontend_dist = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'frontend', 'dist')
+    app = Flask(__name__, static_folder=frontend_dist, static_url_path='/')
     app.config.from_object(config_class)
     
     # 设置JSON编码：确保中文直接显示（而不是 \uXXXX 格式）
@@ -72,6 +74,16 @@ def create_app(config_class=Config):
     @app.route('/health')
     def health():
         return {'status': 'ok', 'service': 'MiroFish Backend'}
+    
+    # 🏺 [V1.0] SPA Catch-all: Route all other requests to index.html
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve(path):
+        from flask import send_from_directory
+        if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+            return send_from_directory(app.static_folder, path)
+        else:
+            return send_from_directory(app.static_folder, 'index.html')
     
     if should_log_startup:
         logger.info("MiroFish Backend 启动完成")

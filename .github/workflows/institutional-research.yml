@@ -32,6 +32,7 @@ jobs:
       tome_file: ${{ steps.swarm.outputs.tome_file }}
       tome_name: ${{ steps.swarm.outputs.tome_name }}
       tome_type: ${{ steps.swarm.outputs.tome_type }}
+      handoff: ${{ steps.handoff.outputs.handoff }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -52,44 +53,40 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Pre-Flight Security Check
+      - name: 🛡️ Pre-Flight Check & GKE Handoff
+        id: handoff
         run: |
-          if [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then
-            echo "GEMINI_API_KEY is missing! Swarm cannot start."; exit 1
+          FREQ="${{ github.event.inputs.freq }}"
+          if [[ "$FREQ" == "weekly" || "$FREQ" == "monthly" ]]; then
+            echo "handoff=gke" >> $GITHUB_OUTPUT
+            echo "⏭️ [Handoff] $FREQ pulse detected. Handing off to Sovereign GKE Cluster."
+          else
+            echo "handoff=gha" >> $GITHUB_OUTPUT
+            echo "✅ [Execution] $FREQ pulse detected. Running on GHA with Simple Engine."
           fi
-          if [ -z "${{ secrets.GROQ_API_KEY }}" ]; then
-            echo "GROQ_API_KEY is missing! Swarm cannot start."; exit 1
-          fi
-          echo "Institutional Intelligence Keys Verified."
 
-      - name: Execute Consensus Swarm
+      - name: Execute Simple Research
+        if: steps.handoff.outputs.handoff == 'gha'
         id: swarm
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_KEY }}
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
           SAMBANOVA_API_KEY: ${{ secrets.SAMBANOVA_API_KEY }}
-          QWEB_API_KEY: ${{ secrets.QWEB_API_KEY }}
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          SWARM_INTERNAL_TOKEN: ${{ secrets.SWARM_INTERNAL_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-          UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
-          EXTENDED_MODE: true
-          NODE_OPTIONS: "--max-old-space-size=4096"
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ASSET_DOMAIN: "https://blogspro.in"
         run: |
           mkdir -p ./dist
-          node scripts/generate-institutional-tome.js --freq="${{ github.event.inputs.freq }}" --type="${{ github.event.inputs.type }}" --extended
+          node scripts/generate-institutional-tome.js --freq="${{ github.event.inputs.freq }}" --type="${{ github.event.inputs.type }}" --force
 
   pdf-generation:
     name: PDF Manuscript Print
     needs: research
+    if: needs.research.outputs.handoff == 'gha'
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -135,10 +132,10 @@ jobs:
           git config --global user.name "BlogsPro Engine"
           git config --global user.email "engine@blogspro.in"
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
-          # Stage generated files if they exist
-          git add dist/swarm-*.html 2>/dev/null || true
-          find briefings -name "*.pdf" 2>/dev/null | xargs git add 2>/dev/null || true
-          git commit -m "swarm-archival: Institutional Manuscript Update [skip ci]" || echo "No changes to commit"
+          # Stage generated files from public/ directory
+          git add public/briefings/ public/articles/ public/index.json 2>/dev/null || true
+          find public/briefings -name "*.pdf" 2>/dev/null | xargs git add 2>/dev/null || true
+          git commit -m "swarm-archival: Institutional Manuscript Update [registry: Institutional-AI]" || echo "No changes to commit"
           for i in 1 2 3; do
             git pull --rebase origin main && git push && exit 0
             echo "Push rejected (Attempt $i), retrying in 10s..."
@@ -156,6 +153,7 @@ jobs:
   deployment:
     name: Production Dispatch
     needs: [research, pdf-generation]
+    if: always() && needs.research.outputs.handoff == 'gha' && (needs.research.result == 'success' || (needs.pdf-generation.result == 'success' || needs.pdf-generation.result == 'skipped'))
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -172,15 +170,22 @@ jobs:
         run: npm ci || npm install
 
 
-      - name: Dispatch Institutional Telegram Notification
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          FREQUENCY: ${{ github.event.inputs.freq }}
-          TYPE: ${{ github.event.inputs.type }}
-        run: node scripts/notify-telegram.js --freq=$FREQUENCY --type=$TYPE
-
       - name: Final Archival Verification
         run: |
           echo "Institutional Manuscript Successfully Archived."
           echo "Path: ${{ needs.research.outputs.tome_file }}"
+
+  deploy:
+    name: Production Deploy
+    needs: [research, pdf-generation]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: blogspro-ai
+          channelId: live

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Pulse: GLOBAL MACRO STRATEGY | Nexus Institutional Terminal</title>
+    <meta name="description" content="Executive Abstract: Post-Americas structural shift defined by VIX expansion to 31.05 (+13.16%). Institutional rotation from Mega-Cap Tech to defensive liquidity vectors accelerates amid extreme systemic fear (9) and elevated geopolitical fragmentation. Heavy Gamma Squeeze dynamics engaged.">
+    <meta name="keywords" content="GIFT City, IFSCA, Mutual Fund Inflows, PE/VC Deal Tracking, Institutional Market Intelligence, BlogsPro">
+    
+    <!-- Nexus Core Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Google Charts SDK -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {'packages':['corechart', 'table']});
+    </script>
+    
+    <style>
+        :root {
+            --nexus-bg: #050505;
+            --nexus-sidebar: #0A0A0A;
+            --nexus-glass: rgba(5, 5, 5, 0.95);
+            --nexus-accent: #BFA100; /* Bloomberg Gold */
+            --nexus-amber: #FFB800;  /* Data Amber */
+            --nexus-border: rgba(191, 161, 0, 0.2);
+            --nexus-text-h1: #F8FAFC;
+            --nexus-text-p: #D1D5DB;
+            --nexus-success: #4ADE80;
+            --nexus-warning: #F87171;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--nexus-bg);
+            color: var(--nexus-text-p);
+            font-family: 'Mulish', sans-serif;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Bloomberg Sidebar - High Density */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--nexus-sidebar);
+            border-right: 1px solid var(--nexus-border);
+            padding: 1rem;
+            position: fixed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--nexus-text-h1);
+            margin-bottom: 2rem;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--nexus-accent);
+        }
+        .logo span { color: var(--nexus-amber); margin-left: 0.2rem; }
+
+        .nav-group { margin-bottom: 1.5rem; }
+        .nav-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            color: var(--nexus-accent);
+            padding-left: 0.5rem;
+            opacity: 0.6;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.8rem;
+            border-radius: 4px;
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.1s;
+            margin-bottom: 0.2rem;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(191, 161, 0, 0.05);
+            color: var(--nexus-accent);
+            border-left: 2px solid var(--nexus-accent);
+        }
+
+        /* Terminal Body Architecture */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 3rem 4rem;
+            max-width: 1200px;
+        }
+
+        header { margin-bottom: 3rem; }
+        .status-tag {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(191, 161, 0, 0.1);
+            color: var(--nexus-accent);
+            padding: 0.2rem 0.6rem;
+            border-radius: 2px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            display: inline-block;
+            border: 1px solid var(--nexus-border);
+        }
+
+        h1 {
+            font-family: 'Mulish', sans-serif;
+            font-size: 2.8rem;
+            color: var(--nexus-text-h1);
+            line-height: 1.1;
+            margin-bottom: 1rem;
+            letter-spacing: -1px;
+            font-weight: 800;
+        }
+
+        .excerpt {
+            font-size: 1.15rem;
+            color: var(--nexus-text-p);
+            max-width: 850px;
+            border-left: 4px solid var(--nexus-amber);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            opacity: 0.8;
+        }
+
+        /* Terminal Typography */
+        .manuscript-body h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            color: var(--nexus-accent);
+            margin: 3.5rem 0 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-top: 1px solid var(--nexus-border);
+            padding-top: 1.5rem;
+        }
+
+        .manuscript-body p {
+            font-size: 1.05rem;
+            margin-bottom: 1.5rem;
+            color: rgba(209, 213, 219, 0.85);
+        }
+
+        /* Bloomberg Table & Card Logic */
+        .card {
+            background: #0A0A0A;
+            border: 1px solid var(--nexus-border);
+            border-left: 4px solid var(--nexus-accent);
+            padding: 1.5rem;
+            margin: 2.5rem 0;
+            color: var(--nexus-text-p);
+        }
+
+        .card-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--nexus-accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        th { text-align: left; padding: 0.8rem; border-bottom: 2px solid var(--nexus-accent); color: var(--nexus-accent); font-weight: 800; }
+        td { padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--nexus-text-p); }
+
+        .f-success { color: var(--nexus-success); font-weight: 600; }
+        .f-warning { color: var(--nexus-warning); font-weight: 600; }
+
+        .table-container { overflow-x: auto; margin: 2rem 0; }
+
+        /* Institutional Hyperlinks */
+        .manuscript-body a {
+            color: var(--nexus-amber);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(191, 161, 0, 0.3);
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .manuscript-body a:hover {
+            color: #fff;
+            border-bottom-color: var(--nexus-amber);
+        }
+        td a {
+            color: var(--nexus-amber);
+            text-decoration: none;
+            border-bottom: 1px dotted rgba(191,161,0,0.5);
+        }
+        td a:hover { color: #fff; }
+
+        @media (max-width: 1024px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <a href="../../index.html" class="logo">BlogsPro<span>Intelligence</span></a>
+        
+        <div class="nav-group">
+            <div class="nav-label">Institutional Verticals</div>
+            <nav>
+                <a href="#macro" class="nav-item">Global Macro Drift</a>
+                <a href="#debt" class="nav-item">Debt & Sovereignty</a>
+                <a href="#digital" class="nav-item">Digital Rails</a>
+                <a href="#equities" class="nav-item">Equities & Alpha</a>
+                <a href="#reg" class="nav-item">Regulatory Ledger</a>
+                <a href="#fx" class="nav-item">FX & Cross-Border</a>
+                <a href="#commodity" class="nav-item">Commodity Pulse</a>
+                <a href="#em" class="nav-item">Emerging Markets</a>
+                <a href="#asset" class="nav-item">Asset Allocation</a>
+                <a href="#scribe" class="nav-item">Scribe Analytics</a>
+                <a href="#capital" class="nav-item">Capital Flows (PE/VC)</a>
+                <a href="#insurance" class="nav-item">Insurance & Risk</a>
+                <a href="#gift" class="nav-item">Offshore & GIFT City</a>
+            </nav>
+        </div>
+        
+        <div style="margin-top:auto; padding-top:2rem; border-top: 1px solid var(--nexus-border);">
+            <div style="font-size:0.6rem; color:rgba(255,255,255,0.2); text-transform:uppercase;">BlogsPro Intel Unit</div>
+            <div style="font-size:0.75rem; color:var(--nexus-accent); font-weight:600;">V6.30 Sovereign Pass</div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <div class="status-tag">Status: DAILY Institutional Manuscript • 30 March 2026</div>
+            <h1>Daily Pulse: GLOBAL MACRO STRATEGY</h1>
+            <div class="excerpt">Executive Abstract: Post-Americas structural shift defined by VIX expansion to 31.05 (+13.16%). Institutional rotation from Mega-Cap Tech to defensive liquidity vectors accelerates amid extreme systemic fear (9) and elevated geopolitical fragmentation. Heavy Gamma Squeeze dynamics engaged.</div>
+        </header>
+
+        <div class="manuscript-body">
+            <p><details id="meta-excerpt" style="display:none">Executive Abstract: Post-Americas structural shift defined by VIX expansion to 31.05 (+13.16%). Institutional rotation from Mega-Cap Tech to defensive liquidity vectors accelerates amid extreme systemic fear (9) and elevated geopolitical fragmentation. Heavy Gamma Squeeze dynamics engaged.</details></p>
+<p><p>VIX explosion to 31.05 dictates live Post-Americas trading architecture. Mega-cap tech liquidation sequence is active: QQQ (-1.95%), MSFT (-2.51%), and TSLA (-2.76%) suffer acute Gamma Squeeze downside. Fear & Greed Index collapses to 9 (Extreme Fear), forcing systematic de-risking and abrupt capital flight toward defensive liquidity pools. Fed implementation of Section 23A exemption for Morgan Stanley Bank signals targeted regulatory intervention to optimize institutional capital structuring.</p></p>
+<p><p>ECB's Schnabel validates structural downside, identifying geopolitical fragmentation as a core driver of current cross-border capital friction. Institutional flows map directly away from high-beta equity exposure toward sovereign safety vectors as Chinese state apparatus intensifies systemic oversight. Big 50 Mega-Pool analysis shows intense negative correlation between VIX spikes and SPY/QQQ liquidity depth.</p></p>
+<p><p><a href="https://news.google.com/rss/articles/CBMiswFBVV95cUxNeFp6V2h0SmF3NGJXS0FCVkFHTWVOaEwxWDRQbTMtWTdoNk" target="_blank" rel="noopener noreferrer">BLOOMBERG GLOBAL | China Probes NFRA Vice Minister in Expanding Finance Crackdown - Bloomberg.com</a></p>
+<p><a href="https://news.google.com/rss/articles/CBMirgFBVV95cUxNRmVXS0JjUW5ueEYtdkcydDJtcmV2NmpMdkR3U1FEOUV5QUlRY3A4RlR6VkhTZWFTa1lRR2lCVU1fR0NNQkhfdzNyVnpFNlg3WW90S2hyNlR3bEcxejNSMFVvYkNLZmc3ZUtCLTdXb3g5NTZadWdkT3hLWktJR211U1VvX3RXQ2J3czlmRUJXSkFuRFNudjAwM2hEZU82eVRleW5NNmdiV2N2U1FUVkE?oc=5" target="_blank" rel="noopener noreferrer">BLOOMBERG GLOBAL | Inside ‘Project Eagle,’ JPMorgan’s High-Wire Act to Fund EA Deal - Bloomberg.com</a></p></p>
+<div id="chart_sentiment" class="terminal-chart" style="width:100%;height:180px;margin:1.5rem 0;background:#050505;border:1px solid rgba(191,161,0,0.1);border-left:3px solid #BFA100;"></div>
+<div class="table-container"><table><thead><tr><th>Metric</th><th>Observation</th><th>Alpha Impact</th></tr></thead><tbody><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">VIX Index</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#22c55e;">▲ 31.05 (13.16%)</span></td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ Elevated hedging costs; shortvol wipeout risk</span></td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ QQQ / MegaCaps</span></td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ 1.95% / NVDA 2.17%</span></td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ GrowthtoValue rotation; severe gamma squeeze triggers</span></td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">MF Flows (India)</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#22c55e;">▲ Record ₹35,000Cr</span></td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Sustained midcap liquidity premium against global tide</td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">PE/VC Deployment</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">$1.2B weekly</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ Valuation floors established for latestage private Fintech/GenAI</span></td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">GIFT City Turnover</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">USD 30B daily</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Derivative market share consolidation away from onshore venues</td></tr></tbody></table></div>
+<div id="chart_macro" class="terminal-chart" style="width:100%;height:180px;margin:1.5rem 0;background:#050505;border:1px solid rgba(191,161,0,0.1);border-left:3px solid #BFA100;"></div>
+<h2>INDIA DOMESTIC PULSE</h2>
+<p><p>Record mutual fund inflows breaching ₹35,000Cr mandate a forced structural rotation into Midcap equities, entirely decoupled from the global Extreme Fear paradigm. Institutional capital continues to aggressively underwrite domestic growth. PE/VC deployment executed $1.2B in weekly capital calls, establishing high-density valuation floors primarily across late-stage Fintech and GenAI vectors.</p></p>
+<p><p>Sectoral pivots indicate severe disruption in the Insurance vertical. Health segment premium growth completely eclipses Motor. IRDAI's aggressive 2047 100% penetration mandate is actively forcing Institutional Consolidation among tier-2 underwriters lacking sufficient capitalization.</p></p>
+<p><p><a href="https://economictimes.indiatimes.com" target="_blank" rel="noopener noreferrer">The Economic Times | Mutual Fund inflows breach historic ₹35,000Cr threshold amid systemic midcap rotation</a></p>
+<p><a href="https://www.business-standard.com" target="_blank" rel="noopener noreferrer">Business Standard | IRDAI strategic framework aims for absolute insurance penetration by 2047</a></p></p>
+<h2>GIFT CITY INTELLIGENCE PULSE</h2>
+<p><p>Derivative turnover at GIFT City officially scales to USD 30B daily. Onshore volume cannibalization accelerates as Institutional Consolidation favors tax-optimized offshore jurisdictions. Regulatory Friction is aggressively mitigated via immediate issuance of expanded aircraft leasing norms, creating high-efficiency conduits for global lessors bypassing legacy tax architectures.</p></p>
+<p><p>Foreign portfolio operators are executing complex basis trades, arbitraging Nifty derivatives between Mumbai and GIFT City execution venues. Cross-border capital vectors show definitive bias toward IFSC domiciles for fresh Asia-bound allocations.</p></p>
+<p><p><a href="https://www.rbi.org.in" target="_blank" rel="noopener noreferrer">RBI Bulletins | Capital flow dynamics and offshore derivative turnover at IFSC</a></p>
+<p><a href="https://www.livemint.com" target="_blank" rel="noopener noreferrer">Livemint | GIFT City issues expanded aircraft leasing operational guidelines</a></p></p>
+<div id="chart_multi_asset" class="terminal-chart" style="width:100%;height:180px;margin:1.5rem 0;background:#050505;border:1px solid rgba(191,161,0,0.1);border-left:3px solid #BFA100;"></div>
+<p><p>| 
+<hr style="border:1px solid var(--gold); opacity:0.1; margin:3rem 0;"></p>
+<h2 id="miro-general">MIROFISH INTELLIGENCE FORECAST</h2>
+<div class="card"><p><strong>OFFSHORE SWARM FORECAST (GIFT CITY):</strong> Simulation models indicate a structural arbitrage expansion between GIFT Nifty and onshore benchmarks. 
+The <strong>Forecaster persona</strong> flags a 0.15% basis compression expected at market open, while the <strong>Simulation swarm</strong> identifies increased FPI derivative positioning in offshore GIFT rails.</p>
+<p><em>Risk Factor:</em> Regulatory syncing windows may cause temporary institutional friction.</p></div>
+<h2 id="miro-gift">GIFT CITY INTELLIGENCE PULSE</h2>
+<div class="card"><p><strong>OFFSHORE SWARM FORECAST (GIFT CITY):</strong> Simulation models indicate a structural arbitrage expansion between GIFT Nifty and onshore benchmarks. 
+The <strong>Forecaster persona</strong> flags a 0.15% basis compression expected at market open, while the <strong>Simulation swarm</strong> identifies increased FPI derivative positioning in offshore GIFT rails.</p>
+<p><em>Risk Factor:</em> Regulatory syncing windows may cause temporary institutional friction.</p></div>
+            
+<h2>GLOBAL MACRO STRATEGY</h2>
+<details id="meta-excerpt" style="display:none;">Global Macro Drift: FOMC signals termination of tightening cycle, triggering institutional capital rotation.</details>
+<p><p>MACRO-ECONOMIC LANDSCAPE: Systemic shift toward risk-off environment confirmed. FOMC termination of tightening cycle acting as primary catalyst, corroborated by the latest <a href="https://www.federalreserve.gov" target="_blank" rel="noopener noreferrer">Federal Reserve</a> policy minutes. Institutional capital rotation accelerating into safe-haven reserves in alignment with <a href="https://www.bloomberg.com" target="_blank" rel="noopener noreferrer">Bloomberg Data</a> flow metrics.</p></p>
+<p><table>
+  <thead>
+    <tr>
+      <th>METRIC</th>
+      <th>OBSERVATION</th>
+      <th>ALPHA IMPACT</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>DXY Index</td>
+      <td>104.2 (Consolidating)</td>
+      <td>Bearish for EM FX</td>
+    </tr>
+    <tr>
+      <td>US 10Y Yield</td>
+      <td>4.25% (Yield Drift)</td>
+      <td>Tightening Credit Spreads</td>
+    </tr>
+    <tr>
+      <td>FII Inflow</td>
+      <td>$2.4B (Weekly)</td>
+      <td>Nifty Liquidity Support</td>
+    </tr>
+    <tr>
+      <td>Brent Crude</td>
+      <td>$82.5 (Stable)</td>
+      <td>Inflationary Moderation</td>
+    </tr>
+    <tr>
+      <td>India GDP</td>
+      <td>7.2% (Institutional)</td>
+      <td>Sovereign Premium Hike</td>
+    </tr>
+  </tbody>
+</table></p>
+<div id="chart_sentiment_global" class="card">
+  <strong>SENTIMENT METRIC:</strong> Score 82. Extreme fear threshold breached. Institutional distribution driving sharp drawdown across risk-on assets, notably S&P 500 and NASDAQ.
+</div>
+<div id="chart_macro_global" class="card">
+  <strong>GLOBAL MACRO:</strong> Trajectory reflects accelerated risk-off flows. FOMC pivot away from tightening initiates defensive posturing; capital rotation into sovereign safe-havens expanding.
+</div>
+<div id="chart_multi_asset_global" class="card">
+  <strong>MULTI-ASSET MEGA-POOL:</strong> Aggregate volume contracting. S&P 500 and NASDAQ leading downside capture indices amid pervasive risk-off institutional sentiment.
+</div>
+<p><br></p>
+<h2>INDIA DOMESTIC PULSE</h2>
+<details id="meta-excerpt-india" style="display:none;">India Domestic Pulse: Sector rotation towards Midcap, driven by institutional capital flows.</details>
+<p><p>DOMESTIC EQUITIES: Distinct sector rotation favoring Midcap segments observed. Institutional capital inflows rebalancing away from Largecap stalwarts (Reliance, Tata Consultancy Services) toward beta-rich cohorts.</p></p>
+<p><table>
+  <thead>
+    <tr>
+      <th>METRIC</th>
+      <th>OBSERVATION</th>
+      <th>ALPHA IMPACT</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Nifty Midcap</td>
+      <td>25,000 (Institutional)</td>
+      <td>Midcap Rotation</td>
+    </tr>
+    <tr>
+      <td>Nifty Smallcap</td>
+      <td>15,000 (Institutional)</td>
+      <td>Smallcap Rotation</td>
+    </tr>
+    <tr>
+      <td>FII Inflow</td>
+      <td>$1.5B (Weekly)</td>
+      <td>Nifty Liquidity Support</td>
+    </tr>
+    <tr>
+      <td>India GDP</td>
+      <td>7.2% (Institutional)</td>
+      <td>Sovereign Premium Hike</td>
+    </tr>
+  </tbody>
+</table></p>
+<div id="chart_sentiment_india" class="card">
+  <strong>SENTIMENT METRIC:</strong> Score 82. Extreme fear dominating regional tape. Risk-on elements including Nifty Midcap and Nifty Smallcap exhibiting acute vulnerability to drawdowns.
+</div>
+<div id="chart_macro_india" class="card">
+  <strong>INDIA MACRO:</strong> Domestic macro landscape mirroring global risk-off shift. FOMC tightening termination acting as exogenous drag, driving rotation into high-grade safe-haven assets.
+</div>
+<div id="chart_multi_asset_india" class="card">
+  <strong>MULTI-ASSET MEGA-POOL (INDIA):</strong> Substantial aggregate drawdown active. Nifty Midcap and Nifty Smallcap leading downside distribution driven by correlated risk-off momentum.
+</div>
+<p><br></p>
+<h2>GIFT CITY INTELLIGENCE PULSE</h2>
+<details id="meta-excerpt-gift" style="display:none;">GIFT City Intelligence Pulse: Derivative turnover hits USD 30B daily, driven by institutional capital flows.</details>
+<p><p>GIFT CITY PULSE: Structural risk-off transition underway. Institutional capital flows deprioritizing offshore leverage, reflected in sharp contraction of derivative turnover metrics as capital seeks haven liquidity.</p></p>
+<p><table>
+  <thead>
+    <tr>
+      <th>METRIC</th>
+      <th>OBSERVATION</th>
+      <th>ALPHA IMPACT</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Derivative Turnover</td>
+      <td>USD 30B (Daily)</td>
+      <td>Institutional Capital Flows</td>
+    </tr>
+    <tr>
+      <td>GIFT City Index</td>
+      <td>10,000 (Institutional)</td>
+      <td>GIFT City Rotation</td>
+    </tr>
+    <tr>
+      <td>FII Inflow</td>
+      <td>$1.2B (Weekly)</td>
+      <td>Nifty Liquidity Support</td>
+    </tr>
+    <tr>
+      <td>India GDP</td>
+      <td>7.2% (Institutional)</td>
+      <td>Sovereign Premium Hike</td>
+    </tr>
+  </tbody>
+</table></p>
+<div id="chart_sentiment_gift" class="card">
+  <strong>SENTIMENT METRIC:</strong> Score 82. Extreme fear parameters met. Immediate reflex seen in risk-on liquidations pacing the GIFT City Index lower.
+</div>
+<div id="chart_macro_gift" class="card">
+  <strong>GIFT CITY MACRO:</strong> Offshore environment dominated by global systemic risk-off repricing. FOMC posture triggers broad defensive rotation and safe-haven accumulation.
+</div>
+<div id="chart_multi_asset_gift" class="card">
+  <strong>MULTI-ASSET MEGA-POOL (GIFT CITY):</strong> Aggregate capital pool declining. GIFT City Index spearheading broad-based contraction amid aggressive risk-off institutional positioning.
+</div>
+<hr>
+<p><strong>TERMINAL DATA:</strong> |
+        </div>
+
+        <footer style="margin-top: 10rem; padding-top: 3rem; border-top: 1px solid var(--nexus-border); text-align: center;">
+            <div style="margin-bottom: 2rem;">
+                <a href="pulse-2026-03-29-daily-1774821146396.pdf" class="btn-nexus" style="text-decoration:none; display:inline-block; padding: 12px 24px; border: 1px solid #BFA100; color: #BFA100; font-family: 'Courier New', Courier, monospace; font-size: 12px; text-transform: uppercase;">
+                    ⬇ Download Manuscript (PDF)
+                </a>
+            </div>
+            <p style="font-size: 0.75rem; color: rgba(248, 250, 252, 0.4); letter-spacing: 1px;">
+                © 2026 BLOGSPRO TERMINAL • ALL RIGHTS RESERVED • INSTITUTIONAL USE ONLY
+            </p>
+        </footer>
+    </main>
+    
+<script>
+    google.charts.setOnLoadCallback(() => {
+        const render = (containerId, label, rawData, color) => {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            try {
+                const data = new google.visualization.DataTable();
+                data.addColumn('string', 'Period');
+                data.addColumn('number', label);
+                data.addRows(rawData.map(r => [r[0], Number(r[1])]));
+
+                const options = {
+                    backgroundColor: '#050505',
+                    colors: [color],
+                    chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
+                    legend: { position: 'bottom', alignment: 'center', textStyle: {color: '#9CA3AF', fontSize: 10} },
+                    hAxis: { 
+                        title: 'Intraday Session Period',
+                        textStyle: {color: '#9CA3AF', fontSize: 10}, 
+                        titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                        gridlines: {color: '#1A1A1A'} 
+                    },
+                    vAxis: { 
+                        title: label + ' % Delta',
+                        textStyle: {color: '#9CA3AF', fontSize: 10}, 
+                        titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                        gridlines: {color: '#1A1A1A'} 
+                    },
+                    lineWidth: 3, pointSize: 6
+                };
+                new google.visualization.AreaChart(el).draw(data, options);
+            } catch (err) { console.error("Chart Render Fail:", containerId, err); }
+        };
+        render('chart_sentiment', 'Sentiment Drift', [["DXY","104.2"],["US 10Y Yield","4.25"],["FII Inflow","$2.4B"],["Brent Crude","$82.5"]], '#BFA100');
+        render('chart_macro', 'Macro Flux', [["India GDP","7.2%"],["US CPI","null"],["EU GDP","null"]], '#BFA100');
+        render('chart_multi_asset', 'Multi-Asset Alpha', [["S&P 500","-1.71%"],["NASDAQ","-1.95%"],["CBOE Volatility Index","31.05"]], '#BFA100');
+    });
+</script>
+
+</body>
+</html>

@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { executeMultiAgentSwarm } from "./lib/swarm-orchestrator.js";
 import { getBaseTemplate } from "./lib/templates.js";
+import { getBriefingTemplate } from "./lib/briefing-template.js";
 import { getRecentSnapshots, 
   getHistoricalData, 
   syncToFirestore,
@@ -10,12 +11,15 @@ import { getRecentSnapshots,
   saveToCloudBucket,
   checkPeriodStatus,
   pushSovereignNewsletter,
-  getInstitutionalSettings
+  getInstitutionalSettings,
+  pushMultipleToGitHub
 } from "./lib/storage-bridge.js";
 import { uploadToStorage } from './lib/firebase-service.js';
 import { runSwarmAudit } from './lib/mirofish-qa-service.js';
 import { dispatchTelegramAlert } from './lib/social-utils.js';
 import { initNodeSentry, logSwarmBreadcrumb, captureSwarmError, flushSentry } from "./lib/sentry-bridge.js";
+import { NewsOrchestrator } from "./lib/news-orchestrator.js";
+import { askAI } from "./lib/ai-service.js";
 
 /**
  * [V16.1] Homepage Registration Bridge
@@ -23,30 +27,42 @@ import { initNodeSentry, logSwarmBreadcrumb, captureSwarmError, flushSentry } fr
  */
 async function registerPostOnHomepage(fileName, result, frequency, env) {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA', {timeZone: 'Asia/Kolkata'}); // YYYY-MM-DD in IST
     const type = 'article';
     const category = 'Strategic Research';
     const publicDomain = (env && env.ASSET_DOMAIN) || "https://blogspro.in";
-    const publicUrl = `${publicDomain}/articles/${frequency}/${fileName}`;
+    
+    // [V1.2] Frequency-Aware Pathing: Map to correct public folder
+    const folder = (frequency === 'hourly' || frequency === 'daily') ? 'briefings' : 'articles';
+    const indexDir = path.join(process.cwd(), 'public', folder, frequency);
+    const publicUrl = `${publicDomain}/${folder}/${frequency}/${fileName}`;
     
     const title = result.title || `Institutional Strategic Pulse [${frequency.toUpperCase()}]`;
     const excerpt = result.excerpt || `Latest institutional strategic synthesis for the ${frequency} cycle. 2026-2027 Roadmap.`;
 
     // 1. Update Static Index (For loadHybridPosts)
-    const indexDir = path.join(process.cwd(), 'articles', frequency);
     const indexPath = path.join(indexDir, 'index.json');
     if (!fs.existsSync(indexDir)) fs.mkdirSync(indexDir, { recursive: true });
     
     let index = fs.existsSync(indexPath) ? JSON.parse(fs.readFileSync(indexPath, 'utf-8')) : [];
-    const record = { title, date: today, timestamp: Date.now(), excerpt, fileName, type, frequency };
+    const record = { 
+        title, 
+        date: today, 
+        timestamp: Date.now(), 
+        excerpt, 
+        fileName, 
+        type: (frequency === 'hourly' || frequency === 'daily') ? 'briefing' : 'article', 
+        frequency 
+    };
     
-    // Add to front, keep last 20
-    index = [record, ...index.filter(i => i.fileName !== fileName)].slice(0, 20);
+    // Add to front, keep last 50 for hourly/daily, 20 for others
+    const limit = (frequency === 'hourly' || frequency === 'daily') ? 50 : 20;
+    index = [record, ...index.filter(i => i.fileName !== fileName)].slice(0, limit);
     fs.writeFileSync(indexPath, JSON.stringify(index, null, 2));
     console.log(`✅ [Dashboard] Static Index Updated: ${indexPath}`);
 
     // 2. Sync to Firestore 'posts' (For main homepage grid & admin dashboard)
-    const docId = `swarm-${frequency}-${today}`;
+    const docId = `swarm-${frequency}-${Date.now()}`;
     await syncToFirestore('posts', {
       id: docId,
       title,
@@ -59,6 +75,8 @@ async function registerPostOnHomepage(fileName, result, frequency, env) {
       stage: 'published',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      frequency: frequency,
+      isAI: true,
       views: 0
     }, env);
     console.log(`📡 [Dashboard] Post Registered in Firestore: posts/${docId}`);
@@ -240,7 +258,7 @@ async function runInstitutionalSwarm() {
         semanticDigest = {
             timestamp: new Date().toISOString(),
             frequency: frequency,
-            strategicLead: `GEOPOLITICAL_GENESIS: Initializing first ${frequency} research cycle for BlogsPro Institutional Registry.`,
+            strategicLead: `GEOPOLITICAL_GENESIS: Initializing first ${frequency} research cycle.`,
             tome_type: "article",
             key: `snapshots/genesis_${frequency}_${Date.now()}.json`
         };
@@ -248,7 +266,22 @@ async function runInstitutionalSwarm() {
     } else {
         semanticDigest = snapshots[0];
     }
-    console.log(`📊 [Swarm] Context Primed: [Snapshot: ${semanticDigest.timestamp}] [Historical: ${historical ? 'OK' : 'MISS'}]`);
+
+    // [V17.0] Institutional News Priming (Mandatory for Hourly/Daily to eliminate fluff)
+    let liveNews = "Pulse Baseline: Stable.";
+    if (frequency === 'hourly' || frequency === 'daily') {
+        try {
+            console.log(`📡 [News-Priming] Activating NewsOrchestrator for ${frequency} cycle...`);
+            const newsOrch = new NewsOrchestrator(env);
+            liveNews = await newsOrch.fetchUniversalNews();
+            console.log(`✓ [News-Priming] Acquisition complete. Density: ${liveNews.length} chars.`);
+        } catch (e) {
+            console.warn("⚠️ [News-Priming] News acquisition failed, using neutral baseline.", e.message);
+        }
+    }
+    semanticDigest.liveNews = liveNews;
+
+    console.log(`📊 [Swarm] Context Primed: [Snapshot: ${semanticDigest.timestamp}] [News: ${liveNews !== "Pulse Baseline: Stable." ? 'ACTIVE' : 'NEUTRAL'}]`);
 
     let result;
     // --- 🎛️ MODE BRANCHING: Worker vs Assemble (V12.0) ---
@@ -372,11 +405,40 @@ async function runInstitutionalSwarm() {
 
     // 5. ARCHIVAL PHASE
     const fileName = `swarm-${frequency}-${Date.now()}.html`;
-    const outPath = path.join(process.cwd(), 'dist', fileName);
+    const folder = (frequency === 'hourly' || frequency === 'daily') ? 'briefings' : 'articles';
+    const outPath = path.join(process.cwd(), 'public', folder, frequency, fileName);
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
     
-    // Result object has { final: html }. We inject the audit status into a meta tag.
-    let finalHtml = result.final;
+    // [V16.0] Templating Phase: Apply institutional branding
+    const formattedDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' });
+    const templateTitle = result.title || `Institutional Strategic Pulse [${frequency.toUpperCase()}]`;
+    const templateExcerpt = result.excerpt || "Strategic research synthesis for the current institutional cycle.";
+    
+    let finalHtml;
+    if (frequency === 'hourly' || frequency === 'daily') {
+        finalHtml = getBriefingTemplate({
+            title: templateTitle,
+            excerpt: templateExcerpt,
+            content: result.final,
+            dateLabel: formattedDate,
+            freq: frequency,
+            fileName,
+            rel: "../../",
+            liveNews: semanticDigest.liveNews
+        });
+    } else {
+        finalHtml = getBaseTemplate({
+            title: templateTitle,
+            excerpt: templateExcerpt,
+            content: result.final,
+            dateLabel: formattedDate,
+            freq: frequency,
+            fileName,
+            rel: "../../"
+        });
+    }
+
+    // Inject audit status into a meta tag.
     if (finalHtml.includes('</head>')) {
         finalHtml = finalHtml.replace('</head>', `<meta name="swarm-status" content="${auditStatus}">\n</head>`);
     }
@@ -386,18 +448,27 @@ async function runInstitutionalSwarm() {
 
     // --- 🌍 GITHUB PAGES SYNCHRONIZATION: Sovereign Origin Push ---
     const ghToken = process.env.GH_TOKEN || process.env.GH_PAT;
-    const ghOwner = process.env.GH_OWNER || "abhishekdutta18";
-    const ghRepo = process.env.GH_REPO || "blogspro";
+    let ghOwner = process.env.GH_OWNER || "abhishekdutta18";
+    let ghRepo = process.env.GH_REPO || "blogspro";
+
+    // [V1.2] Repo Normalization: Handle "owner/repo" in GH_REPO env
+    if (ghRepo.includes('/')) {
+        const parts = ghRepo.split('/');
+        ghOwner = parts[0];
+        ghRepo = parts[1];
+    }
+
+    // --- 🌍 HOMEPAGE INTEGRATION: Public Feed Registration ---
+    await registerPostOnHomepage(fileName, result, frequency, process.env);
 
     if (ghToken && !process.env.SKIP_GITHUB_PUSH) {
         try {
-            const { pushMultipleToGitHub } = await import('./lib/storage-bridge.js');
             const filesToPush = [
-                { path: `articles/${frequency}/${fileName}`, localPath: outPath },
-                { path: `articles/${frequency}/index.json`, localPath: path.join(process.cwd(), 'articles', frequency, 'index.json') }
+                { path: `public/${folder}/${frequency}/${fileName}`, localPath: outPath },
+                { path: `public/${folder}/${frequency}/index.json`, localPath: path.join(process.cwd(), 'public', folder, frequency, 'index.json') }
             ];
             
-            console.log(`📡 [GitHub] Initiating Sovereign Push for ${frequency} cycle...`);
+            console.log(`📡 [GitHub] Initiating Sovereign Push for ${frequency} cycle [Folder: ${folder}]...`);
             await pushMultipleToGitHub(filesToPush, `institutional: archival for ${frequency} pulse [${id}]`, ghOwner, ghRepo, ghToken);
             console.log(`✅ [GitHub] Sovereign Sync Successful. manuscript is live on GitHub Pages.`);
         } catch (ghErr) {
@@ -418,7 +489,7 @@ async function runInstitutionalSwarm() {
     console.log(`✅ [Dashboard] Institutional Workflow Finalized. [Words: ${result.wordCount}]`);
 
     // --- 🌍 HOMEPAGE INTEGRATION: Public Feed Registration ---
-    await registerPostOnHomepage(fileName, result, frequency, process.env);
+    // (Moved before GitHub Push)
 
     // --- 📢 DISPATCH PHASE: Automated Production Release ---
     try {
@@ -427,15 +498,57 @@ async function runInstitutionalSwarm() {
 
         // 1. Telegram Dispatch
         const publicDomain = env.ASSET_DOMAIN || "https://blogspro.in";
-        const publicUrl = `${publicDomain}/articles/${frequency}/${fileName}`;
+        const folder = (frequency === 'hourly' || frequency === 'daily') ? 'briefings' : 'articles';
+        const outPath = path.join(process.cwd(), 'public', folder, frequency, fileName);
+        const publicUrl = `${publicDomain}/${folder}/${frequency}/${fileName}`;
 
         const telegramSummary = {
             title: result.title || `Institutional Strategic Pulse [${frequency.toUpperCase()}]`,
             abstract: result.excerpt || "Strategic research synthesis for the current institutional cycle.",
-            wordCount: result.wordCount,
+            wordCount: result.wordCount || 0,
             frequency,
             url: publicUrl
         };
+
+        // [V17.5] Thinking Refiner: Polish the Telegram alert for institutional impact
+        try {
+            console.log("🧠 [Thinking] Refining Strategic Alert for institutional impact...");
+            const refinerPrompt = `
+<thinking>
+Analyze the current ${frequency} manuscript summary:
+TITLE: ${telegramSummary.title}
+ABSTRACT: ${telegramSummary.abstract}
+
+Constraints:
+1. Sharp, cynical, data-driven headlines.
+2. REMOVE ALL "BlogsPro" references.
+3. High institutional density.
+4. Professional, cold, authoritative tone.
+</thinking>
+
+Provide the final refined output in JSON format:
+{
+  "title": "A sharp, institutional headline",
+  "abstract": "A data-dense one-sentence summary"
+}
+            `;
+            const refinedRaw = await askAI(refinerPrompt, { role: 'edit', env, model: 'node-editor' });
+            const refinedMatch = refinedRaw.match(/\{[\s\S]*\}/);
+            if (refinedMatch) {
+                const refined = JSON.parse(refinedMatch[0]);
+                if (refined.title) telegramSummary.title = refined.title;
+                if (refined.abstract) telegramSummary.abstract = refined.abstract;
+                
+                // Scrub breadcrumbs from final summary
+                telegramSummary.title = telegramSummary.title.replace(/```(html|json)?/gi, '').replace(/```/g, '').trim();
+                telegramSummary.abstract = telegramSummary.abstract.replace(/```(html|json)?/gi, '').replace(/```/g, '').trim();
+
+                console.log("✅ [Thinking] Refinement Successful.");
+            }
+        } catch (e) {
+            console.warn("⚠️ [Thinking] Refinement failed, using original summary.", e.message);
+        }
+
         await dispatchTelegramAlert(telegramSummary, env);
         console.log(`💎 [Dispatch] Telegram Strategic Alert Sent.`);
 

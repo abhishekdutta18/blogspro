@@ -31,16 +31,15 @@ async function runPreFlight() {
         console.error(`❌ Cerebras Failure: ${e.message}`);
     }
 
-    // 3. Test Ollama Prod (Tier 2 Authenticated)
-    const hasOllamaProd = ResourceManager.pool.some(p => p.name === 'Ollama-Prod');
-    if (hasOllamaProd) {
-        console.log("\n📡 Testing Tier 2: Ollama-Prod...");
+    // 3. Test Vertex AI Model Garden (Cloud Sovereign)
+    const hasVertexMaaS = ResourceManager.pool.some(p => p.name === 'Vertex-Llama-405B');
+    if (hasVertexMaaS) {
+        console.log("\n📡 Testing Tier 1: Vertex Model Garden...");
         try {
-            // Force mapping to llama3.1
-            const resp = await askAI("Hello. Respond with 'ACK: OLLAMA_PROD_READY'.", { role: 'research', model: 'ollama-prod', env });
-            console.log(`✅ Ollama-Prod Response: ${resp.trim()}`);
+            const resp = await askAI("Hello. Respond with 'ACK: VERTEX_MAAS_READY'.", { role: 'research', model: 'vertex-llama-405b', env });
+            console.log(`✅ Vertex MaaS Response: ${resp.trim()}`);
         } catch (e) {
-            console.error(`❌ Ollama-Prod Failure: ${e.message}`);
+            console.error(`❌ Vertex MaaS Failure: ${e.message}`);
         }
     }
     // 4. Test Cloudflare AI (Tier 2 Stable)

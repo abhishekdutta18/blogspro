@@ -4,11 +4,15 @@ import path from 'path';
 import { 
     loadSectorFragments, 
     finalizeManuscript, 
-    publishGitHubTrace 
+    publishGitHubTrace,
+    askAIWithEscalation,
+    saveSectorFragment
 } from "./lib/swarm-orchestrator.js";
 import { 
     getInstitutionalSettings,
-    pushTelemetryLog 
+    pushTelemetryLog,
+    updateIndex,
+    syncToFirestore
 } from "./lib/storage-bridge.js";
 import { askAI } from "./lib/ai-service.js";
 
@@ -32,19 +36,21 @@ async function forceFinalize(jobId, frequency = 'monthly') {
         for (const vertical of missing) {
             try {
                 console.log(`🧬 [Repair] Re-generating ${vertical}...`);
-                const content = await askAI(`Generate a deep-research strategic report for the ${vertical} vertical. Year: 2026. Focus: Institutional Macro.`, {
+                const content = await askAIWithEscalation(`Generate a deep-research strategic report for the ${vertical} vertical. Year: 2026. Focus: Institutional Macro.`, {
                     role: 'research',
                     env,
-                    model: 'meta-llama-4-70b-instruct' // Force top-tier Llama for repair
+                    frequency: 'monthly'
                 });
                 
+                await saveSectorFragment(jobId, vertical, content, env);
+
                 fragments.push({
                     verticalId: vertical,
                     content,
                     jobId,
                     timestamp: new Date().toISOString()
                 });
-                console.log(`✅ [Repair] Successfully recovered ${vertical}.`);
+                console.log(`✅ [Repair] Successfully recovered and persisted ${vertical}.`);
             } catch (e) {
                 console.error(`❌ [Repair] Failed to recover ${vertical}: ${e.message}`);
             }
@@ -57,9 +63,26 @@ async function forceFinalize(jobId, frequency = 'monthly') {
     const finalReport = await finalizeManuscript(fragments, `Strategic Recovery for Intelligence Batch ${jobId}`, frequency, 'article', env, jobId);
     
     if (finalReport) {
-        console.log(`✅ [Success] Institutional Tome finalized and persisted.`);
-        
-        // 3. Publish Trace
+        // 3. Dual-Sync (Firestore Articles + Static Index)
+        const entry = {
+            id: jobId,
+            title: finalReport.title || `${frequency.toUpperCase()} Strategic Pulse`,
+            excerpt: finalReport.excerpt || "Institutional strategic research and quantitative analysis.",
+            timestamp: new Date().toISOString(),
+            frequency,
+            url: `manuscripts/${jobId}.html`,
+            pdfUrl: `manuscripts/${jobId}.pdf`,
+            type: 'article',
+            wordCount: finalReport.wordCount
+        };
+
+        console.log(`🗂️ [Dual-Sync] Updating Static Index & Firestore Articles...`);
+        await Promise.all([
+            updateIndex(entry, frequency, env),
+            syncToFirestore("articles", entry, env)
+        ]);
+
+        // 4. Publish Trace
         try {
             await publishGitHubTrace(jobId, `Swarm Recovery Successful. Segments recovered: ${fragments.length}.`, env);
         } catch (e) {

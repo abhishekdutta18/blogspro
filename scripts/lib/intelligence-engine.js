@@ -1,5 +1,5 @@
 /**
- * BlogsPro Intelligence Engine (V12.0)
+ * BlogsPro Intelligence Engine (V21.0)
  * -----------------------------------
  * Implements advanced reasoning models:
  * 1. Decision Tree (Model Routing)
@@ -13,61 +13,59 @@
 export function routeToBestModel(taskType, env = {}) {
     const pool = (env.AI_POOL_PREFERENCE || 'hybrid').toLowerCase();
     const isCloud = pool === 'cloud' || pool === 'hybrid';
-    
-    // V16.5: Adaptive Role-to-Model Topology
+
+    // [V21.0] Hardened model topology — only models present in the active pool.
+    // Removed phantom meta-llama-4 references (no active API key supports them locally).
     const tree = {
         'research': {
-            'priority': isCloud ? "gemini-3.1-pro-preview" : "meta-llama-4-70b-instruct",
-            'standard': isCloud ? "meta-llama-4-70b-instruct" : "meta-llama-4-8b-instruct",
-            'deep': "DeepSeek-V3" // Specialist for heavy research
+            'priority': "gemini-3.1-pro-preview",       // High-capability, quota-heavy
+            'standard': "gemini-3.1-flash-lite-preview", // Default: fast + higher RPD quota
+            'deep': "llama-3.3-70b-versatile"            // Groq Llama for when Gemini quota is out
         },
         'draft': {
             'high_density': "gemini-3.1-pro-preview",
-            'standard': "meta-llama-4-70b-instruct",
-            'local': "gemma4"
+            'standard': "gemini-3.1-flash-lite-preview",
+            'local': "gemini-3.1-flash-lite-preview"
         },
         'audit': {
-            'strict': isCloud ? "gemini-3.1-pro-preview" : "gemma4",
-            'standard': "meta-llama-4-8b-instruct"
+            'strict': "gemini-3.1-pro-preview",
+            'standard': "gemini-3.1-flash-lite-preview"
         },
         'fidelity': {
-            'repair': "meta-llama-4-70b-instruct",
-            'cleanup': "meta-llama-4-8b-instruct"
+            'repair': "gemini-3.1-flash-lite-preview",
+            'cleanup': "gemini-3.1-flash-lite-preview"
         }
     };
 
-    // [V17.0] Strategic Override: Check if Gemini is disabled globally
-    let selectedModel = "meta-llama-4-8b-instruct";
-    
-    // Routing Logic: Optimized for Institutional Balance
+    let selectedModel = "gemini-3.1-flash-lite-preview"; // Safe default
+
     switch(taskType) {
         case 'research':
-            // In STRICT_MODE, we prioritize Deep Reasoners
             if (env.STRICT_MODE && isCloud) selectedModel = tree.research.deep;
             else selectedModel = env.EXTENDED_MODE ? tree.research.priority : tree.research.standard;
             break;
-            
+
         case 'draft':
             if (env.MODE === 'institutional') selectedModel = tree.draft.high_density;
             else selectedModel = env.EXTENDED_MODE ? tree.draft.standard : tree.draft.local;
             break;
-            
+
         case 'audit':
             selectedModel = env.STRICT_MODE ? tree.audit.strict : tree.audit.standard;
             break;
-            
+
         case 'fidelity':
             selectedModel = tree.fidelity.repair;
             break;
-            
+
         default:
-            selectedModel = "meta-llama-4-8b-instruct";
+            selectedModel = "gemini-3.1-flash-lite-preview";
     }
 
-    // --- GEMINI_PROTECTION_SHIELD ---
+    // [V21.0] If Gemini globally disabled, fall back to Groq (not phantom meta-llama-4)
     if (env.GEMINI_ENABLED === false && selectedModel.includes('gemini')) {
-        console.log(`🛡️ [Intelligence-Engine] Gemini disabled. Remapping ${selectedModel} -> meta-llama-4-70b-instruct`);
-        return "meta-llama-4-70b-instruct";
+        console.log(`🛡️ [Intelligence-Engine] Gemini disabled. Remapping ${selectedModel} -> llama-3.3-70b-versatile`);
+        return "llama-3.3-70b-versatile";
     }
 
     return selectedModel;

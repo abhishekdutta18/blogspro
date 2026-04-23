@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLOBAL MACRO & EQUITIES DESK | Nexus Institutional Terminal</title>
+    <meta name="description" content="Extreme fear dictates post-market capital structures. INR depreciation accelerates as institutional dumping heavily impacts Nifty heavyweights Reliance and SBI. Gold surges +2.64% acting as primary risk-off collateral. Defensive positioning mandated ahead of Powell remarks.">
+    <meta name="keywords" content="GIFT City, IFSCA, Mutual Fund Inflows, PE/VC Deal Tracking, Institutional Market Intelligence, BlogsPro">
+    
+    <!-- Nexus Core Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Google Charts SDK -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {'packages':['corechart', 'table']});
+    </script>
+    
+    <style>
+        :root {
+            --nexus-bg: #050505;
+            --nexus-sidebar: rgba(18, 18, 18, 0.98);
+            --nexus-glass: rgba(10, 10, 10, 0.9);
+            --nexus-accent: #BFA100; /* Bloomberg Gold */
+            --nexus-amber: #FFB800;  /* Data Amber */
+            --nexus-border: rgba(191, 161, 0, 0.15);
+            --nexus-text-h1: #F8FAFC;
+            --nexus-text-p: #D1D5DB;
+            --nexus-success: #4ADE80;
+            --nexus-warning: #F87171;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--nexus-bg);
+            color: var(--nexus-text-p);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Bloomberg Sidebar - High Density */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--nexus-sidebar);
+            border-right: 1px solid var(--nexus-border);
+            padding: 1rem;
+            position: fixed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--nexus-text-h1);
+            margin-bottom: 2rem;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--nexus-accent);
+        }
+        .logo span { color: var(--nexus-amber); margin-left: 0.4rem; }
+
+        .nav-group { margin-bottom: 1.5rem; }
+        .nav-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            color: var(--nexus-accent);
+            padding-left: 0.5rem;
+            opacity: 0.6;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.8rem;
+            border-radius: 4px;
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.1s;
+            margin-bottom: 0.2rem;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(191, 161, 0, 0.05);
+            color: var(--nexus-accent);
+            border-left: 2px solid var(--nexus-accent);
+        }
+
+        /* Terminal Body Architecture */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 3rem 4rem;
+            max-width: 1200px;
+        }
+
+        header { margin-bottom: 3rem; }
+        .status-tag {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(191, 161, 0, 0.1);
+            color: var(--nexus-accent);
+            padding: 0.2rem 0.6rem;
+            border-radius: 2px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            display: inline-block;
+            border: 1px solid var(--nexus-border);
+        }
+
+        h1 {
+            font-family: 'Inter', sans-serif;
+            font-size: 2.8rem;
+            color: var(--nexus-text-h1);
+            line-height: 1.1;
+            margin-bottom: 1rem;
+            letter-spacing: -1px;
+            font-weight: 800;
+        }
+
+        .excerpt {
+            font-size: 1.15rem;
+            color: var(--nexus-text-p);
+            max-width: 850px;
+            border-left: 4px solid var(--nexus-amber);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            opacity: 0.8;
+        }
+
+        /* Terminal Typography */
+        .manuscript-body h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            color: var(--nexus-accent);
+            margin: 3.5rem 0 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-top: 1px solid var(--nexus-border);
+            padding-top: 1.5rem;
+        }
+
+        .manuscript-body p {
+            font-size: 1.05rem;
+            margin-bottom: 1.5rem;
+            color: rgba(209, 213, 219, 0.85);
+        }
+
+        /* Bloomberg Table & Card Logic */
+        .card {
+            background: #FFFFFF;
+            border: 1px solid var(--nexus-border);
+            border-left: 4px solid var(--nexus-accent);
+            padding: 1.5rem;
+            margin: 2.5rem 0;
+            color: #1A1A1A;
+        }
+
+        .card-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--nexus-accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        th { text-align: left; padding: 0.8rem; border-bottom: 2px solid var(--nexus-accent); color: #BFA100; font-weight: 800; }
+        td { padding: 0.8rem; border-bottom: 1px solid #EEEEEE; color: #333333; }
+
+        .f-success { color: var(--nexus-success); font-weight: 600; }
+        .f-warning { color: var(--nexus-warning); font-weight: 600; }
+
+        .table-container { overflow-x: auto; margin: 2rem 0; }
+
+        /* Institutional Hyperlinks */
+        .manuscript-body a {
+            color: var(--nexus-amber);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(191, 161, 0, 0.3);
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .manuscript-body a:hover {
+            color: #fff;
+            border-bottom-color: var(--nexus-amber);
+        }
+        td a {
+            color: var(--nexus-amber);
+            text-decoration: none;
+            border-bottom: 1px dotted rgba(191,161,0,0.5);
+        }
+        td a:hover { color: #fff; }
+
+        @media (max-width: 1024px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <a href="../../index.html" class="logo">NEXUS<span>TERMINAL</span></a>
+        
+        <div class="nav-group">
+            <div class="nav-label">Institutional Verticals</div>
+            <nav>
+                <a href="#macro" class="nav-item">Global Macro Drift</a>
+                <a href="#debt" class="nav-item">Debt & Sovereignty</a>
+                <a href="#digital" class="nav-item">Digital Rails</a>
+                <a href="#equities" class="nav-item">Equities & Alpha</a>
+                <a href="#reg" class="nav-item">Regulatory Ledger</a>
+                <a href="#fx" class="nav-item">FX & Cross-Border</a>
+                <a href="#commodity" class="nav-item">Commodity Pulse</a>
+                <a href="#em" class="nav-item">Emerging Markets</a>
+                <a href="#asset" class="nav-item">Asset Allocation</a>
+                <a href="#scribe" class="nav-item">Scribe Analytics</a>
+                <a href="#capital" class="nav-item">Capital Flows (PE/VC)</a>
+                <a href="#insurance" class="nav-item">Insurance & Risk</a>
+                <a href="#gift" class="nav-item">Offshore & GIFT City</a>
+            </nav>
+        </div>
+        
+        <div style="margin-top:auto; padding-top:2rem; border-top: 1px solid var(--nexus-border);">
+            <div style="font-size:0.6rem; color:rgba(255,255,255,0.2); text-transform:uppercase;">BlogsPro Intel Unit</div>
+            <div style="font-size:0.75rem; color:var(--nexus-accent); font-weight:600;">V6.30 Sovereign Pass</div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <div class="status-tag">Status: Institutional Manuscript • 30 March 2026</div>
+            <h1>GLOBAL MACRO & EQUITIES DESK</h1>
+            <div class="excerpt">Extreme fear dictates post-market capital structures. INR depreciation accelerates as institutional dumping heavily impacts Nifty heavyweights Reliance and SBI. Gold surges +2.64% acting as primary risk-off collateral. Defensive positioning mandated ahead of Powell remarks.</div>
+        </header>
+
+        <div class="manuscript-body">
+            <h2>GLOBAL MACRO & EQUITIES DESK</h2>
+<details id="meta-excerpt" style="display:none">Extreme fear dictates post-market capital structures. INR depreciation accelerates as institutional dumping heavily impacts Nifty heavyweights Reliance and SBI. Gold surges +2.64% acting as primary risk-off collateral. Defensive positioning mandated ahead of Powell remarks.</details>
+<p><p>Systemic risk premiums exploded Monday post-market. The global volatility complex registered terminal readings with the Fear & Greed Index compressing to 9. Institutional deleveraging drove heavy liquidation across emerging market beta, isolating Indian equities for aggressive distribution. Reliance Industries (1348.10, -4.60%) and State Bank of India (1019.50, -3.88%) absorbed severe Foreign Portfolio Investor (FPI) outflows, overwhelming domestic institutional defense protocols. Adani Enterprises (1823.00, -3.37%) confirmed the broader structural breakdown. Capital flight to safe-haven assets forced USD/INR to 94.76 (+0.54%), amplifying imported inflation vectors against the rigid 7.2% India GDP baseline.</p></p>
+<p><p>Safe-haven inflows triggered a Gamma Squeeze in precious metals, vaulting Gold to 4493.69 (+2.64%). Yield-seeking capital is simultaneously rotating into defensive dividend structures as market regimes mirror historical systemic stress. Quantitative overlays indicate institutional accumulation in high-yield defensives, tracking tactical shifts outlined by <a href="https://finance.yahoo.com/markets/stocks/articles/id-double-position-3-dividend-193500341.html" target="_blank" rel="noopener noreferrer">Yahoo Finance</a>. Predictive volatility models echo the sovereign debt fractures of prior cycles, mapping a deleveraging trajectory identical to conditions sourced in <a href="https://finance.yahoo.com/news/a-bold-2011-mar" target="_blank" rel="noopener noreferrer">Yahoo Finance</a>.</p></p>
+<div class="table-container"><table><thead><tr><th>Metric</th><th>Observation</th><th>Alpha Impact</th></tr></thead><tbody><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">USD/INR Basis</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#22c55e;">▲ Expanded to 94.76 (0.54%)</span></td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Negative FX translation for unhedged FPIs</td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">XAU/USD (Gold)</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#22c55e;">▲ Parabolic surge to 4493.69 (2.64%)</span></td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Maximum collateralization / Gamma Squeeze</td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">RIL Equity</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ Contracted 4.60% to 1348.10</span></td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Institutional Consolidation breakdown</td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">SBI Beta</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="color:#ef4444;">▼ Plunged 3.88% to 1019.50</span></td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Contraction in financial sector credit multipliers</td></tr><tr><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">VIX / Sentiment</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">F&G Index at 9 (Extreme Fear)</td><td style="font-family: monospace; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05);">Imminent Volatility Expansion / Capital Flight</td></tr></tbody></table></div>
+<p><p>Regulatory friction and central bank policy dictate forward execution limits. The macroeconomic calendar mandates strict risk limits ahead of Fed Chair Powell's address, USD JOLTS Job Openings, ADP Non-Farm Employment Change, Core Retail Sales, and ISM Manufacturing PMI. Market makers are actively pricing a deterministic shift in the USD yield curve.</p></p>
+<p><p>| 
+<hr style="border:1px solid var(--gold); opacity:0.2; margin:4rem 0;">
+<h2>MARKET PULSE: MONDAY, MARCH 30, 2026</h2>
+<details id="meta-excerpt" style="display:none">Global markets are experiencing a significant shift in sentiment, with the US dollar and gold exhibiting extreme volatility.</details></p>
+<div id="chart_macro_1">
+<strong>MACRO-ECONOMIC LANDSCAPE</strong>
+<p>Systemic shift confirmed. Fed signaling termination of tightening cycle triggers aggressive institutional capital rotation. DXY index consolidating at 104.2. US 10Y yield drifting to 4.25%. FII inflow escalates to $2.4B, indicating definitive institutional sentiment pivot.</p>
+</div>
+<div id="chart_metrics_1">
+<strong>KEY METRICS & ALPHA IMPACT</strong>
+<table border="1" style="border-collapse: collapse; width: 100%; text-align: left;">
+  <thead>
+    <tr>
+      <th style="padding: 8px;">METRIC</th>
+      <th style="padding: 8px;">OBSERVATION</th>
+      <th style="padding: 8px;">ALPHA IMPACT</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding: 8px;">DXY Index</td>
+      <td style="padding: 8px;">104.2 (Consolidating)</td>
+      <td style="padding: 8px;">Bearish for EM FX</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px;">US 10Y Yield</td>
+      <td style="padding: 8px;">4.25% (Yield Drift)</td>
+      <td style="padding: 8px;">Tightening Credit Spreads</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px;">FII Inflow</td>
+      <td style="padding: 8px;">$2.4B (Weekly)</td>
+      <td style="padding: 8px;">Nifty Liquidity Support</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px;">Brent Crude</td>
+      <td style="padding: 8px;">$82.5 (Stable)</td>
+      <td style="padding: 8px;">Inflationary Moderation</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px;">India GDP</td>
+      <td style="padding: 8px;">7.2% (Institutional)</td>
+      <td style="padding: 8px;">Sovereign Premium Hike</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<div id="chart_sentiment_1">
+<strong>TERMINAL SENTIMENT TRACKER</strong>
+<p><br>
+<p>| Institutional Catalysts | Geopolitical Tensions</p>
+</div></p>
+<div id="chart_notes_1">
+<strong>SYSTEM NOTES & CITATIONS</strong>
+<p>DATA NOTE: Chart data reflects snapshot of current market conditions. Values subject to high-frequency intra-day volatility.</p>
+<p>SOURCES:<br>
+<a href="https://finance.yahoo.com/markets/stocks/articles/id-double-position-3-dividend-193500341.html" target="_blank" rel="noopener noreferrer">I'd Double My Position in These 3 Dividend Stocks Without Thinking Twice</a><br>
+<a href="https://finance.yahoo.com/markets/options/articles/7-reasons-home-equity-193400988.html" target="_blank" rel="noopener noreferrer">8 reasons to tap your home for cash: Expenses you can use home equity for</a><br>
+<a href="https://finance.yahoo.com/news/a-bold-2011-market-call-is-echoed-in-2026-193400988.html" target="_blank" rel="noopener noreferrer">A bold 2011 market call is echoed in 2026</a></p>
+</div>
+<p><em>Sources: <a href="https://reuters.com/markets/" target="_blank" rel="noopener noreferrer">Reuters</a> | <a href="https://economictimes.indiatimes.com/markets" target="_blank" rel="noopener noreferrer">Economic Times</a> | <a href="https://rbi.org.in" target="_blank" rel="noopener noreferrer">RBI</a></em></p>
+        </div>
+
+        <footer style="margin-top: 10rem; padding-top: 3rem; border-top: 1px solid var(--nexus-border); text-align: center;">
+            <p style="font-size: 0.75rem; color: rgba(248, 250, 252, 0.4); letter-spacing: 1px;">
+                © 2026 BLOGSPRO TERMINAL • ALL RIGHTS RESERVED • INSTITUTIONAL USE ONLY
+            </p>
+        </footer>
+    </main>
+    
+<script>
+    google.charts.setOnLoadCallback(() => {
+        const render = (containerId, label, rawData, color) => {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            try {
+                const data = new google.visualization.DataTable();
+                data.addColumn('string', 'Period');
+                data.addColumn('number', label);
+                data.addRows(rawData);
+
+                const options = {
+                    backgroundColor: '#FFFFFF',
+                    colors: [color],
+                    chartArea: {width: '85%', height: '70%', top: 40, bottom: 60},
+                    legend: { position: 'bottom', alignment: 'center', textStyle: {color: '#1A1A1A', fontSize: 10} },
+                    hAxis: { 
+                        title: 'Intraday Session Period',
+                        textStyle: {color: '#333333', fontSize: 10}, 
+                        titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                        gridlines: {color: '#F0F0F0'} 
+                    },
+                    vAxis: { 
+                        title: label + ' % Delta',
+                        textStyle: {color: '#333333', fontSize: 10}, 
+                        titleTextStyle: {color: '#BFA100', fontSize: 11, italic: true},
+                        gridlines: {color: '#F0F0F0'} 
+                    },
+                    lineWidth: 3, pointSize: 6
+                };
+                new google.visualization.AreaChart(el).draw(data, options);
+            } catch (err) { console.error("Chart Render Fail:", containerId, err); }
+        };
+        render('chart_sentiment', 'Sentiment Drift', [["Fear & Greed","9"],["DXY Index","104.2"],["US 10Y Yield","4.25"],["FII Inflow","2.4"]], '#BFA100');
+        render('chart_macro', 'Macro Flux', [["India GDP","7.2"],["Brent Crude","82.5"],["US Dollar","94.76"],["Gold","4493.69"]], '#BFA100');
+        render('chart_multi_asset', 'Multi-Asset Alpha', [["Reliance Industries Limited",-4.6],["State Bank of India",-3.88],["Adani Enterprises Limited",-3.37],["US 10Y Yield","4.25"]], '#BFA100');
+    });
+</script>
+
+</body>
+</html>

@@ -248,6 +248,7 @@ export async function loadHybridPosts() {
             authorName: "BlogsPro Research Desk",
             createdAt: new Date(pulse.timestamp || Date.now()).toISOString(),
             isAI: true,
+            frequency: pulse.frequency,
             path: pulse.type === 'briefing' ? `briefings/${pulse.frequency}/${pulse.fileName}` : `articles/${pulse.frequency}/${pulse.fileName}`
         }));
 

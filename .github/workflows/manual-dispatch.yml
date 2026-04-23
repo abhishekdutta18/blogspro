@@ -210,7 +210,7 @@ jobs:
           echo "🏰 Commencing Institutional Assembly [$FREQ] [$MODE]"
 
           if [ "$FREQ" == "hourly" ]; then
-             node scripts/generate-briefing.js --freq="$FREQ"
+             node scripts/generate-institutional-tome.js --freq="$FREQ" --force
           else
              # [V16.2] Sequential Assembly Pass
              node scripts/generate-institutional-tome.js --freq=$FREQ --type=$TYPE --mode=$MODE --model=$MODEL
@@ -224,8 +224,8 @@ jobs:
         run: |
           git config --global user.name "BlogsPro Bot"
           git config --global user.email "bot@blogspro.in"
-          git add briefings/ articles/ index.html sitemap.xml dist/ manuscripts/ *.pdf || echo "No changes"
-          git commit -m "chore: autonomous hybrid dispatch [matrix=20] [skip ci]" || echo "No changes"
+          git add public/briefings/ public/articles/ public/posts/ public/index.json sitemap.xml dist/ manuscripts/ *.pdf 2>/dev/null || echo "No changes"
+          git commit -m "chore: autonomous hybrid dispatch [registry: Institutional-AI]" || echo "No changes"
           
           # [V16.1] Resilient Git Archival with Randomized Jitter Retry
           for i in {1..5}; do
@@ -235,3 +235,12 @@ jobs:
             }
           done
           echo "❌ [Archival] Sovereign push failed after 5 attempts. Manual resolution required." && exit 1
+
+      - name: Deploy to Firebase Hosting
+        if: github.ref == 'refs/heads/main'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: blogspro-ai
+          channelId: live

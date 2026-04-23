@@ -122,7 +122,7 @@ export async function dispatchTelegramAlert(summary, env) {
                `<b>${safeTitle}</b>\n\n` +
                `<i>${safeAbstract}</i>\n\n` +
                `📊 <b>Density:</b> ${safeWordCount} words\n` +
-               `🚀 <b>Registry:</b> ${env.FIREBASE_PROJECT_ID || 'blogspro-ai'}\n\n` +
+               `🚀 <b>Registry:</b> Institutional-AI\n\n` +
                `🔗 <a href="${cleanLink}"><b>View Full Manuscript</b></a>`;
   
   const res = await sendStandardizedTelegram(text, env, { parseMode: 'HTML' });

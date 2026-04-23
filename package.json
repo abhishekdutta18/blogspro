@@ -7,10 +7,19 @@
   "scripts": {
     "generate": "node scripts/generate-article.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test:smoke": "playwright test"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.44.0"
+    "test:smoke": "playwright test",
+    "ecc:quality-gate": "node .claude/hooks-antigravity/quality-gate.cjs",
+    "ecc:secret-scan": "node .claude/hooks-antigravity/secret-scanner.cjs",
+    "ecc:install-hooks": "cp .claude/hooks-antigravity/pre-commit .git/hooks/pre-commit && cp .claude/hooks-antigravity/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-commit .git/hooks/pre-push && echo '✅ Git hooks installed'",
+    "ecc:session-start": "node .claude/hooks-antigravity/session-manager.cjs start",
+    "ecc:session-end": "node .claude/hooks-antigravity/session-manager.cjs end",
+    "ecc:learn": "node .claude/hooks-antigravity/continuous-learning.cjs",
+    "ecc:governance": "node .claude/hooks-antigravity/governance-gate.cjs",
+    "ecc:design-check": "node .claude/hooks-antigravity/design-quality-check.cjs",
+    "ecc:cost-tracker": "node .claude/hooks-antigravity/cost-tracker.cjs",
+    "ecc:notify": "node .claude/hooks-antigravity/desktop-notify.cjs",
+    "ecc:format": "node .claude/hooks-antigravity/format-typecheck.cjs",
+    "ecc:full-audit": "npm run ecc:quality-gate && npm run ecc:secret-scan && npm run ecc:design-check"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.1.0",
@@ -20,6 +29,7 @@
     "@genkit-ai/google-genai": "^1.32.0",
     "@genkit-ai/googleai": "^1.28.0",
     "@genkit-ai/vertexai": "^1.32.0",
+    "@google/genai": "^1.50.1",
     "@sentry/node": "^10.47.0",
     "ai": "^6.0.158",
     "dotenv": "^17.4.1",
@@ -27,16 +37,18 @@
     "figma-js": "^1.16.1-0",
     "firebase-admin": "^13.7.0",
     "genkit": "^1.32.0",
+    "google-auth-library": "^10.6.2",
     "google-charts": "^2.0.0",
     "inngest": "^4.1.0",
+    "puppeteer": "^24.42.0",
     "toucan-js": "^4.1.1",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.30",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.44.0",
     "genkit-cli": "^1.32.0",
-    "puppeteer": "^24.40.0",
     "wrangler": "^4.79.0"
   }
 }

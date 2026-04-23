@@ -99,98 +99,23 @@ async function post(url, data, options = {}) {
   });
 }
 
-<<<<<<< HEAD
 // ── Auth Service ─────────────────────────────────────────────────────────────
 const auth = {
   login: async (email, password) => {
     const res = await post("/auth/login", { email, password });
     if (res.token) localStorage.setItem("fb_token", res.token);
     return res;
-=======
-async function patch(url, data) {
-  return fetchJson(url, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-}
-
-export const api = {
-  auth: {
-    login: async (email, password) => {
-      const res = await post(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`, {
-        email, password, returnSecureToken: true
-      });
-      localStorage.setItem("fb_token", res.idToken);
-      return res;
-    },
-    register: async (name, email, password, role = 'reader') => {
-      const res = await post(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`, {
-        email, password, returnSecureToken: true
-      });
-      localStorage.setItem("fb_token", res.idToken);
-      await post(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${FIREBASE_API_KEY}`, {
-        idToken: res.idToken, displayName: name, returnSecureToken: true
-      });
-      // Create Firestore user document with requested role via worker
-      await fetchJson("/auth/register", {
-        method: "POST",
-        body: JSON.stringify({ name, role }),
-      }).catch(() => {}); // non-fatal: worker creates doc on first me() call too
-      return res;
-    },
-    logout: async () => {
-      localStorage.removeItem("fb_token");
-      try {
-        await fetchJson("/auth/logout", { method: "POST" }, 5000);
-      } catch (_) {
-        // Token already removed locally; worker-side cleanup is best-effort
-      }
-    },
-    me: async () => {
-      const token = localStorage.getItem("fb_token");
-      if (!token) return { authenticated: false };
-      return fetchJson("/auth/me"); // Worker will verify the Bearer token
-    },
-    google: (redirect) => {
-       // Using a simplified direct redirect approach for the migration
-       // Standard Firebase Google Auth involves a multi-step popup/redirect.
-       // For this phase, we'll keep the specialized Google button logic in the HTML
-       // but point it to a direct Firebase handshake if possible.
-       // Actually, for simplicity and reliability, we'll implement a 'Firebase Auth Popup' helper in the frontend.
-       console.log("Triggering Google Auth via Firebase REST...");
-       window.location.href = `${API_BASE}/auth/login/google?redirect=${encodeURIComponent(redirect || window.location.href)}`;
-    },
-    github: (redirect) => {
-       window.location.href = `${API_BASE}/auth/login/github?redirect=${encodeURIComponent(redirect || window.location.href)}`;
-    },
-    updateEmail: (email) => {
-      const idToken = localStorage.getItem("fb_token");
-      return post(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${FIREBASE_API_KEY}`, {
-        idToken, email, returnSecureToken: true
-      });
-    },
-    updatePassword: (password) => {
-      const idToken = localStorage.getItem("fb_token");
-      return post(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${FIREBASE_API_KEY}`, {
-        idToken, password, returnSecureToken: true
-      });
-    },
-    deleteAccount: () => {
-      const idToken = localStorage.getItem("fb_token");
-      return post(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${FIREBASE_API_KEY}`, {
-        idToken
-      });
-    },
->>>>>>> dispatch/hardened-groq
   },
-  register: async (name, email, password) => {
-    const res = await post("/auth/register", { name, email, password });
+  register: async (name, email, password, role = 'reader') => {
+    const res = await post("/auth/register", { name, email, password, role });
     if (res.token) localStorage.setItem("fb_token", res.token);
     return res;
   },
-  logout: () => {
+  logout: async () => {
     localStorage.removeItem("fb_token");
-    return fetchJson("/auth/logout", { method: "POST" }).catch(() => {});
+    try {
+      await fetchJson("/auth/logout", { method: "POST" });
+    } catch (_) {}
   },
   me: async () => {
     const token = localStorage.getItem("fb_token");
@@ -204,8 +129,18 @@ export const api = {
   },
   github: (redirect) => {
      window.location.href = `${API_BASE}/auth/login/github?redirect=${encodeURIComponent(redirect || window.location.href)}`;
-  }
+  },
+  // Higher-order auth functions (profile updates) route via Proxy
+  updateProfile: (data) => patch("/auth/profile", data),
+  updatePassword: (password) => post("/auth/password", { password })
 };
+
+async function patch(url, data) {
+  return fetchJson(url, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
 
 // ── Data Service (Proxy for Dynamic Collections) ──────────────────────────────
 const dataProxy = (publicMode = false) => {

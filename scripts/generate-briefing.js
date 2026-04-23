@@ -44,14 +44,22 @@ async function runBriefingProxy() {
 
         // 4. SYNC TIER: Firestore & Index
         const entry = { 
-            id: Date.now(), 
-            title: `${frequency.toUpperCase()} Swarm - ${new Date().toLocaleDateString()}`, 
+            id: Date.now().toString(), 
+            title: `Institutional Hourly Pulse - ${new Date().toLocaleTimeString()}`, 
             date: new Date().toISOString(), 
             file: fileName, 
             frequency, 
-            sentiment: 50
+            sentiment: 50,
+            content: swarmResult.final,
+            excerpt: "Concise 250-word institutional intelligence briefing.",
+            authorName: "BlogsPro Swarm",
+            published: true,
+            category: "Institutional"
         };
+        
+        // [V1.1] DUAL-SYNC: Save to both collections to ensure frontend compatibility
         await syncToFirestore("pulse_briefings", entry, env);
+        await syncToFirestore("posts", entry, env);
         
         console.log(`🏁 [Proxy] Cycle Complete: ${frequency}`);
         await pushTelemetryLog("BRIEFING_COMPLETE", { frequency, jobId: id, status: "success", message: `Briefing Finalized: ${fileName}` }, env);

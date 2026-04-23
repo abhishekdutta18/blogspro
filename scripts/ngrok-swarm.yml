@@ -2,13 +2,6 @@ version: "2"
 authtoken: 3BqLduM9MgIJGYawd84LdEHGeFq_21FmXVX46fbFH77kSzkfB
 web_addr: localhost:4040
 tunnels:
-  ollama-prod:
-    proto: http
-    addr: 11434 # Local Swarm Controller
-    inspect: true
-    # domain logic removed for Free Plan compatibility
-    schemes:
-      - https
   sw-terminal:
     proto: http
     addr: 3000

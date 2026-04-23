@@ -12,9 +12,11 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-<<<<<<< HEAD
+const UPSTOX_V2 = "https://api.upstox.com/v2";
+const UPSTOX_V3 = "https://api.upstox.com/v3";
+
 async function fetchUpstox(endpoint, token) {
-    const url = `https://api.upstox.com/v2${endpoint}`;
+    const url = `${UPSTOX_V2}${endpoint}`;
     return fetch(url, {
         headers: {
             "Authorization": `Bearer ${token}`,
@@ -22,10 +24,7 @@ async function fetchUpstox(endpoint, token) {
         }
     });
 }
-=======
-const UPSTOX_V2 = "https://api.upstox.com/v2";
-const UPSTOX_V3 = "https://api.upstox.com/v3";
->>>>>>> origin/claude/fix-index-html-Hp6Lx
+
 
 function jsonResponse(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {

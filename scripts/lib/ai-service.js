@@ -4,7 +4,8 @@ import { pushSovereignTrace } from "./storage-bridge.js";
 import { VERTICALS } from "./prompts.js";
 import { Cerebras } from "@cerebras/cerebras_cloud_sdk";
 import { pushTelemetryLog, saveToCloudBucket } from "./storage-bridge.js"; // REST-based for Worker compatibility
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
+import { GoogleAuth } from "google-auth-library";
 
 import { fetchDynamicNews, fetchFullPageContent, fetchDocument } from "./data-fetchers.js";
 
@@ -27,13 +28,38 @@ const normalizeEnv = () => {
 /**
  * [V6.2] Deprecation Shield: Maps retired model strings to their contemporary stable replacements.
  */
+function isValidIntelligence(response) {
+    if (!response || typeof response !== 'string') return false;
+    if (response.length < 10) return false;
+    const lower = response.toLowerCase();
+    const refusals = [
+        "as an ai",
+        "i cannot fulfill",
+        "i am unable to",
+        "i don't have access to",
+        "my programming prevents",
+        "sorry, i can't",
+        "i apologize"
+    ];
+    return !refusals.some(r => lower.includes(r));
+}
+
+function isEcho(response) {
+    if (!response || typeof response !== 'string') return false;
+    const lower = response.toLowerCase();
+    // Catch instances where the model simply repeats parts of the system prompt/task as the answer
+    if (lower.includes("task: extract") && lower.length < 200) return true;
+    if (lower.includes("here is the prompt:") || lower.includes("echoing the input:")) return true;
+    return false;
+}
+
 function mapLegacyModel(model) {
     if (!model) return model;
     const lower = model.toLowerCase();
     
-    // 1. Gemini Migration
-    if (lower.includes('gemini-pro')) return "gemini-1.5-pro";
-    if (lower.includes('gemini-flash')) return "gemini-1.5-flash";
+    // 1. Gemini Migration (V20.1: 1.5 Deprecated)
+    if (lower.includes('gemini-pro') || lower.includes('gemini-1.5-pro')) return "gemini-1.5-pro-latest";
+    if (lower.includes('gemini-flash') || lower.includes('gemini-1.5-flash')) return "gemini-1.5-flash-latest";
 
     // 2. Llama Migration (3.1/3.3 -> 4.0)
     if (lower.includes('llama-3.1') || lower.includes('llama-3.3') || lower.includes('llama3')) {
@@ -52,6 +78,9 @@ function mapLegacyModel(model) {
 async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", context = {}) {
     const key = context?.GROQ_API_KEY || process.env.GROQ_API_KEY;
     if (!key) throw new Error("GROQ_API_KEY missing.");
+
+    // [V21.0] Prompt Sanitizer: Normalize to string
+    const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
 
     // Sanitization: Ensure model is valid for Groq
     if (model === "llama3.1-8b") model = "llama-3.1-8b-instant";
@@ -75,7 +104,7 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
             method: "POST",
             signal: controller.signal,
             headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ model, messages, tools, tool_choice: "auto", temperature: 0.2 })
+            body: JSON.stringify({ model, messages: [{ role: "user", content: promptStr }], tools, tool_choice: "auto", temperature: 0.2 })
         });
         let data = await res.json();
         
@@ -125,11 +154,14 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
     }
 }
 
-async function generateGeminiContent(prompt, model = "gemini-1.5-flash", context = {}) {
+async function generateGeminiContent(prompt, model = "gemini-3.1-flash-lite-preview", context = {}) {
     const key = context?.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
     if (!key) throw new Error("GEMINI_API_KEY missing.");
 
-    let models = ["gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash"];
+    // [V21.0] Prompt Sanitizer: Callers may pass objects; normalize to string before dispatch.
+    const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
+
+    let models = ["gemini-1.5-pro-latest", "gemini-1.5-flash-latest", "gemini-2.0-flash-exp"];
     if (model?.includes('gemini')) {
         models = [model, ...models.filter(m => m !== model)];
     }
@@ -139,32 +171,82 @@ async function generateGeminiContent(prompt, model = "gemini-1.5-flash", context
     for (const modelName of models) {
         try {
             console.log(`🔍 [Gemini-Fleet] Attempting via ${modelName}...`);
-            const genAI = new GoogleGenerativeAI(key);
-            const genModel = genAI.getGenerativeModel({ model: modelName });
+            const ai = new GoogleGenAI({ apiKey: key });
             
-            let initialContent = prompt;
+            let contents;
             if (context.vision_payload) {
-                initialContent = [
-                    prompt,
+                contents = [
+                    promptStr,
                     { inlineData: { data: context.vision_payload.base64, mimeType: context.vision_payload.mimeType } }
                 ];
+            } else {
+                contents = promptStr;
             }
 
-            const result = await genModel.generateContent(initialContent);
-            const response = await result.response;
-            return response.text();
+            const response = await ai.models.generateContent({
+                model: modelName,
+                contents: contents
+            });
+            return response.text;
         } catch (err) {
             console.warn(`❌ [Gemini-Fleet] ${modelName} failed: ${err.message}`);
-            if (err.message.includes('429') || err.message.includes('quota') || err.message.includes('404')) continue;
+            // [V21.0] Daily quota = terminal for this run; treat as hard failure so the node is blacklisted.
+            const isDailyQuota = err.message.includes('GenerateRequestsPerDay') || err.message.includes('GenerateContentInputTokensPerModelPerDay') || err.message.includes('429');
+            if (isDailyQuota) {
+                console.warn(`⚠️ [Gemini-Fleet] Daily quota exceeded for ${modelName}, trying next...`);
+                continue;
+            }
+            if (err.message.includes('quota') || err.message.includes('404')) continue;
             throw err;
         }
     }
-    throw new Error("GEMINI_FLEET_EXHAUSTED");
+    throw new Error("GEMINI_FLEET_EXHAUSTED: QUOTA_EXCEEDED");
+}
+
+/**
+ * [V1.0] Sovereign GCP Engine: Native Vertex AI Provider
+ * Uses Workload Identity on GKE/CloudRun.
+ */
+async function generateVertexContent(prompt, model = "gemini-3.1-pro-preview", context = {}) {
+    const project = context?.FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
+    const location = context?.GOOGLE_CLOUD_LOCATION || process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
+
+    if (!project) throw new Error("GOOGLE_CLOUD_PROJECT missing for Vertex AI.");
+
+    // [V21.0] Re-enabling native Vertex AI via unified @google/genai SDK
+    const geminiModel = model?.includes('flash') ? "gemini-1.5-flash" : "gemini-1.5-pro";
+    console.log(`🔀 [Vertex-Native] Routing directly to Vertex AI (${geminiModel}) via @google/genai`);
+
+    const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
+
+    const ai = new GoogleGenAI({ 
+        vertexai: { project: project, location: location }
+    });
+
+    let contents;
+    if (context.vision_payload) {
+        contents = [
+            promptStr,
+            { inlineData: { data: context.vision_payload.base64, mimeType: context.vision_payload.mimeType } }
+        ];
+    } else {
+        contents = promptStr;
+    }
+
+    const response = await ai.models.generateContent({
+        model: geminiModel,
+        contents: contents
+    });
+    
+    return response.text;
 }
 
 async function generateSambaNovaContent(prompt, model = "Meta-Llama-3.1-405B-Instruct-v2", context = {}) {
     const key = context?.SAMBANOVA_API_KEY || process.env.SAMBANOVA_API_KEY;
     if (!key) throw new Error("SAMBANOVA_API_KEY missing.");
+
+    // [V21.0] Prompt Sanitizer: Normalize to string
+    const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
 
     const targetModel = mapLegacyModel(model) || "Meta-Llama-3.1-405B-Instruct-v2";
     const res = await fetch("https://api.sambanova.ai/v1/chat/completions", {
@@ -172,7 +254,7 @@ async function generateSambaNovaContent(prompt, model = "Meta-Llama-3.1-405B-Ins
         headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
         body: JSON.stringify({
             model: targetModel,
-            messages: [{ role: "user", content: prompt }],
+            messages: [{ role: "user", content: promptStr }],
             temperature: 0.1
         })
     });
@@ -184,18 +266,196 @@ async function generateSambaNovaContent(prompt, model = "Meta-Llama-3.1-405B-Ins
 async function generateCerebrasContent(prompt, model = "llama-3.3-70b", context = {}) {
     const key = context?.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY;
     if (!key) throw new Error("CEREBRAS_API_KEY missing.");
+    
+    // [V21.0] Prompt Sanitizer: Normalize to string
+    const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
+
     const targetModel = mapLegacyModel(model) || "llama-3.3-70b";
     const client = new Cerebras({ apiKey: key });
     const completion = await client.chat.completions.create({
-        messages: [{ role: "user", content: prompt }],
+        messages: [{ role: "user", content: promptStr }],
         model: targetModel,
         temperature: 0.2
     });
     return completion.choices[0].message.content;
 }
 
+async function generateCloudflareContent(prompt, model = "@cf/meta/llama-3.1-8b-instruct", context = {}) {
+    const accountId = context?.CF_ACCOUNT_ID || process.env.CF_ACCOUNT_ID;
+    const apiToken = context?.CF_API_TOKEN || process.env.CF_API_TOKEN;
+    if (!accountId || !apiToken) throw new Error("Cloudflare Credentials missing.");
+
+    const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${apiToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: [{ role: "user", content: promptStr }] })
+    });
+    const data = await res.json();
+    return data.result?.response || data.result?.text;
+}
+
+async function generateHuggingFaceContent(prompt, model = "mistralai/Mistral-7B-Instruct-v0.3", context = {}) {
+    const token = context?.HF_TOKEN || process.env.HF_TOKEN;
+    if (!token) throw new Error("HF_TOKEN missing.");
+
+    const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
+    const res = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs: promptStr })
+    });
+    const data = await res.json();
+    return Array.isArray(data) ? data[0]?.generated_text : data.generated_text;
+}
+
+async function generateOpenRouterContent(prompt, model = "mistralai/mistral-7b-instruct", context = {}) {
+    const key = context?.OPENROUTER_KEY || process.env.OPENROUTER_KEY;
+    if (!key) throw new Error("OPENROUTER_KEY missing.");
+
+    const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: promptStr }]
+        })
+    });
+    const data = await res.json();
+    return data.choices[0].message.content;
+}
+
+async function generateInstitutionalBridgeContent(prompt, model = "auto", context = {}) {
+    const bridgeUrl = context?.SWARM_AI_BRIDGE || process.env.SWARM_AI_BRIDGE;
+    const vaultKey = context?.VAULT_MASTER_KEY || process.env.VAULT_MASTER_KEY;
+    if (!bridgeUrl) throw new Error("SWARM_AI_BRIDGE URL missing.");
+
+    const res = await fetch(bridgeUrl, {
+        method: "POST",
+        headers: { 
+            "Content-Type": "application/json",
+            "X-Vault-Key": vaultKey || "" 
+        },
+        body: JSON.stringify({ prompt, model, role: context.role || 'research' })
+    });
+    if (!res.ok) throw new Error(`Bridge Error: ${res.status}`);
+    const data = await res.json();
+    return data.response;
+}
+
+/**
+ * [V21.1] Cloud-Native Engine: Vertex AI Model Garden (MaaS & Anthropic)
+ * Leverages GKE Workload Identity to route high-fidelity models via Google Cloud.
+ */
+async function generateVertexModelGardenContent(prompt, model = "meta/llama3-405b-instruct-maas", context = {}) {
+    const project = context?.FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
+    const location = context?.GOOGLE_CLOUD_LOCATION || process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
+    
+    // [V21.0] Prompt Sanitizer: Normalize to string for MaaS compliance
+    const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
+
+    if (!project) {
+        console.warn("⚠️ [Vertex-MaaS] GOOGLE_CLOUD_PROJECT missing. Yielding to next node.");
+        throw new Error("GOOGLE_CLOUD_PROJECT missing for Vertex AI Model Garden.");
+    }
+
+    const auth = new GoogleAuth({
+        scopes: ['https://www.googleapis.com/auth/cloud-platform']
+    });
+    const accessToken = await auth.getAccessToken();
+
+    let targetModel = model;
+    let endpointType = 'maas'; // 'maas' for Llama/Mistral, 'anthropic' for Claude
+    
+    // 1. Meta Llama 3.1 Family
+    if (model.includes("405b") || model.includes("llama-3.1-405b")) targetModel = "meta/llama3-405b-instruct-maas";
+    else if (model.includes("70b") || model.includes("llama-3.1-70b")) targetModel = "meta/llama3-70b-instruct-maas";
+    else if (model.includes("8b") || model.includes("llama-3.1-8b")) targetModel = "meta/llama3-8b-instruct-maas";
+    
+    // 2. Mistral Family
+    else if (model.includes("mistral-large")) targetModel = "mistralai/mistral-large-2407";
+    else if (model.includes("mistral-nemo") || model.includes("nemo")) targetModel = "mistralai/mistral-nemo";
+    else if (model.includes("codestral")) targetModel = "mistralai/codestral-2405";
+    
+    // 3. Anthropic Claude Family (Vertex native format)
+    else if (model.includes("claude-3-5-sonnet") || model.includes("sonnet")) {
+        targetModel = "claude-3-5-sonnet@20240620";
+        endpointType = 'anthropic';
+    } else if (model.includes("claude-3-opus") || model.includes("opus")) {
+        targetModel = "claude-3-opus@20240229";
+        endpointType = 'anthropic';
+    } else if (model.includes("claude-3-haiku") || model.includes("haiku")) {
+        targetModel = "claude-3-haiku@20240307";
+        endpointType = 'anthropic';
+    }
+    // Default fallback
+    else if (!targetModel.includes('/')) {
+        targetModel = "meta/llama3-405b-instruct-maas"; 
+    }
+
+    // A. Anthropic Vertex Routing
+    if (endpointType === 'anthropic') {
+        const claudeEndpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models/${targetModel}:rawPredict`;
+        
+        const res = await fetch(claudeEndpoint, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${accessToken}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                anthropic_version: "vertex-2023-10-16",
+                messages: [{ role: "user", content: promptStr }],
+                max_tokens: 8192,
+                temperature: 0.2
+            })
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`Vertex Claude Error: ${res.status} - ${errText}`);
+        }
+
+        const data = await res.json();
+        return data.content?.[0]?.text;
+    }
+
+    // B. Standard MaaS Routing (OpenAPI Chat Completions format for Llama & Mistral)
+    const endpoint = `https://${location}-aiplatform.googleapis.com/v1beta1/projects/${project}/locations/${location}/endpoints/openapi/chat/completions`;
+
+    const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            model: targetModel,
+            messages: [{ role: "user", content: promptStr }],
+            temperature: 0.2
+        })
+    });
+
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Vertex MaaS Error: ${res.status} - ${errText}`);
+    }
+
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content;
+}
+
+async function directDialAnchor(prompt, model, role, env) {
+    console.warn(`⚓ [AI-Balancer] Emergency Direct-Dial to Anchor engaged for ${role}.`);
+    if (model?.includes('gemini')) return generateGeminiContent(prompt, model, { env });
+    return generateGroqContent(prompt, model, { env });
+}
+
 // --- Balancer and Dispatch Logic ---
 export const ResourceManager = {
+    inflight: new Map(),
+    failedAt: new Map(),
     pool: [],
     cooldowns: new Map(),
     failed: new Set(),
@@ -203,7 +463,9 @@ export const ResourceManager = {
     async init(env = {}, forceRefresh = false) {
         if (this.pool.length > 0 && !forceRefresh) return;
         normalizeEnv();
-                   val.includes('REPLACE_WITH_KEY') || 
+        const isPlaceholder = (val) => {
+            if (!val || typeof val !== 'string') return false;
+            return val.includes('REPLACE_WITH_KEY') || 
                    val.includes('YOUR_TOKEN');
         };
         
@@ -228,11 +490,11 @@ export const ResourceManager = {
 
         const activeKeys = {
             Groq: sanitize(env.GROQ_API_KEY || process.env.GROQ_API_KEY || process.env.GROQ_KEY, 'Groq', true),
-            // Gemini: sanitize(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY, 'Gemini', true), // Purged
+            Gemini: sanitize(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY, 'Gemini', true),
             Cerebras: sanitize(env.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY, 'Cerebras', true),
             HF_TOKEN: sanitize(env.HF_TOKEN || process.env.HF_TOKEN, 'HuggingFace', true),
             SambaNova: sanitize(env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_KEY, 'SambaNova', true),
-            // Ollama Purged 2026-04-14
+            VertexMaaS: !!(env.FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT),
 
             Cloudflare: sanitize(env.CF_API_TOKEN || process.env.CF_API_TOKEN || env.CLOUDFLARE_API_TOKEN || env.CF_API_KEY, 'Cloudflare', false)
         };
@@ -255,19 +517,56 @@ export const ResourceManager = {
             this.pool.push({ name: 'DeepSeek-V3-MoE', fn: (p, m, c) => generateSambaNovaContent(p, "DeepSeek-V3", c), tier: 1, roles: ['research', 'edit'], match: /deepseek|v3|reasoning/i });
         }
         if (activeKeys.Cerebras) {
-            this.pool.push({ name: 'Cerebras-Llama-4-70B', fn: (p, m, c) => generateCerebrasContent(p, m || "llama-4-70b", c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /cerebras|llama-4|llama|node-research|node-edit|node-draft|node-audit|node-generate/i });
+            this.pool.push({ name: 'Cerebras-Llama-3.1-8b', fn: (p, m, c) => generateCerebrasContent(p, "llama3.1-8b", c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /cerebras|llama|node-generate/i });
         }
         if (activeKeys.Groq) {
             this.pool.push({ name: 'Groq-70B-Versatile', fn: (p, m, c) => generateGroqContent(p, m || "llama-3.3-70b-versatile", c), tier: 1, roles: ['research', 'edit', 'draft', 'generate'], match: /groq|node-research|node-edit|node-draft|node-generate|llama/i });
             this.pool.push({ name: 'Gemma-2-9B-Auditor', fn: (p, m, c) => generateGroqContent(p, "gemma2-9b-it", c), tier: 2, roles: ['audit', 'repair'], match: /gemma|node-audit|node-repair/i });
         }
 
-        // TIER 2: HIGH-THROUGHPUT DRAFTING (Cost-Efficient)
+        if (activeKeys.Gemini) {
+            this.pool.push({ name: 'Gemini-3.1-Pro', fn: (p, m, c) => generateGeminiContent(p, "gemini-3.1-pro-preview", c), tier: 3, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /gemini|pro|vertex/i });
+            this.pool.push({ name: 'Gemini-3.1-Flash', fn: (p, m, c) => generateGeminiContent(p, "gemini-3.1-flash-lite-preview", c), tier: 4, roles: ['draft', 'audit', 'generate'], match: /gemini|flash/i });
+            // [V21.0] Vertex nodes now route through Gemini API (Vertex SDK deprecated June 2025)
+            this.pool.push({ name: 'Vertex-Gemini-Pro', fn: (p, m, c) => generateGeminiContent(p, "gemini-3.1-pro-preview", c), tier: 5, roles: ['research', 'edit'], match: /vertex.*pro/i });
+            this.pool.push({ name: 'Vertex-Gemini-Flash', fn: (p, m, c) => generateGeminiContent(p, "gemini-3.1-flash-lite-preview", c), tier: 6, roles: ['draft', 'audit'], match: /vertex.*flash/i });
+        }
+
+        // [V1.0] GKE Native: Vertex AI Fallback (Zero-Key Resilience)
+        const gcpProject = process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
+        if (gcpProject) {
+            this.pool.push({ name: 'Vertex-Gemini-Pro', fn: (p, m, c) => generateVertexContent(p, "gemini-3.1-pro-preview", c), tier: 3, roles: ['research', 'manager'], match: /vertex|institutional|pro/i });
+            this.pool.push({ name: 'Vertex-Gemini-Flash', fn: (p, m, c) => generateVertexContent(p, "gemini-3.1-flash-lite-preview", c), tier: 4, roles: ['audit'], match: /vertex|flash/i });
+            console.log("🏙️ [AI-Balancer] GKE Native Vertex AI nodes activated (Fallback Mode).");
+        }
         if (activeKeys.SambaNova) {
             this.pool.push({ name: 'SambaNova-70B', fn: generateSambaNovaContent, tier: 2, roles: ['draft'], match: /sambanova|node-draft/i });
         }
 
-        // Purged: Local Ollama Pool initialization
+        if (activeKeys.VertexMaaS) {
+            this.pool.push({ 
+                name: 'Vertex-Llama-405B', 
+                fn: (p, m, c) => generateVertexModelGardenContent(p, m || "meta/llama3-405b-instruct-maas", c), 
+                tier: 1, 
+                roles: ['research', 'manager', 'consolidate', 'generate', 'edit', 'draft'], 
+                match: /vertex|maas|llama|sovereign|405b/i 
+            });
+            this.pool.push({ 
+                name: 'Vertex-Mistral-Large', 
+                fn: (p, m, c) => generateVertexModelGardenContent(p, m || "mistralai/mistral-large-2407", c), 
+                tier: 1, 
+                roles: ['research', 'edit', 'generate', 'draft', 'manager'], 
+                match: /mistral|large/i 
+            });
+            this.pool.push({ 
+                name: 'Vertex-Claude-3.5-Sonnet', 
+                fn: (p, m, c) => generateVertexModelGardenContent(p, m || "claude-3-5-sonnet@20240620", c), 
+                tier: 1, 
+                roles: ['audit', 'draft', 'edit', 'generate', 'manager', 'research'], 
+                match: /claude|sonnet/i 
+            });
+            console.log("⚓ [AI-Balancer] Cloud Sovereign Nodes (Vertex Model Garden) online.");
+        }
 
 
         // TIER 3: RESILIENCE FALLBACKS
@@ -372,8 +671,13 @@ export const ResourceManager = {
         console.log(`🔍 [AI-Balancer] Candidates for ${context?.role || 'generic'}/${requestedModel || 'any'}: ${candidates.map(p => p.name).join(', ')}`);
 
         candidates.sort((a, b) => {
-            // 🛡️ INSTITUTIONAL ALIGNMENT: Prioritize Exact/Regex Match over Tier
+            // 🛡️ INSTITUTIONAL ALIGNMENT: Prioritize Exact Name Match > Regex Match > Tier
             if (requestedModel) {
+                const exactA = a.name.toLowerCase() === requestedModel.toLowerCase();
+                const exactB = b.name.toLowerCase() === requestedModel.toLowerCase();
+                if (exactA && !exactB) return -1;
+                if (!exactA && exactB) return 1;
+
                 const matchA = a.match && a.match.test(requestedModel);
                 const matchB = b.match && b.match.test(requestedModel);
                 if (matchA && !matchB) return -1;
@@ -400,8 +704,8 @@ export const ResourceManager = {
         const current = this.inflight.get(name);
         if (current > 0) this.inflight.set(name, current - 1);
         
-        const isRate = error.includes('429') || error.includes('rate_limit') || error.includes('TPM') || error.includes('quota') || error.includes('RATE_LIMIT');
-        const isAuth = error.includes('401') || error.includes('403') || error.includes('402') || error.includes('Unauthorized') || error.includes('API key') || error.includes('Authentication') || error.includes('permission') || error.includes('NOT_FOUND') || error.includes('Not Found') || error.includes('404') || error.includes('PERMISSION_DENIED') || error.includes('Invalid Key') || error.includes('Invalid API Key') || error.includes('CREDIT_EXHAUSTED') || error.includes('4018'); // ERR_NGROK_4018
+        const isRate = error.includes('429') || error.includes('rate_limit') || error.includes('TPM') || error.includes('RATE_LIMIT');
+        const isAuth = error.includes('401') || error.includes('403') || error.includes('402') || error.includes('Unauthorized') || error.includes('API key') || error.includes('Authentication') || error.includes('permission') || error.includes('NOT_FOUND') || error.includes('Not Found') || error.includes('404') || error.includes('PERMISSION_DENIED') || error.includes('Invalid Key') || error.includes('Invalid API Key') || error.includes('CREDIT_EXHAUSTED') || error.includes('DAILY_QUOTA_EXCEEDED') || error.includes('QUOTA_EXCEEDED') || error.includes('4018'); // ERR_NGROK_4018
 
         if (isRate) {
             console.warn(`⏳ [AI-Balancer] ${name} rate limited. Activating 60000ms cooldown.`);
@@ -517,14 +821,22 @@ export async function askAI(prompt, options = {}) {
         }
 
         if (fleetRetries < 2) { 
-            console.warn(`⏳ [AI-Balancer] Fleet Exhausted. No providers available for ${role}. Pausing 30s for recovery (Cycle: ${fleetRetries + 1}/2)...`);
-            await new Promise(r => setTimeout(r, 65000));
+            const isHighPriority = options.jobId?.startsWith('swarm-monthly');
+            const pauseMs = 65000;
+            console.warn(`⏳ [AI-Balancer] Fleet Exhausted. No providers available for ${role}. Pausing ${pauseMs/1000}s for recovery (Cycle: ${fleetRetries + 1}/2)...`);
+            await new Promise(r => setTimeout(r, pauseMs));
             // Reset tried nodes for the next full fleet attempt
             return askAI(prompt, { ...options, _retry: 0, _fleetRetries: fleetRetries + 1, triedNodes: new Set() });
         }
         
         console.error(`🚨 [AI-Balancer] Critical Fleet Depletion. Transitioning to Direct-Dial Anchor...`);
         try {
+            // [V21.1] Prioritize Vertex Model Garden as the ultimate institutional anchor
+            const cloudSovereign = ResourceManager.pool.find(p => p.name === 'Vertex-Llama-405B');
+            if (cloudSovereign) {
+                console.log("⚓ [AI-Balancer] Using Vertex Model Garden Anchor.");
+                return await cloudSovereign.fn(prompt, "meta/llama3-405b-instruct-maas", env);
+            }
             return await directDialAnchor(prompt, targetModel || 'llama-3.3-70b-versatile', role, env);
         } catch (e) {
             throw new Error("FLEET_EXHAUSTION_PERMANENT");
