@@ -15,12 +15,9 @@ spec:
           containers:
           - name: swarm-engine
             image: us-central1-docker.pkg.dev/blogspro-ai/blogspro-repo/swarm-engine:latest
+            command: ["/bin/sh", "-c"]
             args:
-            - "node"
-            - "scripts/generate-institutional-tome.js"
-            - "--freq=hourly"
-            - "--type=briefing"
-            - "--force"
+            - "npm run ecc:governance && node scripts/generate-institutional-tome.js --freq=hourly --type=briefing --force"
             envFrom:
             - secretRef:
                 name: blogspro-secrets
