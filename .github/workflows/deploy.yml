@@ -26,13 +26,14 @@ jobs:
           FIREBASE_PROJECT_ID: "blogspro-ai"
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
+          bash scripts/consolidate-prod.sh
           node scripts/build-static.js
           node scripts/generate-sitemap.js
       - name: Commit & Push SEO Updates
         run: |
           git config --global user.name "BlogsPro Bot"
           git config --global user.email "bot@blogspro.in"
-          git add public/index.html public/sitemap.xml public/p/
+          git add index.html sitemap.xml p/ blogs/
           git commit -m "chore: autonomous seo build [skip ci]" || echo "No changes"
           git push || echo "Push skipped"
 
