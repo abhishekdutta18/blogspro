@@ -63,8 +63,8 @@ jobs:
     outputs:
       verticals: ${{ steps.set-matrix.outputs.verticals }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
       - name: Discover Swarm Registry
@@ -85,8 +85,8 @@ jobs:
         vertical: ${{ fromJSON(needs.setup-matrix.outputs.verticals) }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
@@ -149,8 +149,8 @@ jobs:
     if: always()
     timeout-minutes: 60 # [V12.3] Expansive window for Sovereign Self-Healing
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
