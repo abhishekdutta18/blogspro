@@ -8,16 +8,28 @@ import { api } from './services/api.js';
 const MEMORY_COLLECTION = 'ai_memory';
 const SUCCESS_THRESHOLD = 70;
 
+const recentSaves = new Set();
+
 // ── Save a pattern after each scored AI call ──────────────
 export async function savePattern(prompt, result, score) {
+  const snippet = (prompt || "").substring(0, 200).trim();
+  if (!snippet) return;
+  
+  // V16.5: Deduplication Suppression (Cynical Mode)
+  if (recentSaves.has(snippet)) {
+    return;
+  }
+  
   try {
     await api.data.create(MEMORY_COLLECTION, {
-      promptSnippet: prompt.substring(0, 200),
+      promptSnippet: snippet,
       success:       score > SUCCESS_THRESHOLD,
       score,
       provider:      result.provider || 'unknown',
       createdAt:     new Date().toISOString()
     });
+    recentSaves.add(snippet);
+    if (recentSaves.size > 100) recentSaves.clear(); // Safe-purge
   } catch (err) {
     console.warn('[ai-memory] savePattern failed:', err.message);
   }

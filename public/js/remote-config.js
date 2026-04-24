@@ -11,6 +11,7 @@ export let NEWSLETTER_CONFIG = {
 };
 export let DISPATCH_CONFIG = { ghToken: '' };
 
+
 /**
  * Loads configuration from the server-side proxy (Firestore settings/remote_config).
  * This replaces the direct Firebase Remote Config SDK.
@@ -40,6 +41,7 @@ export async function loadRemoteConfig() {
       DISPATCH_CONFIG = {
         ghToken: data.gh_dispatch_token || '',
       };
+
 
       console.log('[remote-config] Configuration loaded via Proxy API.');
     } else {

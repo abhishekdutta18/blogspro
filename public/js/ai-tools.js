@@ -396,14 +396,24 @@ Requirements: Use <h2><h3><p><strong><ul><li> tags. Start with <h2>. No <h1>, no
     }
 
     try {
+      const safeSlug = (typeof meta.slug === 'string' && meta.slug.length > 0)
+        ? meta.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').substring(0, 100)
+        : slugify(t);
+      const safeTags = Array.isArray(meta.tags)
+        ? meta.tags.filter(x => typeof x === 'string').slice(0, 10).map(x => x.substring(0, 50))
+        : [];
+      const safeExcerpt = typeof meta.summary === 'string' ? meta.summary.substring(0, 300) : '';
+      // Duplicate slug guard
+      const existing = (state.allPosts || []).find(p => p.slug === safeSlug);
+      if (existing) { addLog(`"${t.substring(0, 40)}" — duplicate slug "${safeSlug}", skipping`, false); continue; }
       await api.data.create('posts', {
         title: t,
-        excerpt: meta.summary,
+        excerpt: safeExcerpt,
         content: sanitize(artR.text),
         category,
-        slug: meta.slug || slugify(t),
-        metaDesc: meta.summary,
-        tags: meta.tags || [],
+        slug: safeSlug,
+        metaDesc: safeExcerpt,
+        tags: safeTags,
         image: '',
         readingTime: 4,
         published: pub,

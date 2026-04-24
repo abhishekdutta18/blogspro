@@ -276,6 +276,8 @@ window.generateAIPost = async function generateAIPost(resume = null) {
     let sections = Array.isArray(resume?.sections) ? resume.sections : [];
     let sectionHTMLs = Array.isArray(resume?.sectionHTMLs) ? resume.sectionHTMLs : [];
     let startIndex = Number.isInteger(resume?.nextIndex) ? resume.nextIndex : 0;
+    // Guard stale resume: if saved index is beyond the outline, restart from scratch
+    if (sections.length && startIndex >= sections.length) startIndex = 0;
 
     if (!sections.length) {
       outlineResult = await callWithRetry(
@@ -360,7 +362,7 @@ CRITICAL: Return ONLY a valid JSON array of strings. Nothing else. No explanatio
           <span style="font-size:0.75rem;color:var(--muted)">Section ${progress}</span>
           <span style="font-size:0.75rem;color:var(--gold);font-weight:700">${getWordCount().toLocaleString()} words so far</span>
         </div>
-        <div style="font-size:0.88rem;color:var(--cream);font-weight:600;margin-bottom:0.5rem">"${title.substring(0, 60)}"</div>
+        <div style="font-size:0.88rem;color:var(--cream);font-weight:600;margin-bottom:0.5rem">"${title.substring(0, 60).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}"</div>
         <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem">
           <span style="font-size:0.7rem;color:var(--muted)">Writing with</span>
           ${_providerBadge(model === 'auto' ? null : model)}
@@ -522,7 +524,7 @@ ${_sampleRecentSentences(sectionHTMLs).map(s => `- ${s}`).join("\n")}
           try {
             chartHTML = await generateChartForSection(topic, title, category, model);
             if (chartHTML) timerLog(`  ✓ [${progress}] chart injected`);
-          } catch(_) { chartHTML = ''; }
+          } catch(chartErr) { console.warn('[ai-writer] chart failed:', chartErr?.message); chartHTML = ''; }
         }
 
         sectionHTMLs.push(clean + (chartHTML ? '\n' + chartHTML : ''));
@@ -672,7 +674,9 @@ CRITICAL: Respond ONLY with a single valid JSON object. No markdown, no backtick
 
   } catch(err) {
     console.error('[ai-writer]', err);
-    _setModalContent(`<div style="color:#fca5a5">✕ ${err.message}</div>`);
+    clearJobState();
+    const _escMsg = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    _setModalContent(`<div style="color:#fca5a5">✕ ${_escMsg(err.message)}</div>`);
     setTimeout(closeModal, 3000);
     showToast('Generation failed: ' + err.message, 'error');
   } finally {

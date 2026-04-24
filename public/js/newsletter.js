@@ -194,11 +194,12 @@ window.loadNewsletterHistory = async () => {
       return;
     }
 
+    const _esc = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     container.innerHTML = blasts.map(b => {
       const date = b.sentAt ? new Date(b.sentAt).toLocaleString() : (b.timestamp ? new Date(b.timestamp).toLocaleString() : '—');
       return `
         <div style="padding:0.8rem;border-bottom:1px solid var(--border);font-size:0.82rem">
-          <div style="font-weight:600;color:var(--gold)">${b.subject}</div>
+          <div style="font-weight:600;color:var(--gold)">${_esc(b.subject)}</div>
           <div style="display:flex;justify-content:space-between;margin-top:0.2rem;color:var(--muted)">
             <span>Sent to ${b.recipientCount} people</span>
             <span>${date}</span>

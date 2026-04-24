@@ -18,20 +18,24 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --navy:    #050505; /* Bloomberg Pure Black */
-      --navy2:   #121212; /* Terminal Card Background */
-      --navy3:   #1A1A1A;
-      --gold:    #BFA100; /* Bloomberg Neon Gold */
-      --gold2:   #FFB800; /* Bloomberg Amber Data */
-      --cream:   #F8FAFC;
-      --muted:   #9CA3AF;
-      --border:  rgba(191,161,0,0.15);
+      --navy:    #050505; /* Pure Night */
+      --navy2:   #0A0A0A; /* Deep Gunmetal */
+      --navy3:   #121212; /* Muted Anthracite */
+      --crimson: #9B1C1C; /* Institutional Crimson */
+      --alert-crimson: #D32F2F; /* Alert Crimson */
+      --cream:   #E5E7EB; /* Subdued Grey-White */
+      --muted:   #6B7280; /* Neutral Muted */
+      --border:  rgba(155,28,28,0.2);
       --serif:   'Cormorant Garamond', Georgia, serif;
       --sans:    'Inter', sans-serif;
       --mono:    'JetBrains Mono', monospace;
+      --emerald: #10b981;
+      --red:     #ef4444;
+      --gold:    #c9a84c;
+      --gold2:   #f0cc6e;
     }
 
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: auto; }
 
     body {
       background: var(--navy);
@@ -64,10 +68,10 @@
       font-weight: 700;
       letter-spacing: -0.02em;
       color: var(--cream);
-      border-bottom: 2px solid var(--gold);
+      border-bottom: 2px solid var(--crimson);
       padding-bottom: 2px;
     }
-    .nav-brand span { color: var(--gold2); margin-left: 2px; }
+    .nav-brand span { color: var(--alert-crimson); margin-left: 2px; }
 
     .nav-links { display: flex; align-items: center; gap: 2rem; list-style: none; }
 
@@ -76,17 +80,32 @@
       letter-spacing: 0.08em; text-transform: uppercase;
       color: var(--muted); transition: color 0.2s;
     }
-    .nav-links a:hover { color: var(--gold); }
+    .nav-links a:hover { color: var(--crimson); }
 
     .nav-cta {
-      background: var(--gold); color: var(--navy) !important;
+      background: var(--crimson); color: var(--navy) !important;
       padding: 0.6rem 1.1rem; border-radius: 3px;
       font-weight: 600 !important; transition: background 0.2s !important;
     }
-    .nav-cta:hover { background: var(--gold2) !important; }
+    .nav-cta:hover { background: var(--alert-crimson) !important; }
+
+    .nav-google-btn {
+      background: rgba(155,28,28,0.1);
+      border: 1px solid var(--border);
+      color: var(--crimson);
+      width: 40px; height: 35px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 3px; cursor: pointer; transition: all 0.2s;
+    }
+    .nav-google-btn:hover {
+      background: rgba(155,28,28,0.2);
+      border-color: var(--crimson);
+      color: var(--alert-crimson);
+      box-shadow: 0 0 15px rgba(155,28,28,0.2);
+    }
 
     body.light {
-      --navy: #f8f5ef; --navy2: #ffffff; --navy3: #f0ece4;
+      --navy: #f8f5ef; --navy2: #ffffff; --navy3: #ede8df;
       --cream: #1a1a2e; --muted: #6b7a99;
       --border: rgba(201,168,76,0.3);
     }
@@ -142,8 +161,8 @@
     .hero::before {
       content: ''; position: fixed; inset: 0; z-index: -1;
       background:
-        radial-gradient(ellipse 60% 50% at 70% 40%, rgba(201,168,76,0.08) 0%, transparent 70%),
-        radial-gradient(ellipse 40% 60% at 20% 80%, rgba(37,99,235,0.06) 0%, transparent 60%);
+        radial-gradient(ellipse 60% 50% at 70% 40%, rgba(155,28,28,0.05) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 60% at 20% 80%, rgba(18,18,18,0.06) 0%, transparent 60%);
     }
     .hero-label {
       font-size: 0.9rem; font-weight: 600; letter-spacing: 0.2em;
@@ -179,9 +198,7 @@
 
     /* ── TICKER ── */
     .ticker-bar { background: var(--navy3); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); overflow: hidden; padding: 0.7rem 0; }
-    .ticker-inner { display: flex; gap: 4rem; animation: ticker 28s linear infinite; white-space: nowrap; }
-    .ticker-inner:hover { animation-play-state: paused; }
-    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .ticker-inner { display: flex; gap: 4rem; white-space: nowrap; justify-content: space-around; }
     .ticker-tag { font-size: 0.9rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
     .ticker-sep { color: var(--muted); }
 
@@ -773,17 +790,6 @@
       .market-row { min-height: 84px; }
     }
 
-    /* ── HOURLY PULSE ── */
-    .pulse-section { background: rgba(191,161,0,0.02); border-bottom: 1px solid var(--border); padding: 3rem 2rem; max-width: 1200px; margin: 0 auto; }
-    .pulse-live-tag { display: flex; align-items: center; gap: 0.5rem; font-family: var(--mono); font-size: 0.8rem; font-weight: 700; color: #86efac; border: 1px solid rgba(134,239,172,0.3); padding: 0.25rem 0.6rem; border-radius: 4px; }
-    .pulse-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 8px #22c55e; animation: pulseDot 1.5s infinite; }
-    .pulse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
-    .pulse-mini-card { background: var(--navy2); border: 1px solid var(--border); padding: 1.25rem; border-radius: 4px; transition: all 0.2s; cursor: pointer; }
-    .pulse-mini-card:hover { border-color: var(--gold); transform: translateY(-2px); background: var(--navy3); }
-    .pulse-time { font-family: var(--mono); font-size: 0.72rem; color: var(--gold); margin-bottom: 0.5rem; display: block; }
-    .pulse-mini-title { font-size: 1rem; font-weight: 600; line-height: 1.4; margin-bottom: 0.5rem; color: var(--cream); }
-    .pulse-mini-excerpt { font-size: 0.82rem; color: var(--muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
     /* ── SECTION ── */
     section { padding: 4rem 2rem; max-width: 1200px; margin: 0 auto; }
     .section-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 3rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
@@ -797,13 +803,25 @@
     .filter-btn:hover, .filter-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
 
     /* ── GRID ── */
-    .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 2px; }
-    .post-card { background: var(--navy2); padding: 2rem; border: 1px solid transparent; transition: all 0.3s; cursor: pointer; position: relative; overflow: hidden; animation: fadeUp 0.5s ease both; }
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 1.5rem; }
+    .post-card { 
+      background: var(--navy2); 
+      padding: 2.2rem; 
+      border: 1px solid var(--border); 
+      border-radius: 8px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+      cursor: pointer; 
+      position: relative; 
+      overflow: hidden; 
+    }
     .post-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 0; background: linear-gradient(180deg, var(--gold), transparent); transition: height 0.3s; }
-    .post-card:hover { border-color: var(--border); background: #131d38; }
+    .post-card:hover { border-color: var(--gold); background: #131d38; }
     .post-card:hover::before { height: 100%; }
     .post-category { font-size: 0.85rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 1rem; }
+
+    }
+
+    }
     .post-title { font-family: var(--serif); font-size: 1.45rem; font-weight: 600; line-height: 1.3; margin-bottom: 0.8rem; transition: color 0.2s; }
     .post-card:hover .post-title { color: var(--gold2); }
     .post-excerpt { font-size: 0.88rem; color: var(--muted); line-height: 1.65; margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -978,17 +996,28 @@
       50% { box-shadow: 0 0 0 5px rgba(240,204,110,0); }
     }
 
-    /* ── ADS ── */
-    .ad-unit { margin: 3rem auto; text-align: center; max-width: 1200px; padding: 0 2rem; }
-    .ad-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); opacity: 0.5; display: block; margin-bottom: 0.5rem; }
-    .ad-leaderboard { background: rgba(255,255,255,0.02); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 1.5rem 0; }
-
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
       .nav-links { display: none; }
+      .nav-hamburger { display: flex; }
+      .nav-links {
+        display: none; position: absolute; top: 68px; left: 0; right: 0;
+        background: rgba(8,13,26,0.97); backdrop-filter: blur(12px);
+        flex-direction: column; padding: 1rem 2rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        gap: 0.3rem;
+      }
+      .nav-links.mobile-open { display: flex; }
+      .nav-links li { list-style: none; }
+      .nav-links a { display: block; padding: 0.7rem 0; font-size: 0.95rem; }
+      .nav-links .nav-cta { display: inline-block; margin-top: 0.5rem; text-align: center; }
+      .nav-user { padding: 0.7rem 0; }
+      section { padding: 3rem 1.25rem; }
+      .hero { padding: 3rem 1.25rem 2.5rem; min-height: 70vh; }
       .hero-stats { display: none; }
       .post-card.featured { grid-template-columns: 1fr; }
       .featured-visual { display: none; }
+      .newsletter { padding: 2.5rem 1.5rem; }
       .newsletter-form { flex-direction: column; }
       footer { flex-direction: column; text-align: center; }
       .about-inner { grid-template-columns: 1fr; gap: 2.5rem; }
@@ -1002,8 +1031,35 @@
       .calendar-layout { grid-template-columns: 1fr; }
       .calendar-date, .calendar-impact { text-align: left; }
     }
+
+      .hero-stats { display: none; }
+      .post-card.featured { grid-template-columns: 1fr; }
+      .featured-visual { display: none; }
+      .newsletter { padding: 2.5rem 1.5rem; }
+      .newsletter-form { flex-direction: column; }
+      footer { flex-direction: column; text-align: center; }
+      .about-inner { grid-template-columns: 1fr; gap: 2.5rem; }
+      .about-skeleton-grid { grid-template-columns: 1fr; gap: 1.8rem; }
+      .about-avatar-col { flex-direction: row; text-align: left; align-items: flex-start; gap: 1.5rem; }
+      .about-avatar-wrap { width: 80px; height: 80px; flex-shrink: 0; margin-bottom: 0; }
+      .about-avatar-initial { font-size: 2rem; }
+      .about-socials { justify-content: flex-start; }
+      .feed-status-wrap { padding: 0.75rem 1rem 0; }
+      .market-wrap { padding: 0.75rem 1rem 0; }
+      .calendar-layout { grid-template-columns: 1fr; }
+      .calendar-date, .calendar-impact { text-align: left; }
+    }
+    @media (max-width: 480px) {
+      .hero { padding: 3.5rem 1.25rem 3rem; }
+      section { padding: 3.5rem 1.25rem; }
+      .newsletter { padding: 2.5rem 1.5rem; }
+      .posts-grid { grid-template-columns: 1fr; }
+      .post-card { padding: 1.5rem; }
+      .post-card.featured { padding: 1.5rem; }
+    }
   </style>
   <!-- Sentry Error Tracking -->
+
   <script src="js/sentry-init-v2.js"></script>
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
@@ -1012,26 +1068,28 @@
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date()); gtag('config', 'G-DED9GTRR3E');
   </script>
-  <!-- Microsoft Clarity -->
-  <script type="text/javascript">
-    (function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-    })(window, document, "clarity", "script", "w1simalsnj");
-  </script>
-  <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5696584446633401" crossorigin="anonymous"></script>
 </head>
 <body>
+<script>
+  // Prevent browser from restoring a hash-based scroll position (e.g. #briefings)
+  // so the page always starts at the hero on load.
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  window.scrollTo(0, 0);
+</script>
 
 <!-- NAV -->
 <nav>
   <div class="nav-inner">
-    <a class="nav-brand" href="index.html"><img src="logo-crop.png?v=20260402" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto;border:none;outline:none"></a>
+    <a class="nav-brand" href="index.html">BlogsPro.</a>
     <ul class="nav-links">
       <li><a href="#posts">Articles</a></li>
       <li><a href="#about">About</a></li>
+      <li id="navAccountLink" style="display:none"><a href="account.html">Account</a></li>
+      <li id="navGoogleLogin"><button onclick="window.registerGoogle()" class="nav-google-btn" title="Sign in with Google">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      </button></li>
+      <li id="navLoginLink"><a href="login.html" class="nav-cta">Enroll</a></li>
+
       <li><button class="theme-btn-nav" id="themeBtn" onclick="window.toggleTheme?.()">☀️</button></li>
       <li id="navAuthSlot">
         <a href="login.html" class="nav-cta">Login</a>
@@ -1040,10 +1098,15 @@
   </div>
 </nav>
 
+<!-- TICKER TAPE -->
+<div id="tvTickerContainer" style="background: var(--navy2); border-bottom: 1px solid var(--border); height: 40px; overflow: hidden;"></div>
+
+
 <!-- HERO -->
 <div class="hero">
   <p class="hero-label">Fintech · Compliance · Strategy</p>
   <h1>The edge is in the <em>details.</em></h1>
+
   <p class="hero-sub">Sharp analysis on financial technology, regulatory compliance, and growth strategy for practitioners who move markets.</p>
   <div class="hero-actions">
     <a href="#posts" class="btn-primary">Read Latest</a>
@@ -1079,46 +1142,80 @@
   </div>
 </div>
 
-<!-- HOURLY PULSE -->
-<section id="hourly-pulse" class="pulse-section" style="display: none;">
+<!-- TOP MARKET INTELLIGENCE HUB -->
+<section class="reveal" id="tvHubContainer">
   <div class="section-header">
-    <div style="display: flex; align-items: center; gap: 1.5rem;">
-      <h2 class="section-title">Live Intelligence Pulse</h2>
-      <div class="pulse-live-tag"><span class="pulse-dot"></span> LIVE</div>
-    </div>
-    <span class="post-date">Real-time AI surveillance across global markets</span>
+    <h2 class="section-title">Market <em>Intelligence</em></h2>
   </div>
-  <div class="pulse-grid" id="hourlyPulseGrid">
-     <!-- Hourly pulses will go here -->
+  <div id="tvHubContent" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+    <!-- Terminal Widget -->
+    <div class="glass-card terminal-wrap" style="grid-column: span 1; display: flex; flex-direction: column; background: var(--navy2); border: 1px solid var(--border);">
+      <div class="terminal-header">
+        <span style="font-family: monospace; font-size: 0.75rem; color: var(--gold);">BLOGSPRO TERMINAL v2.0</span>
+        <div style="display:flex; gap:0.5rem; align-items:center">
+          <span id="marketStatus" class="status-dot"></span>
+          <select id="terminalView" onchange="pollMarkets()" style="background:transparent; border:none; color:var(--muted); font-size:0.65rem; outline:none; cursor:pointer">
+            <option value="india">IND/NSE</option>
+            <option value="global">GLOBAL</option>
+          </select>
+        </div>
+      </div>
+      <div id="terminalBody" class="terminal-body" style="background: var(--navy); color: #86efac; font-family: monospace;">
+        <div id="terminal-indices" style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem; border-bottom:1px solid var(--border); padding-bottom:0.75rem;">
+          <!-- Nifty/BankNifty Hydrated here -->
+        </div>
+        <div id="terminal-stocks" style="display:flex; flex-direction:column; gap:0.6rem;">
+          <!-- Top 5 Stocks Hydrated here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Policy Tracker -->
+    <div class="glass-card" style="padding: 1.25rem; border-left: 4px solid #60a5fa; background: var(--navy2); border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+      <h3 style="font-family: var(--serif); font-size: 1.1rem; color: #60a5fa; margin-bottom: 1rem;">Policy & Regulation</h3>
+      <div id="policyTracker" style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.85rem;">
+        <div class="policy-item">
+          <strong style="color:var(--gold); display:block; margin-bottom: 0.2rem;">RBI (Reserve Bank)</strong>
+          <p id="rbiSnippet" style="margin:0; color:var(--muted); line-height:1.4;">Fetching latest updates...</p>
+        </div>
+        <div class="policy-item">
+          <strong style="color:var(--gold); display:block; margin-bottom: 0.2rem;">SEBI (Markets Regulator)</strong>
+          <p id="sebiSnippet" style="margin:0; color:var(--muted); line-height:1.4;">Fetching latest updates...</p>
+        </div>
+        <!-- Download Center (New) -->
+        <div style="border-top:1px solid var(--border); padding-top:0.8rem; margin-top:0.5rem">
+          <strong style="display:block; font-size:0.75rem; color:var(--cream); margin-bottom:0.5rem">Regulatory Library</strong>
+          <div id="downloadHub" style="display:flex; flex-direction:column; gap:0.4rem;">
+            <span style="font-size:0.7rem; color:var(--muted)">No documents available yet.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Market Heatmap -->
+    <div id="tvHeatmap" class="glass-card" style="min-height: 250px; background: var(--navy2); border: 1px solid var(--border);"></div>
   </div>
 </section>
 
-
-<!-- AD UNIT -->
-<div class="ad-unit ad-leaderboard">
-  <span class="ad-label">Institutional Commercial Protocol</span>
-  <ins class="adsbygoogle"
-       style="display:block"
-       data-ad-client="ca-pub-5696584446633401"
-       data-ad-slot="6614122455"
-       data-ad-format="auto"
-       data-full-width-responsive="true"></ins>
-  <script>
-       (adsbygoogle = window.adsbygoogle || []).push({});
-  </script>
-</div>
-
 <!-- POSTS -->
 <section id="posts">
-  <div class="section-header">
-    <h2 class="section-title" id="postsTitle">Latest Articles</h2>
-  </div>
-  <div class="filters">
-    <button class="filter-btn active" data-cat="all">All</button>
-    <button class="filter-btn" data-cat="Fintech">Fintech</button>
-    <button class="filter-btn" data-cat="Compliance">Compliance</button>
-    <button class="filter-btn" data-cat="Strategy">Strategy</button>
-  </div>
+    <div class="section-header">
+      <h2 class="section-title">Latest <em>Articles</em></h2>
+    </div>
+
+    <div class="search-container" style="margin-bottom: 2rem;">
+      <div class="search-input-wrap" style="position: relative; display: flex; align-items: center;">
+        <span class="search-icon" style="position: absolute; left: 1rem; color: var(--muted);">🔍</span>
+        <input type="text" id="postSearch" class="search-input" placeholder="Search articles by keyword..." oninput="handleSearch(this.value)" style="width: 100%; background: var(--navy2); border: 1px solid var(--border); color: var(--cream); padding: 0.8rem 1rem 0.8rem 2.5rem; border-radius: 4px; outline: none;">
+      </div>
+      <div class="filter-chips" id="filterChips" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;">
+        <button class="filter-chip active" onclick="filterByCategory('All')">All</button>
+        <button class="filter-chip" onclick="filterByCategory('Fintech')">Fintech</button>
+        <button class="filter-chip" onclick="filterByCategory('Compliance')">Compliance</button>
+        <button class="filter-chip" onclick="filterByCategory('Strategy')">Strategy</button>
+      </div>
+    </div>
+
   <div class="posts-grid" id="postsGrid">
     <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
     <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
@@ -1211,6 +1308,24 @@
     <!-- ══════════════ STRATEGIC INTEL HUB ══════════════ -->
     <div class="market-wrap">
       <div id="intel-hub-root"></div>
+      <!-- Institutional News Wire Slot (Added V5.5.0) -->
+      <div id="institutionalNewsWire"></div>
+    </div>
+
+    <!-- Global Indices — full width -->
+    <div class="market-wrap">
+      <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
+        <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Global Indices</span>
+        <span style="font-size:0.72rem;color:var(--muted);">Americas · Europe · Asia-Pacific · India · Commodities</span>
+      </div>
+      <div id="tvIndices" class="glass-card" style="min-height: 450px; overflow: hidden; background: var(--navy2); border: 1px solid var(--border);"></div>
+
+      <!-- Advanced Interactive Chart — full width -->
+      <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
+        <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Live Chart</span>
+        <span style="font-size:0.72rem;color:var(--muted);">NIFTY 50 — NSE</span>
+      </div>
+      <div id="tvAdvChart" class="glass-card tv-chart-wrap" style="background: var(--navy2); border: 1px solid var(--border); min-height: 500px;"></div>
     </div>
 
 <!-- INDIA CALENDAR -->
@@ -1355,7 +1470,7 @@
   <div class="newsletter">
     <h2>Stay ahead of the curve.</h2>
     <p>New insights on fintech, compliance & strategy — delivered to your inbox.</p>
-    <form class="newsletter-form" onsubmit="subscribeNewsletter(event)">
+    <form class="newsletter-form" onsubmit="window.subscribeNewsletter?.(event)">
       <input type="email" id="emailInput" placeholder="your@email.com" required />
       <button type="submit" class="btn-primary" id="subBtn">
         <span id="subBtnText">Subscribe</span>
@@ -1366,10 +1481,11 @@
   </div>
 </section>
 
+
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
-    <a class="nav-brand" href="index.html" style="text-decoration: none;"><img src="logo-crop.png?v=20260402" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto;border:none;outline:none"></a>
+    <a class="nav-brand" href="index.html" style="text-decoration: none;">BlogsPro.</a>
     <span class="footer-copy">© <span id="year"></span> BlogsPro. All rights reserved.</span>
     <ul class="footer-links">
       <li><a href="login.html" id="footerAuthLink">Login</a></li>
@@ -1416,6 +1532,12 @@
   import { api } from './js/services/api.js';
   import { initIntelHub } from "./js/intel-hub.js";
   import { loadHybridPosts } from "./js/posts.js";
+  import { initNewsWire } from "./js/news-wire.js";
+
+  window.registerGoogle = () => {
+    api.auth.google("index.html");
+  };
+
 
   const LOCAL_IMAGES_KEY = 'blogspro_images_enabled';
   let imagesEnabled = true;
@@ -1432,35 +1554,6 @@
   let cryptoCache = null;
   let cryptoCacheAt = 0;
   const CRYPTO_CACHE_TTL = 60000; // 1 minute
-  let marketRefreshTimer = null;
-  let marketRefreshInFlight = false;
-  let marketRefreshTick = 0;
-  let marketNextFetchAt = 0;
-  let marketLastUpdatedAt = 0;
-  const startMarketAutoRefresh = () => {
-    if (marketRefreshTimer) return;
-    marketRefreshTimer = setInterval(() => {
-      if (document.hidden) return;
-      marketRefreshTick += 1;
-      const updatedEl = document.getElementById('marketUpdated');
-      if (updatedEl) updatedEl.textContent = `Polling: ${new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })} · Tick ${marketRefreshTick}`;
-      const ageTxt = marketLastUpdatedAt ? `Age: ${Math.max(0, Math.round((Date.now() - marketLastUpdatedAt) / 1000))}s` : 'Age: --';
-      const ageIds = ['ageIndices', 'ageStocks', 'ageBonds', 'ageCurrency', 'ageCommodities', 'ageCrypto'];
-      ageIds.forEach((id) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = ageTxt;
-      });
-      if (marketRefreshInFlight) return;
-      if (Date.now() < marketNextFetchAt) return;
-      marketRefreshInFlight = true;
-      loadUpstoxMarketData({ showLoading: false })
-        .catch(() => false)
-        .finally(() => {
-          marketRefreshInFlight = false;
-          marketNextFetchAt = Date.now() + 1200;
-        });
-    }, 200);
-  };
   const API_TIMEOUT_MS = 12000;
   function setIntegrationStatus(mode, label) {
     const badge = document.getElementById('integrationBadge');
@@ -1540,6 +1633,7 @@
       const m = String(v ?? '').replace(/,/g, '').match(/-?\d+(\.\d+)?/);
       return m ? Number(m[0]) : NaN;
     };
+
 
     applyForexFiltersGlobal = null; // reset on each load; reassigned below
     const applyCalendarFilters = () => {
@@ -1811,37 +1905,6 @@
       const target = segmentTargetCount[segmentKey] || 6;
       return (fallbackBySegment[segmentKey] || []).slice(0, target);
     };
-    const isIndiaMarketHours = () => {
-      const d = new Date();
-      const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(d);
-      const wd = parts.find((p) => p.type === 'weekday')?.value || '';
-      const hh = Number(parts.find((p) => p.type === 'hour')?.value || '0');
-      const mm = Number(parts.find((p) => p.type === 'minute')?.value || '0');
-      const mins = hh * 60 + mm;
-      const isWeekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(wd);
-      return isWeekday && mins >= (9 * 60 + 15) && mins <= (15 * 60 + 30);
-    };
-    const isLiveCard = (c, key) => {
-      if (!c._live) return false;
-      if (key === 'crypto') return true;
-      return isIndiaMarketHours();
-    };
-    const withLiveDrift = (items, segmentKey) => {
-      const ampBySeg = { indices: 0.015, stocksOptions: 0.03, bonds: 0.008, currency: 0.01, commodities: 0.02, crypto: 0.06 };
-      const amp = ampBySeg[segmentKey] ?? 0.02;
-      return items.map((row, idx) => {
-        const price = Number(row?.price);
-        const change = Number(row?.change);
-        if (!isLiveCard(row, segmentKey)) return row;
-        if (!Number.isFinite(price)) return row;
-        const pulse = Math.sin((marketRefreshTick + 1 + (idx * 3)) / 4);
-        const driftPct = pulse * amp;
-        const nextPrice = price * (1 + (driftPct / 100));
-        const nextChange = Number.isFinite(change) ? change + (driftPct * 0.9) : driftPct;
-        return { ...row, price: nextPrice, change: nextChange };
-      });
-    };
-
     const renderCards = (el, items, segmentKey) => {
       const dedup = [];
       const seen = new Set();
@@ -1851,10 +1914,7 @@
         seen.add(k);
         dedup.push(it);
       }
-      items = withLiveDrift(padCards(dedup, segmentKey), segmentKey);
-      const tradingStatus = (c, key) => {
-        return isLiveCard(c, key) ? { label: 'Live', cls: 'live' } : { label: 'Not Trading', cls: 'closed' };
-      };
+      items = padCards(dedup, segmentKey);
       const detailText = (c, key) => {
         const open = Number.isFinite(Number(c.open)) ? Number(c.open) : NaN;
         const high = Number.isFinite(Number(c.high)) ? Number(c.high) : NaN;
@@ -1915,7 +1975,6 @@
         const sign = isUp ? '+' : '';
         const symbolText = String(c.symbol || '--').replace(/</g, '&lt;');
         const codeText = symbolText.replace(/[^A-Za-z0-9]/g, '').slice(0, 10) || '--';
-        const st = tradingStatus(c, segmentKey);
         return `
           <div class="market-row">
             <div class="market-top">
@@ -1923,7 +1982,7 @@
                 <div class="market-logo">${logoGlyph(symbolText, segmentKey)}</div>
                 <div class="market-symbol">${symbolText}</div>
               </div>
-              <div class="market-status ${st.cls}">${st.label}</div>
+              <div class="market-status closed">Closed</div>
             </div>
             <div class="market-code">SYM ${codeText}</div>
             <div class="market-price">${pricePrefix(symbolText, segmentKey)}${fmtNum(c.price)}</div>
@@ -1960,7 +2019,7 @@
           const prev = Number(val?.ohlc?.close ?? val?.prev_close_price ?? 0);
           if (!Number.isFinite(last)) continue;
           const pct = prev ? ((last - prev) / prev) * 100 : 0;
-          const card = { symbol, price: last, change: pct, open: Number(val?.ohlc?.open), high: Number(val?.ohlc?.high ?? val?.high), low: Number(val?.ohlc?.low ?? val?.low), prev: Number(val?.ohlc?.close ?? val?.prev_close_price), volume: Number(val?.volume ?? val?.vol ?? val?.total_volume), yield: Number(val?.yield ?? val?.ytm ?? val?.yield_to_maturity), _live: true };
+          const card = { symbol, price: last, change: pct, open: Number(val?.ohlc?.open), high: Number(val?.ohlc?.high ?? val?.high), low: Number(val?.ohlc?.low ?? val?.low), prev: Number(val?.ohlc?.close ?? val?.prev_close_price), volume: Number(val?.volume ?? val?.vol ?? val?.total_volume), yield: Number(val?.yield ?? val?.ytm ?? val?.yield_to_maturity) };
           const k = String(instrument).toUpperCase();
           const symU = String(symbol).toUpperCase();
           const isOption = /\b(CE|PE)\b/.test(symU) || symU.includes('OPT') || k.includes('OPTION');
@@ -1990,9 +2049,7 @@
         renderCards(segmentCrypto, segments.crypto.slice(0, 20), 'crypto');
         skeletonEl.style.display = 'none';
         segmentIndices.dataset.loaded = '1';
-        marketLastUpdatedAt = Date.now();
-        setAgeLabels(marketLastUpdatedAt);
-        updatedEl.textContent = `Updated: ${now()} · Tick ${marketRefreshTick}`;
+        updatedEl.textContent = `Updated: ${now()}`;
         return true;
       } catch (_) {}
     }
@@ -2007,8 +2064,7 @@
       segmentIndices.dataset.loaded = '1';
     }
     skeletonEl.style.display = 'none';
-    setAgeLabels(marketLastUpdatedAt || 0);
-    updatedEl.textContent = `Updated: ${now()} · Tick ${marketRefreshTick}`;
+    updatedEl.textContent = `Updated: ${now()}`;
     return false;
   }
 
@@ -2369,7 +2425,7 @@
         return;
       }
       const user = res.user;
-      const isAdmin = user.role === 'admin' || user.email === 'abhishekdutta18@gmail.com';
+      const isAdmin = user.role === 'admin' || user.email === 'abhishekdutta1996@gmail.com';
       indexUserIsAdmin = isAdmin;
       if (isAdmin) {
         slot.innerHTML = `<div class="nav-user" id="navUserBtn" onclick="toggleDropdown()"><div class="nav-avatar">${user.photoURL ? `<img src="${user.photoURL}" alt="" />` : (user.displayName || user.email || 'A')[0].toUpperCase()}</div><a href="admin.html" class="nav-admin-tag">Admin</a><div class="nav-dropdown" id="navDropdown"><a href="admin.html">Dashboard</a><button onclick="doSignOut()">Sign Out</button></div></div>`;
@@ -2423,48 +2479,20 @@
     try {
       const hybridPosts = await loadHybridPosts();
       allPosts = hybridPosts.filter(p => !isBloombergPost(p)).sort((a, b) => postEpochMs(b) - postEpochMs(a));
-      
-      const hourlyPulses = allPosts.filter(p => p.isAI && p.frequency === 'hourly').slice(0, 4);
-      const displayPosts = allPosts.filter(p => !(p.isAI && p.frequency === 'hourly'));
-
       const postCountEl = document.getElementById('postCount');
-      if (postCountEl) postCountEl.textContent = displayPosts.length;
-      
+      if (postCountEl) postCountEl.textContent = allPosts.length;
       const postsTitleEl = document.getElementById('postsTitle');
       if (postsTitleEl) postsTitleEl.textContent = indexUserIsAdmin ? 'Institutional Strategic Ledger' : 'Recent Market Pulses (Last 3 Generations)';
-      
-      const firestorePosts = displayPosts.filter(p => !p.isAI);
+      const firestorePosts = allPosts.filter(p => !p.isAI);
       const totalViews = firestorePosts.reduce((sum, p) => sum + normalizeViews(p.views), 0);
       const tvEl = document.getElementById('totalViewCount');
       if (tvEl) tvEl.textContent = fmtViews(totalViews);
-      
-      renderHourlyPulses(hourlyPulses);
-      renderPosts(currentCat === 'all' ? displayPosts : displayPosts.filter(p => p.category === currentCat));
+      renderPosts(currentCat === 'all' ? allPosts : allPosts.filter(p => p.category === currentCat));
       return true;
     } catch(err) {
       console.error('Error loading hybrid index:', err);
       return false;
     }
-  }
-
-  function renderHourlyPulses(pulses) {
-    const grid = document.getElementById('hourlyPulseGrid');
-    const section = document.getElementById('hourly-pulse');
-    if (!grid || !section) return;
-    if (!pulses || !pulses.length) { section.style.display = 'none'; return; }
-    section.style.display = 'block';
-    const esc = (s) => DOMPurify.sanitize(s || '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
-    grid.innerHTML = pulses.map((p, i) => {
-      const title = esc(p.title || 'Untitled Pulse');
-      const excerpt = esc(p.excerpt || 'No summary available.');
-      const date = new Date(p.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-      const postId = safePostId(p.id);
-      return `<div class="pulse-mini-card" onclick="openPostById('${postId}')" style="animation-delay:${i*0.05}s">
-        <span class="pulse-time">${date} • Hourly Pulse</span>
-        <h4 class="pulse-mini-title">${title}</h4>
-        <p class="pulse-mini-excerpt">${excerpt}</p>
-      </div>`;
-    }).join('');
   }
 
   function renderPosts(posts) {
@@ -2476,6 +2504,8 @@
       const title = esc(p.title || 'Untitled');
       const excerpt = esc(p.excerpt || 'No summary available.');
       const category = esc(p.category) || 'General';
+      const isStrategic = p.category === 'Strategic Research';
+      const catClass = isStrategic ? 'post-category strategic' : 'post-category';
       const author = esc(p.authorName || (p.authorEmail ? String(p.authorEmail).split('@')[0] : '') || 'BlogsPro');
       const rawImage = imagesEnabled ? DOMPurify.sanitize(String(p.image || '').trim()) : '';
       const image = (/^https?:\/\//i.test(rawImage) && rawImage !== 'null' && rawImage !== 'undefined' && rawImage !== '[object Object]' && !/^javascript:/i.test(rawImage)) ? rawImage : '';
@@ -2485,9 +2515,9 @@
       const readTime = Math.max(1, Math.ceil(plainText.split(/\s+/).filter(Boolean).length / 200));
       if (i === 0) {
         const visual = image ? `<div class="featured-visual featured-visual-img"><img src="${image}" alt="${title}" loading="lazy" onerror="this.closest('.featured-visual')?.remove(); this.closest('.post-card')?.classList.add('featured-no-img');" /></div>` : '';
-        return `<div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPostById('${postId}')" style="animation-delay:${i*0.08}s"><div class="featured-body"><span class="featured-badge">Featured</span><span class="post-category">${category}</span><h2 class="post-title">${title}</h2><p class="post-excerpt">${excerpt}</p><div class="post-meta"><span class="post-date">${date}</span><div style="display:flex;align-items:center;gap:0.75rem"><span class="post-date">By ${author}</span><span class="post-read-time">${readTime} min read</span><span class="post-views">&#128065; ${fmtViews(normalizeViews(p.views))}</span></div></div></div>${visual}</div>`;
+        return `<div class="post-card featured${image ? '' : ' featured-no-img'}" onclick="openPostById('${postId}')" style="animation-delay:${i*0.08}s"><div class="featured-body"><span class="featured-badge">Featured</span><span class="${catClass}">${category}</span><h2 class="post-title">${title}</h2><p class="post-excerpt">${excerpt}</p><div class="post-meta"><span class="post-date">${date}</span><div style="display:flex;align-items:center;gap:0.75rem"><span class="post-date">By ${author}</span><span class="post-read-time">${readTime} min read</span><span class="post-views">&#128065; ${fmtViews(normalizeViews(p.views))}</span></div></div></div>${visual}</div>`;
       }
-      return `<div class="post-card" onclick="openPostById('${postId}')" style="animation-delay:${i*0.08}s"><span class="post-category">${category}</span><h3 class="post-title">${title}</h3><p class="post-excerpt">${excerpt}</p><div class="post-meta"><span class="post-date">${date}</span><div style="display:flex;align-items:center;gap:0.75rem"><span class="post-date">By ${author}</span><span class="post-read-time">${readTime} min read</span><span class="post-views">&#128065; ${fmtViews(normalizeViews(p.views))}</span></div></div></div>`;
+      return `<div class="post-card" onclick="openPostById('${postId}')" style="animation-delay:${i*0.08}s"><span class="${catClass}">${category}</span><h3 class="post-title">${title}</h3><p class="post-excerpt">${excerpt}</p><div class="post-meta"><span class="post-date">${date}</span><div style="display:flex;align-items:center;gap:0.75rem"><span class="post-date">By ${author}</span><span class="post-read-time">${readTime} min read</span><span class="post-views">&#128065; ${fmtViews(normalizeViews(p.views))}</span></div></div></div>`;
     }).join('');
   }
 
@@ -2557,6 +2587,8 @@
       console.warn('About section unavailable:', err.message);
       applyAboutDefaults();
       const contentCol = document.getElementById('aboutContentCol');
+      const skeleton = document.getElementById('aboutSkeleton');
+      const avatarCol = document.getElementById('aboutAvatarCol');
       if (skeleton) skeleton.style.display = 'none';
       if (avatarCol) avatarCol.classList.remove('about-hidden');
       if (contentCol) contentCol.classList.remove('about-hidden');
@@ -2619,35 +2651,210 @@
     return String(n);
   }
 
-  (async () => {
-    initIntelHub(); // Priority init for guests
-    
-    // Check auth for Admin UI logic
-    api.auth.me().then(res => {
-        if (res.authenticated && res.user.role === 'admin') {
-            indexUserIsAdmin = true;
-            const titleEl = document.getElementById('postsTitle');
-            if (titleEl) titleEl.textContent = 'Institutional Strategic Ledger';
-        }
-    }).catch(() => {});
+  document.getElementById('year').textContent = new Date().getFullYear();
 
-    const settingsOk = await loadSiteSettings().catch(() => false);
-    const postsOk = await loadPosts().catch(() => false);
-    const aboutOk = await loadAbout().catch(() => false);
-    // Wait for Google Charts before any chart-rendering calls.
-    // 5s timeout prevents a CDN failure from hanging the entire init sequence.
-    await Promise.race([chartsReadyPromise, new Promise(res => setTimeout(res, 5000))]);
-    const forexOk = await loadForexFactoryData().catch(() => false);
-    initForexCalendarControls();
-    const indiaOk = await loadIndiaCalendarData().catch(() => false);
-    const marketOk = await loadUpstoxMarketData({ showLoading: true }).catch(() => false);
-    const allOk = settingsOk && postsOk && aboutOk && forexOk && indiaOk && marketOk;
+  (async () => {
+    // 1. Parallel Task Execution
+    const tasks = [
+      { id: 'settings', fn: () => loadSiteSettings() },
+      { id: 'posts', fn: () => loadPosts() },
+      { id: 'about', fn: () => loadAbout() },
+      { id: 'intel', fn: () => initIntelHub() },
+      { id: 'news', fn: () => initNewsWire() },
+      { id: 'forex', fn: async () => {
+        await Promise.race([chartsReadyPromise, new Promise(res => setTimeout(res, 5000))]);
+        const ok = await loadForexFactoryData();
+        initForexCalendarControls();
+        return ok;
+      }},
+      { id: 'india', fn: () => loadIndiaCalendarData() },
+      { id: 'tvTicker', fn: () => initTVTicker() },
+      { id: 'tvHub', fn: () => initTVHub() }
+    ];
+
+    const results = await Promise.allSettled(tasks.map(t => t.fn().catch(err => {
+      console.warn(`[Init] Task "${t.id}" failed:`, err.message);
+      return false;
+    })));
+
+    // 2. Integration Status Update
+    const allSuccessful = results.every(r => r.status === 'fulfilled' && r.value !== false);
     setIntegrationStatus(
-      allOk ? 'online' : 'degraded',
-      allOk ? 'Integrations: Online' : 'Integrations: Degraded'
+      allSuccessful ? 'online' : 'degraded',
+      allSuccessful ? 'Integrations: Online' : 'Integrations: Degraded'
     );
+
+    // 3. Auth Handshake
+    api.auth.me().then(res => {
+      if (res.authenticated) {
+        const enrollBtn = document.getElementById('navLoginLink');
+        const googleBtn = document.getElementById('navGoogleLogin');
+        if (enrollBtn) enrollBtn.style.display = 'none';
+        if (googleBtn) googleBtn.style.display = 'none';
+
+        const accountLink = document.getElementById('navAccountLink');
+        if (accountLink) accountLink.style.display = 'block';
+
+        if (res.user.role === 'admin') {
+          indexUserIsAdmin = true;
+          const adminLink = document.getElementById('navAdminLink');
+          if (adminLink) adminLink.style.display = 'block';
+          const titleEl = document.getElementById('postsTitle');
+          if (titleEl) titleEl.textContent = 'Institutional Strategic Ledger';
+        }
+      }
+    });
+
+    // 4. Start Market Polling
     startMarketAutoRefresh();
   })();
+
+  // ── TV Widget Functions ───────────────────────────────────────────
+  function initTVTicker() {
+      const container = document.getElementById('tvTickerContainer');
+      if (!container || container.dataset.loaded) return;
+      
+      const widgetCont = document.createElement('div');
+      widgetCont.className = 'tradingview-widget-container';
+      widgetCont.innerHTML = '<div class="tradingview-widget-container__widget"></div>';
+      
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+      script.async = true;
+      script.text = JSON.stringify({
+        "symbols": [
+          {"proName": "NSE:NIFTY",        "title": "NIFTY 50"},
+          {"proName": "BSE:SENSEX",        "title": "SENSEX"},
+          {"proName": "NSE:BANKNIFTY",     "title": "BANK NIFTY"},
+          {"proName": "INDEX:SPX",         "title": "S&P 500"},
+          {"proName": "NASDAQ:NDX",        "title": "NASDAQ 100"},
+          {"proName": "INDEX:DJI",         "title": "Dow Jones"},
+          {"proName": "INDEX:DEU40",       "title": "DAX"},
+          {"proName": "INDEX:UKX",         "title": "FTSE 100"},
+          {"proName": "INDEX:NI225",       "title": "Nikkei 225"},
+          {"proName": "INDEX:HSI",         "title": "Hang Seng"},
+          {"proName": "COMEX:GC1!",        "title": "Gold"},
+          {"proName": "NYMEX:CL1!",        "title": "WTI Crude"},
+          {"proName": "CRYPTOCAP:BTC",     "title": "Bitcoin"},
+          {"proName": "FX:USDINR",         "title": "USD/INR"},
+          {"proName": "FX:EURUSD",         "title": "EUR/USD"}
+        ],
+        "showSymbolLogo": true,
+        "colorTheme": "dark",
+        "isTransparent": true,
+        "displayMode": "adaptive",
+        "locale": "en"
+      });
+      
+      widgetCont.appendChild(script);
+      container.appendChild(widgetCont);
+      container.dataset.loaded = "true";
+  }
+
+  // ── Market Terminal Polling ──
+  let _pollFailures = 0;
+  const POLL_MAX_FAILURES = 3;
+  const UPSTOX_BASE = 'https://blogspro-upstox.abhishek-dutta1996.workers.dev';
+  let marketPollInterval = null;
+
+  window.pollMarkets = async function() {
+    const indicesBox = document.getElementById('terminal-indices');
+    const stocksBox  = document.getElementById('terminal-stocks');
+    const view       = document.getElementById('terminalView')?.value || 'india';
+
+    if (!indicesBox || !stocksBox) return;
+
+    if (_pollFailures >= POLL_MAX_FAILURES) {
+      if (marketPollInterval) {
+        clearInterval(marketPollInterval);
+        marketPollInterval = null;
+      }
+      const statusDot = document.getElementById('marketStatus');
+      if (statusDot) { statusDot.style.background = 'var(--red)'; statusDot.style.boxShadow = '0 0 6px var(--red)'; }
+      stocksBox.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);padding:0.5rem 0">Live data unavailable — market terminal offline.</div>`;
+      return;
+    }
+
+    try {
+      if (view === 'india') {
+        const res  = await fetch(`${UPSTOX_BASE}/quotes`);
+        const data = await res.json();
+
+        if (data.status === 'success' && data.data) {
+          _pollFailures = 0;
+          const d    = data.data;
+          const nifty = d['NSE_INDEX|Nifty 50'];
+          const bank  = d['NSE_INDEX|Nifty Bank'];
+          indicesBox.style.display = 'grid';
+          indicesBox.innerHTML = `
+            <div style="text-align:center"><small style="display:block;color:var(--muted)">NIFTY 50</small>
+              <b style="color:${nifty?.last_price >= nifty?.close ? 'var(--emerald)' : 'var(--red)'}">${nifty?.last_price?.toLocaleString('en-IN') || '—'}</b></div>
+            <div style="text-align:center"><small style="display:block;color:var(--muted)">BANK NIFTY</small>
+              <b style="color:${bank?.last_price >= bank?.close ? 'var(--emerald)' : 'var(--red)'}">${bank?.last_price?.toLocaleString('en-IN') || '—'}</b></div>`;
+          const symbols = ["RELIANCE", "HDFCBANK", "ICICIBANK", "INFY", "TCS"];
+          stocksBox.innerHTML = symbols.map(s => {
+            const item = d[`NSE_EQ|${s}`];
+            if (!item) return '';
+            const chg = (((item.last_price - item.close) / item.close) * 100).toFixed(2);
+            return `<div style="display:flex;justify-content:space-between;font-size:0.8rem">
+              <span>${s}</span>
+              <span style="color:${chg >= 0 ? 'var(--emerald)' : 'var(--red)'}">${item.last_price.toLocaleString('en-IN')} <small>(${chg}%)</small></span>
+            </div>`;
+          }).join('');
+        } else {
+          _pollFailures++;
+        }
+      } else {
+        const res  = await fetch(`${UPSTOX_BASE}/global`);
+        const json = await res.json();
+        if (json.status === 'success') {
+          _pollFailures = 0;
+          indicesBox.style.display = 'none';
+          stocksBox.innerHTML = json.data.map(d => {
+            const name = d.symbol.replace('^', '').replace('=F', '');
+            return `<div style="display:flex;justify-content:space-between;font-size:0.8rem;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:0.4rem">
+              <span style="color:var(--gold)">${name}</span>
+              <span style="color:${d.change >= 0 ? 'var(--emerald)' : 'var(--red)'}">${d.price.toLocaleString()} <small>(${d.change}%)</small></span>
+            </div>`;
+          }).join('');
+        } else {
+          _pollFailures++;
+        }
+      }
+    } catch (e) {
+      _pollFailures++;
+      console.warn("Market poll fail:", e);
+    }
+  };
+
+  function startMarketAutoRefresh() {
+    if (marketPollInterval) clearInterval(marketPollInterval);
+    pollMarkets();
+    marketPollInterval = setInterval(pollMarkets, 30000);
+  }
+
+  function hydratePolicy(latestPost) {
+    if (!latestPost) return;
+    const rbi = document.getElementById('rbiSnippet');
+    const sebi = document.getElementById('sebiSnippet');
+    const hub = document.getElementById('downloadHub');
+
+    if (rbi && latestPost.rbi) rbi.textContent = latestPost.rbi + '...';
+    if (sebi && latestPost.sebi) sebi.textContent = latestPost.sebi + '...';
+    
+    if (hub && latestPost.docs && latestPost.docs.length > 0) {
+      hub.innerHTML = latestPost.docs.map(doc => `
+        <a href="downloads/${doc.pdf}" target="_blank" class="glass-btn" style="padding:0.4rem 0.6rem; font-size:0.72rem; display:flex; align-items:center; gap:0.4rem; text-decoration:none;">
+          <span>📄</span>
+          <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${doc.title}</span>
+          <span>⬇</span>
+        </a>
+      `).join('');
+    }
+  }
+
 </script>
 </body>
 </html>
+

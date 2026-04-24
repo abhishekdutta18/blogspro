@@ -11,9 +11,9 @@ export function workerCandidates(path = "") {
   const p = String(path || "").replace(/^\/+/, "");
   const candidates = [];
 
-  // 1. Check for manual overrides in Local Storage
+  // 1. Check for manual overrides in Local Storage (only https:// accepted to prevent SSRF)
   const override = localStorage.getItem("bp_ai_worker_url") || localStorage.getItem("bp_ai_api_base");
-  if (override) candidates.push(normalizeBase(override));
+  if (override && /^https:\/\/.+/i.test(override)) candidates.push(normalizeBase(override));
 
   // 2. Default to Institutional Pulse
   candidates.push(PULSE_WORKER_BASE);
@@ -34,12 +34,21 @@ export function workerUrl(path = "", base = null) {
 
 export async function workerFetch(path, init = {}) {
   const candidates = workerCandidates(path);
+  const TIMEOUT_MS = 12000;
   
   let lastError = null;
   for (const base of candidates) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    
     try {
       const url = workerUrl(path, base);
-      const res = await fetch(url, init);
+      const res = await fetch(url, {
+        ...init,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
       if (res.ok) return res;
       if (res.status >= 500) {
         lastError = new Error(`Worker Error (${res.status}): ${res.statusText}`);
@@ -47,7 +56,11 @@ export async function workerFetch(path, init = {}) {
       }
       return res;
     } catch (err) {
+      clearTimeout(timeoutId);
       lastError = err;
+      if (err.name === 'AbortError') {
+        console.warn(`[workerFetch] Timeout reached for ${base}. Skipping.`);
+      }
     }
   }
   throw lastError || new Error("All worker candidates failed.");

@@ -17,7 +17,7 @@ function formatViews(n) {
 function checkIfAdmin() {
   const profile = state.currentUserProfile;
   const user = state.currentUser;
-  return profile?.role === 'admin' || user?.email === 'abhishekdutta18@gmail.com';
+  return profile?.role === 'admin';
 }
 
 export async function loadAll() {
@@ -99,6 +99,10 @@ export async function savePost(publish) {
   const readMin  = Math.max(1, Math.ceil((editor.textContent||'').split(/\s+/).filter(Boolean).length/200));
 
   if (!title) { showToast('Please add a title.','error'); return; }
+  if (publish) {
+    const wordCount = (editor.textContent||'').trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount < 100) { showToast('Published posts must have at least 100 words.','error'); return; }
+  }
 
   const saveStatus = document.getElementById('saveStatus');
   saveStatus.textContent = 'Saving…';
@@ -150,7 +154,7 @@ export async function editPost(id) {
     document.getElementById('postImage').value    = p.image||'';
     document.getElementById('postMeta').value     = p.metaDesc||'';
     document.getElementById('postTags').value     = (p.tags||[]).join(', ');
-    const { sanitize } = await import('./utils.js').catch(() => ({ sanitize: (h) => h }));
+    const { sanitize } = await import('./utils.js');
     document.getElementById('editor').innerHTML   = sanitize(p.content||'');
     document.getElementById('postCategory').value = p.category||'Fintech';
     state.isPremium = p.premium === true;
@@ -221,17 +225,32 @@ export async function loadHybridPosts() {
     try {
         let firestorePosts = [];
         try {
-            const posts = await api.data.posts.getAll();
-            firestorePosts = posts.filter(p => p.published);
+            const posts = await api.public.data('posts');
+            const isMockPost = (p) => {
+                const text = (p.title || '') + ' ' + (p.excerpt || '');
+                return text.includes('[DRY-RUN') || text.includes('DRY-RUN MOCK') ||
+                       text.toLowerCase().includes('density mock') ||
+                       (p.title || '').includes('Verification Draft');
+            };
+            firestorePosts = (posts || []).filter(p => p.published && !isMockPost(p)).map(p => ({
+                ...p,
+                id: p._id  // _id is the Firestore document ID; use it for reliable fsGet lookups
+            }));
         } catch (err) {
             console.warn('[HybridEngine] Firestore posts unavailable');
         }
 
+        const isFileProtocol = window.location.protocol === 'file:';
+        if (isFileProtocol) {
+            console.error('[BlogsPro] Security Block: Accessing via file:// protocol. Local article indices cannot be fetched due to CORS policies. Please serve via HTTP (e.g., npx serve .)');
+        }
+
         const origin = window.location.origin;
-        const briefingIndices = [
+        const briefingIndices = isFileProtocol ? [] : [
             `${origin}/briefings/daily/index.json`,
             `${origin}/briefings/hourly/index.json`,
-            `${origin}/articles/weekly/index.json`
+            `${origin}/articles/weekly/index.json`,
+            `${origin}/articles/monthly/index.json`
         ];
 
         const aiResults = await Promise.all(briefingIndices.map(url => 
@@ -240,17 +259,21 @@ export async function loadHybridPosts() {
                 .catch(() => [])
         ));
 
-        let aiPosts = aiResults.flat().map(pulse => ({
-            id: pulse.fileName,
-            title: pulse.title,
-            excerpt: pulse.excerpt || "Institutional Strategic Intelligence",
-            category: pulse.type === 'briefing' ? 'Pulse' : 'Strategic',
-            authorName: "BlogsPro Research Desk",
-            createdAt: new Date(pulse.timestamp || Date.now()).toISOString(),
-            isAI: true,
-            frequency: pulse.frequency,
-            path: pulse.type === 'briefing' ? `briefings/${pulse.frequency}/${pulse.fileName}` : `articles/${pulse.frequency}/${pulse.fileName}`
-        }));
+        let aiPosts = aiResults.flat()
+            .filter(pulse => {
+                const text = (pulse.title || '') + ' ' + (pulse.excerpt || '');
+                return !text.includes('[DRY-RUN') && !text.includes('DRY-RUN MOCK');
+            })
+            .map(pulse => ({
+                id: pulse.fileName,
+                title: pulse.title,
+                excerpt: pulse.excerpt || "Institutional Strategic Intelligence",
+                category: pulse.type === 'briefing' ? 'Pulse' : 'Strategic',
+                authorName: "BlogsPro Research Desk",
+                createdAt: new Date(pulse.timestamp || Date.now()).toISOString(),
+                isAI: true,
+                path: pulse.type === 'briefing' ? `briefings/${pulse.frequency}/${pulse.fileName}` : `articles/${pulse.frequency}/${pulse.fileName}`
+            }));
 
         let all = [...firestorePosts, ...aiPosts].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
