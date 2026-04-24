@@ -13,7 +13,7 @@ firebase-service-account.json
 # briefings/
 # dist/
 review-*.html
-swarm-*.html
+# swarm-*.html
 ai-feedback.json
 knowledge-graph.json
 
