@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="pageTitle">Loading… — BlogsPro</title>
+  <meta name="description"        id="metaDesc"  content="" />
+  <meta property="og:title"       id="ogTitle"   content="" />
+  <meta property="og:description" id="ogDesc"    content="" />
+  <meta property="og:type"        content="article" />
+  <meta property="og:url"         id="ogUrl"     content="" />
+  <meta property="og:site_name"   content="BlogsPro" />
+  <meta name="twitter:card"       content="summary_large_image" />
+  <meta name="twitter:title"      id="twTitle"   content="" />
+  <meta name="twitter:description" id="twDesc"  content="" />
+  <link rel="canonical"           id="canonLink" href="" />
+  <script type="application/ld+json" id="ldJson"></script>
+  
+  <!-- Cloudflare Web Analytics -->
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"72bc8a3f7037468f8d9cb205b4ebb989"}'></script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  
+  <!-- DOMPurify for XSS sanitization -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
+  
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:    #050505;
+      --navy2:   #121212;
+      --navy3:   #1A1A1A;
+      --gold:    #BFA100;
+      --gold2:   #FFB800;
+      --cream:   #F8FAFC;
+      --muted:   #9CA3AF;
+      --border:  rgba(191,161,0,0.15);
+      --serif:   'Cormorant Garamond', Georgia, serif;
+      --sans:    'Inter', sans-serif;
+      --mono:    'JetBrains Mono', monospace;
+    }
+    body.light {
+      --navy: #f8f5ef; --navy2: #ffffff; --navy3: #f0ece4;
+      --cream: #1a1a2e; --muted: #6b7a99;
+      --border: rgba(201,168,76,0.3);
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--navy); color: var(--cream); font-family: var(--sans); -webkit-font-smoothing: antialiased; line-height: 1.6; }
+    a { color: inherit; text-decoration: none; }
+    
+    #progress { position: fixed; top: 0; left: 0; z-index: 200; height: 3px; background: var(--gold); width: 0%; transition: width .1s linear; }
+    
+    nav { position: sticky; top: 0; z-index: 100; background: rgba(8,13,26,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; height: 68px; padding: 0 2rem; }
+    .nav-brand { font-family: var(--mono); font-size: 1.1rem; font-weight: 700; border-bottom: 2px solid var(--gold); padding-bottom: 2px; }
+    .nav-brand span { color: var(--gold2); }
+    
+    .nav-right { display: flex; align-items: center; gap: 1.5rem; }
+    .back-link { font-size: 0.9rem; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.2s; }
+    .back-link:hover { color: var(--gold); }
+    
+    .article-wrap { max-width: 800px; margin: 0 auto; padding: 4rem 2rem 6rem; }
+    .article-header { margin-bottom: 3rem; }
+    .article-cat { font-size: 0.75rem; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: 0.1em; display: inline-block; margin-bottom: 1rem; }
+    h1.article-title { font-family: var(--serif); font-size: clamp(2.5rem, 6vw, 4rem); line-height: 1.1; font-weight: 700; margin-bottom: 1.5rem; }
+    .article-meta { display: flex; align-items: center; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
+    
+    .article-content { font-size: 1.15rem; line-height: 1.8; color: var(--cream); }
+    .article-content h2 { font-family: var(--serif); font-size: 2rem; margin: 3rem 0 1.5rem; color: var(--gold2); }
+    .article-content p { margin-bottom: 1.5rem; }
+    .article-content blockquote { border-left: 3px solid var(--gold); padding: 1rem 0 1rem 2rem; margin: 2.5rem 0; font-family: var(--serif); font-size: 1.5rem; font-style: italic; color: var(--muted); }
+    .article-content img { max-width: 100%; height: auto; border-radius: 4px; border: 1px solid var(--border); margin: 2rem 0; }
+    
+    .author-sec { margin-top: 5rem; padding-top: 3rem; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 1.5rem; }
+    .author-avatar { width: 60px; height: 60px; border-radius: 50%; background: var(--navy2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 1.5rem; font-weight: 700; color: var(--gold); }
+    .author-info h4 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .author-info p { font-size: 0.9rem; color: var(--muted); }
+
+    .error-state { text-align: center; padding: 10rem 2rem; }
+    .error-state h2 { font-family: var(--serif); font-size: 2.5rem; margin-bottom: 1.5rem; }
+    
+    .loading-state { text-align: center; padding: 10rem 2rem; color: var(--muted); font-family: var(--mono); }
+  </style>
+</head>
+<body>
+<div id="progress"></div>
+<nav>
+  <a class="nav-brand" href="index.html">BLOGSPRO<span>.IN</span></a>
+  <div class="nav-right">
+    <a class="back-link" href="index.html">← Back to Ledger</a>
+  </div>
+</nav>
+
+<main class="article-wrap" id="articleBody">
+  <div class="loading-state">PROCESING SECURE DATA STREAM...</div>
+</main>
+
+<script type="module">
+  import { api } from "./js/services/api.js";
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const postId = urlParams.get('id');
+
+  // Progressive loading indicator
+  window.addEventListener('scroll', () => {
+    const el = document.documentElement;
+    const progress = (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100;
+    document.getElementById('progress').style.width = Math.min(progress, 100) + '%';
+  });
+
+  async function init() {
+    const main = document.getElementById('articleBody');
+    if (!postId) {
+      renderError("404: OBJECT_NOT_FOUND");
+      return;
+    }
+
+    try {
+      const post = await api.public.data('posts', postId);
+      if (!post) {
+        renderError("404: POST_NOT_IN_INDEX");
+        return;
+      }
+
+      renderPost(post);
+    } catch (err) {
+      console.error('Post Load Error:', err);
+      renderError("500: TELEMETRY_BRIDGE_FAILURE");
+    }
+  }
+
+  function renderPost(p) {
+    const main = document.getElementById('articleBody');
+    const title = DOMPurify.sanitize(p.title || 'Untitled Pulse');
+    const content = DOMPurify.sanitize(p.content || '');
+    const category = DOMPurify.sanitize(p.category || 'General');
+    const author = DOMPurify.sanitize(p.authorName || 'BlogsPro Intelligence');
+    const date = p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' }) : 'Unknown Date';
+    
+    const plainText = content.replace(/<[^>]+>/g, ' ').trim();
+    const readTime = Math.max(1, Math.ceil(plainText.split(/\s+/).length / 200));
+
+    // Update Metadata
+    document.title = `${title} — BlogsPro`;
+    document.getElementById('pageTitle').textContent = `${title} — BlogsPro`;
+
+    main.innerHTML = `
+      <header class="article-header">
+        <span class="article-cat">${category}</span>
+        <h1 class="article-title">${title}</h1>
+        <div class="article-meta">
+          <span>${date}</span>
+          <span>${readTime} min read</span>
+          <span>By ${author}</span>
+        </div>
+      </header>
+      
+      <div class="article-content">${content}</div>
+      
+      <section class="author-sec">
+        <div class="author-avatar">${author[0].toUpperCase()}</div>
+        <div class="author-info">
+          <h4>${author}</h4>
+          <p>Institutional Analyst covering ${category}</p>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderError(code) {
+    document.getElementById('articleBody').innerHTML = `
+      <div class="error-state">
+        <h2>${code}</h2>
+        <a href="index.html" class="back-link" style="color:var(--gold)">← Return to Central Intelligence</a>
+      </div>
+    `;
+  }
+
+  init();
+</script>
+</body>
+</html>
