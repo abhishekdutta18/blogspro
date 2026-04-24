@@ -464,8 +464,8 @@ async function runInstitutionalSwarm() {
     if (ghToken && !process.env.SKIP_GITHUB_PUSH) {
         try {
             const filesToPush = [
-                { path: `public/${folder}/${frequency}/${fileName}`, localPath: outPath },
-                { path: `public/${folder}/${frequency}/index.json`, localPath: path.join(process.cwd(), 'public', folder, frequency, 'index.json') }
+                { path: `${folder}/${frequency}/${fileName}`, localPath: outPath },
+                { path: `${folder}/${frequency}/index.json`, localPath: path.join(process.cwd(), 'public', folder, frequency, 'index.json') }
             ];
             
             console.log(`📡 [GitHub] Initiating Sovereign Push for ${frequency} cycle [Folder: ${folder}]...`);
