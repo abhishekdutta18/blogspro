@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.gstatic.com https://browser.sentry-cdn.com https://www.clarity.ms https://*.clarity.ms blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; font-src https://fonts.gstatic.com; img-src * data: blob:; connect-src *;">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — BlogsPro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=DM+Sans:wght@300;400;500;600&family=Noto+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <!-- DOMPurify — XSS protection for all AI-generated HTML -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+  <!-- Chart.js for analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  <!-- Google Charts — used by chart-builder.js for interactive article charts -->
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script type="text/javascript">
+    window.bpChartsReady = google.charts.load('current', { packages: ['corechart'] });
+  </script>
+  <!-- Sentry Error Tracking -->
+  <!-- Consolidated Sentry Configuration -->
+  <script src="js/sentry-init-v2.js"></script>
+    <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DED9GTRR3E');</script>
+  <link rel="stylesheet" href="css/admin.css" />
+  <!-- Production Proxy Services -->
+  <script type="module">
+    import { api } from './js/services/api.js';
+    // IMMEDIATE AUTH GUARD
+    api.auth.me().then(res => {
+      if (!res.authenticated || res.user.role !== 'admin') {
+        window.location.href = 'login.html?error=unauthorized&reason=' + (res.authenticated ? res.user.role : 'logged_out');
+      }
+    }).catch(() => {
+      window.location.href = 'login.html?error=network_failure';
+    });
+  </script>
+</head>
+<body>
+<script>
+// Inline bootstrap — defines critical onclick handlers before ES modules load
+function toggleSidebar() {
+  var s = document.getElementById('sidebar');
+  var o = document.getElementById('sideOverlay');
+  if (s) s.classList.toggle('open');
+  if (o) o.classList.toggle('open');
+}
+function doLogout() {
+  // Use unified api.js for logout
+  import('./js/services/api.js').then(({api}) => {
+    api.auth.logout().then(() => window.location.href = 'login.html');
+  });
+}
+// Guard functions for AI drawer — will be overridden by ai-drawer.js after module load
+function openAIDrawer(...args) {
+  if (window._openAIDrawer) {
+    window._openAIDrawer(...args);
+  } else {
+    console.warn('[BlogsPro] AI Drawer not yet initialized. Please wait.');
+    if (window.showToast) showToast('✦ Loading AI tools...', 'info');
+  }
+}
+function closeAIDrawer() {
+  if (window._closeAIDrawer) window._closeAIDrawer();
+}
+function switchDrawerTab(tab) {
+  if (window._switchDrawerTab) window._switchDrawerTab(tab);
+}
+
+// ── V4.6 Diagnostic: Unified Proxy Health Check ────────
+window.addEventListener('load', () => {
+  const badge = document.getElementById('integrationBadgeAdmin');
+  const text  = document.getElementById('integrationBadgeAdminText');
+
+  import('./js/services/api.js').then(({api}) => {
+    api.auth.me().then(res => {
+      if (res.authenticated) {
+        badge.style.background = 'var(--emerald)';
+        text.textContent = 'Integrations: ONLINE';
+      }
+    });
+  });
+});
+</script>
+
+<!-- Mobile top bar (hidden on desktop, shown on mobile) -->
+<div id="mobileTopBar">
+  <button id="menuBtn" onclick="toggleSidebar()">☰</button>
+  <span id="mobileTopBarTitle">BlogsPro</span>
+</div>
+<div id="sideOverlay" onclick="toggleSidebar()"></div>
+<div class="integration-badge-admin" id="integrationBadgeAdmin">
+  <span class="integration-badge-admin-dot"></span>
+  <span id="integrationBadgeAdminText">Integrations: Initializing</span>
+</div>
+<button onclick="window.reloadAIConfig?.()" style="position:fixed;right:14px;top:58px;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.35);color:var(--gold);padding:6px 10px;border-radius:4px;font-size:12px;font-weight:700;backdrop-filter:blur(6px);z-index:1100;cursor:pointer">⟳ Reload AI Keys</button>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-brand">
+    <img src="logo-crop.png?v=20260402" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto;margin-bottom:0.25rem">
+    <p>AI SaaS CMS</p>
+  </div>
+  <style>
+    /* V7.0 Terminal Newsfeed Styles */
+    .newsfeed-log {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(201, 168, 76, 0.2);
+      border-radius: 4px;
+      padding: 0.8rem;
+      font-family: 'DM Mono', monospace, Courier;
+      font-size: 0.7rem;
+      color: #a1a1aa;
+      max-height: 250px;
+      overflow-y: auto;
+      margin-top: 1rem;
+      line-height: 1.5;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
+    }
+    .newsfeed-entry {
+      margin-bottom: 0.3rem;
+      display: flex;
+      gap: 0.6rem;
+      animation: fadeInLog 0.3s ease-out;
+    }
+    .newsfeed-ts { color: var(--gold); opacity: 0.8; min-width: 65px; }
+    .newsfeed-msg { color: var(--cream); flex: 1; }
+    .newsfeed-stage { 
+      font-weight: 700; 
+      text-transform: uppercase; 
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      opacity: 0.7;
+      padding: 0.1rem 0.3rem;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.05);
+    }
+    @keyframes fadeInLog {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .v2-btn-archive {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: var(--emerald);
+      font-size: 0.72rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .v2-btn-archive:hover { background: rgba(16, 185, 129, 0.2); }
+  </style>
+  <nav class="side-nav">
+    <span class="nav-label">Content</span>
+    <div class="nav-item active" data-view="dashboard"><span>◈</span> Dashboard</div>
+    <div class="nav-item" data-view="posts"><span>✦</span> All Posts</div>
+    <div class="nav-item" data-view="intelligence"><span>🛰</span> Intelligence Swarm</div>
+    <div class="nav-item" data-view="editor" data-clear="1"><span>✎</span> New Post</div>
+
+    <span class="nav-label" style="margin-top:1.5rem">AI Tools</span>
+    <div class="nav-item" data-view="seotools"><span>🚀</span> SEO Tools</div>
+    <div class="nav-item" data-view="clusters"><span>🧠</span> Topic Clusters</div>
+    <div class="nav-item" data-view="headline"><span>🔥</span> Headline AI</div>
+    <div class="nav-item" data-view="calendar"><span>📅</span> Content Calendar</div>
+
+    <span class="nav-label" style="margin-top:1.5rem">Growth</span>
+    <div class="nav-item" data-view="newsletter"><span>✉</span> Newsletter</div>
+    <div class="nav-item" data-view="autoblog"><span>🤖</span> Auto Blog</div>
+
+    <span class="nav-label" style="margin-top:1.5rem">People</span>
+    <div class="nav-item" data-view="users"><span>👥</span> Users</div>
+    <div class="nav-item" data-view="account"><span>👤</span> Account</div>
+    <div class="nav-item" data-view="subscribers-list"><span>✉</span> Subscribers</div>
+
+    <span class="nav-label" style="margin-top:1.5rem">Site</span>
+    <div class="nav-item" onclick="window.open('index.html','_blank','noopener,noreferrer')"><span>↗</span> View Blog</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="user-avatar" id="userInitial">—</div>
+      <div class="user-email" id="userEmail">—</div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 40px; gap:0.5rem; margin-bottom:0.4rem">
+      <div class="nav-item" data-view="profile" style="padding:0.6rem 0;border:none;background:transparent;justify-content:center;font-size:0.75rem;font-weight:600;letter-spacing:0.05em;color:var(--gold);border-radius:3px;border:1px solid rgba(201,168,76,0.15)" onmouseover="this.style.background='rgba(201,168,76,0.05)'" onmouseout="this.style.background='transparent'">
+        <span>👤</span> Profile
+      </div>
+      <button id="themeBtn" onclick="toggleTheme()" style="background:transparent; border:1px solid rgba(201,168,76,0.15); border-radius:3px; color:var(--muted); cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; transition:all 0.2s">☀️</button>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main>
+
+  <!-- ══════════════ DASHBOARD ══════════════ -->
+  <div class="view active" id="view-dashboard">
+    <!-- 🏛 INSTITUTIONAL HEALTH RADAR -->
+    <div class="inst-health-bar">
+      <div class="inst-health-item">
+        <div class="inst-health-dot pulse"></div>
+        GATEWAY: <b id="healthGateway">ONLINE</b>
+      </div>
+      <div class="inst-health-item">
+        <div class="inst-health-dot"></div>
+        SWARM: <b id="healthSwarm">IDLE</b>
+      </div>
+      <div class="inst-health-item">
+        <div class="inst-health-dot"></div>
+        MARKET: <b id="healthMarket">SYNCED</b>
+      </div>
+      <div class="inst-health-item" style="margin-left:auto">
+        <span style="opacity:0.6">NODE:</span> <b>BPRO-PULSE-HK</b>
+      </div>
+    </div>
+
+    <div class="page-header">
+      <div><h2>Dashboard</h2><p id="greetMsg">Welcome back.</p></div>
+      <button class="btn-publish" style="padding:0.7rem 1.5rem;border-radius:3px" onclick="showView('editor');clearEditor()">+ New Post</button>
+    </div>
+    
+    <!-- Core Metrics -->
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-card-label">Total Posts</div><div class="stat-card-value" id="statTotal">—</div></div>
+      <div class="stat-card"><div class="stat-card-label">Published</div><div class="stat-card-value" id="statPublished">—</div><div class="stat-card-sub">Live on blog</div></div>
+      <div class="stat-card"><div class="stat-card-label">Drafts</div><div class="stat-card-value" id="statDrafts">—</div></div>
+      <div class="stat-card"><div class="stat-card-label">Subscribers</div><div class="stat-card-value" id="statSubs">—</div><div class="stat-card-sub">Newsletter</div></div>
+    </div>
+
+    <!-- Site Controls -->
+    <div class="inst-pane">
+      <div class="inst-pane-header">
+        <div class="inst-pane-title">◈ Site Navigation Control</div>
+        <div id="pipelineStatus" style="font-size:0.65rem; color:var(--emerald); background:rgba(16,185,129,0.1); padding:0.2rem 0.5rem; border-radius:10px; border:1px solid rgba(16,185,129,0.3); display:flex; align-items:center; gap:0.3rem;">
+          <div style="width:6px;height:6px;background:var(--emerald);border-radius:50%;box-shadow:0 0 5px var(--emerald)"></div>
+          Pipeline Active: OK
+        </div>
+      </div>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem">
+        <div>
+          <div class="toggle-row" style="border-top:none; padding-top:0">
+            <div>
+              <div style="font-size:0.92rem;font-weight:600;color:var(--cream)">Website Images</div>
+              <div id="siteImagesStatus" style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Loading setting...</div>
+            </div>
+            <div class="toggle-switch on" id="siteImagesSwitch" onclick="toggleSiteImages()">
+              <div class="toggle-track"></div>
+              <div class="toggle-dot"></div>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div>
+              <div style="font-size:0.92rem;font-weight:600;color:var(--cream)">AI Audio Briefings</div>
+              <div id="siteAudioStatus" style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Loading setting...</div>
+            </div>
+            <div class="toggle-switch" id="siteAudioSwitch" onclick="toggleSiteAudio()">
+              <div class="toggle-track"></div>
+              <div class="toggle-dot"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="margin-top:0; padding:0.8rem; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:4px">
+            <div class="inst-pane-subtitle" style="margin-bottom:0.5rem">Economic Calendar Feed</div>
+            <div style="font-size:0.76rem;color:var(--muted);line-height:1.6">
+              Primary: <span style="color:var(--gold)">ForexFactory (faireconomy media)</span><br/>
+              Fallback: <span style="color:var(--blue2)">TradingEconomics guest calendar</span>
+            </div>
+            <div style="margin-top:0.8rem; font-size:0.62rem;color:var(--green);background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);padding:0.18rem 0.5rem;border-radius:999px;letter-spacing:0.08em;text-transform:uppercase;display:inline-block">
+              Resilient Mode Enabled
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem">
+      <!-- Financial Hub -->
+      <div class="inst-pane" style="margin-bottom:0">
+        <div class="inst-pane-header">
+          <div class="inst-pane-title">📈 Financial Intelligence Hub</div>
+          <div class="inst-pane-subtitle">NSE • BSE • RBI • SEBI</div>
+        </div>
+        <div id="financialHealthStats" style="display:flex; flex-direction:column; gap:0.6rem; font-family:var(--mono); font-size:0.75rem;">
+          <div class="stat-mini">Loading health metrics...</div>
+        </div>
+        <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
+          <button onclick="window.open('https://developer.upstox.com/dashboard','_blank')" class="v2-btn-top" style="flex:1; font-size:10px;">Update Access</button>
+          <button onclick="location.reload()" class="v2-btn-top" style="flex:1; font-size:10px;">Refresh</button>
+        </div>
+      </div>
+      
+      <!-- Autonomous Dispatch -->
+      <div class="inst-pane" style="margin-bottom:0">
+        <div class="inst-pane-header">
+          <div class="inst-pane-title" style="color:var(--emerald)">⚡ Autonomous Dispatch Proxy</div>
+          <div class="inst-pane-subtitle">GitHub Action Pulse</div>
+        </div>
+        <p style="font-size:0.75rem; color:var(--muted); margin-bottom:1rem; line-height:1.5">
+          Trigger a deep research sequence via hardened Cloudflare secure proxy. Orchestration is environment-locked.
+        </p>
+        <button id="btnTerminalDispatch" onclick="window.triggerTerminalDispatch?.()" class="v2-gen-btn" style="background:var(--emerald); border-color:var(--emerald); padding:0.6rem; font-size:0.8rem; border-radius:4px">
+          ⚡ Trigger Weekly Research Cascade
+        </button>
+
+        <div id="dispatchTimerContainer" style="display:none; margin-top:0.8rem; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); padding:0.8rem; border-radius:4px;">
+           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem">
+              <span id="dispatchStatusText" style="font-size:0.72rem; color:var(--emerald); font-weight:700">Pipeline Ingress...</span>
+              <span id="dispatchElapsed" style="font-family:var(--mono); font-size:0.82rem; color:var(--gold)">00:00</span>
+           </div>
+           <div style="height:4px; background:var(--navy3); border-radius:2px; overflow:hidden">
+              <div id="dispatchFill" style="height:100%; background:var(--emerald); width:0%; transition:width 1s linear"></div>
+           </div>
+           <div style="display:flex; justify-content:space-between; margin-top:0.6rem">
+             <span style="font-size:0.65rem; color:var(--muted)">EST Comp: ~15m</span>
+             <a id="dispatchRunLink" href="#" target="_blank" style="display:none; font-size:0.65rem; color:var(--blue2); font-weight:700">VIEW LOGS ↗</a>
+           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Data Table -->
+    <div class="table-wrap" style="margin-top:2rem; border-radius:6px">
+      <div class="table-header"><span class="table-title">Institutional Masterpiece Registry (Recent)</span></div>
+      <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Author</th><th>Views</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody id="recentPostsBody"><tr><td colspan="7"><div class="table-empty">Loading registry...</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ══════════════ ACCOUNT ══════════════ -->
+  <div class="view" id="view-account">
+    <div class="page-header">
+      <div><h2>My Account</h2><p>Update your admin profile details.</p></div>
+    </div>
+    <div class="saas-grid-2">
+      <div class="saas-panel gold-accent">
+        <div class="saas-panel-header">
+          <h3>Profile Details</h3>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-input" id="adminAccountName" placeholder="Your name" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Photo URL</label>
+          <input type="url" class="form-input" id="adminAccountPhotoURL" placeholder="https://example.com/photo.jpg" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Bio</label>
+          <textarea class="form-textarea" id="adminAccountBio" rows="4" placeholder="Short profile bio"></textarea>
+        </div>
+        <button class="btn-publish" id="adminAccountSaveBtn" onclick="saveAdminAccount()">Save Account</button>
+      </div>
+      <div class="saas-panel blue-accent">
+        <div class="saas-panel-header">
+          <h3>Account Info</h3>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-input" id="adminAccountEmail" readonly />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Role</label>
+          <input type="text" class="form-input" id="adminAccountRole" readonly />
+        </div>
+        <div style="font-size:0.78rem;color:var(--muted);line-height:1.7">
+          Email and role are controlled by authentication and admin access rules.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ ALL POSTS ══════════════ -->
+  <div class="view" id="view-posts">
+    <div class="page-header">
+      <div><h2>All Posts</h2><p>Manage your articles</p></div>
+      <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
+        <button onclick="repairBrokenImages()" style="padding:0.7rem 1.2rem;border-radius:3px;background:transparent;border:1px solid rgba(59,130,246,0.4);color:var(--blue2);font-family:var(--sans);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(59,130,246,0.08)'" onmouseout="this.style.background='transparent'">🔧 Fix Broken Images</button>
+        <button onclick="bulkFreshen()" style="padding:0.7rem 1.2rem;border-radius:3px;background:transparent;border:1px solid rgba(34,197,94,0.4);color:var(--green);font-family:var(--sans);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(34,197,94,0.08)'" onmouseout="this.style.background='transparent'">🔄 Freshen Old Posts</button>
+        <button class="btn-publish" style="padding:0.7rem 1.5rem;border-radius:3px" onclick="showView('editor');clearEditor()">+ New Post</button>
+      </div>
+    </div>
+    <div id="repairPanel" style="display:none;background:var(--navy2);border:1px solid rgba(59,130,246,0.3);border-radius:3px;padding:1rem 1.2rem;margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem">
+        <span style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--blue2)" id="repairTitle">🔧 Processing…</span>
+        <span id="repairCount" style="font-size:0.72rem;color:var(--muted)"></span>
+      </div>
+      <div style="height:4px;background:var(--navy3);border-radius:2px;overflow:hidden;margin-bottom:0.5rem">
+        <div id="repairFill" style="height:100%;background:linear-gradient(90deg,#1d4ed8,#3b82f6);border-radius:2px;transition:width 0.3s;width:0%"></div>
+      </div>
+      <div id="repairLog" style="font-size:0.72rem;color:var(--muted);max-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:0.2rem"></div>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Author</th><th>Views</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody id="allPostsBody"><tr><td colspan="7"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ══════════════ INTELLIGENCE SWARM ══════════════ -->
+  <div class="view" id="view-intelligence">
+    <div class="inst-health-bar">
+      <div class="inst-health-item">
+        <div class="inst-health-dot pulse"></div>
+        ORCHESTRATOR: <b id="healthSwarmOrch">v5.4.1 ACTIVE</b>
+      </div>
+      <div class="inst-health-item">
+        <div class="inst-health-dot"></div>
+        TELEMETRY: <b id="healthSwarmTel">SYNCED</b>
+      </div>
+      <div class="inst-health-item" style="margin-left:auto">
+        <button onclick="loadIntelligence()" class="v2-btn-top" style="border-color:var(--emerald);color:var(--emerald); padding: 4px 12px">↺ REFRESH SWARM</button>
+      </div>
+    </div>
+
+    <div class="page-header">
+      <div><h2>Intelligence Swarm Console</h2><p>Hardened Durable Swarm Orchestration • Zero-Proxy Pulse Engine</p></div>
+    </div>
+    
+    <!-- Swarm Control Matrix -->
+    <div class="inst-pane">
+        <div class="inst-pane-header">
+            <div class="inst-pane-title">◈ Swarm Control Matrix</div>
+            <div class="inst-pane-subtitle">FORCE DISPATCH PEER NODES</div>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top:0.5rem">
+            <button onclick="dispatchSwarm('daily')" id="btnDispatchDaily" class="btn-publish" style="background:rgba(201,168,76,0.1); border:1px solid var(--gold); color:var(--gold); display:flex; align-items:center; justify-content:center; gap:0.5rem">
+                <span>🛰</span> Dispatch Daily (Pulse)
+            </button>
+            <button onclick="dispatchSwarm('weekly')" id="btnDispatchWeekly" class="btn-publish" style="background:rgba(59,130,246,0.1); border:1px solid var(--blue2); color:var(--blue2); display:flex; align-items:center; justify-content:center; gap:0.5rem">
+                <span>📚</span> Dispatch Weekly (Tome)
+            </button>
+            <button onclick="dispatchSwarm('manual')" id="btnDispatchManual" class="btn-publish" style="background:rgba(168,85,247,0.1); border:1px solid var(--purple2); color:var(--purple2); display:flex; align-items:center; justify-content:center; gap:0.5rem">
+                <span>🏗</span> Manual Heavy Research
+            </button>
+        </div>
+        
+        <!-- Newsfeed -->
+        <div id="dispatchNewsfeed" class="newsfeed-log">
+            <div class="newsfeed-entry">
+                <span class="newsfeed-ts">[SYSTEM]</span>
+                <span class="newsfeed-msg">Telemetry bridge initialized. Waiting for dispatch...</span>
+            </div>
+        </div>
+
+        <div id="swarmDispatchStatus" style="font-size:0.7rem; color:var(--muted); margin-top:1.2rem; display:flex; align-items:center; justify-content:space-between">
+            <div style="font-weight:700">NODE STATUS: <span style="color:var(--gold)">READY_FOR_INSTRUCTION</span></div>
+            <button onclick="triggerManualArchive()" class="v2-btn-archive">📦 Deep Ledger Archive (90D)</button>
+        </div>
+    </div>
+
+    <!-- HIL CONSENSUS STATION -->
+    <div id="hilConsensusStation" class="inst-pane" style="display:none; border-color:var(--purple); box-shadow: 0 0 20px rgba(168,85,247,0.1)">
+        <div class="inst-pane-header">
+            <div class="inst-pane-title" style="color:var(--purple2)">🏺 HIL Consensus Station</div>
+            <div class="inst-pane-subtitle">Institutional Audit Queue</div>
+        </div>
+        <div id="hilAuditList">
+            <!-- Dynamic Audits -->
+            <div style="font-size:0.75rem; color:var(--muted); padding:1.5rem; text-align:center;">
+                No pending institutional audits.
+            </div>
+        </div>
+    </div>
+
+    <!-- Telemetry Charts -->
+    <div class="saas-grid-2" style="margin-bottom: 2rem;">
+        <div class="inst-pane" style="margin-bottom:0">
+            <div class="inst-pane-header">
+              <div class="inst-pane-title">Reliability Matrix</div>
+            </div>
+            <div style="height:200px">
+                <canvas id="swarmSuccessChart"></canvas>
+            </div>
+        </div>
+        <div class="inst-pane" style="margin-bottom:0">
+            <div class="inst-pane-header">
+              <div class="inst-pane-title">Agent Latency</div>
+            </div>
+            <div style="height:200px">
+                <canvas id="swarmLatencyChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Ledger & Publications -->
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="inst-pane" style="margin:0">
+            <div class="inst-pane-header">
+              <div class="inst-pane-title">Latest Global Pulses</div>
+            </div>
+            <div class="table-wrap" style="background:transparent; border:none; padding:0">
+                <table style="font-size: 0.75rem;">
+                    <thead><tr><th>Freq</th><th>Title</th><th>Date</th></tr></thead>
+                    <tbody id="swarmPulseBody"><tr><td colspan="3" class="table-empty">Syncing Ledger...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="inst-pane" style="margin:0">
+            <div class="inst-pane-header">
+              <div class="inst-pane-title">Strategic Tomes</div>
+            </div>
+            <div class="table-wrap" style="background:transparent; border:none; padding:0">
+                <table style="font-size: 0.75rem;">
+                    <thead><tr><th>Horizon</th><th>Strategic Title</th><th>Date</th></tr></thead>
+                    <tbody id="swarmArticleBody"><tr><td colspan="3" class="table-empty">Processing Tomes...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="inst-pane">
+        <div class="inst-pane-header">
+          <div class="inst-pane-title">Swarm Reinforcement Ledger</div>
+          <div class="inst-pane-subtitle">AI LOGS & FEEDBACK</div>
+        </div>
+        <div id="swarmLedgerBody" style="font-family:var(--mono); font-size:0.7rem; max-height: 300px; overflow-y:auto; color:var(--muted); line-height:1.6; padding:0.5rem; background:rgba(0,0,0,0.2); border-radius:4px;">
+            Initializing secure ledger stream...
+        </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ EDITOR ══════════════ -->
+  <div class="view" id="view-editor">
+    <div class="page-header" style="margin-bottom:1.2rem">
+      <div><h2 id="editorHeading">New Post</h2><p>Write and publish your article</p></div>
+    </div>
+
+    <!-- ══ V2 THREE-COLUMN SHELL ══ -->
+    <div class="v2-shell">
+
+      <!-- ━━ LEFT: AI & Images ━━ -->
+      <div class="v2-left">
+        <div class="v2-left-tabs">
+          <div class="v2-ltab active" onclick="v2ShowTab('ai',this)">✦ AI</div>
+          <div class="v2-ltab"        onclick="v2ShowTab('imgs',this)">🖼 Images</div>
+        </div>
+        <div class="v2-left-body">
+
+          <!-- AI TAB -->
+          <div id="v2-tab-ai">
+
+            <!-- Write -->
+            <div class="v2-ai-sec">
+              <div class="v2-ai-sec-head" onclick="toggleV2Sec(this)">✦ Write <span>▾</span></div>
+              <div class="v2-ai-sec-body">
+                <textarea class="v2-quick-input" id="v2TopicPrompt" rows="2" placeholder="Topic / prompt…" oninput="syncV2Topic(this.value)"></textarea>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px">
+                  <select class="v2-quick-input" style="margin:0" id="v2WriteTone">
+                    <option>Professional</option><option>Conversational</option>
+                  </select>
+                  <select class="v2-quick-input" style="margin:0" id="v2Model" onchange="v2SyncModel(this.value)">
+                    <option value="auto">Auto — Best Balanced</option>
+                    <option value="auto-free">OpenRouter Free ✦</option>
+                    <option value="sambanova">SambaNova (Llama 3.3 70B) ⚡</option>
+                    <option value="cerebras">Cerebras (Qwen 3 235B) 🚀</option>
+                    <option value="qwen">Qwen 2.5 (Alibaba) 🐼</option>
+                    <option value="llama">Llama 3.3 70B (Base)</option>
+                    <option value="mistral">Mistral Small 24B</option>
+                    <option value="gemma">Gemma 3 27B</option>
+                    <option value="hermes">Hermes 405B</option>
+                    <option value="hf-router">Hugging Face Router 🤗</option>
+                  </select>
+                </div>
+                <!-- Word count preset buttons -->
+                <div style="display:flex;gap:3px;margin-bottom:4px;flex-wrap:wrap">
+                  <button class="v2-wc-btn active" data-words="1500"  onclick="v2SetWC(this,1500)">1.5k</button>
+                  <button class="v2-wc-btn"         data-words="2500"  onclick="v2SetWC(this,2500)">2.5k</button>
+                  <button class="v2-wc-btn"         data-words="5000"  onclick="v2SetWC(this,5000)">5k</button>
+                  <button class="v2-wc-btn"         data-words="10000" onclick="v2SetWC(this,10000)">10k</button>
+                  <button class="v2-wc-btn v2-wc-purple" data-words="50000"  onclick="v2SetWC(this,50000)">50k</button>
+                  <button class="v2-wc-btn v2-wc-purple" data-words="100000" onclick="v2SetWC(this,100000)">100k</button>
+                </div>
+                <!-- Custom word count textbox (max 100,000) -->
+                <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
+                  <span style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap">Custom</span>
+                  <input type="number" id="v2WCInput" min="100" max="100000" step="100" placeholder="e.g. 3000"
+                    oninput="v2ApplyCustomWC(this)"
+                    style="flex:1;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:4px 6px;border-radius:3px;font-size:11px;outline:none;-moz-appearance:textfield;appearance:none"
+                    onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'" />
+                  <span id="v2WCLabel" style="font-size:10px;font-weight:700;color:var(--muted);min-width:30px;text-align:right">—</span>
+                </div>
+                <div id="v2LongForm" style="display:none;margin-bottom:6px;padding:4px 6px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.25);border-radius:3px;font-size:9px;color:#c084fc;line-height:1.5">⚡ Long-form: built chunk by chunk. Keep tab open.</div>
+                <button class="v2-gen-btn" id="v2GenerateBtn" onclick="v2BeforeGenerate()">
+                  <span id="v2GenerateText">✦ Generate Article</span>
+                  <span class="v2-gen-spin" id="v2GenerateSpin" style="display:none"></span>
+                </button>
+                <div id="v2GenerateStatus" style="font-size:0.68rem;color:var(--muted);margin-top:5px;min-height:0.9rem;line-height:1.5">
+                  Ready.
+                </div>
+              </div>
+            </div>
+
+            <!-- Edit -->
+            <div class="v2-ai-sec">
+              <div class="v2-ai-sec-head" onclick="toggleV2Sec(this)">✎ Edit <span>▾</span></div>
+              <div class="v2-ai-sec-body">
+                <button class="v2-tool-btn" onclick="aiEditAction('regenerate')">↺ Regenerate</button>
+                <button class="v2-tool-btn" onclick="aiEditAction('expand')">⤢ Expand</button>
+                <button class="v2-tool-btn" onclick="aiEditAction('shorten')">⤡ Shorten</button>
+                <button class="v2-tool-btn" onclick="aiEditAction('conversational')">💬 Conversational</button>
+                <button class="v2-tool-btn" onclick="aiEditAction('authoritative')">🎯 Authoritative</button>
+                <button class="v2-tool-btn v2-gold" onclick="runCitationEngine()">📚 Citations</button>
+                <button class="v2-tool-btn v2-green" onclick="runSEOOptimizer()">🚀 SEO Optimize</button>
+                <button class="v2-tool-btn v2-blue" onclick="runInternalLinking()">🔗 Auto Link</button>
+                <button class="v2-tool-btn v2-gold" onclick="runArticleQualityScore()">⭐ Quality Score</button>
+                <div id="aiEditStatus" style="font-size:0.72rem;color:var(--muted);min-height:0.9rem;margin-top:4px;line-height:1.5"></div>
+              </div>
+            </div>
+
+            <!-- SEO -->
+            <div class="v2-ai-sec">
+              <div class="v2-ai-sec-head" onclick="toggleV2Sec(this)">📈 SEO <span>▾</span></div>
+              <div class="v2-ai-sec-body">
+                <button class="v2-tool-btn" onclick="toggleAIT('traffic');v2ScrollToAit()">📈 Traffic Predictor</button>
+                <button class="v2-tool-btn" onclick="toggleAIT('headline');v2ScrollToAit()">🔥 Headline AI</button>
+                <button class="v2-tool-btn" onclick="toggleAIT('cluster');v2ScrollToAit()">🧠 Topic Clusters</button>
+                <button class="v2-tool-btn" onclick="toggleAIT('calendar');v2ScrollToAit()">📅 Content Calendar</button>
+                <button class="v2-tool-btn" onclick="toggleAIT('gap');v2ScrollToAit()">🕵️ Competitor Gap</button>
+                <button class="v2-tool-btn" onclick="toggleAIT('links');v2ScrollToAit()">🔗 Backlink Finder</button>
+              </div>
+            </div>
+
+            <!-- Distribute -->
+            <div class="v2-ai-sec">
+              <div class="v2-ai-sec-head" onclick="toggleV2Sec(this)">✉ Distribute <span>▾</span></div>
+              <div class="v2-ai-sec-body">
+                <button class="v2-tool-btn" onclick="toggleAIT('nl');v2ScrollToAit()">✉ Newsletter</button>
+                <button class="v2-tool-btn" onclick="toggleAIT('auto');v2ScrollToAit()">🤖 Auto Blog</button>
+              </div>
+            </div>
+
+          </div><!-- /v2-tab-ai -->
+
+          <!-- IMAGES TAB -->
+          <div id="v2-tab-imgs" style="display:none;padding:10px">
+            <div style="background:var(--navy);border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:8px">
+              <div style="font-size:10px;font-weight:700;color:var(--cream);margin-bottom:6px">Cover Photo <span style="font-size:9px;background:rgba(201,168,76,0.12);color:var(--gold);padding:1px 5px;border-radius:2px">Cover</span></div>
+              <div style="display:flex;gap:3px;margin-bottom:6px">
+                <label style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px;border-radius:2px;font-size:9px;cursor:pointer;text-align:center;transition:all 0.12s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">📁 Upload<input type="file" accept="image/*" style="display:none" onchange="uploadFeaturedImage(this)" /></label>
+                <button onclick="generateFeaturedImage()" style="flex:1;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:none;color:#fff;padding:4px;border-radius:2px;font-size:9px;cursor:pointer">✨ AI Gen</button>
+              </div>
+              <div id="featuredPreview" style="display:none;position:relative;border-radius:3px;overflow:hidden;border:1px solid var(--border);margin-bottom:6px">
+                <img id="featuredPreviewImg" src="" alt="" style="width:100%;max-height:80px;object-fit:cover;display:block" />
+                <button onclick="clearFeaturedImage()" style="position:absolute;top:3px;right:3px;background:rgba(8,13,26,0.85);border:1px solid rgba(239,68,68,0.5);color:#fca5a5;width:18px;height:18px;border-radius:50%;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+                <div id="featuredPreviewLabel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(8,13,26,0.7);font-size:9px;color:var(--muted);padding:2px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+              </div>
+            </div>
+            <button onclick="openAIDrawer('image')" style="width:100%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:none;color:#fff;padding:7px;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;margin-bottom:8px">🖼 Open AI Image Generator</button>
+            <div style="font-size:9px;color:var(--muted);line-height:1.5;padding:6px;background:rgba(59,130,246,0.05);border:1px solid rgba(59,130,246,0.15);border-radius:3px">💡 Generate AI images, upload your own, or use the full image drawer for styles, ratios and variations.</div>
+          </div>
+
+        </div><!-- /v2-left-body -->
+      </div><!-- /v2-left -->
+
+      <!-- ━━ CENTER: Editor ━━ -->
+      <div class="v2-editor-main">
+        <div class="v2-editor-topbar">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="topbarTitle" style="font-size:13px;font-weight:600;color:var(--cream)">New Post</span>
+            <span id="topbarStateBadge" style="font-size:10px;color:var(--muted);background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:10px">Draft</span>
+            <span style="font-size:10px;color:var(--muted)"><span id="wordCount">0</span> words</span>
+            <span style="font-size:10px;color:var(--muted);background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:10px"><span id="readingTimeTop">0</span> min read</span>
+          </div>
+          <div style="display:flex;gap:5px">
+            <button class="v2-btn-top" onclick="previewPost()">👁 Preview</button>
+            <button class="v2-btn-top" id="btnRunAudit" onclick="triggerPostAudit()" title="Run Post Quality Audit — checks structure, content, refs, images and auto-fixes issues" style="border-color:rgba(201,168,76,0.4);color:var(--gold)">🛡 Audit</button>
+            <button class="v2-btn-top" onclick="savePost(false)">Save Draft</button>
+            <button class="v2-btn-pub" onclick="savePost(true)">Publish</button>
+            <button class="v2-btn-pub" onclick="savePostAndNotify()" style="background:#2563eb;color:#fff;border-color:#1e40af;margin-left:5px">🚀 Publish & Notify</button>
+          </div>
+        </div>
+        <div class="v2-editor-scroll" id="v2EditorScrollArea">
+          <input type="text" class="v2-post-title" id="postTitle" placeholder="Post title…" />
+          <div class="v2-excerpt-bar">
+            <span style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap;flex-shrink:0">Excerpt</span>
+            <textarea class="v2-excerpt-input" id="postExcerpt" placeholder="Short summary…" rows="3" style="min-height:52px;resize:vertical"></textarea>
+            <button onclick="generateSummary()" style="flex-shrink:0;background:transparent;border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:2px 7px;border-radius:2px;font-size:9px;font-weight:700;cursor:pointer">✦ Auto</button>
+          </div>
+          <p id="summaryStatus" style="font-size:0.68rem;color:var(--muted);margin-bottom:0.4rem;min-height:0.9rem"></p>
+          <div class="toolbar">
+            <button onclick="fmt('bold')" title="Bold"><b>B</b></button>
+            <button onclick="fmt('italic')" title="Italic"><i>I</i></button>
+            <button onclick="fmt('underline')" title="Underline"><u>U</u></button>
+            <div class="toolbar-sep"></div>
+            <button onclick="fmtBlock('h2')">H2</button>
+            <button onclick="fmtBlock('h3')">H3</button>
+            <div class="toolbar-sep"></div>
+            <button onclick="fmt('insertUnorderedList')">•≡</button>
+            <button onclick="fmt('insertOrderedList')">1≡</button>
+            <button onclick="fmtBlock('blockquote')">"</button>
+            <button onclick="insertLink()">🔗</button>
+            <div class="toolbar-sep"></div>
+            <button onclick="deleteSelectedImage()" title="Delete selected image" style="width:auto;padding:0 0.7rem;color:#fca5a5;border-color:rgba(239,68,68,0.3)">🗑 Img</button>
+            <div class="toolbar-sep"></div>
+            <button onclick="openAIDrawer('write')" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border-radius:2px;font-weight:700;font-size:0.72rem">✦ AI Write</button>
+            <button onclick="openAIDrawer('image')" style="width:auto;padding:0 0.7rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border-radius:2px;font-weight:700;font-size:0.72rem">🖼 AI Image</button>
+          </div>
+          <div id="editor" contenteditable="true" spellcheck="false"></div>
+          <div class="char-count" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="color:var(--muted)"><span id="wordCountBottom">0</span> words</span>
+              <span style="color:var(--border)">·</span>
+              <span style="color:var(--muted)"><span id="readingTimeDisplay">0</span> min read</span>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button onclick="document.getElementById('postTitle').scrollIntoView({behavior:'smooth'})" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:3px;font-size:9px;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↑ Top</button>
+              <button onclick="document.getElementById('v2AitSection').scrollIntoView({behavior:'smooth'})" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:3px;font-size:9px;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↓ Bottom</button>
+            </div>
+          </div>
+
+          <!-- Inline AI Tools (below editor) -->
+          <div id="v2AitSection">
+            <div style="margin-top:1.5rem;padding:0.6rem 0;display:flex;align-items:center;gap:0.75rem">
+              <div style="flex:1;height:1px;background:var(--border)"></div>
+              <span style="font-size:0.62rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);white-space:nowrap">Inline AI Tools</span>
+              <div style="flex:1;height:1px;background:var(--border)"></div>
+            </div>
+            <div class="ait-card" id="ait-seo"><div class="ait-header" onclick="toggleAIT('seo')"><span class="ait-icon">🚀</span><span class="ait-title">SEO Optimizer</span><span class="ait-sub">Title · Meta · Keywords</span><span class="ait-chevron" id="ait-seo-chev">▸</span></div><div class="ait-body" id="ait-seo-body" style="display:none"><p class="ait-desc">Rewrites your title, meta description and tags for maximum Google ranking.</p><button class="ait-run-btn green" onclick="aitRunSEOInline()"><span>🚀 Run SEO Optimizer</span><span class="ait-spinner" id="sp-seo" style="display:none"></span></button><div class="ait-result" id="res-seo" style="display:none"></div></div></div>
+            <div class="ait-card" id="ait-headline"><div class="ait-header" onclick="toggleAIT('headline')"><span class="ait-icon">🔥</span><span class="ait-title">Headline AI</span><span class="ait-sub">CTR-optimized titles</span><span class="ait-chevron" id="ait-headline-chev">▸</span></div><div class="ait-body" id="ait-headline-body" style="display:none"><p class="ait-desc">Generates viral headline variants ranked by predicted CTR score. Click any to apply.</p><select class="form-select" id="ait-hl-count" style="font-size:0.8rem;margin-bottom:0.6rem"><option value="5">5 variants</option><option value="8" selected>8 variants</option><option value="12">12 variants</option></select><button class="ait-run-btn gold" onclick="aitRunHeadlines()"><span>🔥 Generate Headlines</span><span class="ait-spinner" id="sp-hl" style="display:none"></span></button><div class="ait-result" id="res-hl" style="display:none"></div></div></div>
+            <div class="ait-card" id="ait-traffic"><div class="ait-header" onclick="toggleAIT('traffic')"><span class="ait-icon">📈</span><span class="ait-title">Traffic Predictor</span><span class="ait-sub">Monthly searches · Difficulty</span><span class="ait-chevron" id="ait-traffic-chev">▸</span></div><div class="ait-body" id="ait-traffic-body" style="display:none"><p class="ait-desc">Estimates search volume and competition for this article's main keyword.</p><input type="text" class="form-input" id="ait-traffic-kw" placeholder="Keyword (or leave blank to auto-detect)" style="font-size:0.82rem;margin-bottom:0.6rem" /><button class="ait-run-btn blue" onclick="aitRunTraffic()"><span>📈 Predict Traffic</span><span class="ait-spinner" id="sp-traffic" style="display:none"></span></button><div class="ait-result" id="res-traffic" style="display:none"></div></div></div>
+            <div class="ait-card" id="ait-cluster"><div class="ait-header" onclick="toggleAIT('cluster')"><span class="ait-icon">🧠</span><span class="ait-title">Topic Clusters</span><span class="ait-sub">Build topical authority</span><span class="ait-chevron" id="ait-cluster-chev">▸</span></div><div class="ait-body" id="ait-cluster-body" style="display:none"><p class="ait-desc">Generates a pillar + cluster content strategy. Click any cluster topic to open it as a new post.</p><button class="ait-run-btn gold" onclick="aitRunClusters()"><span>🧠 Generate Clusters</span><span class="ait-spinner" id="sp-cluster" style="display:none"></span></button><div class="ait-result" id="res-cluster" style="display:none"></div></div></div>
+            <div class="ait-card" id="ait-calendar"><div class="ait-header" onclick="toggleAIT('calendar')"><span class="ait-icon">📅</span><span class="ait-title">Content Calendar</span><span class="ait-sub">30-day publishing plan</span><span class="ait-chevron" id="ait-calendar-chev">▸</span></div><div class="ait-body" id="ait-calendar-body" style="display:none"><p class="ait-desc">Creates a full 30-day editorial calendar. Click any topic to start writing it instantly.</p><select class="form-select" id="ait-cal-cat" style="font-size:0.8rem;margin-bottom:0.6rem"><option value="Fintech">Fintech</option><option value="Compliance">Compliance</option><option value="Strategy">Strategy</option></select><button class="ait-run-btn blue" onclick="aitRunCalendar()"><span>📅 Generate Calendar</span><span class="ait-spinner" id="sp-cal" style="display:none"></span></button><div class="ait-result" id="res-cal" style="display:none"></div></div></div>
+            <div class="ait-card" id="ait-gap"><div class="ait-header" onclick="toggleAIT('gap')"><span class="ait-icon">🕵️</span><span class="ait-title">Competitor Gap</span><span class="ait-sub">Topics you're missing</span><span class="ait-chevron" id="ait-gap-chev">▸</span></div><div class="ait-body" id="ait-gap-body" style="display:none"><p class="ait-desc">Finds topics your competitors rank for that you haven't covered yet.</p><input type="text" class="form-input" id="ait-gap-domain" placeholder="Competitor domain e.g. fintechinsider.com" style="font-size:0.82rem;margin-bottom:0.6rem" /><button class="ait-run-btn purple" onclick="aitRunGap()"><span>🕵️ Find Gaps</span><span class="ait-spinner" id="sp-gap" style="display:none"></span></button><div class="ait-result" id="res-gap" style="display:none"></div></div></div>
+            <div class="ait-card" id="ait-links"><div class="ait-header" onclick="toggleAIT('links')"><span class="ait-icon">🔗</span><span class="ait-title">Backlink Finder</span><span class="ait-sub">Outreach opportunities</span><span class="ait-chevron" id="ait-links-chev">▸</span></div><div class="ait-body" id="ait-links-body" style="display:none"><p class="ait-desc">Generates link-building targets and pitch angles for this article topic.</p><button class="ait-run-btn gold" onclick="aitRunBacklinks()"><span>🔗 Find Opportunities</span><span class="ait-spinner" id="sp-links" style="display:none"></span></button><div class="ait-result" id="res-links" style="display:none"></div></div></div>
+            <div class="ait-card" id="ait-nl"><div class="ait-header" onclick="toggleAIT('nl')"><span class="ait-icon">✉</span><span class="ait-title">Newsletter</span><span class="ait-sub">Auto-generate from this post</span><span class="ait-chevron" id="ait-nl-chev">▸</span></div><div class="ait-body" id="ait-nl-body" style="display:none"><p class="ait-desc">Writes a newsletter email promoting this article, ready to send to subscribers.</p><select class="form-select" id="ait-nl-style" style="font-size:0.8rem;margin-bottom:0.6rem"><option value="roundup">Weekly Roundup</option><option value="deep-dive">Deep Dive</option><option value="digest">Quick Digest</option></select><button class="ait-run-btn green" onclick="aitRunNewsletter()"><span>✉ Generate Newsletter</span><span class="ait-spinner" id="sp-nl" style="display:none"></span></button><div class="ait-result" id="res-nl" style="display:none"></div></div></div>
+            <div class="ait-card" id="ait-auto"><div class="ait-header" onclick="toggleAIT('auto')"><span class="ait-icon">🤖</span><span class="ait-title">Auto Blog</span><span class="ait-sub">Autonomous AI publishing</span><span class="ait-chevron" id="ait-auto-chev">▸</span></div><div class="ait-body" id="ait-auto-body" style="display:none"><p class="ait-desc">Generates and publishes multiple posts automatically.</p><div style="display:flex;gap:0.5rem;margin-bottom:0.6rem"><select class="form-select" id="ait-auto-count" style="font-size:0.8rem"><option value="1">1 post</option><option value="2" selected>2 posts</option><option value="3">3 posts</option></select><select class="form-select" id="ait-auto-pub" style="font-size:0.8rem"><option value="draft">Save as draft</option><option value="publish">Auto-publish</option></select></div><button class="ait-run-btn gold" onclick="aitRunAutoBlog()"><span>🤖 Start Auto Blog</span><span class="ait-spinner" id="sp-auto" style="display:none"></span></button><div class="ait-result" id="res-auto" style="display:none"></div></div></div>
+          </div><!-- /v2AitSection -->
+        </div><!-- /v2-editor-scroll -->
+      </div><!-- /v2-editor-main -->
+
+      <!-- ━━ RIGHT: Post Details ━━ -->
+      <div class="v2-right">
+
+        <!-- Publish -->
+        <div class="v2-r-sec">
+          <div class="v2-r-head">Publish <span>▾</span></div>
+          <div class="v2-r-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+              <button class="btn-save-draft" onclick="savePost(false)" style="padding:7px;font-size:10px">Save Draft</button>
+              <button class="btn-publish" onclick="savePost(true)" style="padding:7px;font-size:10px">Publish</button>
+            </div>
+            <button onclick="previewPost()" style="width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px;border-radius:3px;font-family:inherit;font-size:10px;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">👁 Preview Post</button>
+            <button onclick="triggerPostAudit()" style="width:100%;margin-top:5px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:5px;border-radius:3px;font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;transition:all 0.15s" onmouseover="this.style.background='rgba(201,168,76,0.12)'" onmouseout="this.style.background='rgba(201,168,76,0.06)'">🛡 Run Quality Audit</button>
+            <p id="saveStatus" style="font-size:10px;color:var(--muted);text-align:center;min-height:1rem"></p>
+            <p id="autoSaveMsg" style="font-size:9px;color:var(--muted);text-align:center;min-height:0.8rem"></p>
+          </div>
+        </div>
+
+        <!-- Details -->
+        <div class="v2-r-sec">
+          <div class="v2-r-head">Details <span>▾</span></div>
+          <div class="v2-r-body">
+            <div><div class="v2-f-label">Category</div>
+              <select class="v2-f-input" id="postCategory">
+                <option value="Fintech">Fintech</option><option value="Compliance">Compliance</option><option value="Strategy">Strategy</option>
+              </select>
+            </div>
+            <div><div class="v2-f-label">Slug (URL)</div>
+              <input type="text" class="v2-f-input" id="postSlug" placeholder="auto-generated" />
+            </div>
+            <div><div class="v2-f-label">Meta Description</div>
+              <textarea class="v2-f-input" id="postMeta" rows="2" placeholder="SEO description (max 160 chars)…" style="resize:none;line-height:1.5" maxlength="160"></textarea>
+            </div>
+            <div><div class="v2-f-label">Tags</div>
+              <input type="text" class="v2-f-input" id="postTags" placeholder="fintech, rbi, upi" />
+            </div>
+            <div class="toggle-row" style="padding:0.5rem 0 0;border-top:1px solid var(--border);margin-top:0.2rem">
+              <div><div style="font-size:0.75rem;font-weight:600;color:var(--cream)">⭐ Premium</div><div style="font-size:0.65rem;color:var(--muted)">Subscribers only</div></div>
+              <div class="toggle-switch" id="premiumSwitch" onclick="togglePremium()"><div class="toggle-track"></div><div class="toggle-dot"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Featured Image -->
+        <div class="v2-r-sec">
+          <div class="v2-r-head">Featured Image <span>▾</span></div>
+          <div class="v2-r-body">
+            <div style="display:flex;gap:3px">
+              <input type="text" class="v2-f-input" id="postImage" placeholder="https://…" oninput="updateFeaturedPreview(this.value)" />
+              <label style="flex-shrink:0;background:var(--navy);border:1px solid var(--border);color:var(--muted);padding:0 7px;border-radius:3px;font-size:10px;cursor:pointer;display:flex;align-items:center;transition:all 0.15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">📁<input type="file" accept="image/*" style="display:none" onchange="uploadFeaturedImage(this)" /></label>
+              <button onclick="generateFeaturedImage()" style="flex-shrink:0;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:none;color:#fff;padding:0 7px;border-radius:3px;font-size:10px;cursor:pointer">✨</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /v2-right -->
+    </div><!-- /v2-shell -->
+
+    <!-- ══ AI PIPELINE ROADMAP ══ -->
+    <div class="v2-roadmap" style="margin-top:1.5rem" id="v2RoadmapPanel">
+      <div class="v2-roadmap-head" onclick="v2TogglePanel('v2RoadmapBody',this)">
+        <span style="font-size:0.82rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--cream)">🗺 AI Pipeline Roadmap</span>
+        <span style="font-size:10px;color:var(--muted)">How AI models collaborate on your article ▾</span>
+      </div>
+      <div class="v2-roadmap-body" id="v2RoadmapBody">
+        <div class="v2-timeline">
+          <div class="v2-tl-node">
+            <div class="v2-tl-connector"></div>
+            <div class="v2-tl-dot user-dot">📝</div>
+            <div class="v2-tl-label">Topic Input</div>
+            <div class="v2-tl-sub">You write</div>
+            <span class="v2-tl-badge green">User</span>
+          </div>
+          <div class="v2-tl-node">
+            <div class="v2-tl-connector"></div>
+            <div class="v2-tl-dot multi">✍️</div>
+            <div class="v2-tl-label">Article Write</div>
+            <div class="v2-tl-sub">Multi-model</div>
+            <span class="v2-tl-badge blue">Llama · Mistral · Gemma</span>
+          </div>
+          <div class="v2-tl-node">
+            <div class="v2-tl-connector"></div>
+            <div class="v2-tl-dot claude">🚀</div>
+            <div class="v2-tl-label">SEO Optimize</div>
+            <div class="v2-tl-sub">Title · Meta · Tags</div>
+            <span class="v2-tl-badge gold">Auto / Qwen</span>
+          </div>
+          <div class="v2-tl-node">
+            <div class="v2-tl-connector"></div>
+            <div class="v2-tl-dot claude">🔥</div>
+            <div class="v2-tl-label">Headline AI</div>
+            <div class="v2-tl-sub">CTR scoring</div>
+            <span class="v2-tl-badge gold">Auto / Hermes</span>
+          </div>
+          <div class="v2-tl-node">
+            <div class="v2-tl-connector"></div>
+            <div class="v2-tl-dot img-ai">🖼</div>
+            <div class="v2-tl-label">AI Images</div>
+            <div class="v2-tl-sub">Cover + inline</div>
+            <span class="v2-tl-badge purple">CF · HF · Pollinations</span>
+          </div>
+          <div class="v2-tl-node">
+            <div class="v2-tl-connector"></div>
+            <div class="v2-tl-dot claude">✉</div>
+            <div class="v2-tl-label">Newsletter</div>
+            <div class="v2-tl-sub">Distribution</div>
+            <span class="v2-tl-badge gold">Auto model</span>
+          </div>
+          <div class="v2-tl-node">
+            <div class="v2-tl-dot pub-dot">🚀</div>
+            <div class="v2-tl-label">Publish</div>
+            <div class="v2-tl-sub">Production live</div>
+            <span class="v2-tl-badge green">Live</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ AI PARTICIPATION STATUS ══ -->
+    <div style="margin-top:1.2rem;background:var(--navy2);border:1px solid var(--border);border-radius:6px" id="v2ParticipationPanel">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none" onclick="v2TogglePanel('v2PartBody',this)">
+        <span style="font-size:0.82rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--cream)">🤖 AI Participation Status</span>
+        <span style="font-size:10px;color:var(--muted)">Live models in your pipeline ▾</span>
+      </div>
+      <div style="padding:16px" id="v2PartBody">
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:12px;line-height:1.5">Models are tried in priority order. First available wins. <span style="color:var(--green);font-weight:700">● Active</span> = key configured. <span style="color:#fca5a5;font-weight:700">○ No Key</span> = add key to Institutional Remote Config.</div>
+
+        <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Text Generation — Priority Order</div>
+        <div class="v2-ai-part-grid">
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌙 Kimi K2 Instruct</div><div class="v2-ai-task">Moonshot AI 1T MoE · via Groq — #1 best quality</div><span class="v2-ai-badge on">● groq_key</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🐼 Qwen3 235B A22B</div><div class="v2-ai-task">Alibaba frontier reasoning · via OpenRouter — #2</div><span class="v2-ai-badge on">● openrouter_key</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🔍 DeepSeek V3</div><div class="v2-ai-task">DeepSeek long context + reasoning · via Together — #3</div><span class="v2-ai-badge on">● together_key</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🦙 Llama 3.3 70B</div><div class="v2-ai-task">Meta proven quality · via DeepInfra — #4 fallback</div><span class="v2-ai-badge on">● deepinfra_key</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">✨ Gemini 2.0 Flash</div><div class="v2-ai-task">Google fast multimodal · direct API — #5 fallback</div><span class="v2-ai-badge on">● gemini_key</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌀 Mistral Large</div><div class="v2-ai-task">Mistral AI instruction tuned · direct — #6 fallback</div><span class="v2-ai-badge on">● (mistral key)</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">💬 DeepSeek Chat</div><div class="v2-ai-task">DeepSeek direct API — #7 last resort</div><span class="v2-ai-badge on">● (deepseek key)</span></div>
+        </div>
+
+        <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;margin-top:14px">Image Generation — Priority Order</div>
+        <div class="v2-ai-part-grid">
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🌸 Pollinations.ai</div><div class="v2-ai-task">Flux Schnell · free, no key needed — primary</div><span class="v2-ai-badge on">● no key needed</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">🤗 HuggingFace</div><div class="v2-ai-task">Flux Schnell inference API — fallback</div><span class="v2-ai-badge on">● (hf key)</span></div>
+          <div class="v2-ai-card v2-ai-on"><div class="v2-ai-name">☁️ Cloudflare AI</div><div class="v2-ai-task">Workers AI image gen — last resort</div><span class="v2-ai-badge on">● cloudflare_key</span></div>
+        </div>
+
+        <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;margin-top:14px">Not Integrated — Paid APIs</div>
+        <div class="v2-ai-part-grid">
+          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">💠 GPT-4o / o3</div><div class="v2-ai-task">OpenAI — add openai_key to Remote Config</div><span class="v2-ai-badge off">○ No Key</span></div>
+          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">🔮 Claude 3.5 Sonnet</div><div class="v2-ai-task">Anthropic — add anthropic_key to Remote Config</div><span class="v2-ai-badge off">○ No Key</span></div>
+          <div class="v2-ai-card v2-ai-off"><div class="v2-ai-name">🖼 DALL·E 3</div><div class="v2-ai-task">OpenAI images — requires openai_key</div><span class="v2-ai-badge off">○ No Key</span></div>
+        </div>
+
+        <div style="margin-top:12px;padding:10px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:4px;font-size:0.7rem;color:var(--muted);line-height:1.7">
+          <strong style="color:var(--gold)">Secret Configuration:</strong> Console → Remote Config → add
+          <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:2px">groq_key</code>
+          <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:2px">openrouter_key</code>
+          <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:2px">together_key</code>
+          <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:2px">deepinfra_key</code>
+          <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:2px">gemini_key</code> → Publish changes.
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden inputs used by JS -->
+    <input type="hidden" id="wordTarget" value="1500">
+
+  </div>
+
+
+  <!-- ══════════════ SEO TOOLS ══════════════ -->
+  <div class="view" id="view-seotools">
+    <div class="page-header">
+      <div><h2>SEO Tools</h2><p>Optimize, analyze, and grow organic traffic</p></div>
+    </div>
+    <div class="saas-grid-2" style="margin-bottom:1.5rem">
+      <!-- Traffic Predictor -->
+      <div class="saas-panel blue-accent">
+        <div class="saas-panel-header">
+          <h3>📈 Traffic Predictor</h3>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Keyword</label>
+          <input type="text" class="form-input" id="trafficKeyword" placeholder="e.g. open banking global trends" style="font-size:0.85rem" />
+        </div>
+        <button onclick="predictTraffic()" id="btnTraffic" style="width:100%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;padding:0.75rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+          <span id="trafficBtnTxt">Predict Traffic</span>
+          <span id="trafficSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+        </button>
+        <div id="trafficResult" style="margin-top:0.8rem;display:none">
+          <div class="saas-grid-3" style="gap:0.6rem">
+            <div class="metric-card"><div class="metric-label">Monthly Searches</div><div class="metric-value" id="tr-searches">—</div></div>
+            <div class="metric-card"><div class="metric-label">Difficulty</div><div class="metric-value" id="tr-diff">—</div><div class="metric-sub" id="tr-diff-sub">—</div></div>
+            <div class="metric-card"><div class="metric-label">Expected Clicks</div><div class="metric-value" id="tr-clicks">—</div></div>
+          </div>
+          <div style="margin-top:0.8rem;background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.8rem">
+            <div class="metric-label" style="margin-bottom:0.5rem">Competition</div>
+            <div style="display:flex;align-items:center;gap:0.8rem">
+              <div class="progress-bar-wrap" style="flex:1"><div class="progress-bar-fill" id="tr-comp-bar" style="width:0%"></div></div>
+              <span id="tr-comp-label" style="font-size:0.8rem;font-weight:700;color:var(--muted);white-space:nowrap">—</span>
+            </div>
+          </div>
+          <div id="tr-suggestions" style="margin-top:0.8rem;font-size:0.8rem;color:var(--muted);line-height:1.6"></div>
+        </div>
+      </div>
+
+      <!-- Content Gap Finder -->
+      <div class="saas-panel purple-accent">
+        <div class="saas-panel-header">
+          <h3>🧠 Competitor Gap Finder</h3>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Competitor Domain</label>
+          <input type="text" class="form-input" id="competitorDomain" placeholder="e.g. fintechinsider.com" style="font-size:0.85rem" />
+        </div>
+        <button onclick="findContentGap()" id="btnGap" style="width:100%;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;padding:0.75rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+          <span id="gapBtnTxt">Analyze Gap</span>
+          <span id="gapSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+        </button>
+        <div id="gapResult" class="result-list" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Backlink Generator -->
+    <div class="saas-panel gold-accent" style="margin-bottom:1.5rem">
+      <div class="saas-panel-header">
+        <h3>🔗 Backlink Outreach Generator</h3>
+        <span style="font-size:0.7rem;color:var(--muted)">AI-powered link building opportunities</span>
+      </div>
+      <div style="display:flex;gap:0.6rem;margin-bottom:0.8rem">
+        <input type="text" class="form-input" id="backlinkTopic" placeholder="Topic e.g. RBI fintech compliance 2025" style="font-size:0.85rem" />
+        <button onclick="generateBacklinks()" id="btnBacklinks" style="flex-shrink:0;background:var(--gold);color:var(--navy);border:none;padding:0.75rem 1.2rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:0.4rem">
+          <span id="blBtnTxt">Find Opportunities</span>
+          <span id="blSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+        </button>
+      </div>
+      <div id="backlinkResult" class="result-list" style="display:none"></div>
+    </div>
+
+    <!-- Article Quality Score on existing post -->
+    <div class="saas-panel green-accent">
+      <div class="saas-panel-header">
+        <h3>⭐ Post SEO Analyzer</h3>
+        <span style="font-size:0.7rem;color:var(--muted)">Score any published post</span>
+      </div>
+      <div style="display:flex;gap:0.6rem;margin-bottom:0.8rem">
+        <select class="form-select" id="analyzePostSelect" style="font-size:0.85rem">
+          <option value="">— Select a post —</option>
+        </select>
+        <button onclick="analyzePostSEO()" id="btnAnalyze" style="flex-shrink:0;background:var(--green);color:#052e16;border:none;padding:0.75rem 1.2rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:0.4rem">
+          <span id="analyzeBtnTxt">Analyze</span>
+          <span id="analyzeSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(5,46,22,0.3);border-top-color:#052e16;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+        </button>
+      </div>
+      <div id="seoAnalysisResult" style="display:none">
+        <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1rem">
+          <div class="seo-score-ring" id="seoScoreRing">—</div>
+          <div style="flex:1">
+            <div style="font-size:1rem;font-weight:700;color:var(--cream)" id="seoScoreLabel">—</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:0.25rem" id="seoScoreSub">Analyzing article quality…</div>
+          </div>
+        </div>
+        <div id="seoImprovements" class="result-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ TOPIC CLUSTERS ══════════════ -->
+  <div class="view" id="view-clusters">
+    <div class="page-header">
+      <div><h2>Topic Clusters</h2><p>Build topical authority with AI-generated content strategies</p></div>
+    </div>
+    <div class="saas-panel gold-accent" style="margin-bottom:1.5rem">
+      <h3 style="margin-bottom:1rem">✦ Generate Content Cluster</h3>
+      <div style="display:flex;gap:0.6rem;margin-bottom:0.8rem">
+        <input type="text" class="form-input" id="clusterTopic" placeholder="Main topic e.g. global finance trends" style="font-size:0.85rem" />
+        <select class="form-select" id="clusterCategory" style="font-size:0.85rem;max-width:160px">
+          <option value="Fintech">Fintech</option>
+          <option value="Compliance">Compliance</option>
+          <option value="Strategy">Strategy</option>
+        </select>
+        <button onclick="generateTopicClusters()" id="btnCluster" style="flex-shrink:0;background:var(--gold);color:var(--navy);border:none;padding:0.75rem 1.2rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:0.4rem">
+          <span id="clusterBtnTxt">Generate</span>
+          <span id="clusterSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+        </button>
+      </div>
+      <div id="clusterResult" style="display:none">
+        <div class="cluster-tree" id="clusterTree"></div>
+        <div style="margin-top:1rem;padding:0.75rem;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.15);border-radius:3px;font-size:0.75rem;color:var(--muted)">
+          💡 Click any cluster topic to instantly create a new post with that title pre-filled.
+        </div>
+      </div>
+    </div>
+    <!-- Content Calendar (part of clusters view) -->
+    <div class="saas-panel blue-accent">
+      <div class="saas-panel-header">
+        <h3>📅 30-Day Content Calendar</h3>
+        <button onclick="generateContentCalendar()" id="btnCalendar" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;padding:0.5rem 1rem;border-radius:3px;font-family:var(--sans);font-size:0.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:0.4rem">
+          <span id="calBtnTxt">Generate Calendar</span>
+          <span id="calSpinner" style="display:none;width:11px;height:11px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+        </button>
+      </div>
+      <div id="calendarResult" style="display:none">
+        <div class="saas-grid-2" id="calendarGrid" style="gap:1rem"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ HEADLINE AI ══════════════ -->
+  <div class="view" id="view-headline">
+    <div class="page-header">
+      <div><h2>Headline AI</h2><p>Predict CTR and generate viral titles before publishing</p></div>
+    </div>
+    <div class="saas-grid-2">
+      <div class="saas-panel gold-accent">
+        <h3 style="margin-bottom:1rem">🔥 Headline Optimizer</h3>
+        <div class="form-row">
+          <label class="form-label">Article Topic</label>
+          <input type="text" class="form-input" id="headlineTopic" placeholder="e.g. RBI UPI regulations fintech 2025" style="font-size:0.85rem" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Number of Options</label>
+          <select class="form-select" id="headlineCount" style="font-size:0.85rem">
+            <option value="5">5 headlines</option>
+            <option value="10" selected>10 headlines</option>
+            <option value="15">15 headlines</option>
+          </select>
+        </div>
+        <button onclick="optimizeHeadline()" id="btnHeadline" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+          <span id="headlineBtnTxt">🔥 Generate Headlines</span>
+          <span id="headlineSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+        </button>
+        <div id="headlineResult" class="headline-list" style="display:none;margin-top:0.8rem"></div>
+      </div>
+      <div class="saas-panel blue-accent">
+        <h3 style="margin-bottom:1rem">📊 CTR Benchmarks</h3>
+        <div class="result-list">
+          <div class="result-item"><div class="result-item-icon">🏆</div><div class="result-item-body"><div class="result-item-title">Score 80–100</div><div class="result-item-sub">Excellent — Top 10% click-through rate</div></div><div class="result-item-badge badge-green">VIRAL</div></div>
+          <div class="result-item"><div class="result-item-icon">✅</div><div class="result-item-body"><div class="result-item-title">Score 60–79</div><div class="result-item-sub">Good — Above average CTR for fintech</div></div><div class="result-item-badge badge-blue">GOOD</div></div>
+          <div class="result-item"><div class="result-item-icon">⚠️</div><div class="result-item-body"><div class="result-item-title">Score 40–59</div><div class="result-item-sub">Average — Optimize before publishing</div></div><div class="result-item-badge badge-gold">AVERAGE</div></div>
+          <div class="result-item"><div class="result-item-icon">❌</div><div class="result-item-body"><div class="result-item-title">Score 0–39</div><div class="result-item-sub">Poor — Rewrite for better engagement</div></div><div class="result-item-badge badge-red">POOR</div></div>
+        </div>
+        <div style="margin-top:1rem;padding:0.75rem;background:rgba(59,130,246,0.05);border:1px solid rgba(59,130,246,0.15);border-radius:3px;font-size:0.75rem;color:var(--muted);line-height:1.6">
+          💡 <strong style="color:var(--blue2)">Tips:</strong> Use numbers (e.g. "5 Ways"), power words ("Essential", "Critical", "Ultimate"), urgency ("in 2025"), and specific audiences ("for Fintech founders").
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ CONTENT CALENDAR ══════════════ -->
+  <div class="view" id="view-calendar">
+    <div class="page-header">
+      <div><h2>Content Calendar</h2><p>AI-planned editorial schedule</p></div>
+      <button onclick="generateContentCalendar()" id="btnCalendar2" style="padding:0.7rem 1.5rem;border-radius:3px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer">📅 Generate 30-Day Plan</button>
+    </div>
+    <div id="calendarResult2" style="display:none">
+      <div class="saas-grid-2" id="calendarGrid2" style="gap:1rem"></div>
+    </div>
+    <div id="calendarEmpty" style="text-align:center;padding:4rem;color:var(--muted)">
+      <div style="font-size:2rem;margin-bottom:1rem">📅</div>
+      <p>Click "Generate 30-Day Plan" to create your AI-powered content calendar.</p>
+    </div>
+  </div>
+
+  <!-- ══════════════ NEWSLETTER ══════════════ -->
+  <div class="view" id="view-newsletter">
+    <div class="page-header">
+      <div><h2>Newsletter</h2><p>AI-generated newsletters from your latest posts</p></div>
+    </div>
+    <div class="saas-grid-2" style="align-items:start">
+      <div>
+        <div class="saas-panel gold-accent" style="margin-bottom:1.5rem">
+          <h3 style="margin-bottom:1rem">✉ Generate Newsletter</h3>
+          <div class="form-row">
+            <label class="form-label">Newsletter Style</label>
+            <select class="form-select" id="nlStyle" style="font-size:0.85rem">
+              <option value="roundup">Weekly Roundup — summarize recent posts</option>
+              <option value="deep-dive">Deep Dive — one topic in detail</option>
+              <option value="digest">Quick Digest — bullet points & links</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Tone</label>
+            <select class="form-select" id="nlTone" style="font-size:0.85rem">
+              <option value="professional">Professional</option>
+              <option value="conversational">Conversational</option>
+              <option value="authoritative">Authoritative</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Subject Line</label>
+            <input type="text" class="form-input" id="nlSubject" placeholder="e.g. This Week in Fintech — RBI Updates & More" style="font-size:0.85rem" />
+          </div>
+          <button onclick="generateNewsletter()" id="btnNL" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;margin-bottom:0.8rem">
+            <span id="nlBtnTxt">✉ Generate Newsletter</span>
+            <span id="nlSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+          </button>
+          <div id="nlStatus" style="font-size:0.72rem;color:var(--muted);text-align:center;min-height:1rem"></div>
+        </div>
+        <div class="saas-panel" style="border-color:rgba(239,68,68,0.2)">
+          <h3 style="margin-bottom:1rem;color:#fca5a5">📤 Send Newsletter</h3>
+          <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">Sends to all subscribers via <strong style="color:var(--cream)">Resend API</strong>. Configure your API key in the script.</p>
+          <div class="form-row">
+            <label class="form-label">From Name</label>
+            <input type="text" class="form-input" id="nlFromName" placeholder="BlogsPro" value="BlogsPro" style="font-size:0.85rem" />
+          </div>
+          <button onclick="sendNewsletter()" id="btnSendNL" disabled style="width:100%;background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer">📤 Send to All Subscribers</button>
+          <p style="font-size:0.68rem;color:var(--muted);margin-top:0.5rem;text-align:center">Generate newsletter first before sending.</p>
+        </div>
+      </div>
+      <div>
+        <div class="saas-panel" style="height:100%">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+            <h3>Preview</h3>
+            <button id="copyNLBtn" onclick="copyNewsletter()" style="display:none;background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.3rem 0.6rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">Copy HTML</button>
+          </div>
+          <div class="nl-preview" id="nlPreview" style="color:var(--muted);font-style:italic">Generate a newsletter to see the preview here…</div>
+        </div>
+      </div>
+        </div>
+      </div>
+      <div class="saas-panel purple-accent">
+        <div class="saas-panel-header"><h3>📜 Blast History</h3></div>
+        <div id="newsletterHistory" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:3px">
+          <div style="padding:1rem;color:var(--muted);font-size:0.8rem">Loading history…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ SUBSCRIBERS ══════════════ -->
+  <div class="view" id="view-subscribers">
+    <div class="page-header">
+      <div><h2>Subscribers</h2><p>Manage and view your newsletter subscriber list</p></div>
+    </div>
+    <div class="saas-grid-2">
+      <div>
+        <div class="saas-panel gold-accent">
+          <h3 style="margin-bottom:1rem">📊 Subscriber Statistics</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+            <div style="background:rgba(202,161,76,0.1);padding:1rem;border-radius:4px;text-align:center;border-left:3px solid var(--gold)">
+              <div style="font-size:2rem;font-weight:700;color:var(--gold);" id="totalSubscribers">—</div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-top:0.25rem">Total Subscribers</div>
+            </div>
+            <div style="background:rgba(76,175,80,0.1);padding:1rem;border-radius:4px;text-align:center;border-left:3px solid #4caf50">
+              <div style="font-size:2rem;font-weight:700;color:#4caf50;" id="activeSubscribers">—</div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-top:0.25rem">Active</div>
+            </div>
+          </div>
+          <button onclick="window.loadSubscriberAnalytics?.()" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;margin-bottom:0.8rem">🔄 Refresh Stats</button>
+          <div style="font-size:0.75rem;color:var(--muted);text-align:center">Last updated: <span id="statsLastUpdated">—</span></div>
+        </div>
+        <div class="saas-panel blue-accent" style="margin-top:1rem">
+          <h3 style="margin-bottom:1rem">📈 Growth Trend</h3>
+          <div style="height:200px">
+            <canvas id="subGrowthChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <div class="saas-panel" style="background:rgba(76,175,80,0.05);border-color:rgba(76,175,80,0.2)">
+          <h4 style="color:#4caf50;margin-bottom:0.5rem">✓ Add Subscriber Manually</h4>
+          <div class="form-row">
+            <label class="form-label">Email Address</label>
+            <input type="email" class="form-input" id="addSubEmail" placeholder="subscriber@example.com" style="font-size:0.85rem" />
+          </div>
+          <button onclick="addSubscriberManual()" style="width:100%;background:#4caf50;color:white;border:none;padding:0.7rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer;margin-top:0.5rem">Add Subscriber</button>
+          <div id="addSubStatus" style="font-size:0.7rem;color:var(--muted);margin-top:0.5rem;text-align:center;min-height:1rem"></div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:2rem">
+      <div class="saas-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
+          <h3>✉ Subscriber List</h3>
+          <div style="display:flex;gap:0.75rem">
+            <input type="text" class="form-input" placeholder="Search emails…" style="width:200px;font-size:0.75rem;padding:0.4rem 0.8rem" oninput="filterSubs(this.value)" />
+            <button onclick="exportSubscribers()" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.4rem 0.8rem;border-radius:3px;font-size:0.72rem;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">Export CSV</button>
+          </div>
+        </div>
+        <div style="max-height:600px;overflow-y:auto;border:1px solid var(--border);border-radius:3px" id="subscribersList">
+          <div style="padding:2rem;text-align:center;color:var(--muted)">Loading subscribers…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ AUTO BLOG ══════════════ -->
+  <div class="view" id="view-autoblog">
+    <div class="page-header">
+      <div><h2>Auto Blog</h2><p>Autonomous AI publishing engine — generates and publishes posts automatically</p></div>
+    </div>
+    <div class="saas-grid-2" style="align-items:start">
+      <div>
+        <div class="saas-panel gold-accent" style="margin-bottom:1.5rem">
+          <h3 style="margin-bottom:1rem">🤖 Run Auto Blog</h3>
+          <div class="form-row">
+            <label class="form-label">Category Focus</label>
+            <select class="form-select" id="abCategory" style="font-size:0.85rem">
+              <option value="Fintech">Fintech</option>
+              <option value="Compliance">Compliance</option>
+              <option value="Strategy">Strategy</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Posts to Generate</label>
+            <select class="form-select" id="abCount" style="font-size:0.85rem">
+              <option value="1">1 post</option>
+              <option value="2" selected>2 posts</option>
+              <option value="3">3 posts</option>
+              <option value="5">5 posts</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Publish Immediately?</label>
+            <div class="toggle-row" style="padding:0.4rem 0;border:none;margin:0">
+              <div style="font-size:0.82rem;color:var(--cream)">Auto-publish generated posts</div>
+              <div class="toggle-switch" id="abPublishSwitch" onclick="this.classList.toggle('on')">
+                <div class="toggle-track"></div>
+                <div class="toggle-dot"></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Topic Seed (optional)</label>
+            <input type="text" class="form-input" id="abTopicSeed" placeholder="Leave blank for AI to choose trending topics" style="font-size:0.85rem" />
+          </div>
+          <button onclick="runAutoBlog()" id="btnAutoBlog" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.9rem;border-radius:3px;font-family:var(--sans);font-size:0.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+            <span id="abBtnTxt">🤖 Start Auto Blog</span>
+            <span id="abSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+          </button>
+        </div>
+        <div class="saas-panel blue-accent">
+          <h3 style="margin-bottom:0.6rem">📊 Auto Blog Stats</h3>
+          <div class="saas-grid-2" style="gap:0.6rem">
+            <div class="metric-card"><div class="metric-label">Posts Generated</div><div class="metric-value" id="ab-total">0</div></div>
+            <div class="metric-card"><div class="metric-label">Published</div><div class="metric-value" id="ab-published">0</div><div class="metric-sub good">This session</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="saas-panel" style="height:fit-content">
+        <h3 style="margin-bottom:0.8rem">📋 Activity Log</h3>
+        <div class="autoblog-log" id="autoblogLog">
+          <div class="autoblog-log-item info"><span>ℹ</span><span>Auto Blog ready. Configure settings and click Start.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ USERS ══════════════ -->
+  <div class="view" id="view-users">
+    <div class="page-header">
+      <div><h2>Users</h2><p>Manage all registered accounts</p></div>
+      <button class="btn-publish" style="padding:0.7rem 1.2rem;border-radius:3px" onclick="backfillUserCreatedAt()">🛠 Backfill Join Date</button>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Change Role</th></tr></thead>
+      <tbody id="usersTableBody"><tr><td colspan="5"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ══════════════ SUBSCRIBERS LIST ══════════════ -->
+  <div class="view" id="view-subscribers-list">
+    <div class="page-header">
+      <div><h2>Subscribers</h2><p>Newsletter signups</p></div>
+      <button class="btn-publish" style="padding:0.7rem 1.5rem;border-radius:3px" onclick="exportSubscribers()">⬇ Export CSV</button>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header">
+        <span class="table-title" id="subCountLabel">Loading…</span>
+        <input id="subSearch" placeholder="Search email…" oninput="filterSubs(this.value)" style="background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.4rem 0.8rem;border-radius:3px;font-family:var(--sans);font-size:0.82rem;outline:none;width:220px" />
+      </div>
+      <table><thead><tr><th>#</th><th>Email</th><th>Subscribed On</th><th>Action</th></tr></thead>
+      <tbody id="subsTableBody"><tr><td colspan="4"><div class="table-empty">Loading…</div></td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ══════════════ MY PROFILE ══════════════ -->
+  <div class="view" id="view-profile">
+    <div class="page-header">
+      <div><h2>My Profile</h2><p>Manage your account and public blog details</p></div>
+    </div>
+
+    <div class="saas-grid-2">
+      <!-- Left: Personal Account -->
+      <div class="saas-panel gold-accent">
+        <div class="saas-panel-header"><h3>Personal Account</h3></div>
+        <div class="form-row">
+          <label class="form-label">Display Name</label>
+          <input type="text" id="profName" class="form-input" placeholder="e.g. Abhishek Dutta" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Short Bio (Personal)</label>
+          <textarea id="profBio" class="form-textarea" rows="3" placeholder="A brief about yourself for post attribution…"></textarea>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Avatar URL</label>
+          <div style="display:flex;gap:0.5rem">
+            <input type="text" id="profAvatar" class="form-input" placeholder="https://…" />
+            <button class="btn-publish" style="background:var(--navy3);border:1px solid var(--border);color:var(--gold);padding:0 1rem" onclick="openAIDrawer('image')">✨</button>
+          </div>
+        </div>
+        <button class="btn-publish" style="width:100%;margin-top:0.5rem" onclick="savePersonalProfile()">Update Personal Details</button>
+      </div>
+
+      <!-- Right: Public Blog Author Info -->
+      <div class="saas-panel blue-accent">
+        <div class="saas-panel-header"><h3>Public Blog "About"</h3></div>
+        <div class="form-row">
+          <label class="form-label">Main Heading</label>
+          <input type="text" id="aboutHeading" class="form-input" placeholder="e.g. Fintech Insights for Practitioners" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Sub-Tagline</label>
+          <input type="text" id="aboutTagline" class="form-input" placeholder="e.g. Strategy, Compliance & Tech" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Detailed Bio (Public)</label>
+          <textarea id="aboutBio" class="form-textarea" rows="4" placeholder="This appears in the About section of your blog…"></textarea>
+        </div>
+        <button class="btn-publish" style="width:100%;margin-top:0.5rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff" onclick="savePublicAbout()">Update Blog About Section</button>
+      </div>
+    </div>
+
+    <div class="saas-panel purple-accent">
+      <div class="saas-panel-header"><h3>Social Links & Mission</h3></div>
+      <div class="saas-grid-2">
+        <div>
+          <div class="form-row">
+            <label class="form-label">Mission Statement</label>
+            <textarea id="aboutMission" class="form-textarea" rows="3" placeholder="e.g. Our mission is to democratize fintech knowledge…"></textarea>
+          </div>
+          <div class="form-row">
+            <label class="form-label">X (Twitter) URL</label>
+            <input type="text" id="socialX" class="form-input" placeholder="https://x.com/yourhandle" />
+          </div>
+        </div>
+        <div>
+          <div class="form-row">
+            <label class="form-label">LinkedIn URL</label>
+            <input type="text" id="socialLinkedIn" class="form-input" placeholder="https://linkedin.com/in/handle" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">YouTube URL</label>
+            <input type="text" id="socialYouTube" class="form-input" placeholder="https://youtube.com/@handle" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">GitHub URL</label>
+            <input type="text" id="socialGitHub" class="form-input" placeholder="https://github.com/handle" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<div id="aiDrawerOverlay" onclick="closeAIDrawer()"></div>
+<div id="aiDrawer">
+  <!-- Drawer Header -->
+  <div class="ai-drawer-head">
+    <div>
+      <div style="font-family:var(--serif);font-size:1.15rem;font-weight:700;      background:linear-gradient(135deg,var(--gold),var(--gold2));
+      -webkit-background-clip:text;
+      background-clip:text;
+      -webkit-text-fill-color:transparent;">✦ AI Writer</div>
+      <div style="font-size:0.68rem;color:var(--muted);margin-top:0.1rem">Generate · Edit · Optimize</div>
+    </div>
+    <button onclick="closeAIDrawer()" style="background:transparent;border:1px solid var(--border);color:var(--muted);width:28px;height:28px;border-radius:3px;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s" onmouseover="this.style.borderColor='var(--red)';this.style.color='#fca5a5'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">✕</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="ai-drawer-tabs">
+    <button class="ai-drawer-tab active" id="dtab-write" onclick="switchDrawerTab('write')">✦ Write</button>
+    <button class="ai-drawer-tab" id="dtab-edit" onclick="switchDrawerTab('edit')">✎ Edit</button>
+    <button class="ai-drawer-tab" id="dtab-image" onclick="switchDrawerTab('image')">🖼 Image</button>
+  </div>
+
+  <!-- Drawer Body (scrollable) -->
+  <div class="ai-drawer-body">
+
+    <!-- ── WRITE TAB ── -->
+    <div class="drawer-tab-pane active" id="dpane-write">
+      <div class="form-row">
+        <span class="drawer-section-label">Topic / Prompt</span>
+        <textarea class="form-textarea" id="aiPrompt" rows="4" placeholder="e.g. The future of digital payments and open banking globally…" style="resize:vertical;font-size:0.85rem"></textarea>
+      </div>
+      <div class="drawer-two-col" style="margin-bottom:1rem">
+        <div>
+          <span class="drawer-section-label">Tone</span>
+          <select class="form-select" id="aiTone" style="font-size:0.82rem">
+            <option value="professional">Professional</option>
+            <option value="conversational">Conversational</option>
+            <option value="authoritative">Authoritative</option>
+            <option value="thought-leadership">Thought Leader</option>
+          </select>
+        </div>
+        <div>
+          <span class="drawer-section-label">AI Model</span>
+          <select class="form-select" id="modelArticle" style="font-size:0.82rem" onchange="onModelChange(this.value)">
+            <option value="auto" selected>Auto — Best Balanced</option>
+            <option value="auto-free">OpenRouter Free ✦</option>
+            <option value="sambanova">SambaNova (Llama 3.3 70B) ⚡</option>
+            <option value="cerebras">Cerebras (Qwen 3 235B) 🚀</option>
+            <option value="qwen">Qwen 2.5 (Alibaba) 🐼</option>
+            <option value="llama">Llama 3.3 70B (Base)</option>
+            <option value="mistral">Mistral Small 24B</option>
+            <option value="gemma">Gemma 3 27B</option>
+            <option value="hermes">Hermes 405B</option>
+            <option value="hf-router">Hugging Face Router 🤗</option>
+          </select>
+        </div>
+      </div>
+      <div id="modelWarning" style="margin-top:0.4rem;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.12);border-radius:3px;padding:0.4rem 0.6rem;font-size:0.67rem;color:var(--muted);line-height:1.5" id="modelInfo">⚡ Auto tries DeepSeek V3 → Gemini → Qwen → Llama in order.</div>
+
+        <div style="margin-top:0.8rem">
+          <span class="drawer-section-label">Target Length</span>
+          <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+            <button onclick="setWordTarget(this,1500)"  class="word-target-btn active" data-words="1500"  style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);color:var(--gold);flex:1;min-width:44px;padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;text-align:center">1.5k</button>
+            <button onclick="setWordTarget(this,2500)"  class="word-target-btn" data-words="2500"  style="background:transparent;border:1px solid var(--border);color:var(--muted);flex:1;min-width:44px;padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;text-align:center">2.5k</button>
+            <button onclick="setWordTarget(this,5000)"  class="word-target-btn" data-words="5000"  style="background:transparent;border:1px solid var(--border);color:var(--muted);flex:1;min-width:44px;padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;text-align:center">5k</button>
+            <button onclick="setWordTarget(this,10000)" class="word-target-btn" data-words="10000" style="background:transparent;border:1px solid var(--border);color:var(--muted);flex:1;min-width:44px;padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;text-align:center">10k</button>
+            <button onclick="setWordTarget(this,20000)" class="word-target-btn" data-words="20000" style="background:transparent;border:1px solid rgba(168,85,247,0.35);color:#c084fc;flex:1;min-width:44px;padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;text-align:center">20k</button>
+            <button onclick="setWordTarget(this,50000)" class="word-target-btn" data-words="50000" style="background:transparent;border:1px solid rgba(168,85,247,0.35);color:#c084fc;flex:1;min-width:44px;padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;text-align:center">50k</button>
+            <button onclick="setWordTarget(this,100000)" class="word-target-btn" data-words="100000" style="background:transparent;border:1px solid rgba(168,85,247,0.35);color:#c084fc;flex:1;min-width:44px;padding:0.4rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer;transition:all 0.15s;text-align:center">100k</button>
+          </div>
+          <!-- Custom word count input -->
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.6rem">
+            <span style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap">Custom</span>
+            <input
+              type="number"
+              id="wordTargetCustom"
+              min="100"
+              max="100000"
+              step="100"
+              placeholder="e.g. 3000"
+              oninput="applyCustomWordTarget(this)"
+              style="flex:1;background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:0.35rem 0.55rem;border-radius:3px;font-family:var(--mono);font-size:0.78rem;outline:none;transition:border-color 0.15s;-moz-appearance:textfield;appearance:textfield"
+              onfocus="this.style.borderColor='var(--gold)'"
+              onblur="this.style.borderColor='var(--border)'"
+            />
+            <span id="wordTargetCustomLabel" style="font-size:0.7rem;font-weight:700;font-family:var(--mono);color:var(--muted);min-width:32px;text-align:right">—</span>
+          </div>
+          <div id="longFormNotice" style="display:none;margin-top:0.5rem;padding:0.4rem 0.6rem;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.25);border-radius:3px;font-size:0.68rem;color:var(--purple2);line-height:1.5">
+            ⚡ Long-form mode: built chunk by chunk. 20k ≈ 10 chunks · 50k ≈ 25 chunks · 100k ≈ 50 chunks. Keep tab open.
+          </div>
+          <input type="hidden" id="wordTarget" value="1500">
+        </div>
+
+      <!-- Result box (shown after generation) -->
+      <div id="aiResultBox" style="display:none;margin-bottom:0.8rem;background:var(--navy);border:1px solid var(--border);border-radius:3px;overflow:hidden">
+        <div style="padding:0.5rem 0.7rem;background:rgba(201,168,76,0.08);border-bottom:1px solid var(--border)">
+          <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold)">✦ Generation Complete</span>
+        </div>
+        <div style="padding:0.6rem 0.7rem;display:flex;flex-direction:column;gap:0.4rem" id="aiResultList"></div>
+        <div id="aiFallbackLog" style="display:none;padding:0.5rem 0.7rem;border-top:1px solid var(--border)">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.3rem">Model Attempts</div>
+          <div id="aiFallbackList" style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.7rem"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── EDIT TAB ── -->
+    <div class="drawer-tab-pane" id="dpane-edit">
+      <div id="aiEditToolbar">
+        <span class="drawer-section-label" style="margin-bottom:0.6rem">Quick Actions</span>
+        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.8rem">
+          <button onclick="aiEditAction('regenerate')"    class="ai-edit-btn">↺ Regenerate</button>
+          <button onclick="aiEditAction('professional')"  class="ai-edit-btn">📊 Professional</button>
+          <button onclick="aiEditAction('conversational')" class="ai-edit-btn">💬 Conversational</button>
+          <button onclick="aiEditAction('authoritative')" class="ai-edit-btn">🎯 Authoritative</button>
+          <button onclick="aiEditAction('expand')"        class="ai-edit-btn">⤢ Expand</button>
+          <button onclick="aiEditAction('shorten')"       class="ai-edit-btn">⤡ Shorten</button>
+          <button onclick="runCitationEngine()"           class="ai-edit-btn" style="border-color:rgba(201,168,76,0.4);color:var(--gold)" id="btnCitationEngine">📚 Citation Engine</button>
+          <button onclick="aiEditAction('graph')"         class="ai-edit-btn">📊 Add Chart</button>
+          <button onclick="runSEOOptimizer()"             class="ai-edit-btn" style="border-color:rgba(34,197,94,0.3);color:var(--green)">🚀 SEO Optimize</button>
+          <button onclick="runInternalLinking()"          class="ai-edit-btn" style="border-color:rgba(59,130,246,0.3);color:var(--blue2)">🔗 Auto Link</button>
+          <button onclick="runArticleQualityScore()"      class="ai-edit-btn" style="border-color:rgba(201,168,76,0.3);color:var(--gold)">⭐ Quality Score</button>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:0.7rem;margin-bottom:0.7rem">
+          <button id="btnAutoPlace" onclick="autoPlaceImages()" style="width:100%;background:linear-gradient(135deg,rgba(29,78,216,0.8),rgba(59,130,246,0.8));border:1px solid rgba(59,130,246,0.4);color:#fff;padding:0.55rem 0.8rem;border-radius:3px;font-family:var(--sans);font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+            <span>🖼 Auto-Place Images After Every H2</span>
+            <span id="autoPlaceSpinner" style="display:none;width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+          </button>
+        </div>
+        <div class="autoplace-bar" id="autoplaceBar">
+          <div class="autoplace-header">
+            <span class="autoplace-title">🖼 Placing images…</span>
+            <button class="autoplace-cancel" onclick="cancelAutoPlace()">✕ Cancel</button>
+          </div>
+          <div class="autoplace-track"><div class="autoplace-fill" id="autoplaceFill"></div></div>
+          <div class="autoplace-status" id="autoplaceStatus">Starting…</div>
+          <div class="autoplace-log" id="autoplaceLog"></div>
+        </div>
+        <div id="qualityScoreResult" style="display:none;margin-bottom:0.6rem;border-top:1px solid var(--border);padding-top:0.6rem"></div>
+          <!-- Citation Engine result -->
+          <div id="citationResult" style="display:none;margin-bottom:0.6rem;border-top:1px solid var(--border);padding-top:0.6rem">
+            <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:0.5rem">📚 Citations Generated</div>
+            <div id="citationStatus" style="font-size:0.72rem;color:var(--muted);margin-bottom:0.5rem"></div>
+            <div style="display:flex;gap:0.4rem">
+              <button onclick="insertCitations()" style="flex:1;background:var(--gold);color:var(--navy);border:none;padding:0.45rem 0.6rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;font-weight:700;cursor:pointer">↓ Insert into Article</button>
+              <button onclick="document.getElementById('citationResult').style.display='none'" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:0.45rem 0.6rem;border-radius:3px;font-family:var(--sans);font-size:0.72rem;cursor:pointer">✕</button>
+            </div>
+          </div>
+        <span class="drawer-section-label">Custom Instruction</span>
+        <div style="display:flex;gap:0.4rem;margin-bottom:0.4rem">
+          <input id="aiEditCustom" class="form-input" placeholder="e.g. Add a section on global regulatory trends" style="font-size:0.82rem;padding:0.5rem 0.7rem" />
+          <button onclick="aiEditCustom()" style="background:var(--gold);color:var(--navy);border:none;padding:0.5rem 0.8rem;border-radius:3px;font-family:var(--sans);font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap">Apply</button>
+        </div>
+        <div id="aiEditStatusDrawer" style="font-size:0.7rem;color:var(--muted);min-height:1rem"></div>
+      </div>
+    </div>
+
+    <!-- ── IMAGE TAB ── -->
+    <div class="drawer-tab-pane" id="dpane-image">
+      <div style="background:var(--navy);border:1px solid rgba(59,130,246,0.25);border-radius:3px;padding:0.8rem;margin-bottom:0.9rem">
+        <span class="drawer-section-label" style="color:var(--blue2)">Image Provider</span>
+        <select class="form-select" id="imgProvider" style="font-size:0.85rem" onchange="onImgProviderChange(this.value)">
+          <option value="auto" selected>Auto — Best Available</option>
+          <option value="google">Google Imagen</option>
+          <option value="cloudflare">Cloudflare Workers AI</option>
+          <option value="huggingface">Hugging Face — Flux Schnell</option>
+          <option value="pollinations">Pollinations.ai — Zero Setup</option>
+        </select>
+        <div id="imgProviderInfo" style="margin-top:0.5rem;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:3px;padding:0.4rem 0.6rem;font-size:0.68rem;color:var(--blue2);line-height:1.5">⚡ Auto tries Google Imagen → Pollinations → Hugging Face → Cloudflare.</div>
+      </div>
+      <div class="form-row">
+        <span class="drawer-section-label">Image Prompt</span>
+        <textarea class="form-textarea" id="imgPrompt" rows="2" placeholder="e.g. Futuristic fintech dashboard…" style="resize:vertical;font-size:0.82rem"></textarea>
+        <button onclick="autoFillImagePrompt()" style="margin-top:0.4rem;background:transparent;border:1px solid rgba(59,130,246,0.3);color:var(--blue2);padding:0.3rem 0.7rem;border-radius:3px;font-family:var(--sans);font-size:0.7rem;cursor:pointer;width:100%">✦ Auto-fill from topic</button>
+      </div>
+      <div style="margin-bottom:0.75rem">
+        <span class="drawer-section-label">Style</span>
+        <div class="img-style-grid">
+          <button class="img-style-btn selected" data-style="photorealistic" onclick="selectStyle(this)">📷 Photorealistic</button>
+          <button class="img-style-btn" data-style="digital art" onclick="selectStyle(this)">🎨 Digital Art</button>
+          <button class="img-style-btn" data-style="cinematic, dramatic lighting" onclick="selectStyle(this)">🎬 Cinematic</button>
+          <button class="img-style-btn" data-style="flat design, vector illustration" onclick="selectStyle(this)">📐 Flat Design</button>
+          <button class="img-style-btn" data-style="isometric 3D illustration" onclick="selectStyle(this)">🧊 Isometric 3D</button>
+          <button class="img-style-btn" data-style="minimalist, clean, white background" onclick="selectStyle(this)">⬜ Minimalist</button>
+        </div>
+      </div>
+      <div style="margin-bottom:0.8rem">
+        <span class="drawer-section-label">Aspect Ratio</span>
+        <div class="img-ratio-row">
+          <button class="img-ratio-btn selected" data-w="1280" data-h="720" onclick="selectRatio(this)">16:9</button>
+          <button class="img-ratio-btn" data-w="1024" data-h="1024" onclick="selectRatio(this)">1:1</button>
+          <button class="img-ratio-btn" data-w="768" data-h="1024" onclick="selectRatio(this)">3:4</button>
+          <button class="img-ratio-btn" data-w="1200" data-h="630" onclick="selectRatio(this)">OG</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem">
+        <span class="drawer-section-label" style="margin:0">Variations</span>
+        <div style="display:flex;gap:0.35rem">
+          <button class="img-ratio-btn selected" data-count="2" onclick="selectCount(this)" style="width:36px;height:32px;padding:0">2</button>
+          <button class="img-ratio-btn" data-count="4" onclick="selectCount(this)" style="width:36px;height:32px;padding:0">4</button>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom:0.9rem">
+        <span class="drawer-section-label">Negative Prompt</span>
+        <input type="text" class="form-input" id="imgNegative" placeholder="blurry, text…" style="font-size:0.78rem;padding:0.5rem 0.7rem" value="blurry, watermark, text overlay, low quality, distorted" />
+      </div>
+      <button class="btn-generate-img" id="btnGenImg" onclick="generateImages()">
+        <span id="genImgBtnText">🖼 Generate Images</span>
+        <span id="genImgSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite"></span>
+      </button>
+      <div class="img-gen-status" id="imgGenStatus"></div>
+      <div class="img-preview-grid" id="imgPreviewGrid" style="display:none"></div>
+      <div class="img-inserted-banner" id="imgInsertedBanner">✓ Image inserted into article.</div>
+      <div style="margin-top:0.8rem;background:var(--navy);border:1px solid var(--border);border-radius:3px;padding:0.8rem">
+        <span class="drawer-section-label">Upload Your Own Photo</span>
+        <label id="uploadDropZone" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;border:1px dashed var(--border);border-radius:3px;padding:1rem;cursor:pointer;transition:all 0.2s;text-align:center">
+          <span style="font-size:1.2rem">🖼</span>
+          <span style="font-size:0.75rem;color:var(--muted)">Click to browse or drag & drop</span>
+          <input type="file" accept="image/*" multiple style="display:none" onchange="handleOwnPhotoUpload(this.files)" />
+        </label>
+        <div id="uploadedImgGrid" style="display:none;margin-top:0.6rem;display:grid;grid-template-columns:1fr 1fr;gap:0.4rem"></div>
+        <div class="upload-progress-wrap" id="uploadProgress">
+          <div class="upload-progress-label"><span id="uploadProgressLabel">Uploading…</span><span id="uploadProgressPct">0%</span></div>
+          <div class="upload-progress-track"><div class="upload-progress-fill" id="uploadProgressFill"></div></div>
+        </div>
+      </div>
+      <div style="margin-top:0.7rem;padding:0.55rem;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.15);border-radius:3px;font-size:0.68rem;color:var(--muted);line-height:1.5">
+        💡 <strong style="color:var(--gold)">Tip:</strong> Click any image → Insert into Article or Set as Featured.
+      </div>
+    </div>
+
+  </div><!-- end drawer-body -->
+
+  <!-- Drawer Footer (sticky generate button — only shown on Write tab) -->
+  <div class="ai-drawer-footer" id="drawerFooterWrite">
+    <button id="btnAI" onclick="handleGenerateClick()" style="width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);border:none;padding:0.9rem;border-radius:3px;font-family:var(--sans);font-size:0.9rem;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+      <span id="aiBtnText">✦ Generate Article</span>
+      <span id="aiSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+    </button>
+    <p id="aiStatus" style="font-size:0.72rem;color:var(--muted);margin-top:0.5rem;text-align:center;min-height:1rem"></p>
+  </div>
+  <div class="ai-drawer-footer" id="drawerFooterImage" style="display:none">
+    <button onclick="generateFeaturedImage()" style="width:100%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;padding:0.85rem;border-radius:3px;font-family:var(--sans);font-size:0.85rem;font-weight:700;cursor:pointer">✨ Generate Featured Image</button>
+  </div>
+
+</div>
+
+<!-- Floating AI Write button (visible when drawer is closed, only on editor view) -->
+<button class="ai-float-btn hidden" id="aiFloatBtn" onclick="openAIDrawer('write')">✦ AI Write</button>
+
+</main>
+
+<!-- AI Modal -->
+<div class="modal-overlay" id="aiModal">
+  <div class="modal-box">
+    <div class="modal-title" id="aiModalTitle">✦ Generating…</div>
+    <div class="modal-sub" id="aiModalSub">AI is thinking. Please wait.</div>
+    <!-- AI Roadmap -->
+    <div id="aiRoadmap" style="display:none;margin-bottom:1rem;background:var(--navy);border:1px solid var(--border);border-radius:4px;overflow:hidden">
+      <div style="padding:0.45rem 0.75rem;background:rgba(201,168,76,0.05);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:0.62rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted)">AI Pipeline</span>
+        <div id="aiRoadmapModelBadges" style="display:flex;gap:4px"></div>
+      </div>
+      <div id="aiRoadmapTrack" style="padding:0.65rem 0.75rem;overflow-x:auto">
+        <!-- Chunks injected here -->
+      </div>
+    </div>
+
+    <!-- Timer bar -->
+    <div id="aiTimerBar" style="display:none;margin-bottom:1rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
+        <div style="display:flex;align-items:center;gap:0.6rem">
+          <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Elapsed</span>
+          <span id="aiTimerElapsed" style="font-family:var(--mono);font-size:0.82rem;font-weight:700;color:var(--cream)">0:00</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.6rem">
+          <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Remaining</span>
+          <span id="aiTimerRemaining" style="font-family:var(--mono);font-size:0.82rem;font-weight:700;color:var(--gold)">—</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.6rem">
+          <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Speed</span>
+          <span id="aiTimerSpeed" style="font-family:var(--mono);font-size:0.82rem;font-weight:700;color:var(--cream)">—</span>
+        </div>
+      </div>
+      <div style="background:var(--navy3);border-radius:2px;height:3px;overflow:hidden">
+        <div id="aiTimerTrack" style="height:3px;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px;width:0%;transition:width 0.8s ease"></div>
+      </div>
+      <div id="aiTimerChunkLog" style="margin-top:0.6rem;font-size:0.7rem;color:var(--muted);max-height:60px;overflow-y:auto;line-height:1.6"></div>
+    </div>
+    <div class="modal-content" id="aiModalContent"><span style="animation:pulse 1s infinite;display:inline-block">Working…</span></div>
+    <div class="modal-actions" id="aiModalActions" style="display:none">
+      <button class="btn-modal-confirm" onclick="confirmOutline()">✓ Write Full Article</button>
+      <button class="btn-modal-cancel" onclick="cancelOutline()">✕ Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Image Preview Modal -->
+<div class="img-modal-overlay" id="imgModal" onclick="closeImgModal(event)">
+  <div class="img-modal-inner">
+    <button class="img-modal-close" onclick="closeImgModal()">✕</button>
+    <img id="imgModalSrc" src="" alt="Preview" />
+    <div class="img-modal-actions">
+      <button class="img-overlay-btn" onclick="insertImageFromModal()" style="padding:0.6rem 1.2rem;font-size:0.82rem">↓ Insert into Article</button>
+      <button class="img-overlay-btn" onclick="setFeaturedFromModal()" style="padding:0.6rem 1.2rem;font-size:0.82rem;background:var(--navy2);color:var(--cream);border:1px solid var(--border)">⭐ Set as Featured</button>
+      <a id="imgModalDownload" href="" download="blogspro-image.jpg" class="img-overlay-btn" style="background:var(--navy2);color:var(--cream);border:1px solid var(--border);padding:0.6rem 1.2rem;font-size:0.82rem;border-radius:2px">⬇ Download</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Post Audit / Quality Engine Integration Flags -->
+<script>
+  window.__ENABLE_POST_AUDIT__ = true;
+  window.__POST_AUDIT_AUTORUN__ = true;
+  window.__POST_AUDIT_AUTO_RECTIFY__ = true;
+  window.__POST_AUDIT_AUTO_SAVE__ = true;
+  window.__POST_AUDIT_GITHUB_PUSH__ = false;
+</script>
+<script type="module" src="js/main.js"></script>
+  <!-- Floating scroll buttons -->
+  <div id="scrollFloats" style="position:fixed;bottom:80px;right:18px;display:flex;flex-direction:column;gap:6px;z-index:400;opacity:0;transition:opacity 0.3s;pointer-events:none">
+    <button onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Scroll to top"
+      style="width:36px;height:36px;border-radius:50%;background:var(--navy2);border:1px solid var(--border);color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.3)"
+      onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↑</button>
+    <button onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="Scroll to bottom"
+      style="width:36px;height:36px;border-radius:50%;background:var(--navy2);border:1px solid var(--border);color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.3)"
+      onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↓</button>
+  </div>
+  <script>
+    // Show/hide floating buttons based on scroll position
+    window.addEventListener('scroll', () => {
+      const el = document.getElementById('scrollFloats');
+      if (!el) return;
+      if (window.scrollY > 300) {
+        el.style.opacity = '1';
+        el.style.pointerEvents = 'auto';
+      } else {
+        el.style.opacity = '0';
+        el.style.pointerEvents = 'none';
+      }
+    });
+  </script>
+  <script type="module" src="js/terminal-dispatch.js"></script>
+</body>
+</html>
