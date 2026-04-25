@@ -957,11 +957,18 @@ async function loadPosts() {
   try {
     const hybridPosts = await loadHybridPosts();
     const filtered = hybridPosts.filter(p => !isBloombergPost(p));
-    const seen = new Set();
+    const seenIds = new Set();
+    const seenTitles = new Set();
+    
     allPosts = filtered.filter(p => {
       const id = String(p.id || '');
-      if (seen.has(id)) return false;
-      seen.add(id);
+      const title = (p.title || '').trim().toLowerCase();
+      
+      if (seenIds.has(id)) return false;
+      if (title && seenTitles.has(title)) return false;
+      
+      seenIds.add(id);
+      if (title) seenTitles.add(title);
       return true;
     }).sort((a, b) => postEpochMs(b) - postEpochMs(a));
     const postCountEl = document.getElementById('postCount');
@@ -993,8 +1000,10 @@ function renderPosts(posts) {
     let raw = (s || '')
       .replace(/<style[\s\S]*?<\/style>/gi, '')
       .replace(/<script[\s\S]*?<\/script>/gi, '')
-      .replace(/:root\s*\{[\s\S]*?\}/gi, '') // Strip raw CSS :root blocks
-      .replace(/\.[a-zA-Z0-9_-]+\s*\{[\s\S]*?\}/gi, ''); // Strip raw CSS class blocks
+      .replace(/@font-face[\s\S]*?}/gi, '')
+      .replace(/:root\s*\{[\s\S]*?\}?/gi, '') // Handle partial :root blocks
+      .replace(/[a-zA-Z0-9_-]+\s*\{[\s\S]*?\}?/gi, '') // Handle partial CSS class blocks
+      .replace(/--[a-zA-Z0-9-]+\s*:\s*[^;]+;/gi, ''); // Strip CSS variables
     return DOMPurify.sanitize(raw, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
   };
   grid.innerHTML = safePosts.map((p, i) => {

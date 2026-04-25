@@ -253,11 +253,14 @@ export async function loadHybridPosts() {
             `${origin}/articles/monthly/index.json`
         ];
 
-        const aiResults = await Promise.all(briefingIndices.map(url => 
-            fetch(url, { cache: 'no-cache' })
+        const aiResults = await Promise.all(briefingIndices.map(url => {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), 10000);
+            return fetch(url, { cache: 'no-cache', signal: controller.signal })
                 .then(r => r.ok ? r.json() : [])
                 .catch(() => [])
-        ));
+                .finally(() => clearTimeout(id));
+        }));
 
         let aiPosts = aiResults.flat()
             .filter(pulse => {
@@ -277,9 +280,18 @@ export async function loadHybridPosts() {
 
         let all = [...firestorePosts, ...aiPosts].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
+        // [V2.5] Institutional De-duplication: Prevent grid spam from repetitive AI cycles
+        const seenTitles = new Set();
+        all = all.filter(p => {
+            const t = (p.title || "").trim().toLowerCase();
+            if (seenTitles.has(t)) return false;
+            seenTitles.add(t);
+            return true;
+        });
+
         if (!checkIfAdmin()) {
             const nonAI = all.filter(p => !p.isAI);
-            const limitedAI = all.filter(p => p.isAI).slice(0, 3);
+            const limitedAI = all.filter(p => p.isAI).slice(0, 8); // Increased from 3 to 8 for better density
             all = [...nonAI, ...limitedAI].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
         }
 

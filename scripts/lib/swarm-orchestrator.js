@@ -996,7 +996,12 @@ async function _finalizeAndSync(fidelityContent, consensusSummary, frequency, ty
       if (titleMatch) title = titleMatch[1].replace(/Strategic Manuscript/i, '').replace(/\|/g, '').trim();
       
       // Pull excerpt from first paragraph or content start
-      const textOnly = fidelityContent.replace(/<[^>]*>?/gm, '').trim();
+      const textOnly = fidelityContent
+          .replace(/<style[\s\S]*?<\/style>/gi, '')
+          .replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/<[^>]*>?/gm, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
       excerpt = textOnly.slice(0, 250) + (textOnly.length > 250 ? '...' : '');
   } catch (e) {
       console.warn("⚠️ [Metadata] Extraction failed:", e.message);
