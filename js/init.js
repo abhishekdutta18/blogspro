@@ -1145,10 +1145,12 @@ document.getElementById('year').textContent = new Date().getFullYear();
     { id: 'tvHub', fn: () => initTVHub() }
   ];
 
-  const results = await Promise.allSettled(tasks.map(t => t.fn().catch(err => {
-    console.warn(`[Init] Task "${t.id}" failed:`, err.message);
-    return false;
-  })));
+  const results = await Promise.allSettled(tasks.map(t =>
+    Promise.resolve(t.fn()).catch(err => {
+      console.warn(`[Init] Task "${t.id}" failed:`, err?.message ?? err);
+      return false;
+    })
+  ));
 
   // 2. Integration Status Update
   const allSuccessful = results.every(r => r.status === 'fulfilled' && r.value !== false);
