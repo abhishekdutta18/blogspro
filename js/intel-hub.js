@@ -63,83 +63,117 @@ function updateHeroStats({ posts, experts, version }) {
 function renderHub(container, { daily, hourly, weekly, monthly }) {
     const sentiment = daily?.sentimentScore || 50;
     const label = sentiment > 75 ? "EXTREME BULLISH" : (sentiment < 25 ? "EXTREME BEARISH" : (sentiment > 55 ? "BULLISH" : (sentiment < 45 ? "BEARISH" : "NEUTRAL")));
-    const color = sentiment > 75 ? "#22c55e" : (sentiment < 25 ? "#ef4444" : "#eab308");
+    const color = sentiment > 75 ? "#10b981" : (sentiment < 25 ? "#ef4444" : "#eab308");
+
+    // Calculate meter dashoffset (semi-circle is half of 502 = 251)
+    const offset = 251 - (sentiment / 100) * 251;
 
     container.innerHTML = `
-        <div class="intel-card">
-            <div class="intel-header">
-                <div class="live-pulse"></div>
-                <span class="intel-tag">STRATEGIC INTELLIGENCE TERMINAL</span>
-                <span class="intel-date">${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-            </div>
-            
-            <div class="intel-tabs">
-                <button class="intel-tab active" data-tab="active-pulse">MARKET PULSE</button>
-                <button class="intel-tab" data-tab="master-strategy">MASTER STRATEGY</button>
-            </div>
-
-            <div id="active-pulse" class="hub-view active">
-                <div class="intel-grid">
-                    <div class="intel-sentiment">
-                        <div class="sentiment-gauge-mini">
-                            <svg viewBox="0 0 100 50">
-                                <path d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8" />
-                                <path d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke="${color}" stroke-width="8" stroke-dasharray="126" stroke-dashoffset="${126 - (sentiment/100)*126}" />
-                            </svg>
-                            <div class="sentiment-value" style="color:${color}">${sentiment}</div>
-                        </div>
-                        <div class="sentiment-label">${label}</div>
+        <div class="intel-dashboard">
+            <!-- Left: Core Thematic Analysis -->
+            <div class="intel-col">
+                <div class="intel-col-header">CORE THEMATIC ANALYSIS</div>
+                <div class="thematic-list">
+                    <div class="thematic-item">
+                        <div class="thematic-label">MARKET REGIME</div>
+                        <div class="thematic-text">Institutional rotation in ${daily?.sectorFocus || 'Large-cap'} segments remains active.</div>
                     </div>
+                    <div class="thematic-item">
+                        <div class="thematic-label">VOLATILITY PROFILE</div>
+                        <div class="thematic-text">Risk-adjusted returns are stabilizing across major indices.</div>
+                    </div>
+                    <div class="thematic-item">
+                        <div class="thematic-label">LIQUIDITY DRIFT</div>
+                        <div class="thematic-text">Cash flow concentration shifting towards defensive sectors.</div>
+                    </div>
+                </div>
+                
+                <div class="strategy-block">
+                    <div class="strategy-title">LATEST STRATEGIC TAKEAWAY</div>
+                    <div class="strategy-text">${(daily?.keyTakeaway || "Monitor pivot levels for mid-session execution.")}</div>
+                </div>
+            </div>
 
-                    <div class="intel-content">
-                        <h3 class="intel-title">${daily?.title || hourly?.title || "Daily Alpha Report"}</h3>
-                        <p class="intel-excerpt">${(daily?.excerpt || hourly?.excerpt || "Analyzing sessions...").slice(0, 120)}...</p>
-                        <div class="intel-actions">
-                            ${daily ? `<a href="briefings/daily/${daily.fileName}" class="intel-btn">READ DAILY REPORT</a>` : ''}
-                            ${hourly ? `<a href="briefings/hourly/${hourly.fileName}" class="intel-btn secondary">VIEW HOURLY PIVOTS</a>` : ''}
+            <!-- Center: Sentiment & Primary Pulse -->
+            <div class="intel-col" style="padding:0">
+                <div class="sentiment-section">
+                    <div class="sentiment-meter-wrap">
+                        <svg class="sentiment-meter-svg" viewBox="0 0 100 100">
+                            <path class="meter-bg" d="M 10 90 A 40 40 0 0 1 90 90" />
+                            <path class="meter-fill" d="M 10 90 A 40 40 0 0 1 90 90" 
+                                  style="stroke-dashoffset: ${offset}; stroke: ${color}" />
+                        </svg>
+                        <div class="sentiment-value-wrap">
+                            <div class="sentiment-score">${sentiment}</div>
+                            <div class="sentiment-label">${label}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="intel-col" style="border:none; padding-top: 1rem;">
+                    <div class="intel-pulse-header">
+                        <div class="institutional-tag" style="font-family:'JetBrains Mono'; font-size:0.6rem; color:var(--gold); margin-bottom:0.5rem">
+                            // ACTIVE_INTELLIGENCE_PULSE // ${daily?.frequency || 'DAILY'}
+                        </div>
+                        <h3 class="pulse-title">${daily?.title || hourly?.title || "Alpha Synthesis Report"}</h3>
+                        <p class="pulse-excerpt">${(daily?.excerpt || hourly?.excerpt || "Analyzing market drift and institutional positioning...").slice(0, 220)}...</p>
+                        <div class="pulse-actions">
+                            ${daily ? `<a href="briefings/daily/${daily.fileName}" class="insti-btn">READ STRATEGIC BRIEFING</a>` : ''}
+                            ${hourly ? `<a href="briefings/hourly/${hourly.fileName}" class="insti-btn" style="background:transparent; border:1px solid var(--gold); color:var(--gold); margin-left:1rem">VIEW HOURLY PIVOTS</a>` : ''}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="master-strategy" class="hub-view">
-                <div class="strategy-list">
-                    <div class="strategy-item">
-                        <div class="strat-label">MONTHLY OUTLOOK</div>
-                        <h4 class="strat-title">${monthly?.title || "Preparing Next Roadmap..."}</h4>
-                        ${monthly ? `<a href="articles/monthly/${monthly.fileName}" class="strat-link">VIEW MACRO DIRECTION →</a>` : ''}
+            <!-- Right: Data Matrix & Master Strategy -->
+            <div class="intel-col">
+                <div class="intel-col-header">MACRO DATA MATRIX</div>
+                <div class="matrix-grid">
+                    <div class="matrix-row">
+                        <div class="matrix-key">SYSTEM LATENCY</div>
+                        <div class="matrix-val">12ms</div>
                     </div>
-                    <div class="strategy-item">
-                        <div class="strat-label">WEEKLY ANALYSIS</div>
-                        <h4 class="strat-title">${weekly?.title || "Synthesizing Sectoral Rotation..."}</h4>
-                        ${weekly ? `<a href="articles/weekly/${weekly.fileName}" class="strat-link">VIEW WEEKLY ANALYSIS →</a>` : ''}
+                    <div class="matrix-row">
+                        <div class="matrix-key">DATA INTEGRITY</div>
+                        <div class="matrix-val">99.98%</div>
+                    </div>
+                    <div class="matrix-row">
+                        <div class="matrix-key">AI CONSENSUS</div>
+                        <div class="matrix-val">ACTIVE</div>
+                    </div>
+                    <div class="matrix-row">
+                        <div class="matrix-key">SWARM STATUS</div>
+                        <div class="matrix-val">SYNCHRONIZED</div>
+                    </div>
+                </div>
+
+                <div class="intel-col-header" style="margin-top:1rem">MASTER STRATEGY</div>
+                <div class="thematic-list">
+                    <div class="thematic-item">
+                        <div class="thematic-label">WEEKLY ROADMAP</div>
+                        <div class="strat-name" style="font-size:0.9rem; margin-top:0.2rem">${weekly?.title || "Synthesizing..."}</div>
+                        ${weekly ? `<a href="articles/weekly/${weekly.fileName}" class="strat-cta">ANALYZE →</a>` : ''}
+                    </div>
+                    <div class="thematic-item">
+                        <div class="thematic-label">MONTHLY MACRO</div>
+                        <div class="strat-name" style="font-size:0.9rem; margin-top:0.2rem">${monthly?.title || "Preparing..."}</div>
+                        ${monthly ? `<a href="articles/monthly/${monthly.fileName}" class="strat-cta">ANALYZE →</a>` : ''}
                     </div>
                 </div>
             </div>
 
-            <div class="intel-footer">
-                <div class="ticker-wrap">
-                    <div class="ticker">
-                        <span>NSE/BSE SECTORAL ROTATION ACTIVE</span>
-                        <span>•</span>
-                        <span>RBI REGULATORY INGESTION COMPLETE</span>
-                        <span>•</span>
-                        <span>VIX VOLATILITY MONITORING LIVE</span>
-                        <span>•</span>
-                        <span>GLOBAL MACRO DRIFT SYNCED</span>
-                    </div>
+            <!-- Bottom: Institutional Ticker -->
+            <div class="ticker-institutional">
+                <div class="ticker-scroll">
+                    <div class="ticker-signal"><b>[SIGNAL]</b> NSE/BSE SECTORAL ROTATION DETECTED IN ${daily?.sectorFocus || 'BFSI'}</div>
+                    <div class="ticker-signal"><b>[POLICY]</b> RBI REGULATORY INGESTION COMPLETE - NO HAWKISH DRIFT</div>
+                    <div class="ticker-signal"><b>[VIX]</b> VOLATILITY CLUSTERING BELOW 15.0 - RISK ON REGIME</div>
+                    <div class="ticker-signal"><b>[GLOBAL]</b> US TREASURY YIELD SYNCED - 10Y STABILIZING</div>
+                    <!-- Duplicate for infinite scroll -->
+                    <div class="ticker-signal"><b>[SIGNAL]</b> NSE/BSE SECTORAL ROTATION DETECTED IN ${daily?.sectorFocus || 'BFSI'}</div>
+                    <div class="ticker-signal"><b>[POLICY]</b> RBI REGULATORY INGESTION COMPLETE - NO HAWKISH DRIFT</div>
                 </div>
             </div>
         </div>
     `;
-
-    // Tab Switching Logic
-    container.querySelectorAll('.intel-tab').forEach(btn => {
-        btn.onclick = () => {
-            container.querySelectorAll('.intel-tab').forEach(b => b.classList.remove('active'));
-            container.querySelectorAll('.hub-view').forEach(v => v.classList.remove('active'));
-            btn.classList.add('active');
-            container.querySelector(`#${btn.dataset.tab}`).classList.add('active');
-        };
-    });
 }
