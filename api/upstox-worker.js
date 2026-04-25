@@ -263,8 +263,6 @@ export default {
         if (!res.ok) {
             return jsonResponse({ status: "error", message: `Upstox API Error: ${res.status}` }, res.status);
         }
-
-        }
         
         const data = await res.json();
         return jsonResponse(data, 200, { "Cache-Control": "public, max-age=3600" });
