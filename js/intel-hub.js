@@ -25,9 +25,9 @@ export async function initIntelHub() {
             api.data.get('articles', null, { orderBy: 'date desc', limit: 10 })
         ]);
 
-        const latestDaily = (pulseDocs || []).find(p => p.frequency === 'daily') || pulseDocs?.[0];
+        const latestDaily = (pulseDocs || []).find(p => p.frequency === 'daily');
         const latestHourly = (pulseDocs || []).find(p => p.frequency === 'hourly');
-        const latestWeekly = (articleDocs || []).find(a => a.frequency === 'weekly') || articleDocs?.[0];
+        const latestWeekly = (articleDocs || []).find(a => a.frequency === 'weekly');
         const latestMonthly = (articleDocs || []).find(a => a.frequency === 'monthly');
 
         if (!pulseDocs?.length && !articleDocs?.length) {
@@ -61,7 +61,7 @@ function updateHeroStats({ posts, experts, version }) {
 }
 
 function renderHub(container, { daily, hourly, weekly, monthly }) {
-    const sentiment = daily?.sentimentScore || 50;
+    const sentiment = daily?.sentimentScore || hourly?.sentimentScore || 50;
     const label = sentiment > 75 ? "EXTREME BULLISH" : (sentiment < 25 ? "EXTREME BEARISH" : (sentiment > 55 ? "BULLISH" : (sentiment < 45 ? "BEARISH" : "NEUTRAL")));
     const color = sentiment > 75 ? "#10b981" : (sentiment < 25 ? "#ef4444" : "#eab308");
 
@@ -113,13 +113,12 @@ function renderHub(container, { daily, hourly, weekly, monthly }) {
                 <div class="intel-col" style="border:none; padding-top: 1rem;">
                     <div class="intel-pulse-header">
                         <div class="institutional-tag" style="font-family:'JetBrains Mono'; font-size:0.6rem; color:var(--gold); margin-bottom:0.5rem">
-                            // ACTIVE_INTELLIGENCE_PULSE // ${daily?.frequency || 'DAILY'}
+                            // ACTIVE_INTELLIGENCE_PULSE // ${daily ? 'DAILY' : (hourly ? 'HOURLY' : 'SYSTEM')}
                         </div>
                         <h3 class="pulse-title">${daily?.title || hourly?.title || "Alpha Synthesis Report"}</h3>
                         <p class="pulse-excerpt">${(daily?.excerpt || hourly?.excerpt || "Analyzing market drift and institutional positioning...").slice(0, 220)}...</p>
                         <div class="pulse-actions">
-                            ${daily ? `<a href="briefings/daily/${daily.fileName}" class="insti-btn">READ STRATEGIC BRIEFING</a>` : ''}
-                            ${hourly ? `<a href="briefings/hourly/${hourly.fileName}" class="insti-btn" style="background:transparent; border:1px solid var(--gold); color:var(--gold); margin-left:1rem">VIEW HOURLY PIVOTS</a>` : ''}
+                            ${daily ? `<a href="briefings/daily/${daily.file}" class="insti-btn">READ DAILY BRIEFING</a>` : (hourly ? `<a href="briefings/hourly/${hourly.file}" class="insti-btn">READ HOURLY PIVOTS</a>` : '')}
                         </div>
                     </div>
                 </div>
@@ -152,12 +151,12 @@ function renderHub(container, { daily, hourly, weekly, monthly }) {
                     <div class="thematic-item">
                         <div class="thematic-label">WEEKLY ROADMAP</div>
                         <div class="strat-name" style="font-size:0.9rem; margin-top:0.2rem">${weekly?.title || "Synthesizing..."}</div>
-                        ${weekly ? `<a href="articles/weekly/${weekly.fileName}" class="strat-cta">ANALYZE →</a>` : ''}
+                        ${weekly ? `<a href="articles/weekly/${weekly.file}" class="strat-cta">ANALYZE →</a>` : ''}
                     </div>
                     <div class="thematic-item">
                         <div class="thematic-label">MONTHLY MACRO</div>
                         <div class="strat-name" style="font-size:0.9rem; margin-top:0.2rem">${monthly?.title || "Preparing..."}</div>
-                        ${monthly ? `<a href="articles/monthly/${monthly.fileName}" class="strat-cta">ANALYZE →</a>` : ''}
+                        ${monthly ? `<a href="articles/monthly/${monthly.file}" class="strat-cta">ANALYZE →</a>` : ''}
                     </div>
                 </div>
             </div>
