@@ -132,9 +132,9 @@ jobs:
           git config --global user.name "BlogsPro Engine"
           git config --global user.email "engine@blogspro.in"
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
-          # Stage generated files from public/ directory
-          git add public/briefings/ public/articles/ public/index.json 2>/dev/null || true
-          find public/briefings -name "*.pdf" 2>/dev/null | xargs git add 2>/dev/null || true
+          # Stage generated files from root directory
+          git add briefings/ articles/ index.json 2>/dev/null || true
+          find briefings -name "*.pdf" 2>/dev/null | xargs git add 2>/dev/null || true
           git commit -m "swarm-archival: Institutional Manuscript Update [registry: Institutional-AI]" || echo "No changes to commit"
           for i in 1 2 3; do
             git pull --rebase origin main && git push && exit 0

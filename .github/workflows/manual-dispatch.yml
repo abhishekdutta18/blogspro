@@ -225,7 +225,7 @@ jobs:
         run: |
           git config --global user.name "BlogsPro Bot"
           git config --global user.email "bot@blogspro.in"
-          git add public/briefings/ public/articles/ public/posts/ public/index.json sitemap.xml dist/ manuscripts/ *.pdf 2>/dev/null || echo "No changes"
+          git add briefings/ articles/ posts/ index.json sitemap.xml dist/ manuscripts/ *.pdf 2>/dev/null || echo "No changes"
           git commit -m "chore: autonomous hybrid dispatch [registry: Institutional-AI]" || echo "No changes"
           
           # [V16.1] Resilient Git Archival with Randomized Jitter Retry
