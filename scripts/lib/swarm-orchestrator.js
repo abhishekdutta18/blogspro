@@ -882,6 +882,7 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
   if (globalNewsPulse.length > 0) {
       console.log(`📡 [Swarm] Synthesizing Strategic News Wire for final Tome...`);
       const modelForNews = modelOverride !== 'auto' ? modelOverride : 'node-draft';
+      const newsSummary = globalNewsPulse.map(p => `[${p.vertical}]: ${p.news}`).join('\n\n');
       const synthesizedNews = await askAI(`Summarize these 3-5 critical market events into a high-density 250-word 'STRATEGIC NEWS WIRE' for an institutional article. Use <li> bullet points for each event.\n\n${newsSummary}`, { role: 'edit', env, model: modelForNews });
       strategicNewsWire = `<section id="strategic-news-wire" class="institutional-sector">
         <h2>STRATEGIC NEWS WIRE</h2>

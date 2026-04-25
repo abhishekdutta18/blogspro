@@ -34,7 +34,7 @@ async function registerPostOnHomepage(fileName, result, frequency, env) {
     
     // [V1.2] Frequency-Aware Pathing: Map to correct public folder
     const folder = (frequency === 'hourly' || frequency === 'daily') ? 'briefings' : 'articles';
-    const indexDir = path.join(process.cwd(), 'public', folder, frequency);
+    const indexDir = path.join(process.cwd(), folder, frequency);
     const publicUrl = `${publicDomain}/${folder}/${frequency}/${fileName}`;
     
     const title = result.title || `Institutional Strategic Pulse [${frequency.toUpperCase()}]`;
@@ -406,7 +406,7 @@ async function runInstitutionalSwarm() {
     // 5. ARCHIVAL PHASE
     const fileName = `swarm-${frequency}-${Date.now()}.html`;
     const folder = (frequency === 'hourly' || frequency === 'daily') ? 'briefings' : 'articles';
-    const outPath = path.join(process.cwd(), 'public', folder, frequency, fileName);
+    const outPath = path.join(process.cwd(), folder, frequency, fileName);
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
     
     // [V16.0] Templating Phase: Apply institutional branding
@@ -465,7 +465,7 @@ async function runInstitutionalSwarm() {
         try {
             const filesToPush = [
                 { path: `${folder}/${frequency}/${fileName}`, localPath: outPath },
-                { path: `${folder}/${frequency}/index.json`, localPath: path.join(process.cwd(), 'public', folder, frequency, 'index.json') }
+                { path: `${folder}/${frequency}/index.json`, localPath: path.join(process.cwd(), folder, frequency, 'index.json') }
             ];
             
             console.log(`📡 [GitHub] Initiating Sovereign Push for ${frequency} cycle [Folder: ${folder}]...`);
@@ -499,7 +499,7 @@ async function runInstitutionalSwarm() {
         // 1. Telegram Dispatch
         const publicDomain = env.ASSET_DOMAIN || "https://blogspro.in";
         const folder = (frequency === 'hourly' || frequency === 'daily') ? 'briefings' : 'articles';
-        const outPath = path.join(process.cwd(), 'public', folder, frequency, fileName);
+        const outPath = path.join(process.cwd(), folder, frequency, fileName);
         const publicUrl = `${publicDomain}/${folder}/${frequency}/${fileName}`;
 
         const telegramSummary = {

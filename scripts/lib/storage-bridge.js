@@ -405,7 +405,7 @@ async function saveBriefing(fileName, content, frequency, env = null) {
   const fs = await getFs();
   if (fs && path && typeof process !== 'undefined') {
     const rootDir = process.cwd();
-    const targetDir = path.join(rootDir, "public", "briefings", frequency);
+    const targetDir = path.join(rootDir, "briefings", frequency);
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
     const fullPath = path.join(targetDir, fileName);
     fs.writeFileSync(fullPath, content);
@@ -470,7 +470,7 @@ async function updateIndex(entry, frequency, env = null) {
       if (fs && path) {
         let rootDir = process.cwd();
         
-        const targetDir = path.join(rootDir, "public", "briefings", frequency);
+        const targetDir = path.join(rootDir, "briefings", frequency);
         if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
         const indexPath = path.join(targetDir, "index.json");
         let index = fs.existsSync(indexPath) ? JSON.parse(fs.readFileSync(indexPath, "utf-8")) : [];
@@ -497,7 +497,7 @@ async function getIndex(frequency, env = null) {
     const fs = await getFs();
     if (fs && path) {
       const rootDir = process.cwd();
-      const indexPath = path.join(rootDir, "public", "briefings", frequency, "index.json");
+      const indexPath = path.join(rootDir, "briefings", frequency, "index.json");
       if (fs.existsSync(indexPath)) {
           return JSON.parse(fs.readFileSync(indexPath, "utf-8"));
       }
