@@ -41,11 +41,12 @@ setIntegrationStatus(null, 'Integrations: Initializing');
 
 function withTimeout(promise, ms = API_TIMEOUT_MS, label = 'request') {
   let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+  });
   return Promise.race([
     promise,
-    new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
-    }),
+    timeoutPromise
   ]).finally(() => clearTimeout(timer));
 }
 
@@ -755,15 +756,13 @@ async function loadIndiaCalendarData() {
     };
     const keyEventDetails = events.filter((e) => String(e.title || '').trim().length > 0).slice(0, 5).map((e) => `<div><b>${esc(e.title)}:</b> ${eventDescriptionFor(e.title)}</div>`).join('') || '<div><b>Key Event Notes:</b> waiting for event descriptions.</div>';
     snapshotEl.innerHTML = `
-      <div><b>Window:</b> ${events.length} India events tracked</div>
-      <div><b>Policy Regime:</b> ${m.regimeTag}</div>
-      <div><b>RBI Probability:</b> Hold ${m.holdProb}% · Hike ${m.hikeProb}% · Cut ${m.cutProb}%</div>
-      <div><b>INR Pressure Gauge:</b> ${pctStr(m.inrPressure)} (${m.inrPressure >= 0 ? 'depreciation bias' : 'stability/appreciation bias'})</div>
-      <div><b>Sector Impact Map:</b> Top sensitivity in ${m.topSector}; Banks ${m.sectorHits.Banks}, IT ${m.sectorHits.IT}, FMCG ${m.sectorHits.FMCG}</div>
-      <div><b>Surprise Tracker:</b> ${surpriseText}</div>
-      <div><b>Surprise Breadth:</b> ${m.breadth}</div>
-      <div><b>Threshold Alert:</b> ${m.thresholdAlert}</div>
-      <div><b>Confidence Score:</b> ${m.confidence}/100 weighted quality</div>
+      <div class="snap-row"><span>Window:</span> <b>${events.length} India events tracked</b></div>
+      <div class="snap-row"><span>Policy Regime:</span> <b>${m.regimeTag}</b></div>
+      <div class="snap-row"><span>RBI Probability:</span> <b>Hold ${m.holdProb}% · Hike ${m.hikeProb}% · Cut ${m.cutProb}%</b></div>
+      <div class="snap-row"><span>INR Pressure:</span> <b>${pctStr(m.inrPressure)} (${m.inrPressure >= 0 ? 'depreciation bias' : 'stability bias'})</b></div>
+      <div class="snap-row"><span>Sector Impact:</span> <b>Top sensitivity in ${m.topSector}</b></div>
+      <div class="snap-row"><span>Surprise Tracker:</span> <b>${surpriseText}</b></div>
+      <div class="snap-row"><span>Confidence Score:</span> <b>${m.confidence}/100 quality</b></div>
     `;
     explainEl.innerHTML = `
       <div><b>How To Read</b></div>
@@ -782,7 +781,13 @@ async function loadIndiaCalendarData() {
       const inrData = google.visualization.arrayToDataTable([['Label', 'Value'], ['INR Stress', Math.max(0, 50 + (m.inrPressure * 10))]]);
       new google.visualization.Gauge(document.getElementById('indiaInrGaugeChart')).draw(inrData, { width: 120, height: 120, redFrom: 70, redTo: 100, yellowFrom: 40, yellowTo: 70, minorTicks: 5, greenColor: '#BFA100', yellowColor: '#FFB800', redColor: '#ef4444' });
       const sectorData = google.visualization.arrayToDataTable([['Sector', 'Sensitivity'], ...Object.entries(m.sectorHits).map(([k, v]) => [k, v])]);
-      new google.visualization.BarChart(document.getElementById('indiaSectorChart')).draw(sectorData, { ...window.CHART_THEME, hAxis: { ...window.CHART_THEME.hAxis, title: 'Institutional Exposure Score' }, vAxis: { ...window.CHART_THEME.vAxis, title: 'Sector High-Density Vertical' }, legend: { position: 'top', alignment: 'center' } });
+      new google.visualization.BarChart(document.getElementById('indiaSectorChart')).draw(sectorData, { 
+        ...window.CHART_THEME, 
+        chartArea: { ...window.CHART_THEME.chartArea, left: 90, width: '70%' },
+        hAxis: { ...window.CHART_THEME.hAxis, title: 'Institutional Exposure Score' }, 
+        vAxis: { ...window.CHART_THEME.vAxis, title: 'Sector High-Density Vertical' }, 
+        legend: { position: 'top', alignment: 'center' } 
+      });
     }
     const gaugePct = Math.max(0, Math.min(100, 50 + (m.inrPressure * 10)));
     inrGaugeNoteEl.textContent = `Stress Score: ${pctStr(m.inrPressure)} (${gaugePct >= 60 ? 'Downside Risk' : gaugePct <= 40 ? 'Stability Bias' : 'Neutral Corridor'})`;
@@ -872,7 +877,7 @@ function initForexCalendarControls() {
   }
 }
 
-document.getElementById('year').textContent = new Date().getFullYear();
+
 
 window.toggleTheme = () => {
   document.body.classList.toggle('light');
@@ -951,7 +956,14 @@ function safePostId(id) { return encodeURIComponent(String(id || '')); }
 async function loadPosts() {
   try {
     const hybridPosts = await loadHybridPosts();
-    allPosts = hybridPosts.filter(p => !isBloombergPost(p)).sort((a, b) => postEpochMs(b) - postEpochMs(a));
+    const filtered = hybridPosts.filter(p => !isBloombergPost(p));
+    const seen = new Set();
+    allPosts = filtered.filter(p => {
+      const id = String(p.id || '');
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    }).sort((a, b) => postEpochMs(b) - postEpochMs(a));
     const postCountEl = document.getElementById('postCount');
     if (postCountEl) postCountEl.textContent = allPosts.length;
     const postsTitleEl = document.getElementById('postsTitle');
@@ -961,6 +973,11 @@ async function loadPosts() {
     const tvEl = document.getElementById('totalViewCount');
     if (tvEl) tvEl.textContent = fmtViews(totalViews);
     renderPosts(currentCat === 'all' ? allPosts : allPosts.filter(p => p.category === currentCat));
+    
+    // Hydrate Policy & Regulation with latest pulse
+    const latestPulse = allPosts.find(p => p.isAI && (p.rbi || p.sebi));
+    if (latestPulse) hydratePolicy(latestPulse);
+    
     return true;
   } catch(err) {
     console.error('Error loading hybrid index:', err);
@@ -972,7 +989,14 @@ function renderPosts(posts) {
   const grid = document.getElementById('postsGrid');
   const safePosts = (posts || []).filter(p => !isBloombergPost(p));
   if (!safePosts.length) { renderEmpty(); return; }
-  const esc = (s) => DOMPurify.sanitize(s || '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+  const esc = (s) => {
+    let raw = (s || '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/:root\s*\{[\s\S]*?\}/gi, '') // Strip raw CSS :root blocks
+      .replace(/\.[a-zA-Z0-9_-]+\s*\{[\s\S]*?\}/gi, ''); // Strip raw CSS class blocks
+    return DOMPurify.sanitize(raw, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+  };
   grid.innerHTML = safePosts.map((p, i) => {
     const title = esc(p.title || 'Untitled');
     const excerpt = esc(p.excerpt || 'No summary available.');
@@ -1124,7 +1148,7 @@ function fmtViews(n) {
   return String(n);
 }
 
-document.getElementById('year').textContent = new Date().getFullYear();
+
 
 (async () => {
   // 1. Parallel Task Execution
@@ -1133,24 +1157,36 @@ document.getElementById('year').textContent = new Date().getFullYear();
     { id: 'posts', fn: () => loadPosts() },
     { id: 'about', fn: () => loadAbout() },
     { id: 'intel', fn: () => initIntelHub() },
-    { id: 'news', fn: () => initNewsWire() },
+    { id: 'market', fn: () => loadUpstoxMarketData({ showLoading: true }) },
     { id: 'forex', fn: async () => {
-      await Promise.race([chartsReadyPromise, new Promise(res => setTimeout(res, 5000))]);
+      await Promise.race([
+        window.chartsReadyPromise || Promise.resolve(), 
+        new Promise(res => setTimeout(res, 5000))
+      ]);
       const ok = await loadForexFactoryData();
       initForexCalendarControls();
       return ok;
     }},
     { id: 'india', fn: () => loadIndiaCalendarData() },
     { id: 'tvTicker', fn: () => initTVTicker() },
-    { id: 'tvHub', fn: () => initTVHub() }
+    { id: 'tvHub', fn: () => initTVHub() },
+    { id: 'tvIndices', fn: () => initTVIndices() },
+    { id: 'tvAdvChart', fn: () => initTVAdvChart() }
   ];
 
-  const results = await Promise.allSettled(tasks.map(t =>
-    Promise.resolve(t.fn()).catch(err => {
-      console.warn(`[Init] Task "${t.id}" failed:`, err?.message ?? err);
-      return false;
-    })
-  ));
+  let results;
+  try {
+    results = await Promise.allSettled(tasks.map(t =>
+      withTimeout(Promise.resolve().then(() => t.fn()), API_TIMEOUT_MS, t.id)
+        .catch(err => {
+          console.warn(`[Init] Task "${t.id}" failed or timed out:`, err?.message ?? err);
+          return false;
+        })
+    ));
+  } catch (err) {
+    console.error('[Init] Critical initialization error:', err);
+    results = tasks.map(() => ({ status: 'rejected' }));
+  }
 
   // 2. Integration Status Update
   const allSuccessful = results.every(r => r.status === 'fulfilled' && r.value !== false);
@@ -1224,6 +1260,83 @@ function initTVTicker() {
     
     widgetCont.appendChild(script);
     container.appendChild(widgetCont);
+    container.dataset.loaded = "true";
+}
+
+function initTVHub() {
+    const container = document.getElementById('tvHeatmap');
+    if (!container || container.dataset.loaded) return;
+    
+    const widgetCont = document.createElement('div');
+    widgetCont.className = 'tradingview-widget-container';
+    widgetCont.innerHTML = '<div class="tradingview-widget-container__widget"></div>';
+    
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js';
+    script.async = true;
+    script.text = JSON.stringify({
+      "exchanges": ["NSE"],
+      "dataSource": "all_NSE",
+      "grouping": "sector",
+      "blockSize": "market_cap_basic",
+      "blockColor": "change",
+      "locale": "en",
+      "symbolUrl": "",
+      "colorTheme": "dark",
+      "hasTopBar": false,
+      "isTransparent": true,
+      "hasSymbolTooltip": true,
+      "width": "100%",
+      "height": "100%"
+    });
+    
+    widgetCont.appendChild(script);
+    container.appendChild(widgetCont);
+    container.dataset.loaded = "true";
+}
+
+function initTVIndices() {
+    const container = document.getElementById('tvIndices');
+    if (!container || container.dataset.loaded) return;
+    
+    if (typeof TradingView === 'undefined') return;
+    new TradingView.widget({
+      "width": "100%",
+      "height": 450,
+      "symbol": "NSE:NIFTY",
+      "interval": "D",
+      "timezone": "Asia/Kolkata",
+      "theme": "dark",
+      "style": "3",
+      "locale": "en",
+      "toolbar_bg": "#f1f3f6",
+      "enable_publishing": false,
+      "allow_symbol_change": true,
+      "container_id": "tvIndices"
+    });
+    container.dataset.loaded = "true";
+}
+
+function initTVAdvChart() {
+    const container = document.getElementById('tvAdvChart');
+    if (!container || container.dataset.loaded) return;
+    
+    if (typeof TradingView === 'undefined') return;
+    new TradingView.widget({
+      "autosize": true,
+      "symbol": "NSE:NIFTY",
+      "interval": "D",
+      "timezone": "Asia/Kolkata",
+      "theme": "dark",
+      "style": "1",
+      "locale": "en",
+      "toolbar_bg": "#f1f3f6",
+      "enable_publishing": false,
+      "hide_side_toolbar": false,
+      "allow_symbol_change": true,
+      "container_id": "tvAdvChart"
+    });
     container.dataset.loaded = "true";
 }
 
@@ -1305,8 +1418,16 @@ window.pollMarkets = async function() {
 
 function startMarketAutoRefresh() {
   if (marketPollInterval) clearInterval(marketPollInterval);
-  pollMarkets();
-  marketPollInterval = setInterval(pollMarkets, 30000);
+  const refresh = async () => {
+    try {
+      await pollMarkets();
+      await loadUpstoxMarketData();
+    } catch (e) {
+      console.warn("Market refresh fail:", e);
+    }
+  };
+  refresh();
+  marketPollInterval = setInterval(refresh, 30000);
 }
 
 function hydratePolicy(latestPost) {
@@ -1328,3 +1449,4 @@ function hydratePolicy(latestPost) {
     `).join('');
   }
 }
+document.getElementById('year').textContent = new Date().getFullYear();

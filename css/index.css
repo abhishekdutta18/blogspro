@@ -276,12 +276,19 @@ body.light .hero::before { opacity: 0.4; }
 }
 .calendar-kv {
   display: grid;
-  gap: 0.65rem;
-  font-size: 0.9rem;
-  color: var(--muted);
-  line-height: 1.45;
+  gap: 0.6rem;
+  font-size: 0.88rem;
 }
-.calendar-kv b { color: var(--cream); font-weight: 600; }
+.snap-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(136,150,179,0.12);
+}
+.snap-row:last-child { border-bottom: none; }
+.snap-row span { color: var(--muted); font-size: 0.82rem; }
+.snap-row b { color: var(--gold); font-weight: 600; text-align: right; }
 .desk-charts {
   margin-top: 0.55rem;
   display: grid;
