@@ -3,6 +3,8 @@ import { serve } from "inngest/cloudflare";
 import { inngest, getInngestClient } from "./lib/inngest-client.js";
 import { pulseSwarmWorkflow } from "./lib/inngest-functions.js";
 import { getGoogleAccessToken, pushTelemetryLog } from "./lib/storage-bridge-worker.js";
+import { XMLParser } from "fast-xml-parser";
+
 
 /**
  * BlogsPro Pulse Worker (V5.3 - Durable)
@@ -108,6 +110,48 @@ export default {
           }
         } catch (e) {
           console.warn("Institutional Proxy Flow Interrupted:", e.message);
+        }
+      }
+
+      // 3.6. [V15.7] NEWS WIRE PROXY: Institutional Feed Aggregator
+      if (pathname === '/news' && request.method === 'POST') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const requestedFeeds = body.feeds || [];
+          
+          const FEEDS = {
+            BLOOMBERG: "https://news.google.com/rss/search?q=site%3Abloomberg.com+finance&hl=en-US&gl=US&ceid=US:en",
+            FT: "https://news.google.com/rss/search?q=site%3Aft.com+markets&hl=en-US&gl=US&ceid=US:en",
+            REUTERS: "https://news.google.com/rss/search?q=site%3Areuters.com+finance&hl=en-US&gl=US&ceid=US:en",
+            CNBC: "https://news.google.com/rss/search?q=site%3Acnbc.com+markets&hl=en-US&gl=US&ceid=US:en",
+            YAHOO: "https://finance.yahoo.com/news/rssindex",
+            ECONOMIC_TIMES: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms",
+            MINT: "https://news.google.com/rss/search?q=site%3Alivemint.com+indian+economy&hl=en-IN&gl=IN&ceid=IN:en"
+          };
+
+          const keys = requestedFeeds.length > 0 
+            ? requestedFeeds.map(k => k.toUpperCase().replace(/-/g, '_')).filter(k => FEEDS[k])
+            : ["BLOOMBERG", "FT", "REUTERS", "CNBC"];
+
+          const results = await Promise.allSettled(keys.map(async (k) => {
+             const res = await fetch(FEEDS[k], { 
+               headers: { "User-Agent": "Mozilla/5.0 BlogsPro-Intelligence/4.0" },
+               signal: AbortSignal.timeout(8000)
+             });
+             if (!res.ok) return [];
+             const xml = await res.text();
+             return parseRSS(xml, k);
+          }));
+
+          const allArticles = results
+            .filter(r => r.status === 'fulfilled')
+            .flatMap(r => r.value)
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+            .slice(0, 40);
+
+          return wrapResponse({ articles: allArticles });
+        } catch (e) {
+          return wrapResponse({ error: e.message }, 500);
         }
       }
 
@@ -557,4 +601,28 @@ async function handleHuggingFaceGateway(prompt, model, env) {
   const data = await res.json();
   if (data.choices?.[0]?.message?.content) return data.choices[0].message.content;
   throw new Error(data.error?.message || "HuggingFace Gateway Failure");
+}
+
+/**
+ * Institutional RSS Parser
+ */
+function parseRSS(xml, source) {
+  try {
+    const parser = new XMLParser({ ignoreAttributes: false });
+    const parsed = parser.parse(xml);
+    const items = parsed?.rss?.channel?.item || parsed?.feed?.entry || [];
+    return (Array.isArray(items) ? items : [items]).map(i => {
+      const title = i.title?.["#text"] || i.title || "Untitled";
+      const link = i.link?.["@_href"] || i.link || i.link?.["#text"] || "";
+      const pubDate = i.pubDate || i.updated || i.published || new Date().toISOString();
+      return {
+        title,
+        url: link,
+        source: source.replace(/_/g, ' '),
+        timestamp: new Date(pubDate).getTime()
+      };
+    });
+  } catch (e) {
+    return [];
+  }
 }
