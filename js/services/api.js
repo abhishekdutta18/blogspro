@@ -3,8 +3,9 @@
 // Handles Auth, Data, and Swarm operations via the server-side worker.
 // ═══════════════════════════════════════════════
 
-const API_BASE = "https://blogspro-auth.abhishek-dutta1996.workers.dev";
-const NEWSLETTER_BASE = "https://blogspro-sentry-webhook.abhishek-dutta1996.workers.dev";
+import { ENDPOINTS } from '../endpoints.js';
+const API_BASE = ENDPOINTS.auth;
+const NEWSLETTER_BASE = ENDPOINTS.newsletter;
 const FIREBASE_API_KEY = "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY";
 
 const FIREBASE_ERROR_MESSAGES = {

@@ -7,5 +7,8 @@ export const CLOUDINARY_CLOUD_NAME    = 'dldbsidve';
 export const CLOUDINARY_UPLOAD_PRESET = 'blogspro';
 
 // ── Upstox market-data proxy worker ───────────
-export const UPSTOX_WORKER_URL = 'https://blogspro-upstox.abhishek-dutta1996.workers.dev';
+// URL is resolved from js/endpoints.js (supports CF Workers → GCP Cloud Run swap)
+import { ENDPOINTS } from '../endpoints.js';
+export const UPSTOX_WORKER_URL = ENDPOINTS.upstox;
+
  

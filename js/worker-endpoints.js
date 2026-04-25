@@ -1,7 +1,9 @@
 // Centralized worker endpoint config for all BlogsPro Institutional operations.
 // Strictly favors the Durable Pulse Orchestrator (V5.4).
 
-const PULSE_WORKER_BASE = "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
+import { ENDPOINTS } from './endpoints.js';
+
+const PULSE_WORKER_BASE = ENDPOINTS.pulse;
 
 function normalizeBase(url) {
   return String(url || "").trim().replace(/\/+$/, "");
