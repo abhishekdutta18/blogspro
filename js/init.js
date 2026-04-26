@@ -318,6 +318,7 @@ async function loadForexFactoryData() {
 }
 
 async function loadUpstoxMarketData(opts = {}) {
+  console.log('📡 [BlogsPro] Loading market data (V6.6-VALIDATED)...');
   const { showLoading = false } = opts;
   const segmentIndices = document.getElementById('segmentIndices');
   const segmentStocksOptions = document.getElementById('segmentStocksOptions');
@@ -370,7 +371,18 @@ async function loadUpstoxMarketData(opts = {}) {
     stocksOptions: [{ symbol: 'RELIANCE', price: 2940.25, change: 0.42 }, { symbol: 'HDFCBANK', price: 1622.40, change: -0.18 }, { symbol: 'ICICIBANK', price: 1114.85, change: 0.44 }, { symbol: 'INFY', price: 1528.35, change: -0.27 }, { symbol: 'TCS', price: 4012.60, change: 0.13 }, { symbol: 'SBIN', price: 768.10, change: 0.76 }, { symbol: 'BHARTIARTL', price: 1279.95, change: -0.06 }, { symbol: 'LT', price: 3721.55, change: 0.22 }, { symbol: 'KOTAKBANK', price: 1762.30, change: 0.31 }, { symbol: 'AXISBANK', price: 1112.40, change: -0.11 }],
     bonds: [{ symbol: 'India 10Y G-Sec', price: 100.15, change: -0.04, yield: 7.12 }, { symbol: 'India 5Y G-Sec', price: 99.74, change: 0.03, yield: 7.03 }, { symbol: 'India 14Y G-Sec', price: 98.88, change: -0.02, yield: 7.20 }, { symbol: 'SDL 2033', price: 97.61, change: 0.01, yield: 7.35 }, { symbol: 'T-Bill 364D', price: 99.22, change: 0.02, yield: 6.88 }, { symbol: 'Corp AAA 5Y', price: 101.07, change: 0.00, yield: 7.54 }],
     currency: [{ symbol: 'USDINR', price: 86.42, change: 0.08, open: 86.35, high: 86.58, low: 86.28, prev: 86.35, volume: 2541200 }, { symbol: 'EURINR', price: 93.88, change: -0.11, open: 94.00, high: 94.15, low: 93.72, prev: 93.99, volume: 1718800 }, { symbol: 'GBPINR', price: 110.42, change: -0.09, open: 110.52, high: 110.68, low: 110.24, prev: 110.52, volume: 1185400 }, { symbol: 'JPYINR', price: 0.574, change: 0.06, open: 0.571, high: 0.576, low: 0.569, prev: 0.571, volume: 987200 }, { symbol: 'USDJPY', price: 150.62, change: -0.18, open: 150.90, high: 151.05, low: 150.44, prev: 150.90, volume: 3189000 }, { symbol: 'EURUSD', price: 1.086, change: 0.14, open: 1.082, high: 1.088, low: 1.080, prev: 1.084, volume: 2974300 }, { symbol: 'GBPUSD', price: 1.278, change: -0.07, open: 1.281, high: 1.283, low: 1.276, prev: 1.280, volume: 2641200 }, { symbol: 'DXY', price: 103.84, change: -0.12, open: 103.98, high: 104.10, low: 103.72, prev: 103.96, volume: 1455500 }, { symbol: 'USDCNH', price: 7.235, change: 0.04, open: 7.230, high: 7.242, low: 7.226, prev: 7.231, volume: 1320800 }, { symbol: 'AUDUSD', price: 0.628, change: 0.10, open: 0.625, high: 0.631, low: 0.622, prev: 0.627, volume: 1193000 }],
-    commodities: [{ symbol: 'MCX Gold (10g)', price: 68420.00, change: 0.29, open: 68240, high: 68635, low: 68195, prev: 68221, volume: 224500 }, { symbol: 'MCX Silver (kg)', price: 79044.00, change: 0.62, open: 78680, high: 79320, low: 78550, prev: 78559, volume: 196700 }, { symbol: 'MCX Crude (bbl)', price: 6821.00, change: -0.41, open: 6849, high: 6882, low: 6796, prev: 6849, volume: 312400 }, { symbol: 'MCX NatGas (mmBtu)', price: 211.30, change: -1.08, open: 214.05, high: 214.82, low: 210.94, prev: 213.61, volume: 288900 }, { symbol: 'Brent (ICE)', price: 84.72, change: 0.18, open: 84.31, high: 85.06, low: 84.07, prev: 84.57, volume: 167300 }, { symbol: 'WTI (NYMEX)', price: 80.44, change: -0.12, open: 80.57, high: 81.02, low: 80.11, prev: 80.54, volume: 152900 }, { symbol: 'Copper (COMEX)', price: 835.45, change: 0.39, open: 830.90, high: 838.12, low: 828.44, prev: 832.21, volume: 139600 }, { symbol: 'Aluminium (LME)', price: 2284.20, change: -0.26, open: 2292.00, high: 2298.00, low: 2275.50, prev: 2290.20, volume: 102800 }, { symbol: 'Zinc (LME)', price: 2542.10, change: 0.34, open: 2530.90, high: 2551.60, low: 2526.80, prev: 2533.50, volume: 94100 }, { symbol: 'Cotton (ICE)', price: 94.16, change: 0.22, open: 93.84, high: 94.36, low: 93.70, prev: 93.95, volume: 78100 }],
+    commodities: [
+      { symbol: 'MCX Gold (10g)', price: 75240.00, change: 0.45, open: 74980, high: 75450, low: 74820, prev: 74904, volume: 152000 },
+      { symbol: 'MCX Silver (kg)', price: 92450.00, change: 0.82, open: 91800, high: 92800, low: 91500, prev: 91700, volume: 84000 },
+      { symbol: 'MCX Crude (bbl)', price: 6840.00, change: -0.21, open: 6855, high: 6890, low: 6810, prev: 6855, volume: 312000 },
+      { symbol: 'MCX NatGas', price: 184.50, change: -1.45, open: 187.20, high: 188.00, low: 183.50, prev: 187.20, volume: 220000 },
+      { symbol: 'Brent Oil ($)', price: 82.45, change: 0.25, open: 82.10, high: 82.80, low: 81.90, prev: 82.25, volume: 167000 },
+      { symbol: 'WTI Oil ($)', price: 78.12, change: -0.15, open: 78.25, high: 78.50, low: 77.90, prev: 78.24, volume: 152000 },
+      { symbol: 'Spot Gold ($)', price: 2412.50, change: 0.35, open: 2404.10, high: 2418.40, low: 2402.20, prev: 2404.10, volume: 95000 },
+      { symbol: 'Copper (MCX)', price: 845.20, change: 0.55, open: 840.10, high: 848.50, low: 838.20, prev: 840.60, volume: 45000 },
+      { symbol: 'Aluminium (LME)', price: 2450.00, change: -0.30, open: 2465.00, high: 2470.00, low: 2440.00, prev: 2457.00, volume: 32000 },
+      { symbol: 'Cotton (MCX)', price: 58400.00, change: 0.12, open: 58300, high: 58600, low: 58200, prev: 58330, volume: 12000 }
+    ],
     crypto: [{ symbol: 'BTCUSDT', price: 68245.20, change: 1.12, open: 67420.40, high: 68780.00, low: 66995.30, prev: 67490.10, volume: 31245000 }, { symbol: 'ETHUSDT', price: 3540.60, change: 0.88, open: 3498.10, high: 3574.80, low: 3460.20, prev: 3509.70, volume: 19832000 }, { symbol: 'BNBUSDT', price: 612.20, change: 0.64, open: 605.30, high: 615.90, low: 602.40, prev: 608.31, volume: 6234000 }, { symbol: 'SOLUSDT', price: 178.45, change: 1.94, open: 171.10, high: 180.80, low: 169.90, prev: 175.05, volume: 11287000 }, { symbol: 'XRPUSDT', price: 0.63, change: -0.42, open: 0.64, high: 0.65, low: 0.62, prev: 0.63, volume: 8432000 }, { symbol: 'DOGEUSDT', price: 0.15, change: 0.31, open: 0.15, high: 0.16, low: 0.15, prev: 0.15, volume: 7391000 }, { symbol: 'ADAUSDT', price: 0.61, change: -0.19, open: 0.61, high: 0.62, low: 0.60, prev: 0.61, volume: 5284000 }, { symbol: 'MATICUSDT', price: 0.94, change: 0.27, open: 0.93, high: 0.95, low: 0.92, prev: 0.94, volume: 4921000 }, { symbol: 'AVAXUSDT', price: 41.22, change: 1.35, open: 39.88, high: 41.94, low: 39.42, prev: 40.67, volume: 3812000 }, { symbol: 'DOTUSDT', price: 8.76, change: 0.58, open: 8.62, high: 8.81, low: 8.55, prev: 8.71, volume: 2645000 }, { symbol: 'LTCUSDT', price: 92.31, change: -0.24, open: 92.84, high: 93.70, low: 91.92, prev: 92.53, volume: 2198000 }, { symbol: 'LINKUSDT', price: 18.42, change: 0.77, open: 18.11, high: 18.66, low: 17.95, prev: 18.28, volume: 2419000 }],
   };
   const segmentTargetCount = { indices: 24, stocksOptions: 24, bonds: 12, currency: 12, commodities: 12, crypto: 20 };
@@ -423,8 +435,9 @@ async function loadUpstoxMarketData(opts = {}) {
       if (key === 'indices') return '';
       if (key === 'currency') return '';
       if (key === 'commodities') {
-        if (s.includes('MCX') || s.includes('GOLD') || s.includes('SILVER') || s.includes('CRUDE') || s.includes('NATGAS')) return '₹';
-        if (s.includes('BRENT') || s.includes('WTI') || s.includes('NYMEX') || s.includes('COMEX') || s.includes('LME') || s.includes('ICE')) return '$';
+        const up = s.toUpperCase();
+        if (up.includes('XAU') || up.includes('XAG') || up.includes('BRENT') || up.includes('WTI') || up.includes('NYMEX') || up.includes('COMEX') || up.includes('LME') || up.includes('ICE') || s.includes('($)')) return '$';
+        if (up.includes('MCX') || up.includes('NSE') || up.includes('BSE') || up.includes('GOLD') || up.includes('SILVER')) return '₹';
         return '₹';
       }
       return '';
@@ -432,16 +445,22 @@ async function loadUpstoxMarketData(opts = {}) {
     const logoGlyph = (symbol, key) => {
       const s = String(symbol || '').toUpperCase();
       if (key === 'crypto') {
-        if (s.includes('BTC')) return 'B';
-        if (s.includes('ETH')) return 'E';
-        if (s.includes('SOL')) return 'S';
-        if (s.includes('XRP')) return 'X';
+        if (s.includes('BTC')) return '₿';
+        if (s.includes('ETH')) return 'Ξ';
+        if (s.includes('SOL')) return '◎';
+        if (s.includes('XRP')) return '✕';
       }
-      if (key === 'indices') return 'I';
-      if (key === 'bonds') return 'Y';
-      if (key === 'currency') return 'F';
-      if (key === 'commodities') return 'C';
-      return s.slice(0, 1) || 'M';
+      if (key === 'indices') return '📈';
+      if (key === 'bonds') return '🏛️';
+      if (key === 'currency') return '💱';
+      if (key === 'commodities') {
+        if (s.includes('GOLD')) return '🟡';
+        if (s.includes('SILVER')) return '⚪';
+        if (s.includes('CRUDE') || s.includes('OIL')) return '🛢️';
+        if (s.includes('GAS')) return '🔥';
+        return '📦';
+      }
+      return '◌';
     };
     el.innerHTML = items.map((raw) => {
       const c = raw;
@@ -490,6 +509,16 @@ async function loadUpstoxMarketData(opts = {}) {
         if (!keySym || seenIngest.has(keySym)) continue;
         seenIngest.add(keySym);
         const last = Number(val?.last_price ?? val?.ltp ?? val?.ohlc?.close);
+        const k = String(instrument).toUpperCase();
+        const symU = String(symbol).toUpperCase();
+
+        // [V6.6] Institutional Data Quality Guard: Purge suspicious values (e.g. Yahoo fallback in worker)
+        if (k.includes('MCX')) {
+          if (symU.includes('GOLD') && last < 30000) continue; // Discard per-gram or junk data
+          if (symU.includes('SILVER') && last < 5000) continue;
+          if (symU.includes('CRUDE') && last < 1000) continue;
+        }
+
         const prev = Number(val?.ohlc?.close ?? val?.prev_close_price ?? 0);
         if (!Number.isFinite(last)) continue;
         const pct = prev ? ((last - prev) / prev) * 100 : 0;
