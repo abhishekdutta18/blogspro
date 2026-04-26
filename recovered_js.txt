@@ -1,0 +1,135 @@
+694-  <div class="pulse-grid" id="pulseGrid">
+695-    <!-- Hydrated by renderPulse -->
+696-  </div>
+697-</section>
+698-
+699-<!-- POSTS — Primary content, shown immediately after hero -->
+700-<div class="briefings-wrapper">
+701-<section id="briefings">
+702-  <div class="section-header">
+703-    <h2 class="section-title">Latest <em>Briefings</em><span id="postsCount" style="display:none"></span></h2>
+704:    <a href="#briefings" class="section-link" onclick="window.filterByCategory?.('All')">Full Archive <span>&rarr;</span></a>
+705-  </div>
+706-
+707-  <!-- Search & Filters -->
+708-  <div class="search-container">
+709-    <div class="search-input-wrap">
+710-      <span class="search-icon">🔍</span>
+711:      <input type="text" id="postSearch" class="search-input" placeholder="Search briefings by keyword..." oninput="window.handleSearch?.(this.value)">
+712-    </div>
+713-    <div class="filter-chips" id="filterChips">
+714:      <button class="filter-chip active" data-cat="all" onclick="window.filterByCategory?.('All')">All</button>
+715:      <button class="filter-chip" data-cat="macro" onclick="window.filterByCategory?.('Macro')">Macro</button>
+716:      <button class="filter-chip" data-cat="policy" onclick="window.filterByCategory?.('Policy')">Policy</button>
+717:      <button class="filter-chip" data-cat="equity" onclick="window.filterByCategory?.('Equity')">Equity</button>
+718:      <button class="filter-chip" data-cat="tech" onclick="window.filterByCategory?.('Tech')">Tech</button>
+719:      <button class="filter-chip" data-cat="crypto" onclick="window.filterByCategory?.('Crypto')">Crypto</button>
+720-    </div>
+721-  </div>
+722-  <div class="posts-grid" id="postsGrid">
+723-    <!-- Hydrated by renderBriefings -->
+724-  </div>
+725-</section>
+726-
+727-<!-- STRATEGIC ARTICLES (WEEKLY/MONTHLY) -->
+728-<section id="articles" class="reveal" style="margin-top: 4rem;">
+729-  <div class="section-header">
+730-    <h2 class="section-title">Strategic <em>Articles</em></h2>
+731-    <span class="muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">Deep Insights</span>
+732-  </div>
+733-  <div class="posts-grid" id="articlesGrid">
+734-    <!-- Hydrated by renderArticles -->
+735-  </div>
+736-</section>
+737-</div><!-- /.briefings-wrapper -->
+738-
+739-<!-- TICKER TAPE (Professional TradingView Widget) -->
+--
+1166-      sessionStorage.setItem(key, '1');
+1167-      try {
+1168-        const { updateDoc, increment: inc, doc: fsDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+1169-        await updateDoc(fsDoc(db, 'posts', id), { views: inc(1) });
+1170-      } catch(_) {}
+1171-    }
+1172-    window.location.href = `post.html?id=${id}`;
+1173-  };
+1174-
+1175-  // ── Search & Category Filter globals (called from inline onclick/oninput) ──
+1176:  window.handleSearch = function(query) {
+1177-    const q = query.trim().toLowerCase();
+1178-    if (!q) {
+1179-      filteredPosts = currentCat === 'all' ? [...allPosts] : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat.toLowerCase());
+1180-    } else {
+1181-      filteredPosts = allPosts.filter(p => {
+1182-        const inCat = currentCat === 'all' || (p.category || '').toLowerCase() === currentCat.toLowerCase();
+1183-        const inText = (p.title || '').toLowerCase().includes(q) || (p.excerpt || '').toLowerCase().includes(q);
+1184-        return inCat && inText;
+1185-      });
+1186-    }
+1187-    renderPosts(filteredPosts);
+1188-  };
+1189-
+1190:  window.filterByCategory = function(cat) {
+1191-    if (typeof window.clarity === 'function') {
+1192-      window.clarity('set',   'active_filter', cat.toLowerCase());
+1193-      window.clarity('event', 'filter_used');
+1194-    }
+1195-    currentCat = cat.toLowerCase();
+1196-    document.querySelectorAll('.filter-chip').forEach(b => {
+1197-      b.classList.toggle('active', b.textContent.trim().toLowerCase() === currentCat || (currentCat === 'all' && b.textContent.trim() === 'All'));
+1198-    });
+1199-    const searchVal = document.getElementById('postSearch')?.value?.trim().toLowerCase() || '';
+1200-    if (searchVal) {
+1201:      window.handleSearch(searchVal);
+1202-    } else {
+1203-      filteredPosts = currentCat === 'all' ? [...allPosts] : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat.toLowerCase());
+1204-      renderPosts(filteredPosts);
+1205-    }
+1206-  };
+1207-
+1208-  // ── Load About ─────────────────────────────────
+1209-  async function loadAbout() {
+1210-    const applyAboutDefaults = () => {
+1211-      document.getElementById('aboutDisplayName').textContent = 'BlogsPro';
+1212-      document.getElementById('aboutDisplayName2').textContent = 'Sharp insights for fintech practitioners.';
+1213-      document.getElementById('aboutDisplayTagline').textContent = 'Fintech Insights';
+1214-      document.getElementById('aboutDisplayBio').textContent =
+1215-        'We publish practical fintech analysis, execution playbooks, and market breakdowns for builders and operators.';
+1216-      document.getElementById('aboutMissionWrap').style.display = 'none';
+1217-      const socials = document.getElementById('aboutSocials');
+1218-      if (socials) socials.innerHTML = '';
+1219-      const avatarImg = document.getElementById('aboutAvatarImg');
+1220-      const avatarInitial = document.getElementById('aboutAvatarInitial');
+1221-      if (avatarImg) avatarImg.style.display = 'none';
+--
+1418-    const tvTicker = document.getElementById('tvTickerContainer');
+1419-    if (tvTicker) observer.observe(tvTicker);
+1420-    const tvHub = document.getElementById('tvHubContainer');
+1421-    if (tvHub) observer.observe(tvHub);
+1422-  }
+1423-
+1424-  // Trigger startApp after Firebase is ready
+1425-  await startApp();
+1426-
+1427-  // ── Filter chip event listeners (data-cat driven) ──────────────────────────
+1428:  // Works alongside the inline onclick="window.filterByCategory?.()" on each chip.
+1429-  // The data-cat attribute (added to each chip) drives category matching.
+1430-  document.querySelectorAll('.filter-chip').forEach(btn => {
+1431-    btn.addEventListener('click', () => {
+1432-      document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+1433-      btn.classList.add('active');
+1434-      currentCat = btn.dataset.cat || btn.textContent.trim().toLowerCase();
+1435-      renderPosts(currentCat === 'all'
+1436-        ? allPosts
+1437-        : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat)
+1438-      );
+1439-    });
+1440-  });
+1441-
+1442-  // ── Topic Ticker ────────────────────────────────────────────────────────────
+1443-  // Fetches /posts/ticker.json (array of topic tag strings) and prepends them
+1444-  // to the scrolling #ticker strip, replacing the static defaults if data found.
+1445-  async function loadTicker() {
+1446-    try {
+1447-      const resp = await fetch('/posts/ticker.json');
+1448-      if (!resp.ok) return;

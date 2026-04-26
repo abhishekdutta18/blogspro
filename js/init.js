@@ -20,8 +20,6 @@ let allPosts   = [];
 let currentCat = 'all';
 
 // ── Early Global Exports (Ensures UI handlers work immediately) ───────────────
-window.handleSearch = (q) => { /* Placeholder, will be replaced by real function */ };
-window.filterByCategory = (c) => { /* Placeholder */ };
 window.toggleTheme = () => {
   document.body.classList.toggle('light');
   const isLight = document.body.classList.contains('light');
@@ -1553,3 +1551,4 @@ window.loadForexFactoryData = loadForexFactoryData;
 window.initIntelHub = initIntelHub;
 window.initTVAdvChart = initTVAdvChart;
 window.pollMarkets = pollMarkets;
+

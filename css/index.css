@@ -1207,3 +1207,124 @@ footer { border-top: 1px solid var(--border); background: var(--navy); }
 }
 .insti-btn:hover { background: var(--cream); transform: translateY(-1px); }
 
+
+/* ── INSTITUTIONAL NEWS WIRE (V2.0 - TERMINAL UI) ── */
+#institutionalNewsWire {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 800px;
+  overflow-y: auto;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold) transparent;
+}
+
+#institutionalNewsWire::-webkit-scrollbar { width: 4px; }
+#institutionalNewsWire::-webkit-scrollbar-track { background: transparent; }
+#institutionalNewsWire::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
+
+.news-item {
+  display: grid;
+  grid-template-columns: 80px 1fr 100px;
+  gap: 1.5rem;
+  padding: 0.85rem 1rem;
+  background: rgba(19, 29, 56, 0.4);
+  border-left: 2px solid transparent;
+  transition: all 0.2s ease;
+  align-items: center;
+  cursor: pointer;
+}
+
+.news-item:hover {
+  background: rgba(191, 161, 0, 0.05);
+  border-left-color: var(--gold);
+  transform: translateX(4px);
+}
+
+.news-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.news-source {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--gold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.news-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+
+.news-title {
+  font-size: 0.92rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--cream);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.news-link {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--gold);
+  text-decoration: none;
+  font-weight: 700;
+  text-align: right;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.news-item:hover .news-link { opacity: 1; }
+
+.news-item.bloomberg { border-left-color: #0000ff; } /* Blue for Bloomberg */
+.news-item.reuters { border-left-color: #ff6600; }   /* Orange for Reuters */
+
+/* Status Header */
+.news-wire-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0 1rem;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: #22c55e;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background: #22c55e;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #22c55e;
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}

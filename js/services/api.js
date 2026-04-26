@@ -49,7 +49,7 @@ async function fetchWithRetry(url, options = {}, retries = 3, backoff = 1000) {
  * Robust JSON fetch wrapper with automatic auth header injection.
  * Supports both absolute and relative worker paths.
  */
-async function fetchJson(url, options = {}, timeoutMs = 60000) {
+async function fetchJson(url, options = {}, timeoutMs = 15000) {
   const token = localStorage.getItem("fb_token");
   const isInternal = url.startsWith("/") && !url.includes("://");
   

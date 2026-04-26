@@ -1,0 +1,2000 @@
+commit b0f80bde4a119d69bbd79d67bc06277dd4391be7
+Author: BlogsPro Bot <bot@blogspro.in>
+Date:   Fri Apr 24 02:06:40 2026 +0000
+
+    chore: autonomous production build [skip ci]
+
+diff --git a/index.html b/index.html
+deleted file mode 100644
+index 90c3b01..0000000
+--- a/index.html
++++ /dev/null
+@@ -1,2860 +0,0 @@
+-<!DOCTYPE html>
+-<html lang="en">
+-<head>
+-  <meta charset="UTF-8" />
+-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+-  <title>BlogsPro — Fintech | Compliance | Strategy</title>
+-  <meta name="description" content="Sharp insights on fintech, regulatory compliance, and growth strategy." />
+-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+-  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+-  <link rel="apple-touch-icon" href="favicon.png" />
+-  <link rel="preconnect" href="https://fonts.googleapis.com" />
+-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+-  <!-- Cloudflare Web Analytics -->
+-  <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"72bc8a3f7037468f8d9cb205b4ebb989"}'></script>
+-  <!-- End Cloudflare Web Analytics -->
+-  <style>
+-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+-
+-    :root {
+-      --navy:    #050505; /* Pure Night */
+-      --navy2:   #0A0A0A; /* Deep Gunmetal */
+-      --navy3:   #121212; /* Muted Anthracite */
+-      --crimson: #9B1C1C; /* Institutional Crimson */
+-      --alert-crimson: #D32F2F; /* Alert Crimson */
+-      --cream:   #E5E7EB; /* Subdued Grey-White */
+-      --muted:   #6B7280; /* Neutral Muted */
+-      --border:  rgba(155,28,28,0.2);
+-      --serif:   'Cormorant Garamond', Georgia, serif;
+-      --sans:    'Inter', sans-serif;
+-      --mono:    'JetBrains Mono', monospace;
+-      --emerald: #10b981;
+-      --red:     #ef4444;
+-      --gold:    #c9a84c;
+-      --gold2:   #f0cc6e;
+-    }
+-
+-    html { scroll-behavior: auto; }
+-
+-    body {
+-      background: var(--navy);
+-      color: var(--cream);
+-      font-family: var(--sans);
+-      font-size: 16px;
+-      line-height: 1.6;
+-      -webkit-font-smoothing: antialiased;
+-    }
+-
+-    a { color: inherit; text-decoration: none; }
+-
+-    /* ── NAV ── */
+-    nav {
+-      position: sticky; top: 0; z-index: 100;
+-      background: rgba(8,13,26,0.92);
+-      backdrop-filter: blur(12px);
+-      border-bottom: 1px solid var(--border);
+-    }
+-    .nav-inner {
+-      max-width: 1200px; margin: 0 auto; width: 100%;
+-      display: flex; align-items: center; justify-content: space-between;
+-      height: 68px;
+-      padding: 0 2rem;
+-    }
+-
+-    .nav-brand {
+-      font-family: var(--mono);
+-      font-size: 1.1rem;
+-      font-weight: 700;
+-      letter-spacing: -0.02em;
+-      color: var(--cream);
+-      border-bottom: 2px solid var(--crimson);
+-      padding-bottom: 2px;
+-    }
+-    .nav-brand span { color: var(--alert-crimson); margin-left: 2px; }
+-
+-    .nav-links { display: flex; align-items: center; gap: 2rem; list-style: none; }
+-
+-    .nav-links a {
+-      font-size: 1.0rem; font-weight: 500;
+-      letter-spacing: 0.08em; text-transform: uppercase;
+-      color: var(--muted); transition: color 0.2s;
+-    }
+-    .nav-links a:hover { color: var(--crimson); }
+-
+-    .nav-cta {
+-      background: var(--crimson); color: var(--navy) !important;
+-      padding: 0.6rem 1.1rem; border-radius: 3px;
+-      font-weight: 600 !important; transition: background 0.2s !important;
+-    }
+-    .nav-cta:hover { background: var(--alert-crimson) !important; }
+-
+-    .nav-google-btn {
+-      background: rgba(155,28,28,0.1);
+-      border: 1px solid var(--border);
+-      color: var(--crimson);
+-      width: 40px; height: 35px;
+-      display: flex; align-items: center; justify-content: center;
+-      border-radius: 3px; cursor: pointer; transition: all 0.2s;
+-    }
+-    .nav-google-btn:hover {
+-      background: rgba(155,28,28,0.2);
+-      border-color: var(--crimson);
+-      color: var(--alert-crimson);
+-      box-shadow: 0 0 15px rgba(155,28,28,0.2);
+-    }
+-
+-    body.light {
+-      --navy: #f8f5ef; --navy2: #ffffff; --navy3: #ede8df;
+-      --cream: #1a1a2e; --muted: #6b7a99;
+-      --border: rgba(201,168,76,0.3);
+-    }
+-    body.light nav { background: rgba(248,245,239,0.92); }
+-    body.light .hero::before { opacity: 0.4; }
+-
+-    .theme-btn-nav {
+-      background: transparent; border: 1px solid var(--border); color: var(--muted);
+-      width: 32px; height: 32px; border-radius: 50%; font-size: 1.0rem;
+-      cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+-    }
+-    .theme-btn-nav:hover { border-color: var(--gold); color: var(--gold); }
+-
+-    .nav-user { display: flex; align-items: center; gap: 0.6rem; cursor: pointer; position: relative; }
+-    .nav-avatar {
+-      width: 32px; height: 32px; border-radius: 50%;
+-      background: linear-gradient(135deg, var(--gold), var(--navy3));
+-      border: 1.5px solid var(--border);
+-      display: flex; align-items: center; justify-content: center;
+-      font-size: 0.95rem; font-weight: 700; color: var(--navy);
+-      overflow: hidden; flex-shrink: 0;
+-    }
+-    .nav-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+-    .nav-user-name { font-size: 1.0rem; font-weight: 500; color: var(--cream); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+-    .nav-admin-tag { background: var(--gold); color: var(--navy); padding: 0.35rem 0.9rem; border-radius: 3px; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.06em; transition: background 0.2s; }
+-    .nav-admin-tag:hover { background: var(--gold2) !important; }
+-    .nav-dropdown {
+-      position: absolute; top: calc(100% + 0.6rem); right: 0;
+-      background: var(--navy2); border: 1px solid var(--border);
+-      min-width: 160px; z-index: 200;
+-      display: none; flex-direction: column;
+-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+-    }
+-    .nav-dropdown.open { display: flex; }
+-    .nav-dropdown a, .nav-dropdown button {
+-      padding: 0.7rem 1rem; font-size: 1.0rem; color: var(--muted);
+-      background: transparent; border: none; text-align: left;
+-      font-family: var(--sans); cursor: pointer; transition: all 0.15s;
+-      border-bottom: 1px solid rgba(201,168,76,0.08);
+-      text-decoration: none; display: block;
+-    }
+-    .nav-dropdown a:hover, .nav-dropdown button:hover { color: var(--gold); background: rgba(201,168,76,0.05); }
+-    .nav-dropdown button { color: #fca5a5; }
+-
+-    /* ── HERO ── */
+-    .hero {
+-      min-height: 88vh;
+-      display: flex; flex-direction: column; justify-content: center;
+-      padding: 5rem 2rem 4rem;
+-      max-width: 1200px; margin: 0 auto;
+-      position: relative;
+-    }
+-    .hero::before {
+-      content: ''; position: fixed; inset: 0; z-index: -1;
+-      background:
+-        radial-gradient(ellipse 60% 50% at 70% 40%, rgba(155,28,28,0.05) 0%, transparent 70%),
+-        radial-gradient(ellipse 40% 60% at 20% 80%, rgba(18,18,18,0.06) 0%, transparent 60%);
+-    }
+-    .hero-label {
+-      font-size: 0.9rem; font-weight: 600; letter-spacing: 0.2em;
+-      text-transform: uppercase; color: var(--gold); margin-bottom: 1.5rem;
+-      display: flex; align-items: center; gap: 0.75rem;
+-    }
+-    .hero-label::before { content: ''; display: block; width: 2rem; height: 1px; background: var(--gold); }
+-    .hero h1 {
+-      font-family: var(--serif); font-size: clamp(3.2rem, 7vw, 6.5rem);
+-      font-weight: 700; line-height: 1.05; letter-spacing: -0.01em;
+-      max-width: 14ch; margin-bottom: 1.8rem;
+-    }
+-    .hero h1 em {
+-      font-style: italic;
+-      background: linear-gradient(135deg, var(--gold), var(--gold2));
+-      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+-    }
+-    .hero-sub { font-size: 1.1rem; color: var(--muted); max-width: 48ch; margin-bottom: 3rem; line-height: 1.7; }
+-    .hero-actions { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+-    .btn-primary {
+-      background: var(--gold); color: var(--navy);
+-      padding: 1.1rem 2rem; border-radius: 3px;
+-      font-weight: 600; font-size: 0.9rem; letter-spacing: 0.04em;
+-      transition: all 0.2s; border: none; cursor: pointer;
+-    }
+-    .btn-primary:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(201,168,76,0.3); }
+-    .hero-scroll { color: var(--muted); font-size: 1.0rem; display: flex; align-items: center; gap: 0.8rem; transition: color 0.2s; }
+-    .hero-scroll:hover { color: var(--gold); }
+-    .hero-stats { position: absolute; bottom: 3rem; right: 0; display: flex; gap: 3rem; }
+-    .stat-item { text-align: right; }
+-    .stat-value { font-family: var(--mono); font-size: 2.2rem; font-weight: 700; color: var(--gold2); line-height: 1; }
+-    .stat-label { font-family: var(--mono); font-size: 0.8rem; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.25rem; opacity: 0.7; }
+-
+-    /* ── TICKER ── */
+-    .ticker-bar { background: var(--navy3); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); overflow: hidden; padding: 0.7rem 0; }
+-    .ticker-inner { display: flex; gap: 4rem; white-space: nowrap; justify-content: space-around; }
+-    .ticker-tag { font-size: 0.9rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+-    .ticker-sep { color: var(--muted); }
+-
+-    /* ── FOREX CALENDAR ── */
+-    .feed-status-wrap { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem 0; margin-bottom: 3rem; }
+-    .feed-status {
+-      background: var(--navy2);
+-      border: 1px solid var(--border);
+-      border-left: 3px solid var(--gold);
+-      padding: 0.8rem 0.9rem;
+-    }
+-    .feed-status-head {
+-      display: flex;
+-      align-items: center;
+-      justify-content: space-between;
+-      gap: 0.8rem;
+-      margin-bottom: 0.55rem;
+-      flex-wrap: wrap;
+-    }
+-    .feed-status-label { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em; text-transform: none; color: var(--cream); }
+-    .feed-status-chip {
+-      font-size: 0.8rem;
+-      color: #86efac;
+-      background: rgba(34,197,94,0.1);
+-      border: 1px solid rgba(34,197,94,0.35);
+-      padding: 0.18rem 0.5rem;
+-      border-radius: 999px;
+-      letter-spacing: 0.08em;
+-      text-transform: uppercase;
+-      white-space: nowrap;
+-    }
+-    .feed-status-chip.warn {
+-      color: #f0cc6e;
+-      background: rgba(240,204,110,0.1);
+-      border-color: rgba(240,204,110,0.35);
+-    }
+-    .feed-status-chip.down {
+-      color: #fca5a5;
+-      background: rgba(239,68,68,0.1);
+-      border-color: rgba(239,68,68,0.35);
+-    }
+-    .calendar-page {
+-      min-height: 72vh;
+-    }
+-    .calendar-layout {
+-      display: grid;
+-      grid-template-columns: 1.35fr 0.9fr;
+-      gap: 0.8rem;
+-    }
+-    .calendar-list {
+-      list-style: none;
+-      margin: 0;
+-      padding: 0;
+-      display: grid;
+-      gap: 0.9rem;
+-    }
+-    .calendar-meta {
+-      font-size: 0.85rem;
+-      color: var(--muted);
+-      margin-bottom: 0.55rem;
+-      display: flex;
+-      gap: 0.7rem;
+-      flex-wrap: wrap;
+-    }
+-    .calendar-analysis {
+-      font-size: 0.95rem;
+-      color: var(--muted);
+-      margin-bottom: 0.35rem;
+-      line-height: 1.5;
+-    }
+-    .calendar-tools {
+-      display: flex;
+-      gap: 0.8rem;
+-      flex-wrap: wrap;
+-      margin-bottom: 0.45rem;
+-    }
+-    .calendar-panel {
+-      border: 1px solid rgba(136,150,179,0.2);
+-      border-radius: 4px;
+-      padding: 0.65rem;
+-      background: var(--navy2);
+-    }
+-    .calendar-mini-title {
+-      font-size: 0.8rem;
+-      color: var(--gold);
+-      letter-spacing: 0.1em;
+-      text-transform: uppercase;
+-      margin-bottom: 0.45rem;
+-      font-weight: 600;
+-    }
+-    .calendar-kv {
+-      display: grid;
+-      gap: 0.65rem;
+-      font-size: 0.9rem;
+-      color: var(--muted);
+-      line-height: 1.45;
+-    }
+-    .calendar-kv b { color: var(--cream); font-weight: 600; }
+-    .desk-charts {
+-      margin-top: 0.55rem;
+-      display: grid;
+-      gap: 0.8rem;
+-    }
+-    .desk-chart {
+-      border: 1px solid rgba(136,150,179,0.2);
+-      border-radius: 4px;
+-      padding: 0.6rem;
+-      background: var(--navy);
+-    }
+-    .desk-chart-title {
+-      font-size: 0.75rem;
+-      text-transform: uppercase;
+-      letter-spacing: 0.08em;
+-      color: var(--muted);
+-      margin-bottom: 0.3rem;
+-      font-weight: 600;
+-    }
+-    .prob-bars { display: grid; gap: 0.5rem; }
+-    .prob-row { display: grid; grid-template-columns: 52px 1fr 34px; gap: 0.65rem; align-items: center; }
+-    .prob-label { font-size: 0.8rem; color: var(--muted); }
+-    .prob-track { height: 7px; border-radius: 999px; background: rgba(136,150,179,0.2); overflow: hidden; }
+-    .prob-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--gold), #e9d08a); }
+-    .prob-val { font-size: 0.8rem; color: var(--cream); text-align: right; }
+-    .gauge-wrap { display: grid; grid-template-columns: 56px 1fr; gap: 0.75rem; align-items: center; }
+-    .gauge {
+-      width: 56px; height: 56px; border-radius: 50%;
+-      background: conic-gradient(#22c55e 0deg, #22c55e var(--g, 180deg), rgba(136,150,179,0.2) var(--g, 180deg), rgba(136,150,179,0.2) 360deg);
+-      display: grid; place-items: center;
+-    }
+-    .gauge::after {
+-      content: "";
+-      width: 40px; height: 40px; border-radius: 50%;
+-      background: var(--navy2);
+-      border: 1px solid rgba(136,150,179,0.2);
+-    }
+-    .gauge-note { font-size: 0.8rem; color: var(--muted); line-height: 1.35; }
+-    .sector-bars { display: grid; gap: 0.5rem; }
+-    .sector-row { display: grid; grid-template-columns: 56px 1fr; gap: 0.65rem; align-items: center; }
+-    .sector-label { font-size: 0.8rem; color: var(--muted); }
+-    .sector-track { height: 6px; border-radius: 999px; background: rgba(136,150,179,0.2); overflow: hidden; }
+-    .sector-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #8fb5ff, #5e8fff); }
+-    .desk-explain {
+-      margin-top: 0.55rem;
+-      border: 1px dashed rgba(136,150,179,0.3);
+-      border-radius: 4px;
+-      padding: 0.6rem;
+-      font-size: 0.8rem;
+-      color: var(--muted);
+-      display: grid;
+-      gap: 0.5rem;
+-      line-height: 1.4;
+-    }
+-    .india-qoq-panel {
+-      margin-top: 0.7rem;
+-      border-top: 1px solid rgba(136,150,179,0.2);
+-      padding-top: 0.6rem;
+-    }
+-    .india-qoq-title {
+-      font-size: 0.8rem;
+-      text-transform: uppercase;
+-      letter-spacing: 0.09em;
+-      color: var(--gold);
+-      margin-bottom: 0.4rem;
+-      font-weight: 600;
+-    }
+-    .qoq-bars {
+-      min-height: 0;
+-      height: 220px;
+-      max-height: 220px;
+-      overflow: hidden;
+-      border: 1px solid rgba(136,150,179,0.2);
+-      border-radius: 4px;
+-      padding: 0.6rem;
+-      background: rgba(8,13,26,0.35);
+-    }
+-    .qoq-chart-wrap {
+-      width: 100%;
+-      height: 190px;
+-      max-height: 190px;
+-    }
+-    .qoq-chart-wrap canvas {
+-      width: 100% !important;
+-      height: 190px !important;
+-      max-height: 190px !important;
+-      display: block;
+-    }
+-    .linechart-wrap {
+-      width: 100%;
+-      display: grid;
+-      gap: 0.65rem;
+-    }
+-    .linechart-svg {
+-      width: 100%;
+-      height: 160px;
+-      display: block;
+-    }
+-    .line-axis {
+-      stroke: rgba(136,150,179,0.35);
+-      stroke-width: 1;
+-    }
+-    .line-grid {
+-      stroke: rgba(136,150,179,0.18);
+-      stroke-width: 1;
+-      stroke-dasharray: 2 2;
+-    }
+-    .line-path {
+-      fill: none;
+-      stroke: var(--gold);
+-      stroke-width: 2;
+-      stroke-linecap: round;
+-      stroke-linejoin: round;
+-    }
+-    .line-path-forecast {
+-      fill: none;
+-      stroke: #8fb5ff;
+-      stroke-width: 2;
+-      stroke-linecap: round;
+-      stroke-linejoin: round;
+-      stroke-dasharray: 5 4;
+-    }
+-    .line-point {
+-      fill: #e9d08a;
+-      stroke: #080d1a;
+-      stroke-width: 1.25;
+-    }
+-    .line-point-label {
+-      font-size: 10px;
+-      fill: var(--cream);
+-      font-weight: 600;
+-    }
+-    .line-tick-text {
+-      font-size: 10px;
+-      fill: var(--muted);
+-    }
+-    .line-x-label {
+-      font-size: 10px;
+-      fill: var(--muted);
+-    }
+-    .linechart-note {
+-      font-size: 0.75rem;
+-      color: var(--muted);
+-      line-height: 1.4;
+-    }
+-    .calendar-skeleton {
+-      list-style: none;
+-      margin: 0;
+-      padding: 0;
+-      display: grid;
+-      gap: 0.8rem;
+-    }
+-    .calendar-skel-row {
+-      display: grid;
+-      grid-template-columns: 72px 1fr 135px 52px;
+-      gap: 0.8rem;
+-      align-items: center;
+-    }
+-    .calendar-past-wrap {
+-      margin-top: 0.65rem;
+-      border-top: 1px solid rgba(136,150,179,0.2);
+-      padding-top: 0.55rem;
+-    }
+-    .calendar-past-title {
+-      font-size: 0.8rem;
+-      letter-spacing: 0.09em;
+-      text-transform: uppercase;
+-      color: var(--gold);
+-      margin-bottom: 0.4rem;
+-      font-weight: 600;
+-    }
+-    .calendar-past-list {
+-      list-style: none;
+-      margin: 0;
+-      padding: 0;
+-      display: grid;
+-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+-      gap: 0.8rem;
+-    }
+-    .calendar-past-item {
+-      background: rgba(15,22,40,0.85);
+-      border: 1px solid rgba(136,150,179,0.18);
+-      border-radius: 4px;
+-      padding: 0.75rem;
+-      display: grid;
+-      gap: 0.8rem;
+-      min-height: 90px;
+-      font-size: 0.85rem;
+-      color: var(--muted);
+-    }
+-    .cal-skel {
+-      height: 11px;
+-      border-radius: 999px;
+-      background: linear-gradient(90deg, rgba(136,150,179,0.2), rgba(136,150,179,0.34), rgba(136,150,179,0.2));
+-      background-size: 220% 100%;
+-      animation: calPulse 1.25s ease-in-out infinite;
+-    }
+-    @keyframes calPulse {
+-      0% { background-position: 0% 0; }
+-      100% { background-position: -220% 0; }
+-    }
+-    .calendar-input, .calendar-select, .calendar-btn {
+-      background: rgba(15,22,40,0.9);
+-      border: 1px solid var(--border);
+-      color: var(--cream);
+-      font-size: 0.85rem;
+-      letter-spacing: 0.04em;
+-      border-radius: 4px;
+-      padding: 0.36rem 0.55rem;
+-    }
+-    .calendar-input { min-width: 150px; }
+-    .calendar-btn {
+-      cursor: pointer;
+-      text-transform: uppercase;
+-      font-weight: 600;
+-      color: var(--gold);
+-    }
+-    .calendar-summary {
+-      font-size: 0.85rem;
+-      color: var(--muted);
+-      margin-bottom: 0.35rem;
+-      display: flex;
+-      gap: 0.7rem;
+-      flex-wrap: wrap;
+-    }
+-    .calendar-item {
+-      background: var(--navy2);
+-      border: 1px solid rgba(136,150,179,0.22);
+-      border-radius: 4px;
+-      padding: 1.1rem;
+-      display: grid;
+-      gap: 0.8rem;
+-      min-height: 160px;
+-      font-size: 0.95rem;
+-    }
+-    .calendar-item-head {
+-      display: flex;
+-      align-items: center;
+-      justify-content: space-between;
+-      gap: 0.65rem;
+-    }
+-    .calendar-country {
+-      font-size: 0.85rem;
+-      letter-spacing: 0.11em;
+-      text-transform: uppercase;
+-      color: var(--gold);
+-      font-weight: 600;
+-    }
+-    .calendar-title {
+-      color: var(--cream);
+-      white-space: normal;
+-      overflow: visible;
+-    }
+-    .calendar-date {
+-      font-size: 0.85rem;
+-      color: var(--muted);
+-      letter-spacing: 0.04em;
+-      text-align: left;
+-    }
+-    .calendar-impact {
+-      text-align: left;
+-      font-size: 0.8rem;
+-      letter-spacing: 0.08em;
+-      text-transform: uppercase;
+-      color: #f0cc6e;
+-    }
+-    .calendar-view {
+-      display: block;
+-      color: var(--muted);
+-      font-size: 0.85rem;
+-      line-height: 1.35;
+-      margin-top: 0.18rem;
+-      white-space: normal;
+-    }
+-    .calendar-points {
+-      display: grid;
+-      grid-template-columns: repeat(3, minmax(0, 1fr));
+-      gap: 0.5rem;
+-      margin-top: 0.2rem;
+-    }
+-    .calendar-point {
+-      border: 1px solid rgba(136,150,179,0.2);
+-      border-radius: 4px;
+-      padding: 0.28rem 0.35rem;
+-      background: rgba(8,13,26,0.35);
+-      min-height: 42px;
+-    }
+-    .calendar-point-label {
+-      font-size: 0.75rem;
+-      letter-spacing: 0.08em;
+-      text-transform: uppercase;
+-      color: var(--muted);
+-      margin-bottom: 0.1rem;
+-    }
+-    .calendar-point-value {
+-      font-size: 0.85rem;
+-      color: var(--cream);
+-      font-weight: 600;
+-      line-height: 1.25;
+-      word-break: break-word;
+-    }
+-    .calendar-empty {
+-      font-size: 0.95rem;
+-      color: var(--muted);
+-      padding: 0.2rem 0 0.1rem;
+-    }
+-    .market-wrap { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem 0; margin-bottom: 3rem; }
+-    .market-box {
+-      background: var(--navy2);
+-      border: 1px solid var(--border);
+-      border-left: 3px solid var(--gold);
+-      padding: 0.9rem;
+-    }
+-    .market-head {
+-      display: flex;
+-      justify-content: space-between;
+-      align-items: center;
+-      gap: 0.8rem;
+-      margin-bottom: 0.6rem;
+-      flex-wrap: wrap;
+-    }
+-    .market-title {
+-      font-family: var(--serif);
+-      font-size: 1.4rem;
+-      font-weight: 700;
+-      letter-spacing: -0.01em;
+-      text-transform: none;
+-      color: var(--cream);
+-    }
+-    .market-updated {
+-      font-size: 0.85rem;
+-      color: var(--muted);
+-    }
+-    .market-grid {
+-      display: grid;
+-      grid-template-columns: repeat(5, minmax(0, 1fr));
+-      gap: 0.75rem;
+-      padding: 0.7rem;
+-    }
+-    @media (max-width: 1400px) {
+-      .market-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+-    }
+-    @media (max-width: 1024px) {
+-      .market-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+-    }
+-    .market-segments {
+-      display: block;
+-      border: 1px solid rgba(136,150,179,0.2);
+-      border-radius: 4px;
+-      overflow: hidden;
+-    }
+-    .market-segment {
+-      border-top: 1px solid rgba(136,150,179,0.2);
+-      background: rgba(18,18,18,0.6);
+-    }
+-    .market-segment:first-child {
+-      border-top: none;
+-    }
+-    .market-segment-title {
+-      font-size: 0.8rem;
+-      text-transform: uppercase;
+-      letter-spacing: 0.09em;
+-      color: var(--gold);
+-      font-weight: 600;
+-      padding: 0.5rem 0.65rem;
+-      border-bottom: 1px solid rgba(136,150,179,0.2);
+-      background: var(--navy);
+-    }
+-    .market-row {
+-      border: 1px solid rgba(136,150,179,0.2);
+-      border-radius: 4px;
+-      background: var(--navy2);
+-      padding: 0.5rem 0.55rem;
+-      display: grid;
+-      gap: 0.45rem;
+-      min-height: 120px;
+-    }
+-    .market-top {
+-      display: flex;
+-      align-items: center;
+-      justify-content: space-between;
+-      gap: 0.65rem;
+-    }
+-    .market-head-left {
+-      display: flex;
+-      align-items: center;
+-      gap: 0.65rem;
+-      min-width: 0;
+-    }
+-    .market-logo {
+-      width: 20px;
+-      height: 20px;
+-      border-radius: 50%;
+-      border: 1px solid rgba(136,150,179,0.35);
+-      display: grid;
+-      place-items: center;
+-      font-size: 0.75rem;
+-      color: var(--cream);
+-      background: rgba(8,13,26,0.7);
+-      flex-shrink: 0;
+-    }
+-    .market-symbol {
+-      font-size: 0.85rem;
+-      color: var(--cream);
+-      letter-spacing: 0.05em;
+-      text-transform: uppercase;
+-      font-weight: 600;
+-      overflow: hidden;
+-      text-overflow: ellipsis;
+-      white-space: nowrap;
+-    }
+-    .market-status {
+-      font-size: 0.75rem;
+-      letter-spacing: 0.08em;
+-      text-transform: uppercase;
+-      border: 1px solid rgba(136,150,179,0.35);
+-      border-radius: 999px;
+-      padding: 0.08rem 0.35rem;
+-      color: var(--muted);
+-      white-space: nowrap;
+-    }
+-    .market-status.live {
+-      color: #86efac;
+-      border-color: rgba(134,239,172,0.5);
+-    }
+-    .market-status.closed {
+-      color: #fca5a5;
+-      border-color: rgba(252,165,165,0.5);
+-    }
+-    .market-code {
+-      font-size: 0.78rem;
+-      color: var(--muted);
+-      letter-spacing: 0.06em;
+-      text-transform: uppercase;
+-    }
+-    .market-price {
+-      font-size: 1.0rem;
+-      color: var(--cream);
+-      font-weight: 600;
+-      line-height: 1.1;
+-    }
+-    .market-change {
+-      font-size: 0.8rem;
+-      font-weight: 600;
+-      letter-spacing: 0.04em;
+-      text-transform: uppercase;
+-      text-align: left;
+-    }
+-    .market-change.up { color: #86efac; }
+-    .market-change.down { color: #fca5a5; }
+-    .market-extra {
+-      font-size: 0.75rem;
+-      color: var(--muted);
+-      letter-spacing: 0.03em;
+-      text-align: left;
+-      white-space: nowrap;
+-      overflow: hidden;
+-      text-overflow: ellipsis;
+-    }
+-    .market-extra2 {
+-      font-size: 0.78rem;
+-      color: #8fa1c6;
+-      letter-spacing: 0.03em;
+-      text-align: left;
+-      white-space: nowrap;
+-      overflow: hidden;
+-      text-overflow: ellipsis;
+-    }
+-    .market-empty {
+-      font-size: 0.95rem;
+-      color: var(--muted);
+-      padding: 0.25rem 0;
+-    }
+-    .market-seg-empty {
+-      font-size: 0.85rem;
+-      color: var(--muted);
+-      border: 1px dashed rgba(136,150,179,0.25);
+-      border-radius: 4px;
+-      padding: 0.6rem;
+-    }
+-    .market-seg-skeleton {
+-      display: none !important;
+-      gap: 0.65rem;
+-    }
+-    .market-seg-skeleton .cal-skel { height: 10px; }
+-    @media (max-width: 760px) {
+-      .market-row {
+-        min-height: 110px;
+-      }
+-      .market-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+-      .market-row { min-height: 84px; }
+-    }
+-
+-    /* ── SECTION ── */
+-    section { padding: 4rem 2rem; max-width: 1200px; margin: 0 auto; }
+-    .section-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 3rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+-    .section-title { font-family: var(--serif); font-size: 2.2rem; font-weight: 700; letter-spacing: -0.01em; }
+-    .section-link { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); display: flex; align-items: center; gap: 0.65rem; transition: gap 0.2s; }
+-    .section-link:hover { gap: 0.7rem; }
+-
+-    /* ── FILTERS ── */
+-    .filters { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2.5rem; }
+-    .filter-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 0.6rem 1rem; border-radius: 2px; font-family: var(--sans); font-size: 0.95rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+-    .filter-btn:hover, .filter-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
+-
+-    /* ── GRID ── */
+-    .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 1.5rem; }
+-    .post-card { 
+-      background: var(--navy2); 
+-      padding: 2.2rem; 
+-      border: 1px solid var(--border); 
+-      border-radius: 8px;
+-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+-      cursor: pointer; 
+-      position: relative; 
+-      overflow: hidden; 
+-    }
+-    .post-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 0; background: linear-gradient(180deg, var(--gold), transparent); transition: height 0.3s; }
+-    .post-card:hover { border-color: var(--gold); background: #131d38; }
+-    .post-card:hover::before { height: 100%; }
+-    .post-category { font-size: 0.85rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 1rem; }
+-
+-    }
+-
+-    }
+-    .post-title { font-family: var(--serif); font-size: 1.45rem; font-weight: 600; line-height: 1.3; margin-bottom: 0.8rem; transition: color 0.2s; }
+-    .post-card:hover .post-title { color: var(--gold2); }
+-    .post-excerpt { font-size: 0.88rem; color: var(--muted); line-height: 1.65; margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+-    .post-meta { display: flex; align-items: center; justify-content: space-between; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+-    .post-date { font-size: 0.9rem; color: var(--muted); letter-spacing: 0.04em; }
+-    .post-read-time { font-size: 0.9rem; color: var(--gold); letter-spacing: 0.06em; }
+-    .post-views { font-size: 0.9rem; color: var(--muted); letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 0.5rem; }
+-
+-    /* ── FEATURED ── */
+-    .post-card.featured { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; padding: 3rem; }
+-    .featured-body { display: flex; flex-direction: column; justify-content: center; }
+-    .featured .post-title { font-size: 2.4rem; font-weight: 700; line-height: 1.15; }
+-    .featured-badge { display: inline-block; background: var(--gold); color: var(--navy); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; padding: 0.25rem 0.6rem; border-radius: 2px; margin-bottom: 1rem; }
+-    .featured-visual { border-radius: 4px; overflow: hidden; min-height: 260px; position: relative; }
+-    .featured-visual-img img { width: 100%; height: 100%; min-height: 260px; object-fit: cover; display: block; border-radius: 4px; transition: transform 0.4s ease; }
+-    .post-card.featured:hover .featured-visual-img img { transform: scale(1.03); }
+-    .post-card.featured.featured-no-img { grid-template-columns: 1fr; }
+-    .post-card.featured.featured-no-img .featured-body { max-width: 700px; }
+-
+-    /* ── ABOUT SECTION ── */
+-    .about-section {
+-      background: var(--navy2);
+-      border-top: 1px solid var(--border);
+-      border-bottom: 1px solid var(--border);
+-    }
+-    .about-inner {
+-      max-width: 1200px; margin: 0 auto;
+-      padding: 4rem 2rem;
+-      display: grid;
+-      grid-template-columns: 280px 1fr;
+-      gap: 5rem;
+-      align-items: start;
+-    }
+-    .about-avatar-col { display: flex; flex-direction: column; align-items: center; text-align: center; }
+-    .about-avatar-wrap {
+-      width: 160px; height: 160px; border-radius: 50%;
+-      border: 2px solid var(--border);
+-      background: var(--navy3);
+-      overflow: hidden; margin-bottom: 1.5rem;
+-      display: flex; align-items: center; justify-content: center;
+-      position: relative;
+-    }
+-    .about-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+-    .about-avatar-initial {
+-      font-family: var(--serif);
+-      font-size: 4rem; font-weight: 700; color: var(--gold);
+-    }
+-    .about-name {
+-      font-family: var(--serif);
+-      font-size: 1.5rem; font-weight: 700;
+-      margin-bottom: 0.3rem;
+-    }
+-    .about-tagline {
+-      font-size: 1.0rem; color: var(--gold);
+-      letter-spacing: 0.08em; text-transform: uppercase;
+-      font-weight: 500; margin-bottom: 1.5rem;
+-    }
+-    .about-socials { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+-    .about-social-link {
+-      display: flex; align-items: center; gap: 0.65rem;
+-      background: var(--navy3);
+-      border: 1px solid var(--border);
+-      color: var(--muted);
+-      padding: 0.4rem 0.8rem;
+-      border-radius: 3px;
+-      font-size: 0.9rem;
+-      font-weight: 500;
+-      transition: all 0.2s;
+-    }
+-    .about-label {
+-      font-size: 0.85rem; font-weight: 600;
+-      letter-spacing: 0.18em; text-transform: uppercase;
+-      color: var(--gold); margin-bottom: 1rem;
+-      display: flex; align-items: center; gap: 0.75rem;
+-    }
+-    .about-label::before { content: ''; display: block; width: 1.5rem; height: 1px; background: var(--gold); }
+-    .about-heading {
+-      font-family: var(--serif);
+-      font-size: clamp(2rem, 4vw, 3rem);
+-      font-weight: 700; line-height: 1.2;
+-      margin-bottom: 1.5rem;
+-    }
+-    .about-bio {
+-      font-size: 1rem; color: var(--muted);
+-      line-height: 1.8; margin-bottom: 2rem;
+-      white-space: pre-line;
+-    }
+-    .about-mission-wrap {
+-      border-left: 3px solid var(--gold);
+-      padding-left: 1.5rem;
+-      margin-top: 2rem;
+-    }
+-    .about-mission-label {
+-      font-size: 0.8rem; font-weight: 700; letter-spacing: 0.15em;
+-      text-transform: uppercase; color: var(--gold); margin-bottom: 0.6rem;
+-    }
+-    .about-mission-text {
+-      font-family: var(--serif);
+-      font-size: 1.2rem; font-style: italic;
+-      color: var(--cream); line-height: 1.6;
+-    }
+-    /* Skeleton for about */
+-    .about-skeleton { animation: shimmer 1.5s infinite; background: linear-gradient(90deg, var(--navy2) 25%, var(--navy3) 50%, var(--navy2) 75%); background-size: 200% 100%; border-radius: 4px; }
+-    .about-hidden { display: none !important; }
+-    .about-skeleton-grid { grid-column:1/-1; display:grid; grid-template-columns:minmax(0,280px) minmax(0,1fr); gap:5rem; align-items:start; }
+-
+-    /* ── NEWSLETTER ── */
+-    .newsletter { background: var(--navy2); border: 1px solid var(--border); padding: 4rem 3rem; text-align: center; position: relative; overflow: hidden; }
+-    .newsletter::before { content: ''; position: absolute; top: -50%; left: 50%; transform: translateX(-50%); width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 70%); }
+-    .newsletter h2 { font-family: var(--serif); font-size: 2.5rem; font-weight: 700; margin-bottom: 0.8rem; }
+-    .newsletter p { color: var(--muted); font-size: 1rem; margin-bottom: 2rem; }
+-    .newsletter-form { display: flex; gap: 0.75rem; max-width: 440px; margin: 0 auto; }
+-    .newsletter-form input { flex: 1; background: var(--navy); border: 1px solid var(--border); color: var(--cream); padding: 1.1rem 1rem; border-radius: 3px; font-family: var(--sans); font-size: 0.9rem; outline: none; transition: border-color 0.2s; }
+-    .newsletter-form input::placeholder { color: var(--muted); }
+-    .newsletter-form input:focus { border-color: var(--gold); }
+-
+-    /* ── SKELETON / LOADING ── */
+-    .skeleton { background: linear-gradient(90deg, var(--navy2) 25%, var(--navy3) 50%, var(--navy2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 3px; }
+-    @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+-    @keyframes spin { to { transform: rotate(360deg); } }
+-    .sk-h { height: 1rem; margin-bottom: 0.5rem; }
+-    .sk-title { height: 1.8rem; width: 80%; margin-bottom: 1rem; }
+-    .sk-block { height: 4rem; margin-bottom: 0.5rem; }
+-
+-    /* ── EMPTY STATE ── */
+-    .empty-state { text-align: center; padding: 5rem 2rem; color: var(--muted); }
+-    .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+-    .empty-state p { font-size: 1rem; }
+-
+-    /* ── FOOTER ── */
+-    footer { border-top: 1px solid var(--border); background: var(--navy); }
+-    .footer-inner { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; width: 100%; }
+-    .footer-brand { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+-    .footer-copy { font-size: 0.95rem; color: var(--muted); }
+-    .footer-links { display: flex; gap: 1.5rem; list-style: none; }
+-    .footer-links a { font-size: 0.95rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.2s; }
+-    .footer-links a:hover { color: var(--gold); }
+-
+-    /* ── INTEGRATION BADGE ── */
+-    .integration-badge {
+-      position: fixed;
+-      right: 1rem;
+-      bottom: 1rem;
+-      z-index: 300;
+-      display: inline-flex;
+-      align-items: center;
+-      gap: 0.75rem;
+-      border: 1px solid var(--border);
+-      background: rgba(8,13,26,0.9);
+-      color: var(--muted);
+-      padding: 0.42rem 0.65rem;
+-      border-radius: 999px;
+-      font-size: 0.85rem;
+-      letter-spacing: 0.06em;
+-      text-transform: uppercase;
+-      backdrop-filter: blur(8px);
+-    }
+-    .integration-badge-dot {
+-      width: 7px;
+-      height: 7px;
+-      border-radius: 50%;
+-      background: #f0cc6e;
+-      box-shadow: 0 0 0 0 rgba(240,204,110,0.45);
+-      animation: pulseDot 1.8s infinite;
+-    }
+-    .integration-badge.online { color: #86efac; border-color: rgba(34,197,94,0.35); }
+-    .integration-badge.online .integration-badge-dot { background: #22c55e; animation: none; box-shadow: none; }
+-    .integration-badge.degraded { color: #fca5a5; border-color: rgba(239,68,68,0.35); }
+-    .integration-badge.degraded .integration-badge-dot { background: #ef4444; animation: none; box-shadow: none; }
+-    @keyframes pulseDot {
+-      0%, 100% { box-shadow: 0 0 0 0 rgba(240,204,110,0.45); }
+-      50% { box-shadow: 0 0 0 5px rgba(240,204,110,0); }
+-    }
+-
+-    /* ── RESPONSIVE ── */
+-    @media (max-width: 768px) {
+-      .nav-links { display: none; }
+-      .nav-hamburger { display: flex; }
+-      .nav-links {
+-        display: none; position: absolute; top: 68px; left: 0; right: 0;
+-        background: rgba(8,13,26,0.97); backdrop-filter: blur(12px);
+-        flex-direction: column; padding: 1rem 2rem 1.5rem;
+-        border-bottom: 1px solid var(--border);
+-        gap: 0.3rem;
+-      }
+-      .nav-links.mobile-open { display: flex; }
+-      .nav-links li { list-style: none; }
+-      .nav-links a { display: block; padding: 0.7rem 0; font-size: 0.95rem; }
+-      .nav-links .nav-cta { display: inline-block; margin-top: 0.5rem; text-align: center; }
+-      .nav-user { padding: 0.7rem 0; }
+-      section { padding: 3rem 1.25rem; }
+-      .hero { padding: 3rem 1.25rem 2.5rem; min-height: 70vh; }
+-      .hero-stats { display: none; }
+-      .post-card.featured { grid-template-columns: 1fr; }
+-      .featured-visual { display: none; }
+-      .newsletter { padding: 2.5rem 1.5rem; }
+-      .newsletter-form { flex-direction: column; }
+-      footer { flex-direction: column; text-align: center; }
+-      .about-inner { grid-template-columns: 1fr; gap: 2.5rem; }
+-      .about-skeleton-grid { grid-template-columns: 1fr; gap: 1.8rem; }
+-      .about-avatar-col { flex-direction: row; text-align: left; align-items: flex-start; gap: 1.5rem; }
+-      .about-avatar-wrap { width: 80px; height: 80px; flex-shrink: 0; margin-bottom: 0; }
+-      .about-avatar-initial { font-size: 2rem; }
+-      .about-socials { justify-content: flex-start; }
+-      .feed-status-wrap { padding: 0.75rem 1rem 0; }
+-      .market-wrap { padding: 0.75rem 1rem 0; }
+-      .calendar-layout { grid-template-columns: 1fr; }
+-      .calendar-date, .calendar-impact { text-align: left; }
+-    }
+-
+-      .hero-stats { display: none; }
+-      .post-card.featured { grid-template-columns: 1fr; }
+-      .featured-visual { display: none; }
+-      .newsletter { padding: 2.5rem 1.5rem; }
+-      .newsletter-form { flex-direction: column; }
+-      footer { flex-direction: column; text-align: center; }
+-      .about-inner { grid-template-columns: 1fr; gap: 2.5rem; }
+-      .about-skeleton-grid { grid-template-columns: 1fr; gap: 1.8rem; }
+-      .about-avatar-col { flex-direction: row; text-align: left; align-items: flex-start; gap: 1.5rem; }
+-      .about-avatar-wrap { width: 80px; height: 80px; flex-shrink: 0; margin-bottom: 0; }
+-      .about-avatar-initial { font-size: 2rem; }
+-      .about-socials { justify-content: flex-start; }
+-      .feed-status-wrap { padding: 0.75rem 1rem 0; }
+-      .market-wrap { padding: 0.75rem 1rem 0; }
+-      .calendar-layout { grid-template-columns: 1fr; }
+-      .calendar-date, .calendar-impact { text-align: left; }
+-    }
+-    @media (max-width: 480px) {
+-      .hero { padding: 3.5rem 1.25rem 3rem; }
+-      section { padding: 3.5rem 1.25rem; }
+-      .newsletter { padding: 2.5rem 1.5rem; }
+-      .posts-grid { grid-template-columns: 1fr; }
+-      .post-card { padding: 1.5rem; }
+-      .post-card.featured { padding: 1.5rem; }
+-    }
+-  </style>
+-  <!-- Sentry Error Tracking -->
+-
+-  <script src="js/sentry-init-v2.js"></script>
+-  <!-- Google Analytics -->
+-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
+-  <script>
+-    window.dataLayer = window.dataLayer || [];
+-    function gtag(){dataLayer.push(arguments);}
+-    gtag('js', new Date()); gtag('config', 'G-DED9GTRR3E');
+-  </script>
+-</head>
+-<body>
+-<script>
+-  // Prevent browser from restoring a hash-based scroll position (e.g. #briefings)
+-  // so the page always starts at the hero on load.
+-  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+-  window.scrollTo(0, 0);
+-</script>
+-
+-<!-- NAV -->
+-<nav>
+-  <div class="nav-inner">
+-    <a class="nav-brand" href="index.html">BlogsPro.</a>
+-    <ul class="nav-links">
+-      <li><a href="#posts">Articles</a></li>
+-      <li><a href="#about">About</a></li>
+-      <li id="navAccountLink" style="display:none"><a href="account.html">Account</a></li>
+-      <li id="navGoogleLogin"><button onclick="window.registerGoogle()" class="nav-google-btn" title="Sign in with Google">
+-        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+-      </button></li>
+-      <li id="navLoginLink"><a href="login.html" class="nav-cta">Enroll</a></li>
+-
+-      <li><button class="theme-btn-nav" id="themeBtn" onclick="window.toggleTheme?.()">☀️</button></li>
+-      <li id="navAuthSlot">
+-        <a href="login.html" class="nav-cta">Login</a>
+-      </li>
+-    </ul>
+-  </div>
+-</nav>
+-
+-<!-- TICKER TAPE -->
+-<div id="tvTickerContainer" style="background: var(--navy2); border-bottom: 1px solid var(--border); height: 40px; overflow: hidden;"></div>
+-
+-
+-<!-- HERO -->
+-<div class="hero">
+-  <p class="hero-label">Fintech · Compliance · Strategy</p>
+-  <h1>The edge is in the <em>details.</em></h1>
+-
+-  <p class="hero-sub">Sharp analysis on financial technology, regulatory compliance, and growth strategy for practitioners who move markets.</p>
+-  <div class="hero-actions">
+-    <a href="#posts" class="btn-primary">Read Latest</a>
+-    <a href="#newsletter" class="hero-scroll">Subscribe ↓</a>
+-  </div>
+-  <div class="hero-stats" id="heroStats">
+-    <div class="stat-item">
+-      <div class="stat-value" id="totalViewCount">—</div>
+-      <div class="stat-label">Total Views</div>
+-    </div>
+-  </div>
+-</div>
+-
+-<!-- TICKER -->
+-<div class="ticker-bar">
+-  <div class="ticker-inner" id="ticker">
+-    <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Compliance</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Strategy</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Regulation</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Payments</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Risk</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Digital Banking</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Open Finance</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Fintech</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Compliance</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Strategy</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Regulation</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Payments</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Risk</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Digital Banking</span><span class="ticker-sep">·</span>
+-    <span class="ticker-tag">Open Finance</span><span class="ticker-sep">·</span>
+-  </div>
+-</div>
+-
+-<!-- TOP MARKET INTELLIGENCE HUB -->
+-<section class="reveal" id="tvHubContainer">
+-  <div class="section-header">
+-    <h2 class="section-title">Market <em>Intelligence</em></h2>
+-  </div>
+-  <div id="tvHubContent" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+-    <!-- Terminal Widget -->
+-    <div class="glass-card terminal-wrap" style="grid-column: span 1; display: flex; flex-direction: column; background: var(--navy2); border: 1px solid var(--border);">
+-      <div class="terminal-header">
+-        <span style="font-family: monospace; font-size: 0.75rem; color: var(--gold);">BLOGSPRO TERMINAL v2.0</span>
+-        <div style="display:flex; gap:0.5rem; align-items:center">
+-          <span id="marketStatus" class="status-dot"></span>
+-          <select id="terminalView" onchange="pollMarkets()" style="background:transparent; border:none; color:var(--muted); font-size:0.65rem; outline:none; cursor:pointer">
+-            <option value="india">IND/NSE</option>
+-            <option value="global">GLOBAL</option>
+-          </select>
+-        </div>
+-      </div>
+-      <div id="terminalBody" class="terminal-body" style="background: var(--navy); color: #86efac; font-family: monospace;">
+-        <div id="terminal-indices" style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem; border-bottom:1px solid var(--border); padding-bottom:0.75rem;">
+-          <!-- Nifty/BankNifty Hydrated here -->
+-        </div>
+-        <div id="terminal-stocks" style="display:flex; flex-direction:column; gap:0.6rem;">
+-          <!-- Top 5 Stocks Hydrated here -->
+-        </div>
+-      </div>
+-    </div>
+-
+-    <!-- Policy Tracker -->
+-    <div class="glass-card" style="padding: 1.25rem; border-left: 4px solid #60a5fa; background: var(--navy2); border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+-      <h3 style="font-family: var(--serif); font-size: 1.1rem; color: #60a5fa; margin-bottom: 1rem;">Policy & Regulation</h3>
+-      <div id="policyTracker" style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.85rem;">
+-        <div class="policy-item">
+-          <strong style="color:var(--gold); display:block; margin-bottom: 0.2rem;">RBI (Reserve Bank)</strong>
+-          <p id="rbiSnippet" style="margin:0; color:var(--muted); line-height:1.4;">Fetching latest updates...</p>
+-        </div>
+-        <div class="policy-item">
+-          <strong style="color:var(--gold); display:block; margin-bottom: 0.2rem;">SEBI (Markets Regulator)</strong>
+-          <p id="sebiSnippet" style="margin:0; color:var(--muted); line-height:1.4;">Fetching latest updates...</p>
+-        </div>
+-        <!-- Download Center (New) -->
+-        <div style="border-top:1px solid var(--border); padding-top:0.8rem; margin-top:0.5rem">
+-          <strong style="display:block; font-size:0.75rem; color:var(--cream); margin-bottom:0.5rem">Regulatory Library</strong>
+-          <div id="downloadHub" style="display:flex; flex-direction:column; gap:0.4rem;">
+-            <span style="font-size:0.7rem; color:var(--muted)">No documents available yet.</span>
+-          </div>
+-        </div>
+-      </div>
+-    </div>
+-
+-    <!-- Market Heatmap -->
+-    <div id="tvHeatmap" class="glass-card" style="min-height: 250px; background: var(--navy2); border: 1px solid var(--border);"></div>
+-  </div>
+-</section>
+-
+-<!-- POSTS -->
+-<section id="posts">
+-    <div class="section-header">
+-      <h2 class="section-title">Latest <em>Articles</em></h2>
+-    </div>
+-
+-    <div class="search-container" style="margin-bottom: 2rem;">
+-      <div class="search-input-wrap" style="position: relative; display: flex; align-items: center;">
+-        <span class="search-icon" style="position: absolute; left: 1rem; color: var(--muted);">🔍</span>
+-        <input type="text" id="postSearch" class="search-input" placeholder="Search articles by keyword..." oninput="handleSearch(this.value)" style="width: 100%; background: var(--navy2); border: 1px solid var(--border); color: var(--cream); padding: 0.8rem 1rem 0.8rem 2.5rem; border-radius: 4px; outline: none;">
+-      </div>
+-      <div class="filter-chips" id="filterChips" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;">
+-        <button class="filter-chip active" onclick="filterByCategory('All')">All</button>
+-        <button class="filter-chip" onclick="filterByCategory('Fintech')">Fintech</button>
+-        <button class="filter-chip" onclick="filterByCategory('Compliance')">Compliance</button>
+-        <button class="filter-chip" onclick="filterByCategory('Strategy')">Strategy</button>
+-      </div>
+-    </div>
+-
+-  <div class="posts-grid" id="postsGrid">
+-    <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
+-    <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
+-    <div class="post-card"><div class="skeleton sk-h" style="width:40%"></div><div class="skeleton sk-title"></div><div class="skeleton sk-block"></div><div class="skeleton sk-h" style="width:60%;margin-top:1rem"></div></div>
+-  </div>
+-</section>
+-
+-<!-- CALENDAR -->
+-<div class="feed-status-wrap calendar-page">
+-  <div class="feed-status">
+-    <div class="feed-status-head">
+-      <div class="feed-status-label">This Week High-Impact Calendar</div>
+-      <div class="feed-status-chip" id="forexFeedChip">Syncing</div>
+-    </div>
+-    <div class="calendar-meta" id="forexCalendarMeta">Source: Syncing · Updated: --</div>
+-    <div class="calendar-analysis" id="forexCalendarAnalysis">Analyst view will appear after data loads.</div>
+-    <div class="calendar-tools">
+-      <button class="calendar-btn" id="forexCalendarRefresh" type="button">Refresh</button>
+-      <input class="calendar-input" id="forexCalendarCountryFilter" type="text" placeholder="Filter country (USD, EUR…)" />
+-      <select class="calendar-select" id="forexCalendarLimit">
+-        <option value="5">Show 5</option>
+-        <option value="8">Show 8</option>
+-        <option value="10">Show 10</option>
+-      </select>
+-      <select class="calendar-select" id="forexCalendarTimezone">
+-        <option value="local">Local Time</option>
+-        <option value="utc">UTC</option>
+-      </select>
+-      <input class="calendar-input" id="forexCalendarTitleFilter" type="text" placeholder="Filter event title keyword…" />
+-      <select class="calendar-select" id="forexCalendarImpactFilter">
+-        <option value="all">All impact</option>
+-        <option value="high">High only</option>
+-      </select>
+-      <select class="calendar-select" id="forexCalendarSort">
+-        <option value="date_asc">Sort: Date ↑</option>
+-        <option value="date_desc">Sort: Date ↓</option>
+-        <option value="country">Sort: Country</option>
+-      </select>
+-    </div>
+-    <div class="calendar-summary" id="forexCalendarSummary">Summary: loading…</div>
+-    <div class="calendar-layout">
+-      <ul class="calendar-list" id="forexCalendarList">
+-        <li class="calendar-empty">Loading calendar data…</li>
+-      </ul>
+-      <div class="calendar-panel">
+-        <div class="calendar-mini-title">Desk Snapshot</div>
+-        <div class="calendar-kv" id="forexCalendarSnapshot">
+-          <div><b>Window:</b> Syncing…</div>
+-          <div><b>Volatility Bias:</b> Calculating…</div>
+-          <div><b>Focus Pair:</b> --</div>
+-          <div><b>Risk Note:</b> Waiting for incoming events.</div>
+-        </div>
+-        <div class="desk-charts">
+-          <div class="desk-chart">
+-            <div class="desk-chart-title">Country Event Mix</div>
+-            <div id="forexCountryMixChart" style="height: 220px;"></div>
+-          </div>
+-          <div class="desk-chart">
+-            <div class="desk-chart-title">Surprise Dispersion</div>
+-            <div id="forexSurpriseChart" style="height: 220px;"></div>
+-          </div>
+-          <div class="desk-chart">
+-            <div class="desk-chart-title">Forex Session Risk Heat</div>
+-            <div id="forexSessionGaugeChart" style="height: 120px; display: flex; justify-content: center; align-items: center; padding-top: 10px;"></div>
+-            <div class="prob-val" id="forexSessionGaugeNote">Session Risk Heat: --</div>
+-          </div>
+-        </div>
+-        <div class="desk-explain" id="forexDeskExplain">
+-          <div><b>Country Event Mix:</b> concentration of this-week high-impact events by currency block.</div>
+-          <div><b>Surprise Dispersion:</b> absolute Actual vs Forecast spread to highlight data shock potential.</div>
+-          <div><b>Session Risk Heat:</b> risk split across Asia, Europe, and US release windows.</div>
+-        </div>
+-      </div>
+-    </div>
+-    <div class="calendar-past-wrap">
+-      <div class="calendar-past-title">Past Events</div>
+-      <ul class="calendar-past-list" id="forexCalendarPastList">
+-        <li class="calendar-empty">Loading past events…</li>
+-      </ul>
+-    </div>
+-    <ul class="calendar-skeleton" id="forexCalendarSkeleton" style="display:none">
+-      <li class="calendar-skel-row"><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span></li>
+-      <li class="calendar-skel-row"><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span></li>
+-      <li class="calendar-skel-row"><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span></li>
+-      <li class="calendar-skel-row"><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span><span class="cal-skel"></span></li>
+-    </ul>
+-  </div>
+-</div>
+-
+-    <!-- ══════════════ STRATEGIC INTEL HUB ══════════════ -->
+-    <div class="market-wrap">
+-      <div id="intel-hub-root"></div>
+-      <!-- Institutional News Wire Slot (Added V5.5.0) -->
+-      <div id="institutionalNewsWire"></div>
+-    </div>
+-
+-    <!-- Global Indices — full width -->
+-    <div class="market-wrap">
+-      <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
+-        <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Global Indices</span>
+-        <span style="font-size:0.72rem;color:var(--muted);">Americas · Europe · Asia-Pacific · India · Commodities</span>
+-      </div>
+-      <div id="tvIndices" class="glass-card" style="min-height: 450px; overflow: hidden; background: var(--navy2); border: 1px solid var(--border);"></div>
+-
+-      <!-- Advanced Interactive Chart — full width -->
+-      <div style="margin-top: 2rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:0.75rem;">
+-        <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Live Chart</span>
+-        <span style="font-size:0.72rem;color:var(--muted);">NIFTY 50 — NSE</span>
+-      </div>
+-      <div id="tvAdvChart" class="glass-card tv-chart-wrap" style="background: var(--navy2); border: 1px solid var(--border); min-height: 500px;"></div>
+-    </div>
+-
+-<!-- INDIA CALENDAR -->
+-<div class="feed-status-wrap calendar-page">
+-  <div class="feed-status">
+-    <div class="feed-status-head">
+-      <div class="feed-status-label">India Macro Events</div>
+-      <div style="display:flex;align-items:center;gap: 0.75rem;flex-wrap:wrap;justify-content:flex-end">
+-        <div class="calendar-meta" id="indiaHeaderDateTime">Date/Time: --</div>
+-        <div class="feed-status-chip" id="indiaFeedChip">Syncing</div>
+-      </div>
+-    </div>
+-    <div class="calendar-meta" id="indiaCalendarMeta">Source: Syncing · Updated: --</div>
+-    <div class="calendar-analysis" id="indiaCalendarAnalysis">Analyst view will appear after data loads.</div>
+-    <div class="calendar-summary" id="indiaCalendarSummary">Summary: loading…</div>
+-    <div class="calendar-layout">
+-      <ul class="calendar-list" id="indiaCalendarList">
+-        <li class="calendar-empty">Loading India calendar data…</li>
+-      </ul>
+-      <div class="calendar-panel">
+-        <div class="calendar-mini-title">India Desk Snapshot</div>
+-        <div class="calendar-kv" id="indiaCalendarSnapshot">
+-          <div><b>Window:</b> Syncing…</div>
+-          <div><b>Rates Bias:</b> Calculating…</div>
+-          <div><b>Focus:</b> CPI / RBI / Growth</div>
+-          <div><b>Risk Note:</b> Waiting for incoming India events.</div>
+-        </div>
+-        <div class="desk-charts">
+-          <div class="desk-chart">
+-            <div class="desk-chart-title">RBI Probability</div>
+-            <div id="indiaProbChart" style="height: 220px;"></div>
+-          </div>
+-          <div class="desk-chart">
+-            <div class="desk-chart-title">INR Pressure Gauge</div>
+-            <div id="indiaInrGaugeChart" style="height: 120px; display: flex; justify-content: center; align-items: center; padding-top: 10px;"></div>
+-            <div class="prob-val" id="indiaInrGaugeNote">INR Pressure Gauge: --</div>
+-          </div>
+-          <div class="desk-chart">
+-            <div class="desk-chart-title">Sector Impact</div>
+-            <div id="indiaSectorChart" style="height: 220px;"></div>
+-          </div>
+-        </div>
+-        <div class="desk-explain" id="indiaDeskExplain">
+-          <div><b>RBI Probability:</b> expected policy path from inflation, growth, and event intensity.</div>
+-          <div><b>INR Pressure:</b> directional stress from external-balance and inflation signals.</div>
+-          <div><b>Sector Impact:</b> relative sensitivity ranking from event mix.</div>
+-          <div><b>Confidence Score:</b> weighted quality based on date, impact, and forecast coverage.</div>
+-        </div>
+-      </div>
+-    </div>
+-    <div class="india-qoq-panel">
+-      <div class="india-qoq-title" id="indiaQoqTitle">India QoQ Historical Trend</div>
+-      <div id="indiaQoqChart" style="height: 280px;"></div>
+-    </div>
+-  </div>
+-</div>
+-
+-<!-- MARKET SNAPSHOT -->
+-<div class="market-wrap">
+-  <div class="market-box">
+-    <div class="market-head">
+-      <div class="market-title">Market Snapshot</div>
+-      <div class="market-updated" id="marketUpdated">Updating…</div>
+-    </div>
+-    <div class="market-segments">
+-      <div class="market-segment">
+-        <div class="market-segment-title">Indices <span id="ageIndices" style="float:right;color:var(--muted);font-size:0.52rem">Age: --</span></div>
+-        <div class="market-grid" id="segmentIndices"><div class="market-empty">Loading…</div></div>
+-      </div>
+-      <div class="market-segment">
+-        <div class="market-segment-title">Stocks <span id="ageStocks" style="float:right;color:var(--muted);font-size:0.52rem">Age: --</span></div>
+-        <div class="market-grid" id="segmentStocksOptions"><div class="market-empty">Loading…</div></div>
+-      </div>
+-      <div class="market-segment">
+-        <div class="market-segment-title">Bonds <span id="ageBonds" style="float:right;color:var(--muted);font-size:0.52rem">Age: --</span></div>
+-        <div class="market-grid" id="segmentBonds"><div class="market-empty">Loading…</div></div>
+-      </div>
+-      <div class="market-segment">
+-        <div class="market-segment-title">Currency <span id="ageCurrency" style="float:right;color:var(--muted);font-size:0.52rem">Age: --</span></div>
+-        <div class="market-grid" id="segmentCurrency"><div class="market-empty">Loading…</div></div>
+-      </div>
+-      <div class="market-segment">
+-        <div class="market-segment-title">Commodities <span id="ageCommodities" style="float:right;color:var(--muted);font-size:0.52rem">Age: --</span></div>
+-        <div class="market-grid" id="segmentCommodities"><div class="market-empty">Loading…</div></div>
+-      </div>
+-      <div class="market-segment">
+-        <div class="market-segment-title">Crypto Market <span id="ageCrypto" style="float:right;color:var(--muted);font-size:0.52rem">Age: --</span></div>
+-        <div class="market-grid" id="segmentCrypto"><div class="market-empty">Loading…</div></div>
+-      </div>
+-    </div>
+-    <div class="market-seg-skeleton" id="marketSegmentsSkeleton" style="display:none"></div>
+-  </div>
+-</div>
+-
+-<!-- ══════════════ ABOUT SECTION ══════════════ -->
+-<div class="about-section" id="about">
+-  <div class="about-inner" id="aboutInner">
+-
+-    <!-- Skeleton while loading -->
+-    <div id="aboutSkeleton" class="about-skeleton-grid">
+-      <div style="display:flex;flex-direction:column;align-items:center;gap:1rem">
+-        <div class="about-skeleton" style="width:160px;height:160px;border-radius:50%"></div>
+-        <div class="about-skeleton" style="width:120px;height:1.2rem"></div>
+-        <div class="about-skeleton" style="width:90px;height:0.9rem"></div>
+-      </div>
+-      <div style="padding-top:1rem">
+-        <div class="about-skeleton" style="width:60px;height:0.8rem;margin-bottom:1rem"></div>
+-        <div class="about-skeleton" style="width:70%;height:2.2rem;margin-bottom:1.5rem"></div>
+-        <div class="about-skeleton" style="height:1rem;margin-bottom:0.5rem"></div>
+-        <div class="about-skeleton" style="height:1rem;margin-bottom:0.5rem;width:90%"></div>
+-        <div class="about-skeleton" style="height:1rem;margin-bottom:0.5rem;width:80%"></div>
+-        <div class="about-skeleton" style="height:1rem;width:65%"></div>
+-      </div>
+-    </div>
+-
+-    <!-- Real content (hidden until loaded) -->
+-    <div class="about-avatar-col about-hidden" id="aboutAvatarCol">
+-      <div class="about-avatar-wrap" id="aboutAvatarWrap">
+-        <span class="about-avatar-initial" id="aboutAvatarInitial">B</span>
+-        <img id="aboutAvatarImg" src="" alt="" style="display:none" />
+-      </div>
+-      <div class="about-name" id="aboutDisplayName">BlogsPro</div>
+-      <div class="about-tagline" id="aboutDisplayTagline">Fintech Insights</div>
+-      <div class="about-socials" id="aboutSocials"></div>
+-    </div>
+-
+-    <div class="about-content-col about-hidden" id="aboutContentCol">
+-      <div class="about-label">About</div>
+-      <h2 class="about-heading" id="aboutDisplayName2">Sharp insights for fintech practitioners.</h2>
+-      <p class="about-bio" id="aboutDisplayBio"></p>
+-      <div class="about-mission-wrap" id="aboutMissionWrap" style="display:none">
+-        <div class="about-mission-label">Our Mission</div>
+-        <p class="about-mission-text" id="aboutDisplayMission"></p>
+-      </div>
+-    </div>
+-
+-  </div>
+-</div>
+-
+-<!-- NEWSLETTER -->
+-<section id="newsletter">
+-  <div class="newsletter">
+-    <h2>Stay ahead of the curve.</h2>
+-    <p>New insights on fintech, compliance & strategy — delivered to your inbox.</p>
+-    <form class="newsletter-form" onsubmit="window.subscribeNewsletter?.(event)">
+-      <input type="email" id="emailInput" placeholder="your@email.com" required />
+-      <button type="submit" class="btn-primary" id="subBtn">
+-        <span id="subBtnText">Subscribe</span>
+-        <span id="subBtnSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(8,13,26,0.3);border-top-color:var(--navy);border-radius:50%;animation:spin 0.6s linear infinite"></span>
+-      </button>
+-    </form>
+-    <div id="subMsg" style="display:none;margin-top:1.2rem;padding: 1.1rem 1.2rem;border-radius:3px;font-size:0.88rem;font-weight:500"></div>
+-  </div>
+-</section>
+-
+-
+-<!-- FOOTER -->
+-<footer>
+-  <div class="footer-inner">
+-    <a class="nav-brand" href="index.html" style="text-decoration: none;">BlogsPro.</a>
+-    <span class="footer-copy">© <span id="year"></span> BlogsPro. All rights reserved.</span>
+-    <ul class="footer-links">
+-      <li><a href="login.html" id="footerAuthLink">Login</a></li>
+-    </ul>
+-  </div>
+-</footer>
+-<div class="integration-badge" id="integrationBadge">
+-  <span class="integration-badge-dot"></span>
+-  <span id="integrationBadgeText">Integrations: Initializing</span>
+-</div>
+-
+-<!-- FIREBASE -->
+-<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
+-<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+-<script type="text/javascript">
+-  const chartsReadyPromise = google.charts.load('current', { packages: ['corechart', 'gauge'] });
+-  const CHART_THEME = {
+-    backgroundColor: '#0a0f1d',
+-    fontName: 'JetBrains Mono',
+-    colors: ['#BFA100', '#FFB800', '#D4AF37', '#8A6D3B'],
+-    legend: { 
+-      position: 'top', 
+-      alignment: 'center',
+-      textStyle: { color: 'rgba(191,161,0,0.8)', fontSize: 10 } 
+-    },
+-    chartArea: { left: 60, right: 20, top: 40, bottom: 60, width: '85%', height: '70%' },
+-    hAxis: {
+-      title: 'Observation Period',
+-      textStyle: { color: 'rgba(191,161,0,0.6)', fontSize: 9 },
+-      titleTextStyle: { color: 'rgba(191,161,0,0.8)', fontSize: 10, italic: true },
+-      gridlines: { color: 'rgba(191,161,0,0.1)' },
+-      baselineColor: 'rgba(191,161,0,0.3)'
+-    },
+-    vAxis: {
+-      title: 'Value Drift %',
+-      textStyle: { color: 'rgba(191,161,0,0.6)', fontSize: 9 },
+-      titleTextStyle: { color: 'rgba(191,161,0,0.8)', fontSize: 10, italic: true },
+-      gridlines: { color: 'rgba(191,161,0,0.1)' },
+-      baselineColor: 'rgba(191,161,0,0.3)'
+-    }
+-  };
+-</script>
+-<script type="module">
+-  import { api } from './js/services/api.js';
+-  import { initIntelHub } from "./js/intel-hub.js";
+-  import { loadHybridPosts } from "./js/posts.js";
+-  import { initNewsWire } from "./js/news-wire.js";
+-
+-  window.registerGoogle = () => {
+-    api.auth.google("index.html");
+-  };
+-
+-
+-  const LOCAL_IMAGES_KEY = 'blogspro_images_enabled';
+-  let imagesEnabled = true;
+-  let indexUserIsAdmin = false;
+-
+-  let allPosts   = [];
+-  let currentCat = 'all';
+-  let forexCalendarRaw = [];
+-  let forexCalendarPast = [];
+-  let indiaCalendarRaw = [];
+-  let indiaCalendarHistoryRaw = [];
+-  let indiaQoqChart = null;
+-  let applyForexFiltersGlobal = null;
+-  let cryptoCache = null;
+-  let cryptoCacheAt = 0;
+-  const CRYPTO_CACHE_TTL = 60000; // 1 minute
+-  const API_TIMEOUT_MS = 12000;
+-  function setIntegrationStatus(mode, label) {
+-    const badge = document.getElementById('integrationBadge');
+-    const text = document.getElementById('integrationBadgeText');
+-    if (!badge || !text) return;
+-    badge.classList.remove('online', 'degraded');
+-    if (mode === 'online') badge.classList.add('online');
+-    if (mode === 'degraded') badge.classList.add('degraded');
+-    text.textContent = label || 'Integrations: Initializing';
+-  }
+-  setIntegrationStatus(null, 'Integrations: Initializing');
+-
+-  function withTimeout(promise, ms = API_TIMEOUT_MS, label = 'request') {
+-    let timer;
+-    return Promise.race([
+-      promise,
+-      new Promise((_, reject) => {
+-        timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+-      }),
+-    ]).finally(() => clearTimeout(timer));
+-  }
+-
+-  async function loadForexFactoryData() {
+-    const listEl = document.getElementById('forexCalendarList');
+-    const chipEl = document.getElementById('forexFeedChip');
+-    const metaEl = document.getElementById('forexCalendarMeta');
+-    const analysisEl = document.getElementById('forexCalendarAnalysis');
+-    const summaryEl = document.getElementById('forexCalendarSummary');
+-    const snapshotEl = document.getElementById('forexCalendarSnapshot');
+-    const countryMixChartEl = document.getElementById('forexCountryMixChart');
+-    const surpriseChartEl = document.getElementById('forexSurpriseChart');
+-    const sessionGaugeChartEl = document.getElementById('forexSessionGaugeChart');
+-    const sessionGaugeNoteEl = document.getElementById('forexSessionGaugeNote');
+-    const deskExplainEl = document.getElementById('forexDeskExplain');
+-    const pastListEl = document.getElementById('forexCalendarPastList');
+-    const filterEl = document.getElementById('forexCalendarCountryFilter');
+-    const titleFilterEl = document.getElementById('forexCalendarTitleFilter');
+-    const impactEl = document.getElementById('forexCalendarImpactFilter');
+-    const sortEl = document.getElementById('forexCalendarSort');
+-    const limitEl = document.getElementById('forexCalendarLimit');
+-    const tzEl = document.getElementById('forexCalendarTimezone');
+-    const skeletonEl = document.getElementById('forexCalendarSkeleton');
+-    if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !countryMixChartEl || !surpriseChartEl || !sessionGaugeChartEl || !sessionGaugeNoteEl || !deskExplainEl || !pastListEl || !filterEl || !titleFilterEl || !impactEl || !sortEl || !limitEl || !tzEl || !skeletonEl) return false;
+-
+-    const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+-    const fmtDate = (raw, mode = 'local') => {
+-      const d = raw ? new Date(raw) : null;
+-      if (!d || Number.isNaN(d.getTime())) return 'Date unavailable';
+-      const useUtc = mode === 'utc';
+-      return d.toLocaleString('en-US', {
+-        year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit',
+-        hour12: false, timeZone: useUtc ? 'UTC' : undefined
+-      }) + (useUtc ? ' UTC' : '');
+-    };
+-    const nowStamp = () => new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+-    const sourceLabel = (src) => (src === 'forexfactory' ? 'ForexFactory' : src === 'tradingeconomics' ? 'TradingEconomics' : 'Market Desk');
+-    const analystView = (event) => {
+-      const t = String(event?.title || '').toLowerCase();
+-      if (t.includes('cpi') || t.includes('inflation')) return 'Analyst view: Inflation surprise risk can reprice rate-cut expectations quickly.';
+-      if (t.includes('employment') || t.includes('non-farm') || t.includes('payroll')) return 'Analyst view: Labor momentum can shift USD yields and index futures direction.';
+-      if (t.includes('pmi') || t.includes('manufacturing') || t.includes('services')) return 'Analyst view: Growth momentum signal; watch cyclical sectors and FX beta pairs.';
+-      if (t.includes('rate') || t.includes('fomc') || t.includes('ecb') || t.includes('boe')) return 'Analyst view: Policy guidance can trigger broad cross-asset volatility in minutes.';
+-      return 'Analyst view: High-impact macro print; keep tighter stops around release minute.';
+-    };
+-    const buildAnalysis = (events) => {
+-      const byCountry = {};
+-      for (const e of events) {
+-        const c = String(e.country || 'FX').trim() || 'FX';
+-        byCountry[c] = (byCountry[c] || 0) + 1;
+-      }
+-      const top = Object.entries(byCountry).sort((a, b) => b[1] - a[1]).slice(0, 2);
+-      if (!top.length) return 'No high-impact events were identified in the current response.';
+-      const lead = top.map(([c, n]) => `${c} (${n})`).join(', ');
+-      return `Risk concentration is highest in ${lead}; expect volatility around release windows and plan tighter risk limits near those sessions.`;
+-    };
+-    const parseNum = (v) => {
+-      const m = String(v ?? '').replace(/,/g, '').match(/-?\d+(\.\d+)?/);
+-      return m ? Number(m[0]) : NaN;
+-    };
+-
+-
+-    applyForexFiltersGlobal = null; // reset on each load; reassigned below
+-    const applyCalendarFilters = () => {
+-      const q = String(filterEl.value || '').trim().toUpperCase();
+-      const tq = String(titleFilterEl.value || '').trim().toLowerCase();
+-      const maxN = Number(limitEl.value || 5);
+-      const tzMode = tzEl.value === 'utc' ? 'utc' : 'local';
+-      const impact = impactEl.value || 'all';
+-      const sort = sortEl.value || 'date_asc';
+-      const filtered = forexCalendarRaw.filter((e) => {
+-        const countryOk = !q || String(e.country || '').toUpperCase().includes(q);
+-        const titleOk = !tq || String(e.title || '').toLowerCase().includes(tq);
+-        const impactOk = impact === 'all' || String(e.impact || '').toLowerCase().includes(impact.toLowerCase());
+-        return countryOk && titleOk && impactOk;
+-      });
+-      filtered.sort((a, b) => {
+-        if (sort === 'country') return String(a.country || '').localeCompare(String(b.country || ''));
+-        const ad = new Date(a.date || a.Date || a.datetime || 0).getTime() || 0;
+-        const bd = new Date(b.date || b.Date || b.datetime || 0).getTime() || 0;
+-        return sort === 'date_desc' ? (bd - ad) : (ad - bd);
+-      });
+-      const events = filtered.slice(0, Math.max(1, maxN));
+-      const pastEvents = forexCalendarPast
+-        .filter((e) => {
+-          const countryOk = !q || String(e.country || '').toUpperCase().includes(q);
+-          const titleOk = !tq || String(e.title || '').toLowerCase().includes(tq);
+-          const impactOk = impact === 'all' || String(e.impact || '').toLowerCase().includes(impact.toLowerCase());
+-          return countryOk && titleOk && impactOk;
+-        })
+-        .slice(0, 6);
+-      const byCountry = {};
+-      for (const e of filtered) {
+-        const c = String(e.country || 'FX').trim() || 'FX';
+-        byCountry[c] = (byCountry[c] || 0) + 1;
+-      }
+-      const topCountry = Object.entries(byCountry).sort((a, b) => b[1] - a[1])[0];
+-      const nextDate = filtered.map((e) => e.date || e.Date || e.datetime).find(Boolean);
+-      summaryEl.textContent = `Summary: ${filtered.length} matched · Top country: ${topCountry ? `${topCountry[0]} (${topCountry[1]})` : 'N/A'} · Next release: ${fmtDate(nextDate, tzMode)}`;
+-      snapshotEl.innerHTML = `
+-        <div><b>Window:</b> ${filtered.length} events in active filter set</div>
+-        <div><b>Volatility Bias:</b> ${topCountry ? `${topCountry[0]}-linked pairs` : 'Balanced / mixed'}</div>
+-        <div><b>Focus Pair:</b> ${topCountry?.[0] === 'USD' ? 'EURUSD / USDJPY' : topCountry?.[0] === 'GBP' ? 'GBPUSD / EURGBP' : topCountry?.[0] === 'AUD' ? 'AUDUSD / AUDJPY' : 'DXY + majors'}</div>
+-        <div><b>Risk Note:</b> Clustered high-impact prints can widen spreads around the minute of release.</div>
+-      `;
+-      const topCountries = Object.entries(byCountry).sort((a, b) => b[1] - a[1]).slice(0, 5);
+-      if (window.google && google.visualization) {
+-        const data = google.visualization.arrayToDataTable([
+-          ['Country', 'Events'],
+-          ...topCountries.map(([c, n]) => [c, n])
+-        ]);
+-        const options = { 
+-          ...CHART_THEME, 
+-          pieHole: 0.4, 
+-          chartArea: { width: '90%', height: '70%' },
+-          legend: { position: 'bottom', textStyle: { color: 'rgba(191,161,0,0.8)', fontSize: 9 } }
+-        };
+-        new google.visualization.PieChart(document.getElementById('forexCountryMixChart')).draw(data, options);
+-      }
+-
+-      const surpriseRows = filtered
+-        .map((e) => {
+-          const a = parseNum(e.actual);
+-          const f = parseNum(e.forecast);
+-          if (!Number.isFinite(a) || !Number.isFinite(f)) return null;
+-          return { title: String(e.title || 'Event'), s: Math.abs(a - f) };
+-        })
+-        .filter(Boolean)
+-        .sort((a, b) => b.s - a.s)
+-        .slice(0, 4);
+-      if (window.google && google.visualization && surpriseRows.length) {
+-        const data = google.visualization.arrayToDataTable([
+-          ['Event', 'Surprise'],
+-          ...surpriseRows.map(r => [r.title.slice(0, 15), r.s])
+-        ]);
+-        const options = { 
+-          ...CHART_THEME, 
+-          hAxis: { ...CHART_THEME.hAxis, title: 'Event Dispersion' },
+-          vAxis: { ...CHART_THEME.vAxis, title: 'Absolute Surprise' },
+-          legend: { position: 'none' }
+-        };
+-        new google.visualization.BarChart(document.getElementById('forexSurpriseChart')).draw(data, options);
+-      }
+-
+-      const sess = { asia: 0, europe: 0, us: 0 };
+-      filtered.forEach((e) => {
+-        const d = new Date(e.date || e.Date || e.datetime || 0);
+-        if (!Number.isFinite(d.getTime())) return;
+-        const h = d.getUTCHours();
+-        if (h < 8) sess.asia += 1;
+-        else if (h < 14) sess.europe += 1;
+-        else sess.us += 1;
+-      });
+-      const peak = Object.entries(sess).sort((a, b) => b[1] - a[1])[0] || ['asia', 0];
+-      const peakMap = { asia: 'Asia session', europe: 'Europe session', us: 'US session' };
+-      const totalSess = Math.max(1, sess.asia + sess.europe + sess.us);
+-      const heat = Math.round((Number(peak[1] || 0) / totalSess) * 100);
+-      if (window.google && google.visualization) {
+-        const data = google.visualization.arrayToDataTable([
+-          ['Label', 'Value'],
+-          ['Risk', heat]
+-        ]);
+-        const options = {
+-          width: 120, height: 120,
+-          redFrom: 75, redTo: 100,
+-          yellowFrom: 50, yellowTo: 75,
+-          minorTicks: 5,
+-          greenColor: '#BFA100', yellowColor: '#FFB800', redColor: '#ef4444'
+-        };
+-        new google.visualization.Gauge(document.getElementById('forexSessionGaugeChart')).draw(data, options);
+-      }
+-      sessionGaugeNoteEl.textContent = `${peakMap[peak[0]] || 'Session'} concentration: ${heat}% of tracked releases`;
+-      deskExplainEl.innerHTML = `
+-        <div><b>Country Event Mix:</b> ${topCountries.map(([c, n]) => `${c} (${n})`).join(', ') || 'No mix available'}.</div>
+-        <div><b>Surprise Dispersion:</b> ${surpriseRows.length ? `${surpriseRows[0].title} leads with ${surpriseRows[0].s.toFixed(2)} spread.` : 'Awaiting actual-vs-forecast pairs.'}</div>
+-        <div><b>Session Risk Heat:</b> Highest release clustering in ${peakMap[peak[0]] || 'session windows'}.</div>
+-      `;
+-      if (!events.length) {
+-        listEl.innerHTML = `<li class="calendar-empty">No events match current filters.</li>`;
+-      } else {
+-        listEl.innerHTML = events.map((e) => `
+-            <li class="calendar-item">
+-              <div class="calendar-item-head">
+-                <span class="calendar-country">${esc(e.country || 'FX')}</span>
+-                <span class="calendar-impact">${esc(e.impact || 'High')}</span>
+-              </div>
+-              <span class="calendar-title">${esc(e.title || 'Untitled event')}<span class="calendar-view">${esc(analystView(e))}</span></span>
+-              <span class="calendar-date">${fmtDate(e.date || e.Date || e.datetime, tzMode)}</span>
+-              <div class="calendar-points">
+-                <div class="calendar-point">
+-                  <div class="calendar-point-label">Actual</div>
+-                  <div class="calendar-point-value">${esc(e.actual || 'Pending')}</div>
+-                </div>
+-                <div class="calendar-point">
+-                  <div class="calendar-point-label">Forecast</div>
+-                  <div class="calendar-point-value">${esc(e.forecast || '--')}</div>
+-                </div>
+-                <div class="calendar-point">
+-                  <div class="calendar-point-label">Previous</div>
+-                  <div class="calendar-point-value">${esc(e.previous || '--')}</div>
+-                </div>
+-              </div>
+-            </li>
+-          `).join('');
+-      }
+-      if (!pastEvents.length) {
+-        pastListEl.innerHTML = '<li class="calendar-empty">No recent past events in current filter set.</li>';
+-      } else {
+-        pastListEl.innerHTML = pastEvents.map((e) => `
+-          <li class="calendar-past-item">
+-            <div class="calendar-item-head">
+-              <span class="calendar-country">${esc(e.country || 'FX')}</span>
+-              <span class="calendar-impact">${esc(e.impact || 'High')}</span>
+-            </div>
+-            <span class="calendar-title">${esc(e.title || 'Untitled event')}</span>
+-            <span class="calendar-date">${fmtDate(e.date || e.Date || e.datetime, tzMode)}</span>
+-          </li>
+-        `).join('');
+-      }
+-    };
+-    applyForexFiltersGlobal = applyCalendarFilters;
+-
+-    const setState = (chipClass, chipText, events, source, isError = false) => {
+-      skeletonEl.style.display = 'none';
+-      chipEl.classList.remove('warn', 'down');
+-      if (chipClass) chipEl.classList.add(chipClass);
+-      chipEl.textContent = chipText;
+-      metaEl.textContent = `Source: ${sourceLabel(source)} · Events: ${events.length || 0} · Updated: ${nowStamp()}`;
+-      if (isError) {
+-        listEl.innerHTML = `<li class="calendar-empty">Calendar feeds currently unavailable. Please check back shortly.</li>`;
+-        analysisEl.textContent = 'Analyst view: Macro board temporarily unavailable; keep risk lower around scheduled sessions.';
+-        summaryEl.textContent = 'Summary: no live data';
+-        snapshotEl.innerHTML = `<div><b>Window:</b> unavailable</div><div><b>Volatility Bias:</b> unknown</div><div><b>Focus Pair:</b> --</div><div><b>Risk Note:</b> Use defensive sizing until feed normalizes.</div>`;
+-        pastListEl.innerHTML = '<li class="calendar-empty">Past events unavailable.</li>';
+-        return;
+-      }
+-      analysisEl.textContent = `Analyst view: ${buildAnalysis(events)}`;
+-      const baseNow = Date.now();
+-      const hydrated = events.map((e, idx) => {
+-        const t = new Date(e.date || e.Date || e.datetime || 0).getTime();
+-        if (Number.isFinite(t) && t > 0) return { ...e, __ts: t };
+-        return { ...e, __ts: baseNow + ((idx + 1) * 6 * 3600 * 1000) };
+-      });
+-      const sorted = hydrated.slice().sort((a, b) => a.__ts - b.__ts);
+-      forexCalendarRaw = sorted.map(({ __ts, ...rest }) => ({ ...rest, date: rest.date || new Date(__ts).toISOString() }));
+-      const pastSeed = hydrated.slice().sort((a, b) => b.__ts - a.__ts).slice(0, Math.min(6, hydrated.length));
+-      forexCalendarPast = pastSeed.map(({ __ts, ...rest }, idx) => {
+-        const pastTs = __ts - ((idx + 1) * 24 * 3600 * 1000);
+-        return { ...rest, date: new Date(pastTs).toISOString() };
+-      });
+-      applyCalendarFilters();
+-    };
+-
+-    const candidates = ['https://blogspro-upstox.abhishek-dutta1996.workers.dev'];
+-    for (const base of [...new Set(candidates.map((u) => String(u).replace(/\/+$/, '')))]) {
+-      try {
+-        skeletonEl.style.display = 'grid';
+-        const res = await withTimeout(fetch(`${base}/calendar`), 12000, 'calendar worker');
+-        if (!res.ok) continue;
+-        const json = await res.json();
+-        const events = (json?.events || []).slice(0, 5);
+-        if (!events.length) continue;
+-        setState(null, 'Live', events, json.source);
+-        return true;
+-      } catch (_) {}
+-    }
+-    setState('down', 'Down', [], 'none', true);
+-    return false;
+-  }
+-
+-  async function loadUpstoxMarketData(opts = {}) {
+-    const { showLoading = false } = opts;
+-    const segmentIndices = document.getElementById('segmentIndices');
+-    const segmentStocksOptions = document.getElementById('segmentStocksOptions');
+-    const segmentBonds = document.getElementById('segmentBonds');
+-    const segmentCurrency = document.getElementById('segmentCurrency');
+-    const segmentCommodities = document.getElementById('segmentCommodities');
+-    const segmentCrypto = document.getElementById('segmentCrypto');
+-    const ageEls = {
+-      indices: document.getElementById('ageIndices'),
+-      stocks: document.getElementById('ageStocks'),
+-      bonds: document.getElementById('ageBonds'),
+-      currency: document.getElementById('ageCurrency'),
+-      commodities: document.getElementById('ageCommodities'),
+-      crypto: document.getElementById('ageCrypto'),
+-    };
+-    const skeletonEl = document.getElementById('marketSegmentsSkeleton');
+-    const updatedEl = document.getElementById('marketUpdated');
+-    if (!segmentIndices || !segmentStocksOptions || !segmentBonds || !segmentCurrency || !segmentCommodities || !segmentCrypto || !skeletonEl || !updatedEl) return false;
+-    const setAgeLabels = (stamp) => {
+-      const ageSec = stamp ? Math.max(0, Math.round((Date.now() - stamp) / 1000)) : null;
+-      const txt = ageSec == null ? 'Age: --' : `Age: ${ageSec}s`;
+-      Object.values(ageEls).forEach((el) => { if (el) el.textContent = txt; });
+-    };
+-
+-    const candidates = ['https://blogspro-upstox-stable.abhishek-dutta1996.workers.dev'];
+-    const loadCryptoFromCoinGecko = async () => {
+-      const ids = ['bitcoin', 'ethereum', 'binancecoin', 'solana', 'ripple', 'dogecoin', 'cardano', 'matic-network', 'avalanche-2', 'polkadot', 'chainlink', 'litecoin', 'uniswap', 'near', 'stellar', 'internet-computer', 'aptos', 'arbitrum', 'optimism', 'filecoin'];
+-      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd&include_24hr_change=true`;
+-      const res = await withTimeout(fetch(`${url}&t=${Date.now()}`, { cache: 'no-store' }), 12000, 'coingecko crypto');
+-      if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status}`);
+-      const json = await res.json();
+-      const map = [['bitcoin', 'BTCUSDT'], ['ethereum', 'ETHUSDT'], ['binancecoin', 'BNBUSDT'], ['solana', 'SOLUSDT'], ['ripple', 'XRPUSDT'], ['dogecoin', 'DOGEUSDT'], ['cardano', 'ADAUSDT'], ['matic-network', 'MATICUSDT'], ['avalanche-2', 'AVAXUSDT'], ['polkadot', 'DOTUSDT'], ['chainlink', 'LINKUSDT'], ['litecoin', 'LTCUSDT'], ['uniswap', 'UNIUSDT'], ['near', 'NEARUSDT'], ['stellar', 'XLMUSDT'], ['internet-computer','ICPUSDT'], ['aptos', 'APTUSDT'], ['arbitrum', 'ARBUSDT'], ['optimism', 'OPUSDT'], ['filecoin', 'FILUSDT']];
+-      return map.map(([id, sym]) => {
+-        const row = json?.[id];
+-        const price = Number(row?.usd);
+-        const change = Number(row?.usd_24h_change);
+-        if (!Number.isFinite(price)) return null;
+-        return { symbol: sym, price, change: Number.isFinite(change) ? change : 0, source: 'coingecko', _live: true };
+-      }).filter(Boolean);
+-    };
+-
+-    const fmtNum = (n) => {
+-      const x = Number(n);
+-      if (!Number.isFinite(x)) return '--';
+-      return x.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+-    };
+-    const now = () => new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+-    const fallbackBySegment = {
+-      indices: [{ symbol: 'Nifty 50', price: 22819.60, change: -0.86 }, { symbol: 'Nifty Bank', price: 52274.60, change: -2.67 }, { symbol: 'Sensex', price: 75124.28, change: -0.61 }, { symbol: 'Nifty Midcap', price: 50874.22, change: 0.33 }, { symbol: 'Nifty IT', price: 36942.90, change: 0.58 }, { symbol: 'Nifty Auto', price: 21984.42, change: -0.22 }, { symbol: 'Nifty Pharma', price: 20114.80, change: 0.47 }, { symbol: 'Nifty PSU Bank', price: 7124.10, change: 1.11 }],
+-      stocksOptions: [{ symbol: 'RELIANCE', price: 2940.25, change: 0.42 }, { symbol: 'HDFCBANK', price: 1622.40, change: -0.18 }, { symbol: 'ICICIBANK', price: 1114.85, change: 0.44 }, { symbol: 'INFY', price: 1528.35, change: -0.27 }, { symbol: 'TCS', price: 4012.60, change: 0.13 }, { symbol: 'SBIN', price: 768.10, change: 0.76 }, { symbol: 'BHARTIARTL', price: 1279.95, change: -0.06 }, { symbol: 'LT', price: 3721.55, change: 0.22 }, { symbol: 'KOTAKBANK', price: 1762.30, change: 0.31 }, { symbol: 'AXISBANK', price: 1112.40, change: -0.11 }],
+-      bonds: [{ symbol: 'India 10Y G-Sec', price: 100.15, change: -0.04, yield: 7.12 }, { symbol: 'India 5Y G-Sec', price: 99.74, change: 0.03, yield: 7.03 }, { symbol: 'India 14Y G-Sec', price: 98.88, change: -0.02, yield: 7.20 }, { symbol: 'SDL 2033', price: 97.61, change: 0.01, yield: 7.35 }, { symbol: 'T-Bill 364D', price: 99.22, change: 0.02, yield: 6.88 }, { symbol: 'Corp AAA 5Y', price: 101.07, change: 0.00, yield: 7.54 }],
+-      currency: [{ symbol: 'USDINR', price: 86.42, change: 0.08, open: 86.35, high: 86.58, low: 86.28, prev: 86.35, volume: 2541200 }, { symbol: 'EURINR', price: 93.88, change: -0.11, open: 94.00, high: 94.15, low: 93.72, prev: 93.99, volume: 1718800 }, { symbol: 'GBPINR', price: 110.42, change: -0.09, open: 110.52, high: 110.68, low: 110.24, prev: 110.52, volume: 1185400 }, { symbol: 'JPYINR', price: 0.574, change: 0.06, open: 0.571, high: 0.576, low: 0.569, prev: 0.571, volume: 987200 }, { symbol: 'USDJPY', price: 150.62, change: -0.18, open: 150.90, high: 151.05, low: 150.44, prev: 150.90, volume: 3189000 }, { symbol: 'EURUSD', price: 1.086, change: 0.14, open: 1.082, high: 1.088, low: 1.080, prev: 1.084, volume: 2974300 }, { symbol: 'GBPUSD', price: 1.278, change: -0.07, open: 1.281, high: 1.283, low: 1.276, prev: 1.280, volume: 2641200 }, { symbol: 'DXY', price: 103.84, change: -0.12, open: 103.98, high: 104.10, low: 103.72, prev: 103.96, volume: 1455500 }, { symbol: 'USDCNH', price: 7.235, change: 0.04, open: 7.230, high: 7.242, low: 7.226, prev: 7.231, volume: 1320800 }, { symbol: 'AUDUSD', price: 0.628, change: 0.10, open: 0.625, high: 0.631, low: 0.622, prev: 0.627, volume: 1193000 }],
+-      commodities: [{ symbol: 'MCX Gold (10g)', price: 68420.00, change: 0.29, open: 68240, high: 68635, low: 68195, prev: 68221, volume: 224500 }, { symbol: 'MCX Silver (kg)', price: 79044.00, change: 0.62, open: 78680, high: 79320, low: 78550, prev: 78559, volume: 196700 }, { symbol: 'MCX Crude (bbl)', price: 6821.00, change: -0.41, open: 6849, high: 6882, low: 6796, prev: 6849, volume: 312400 }, { symbol: 'MCX NatGas (mmBtu)', price: 211.30, change: -1.08, open: 214.05, high: 214.82, low: 210.94, prev: 213.61, volume: 288900 }, { symbol: 'Brent (ICE)', price: 84.72, change: 0.18, open: 84.31, high: 85.06, low: 84.07, prev: 84.57, volume: 167300 }, { symbol: 'WTI (NYMEX)', price: 80.44, change: -0.12, open: 80.57, high: 81.02, low: 80.11, prev: 80.54, volume: 152900 }, { symbol: 'Copper (COMEX)', price: 835.45, change: 0.39, open: 830.90, high: 838.12, low: 828.44, prev: 832.21, volume: 139600 }, { symbol: 'Aluminium (LME)', price: 2284.20, change: -0.26, open: 2292.00, high: 2298.00, low: 2275.50, prev: 2290.20, volume: 102800 }, { symbol: 'Zinc (LME)', price: 2542.10, change: 0.34, open: 2530.90, high: 2551.60, low: 2526.80, prev: 2533.50, volume: 94100 }, { symbol: 'Cotton (ICE)', price: 94.16, change: 0.22, open: 93.84, high: 94.36, low: 93.70, prev: 93.95, volume: 78100 }],
+-      crypto: [{ symbol: 'BTCUSDT', price: 68245.20, change: 1.12, open: 67420.40, high: 68780.00, low: 66995.30, prev: 67490.10, volume: 31245000 }, { symbol: 'ETHUSDT', price: 3540.60, change: 0.88, open: 3498.10, high: 3574.80, low: 3460.20, prev: 3509.70, volume: 19832000 }, { symbol: 'BNBUSDT', price: 612.20, change: 0.64, open: 605.30, high: 615.90, low: 602.40, prev: 608.31, volume: 6234000 }, { symbol: 'SOLUSDT', price: 178.45, change: 1.94, open: 171.10, high: 180.80, low: 169.90, prev: 175.05, volume: 11287000 }, { symbol: 'XRPUSDT', price: 0.63, change: -0.42, open: 0.64, high: 0.65, low: 0.62, prev: 0.63, volume: 8432000 }, { symbol: 'DOGEUSDT', price: 0.15, change: 0.31, open: 0.15, high: 0.16, low: 0.15, prev: 0.15, volume: 7391000 }, { symbol: 'ADAUSDT', price: 0.61, change: -0.19, open: 0.61, high: 0.62, low: 0.60, prev: 0.61, volume: 5284000 }, { symbol: 'MATICUSDT', price: 0.94, change: 0.27, open: 0.93, high: 0.95, low: 0.92, prev: 0.94, volume: 4921000 }, { symbol: 'AVAXUSDT', price: 41.22, change: 1.35, open: 39.88, high: 41.94, low: 39.42, prev: 40.67, volume: 3812000 }, { symbol: 'DOTUSDT', price: 8.76, change: 0.58, open: 8.62, high: 8.81, low: 8.55, prev: 8.71, volume: 2645000 }, { symbol: 'LTCUSDT', price: 92.31, change: -0.24, open: 92.84, high: 93.70, low: 91.92, prev: 92.53, volume: 2198000 }, { symbol: 'LINKUSDT', price: 18.42, change: 0.77, open: 18.11, high: 18.66, low: 17.95, prev: 18.28, volume: 2419000 }],
+-    };
+-    const segmentTargetCount = { indices: 24, stocksOptions: 24, bonds: 12, currency: 12, commodities: 12, crypto: 20 };
+-    const padCards = (items, segmentKey) => {
+-      if (items.length > 0) return items;
+-      const target = segmentTargetCount[segmentKey] || 6;
+-      return (fallbackBySegment[segmentKey] || []).slice(0, target);
+-    };
+-    const renderCards = (el, items, segmentKey) => {
+-      const dedup = [];
+-      const seen = new Set();
+-      for (const it of items) {
+-        const k = String(it?.symbol || '').trim().toUpperCase();
+-        if (!k || seen.has(k)) continue;
+-        seen.add(k);
+-        dedup.push(it);
+-      }
+-      items = padCards(dedup, segmentKey);
+-      const detailText = (c, key) => {
+-        const open = Number.isFinite(Number(c.open)) ? Number(c.open) : NaN;
+-        const high = Number.isFinite(Number(c.high)) ? Number(c.high) : NaN;
+-        const low = Number.isFinite(Number(c.low)) ? Number(c.low) : NaN;
+-        const vol = Number.isFinite(Number(c.volume)) ? Number(c.volume) : NaN;
+-        const yld = Number.isFinite(Number(c.yield)) ? Number(c.yield) : NaN;
+-        if (key === 'bonds') {
+-          if (Number.isFinite(yld)) return `Yield ${yld.toFixed(2)}%`;
+-          return Number.isFinite(open) && Number.isFinite(high) && Number.isFinite(low) ? `O ${fmtNum(open)} · H ${fmtNum(high)} · L ${fmtNum(low)}` : 'Yield --';
+-        }
+-        const core = Number.isFinite(open) && Number.isFinite(high) && Number.isFinite(low)
+-          ? `O ${fmtNum(open)} · H ${fmtNum(high)} · L ${fmtNum(low)}`
+-          : `Vol ${Number.isFinite(vol) ? fmtNum(vol) : '--'}`;
+-        return core;
+-      };
+-      const detailText2 = (c, key) => {
+-        const prev = Number.isFinite(Number(c.prev)) ? Number(c.prev) : NaN;
+-        const vol = Number.isFinite(Number(c.volume)) ? Number(c.volume) : NaN;
+-        const high = Number.isFinite(Number(c.high)) ? Number(c.high) : NaN;
+-        const low = Number.isFinite(Number(c.low)) ? Number(c.low) : NaN;
+-        if (key === 'bonds') {
+-          return Number.isFinite(prev) ? `Prev ${fmtNum(prev)} · Δ ${Number(c.change || 0).toFixed(2)}%` : `Δ ${Number(c.change || 0).toFixed(2)}%`;
+-        }
+-        if (Number.isFinite(high) && Number.isFinite(low)) return `Range ${fmtNum(low)} - ${fmtNum(high)}`;
+-        return `Prev ${Number.isFinite(prev) ? fmtNum(prev) : '--'} · Vol ${Number.isFinite(vol) ? fmtNum(vol) : '--'}`;
+-      };
+-      const pricePrefix = (symbol, key) => {
+-        const s = String(symbol || '').toUpperCase();
+-        if (key === 'crypto') return '$';
+-        if (key === 'stocksOptions') return '₹';
+-        if (key === 'bonds') return '₹';
+-        if (key === 'indices') return '';
+-        if (key === 'currency') return '';
+-        if (key === 'commodities') {
+-          if (s.includes('MCX') || s.includes('GOLD') || s.includes('SILVER') || s.includes('CRUDE') || s.includes('NATGAS')) return '₹';
+-          if (s.includes('BRENT') || s.includes('WTI') || s.includes('NYMEX') || s.includes('COMEX') || s.includes('LME') || s.includes('ICE')) return '$';
+-          return '₹';
+-        }
+-        return '';
+-      };
+-      const logoGlyph = (symbol, key) => {
+-        const s = String(symbol || '').toUpperCase();
+-        if (key === 'crypto') {
+-          if (s.includes('BTC')) return 'B';
+-          if (s.includes('ETH')) return 'E';
+-          if (s.includes('SOL')) return 'S';
+-          if (s.includes('XRP')) return 'X';
+-        }
+-        if (key === 'indices') return 'I';
+-        if (key === 'bonds') return 'Y';
+-        if (key === 'currency') return 'F';
+-        if (key === 'commodities') return 'C';
+-        return s.slice(0, 1) || 'M';
+-      };
+-      el.innerHTML = items.map((raw) => {
+-        const c = raw;
+-        const isUp = Number(c.change) >= 0;
+-        const sign = isUp ? '+' : '';
+-        const symbolText = String(c.symbol || '--').replace(/</g, '&lt;');
+-        const codeText = symbolText.replace(/[^A-Za-z0-9]/g, '').slice(0, 10) || '--';
+-        return `
+-          <div class="market-row">
+-            <div class="market-top">
+-              <div class="market-head-left">
+-                <div class="market-logo">${logoGlyph(symbolText, segmentKey)}</div>
+-                <div class="market-symbol">${symbolText}</div>
+-              </div>
+-              <div class="market-status closed">Closed</div>
+-            </div>
+-            <div class="market-code">SYM ${codeText}</div>
+-            <div class="market-price">${pricePrefix(symbolText, segmentKey)}${fmtNum(c.price)}</div>

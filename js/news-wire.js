@@ -52,14 +52,19 @@ function renderNews(container, articles) {
         return;
     }
 
-    container.innerHTML = articles.map(article => `
-        <div class="news-item">
-            <div class="news-meta">
-                <span class="news-source">${article.source || 'GLOBAL'}</span>
-                <span class="news-time">${new Date(article.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+    container.innerHTML = articles.map(article => {
+        const sourceClass = (article.source || '').toLowerCase().includes('bloomberg') ? 'bloomberg' : 
+                           (article.source || '').toLowerCase().includes('reuters') ? 'reuters' : '';
+        
+        return `
+            <div class="news-item ${sourceClass}">
+                <div class="news-meta">
+                    <span class="news-source">${article.source || 'GLOBAL'}</span>
+                    <span class="news-time">${new Date(article.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <h4 class="news-title">${article.title}</h4>
+                <a href="${article.url || '#'}" target="_blank" class="news-link">SOURCE ↗</a>
             </div>
-            <h4 class="news-title">${article.title}</h4>
-            <a href="${article.url}" target="_blank" class="news-link">SOURCE ↗</a>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
