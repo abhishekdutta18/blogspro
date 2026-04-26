@@ -27,7 +27,7 @@
     "@aws-sdk/client-s3": "^3.1032.0",
     "@cerebras/cerebras_cloud_sdk": "^1.64.1",
     "@genkit-ai/firebase": "^1.32.0",
-    "@genkit-ai/google-genai": "^1.32.0",
+    "@genkit-ai/google-genai": "^1.33.0",
     "@genkit-ai/googleai": "^1.28.0",
     "@genkit-ai/vertexai": "^1.32.0",
     "@google/genai": "^1.50.1",
