@@ -18,6 +18,21 @@ let indexUserIsAdmin = false;
 
 let allPosts   = [];
 let currentCat = 'all';
+
+// ── Early Global Exports (Ensures UI handlers work immediately) ───────────────
+window.handleSearch = (q) => { /* Placeholder, will be replaced by real function */ };
+window.filterByCategory = (c) => { /* Placeholder */ };
+window.toggleTheme = () => {
+  document.body.classList.toggle('light');
+  const isLight = document.body.classList.contains('light');
+  document.getElementById('themeBtn').textContent = isLight ? '🌙' : '☀️';
+  localStorage.setItem('bpTheme', isLight ? 'light' : 'dark');
+};
+if (localStorage.getItem('bpTheme') === 'light') {
+  document.body.classList.add('light');
+  // themeBtn text will be set after DOM loads
+}
+
 let forexCalendarRaw = [];
 let forexCalendarPast = [];
 let indiaCalendarRaw = [];
@@ -523,8 +538,6 @@ async function loadUpstoxMarketData(opts = {}) {
         if (!Number.isFinite(last)) continue;
         const pct = prev ? ((last - prev) / prev) * 100 : 0;
         const card = { symbol, price: last, change: pct, open: Number(val?.ohlc?.open), high: Number(val?.ohlc?.high ?? val?.high), low: Number(val?.ohlc?.low ?? val?.low), prev: Number(val?.ohlc?.close ?? val?.prev_close_price), volume: Number(val?.volume ?? val?.vol ?? val?.total_volume), yield: Number(val?.yield ?? val?.ytm ?? val?.yield_to_maturity) };
-        const k = String(instrument).toUpperCase();
-        const symU = String(symbol).toUpperCase();
         const isOption = /\b(CE|PE)\b/.test(symU) || symU.includes('OPT') || k.includes('OPTION');
         const isCrypto = k.includes('CRYPTO') || symU.includes('BTC') || symU.includes('ETH') || symU.includes('USDT') || symU.includes('SOL') || symU.includes('XRP') || symU.includes('DOGE');
         if (isCrypto) { segments.crypto.push(card); continue; }
@@ -946,6 +959,10 @@ async function initAuth() {
 }
 initAuth();
 
+window.toggleMobileMenu = () => {
+  document.getElementById('navLinksMenu')?.classList.toggle('mobile-open');
+};
+
 window.toggleDropdown = () => document.getElementById('navDropdown')?.classList.toggle('open');
 document.addEventListener('click', e => { if (!e.target.closest('#navUserBtn')) document.getElementById('navDropdown')?.classList.remove('open'); });
 window.doSignOut = async () => { await api.auth.logout(); window.location.reload(); };
@@ -1067,14 +1084,42 @@ window.openPostById = async (encodedId) => {
   window.location.href = `post.html?id=${id}`;
 };
 
-document.querySelectorAll('.filter-btn').forEach(btn => {
+// ── Search & Category Filter globals (called from inline onclick/oninput) ──
+window.handleSearch = function(query) {
+  const q = String(query || '').trim().toLowerCase();
+  const filtered = allPosts.filter(p => {
+    const inCat = currentCat === 'all' || (p.category || '').toLowerCase() === currentCat.toLowerCase();
+    const inText = !q || (p.title || '').toLowerCase().includes(q) || (p.excerpt || '').toLowerCase().includes(q);
+    return inCat && inText;
+  });
+  renderPosts(filtered);
+};
+
+window.filterByCategory = function(cat) {
+  currentCat = String(cat || 'all').toLowerCase();
+  
+  // Update UI chips
+  document.querySelectorAll('.filter-chip').forEach(b => {
+    const chipText = b.textContent.trim().toLowerCase();
+    b.classList.toggle('active', chipText === currentCat || (currentCat === 'all' && chipText === 'all'));
+  });
+
+  const searchVal = document.getElementById('postSearch')?.value?.trim().toLowerCase() || '';
+  if (searchVal) {
+    window.handleSearch(searchVal);
+  } else {
+    renderPosts(currentCat === 'all' ? allPosts : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat));
+  }
+};
+
+// Initialise filter chip listeners for robustness
+document.querySelectorAll('.filter-chip').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentCat = btn.dataset.cat;
-    renderPosts(currentCat === 'all' ? allPosts : allPosts.filter(p => p.category === currentCat));
+    const cat = btn.dataset.cat || btn.textContent.trim();
+    window.filterByCategory(cat);
   });
 });
+
 
 async function loadAbout() {
   const applyAboutDefaults = () => {
@@ -1201,9 +1246,7 @@ function fmtViews(n) {
         window.chartsReadyPromise || Promise.resolve(), 
         new Promise(res => setTimeout(res, 5000))
       ]);
-      const ok = await loadForexFactoryData();
-      initForexCalendarControls();
-      return ok;
+      return await loadForexFactoryData();
     }},
     { id: 'india', fn: () => loadIndiaCalendarData() },
     { id: 'tvTicker', fn: () => initTVTicker() },
@@ -1212,50 +1255,60 @@ function fmtViews(n) {
     { id: 'tvAdvChart', fn: () => initTVAdvChart() }
   ];
 
-  let results;
   try {
-    results = await Promise.allSettled(tasks.map(t =>
-      withTimeout(Promise.resolve().then(() => t.fn()), API_TIMEOUT_MS, t.id)
+    const results = await Promise.allSettled(tasks.map(t =>
+      withTimeout(Promise.resolve().then(() => t.fn()), 10000, t.id)
         .catch(err => {
-          console.warn(`[Init] Task "${t.id}" failed or timed out:`, err?.message ?? err);
+          console.warn(`[Init] Task "${t.id}" failed:`, err?.message ?? err);
           return false;
         })
     ));
-  } catch (err) {
-    console.error('[Init] Critical initialization error:', err);
-    results = tasks.map(() => ({ status: 'rejected' }));
-  }
 
-  // 2. Integration Status Update
-  const allSuccessful = results.every(r => r.status === 'fulfilled' && r.value !== false);
-  setIntegrationStatus(
-    allSuccessful ? 'online' : 'degraded',
-    allSuccessful ? 'Integrations: Online' : 'Integrations: Degraded'
-  );
+    // Update status based on essential tasks
+    const criticalIds = ['posts', 'market', 'intel'];
+    const criticalSuccess = results.every((r, i) => {
+        if (!criticalIds.includes(tasks[i].id)) return true;
+        return r.status === 'fulfilled' && r.value !== false;
+    });
 
-  // 3. Auth Handshake
-  api.auth.me().then(res => {
-    if (res.authenticated) {
-      const enrollBtn = document.getElementById('navLoginLink');
-      const googleBtn = document.getElementById('navGoogleLogin');
-      if (enrollBtn) enrollBtn.style.display = 'none';
-      if (googleBtn) googleBtn.style.display = 'none';
+    setIntegrationStatus(
+      criticalSuccess ? 'online' : 'degraded',
+      criticalSuccess ? 'Integrations: Online' : 'Integrations: Degraded'
+    );
 
-      const accountLink = document.getElementById('navAccountLink');
-      if (accountLink) accountLink.style.display = 'block';
+    // Auth Handshake (Non-blocking)
+    api.auth.me().then(res => {
+      if (res.authenticated) {
+        const enrollBtn = document.getElementById('navLoginLink');
+        const googleBtn = document.getElementById('navGoogleLogin');
+        if (enrollBtn) enrollBtn.style.display = 'none';
+        if (googleBtn) googleBtn.style.display = 'none';
 
-      if (res.user.role === 'admin') {
-        indexUserIsAdmin = true;
-        const adminLink = document.getElementById('navAdminLink');
-        if (adminLink) adminLink.style.display = 'block';
-        const titleEl = document.getElementById('postsTitle');
-        if (titleEl) titleEl.textContent = 'Institutional Strategic Ledger';
+        const accountLink = document.getElementById('navAccountLink');
+        if (accountLink) accountLink.style.display = 'block';
+
+        if (res.user.role === 'admin') {
+          indexUserIsAdmin = true;
+          const adminLink = document.getElementById('navAdminLink');
+          if (adminLink) adminLink.style.display = 'block';
+          const titleEl = document.getElementById('postsTitle');
+          if (titleEl) titleEl.textContent = 'Institutional Strategic Ledger';
+        }
       }
-    }
-  });
+    }).catch(() => {});
 
-  // 4. Start Market Polling
-  startMarketAutoRefresh();
+    startMarketAutoRefresh();
+
+  } catch (err) {
+    console.error('[Init] Fatal bootstrap error:', err);
+    setIntegrationStatus('degraded', 'Integrations: Error');
+  } finally {
+    // Final check for theme button
+    const themeBtn = document.getElementById('themeBtn');
+    if (themeBtn && document.body.classList.contains('light')) {
+        themeBtn.textContent = '🌙';
+    }
+  }
 })();
 
 // ── TV Widget Functions ───────────────────────────────────────────
@@ -1384,7 +1437,7 @@ const POLL_MAX_FAILURES = 3;
 const UPSTOX_BASE = ENDPOINTS.upstox;
 let marketPollInterval = null;
 
-window.pollMarkets = async function() {
+async function pollMarkets() {
   const indicesBox = document.getElementById('terminal-indices');
   const stocksBox  = document.getElementById('terminal-stocks');
   const view       = document.getElementById('terminalView')?.value || 'india';
@@ -1488,3 +1541,15 @@ function hydratePolicy(latestPost) {
   }
 }
 document.getElementById('year').textContent = new Date().getFullYear();
+
+// ── Global Exports ────────────────────────────────────────────────────────────
+// Expose internal functions to the global scope to ensure that inline 
+// HTML handlers and external monitoring/testing tools can access them.
+window.renderPosts = renderPosts;
+window.loadUpstoxMarketData = loadUpstoxMarketData;
+window.loadPosts = loadPosts;
+window.loadIndiaCalendarData = loadIndiaCalendarData;
+window.loadForexFactoryData = loadForexFactoryData;
+window.initIntelHub = initIntelHub;
+window.initTVAdvChart = initTVAdvChart;
+window.pollMarkets = pollMarkets;
