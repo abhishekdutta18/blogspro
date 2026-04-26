@@ -20,6 +20,7 @@ import { dispatchTelegramAlert } from './lib/social-utils.js';
 import { initNodeSentry, logSwarmBreadcrumb, captureSwarmError, flushSentry } from "./lib/sentry-bridge.js";
 import { NewsOrchestrator } from "./lib/news-orchestrator.js";
 import { askAI } from "./lib/ai-service.js";
+import { waitForPublicAvailability } from "./lib/utils.js";
 
 /**
  * [V16.1] Homepage Registration Bridge
@@ -549,6 +550,7 @@ Provide the final refined output in JSON format:
             console.warn("⚠️ [Thinking] Refinement failed, using original summary.", e.message);
         }
 
+        await waitForPublicAvailability(telegramSummary.url);
         await dispatchTelegramAlert(telegramSummary, env);
         console.log(`💎 [Dispatch] Telegram Strategic Alert Sent.`);
 

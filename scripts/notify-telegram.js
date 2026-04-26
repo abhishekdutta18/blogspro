@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import { waitForPublicAvailability } from "./lib/utils.js";
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -63,6 +64,10 @@ export async function notifyTelegram(filePath = null, frequency = 'daily', type 
         const tgTitle = type === 'articles' ? `📑 *STRATEGIC REPORT: ${frequency.toUpperCase()}*` : `📑 *INTELLIGENCE PULSE: ${frequency.toUpperCase()}*`;
         const linkPrefix = type === 'articles' ? `articles/${frequency}` : `briefings/${frequency}`;
         const tgCaption = `${tgTitle}\n\n*${title}*\n\n🔹 *Executive Abstract:*\n${excerpt}\n\n🔗 *Full Interactive Terminal:* https://blogspro.in/${linkPrefix}/${htmlFileName || ''}`;
+        const publicUrl = `https://blogspro.in/${linkPrefix}/${htmlFileName || ''}`;
+
+        // [V17.2] Guard against 404 links in notifications
+        await waitForPublicAvailability(publicUrl);
 
         if (pdfPath && fs.existsSync(pdfPath)) {
             console.log(`📎 Attaching Institutional PDF: ${path.basename(pdfPath)}`);
