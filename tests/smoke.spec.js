@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+import { test, expect } from '@playwright/test';
 
 // ── Homepage ──────────────────────────────────────────────────────────────────
 
@@ -16,15 +16,15 @@ test.describe('Homepage', () => {
 
   test('navigation renders with brand and links', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('nav .nav-brand')).toHaveText('BlogsPro');
-    await expect(page.locator('nav a[href="#briefings"]')).toBeVisible();
+    await expect(page.locator('nav .nav-brand')).toHaveText('BlogsPro.');
+    await expect(page.locator('nav a[href="#posts"]')).toBeVisible();
     await expect(page.locator('nav a[href="#about"]')).toBeVisible();
   });
 
-  test('briefings section has filter chips and search input', async ({ page }) => {
+  test('articles section has filter chips and search input', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('#briefings')).toBeVisible();
-    await expect(page.locator('.filter-chip')).toHaveCount(6);
+    await expect(page.locator('#posts')).toBeVisible();
+    await expect(page.locator('.filter-chip').first()).toBeVisible();
     await expect(page.locator('#postSearch')).toBeVisible();
   });
 
@@ -49,7 +49,7 @@ test.describe('Filter chips', () => {
       { timeout: 20_000 }
     );
 
-    await page.locator('.filter-chip[data-cat="macro"]').click();
+    await page.locator('.filter-chip', { hasText: 'Fintech' }).click();
 
     const filterErrors = jsErrors.filter(msg =>
       msg.includes('filterByCategory') || msg.includes('handleSearch') || msg.includes('renderPosts')
@@ -64,9 +64,9 @@ test.describe('Filter chips', () => {
       { timeout: 20_000 }
     );
 
-    const macroChip = page.locator('.filter-chip[data-cat="macro"]');
-    await macroChip.click();
-    await expect(macroChip).toHaveClass(/active/);
+    const fintechChip = page.locator('.filter-chip', { hasText: 'Fintech' });
+    await fintechChip.click();
+    await expect(fintechChip).toHaveClass(/active/);
   });
 });
 

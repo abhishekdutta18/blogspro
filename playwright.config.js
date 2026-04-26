@@ -1,6 +1,6 @@
-const { defineConfig, devices } = require('@playwright/test');
+import { defineConfig, devices } from '@playwright/test';
 
-module.exports = defineConfig({
+export default defineConfig({
   testDir: './tests',
   timeout: 30_000,
   retries: process.env.CI ? 1 : 0,
@@ -10,7 +10,7 @@ module.exports = defineConfig({
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
   ],
   use: {
-    baseURL: 'https://blogspro.in',
+    baseURL: process.env.BASE_URL || 'https://blogspro.in',
     screenshot: 'only-on-failure',
     trace: 'on-first-retry',
   },
