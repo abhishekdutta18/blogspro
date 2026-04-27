@@ -16,7 +16,7 @@ jobs:
       - name: Fetch and store JSON into KV
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_ACCOUNT_ID: b3f4edff1fdc616f329e7d7cb6698307
           NAMESPACE_ID: 9caa7afdf7e94adb99cecf221275d63d
         run: |
           set -e
