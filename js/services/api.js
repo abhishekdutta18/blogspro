@@ -230,8 +230,8 @@ const publicApi = {
     email, 
     source: window.location.hostname 
   }),
-  calendar: () => fetchJson(`${API_BASE}/calendar`),
-  indiaCalendar: () => fetchJson(`${API_BASE}/calendar-india`)
+  calendar: () => fetchJson(`${ENDPOINTS.upstox}/calendar`),
+  indiaCalendar: () => fetchJson(`${ENDPOINTS.upstox}/calendar-india`)
 };
 
 // ── Consolidated API Object ──────────────────────────────────────────────────

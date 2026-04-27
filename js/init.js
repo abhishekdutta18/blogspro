@@ -31,6 +31,37 @@ if (localStorage.getItem('bpTheme') === 'light') {
   // themeBtn text will be set after DOM loads
 }
 
+// ── Global Exports (Ensures UI handlers work immediately) ──────────────────────
+window.renderPosts = (...args) => typeof renderPosts !== 'undefined' ? renderPosts(...args) : null;
+window.loadUpstoxMarketData = (...args) => typeof loadUpstoxMarketData !== 'undefined' ? loadUpstoxMarketData(...args) : null;
+window.loadPosts = (...args) => typeof loadPosts !== 'undefined' ? loadPosts(...args) : null;
+window.loadIndiaCalendarData = (...args) => typeof loadIndiaCalendarData !== 'undefined' ? loadIndiaCalendarData(...args) : null;
+window.loadForexFactoryData = (...args) => typeof loadForexFactoryData !== 'undefined' ? loadForexFactoryData(...args) : null;
+window.initIntelHub = (...args) => typeof initIntelHub !== 'undefined' ? initIntelHub(...args) : null;
+window.initTVAdvChart = (...args) => typeof initTVAdvChart !== 'undefined' ? initTVAdvChart(...args) : null;
+window.pollMarkets = (...args) => typeof pollMarkets !== 'undefined' ? pollMarkets(...args) : null;
+window.handleSearch = (q) => {
+  const query = String(q || '').trim().toLowerCase();
+  const filtered = allPosts.filter(p => {
+    const inCat = currentCat === 'all' || (p.category || '').toLowerCase() === currentCat.toLowerCase();
+    const inText = !query || (p.title || '').toLowerCase().includes(query) || (p.excerpt || '').toLowerCase().includes(query);
+    return inCat && inText;
+  });
+  window.renderPosts(filtered);
+};
+window.filterByCategory = function(cat) {
+  currentCat = String(cat || 'all').toLowerCase();
+  document.querySelectorAll('.filter-chip').forEach(b => {
+    const chipCat = (b.dataset.cat || b.textContent.trim()).toLowerCase();
+    b.classList.toggle('active', chipCat === currentCat || (currentCat === 'all' && chipCat === 'all'));
+  });
+  const searchVal = document.getElementById('postSearch')?.value?.trim().toLowerCase() || '';
+  if (searchVal) {
+    window.handleSearch(searchVal);
+  } else {
+    window.renderPosts(currentCat === 'all' ? allPosts : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat));
+  }
+};
 let forexCalendarRaw = [];
 let forexCalendarPast = [];
 let indiaCalendarRaw = [];
@@ -1023,11 +1054,32 @@ async function loadPosts() {
     const totalViews = firestorePosts.reduce((sum, p) => sum + normalizeViews(p.views), 0);
     const tvEl = document.getElementById('totalViewCount');
     if (tvEl) tvEl.textContent = fmtViews(totalViews);
-    renderPosts(currentCat === 'all' ? allPosts : allPosts.filter(p => p.category === currentCat));
+    renderPosts(currentCat === 'all' ? allPosts : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat));
     
     // Hydrate Policy & Regulation with latest pulse
-    const latestPulse = allPosts.find(p => p.isAI && (p.rbi || p.sebi));
-    if (latestPulse) hydratePolicy(latestPulse);
+    const aiPulse = allPosts.find(p => p.isAI);
+    if (aiPulse) {
+      // Full Hydration Bridge: Fetch full JSON to get RBI/SEBI/DOCS fields
+      const jsonPath = aiPulse.path.replace('.html', '.json');
+      fetch(jsonPath)
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then(fullData => {
+          console.log('💎 [Init] Policy Hydration Successful:', fullData.id);
+          window.__latestPulseMetadata = fullData; // Store for other components
+          hydratePolicy(fullData);
+        })
+        .catch(e => {
+          console.warn('⚠️ [Init] Policy Hydration failed (Falling back to excerpt):', e.message);
+          // Fallback: use excerpt if full fetch fails
+          hydratePolicy({
+            rbi: aiPulse.excerpt,
+            sebi: aiPulse.excerpt
+          });
+        });
+    }
     
     return true;
   } catch(err) {
@@ -1082,6 +1134,7 @@ window.openPostById = async (encodedId) => {
   window.location.href = `post.html?id=${id}`;
 };
 
+<<<<<<< HEAD
 // ── Search & Category Filter globals (called from inline onclick/oninput) ──
 window.handleSearch = function(query) {
   const q = String(query || '').trim().toLowerCase();
@@ -1109,6 +1162,11 @@ window.filterByCategory = function(cat) {
     renderPosts(currentCat === 'all' ? allPosts : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat));
   }
 };
+=======
+// ── Search & Category Filter globals are now defined at the top ──────────────
+
+// window.filterByCategory is now defined at the top
+>>>>>>> b276d40 (feat: implement Terminal V2.0 and resolve CI/CD smoke test failures)
 
 // Initialise filter chip listeners for robustness
 document.querySelectorAll('.filter-chip').forEach(btn => {
@@ -1327,16 +1385,16 @@ function initTVTicker() {
         {"proName": "NSE:NIFTY",        "title": "NIFTY 50"},
         {"proName": "BSE:SENSEX",        "title": "SENSEX"},
         {"proName": "NSE:BANKNIFTY",     "title": "BANK NIFTY"},
-        {"proName": "INDEX:SPX",         "title": "S&P 500"},
-        {"proName": "NASDAQ:NDX",        "title": "NASDAQ 100"},
-        {"proName": "INDEX:DJI",         "title": "Dow Jones"},
+        {"proName": "FOREXCOM:SPXUSD",   "title": "S&P 500"},
+        {"proName": "FOREXCOM:NSXUSD",   "title": "NASDAQ 100"},
+        {"proName": "FOREXCOM:DJI",      "title": "Dow Jones"},
         {"proName": "INDEX:DEU40",       "title": "DAX"},
         {"proName": "INDEX:UKX",         "title": "FTSE 100"},
         {"proName": "INDEX:NI225",       "title": "Nikkei 225"},
         {"proName": "INDEX:HSI",         "title": "Hang Seng"},
-        {"proName": "COMEX:GC1!",        "title": "Gold"},
-        {"proName": "NYMEX:CL1!",        "title": "WTI Crude"},
-        {"proName": "CRYPTOCAP:BTC",     "title": "Bitcoin"},
+        {"proName": "SAXO:GOLD",         "title": "Gold"},
+        {"proName": "SAXO:WTI",          "title": "WTI Crude"},
+        {"proName": "BINANCE:BTCUSDT",   "title": "Bitcoin"},
         {"proName": "FX:USDINR",         "title": "USD/INR"},
         {"proName": "FX:EURUSD",         "title": "EUR/USD"}
       ],
@@ -1525,21 +1583,27 @@ function hydratePolicy(latestPost) {
   const sebi = document.getElementById('sebiSnippet');
   const hub = document.getElementById('downloadHub');
 
-  if (rbi && latestPost.rbi) rbi.textContent = latestPost.rbi + '...';
-  if (sebi && latestPost.sebi) sebi.textContent = latestPost.sebi + '...';
+  const meta = latestPost.metadata || latestPost;
+  const rbiText = meta.rbi || (meta.policy && meta.policy.rbi) || latestPost.rbi;
+  const sebiText = meta.sebi || (meta.policy && meta.policy.sebi) || latestPost.sebi;
+  const docs = meta.docs || (meta.policy && meta.policy.docs) || latestPost.docs || [];
+
+  if (rbi && rbiText) rbi.textContent = rbiText.substring(0, 300) + (rbiText.length > 300 ? '...' : '');
+  if (sebi && sebiText) sebi.textContent = sebiText.substring(0, 300) + (sebiText.length > 300 ? '...' : '');
   
-  if (hub && latestPost.docs && latestPost.docs.length > 0) {
-    hub.innerHTML = latestPost.docs.map(doc => `
-      <a href="downloads/${doc.pdf}" target="_blank" class="glass-btn" style="padding:0.4rem 0.6rem; font-size:0.72rem; display:flex; align-items:center; gap:0.4rem; text-decoration:none;">
+  if (hub && docs.length > 0) {
+    hub.innerHTML = docs.slice(0, 4).map(doc => `
+      <a href="${doc.link || '#'}" target="_blank" class="glass-btn" style="padding:0.4rem 0.6rem; font-size:0.72rem; display:flex; align-items:center; gap:0.4rem; text-decoration:none;">
         <span>📄</span>
         <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${doc.title}</span>
-        <span>⬇</span>
+        <span>↗</span>
       </a>
     `).join('');
   }
 }
 document.getElementById('year').textContent = new Date().getFullYear();
 
+<<<<<<< HEAD
 // ── Global Exports ────────────────────────────────────────────────────────────
 // Expose internal functions to the global scope to ensure that inline 
 // HTML handlers and external monitoring/testing tools can access them.
@@ -1551,4 +1615,7 @@ window.loadForexFactoryData = loadForexFactoryData;
 window.initIntelHub = initIntelHub;
 window.initTVAdvChart = initTVAdvChart;
 window.pollMarkets = pollMarkets;
+=======
+// ── Global Exports are now at the top of the file ─────────────────────────────
+>>>>>>> b276d40 (feat: implement Terminal V2.0 and resolve CI/CD smoke test failures)
 

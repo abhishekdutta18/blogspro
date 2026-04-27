@@ -161,14 +161,31 @@ export function getBriefingTemplate({ title, excerpt, content, dateLabel, type, 
             ${finalBody}
         </article>
 
-        ${liveNews && liveNews !== "Pulse Baseline: Stable." ? `
-        <div class="terminal-block">
-            <div style="margin-bottom: 1rem; color: var(--accent); font-weight: bold;">LIVE_DATA_STREAM_PRIMED</div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; opacity: 0.8;">
-                ${liveNews.split(' | ').map(item => `<div>${item}</div>`).join('')}
-            </div>
-        </div>
-        ` : ''}
+        ${liveNews ? (function() {
+            let newsHtml = "";
+            if (typeof liveNews === 'string') {
+                if (liveNews === "Pulse Baseline: Stable.") return "";
+                newsHtml = liveNews.split(' | ').map(item => `<div>${item}</div>`).join('');
+            } else {
+                const items = [];
+                if (liveNews.rbi && liveNews.rbi !== "Neutral.") items.push(`<strong>RBI:</strong> ${liveNews.rbi}`);
+                if (liveNews.sebi && liveNews.sebi !== "Neutral.") items.push(`<strong>SEBI:</strong> ${liveNews.sebi}`);
+                const summaryText = liveNews.summary || "";
+                const globalOnly = summaryText.split(' | GLOBAL: ')[1];
+                if (globalOnly) {
+                    globalOnly.split(' | ').forEach(gi => items.push(`<strong>GLOBAL:</strong> ${gi}`));
+                }
+                newsHtml = items.map(item => `<div style="margin-bottom:0.5rem">${item}</div>`).join('');
+            }
+            if (!newsHtml) return "";
+            return `
+            <div class="terminal-block">
+                <div style="margin-bottom: 1rem; color: var(--accent); font-weight: bold;">LIVE_DATA_STREAM_PRIMED</div>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 0.5rem; opacity: 0.8;">
+                    ${newsHtml}
+                </div>
+            </div>`;
+        })() : ''}
 
         <footer>
             <a href="/" class="back-link">← Return to Terminal</a>

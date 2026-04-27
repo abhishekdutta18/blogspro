@@ -46,7 +46,9 @@ const STRUCTURAL_RULES = `
 4. 🛡️ SURGICAL GROUNDING RULE: If you cannot find a REAL, VERIFIABLE institutional source for a specific claim or chart, you MUST wrap that specific segment in '<audit-purge reason="no_grounding">...</audit-purge>'. Outputting hallucinated data without this tag is a CRITICAL FAILURE.
 5. Incremental Analysis: YOU MUST explicitly calculate the % delta or structural shift between 2025 (Baseline) and 2026 (Current) for at least 3 key metrics in each chapter.
 6. 🚫 BANNED: Do NOT wrap tables or <chart-data> in markdown code blocks ( \`\`\` ). Output them as raw text in the HTML body.
-7. Density: Output pure HTML snippets only for the narrative, keeping tables in raw markdown for post-processing.
+7. Density: Output pure semantic HTML fragments ONLY. NEVER output <!DOCTYPE>, <html>, <head>, or <body> tags. Any attempt to output a full document will result in immediate termination of the node.
+8. 🚫 NO LAYOUT: Do NOT output any <style> blocks, navigational elements, or internal layout wrappers (divs for columns/sidebars). Output ONLY the core analytical narrative using semantic tags (p, h2, h3, ul, ol, table, chart-data).
+9. 🔏 ZERO-ECHO RULE: You MUST wrap the entire manuscript body (excluding telemetry) in [[BPRO_INTEL_START]] and [[BPRO_INTEL_END]] delimiters.
 `;
 
 const CHART_SYNC_RULE = `

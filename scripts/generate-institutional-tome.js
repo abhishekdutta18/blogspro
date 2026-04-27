@@ -4,6 +4,7 @@ import path from 'path';
 import { executeMultiAgentSwarm } from "./lib/swarm-orchestrator.js";
 import { getBaseTemplate } from "./lib/templates.js";
 import { getBriefingTemplate } from "./lib/briefing-template.js";
+import { getTerminalV2Template } from "./lib/terminal-v2-template.js";
 import { getRecentSnapshots, 
   getHistoricalData, 
   syncToFirestore,
@@ -21,6 +22,7 @@ import { initNodeSentry, logSwarmBreadcrumb, captureSwarmError, flushSentry } fr
 import { NewsOrchestrator } from "./lib/news-orchestrator.js";
 import { askAI } from "./lib/ai-service.js";
 import { waitForPublicAvailability } from "./lib/utils.js";
+import { fetchPolicyPulse, fetchEconomicCalendar, fetchSentimentData } from "./lib/data-fetchers.js";
 
 /**
  * [V16.1] Homepage Registration Bridge
@@ -53,11 +55,18 @@ async function registerPostOnHomepage(fileName, result, frequency, env) {
         excerpt, 
         fileName, 
         type: (frequency === 'hourly' || frequency === 'daily') ? 'briefing' : 'article', 
-        frequency 
+        frequency,
+        liveNews: result.liveNews || null 
     };
     
     // Add to front, keep last 50 for hourly/daily, 20 for others
     const limit = (frequency === 'hourly' || frequency === 'daily') ? 50 : 20;
+    
+    // [V17.0] Metadata Enrichment: Include live news pulse and policy snippets in the index
+    if (result.liveNews) {
+        record.liveNews = result.liveNews;
+    }
+    
     index = [record, ...index.filter(i => i.fileName !== fileName)].slice(0, limit);
     fs.writeFileSync(indexPath, JSON.stringify(index, null, 2));
     console.log(`✅ [Dashboard] Static Index Updated: ${indexPath}`);
@@ -269,13 +278,19 @@ async function runInstitutionalSwarm() {
     }
 
     // [V17.0] Institutional News Priming (Mandatory for Hourly/Daily to eliminate fluff)
-    let liveNews = "Pulse Baseline: Stable.";
+    let liveNews = { summary: "Pulse Baseline: Stable.", rbi: "Neutral.", sebi: "Neutral.", docs: [] };
     if (frequency === 'hourly' || frequency === 'daily') {
         try {
             console.log(`📡 [News-Priming] Activating NewsOrchestrator for ${frequency} cycle...`);
             const newsOrch = new NewsOrchestrator(env);
-            liveNews = await newsOrch.fetchUniversalNews();
-            console.log(`✓ [News-Priming] Acquisition complete. Density: ${liveNews.length} chars.`);
+            const policyPulse = await fetchPolicyPulse();
+            const universalNews = await newsOrch.fetchUniversalNews();
+            
+            liveNews = {
+                ...policyPulse,
+                summary: `${policyPulse.summary} | GLOBAL: ${universalNews}`
+            };
+            console.log(`✓ [News-Priming] Acquisition complete. Density: ${liveNews.summary.length} chars.`);
         } catch (e) {
             console.warn("⚠️ [News-Priming] News acquisition failed, using neutral baseline.", e.message);
         }
@@ -416,7 +431,17 @@ async function runInstitutionalSwarm() {
     const templateExcerpt = result.excerpt || "Strategic research synthesis for the current institutional cycle.";
     
     let finalHtml;
-    if (frequency === 'hourly' || frequency === 'daily') {
+    if (frequency === 'hourly') {
+        finalHtml = getTerminalV2Template({
+            title: templateTitle,
+            excerpt: templateExcerpt,
+            content: result.final,
+            dateLabel: formattedDate,
+            freq: frequency,
+            fileName,
+            liveNews: result.liveNews || null
+        });
+    } else if (frequency === 'daily') {
         finalHtml = getBriefingTemplate({
             title: templateTitle,
             excerpt: templateExcerpt,
@@ -424,8 +449,7 @@ async function runInstitutionalSwarm() {
             dateLabel: formattedDate,
             freq: frequency,
             fileName,
-            rel: "../../",
-            liveNews: semanticDigest.liveNews
+            liveNews: result.liveNews || null
         });
     } else {
         finalHtml = getBaseTemplate({
@@ -447,6 +471,22 @@ async function runInstitutionalSwarm() {
     fs.writeFileSync(outPath, finalHtml);
     console.log(`💾 [Swarm] Archive Phase: Saved locally to ${outPath} [Status: ${auditStatus}]`);
 
+    // [V17.0] Institutional Hydration Bridge: Save full JSON manifest for frontend dynamic sections
+    const jsonPath = outPath.replace('.html', '.json');
+    const manifest = {
+        id,
+        frequency,
+        title: templateTitle,
+        excerpt: templateExcerpt,
+        date: formattedDate,
+        auditStatus,
+        wordCount: result.wordCount,
+        metadata: result.liveNews || {},
+        content: result.final
+    };
+    fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2));
+    console.log(`💾 [Swarm] Archive Phase: Saved JSON manifest to ${jsonPath}`);
+
     // --- 🌍 GITHUB PAGES SYNCHRONIZATION: Sovereign Origin Push ---
     const ghToken = process.env.GH_TOKEN || process.env.GH_PAT;
     let ghOwner = process.env.GH_OWNER || "abhishekdutta18";
@@ -466,6 +506,7 @@ async function runInstitutionalSwarm() {
         try {
             const filesToPush = [
                 { path: `${folder}/${frequency}/${fileName}`, localPath: outPath },
+                { path: `${folder}/${frequency}/${fileName.replace('.html', '.json')}`, localPath: outPath.replace('.html', '.json') },
                 { path: `${folder}/${frequency}/index.json`, localPath: path.join(process.cwd(), folder, frequency, 'index.json') }
             ];
             

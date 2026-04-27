@@ -7,7 +7,7 @@
  * [V17.2] Availability Guard
  * Polls the public URL to ensure GitHub Pages has finished the deployment build.
  */
-export async function waitForPublicAvailability(url, maxWaitSeconds = 180) {
+export async function waitForPublicAvailability(url, maxWaitSeconds = 300) {
   console.log(`⏳ [Guard] Waiting for manuscript availability: ${url}`);
   const start = Date.now();
   const interval = 10000; // 10 seconds

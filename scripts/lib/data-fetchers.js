@@ -253,6 +253,20 @@ async function fetchFullPageContent(url) {
     }
 }
 
+async function fetchPolicyPulse() {
+    try {
+        const [rbi, sebi] = await Promise.all([fetchRBIData(), fetchSEBIData()]);
+        return {
+            summary: `${rbi.summary} | ${sebi.summary}`,
+            rbi: rbi.summary.replace('RBI: ', ''),
+            sebi: sebi.summary.replace('SEBI: ', ''),
+            docs: [...rbi.docs, ...sebi.docs].slice(0, 4)
+        };
+    } catch (e) {
+        return { summary: "Policy Pulse: Unavailable.", rbi: "Unavailable.", sebi: "Unavailable.", docs: [] };
+    }
+}
+
 async function fetchRBIData() {
     try {
         const items = await fetchRSS("https://www.rbi.org.in/pressreleases_rss.xml");
@@ -476,7 +490,7 @@ async function fetchDocument(url) {
 export {
     fetchEconomicCalendar, fetchMultiAssetData, fetchSentimentData,
     fetchRBIData, fetchSEBIData, fetchCCILData, fetchMacroPulse, fetchUpstoxData,
-    fetchUniversalNews, fetchDynamicNews, getMarketContext,
+    fetchUniversalNews, fetchDynamicNews, getMarketContext, fetchPolicyPulse,
     fetchMFData, fetchPEVCData, fetchInsuranceData, fetchGIFTCityData,
     fetchCentralBankPulse, fetchDocument, fetchFullPageContent
 };

@@ -118,7 +118,7 @@ function renderHub(container, { daily, hourly, weekly, monthly }) {
                         <h3 class="pulse-title">${daily?.title || hourly?.title || "Alpha Synthesis Report"}</h3>
                         <p class="pulse-excerpt">${(daily?.excerpt || hourly?.excerpt || "Analyzing market drift and institutional positioning...").slice(0, 220)}...</p>
                         <div class="pulse-actions">
-                            ${daily ? `<a href="briefings/daily/${daily.file}" class="insti-btn">READ DAILY BRIEFING</a>` : (hourly ? `<a href="briefings/hourly/${hourly.file}" class="insti-btn">READ HOURLY PIVOTS</a>` : '')}
+                            ${daily ? `<a href="briefings/daily/${daily.fileName}" class="insti-btn">READ DAILY BRIEFING</a>` : (hourly ? `<a href="briefings/hourly/${hourly.fileName}" class="insti-btn">READ HOURLY PIVOTS</a>` : '')}
                         </div>
                     </div>
                 </div>
@@ -151,12 +151,12 @@ function renderHub(container, { daily, hourly, weekly, monthly }) {
                     <div class="thematic-item">
                         <div class="thematic-label">WEEKLY ROADMAP</div>
                         <div class="strat-name" style="font-size:0.9rem; margin-top:0.2rem">${weekly?.title || "Synthesizing..."}</div>
-                        ${weekly ? `<a href="articles/weekly/${weekly.file}" class="strat-cta">ANALYZE →</a>` : ''}
+                        ${weekly ? `<a href="articles/weekly/${weekly.fileName}" class="strat-cta">ANALYZE →</a>` : ''}
                     </div>
                     <div class="thematic-item">
                         <div class="thematic-label">MONTHLY MACRO</div>
                         <div class="strat-name" style="font-size:0.9rem; margin-top:0.2rem">${monthly?.title || "Preparing..."}</div>
-                        ${monthly ? `<a href="articles/monthly/${monthly.file}" class="strat-cta">ANALYZE →</a>` : ''}
+                        ${monthly ? `<a href="articles/monthly/${monthly.fileName}" class="strat-cta">ANALYZE →</a>` : ''}
                     </div>
                 </div>
             </div>

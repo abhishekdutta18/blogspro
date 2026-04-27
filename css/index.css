@@ -988,6 +988,24 @@ footer { border-top: 1px solid var(--border); background: var(--navy); }
   50% { box-shadow: 0 0 0 5px rgba(240,204,110,0); }
 }
 
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  z-index: 101;
+}
+.nav-hamburger span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--cream);
+  transition: 0.3s;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 768px) {
   .nav-links { display: none; }

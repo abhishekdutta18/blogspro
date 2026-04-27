@@ -902,7 +902,7 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
   await publishGitHubTrace(env, id);
 
   // [V10.5] Unified Finalization & Sync Pass
-  return await _finalizeAndSync(fidelityResult.content, consensusData.summary, frequency, type, env, id);
+  return await _finalizeAndSync(fidelityResult.content, consensusData.summary, frequency, type, env, id, semanticDigest.liveNews);
 }
 
 /**
@@ -911,7 +911,7 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
  * Internal terminal gate for institutional manuscripts.
  * Handles templating, PDF generation, and Dual-Sync (GCS + GDrive).
  */
-async function _finalizeAndSync(fidelityContent, consensusSummary, frequency, type, env, id) {
+async function _finalizeAndSync(fidelityContent, consensusSummary, frequency, type, env, id, liveNews = null) {
   let finalHtml = `<html><body>${fidelityContent}</body></html>`;
   let finalCount = fidelityContent.split(/\s+/).length;
 
@@ -1017,7 +1017,7 @@ async function _finalizeAndSync(fidelityContent, consensusSummary, frequency, ty
       message: `Institutional Dispatch Finalized: ${title} (${finalCount} words)`
   }, env);
 
-  return { final: finalHtml, wordCount: finalCount, raw: fidelityContent, jobId: id, pdfUrl, title, excerpt };
+  return { final: finalHtml, wordCount: finalCount, raw: fidelityContent, jobId: id, pdfUrl, title, excerpt, liveNews };
 }
 
 /**
@@ -1081,7 +1081,7 @@ export async function finalizeManuscript(fragments, consensusSummary, frequency,
   const finalManuscript = rules.sanitizePayload(combinedManuscript);
   const fidelityResult = validateAndRepair(finalManuscript);
   
-  return await _finalizeAndSync(fidelityResult.content, consensusSummary, frequency, type, env, id);
+  return await _finalizeAndSync(fidelityResult.content, consensusSummary, frequency, type, env, id, fragments[0]?.liveNews);
 }
 
 /**
