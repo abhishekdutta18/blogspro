@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOURLY   Apex Institutional | Nexus Institutional Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        :root {
+            --nexus-bg: #030303;
+            --nexus-sidebar: #050505;
+            --nexus-accent: #9B1C1C; /* Deep Institutional Crimson */
+            --nexus-text-main: #E2E8F0; 
+            --nexus-text-muted: #64748B; 
+            --nexus-border: rgba(155,28,28,0.25);
+            --nexus-glow: rgba(155,28,28,0.15);
+        }
+        body { background: var(--nexus-bg); color: var(--nexus-text-muted); font-family: 'Mulish', sans-serif; margin: 0; min-height: 100vh; overflow-x: hidden; }
+        
+        /* 🚀 MINIMALIST BRANDING: Icon Only */
+        .global-logo { position: fixed; top: 1.5rem; left: 1.5rem; display: flex; align-items: center; justify-content: center; z-index: 200; background: rgba(10,10,10,0.9); backdrop-filter: blur(10px); width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--nexus-border); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .global-logo:hover { transform: scale(1.1); border-color: var(--nexus-accent); box-shadow: 0 0 30px rgba(191,161,0,0.2); }
+        .global-logo img { width: 24px; height: 24px; filter: contrast(1.1); }
+        
+        .app-container { display: flex; width: 100%; }
+        .main-content { flex: 1; padding: 6rem 12% 4rem 12%; max-width: 1200px; margin: 0 auto; min-height: 100vh; position: relative; z-index: 10; }
+        .rhs-sidebar { width: 380px; background: #070707; padding: 6rem 2.5rem; height: 100vh; position: sticky; top: 0; overflow-y: auto; border-left: 1px solid var(--nexus-border); flex-shrink: 0; }
+        
+        .status-tag { background: rgba(191, 161, 0, 0.1); color: var(--nexus-accent); padding: 0.4rem 0.8rem; font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2rem; display: inline-block; border: 1px solid var(--nexus-border); letter-spacing: 0.1rem; font-family: 'JetBrains Mono', monospace; }
+        h1 { font-size: 3.5rem; color: var(--nexus-text-main); margin-bottom: 2rem; letter-spacing: -2px; font-weight: 800; line-height: 1; }
+        h2 { font-family: 'Mulish', sans-serif; font-weight: 700; color: var(--nexus-accent); margin-top: 5rem; font-size: 1.8rem; text-transform: uppercase; border-top: 1px solid var(--nexus-border); padding-top: 2.5rem; letter-spacing: -0.5px; }
+        h3 { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--nexus-accent); margin-top: 3rem; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 2px; border-left: 3px solid var(--nexus-accent); padding-left: 1rem; }
+        
+        .excerpt { font-size: 1.3rem; line-height: 1.6; color: var(--nexus-text-main); margin: 3rem 0; opacity: 0.9; font-weight: 400; border-left: 2px solid var(--nexus-accent); padding-left: 2rem; }
+
+        .table-container { margin: 3rem 0; background: #080808; border: 1px solid var(--nexus-border); overflow-x: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+        th { text-align: left; padding: 1.4rem; background: rgba(191,161,0,0.1); color: var(--nexus-accent); border-bottom: 2px solid var(--nexus-accent); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        td { padding: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: rgba(248, 250, 252, 0.85); }
+        tr:hover { background: rgba(191, 161, 0, 0.04); }
+
+        .institutional-abstract { background: rgba(191, 161, 0, 0.03); border: 1px solid var(--nexus-border); padding: 2.5rem; margin: 3rem 0; position: relative; }
+        .institutional-abstract h3 { border: none; padding: 0; margin-top: 0; font-size: 0.75rem; opacity: 0.6; }
+        .institutional-glossary { margin: 5rem 0; padding: 3rem 0; }
+        .institutional-glossary li { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; padding: 1rem 0; border-bottom: 1px dotted rgba(191, 161, 0, 0.1); list-style: none; }
+        .institutional-glossary li strong { color: var(--nexus-accent); }
+
+        .terminal-chart { min-height: 450px; background: #070707; border: 1px solid var(--nexus-border); margin: 4rem 0; position: relative; border-radius: 4px; }
+        .terminal-chart::after { content: "DATA_VISUALIZATION_ENCLAVE"; position: absolute; bottom: 10px; right: 15px; font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; color: rgba(191,161,0,0.2); }
+
+        /* RHS Interlinks */
+        .rhs-title { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; color: var(--nexus-accent); margin-bottom: 2rem; letter-spacing: 4px; padding-bottom: 0.8rem; text-transform: uppercase; }
+        .interlink-card { background: #0A0A0A; border: 1px solid var(--nexus-border); padding: 1.2rem; margin-bottom: 1.2rem; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none; display: block; }
+        .interlink-card:hover { transform: translateY(-3px); border-color: var(--nexus-accent); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
+        .interlink-card h4 { margin: 0 0 0.6rem 0; font-size: 0.85rem; color: var(--nexus-text-main); font-weight: 700; line-height: 1.4; }
+        .interlink-card .meta { font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; color: var(--nexus-accent); opacity: 0.5; }
+
+        .vertical-flow-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--nexus-text-muted); text-decoration: none; transition: color 0.2s; }
+        .vertical-flow-item:hover { color: var(--nexus-accent); }
+        .vertical-flow-item .score { font-weight: 700; color: #00D166; }
+        
+        /* AdSense Helper */
+        .institutional-adsense { margin: 4rem 0; text-align: center; background: rgba(5,5,5,0.5); padding: 1rem; border: 1px solid rgba(255,255,255,0.02); }
+        .ads-label { font-size: 0.5rem; color: var(--nexus-accent); opacity: 0.3; letter-spacing: 3px; font-family: 'JetBrains Mono', monospace; margin-bottom: 1rem; }
+    </style>
+<meta name="swarm-status" content="AUDITED">
+</head>
+<body>
+    <a href="/" class="global-logo" title="Back to Intelligence Hub">
+        <img src="../../favicon.svg" alt="Nexus Icon">
+    </a>
+
+    <div class="app-container">
+        <main class="main-content">
+            <div class="status-tag">HOURLY STRATEGIC MANUSCRIPT • 28 April 2026</div>
+            <h1>HOURLY   Apex Institutional</h1>
+            <div class="excerpt">STRATEGIC NEWS WIRE [DRY-RUN MOCK CONTENT]: Strategic Institutional synthesis for BlogsPro 5.0. No AI tokens consumed. [DRY-RUN MOCK CONTENT]: Strategic Institutional synthesis for BlogsPro 5.0. No AI tokens consumed. GLOBAL & INDIAN MACRO [DRY-RUN M...</div>
+            
+            <div class="institutional-adsense">
+                <div class="ads-label">COMMERCIAL PROTOCOL</div>
+                <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-PLACEHOLDER" data-ad-slot="PLACEHOLDER" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+            </div>
+
+            <section class="manuscript-body">
+                <p style="color:var(--nexus-text-muted); line-height:1.7;"><!DOCTYPE html><br><html lang="en"><br><head><br>    <meta charset="UTF-8"><br>    <meta name="viewport" content="width=device-width, initial-scale=1.0"></p>
+<div class="table-container"><table><thead><tr><th><title>HOURLY Strategic Manuscript</th><th>Apex Institutional</title></th></tr></thead><tbody></tbody></table></div>
+<link href="https://fonts.googleapis.com/css2?family=Mulish:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        :root {
+            --apex-bg: #020617;
+            --apex-card: rgba(15, 23, 42, 0.6);
+            --apex-surface: rgba(30, 41, 59, 0.4);
+            --apex-accent: #10b981; /* Emerald */
+            --apex-secondary: #6366f1; /* Indigo */
+            --apex-text: #f8fafc;
+            --apex-text-muted: #94a3b8;
+            --apex-border: rgba(255, 255, 255, 0.08);
+            --apex-glass: rgba(255, 255, 255, 0.03);
+        }
+<p style="color:var(--nexus-text-muted); line-height:1.7;">* { box-sizing: border-box; }<br>        body { <br>            background: radial-gradient(circle at top right, #0f172a, #020617);<br>            color: var(--apex-text);<br>            font-family: 'Mulish', sans-serif;<br>            margin: 0;<br>            min-height: 100vh;<br>            line-height: 1.6;<br>            overflow-x: hidden;<br>        }</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">/* <hr class="institutional-divider"> APEX LAYOUT <hr class="institutional-divider"> */<br>        .apex-grid {<br>            display: grid;<br>            grid-template-columns: 280px 1fr;<br>            min-height: 100vh;<br>        }</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">.apex-sidebar {<br>            background: rgba(2, 6, 23, 0.8);<br>            backdrop-filter: blur(40px);<br>            border-right: 1px solid var(--apex-border);<br>            padding: 2.5rem 1.5rem;<br>            position: sticky;<br>            top: 0;<br>            height: 100vh;<br>            display: flex;<br>            flex-direction: column;<br>            z-index: 100;<br>        }</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">.apex-main {<br>            padding: 4rem 8% 6rem 8%;<br>            max-width: 1400px;<br>        }</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">/* <hr class="institutional-divider"> BRANDING <hr class="institutional-divider"> */<br>        .brand-container {<br>            display: flex;<br>            align-items: center;<br>            gap: 1rem;<br>            margin-bottom: 4rem;<br>            text-decoration: none;<br>            color: inherit;<br>        }<br>        .brand-logo {<br>            width: 42px;<br>            height: 42px;<br>            background: var(--apex-glass);<br>            border: 1px solid var(--apex-border);<br>            border-radius: 12px;<br>            padding: 8px;<br>            display: flex;<br>            align-items: center;<br>            justify-content: center;<br>            box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);<br>        }<br>        .brand-logo img { width: 100%; height: auto; }<br>        .brand-text { font-weight: 900; letter-spacing: -1px; font-size: 1.2rem; }</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">/* <hr class="institutional-divider"> NAVIGATION <hr class="institutional-divider"> */<br>        .nav-label {<br>            font-family: 'JetBrains Mono', monospace;<br>            font-size: 0.65rem;<br>            color: var(--apex-accent);<br>            text-transform: uppercase;<br>            letter-spacing: 3px;<br>            margin: 2rem 0 1rem 0;<br>            opacity: 0.6;<br>        }<br>        .nav-item {<br>            display: flex;<br>            align-items: center;<br>            gap: 0.75rem;<br>            padding: 0.75rem 1rem;<br>            border-radius: 8px;<br>            color: var(--apex-text-muted);<br>            text-decoration: none;<br>            font-size: 0.85rem;<br>            font-weight: 600;<br>            transition: all 0.3s ease;<br>            margin-bottom: 0.25rem;<br>        }<br>        .nav-item:hover, .nav-item.active {<br>            background: var(--apex-surface);<br>            color: var(--apex-text);<br>            box-shadow: inset 0 0 0 1px var(--apex-border);<br>        }<br>        .nav-item .indicator {<br>            width: 6px;<br>            height: 6px;<br>            border-radius: 50%;<br>            background: var(--apex-accent);<br>            opacity: 0;<br>        }<br>        .nav-item.active .indicator { opacity: 1; }</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">/* <hr class="institutional-divider"> CONTENT TYPOGRAPHY <hr class="institutional-divider"> */<br>        .status-badge {<br>            display: inline-flex;<br>            align-items: center;<br>            gap: 0.5rem;<br>            background: rgba(16, 185, 129, 0.1);<br>            color: var(--apex-accent);<br>            padding: 0.5rem 1rem;<br>            border-radius: 100px;<br>            font-size: 0.7rem;<br>            font-weight: 800;<br>            text-transform: uppercase;<br>            letter-spacing: 1px;<br>            border: 1px solid rgba(16, 185, 129, 0.2);<br>            margin-bottom: 2rem;<br>        }<br>        .pulse-dot { width: 6px; height: 6px; background: var(--apex-accent); border-radius: 50%; animation: pulse 2s infinite; }<br>        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 100% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } }</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">h1 {<br>            font-size: 4rem;<br>            font-weight: 900;<br>            letter-spacing: -3px;<br>            margin: 0 0 1.5rem 0;<br>            line-height: 0.95;<br>            background: linear-gradient(to bottom right, #fff, #94a3b8);<br>            -webkit-background-clip: text;<br>            -webkit-text-fill-color: transparent;<br>        }<br>        .apex-excerpt {<br>            font-size: 1.5rem;<br>            color: var(--apex-text-muted);<br>            max-width: 800px;<br>            margin-bottom: 4rem;<br>            font-weight: 300;<br>            line-height: 1.4;<br>        }</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">/* <hr class="institutional-divider"> GLASS SECTOR CARDS <hr class="institutional-divider"> */<br>        .institutional-sector {<br>            background: var(--apex-card);<br>            border: 1px solid var(--apex-border);<br>            border-radius: 24px;<br>            padding: 3.5rem;<br>            margin-bottom: 3rem;<br>            backdrop-filter: blur(20px);<br>            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);<br>            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);<br>        }<br>        .institutional-sector:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.15); }<br>        .institutional-sector h2 {<br>            font-size: 2rem;<br>            font-weight: 800;<br>            letter-spacing: -1px;<br>            color: var(--apex-text);<br>            margin-bottom: 2rem;<br>            display: flex;<br>            align-items: center;<br>            gap: 1rem;<br>        }<br>        .institutional-sector h2::before { content: ""; width: 40px; height: 1px; background: var(--apex-accent); }</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">/* <hr class="institutional-divider"> TABLES <hr class="institutional-divider"> */<br>        .table-container { margin: 2rem 0; overflow-x: auto; border-radius: 12px; border: 1px solid var(--apex-border); background: rgba(0,0,0,0.2); }<br>        table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; }<br>        th { text-align: left; padding: 1.2rem; background: rgba(255,255,255,0.02); color: var(--apex-text-muted); font-weight: 700; border-bottom: 1px solid var(--apex-border); }<br>        td { padding: 1rem 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.02); }<br>        tr:last-child td { border-bottom: none; }</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">/* <hr class="institutional-divider"> CHARTS <hr class="institutional-divider"> */<br>        .terminal-chart {<br>            background: rgba(0,0,0,0.3);<br>            border: 1px solid var(--apex-border);<br>            border-radius: 16px;<br>            min-height: 400px;<br>            margin: 2rem 0;<br>            position: relative;<br>        }<br>        .chart-tag { position: absolute; top: 1rem; right: 1rem; font-family: 'JetBrains Mono'; font-size: 0.6rem; color: var(--apex-accent); opacity: 0.4; }</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">/* <hr class="institutional-divider"> SCROLLBAR <hr class="institutional-divider"> */<br>        ::-webkit-scrollbar { width: 6px; }<br>        ::-webkit-scrollbar-track { background: var(--apex-bg); }<br>        ::-webkit-scrollbar-thumb { background: var(--apex-surface); border-radius: 10px; }<br>        ::-webkit-scrollbar-thumb:hover { background: var(--apex-accent); }<br>    </style><br></head><br><body><br>    <div class="apex-grid"><br>        <aside class="apex-sidebar"><br>            <a href="/" class="brand-container"><br>                <div class="brand-logo"><img src="../../logo.svg" alt="Logo"></div><br>                <div class="brand-text">BlogsPro <span style="color:var(--apex-accent)">Apex</span></div><br>            </a></p>
+<div class="nav-label">Strategic Vectors</div>
+            <a href="#sector-macro" class="nav-item active"><div class="indicator"></div> Global Macro</a>
+            <a href="#sector-equities" class="nav-item"><div class="indicator"></div> Equity Rotation</a>
+            <a href="#sector-banking" class="nav-item"><div class="indicator"></div> Banking Pulse</a>
+            <a href="#sector-india" class="nav-item"><div class="indicator"></div> India Delta</a>
+<div class="nav-label">Operational Data</div>
+            <a href="#" class="nav-item">📊 Performance Ledger</a>
+            <a href="#" class="nav-item">🏗️ Infrastructure</a>
+            
+            <div style="margin-top: auto; padding-top: 2rem;">
+                <div class="nav-label">Tuesday, April 28</div>
+                <div style="font-size:0.6rem; color:var(--apex-text-muted); opacity:0.5;">Confidential Institutional Briefing</div>
+            </div>
+        </aside>
+<p style="color:var(--nexus-text-muted); line-height:1.7;"><main class="apex-main"><br>            <div class="status-badge"><div class="pulse-dot"></div> Live HOURLY Pulse</div><br>            <h1>HOURLY Strategic Manuscript</h1><br>            <div class="apex-excerpt">Institutional Strategic Synthesis for hourly cycle. 2026-2027 Roadmap.</div></p>
+<section class="apex-content">
+                <section id="strategic-news-wire" class="institutional-sector">
+        <h2>STRATEGIC NEWS WIRE</h2>
+        <div class="news-wire-content">
+          [DRY-RUN MOCK CONTENT]: Strategic Institutional synthesis for BlogsPro 5.0. No AI tokens consumed.
+        </div>
+      </section><hr><div id="strategic-pulse">[DRY-RUN MOCK CONTENT]: Strategic Institutional synthesis for BlogsPro 5.0. No AI tokens consumed.</div><hr><div id="sector-macro" class="institutional-sector" data-vertical-id="macro"><h2>GLOBAL & INDIAN MACRO</h2>[DRY-RUN MOCK CONTENT]: Strategic Institutional synthesis for BlogsPro 5.0. No AI tokens consumed.</div>
+<div id="sector-banking" class="institutional-sector" data-vertical-id="banking"><h2>BANKING & FINANCIAL SERVICES</h2>[DRY-RUN MOCK CONTENT]: Strategic Institutional synthesis for BlogsPro 5.0. No AI tokens consumed.</div>
+<div id="sector-em_market" class="institutional-sector" data-vertical-id="em_market"><h2>EMERGING MARKETS PULSE</h2>[DRY-RUN MOCK CONTENT]: Strategic Institutional synthesis for BlogsPro 5.0. No AI tokens consumed.</div>
+<div id="sector-policy" class="institutional-sector" data-vertical-id="policy"><h2>REGULATORY & POLICY SHIFT</h2>[DRY-RUN MOCK CONTENT]: Strategic Institutional synthesis for BlogsPro 5.0. No AI tokens consumed.</div>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">[DRY-RUN MOCK]: Strategic Analysis for Heavy Industries & Manufacturing.</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">[DRY-RUN MOCK]: Strategic Analysis for IT & Digital Infrastructure.</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">[DRY-RUN MOCK]: Strategic Analysis for Automotive & EV Ecosystem.</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">[DRY-RUN MOCK]: Strategic Analysis for Energy, Power & Renewables.</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">[DRY-RUN MOCK]: Strategic Analysis for Infrastructure & Logistics.</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">[DRY-RUN MOCK]: Strategic Analysis for Healthcare & Pharmaceuticals.</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">[DRY-RUN MOCK]: Strategic Analysis for FMCG & Consumer Durables.</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">[DRY-RUN MOCK]: Strategic Analysis for Metals, Mining & Materials.</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">[DRY-RUN MOCK]: Strategic Analysis for Real Estate & Urban Dev.</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">[DRY-RUN MOCK]: Strategic Analysis for Commodities & Agri-Tech.</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">[DRY-RUN MOCK]: Strategic Analysis for Digital Assets & Web3.</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">[DRY-RUN MOCK]: Strategic Analysis for Startup & VC Ecosystem.<br><!-- FIDELITY_WARNING: Content below institutional density threshold (216 words). --></p>
+            </section>
+        </main>
+    </div>
+<p style="color:var(--nexus-text-muted); line-height:1.7;"><script><br>        // 🏰 APEX CHART ENGINE v3.0<br>        if (typeof google !== 'undefined' && google.charts) {<br>            google.charts.load('current', {packages: ['corechart', 'bar', 'line', 'table']});<br>            google.charts.setOnLoadCallback(() => {<br>                document.querySelectorAll('chart-data').forEach((tag, i) => {<br>                    try {<br>                        const raw = tag.textContent.trim();<br>                        const payload = JSON.parse(raw);<br>                        tag.style.display = 'none';</p>
+<div class="table-container"><table><thead><tr><th>const containerId = payload.id</th><th></th><th>'dynamic-chart-' + i;</th></tr></thead><tbody></tbody></table></div>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">let container = document.getElementById(containerId);<br>                        if (!container) {<br>                            container = document.createElement('div');<br>                            container.id = containerId;<br>                            container.className = 'terminal-chart';<br>                            tag.parentNode.insertBefore(container, tag);<br>                        }</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">const data = google.visualization.arrayToDataTable(payload.data);<br>                        const options = {<br>                            backgroundColor: 'transparent',<br>                            colors: ['#10b981', '#6366f1', '#f8fafc', '#ec4899'],<br>                            chartArea: { width: '85%', height: '70%', top: 40 },<br>                            legend: { position: 'bottom', textStyle: { color: '#94a3b8', fontSize: 10, fontName: 'Mulish' } },<br>                            hAxis: { textStyle: { color: '#94a3b8', fontName: 'JetBrains Mono' }, gridlines: { color: 'rgba(255,255,255,0.05)' } },<br>                            vAxis: { textStyle: { color: '#94a3b8', fontName: 'JetBrains Mono' }, gridlines: { color: 'rgba(255,255,255,0.05)' } },<br>                            titleTextStyle: { color: '#f8fafc', fontSize: 14, fontName: 'Mulish' }<br>                        };</p>
+<p style="color:var(--nexus-text-muted); line-height:1.7;">let chart;<br>                        if (payload.type === 'pie') chart = new google.visualization.PieChart(container);<br>                        else if (payload.type === 'bar') chart = new google.visualization.BarChart(container);<br>                        else chart = new google.visualization.LineChart(container);<br>                        <br>                        chart.draw(data, options);<br>                    } catch (e) {<br>                        console.error("📊 [Apex] Chart Integration Failure:", e);<br>                        tag.style.display = 'none';<br>                    }<br>                });<br>            });<br>        }<br>    </script><br></body><br></html></p>
+                <div class="institutional-glossary">
+                    <h2>INSTITUTIONAL GLOSSARY</h2>
+                    <ul>
+                        <li><strong>Alpha (α):</strong> Superiority of returns relative to benchmark performance.</li>
+                        <li><strong>Basis Point:</strong> A unit of measure for interest rates (1/100th of 1%).</li>
+                        <li><strong>Liquidity Drift:</strong> Cumulative variance in market depth metrics.</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <aside class="rhs-sidebar">
+            <div class="rhs-title">STRATEGIC ANCHORS</div>
+            <a href="#sector-macro" class="interlink-card">
+                <h4>Global Macro Resilience Protocol</h4>
+                <div class="meta">Vertical: MACRO • Pulse: STABLE</div>
+            </a>
+            <a href="#sector-equities" class="interlink-card">
+                <h4>Institutional Alpha Rotation v2</h4>
+                <div class="meta">Vertical: EQUITIES • Pulse: ACTIVE</div>
+            </a>
+            <a href="#sector-debt" class="interlink-card">
+                <h4>Debt & Liquidity Surveillance</h4>
+                <div class="meta">Vertical: DEBT • Pulse: MONITOR</div>
+            </a>
+
+            <div class="rhs-title" style="margin-top: 4rem;">VERTICAL FLOWS</div>
+            <a href="#sector-banking" class="vertical-flow-item"><span>BANKING</span> <span class="score">98%</span></a>
+            <a href="#sector-cards" class="vertical-flow-item"><span>CARDS</span> <span class="score">94%</span></a>
+            <a href="#sector-mutualunds" class="vertical-flow-item"><span>MUTUAL FUNDS</span> <span class="score">89%</span></a>
+        </aside>
+    </div>
+
+    <script>
+        // 🏰 INSTITUTIONAL HARDENED CHART ENGINE v2.2
+        if (typeof google !== 'undefined' && google.charts) {
+            google.charts.load('current', {packages: ['corechart', 'bar', 'line', 'table']});
+            google.charts.setOnLoadCallback(() => {
+                document.querySelectorAll('chart-data').forEach((tag, i) => {
+                    try {
+                        const bt = String.fromCharCode(96);
+                        const raw = tag.textContent.trim().replace(new RegExp(bt + bt + bt + 'json\n?|' + bt + bt + bt, 'g'), '');
+                        const payload = JSON.parse(raw);
+                        tag.style.setProperty('display', 'none', 'important'); 
+                        
+                        const containerId = payload.id || 'dynamic-chart-' + i;
+                        let container = document.getElementById(containerId);
+                        if (!container) {
+                            container = document.createElement('div');
+                            container.id = containerId;
+                            container.className = 'terminal-chart';
+                            tag.parentNode.insertBefore(container, tag);
+                        }
+
+                        const data = google.visualization.arrayToDataTable(payload.data);
+                        const options = {
+                            backgroundColor: 'transparent',
+                            colors: ['#BFA100', '#F8FAFC', '#64748B', '#00D166'],
+                            chartArea: { width: '85%', height: '70%', top: 40 },
+                            legend: { position: 'bottom', textStyle: { color: '#94A3B8', fontSize: 10 } },
+                            hAxis: { textStyle: { color: '#94A3B8' }, gridlines: { color: 'rgba(255,255,255,0.05)' } },
+                            vAxis: { textStyle: { color: '#94A3B8' }, gridlines: { color: 'rgba(255,255,255,0.05)' } },
+                            titleTextStyle: { color: '#BFA100', fontSize: 14 }
+                        };
+
+                        let chart;
+                        if (payload.type === 'pie') chart = new google.visualization.PieChart(container);
+                        else if (payload.type === 'bar') chart = new google.visualization.BarChart(container);
+                        else chart = new google.visualization.LineChart(container);
+                        
+                        chart.draw(data, options);
+                    } catch (e) {
+                        console.error("📊 [Nexus] Chart Error:", e);
+                        tag.style.display = 'none';
+                    }
+                });
+            });
+        }
+        // Fail-safe: Always hide raw JSON regardless of Google Charts status
+        document.querySelectorAll('chart-data').forEach(tag => tag.style.setProperty('display', 'none', 'important'));
+
+        // 🚀 HASH-FREE SMOOTH SCROLL (Institutional Integration)
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a[href^="#"]');
+            if (link) {
+                e.preventDefault();
+                const target = document.getElementById(link.getAttribute('href').substring(1));
+                if (target) {
+                    window.scrollTo({
+                        top: target.getBoundingClientRect().top + window.pageYOffset - 120,
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        });
+    </script>
+    
+</body>
+</html>
