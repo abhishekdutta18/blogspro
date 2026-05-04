@@ -8,8 +8,10 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: smoke-${{ github.ref }}
-  cancel-in-progress: true
+  # Manual dispatches get a unique group (never cancelled by pipeline pushes)
+  # Automated CI runs share a group and cancel stale ones
+  group: ${{ github.event_name == 'workflow_dispatch' && format('smoke-manual-{0}', github.run_id) || format('smoke-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 jobs:
   smoke:
