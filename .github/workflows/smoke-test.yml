@@ -36,7 +36,18 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Wait for GitHub Pages propagation
-        run: sleep 30
+        run: |
+          echo "⏳ Waiting for GitHub Pages to propagate..."
+          for i in $(seq 1 15); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://blogspro.in/)
+            echo "Attempt $i: HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Site is responding. Waiting 15s more for CDN edge propagation..."
+              sleep 15
+              break
+            fi
+            sleep 10
+          done
 
       - name: Run smoke tests
         run: npm run test:smoke
