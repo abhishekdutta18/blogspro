@@ -166,7 +166,22 @@ TELEGRAM_CHAT_ID=
 node scripts/generate-institutional-tome.js --freq=hourly --force
 ```
 
+## Fixed Bugs & Resolution History
+
+To prevent regressions and track maintenance efforts, all fixed bugs are logged here:
+
+### Infrastructure & Security
+- **Mirofish API Path Traversal Bounds**: Enforced strict directory constraints across `kv.py`, `simulation.py`, and `simulation_manager.py` preventing relative pathway escapes.
+- **Duplicate Operational Clones**: Cleared redundant backup variants (`__init__ 3.py`, `config 3.py`, etc.) from staging.
+
+### Operations & Pipelines
+- **Hourly Pulse 404 Accessibility**: Resolved routing generation mismatch discrepancies.
+- **Swarm ReferenceError Suppression**: Patched `ReferenceError` instances for `sectorResults` and `telemetry` in `swarm-orchestrator.js` by enforcing rigorous variable initialization and null-safety.
+- **Sentry Alert Noise Abatement**: De-escalated redundant "Blackboard" memos from high-priority Sentry alerts to low-overhead breadcrumbs.
+- **AI Gateway Resilience**: Hardened Cloudflare AI Gateway handlers with exponential backoff retries to absorb transient model rate limits (HTTP 429).
+
 ---
 
 ## License
+
 MIT

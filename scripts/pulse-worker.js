@@ -517,22 +517,40 @@ async function handleGroqGateway(prompt, model, env) {
   const key = env.GROQ_API_KEY;
   if (!key) throw new Error("GROQ_API_KEY not configured on edge.");
 
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${key}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: model || "llama-3.3-70b-versatile",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.2
-    })
-  });
+  let lastError;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: model || "llama-3.3-70b-versatile",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.2
+        })
+      });
 
-  const data = await res.json();
-  if (data.choices?.[0]?.message?.content) return data.choices[0].message.content;
-  throw new Error(data.error?.message || "Groq Gateway Failure");
+      const data = await res.json();
+      if (res.ok && data.choices?.[0]?.message?.content) return data.choices[0].message.content;
+      
+      lastError = new Error(data.error?.message || `Groq Gateway Failure (HTTP ${res.status})`);
+      if (res.status === 429) {
+        const backoff = (attempt + 1) * 2000;
+        console.warn(`⏳ [Groq-Gateway] Rate limited. Retrying in ${backoff}ms...`);
+        await new Promise(r => setTimeout(r, backoff));
+        continue;
+      }
+      throw lastError;
+    } catch (e) {
+      lastError = e;
+      if (attempt === 2) throw e;
+      await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
+    }
+  }
+  throw lastError;
 }
 
 async function handleGeminiGateway(prompt, model, env) {
@@ -542,17 +560,34 @@ async function handleGeminiGateway(prompt, model, env) {
   const targetModel = model || "gemini-1.5-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${key}`;
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }]
-    })
-  });
+  let lastError;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      });
 
-  const data = await res.json();
-  if (data.candidates?.[0]?.content?.parts?.[0]?.text) return data.candidates[0].content.parts[0].text;
-  throw new Error(data.error?.message || "Gemini Gateway Failure");
+      const data = await res.json();
+      if (res.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) return data.candidates[0].content.parts[0].text;
+      
+      lastError = new Error(data.error?.message || `Gemini Gateway Failure (HTTP ${res.status})`);
+      if (res.status === 429) {
+        const backoff = (attempt + 1) * 2000;
+        await new Promise(r => setTimeout(r, backoff));
+        continue;
+      }
+      throw lastError;
+    } catch (e) {
+      lastError = e;
+      if (attempt === 2) throw e;
+      await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
+    }
+  }
+  throw lastError;
 }
 
 async function handleSambaNovaGateway(prompt, model, env) {
@@ -564,43 +599,77 @@ async function handleSambaNovaGateway(prompt, model, env) {
   if (model?.toLowerCase().includes('deepseek')) targetModel = "DeepSeek-V3";
   else if (model?.toLowerCase().includes('405b')) targetModel = "Meta-Llama-3.1-405B-Instruct-v2";
 
-  const res = await fetch("https://api.sambanova.ai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${key}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: targetModel,
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.1
-    })
-  });
+  let lastError;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch("https://api.sambanova.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: targetModel,
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.1
+        })
+      });
 
-  const data = await res.json();
-  if (data.choices?.[0]?.message?.content) return data.choices[0].message.content;
-  throw new Error(data.error?.message || "SambaNova Gateway Failure");
+      const data = await res.json();
+      if (res.ok && data.choices?.[0]?.message?.content) return data.choices[0].message.content;
+      
+      lastError = new Error(data.error?.message || `SambaNova Gateway Failure (HTTP ${res.status})`);
+      if (res.status === 429) {
+        const backoff = (attempt + 1) * 2000;
+        await new Promise(r => setTimeout(r, backoff));
+        continue;
+      }
+      throw lastError;
+    } catch (e) {
+      lastError = e;
+      if (attempt === 2) throw e;
+      await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
+    }
+  }
+  throw lastError;
 }
 
 async function handleHuggingFaceGateway(prompt, model, env) {
   const key = env.HF_TOKEN;
   if (!key) throw new Error("HF_TOKEN not configured on edge.");
 
-  const res = await fetch("https://router.huggingface.co/hf/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${key}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: model || "mistralai/Mistral-7B-Instruct-v0.3",
-      messages: [{ role: "user", content: prompt }]
-    })
-  });
+  let lastError;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch("https://router.huggingface.co/hf/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: model || "mistralai/Mistral-7B-Instruct-v0.3",
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
 
-  const data = await res.json();
-  if (data.choices?.[0]?.message?.content) return data.choices[0].message.content;
-  throw new Error(data.error?.message || "HuggingFace Gateway Failure");
+      const data = await res.json();
+      if (res.ok && data.choices?.[0]?.message?.content) return data.choices[0].message.content;
+      
+      lastError = new Error(data.error?.message || `HuggingFace Gateway Failure (HTTP ${res.status})`);
+      if (res.status === 429) {
+        const backoff = (attempt + 1) * 2000;
+        await new Promise(r => setTimeout(r, backoff));
+        continue;
+      }
+      throw lastError;
+    } catch (e) {
+      lastError = e;
+      if (attempt === 2) throw e;
+      await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
+    }
+  }
+  throw lastError;
 }
 
 /**

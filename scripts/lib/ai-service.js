@@ -521,7 +521,7 @@ export const ResourceManager = {
         }
         if (activeKeys.Groq) {
             this.pool.push({ name: 'Groq-70B-Versatile', fn: (p, m, c) => generateGroqContent(p, m || "llama-3.3-70b-versatile", c), tier: 1, roles: ['research', 'edit', 'draft', 'generate'], match: /groq|node-research|node-edit|node-draft|node-generate|llama/i });
-            this.pool.push({ name: 'Gemma-2-9B-Auditor', fn: (p, m, c) => generateGroqContent(p, "gemma2-9b-it", c), tier: 2, roles: ['audit', 'repair'], match: /gemma|node-audit|node-repair/i });
+            this.pool.push({ name: 'Llama-3.1-8B-Auditor', fn: (p, m, c) => generateGroqContent(p, "llama-3.1-8b-instant", c), tier: 2, roles: ['audit', 'repair'], match: /llama|node-audit|node-repair/i });
         }
 
         if (activeKeys.Gemini) {
@@ -606,7 +606,7 @@ export const ResourceManager = {
             this.pool.push({ name: 'HuggingFace-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, m || "mistralai/Mistral-7B-Instruct-v0.3", c), tier: 2, roles: ['utility', 'audit'], match: /huggingface|hf|mistral/i });
             
             // [V12.0] Gemma-4 Shadow Audit (Cloud Proxy for GHA Continuity)
-            this.pool.push({ name: 'Gemma-4-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "gemma2-9b-it", c), tier: 2, roles: ['audit', 'repair'], match: /gemma|node-audit|node-repair/i });
+            this.pool.push({ name: 'Llama-3.1-8B-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "llama-3.1-8b-instant", c), tier: 2, roles: ['audit', 'repair'], match: /llama|node-audit|node-repair/i });
 
             console.log("🏙️ [AI-Balancer] Institutional Bridge & Proxy Nodes Active. (V15.5 Hardened)");
         }

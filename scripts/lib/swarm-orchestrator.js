@@ -612,11 +612,17 @@ export async function persistLearning(verticalName, audit, status = "FAILURE") {
     // Learning ledger logic preserved
     try {
         const ledgerPath = "./knowledge/ai-feedback.json";
-        const current = JSON.parse(fs.readFileSync(ledgerPath, 'utf8') || "[]");
+        let current = [];
+        if (fs.existsSync(ledgerPath)) {
+            current = JSON.parse(fs.readFileSync(ledgerPath, 'utf8') || "[]");
+        }
         current.push({ type: status, timestamp: new Date().toISOString(), task: verticalName, score: audit.score });
         fs.writeFileSync(ledgerPath, JSON.stringify(current.slice(-1000), null, 2));
-    } catch (e) {}
+    } catch (e) {
+        console.error("⚠️ [Swarm-Orchestrator] Failed to persist learning:", e.message);
+    }
 }
+
 
 // --- Redundant wrapper removed. Unified logic now resides in executeMultiAgentSwarm ---
 
@@ -668,6 +674,7 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
   runGhostSim(frequency, semanticDigest, env, id, modelOverride);
   
   const globalNewsPulse = [];
+  let sectorResults = [];
 
   // APRIL 2026: Institutional Pre-flight Audit
   let nodeCount = 0;
@@ -790,7 +797,7 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
           return result;
       }));
 
-      const sectorResults = await Promise.all(sectorTasks);
+      sectorResults = await Promise.all(sectorTasks);
 
     
     // [V9.0] WORKER MODE: Save fragments and exit (GHA Parallelization)
@@ -826,7 +833,7 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
   let consensusData = { summary: "No strategic drift detected for hourly pulse.", telemetry: null };
   if (frequency !== 'hourly') {
       consensusData = await runConsensusDesk(frequency, semanticDigest, env, id, modelOverride);
-      if (consensusData.telemetry) {
+      if (consensusData && consensusData.telemetry) {
         // [V6.0] Generate Disagreement Heatmap & Timeline data
         // Real Variance Calculation: Uses actual agent distributions
         const variance = consensusData.telemetry.disagreementVariance || 15;

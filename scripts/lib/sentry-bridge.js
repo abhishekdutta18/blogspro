@@ -182,11 +182,4 @@ export async function logBlackboardMemo(fromVertical, memo, context = {}, sentry
     const data = { memo, ...context };
     
     await logSwarmBreadcrumb(message, data, sentryInstance);
-    
-    let Sentry = sentryInstance;
-    if (!Sentry && isNode) Sentry = await getSentryNode();
-
-    if (Sentry && typeof Sentry.captureMessage === 'function') {
-        Sentry.captureMessage(message, { level: 'info', extra: data });
-    }
 }
