@@ -1034,7 +1034,7 @@ async function pushMultipleToGitHub(filesToPush, commitMsg, owner, repo, token, 
 
         if (!putRes.ok) {
             const errText = await putRes.text();
-            // [V22.1] SHA-conflict auto-recovery: re-fetch SHA and retry once
+            // [V22.2] Aggressive SHA-conflict auto-recovery
             if (putRes.status === 409 || putRes.status === 422) {
                 console.warn(`⚠️ [GitHub] SHA conflict on ${ghPath} (${putRes.status}). Re-fetching SHA and retrying...`);
                 const retryGet = await fetch(getUrl, {
