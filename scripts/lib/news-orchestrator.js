@@ -34,14 +34,27 @@ async function fetchRSS(url) {
         const response = await fetchWithTimeout(url);
         if (!response.ok) return [];
         const xmlData = await response.text();
-        const parser = new XMLParser({ ignoreAttributes: false });
+        const parser = new XMLParser({ 
+            ignoreAttributes: false,
+            attributeNamePrefix: "@_"
+        });
         const parsed = parser.parse(xmlData);
         
         const items = parsed?.rss?.channel?.item || parsed?.feed?.entry || [];
-        return (Array.isArray(items) ? items : [items]).map(i => ({
-            title: i.title?.["#text"] || i.title || "Untitled",
-            link: i.link?.["@_href"] || i.link || ""
-        }));
+        return (Array.isArray(items) ? items : [items]).map(i => {
+            let link = "";
+            if (typeof i.link === 'string') link = i.link;
+            else if (i.link && i.link["@_href"]) link = i.link["@_href"];
+            else if (Array.isArray(i.link)) {
+                const alternate = i.link.find(l => l["@_rel"] === "alternate");
+                link = alternate ? alternate["@_href"] : (i.link[0]?.["@_href"] || "");
+            }
+
+            return {
+                title: i.title?.["#text"] || i.title || "Untitled",
+                link: link || ""
+            };
+        });
     } catch (e) {
         return [];
     }
@@ -105,9 +118,10 @@ export class NewsOrchestrator {
         
         const items = await fetchRSS(url);
         if (items.length >= 5) {
-            return items.slice(0, 10).map((i, idx) => 
-                `[Pulse ${idx + 1}] ${i.title} (Source: ${i.link.split('/')[2]})`
-            ).join('\n');
+            return items.slice(0, 10).map((i, idx) => {
+                const domain = (typeof i.link === 'string' && i.link.includes('/')) ? i.link.split('/')[2] : "institutional-source";
+                return `[Pulse ${idx + 1}] ${i.title} (Source: ${domain})`;
+            }).join('\n');
         }
 
         // Tier 2: Deep API Research (Balance)

@@ -196,15 +196,27 @@ async function fetchRSS(url) {
         const response = await fetchWithTimeout(url);
         if (!response.ok) return [];
         const xmlData = await response.text();
-        const parser = new XMLParser({ ignoreAttributes: false });
+        const parser = new XMLParser({ 
+            ignoreAttributes: false,
+            attributeNamePrefix: "@_"
+        });
         const parsed = parser.parse(xmlData);
         
-        // Handle various RSS/Atom formats
         const items = parsed?.rss?.channel?.item || parsed?.feed?.entry || [];
-        return (Array.isArray(items) ? items : [items]).map(i => ({
-            title: i.title?.["#text"] || i.title || "Untitled",
-            link: i.link?.["@_href"] || i.link || ""
-        }));
+        return (Array.isArray(items) ? items : [items]).map(i => {
+            let link = "";
+            if (typeof i.link === 'string') link = i.link;
+            else if (i.link && i.link["@_href"]) link = i.link["@_href"];
+            else if (Array.isArray(i.link)) {
+                const alternate = i.link.find(l => l["@_rel"] === "alternate");
+                link = alternate ? alternate["@_href"] : (i.link[0]?.["@_href"] || "");
+            }
+
+            return {
+                title: i.title?.["#text"] || i.title || "Untitled",
+                link: link || ""
+            };
+        });
     } catch (e) {
         console.warn(`⚠️ RSS Fetch Failure for ${url}:`, e.message);
         return [];

@@ -1491,22 +1491,32 @@ async function pollMarkets() {
       if (data.status === 'success' && data.data) {
         _pollFailures = 0;
         const d    = data.data;
-        const nifty = d['NSE_INDEX|Nifty 50'];
-        const bank  = d['NSE_INDEX|Nifty Bank'];
+        const nifty = d['NSE_INDEX|Nifty 50'] || d['NSE_INDEX|NIFTY 50'];
+        const bank  = d['NSE_INDEX|Nifty Bank'] || d['NSE_INDEX|NIFTY BANK'];
         indicesBox.style.display = 'grid';
+        
+        const niftyPrice = nifty?.last_price || nifty?.ltp || 0;
+        const niftyPrev  = nifty?.close || nifty?.prev_close || niftyPrice;
+        const bankPrice  = bank?.last_price || bank?.ltp || 0;
+        const bankPrev   = bank?.close || bank?.prev_close || bankPrice;
+
         indicesBox.innerHTML = `
           <div style="text-align:center"><small style="display:block;color:var(--muted)">NIFTY 50</small>
-            <b style="color:${nifty?.last_price >= nifty?.close ? 'var(--emerald)' : 'var(--red)'}">${nifty?.last_price?.toLocaleString('en-IN') || '—'}</b></div>
+            <b style="color:${niftyPrice >= niftyPrev ? 'var(--emerald)' : 'var(--red)'}">${niftyPrice.toLocaleString('en-IN') || '—'}</b></div>
           <div style="text-align:center"><small style="display:block;color:var(--muted)">BANK NIFTY</small>
-            <b style="color:${bank?.last_price >= bank?.close ? 'var(--emerald)' : 'var(--red)'}">${bank?.last_price?.toLocaleString('en-IN') || '—'}</b></div>`;
+            <b style="color:${bankPrice >= bankPrev ? 'var(--emerald)' : 'var(--red)'}">${bankPrice.toLocaleString('en-IN') || '—'}</b></div>`;
+        
         const symbols = ["RELIANCE", "HDFCBANK", "ICICIBANK", "INFY", "TCS"];
         stocksBox.innerHTML = symbols.map(s => {
           const item = d[`NSE_EQ|${s}`];
           if (!item) return '';
-          const chg = (((item.last_price - item.close) / item.close) * 100).toFixed(2);
+          const last = item.last_price || item.ltp || 0;
+          const close = item.close || item.prev_close || last;
+          const rawChg = close ? ((last - close) / close) * 100 : 0;
+          const chg = Number.isFinite(rawChg) ? rawChg.toFixed(2) : '0.00';
           return `<div style="display:flex;justify-content:space-between;font-size:0.8rem">
             <span>${s}</span>
-            <span style="color:${chg >= 0 ? 'var(--emerald)' : 'var(--red)'}">${item.last_price.toLocaleString('en-IN')} <small>(${chg}%)</small></span>
+            <span style="color:${parseFloat(chg) >= 0 ? 'var(--emerald)' : 'var(--red)'}">${last.toLocaleString('en-IN')} <small>(${chg}%)</small></span>
           </div>`;
         }).join('');
       } else {
@@ -1515,14 +1525,17 @@ async function pollMarkets() {
     } else {
       const res  = await fetch(`${UPSTOX_BASE}/global`);
       const json = await res.json();
-      if (json.status === 'success') {
+      if (json.status === 'success' && Array.isArray(json.data)) {
         _pollFailures = 0;
         indicesBox.style.display = 'none';
         stocksBox.innerHTML = json.data.map(d => {
-          const name = d.symbol.replace('^', '').replace('=F', '');
+          if (!d) return '';
+          const name = (d.symbol || '??').replace('^', '').replace('=F', '');
+          const price = d.price || 0;
+          const change = d.change || 0;
           return `<div style="display:flex;justify-content:space-between;font-size:0.8rem;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:0.4rem">
             <span style="color:var(--gold)">${name}</span>
-            <span style="color:${d.change >= 0 ? 'var(--emerald)' : 'var(--red)'}">${d.price.toLocaleString()} <small>(${d.change}%)</small></span>
+            <span style="color:${change >= 0 ? 'var(--emerald)' : 'var(--red)'}">${price.toLocaleString()} <small>(${Number(change).toFixed(2)}%)</small></span>
           </div>`;
         }).join('');
       } else {

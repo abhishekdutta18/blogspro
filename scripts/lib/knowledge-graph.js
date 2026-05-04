@@ -1,5 +1,5 @@
 import { askAI } from "./ai-service.js";
-import { getGraphRAGExtractorPrompt, getGraphRAGMergePrompt } from "./prompts.js";
+import { getGraphRAGExtractorPrompt, getGraphRAGMergePrompt, getSemanticGatingPrompt } from "./prompts.js";
 import { extractJson } from "./sanitizer.js";
 import { pushTelemetryLog } from "./storage-bridge.js";
 
