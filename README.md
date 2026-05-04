@@ -179,7 +179,7 @@ To prevent regressions and track maintenance efforts, all fixed bugs are logged 
 - **Swarm ReferenceError Suppression**: Patched `ReferenceError` instances for `sectorResults` and `telemetry` in `swarm-orchestrator.js` by enforcing rigorous variable initialization and null-safety.
 - **Sentry Alert Noise Abatement**: De-escalated redundant "Blackboard" memos from high-priority Sentry alerts to low-overhead breadcrumbs.
 - **AI Gateway Resilience**: Hardened Cloudflare AI Gateway handlers with exponential backoff retries to absorb transient model rate limits (HTTP 429).
-
+- **CI/CD Smoke Test Failures**: Resolved persistent failures by hardening module loading tests (using `domcontentloaded` and polling instead of static timeouts) and eliminating residual Git conflict markers in `init.js` that caused fatal syntax errors in production deployments.
 ---
 
 ## License
