@@ -54,12 +54,15 @@ function cleanupGhosts() {
 
         // Delete redundant files
         filesToDelete.forEach(file => {
-            const filePath = path.join(dir, file);
+            if (!file) return; // Skip if no filename is present
+            const basename = file.split('/').pop();
+            const filePath = path.join(dir, basename);
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
                 console.log(`🗑️ Deleted ghost: ${file}`);
             }
         });
+
     });
 
     console.log("🏁 Pruning Complete. Terminal fidelity restored.");

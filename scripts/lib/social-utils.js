@@ -100,10 +100,6 @@ export async function dispatchTelegramAlert(summary, env) {
       const parsed = JSON.parse(jsonStr);
       cleanTitle = parsed.title || cleanTitle;
       cleanAbstract = parsed.abstract || parsed.summary || parsed.excerpt || cleanAbstract;
-      if (parsed.link && parsed.link.includes('https://')) {
-          // Only override link if it looks like a real institutional URL, not a placeholder
-          if (!parsed.link.includes('example.com')) cleanLink = parsed.link;
-      }
     } catch (e) {
       console.warn("⚠️ [Social-Bridge] Failed to parse JSON abstract, using raw fallback.");
     }
