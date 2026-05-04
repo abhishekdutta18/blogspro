@@ -1134,39 +1134,7 @@ window.openPostById = async (encodedId) => {
   window.location.href = `post.html?id=${id}`;
 };
 
-<<<<<<< HEAD
-// ── Search & Category Filter globals (called from inline onclick/oninput) ──
-window.handleSearch = function(query) {
-  const q = String(query || '').trim().toLowerCase();
-  const filtered = allPosts.filter(p => {
-    const inCat = currentCat === 'all' || (p.category || '').toLowerCase() === currentCat.toLowerCase();
-    const inText = !q || (p.title || '').toLowerCase().includes(q) || (p.excerpt || '').toLowerCase().includes(q);
-    return inCat && inText;
-  });
-  renderPosts(filtered);
-};
-
-window.filterByCategory = function(cat) {
-  currentCat = String(cat || 'all').toLowerCase();
-  
-  // Update UI chips
-  document.querySelectorAll('.filter-chip').forEach(b => {
-    const chipText = b.textContent.trim().toLowerCase();
-    b.classList.toggle('active', chipText === currentCat || (currentCat === 'all' && chipText === 'all'));
-  });
-
-  const searchVal = document.getElementById('postSearch')?.value?.trim().toLowerCase() || '';
-  if (searchVal) {
-    window.handleSearch(searchVal);
-  } else {
-    renderPosts(currentCat === 'all' ? allPosts : allPosts.filter(p => (p.category || '').toLowerCase() === currentCat));
-  }
-};
-=======
-// ── Search & Category Filter globals are now defined at the top ──────────────
-
-// window.filterByCategory is now defined at the top
->>>>>>> b276d40 (feat: implement Terminal V2.0 and resolve CI/CD smoke test failures)
+// ── Search & Category Filter globals are defined at the top of this file ──
 
 // Initialise filter chip listeners for robustness
 document.querySelectorAll('.filter-chip').forEach(btn => {
@@ -1493,12 +1461,15 @@ const POLL_MAX_FAILURES = 3;
 const UPSTOX_BASE = ENDPOINTS.upstox;
 let marketPollInterval = null;
 
+let _isPollActive = false;
 async function pollMarkets() {
+  if (_isPollActive) return; // Concurrency guard — prevent overlapping fetches
+  _isPollActive = true;
   const indicesBox = document.getElementById('terminal-indices');
   const stocksBox  = document.getElementById('terminal-stocks');
   const view       = document.getElementById('terminalView')?.value || 'india';
 
-  if (!indicesBox || !stocksBox) return;
+  if (!indicesBox || !stocksBox) { _isPollActive = false; return; }
 
   if (_pollFailures >= POLL_MAX_FAILURES) {
     if (marketPollInterval) {
@@ -1508,6 +1479,7 @@ async function pollMarkets() {
     const statusDot = document.getElementById('marketStatus');
     if (statusDot) { statusDot.style.background = 'var(--red)'; statusDot.style.boxShadow = '0 0 6px var(--red)'; }
     stocksBox.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);padding:0.5rem 0">Live data unavailable — market terminal offline.</div>`;
+    _isPollActive = false;
     return;
   }
 
@@ -1560,6 +1532,8 @@ async function pollMarkets() {
   } catch (e) {
     _pollFailures++;
     console.warn("Market poll fail:", e);
+  } finally {
+    _isPollActive = false;
   }
 };
 
@@ -1574,7 +1548,8 @@ function startMarketAutoRefresh() {
     }
   };
   refresh();
-  marketPollInterval = setInterval(refresh, 30000);
+  // [V22.1] Bumped 30s -> 60s to prevent overlapping fetches during market hours
+  marketPollInterval = setInterval(refresh, 60000);
 }
 
 function hydratePolicy(latestPost) {
@@ -1603,10 +1578,7 @@ function hydratePolicy(latestPost) {
 }
 document.getElementById('year').textContent = new Date().getFullYear();
 
-<<<<<<< HEAD
-// ── Global Exports ────────────────────────────────────────────────────────────
-// Expose internal functions to the global scope to ensure that inline 
-// HTML handlers and external monitoring/testing tools can access them.
+// ── Global Exports (bottom reinforcement for module-late consumers) ────────────
 window.renderPosts = renderPosts;
 window.loadUpstoxMarketData = loadUpstoxMarketData;
 window.loadPosts = loadPosts;
@@ -1615,7 +1587,3 @@ window.loadForexFactoryData = loadForexFactoryData;
 window.initIntelHub = initIntelHub;
 window.initTVAdvChart = initTVAdvChart;
 window.pollMarkets = pollMarkets;
-=======
-// ── Global Exports are now at the top of the file ─────────────────────────────
->>>>>>> b276d40 (feat: implement Terminal V2.0 and resolve CI/CD smoke test failures)
-

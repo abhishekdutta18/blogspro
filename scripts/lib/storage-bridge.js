@@ -1034,6 +1034,28 @@ async function pushMultipleToGitHub(filesToPush, commitMsg, owner, repo, token, 
 
         if (!putRes.ok) {
             const errText = await putRes.text();
+            // [V22.1] SHA-conflict auto-recovery: re-fetch SHA and retry once
+            if (putRes.status === 409 || putRes.status === 422) {
+                console.warn(`⚠️ [GitHub] SHA conflict on ${ghPath} (${putRes.status}). Re-fetching SHA and retrying...`);
+                const retryGet = await fetch(getUrl, {
+                    headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github+json', 'User-Agent': 'blogspro-swarm' }
+                });
+                if (retryGet.status === 200) {
+                    const retryData = await retryGet.json();
+                    const retrySha = retryData.sha;
+                    const retryBody = { ...body, sha: retrySha };
+                    const retryRes = await fetch(putUrl, {
+                        method: 'PUT',
+                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'User-Agent': 'blogspro-swarm' },
+                        body: JSON.stringify(retryBody)
+                    });
+                    if (retryRes.ok) {
+                        console.log(`✓ [GitHub] SHA-conflict resolved on retry: ${ghPath}`);
+                        continue;
+                    }
+                    throw new Error(`GitHub Push Retry Failed [${ghPath}]: ${await retryRes.text()}`);
+                }
+            }
             throw new Error(`GitHub Push Failed [${ghPath}]: ${errText}`);
         }
         console.log(`✓ [GitHub] Synchronized: ${ghPath}`);

@@ -591,7 +591,12 @@ Provide the final refined output in JSON format:
             console.warn("⚠️ [Thinking] Refinement failed, using original summary.", e.message);
         }
 
-        await waitForPublicAvailability(telegramSummary.url);
+        // [V22.1] Non-blocking availability check — dispatch Telegram regardless of CDN propagation
+        // The URL is always valid; GitHub Pages just needs time to propagate.
+        const isLive = await waitForPublicAvailability(telegramSummary.url);
+        if (!isLive) {
+          console.warn(`⚠️ [Dispatch] URL not yet live after timeout, dispatching Telegram anyway: ${telegramSummary.url}`);
+        }
         await dispatchTelegramAlert(telegramSummary, env);
         console.log(`💎 [Dispatch] Telegram Strategic Alert Sent.`);
 
