@@ -51,7 +51,6 @@
   "devDependencies": {
     "@playwright/test": "^1.44.0",
     "genkit-cli": "^1.32.0",
-    "puppeteer": "^24.40.0",
     "wrangler": "^4.83.0"
   }
 }
