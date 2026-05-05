@@ -735,8 +735,9 @@ export const ResourceManager = {
      * Triggers when the pool is completely exhausted even after initial recovery attempts.
      */
     async emergencyReset(env = {}) {
-        console.warn("🚨 [AI-Balancer] POOL DEPLETION DETECTED. Commencing Emergency Fleet Reset...");
+        console.warn("🛡️ [AI-Balancer] Initiating Total Emergency Reset of AI Fleet (Institutional Override)...");
         this.failed.clear();
+        this.cooldowns.clear();
         this.inflight.clear();
         await this.init(env, true); // Force a full vault re-sync and pool rebuild
     },
@@ -839,6 +840,7 @@ export async function askAI(prompt, options = {}) {
             }
             return await directDialAnchor(prompt, targetModel || 'llama-3.3-70b-versatile', role, env);
         } catch (e) {
+            console.error(`💀 [AI-Balancer-Fatal] Anchor also failed: ${e.message}`, e);
             throw new Error("FLEET_EXHAUSTION_PERMANENT");
         }
     }
