@@ -234,3 +234,21 @@ export class RateLimiter {
     this.isWaiting = false;
   }
 }
+
+// ── debounce ────────────────────────────────
+// Creates a debounced function that delays invoking func until after wait milliseconds.
+export function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func.apply(this, args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}

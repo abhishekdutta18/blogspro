@@ -6,6 +6,7 @@ import { initIntelHub } from './intel-hub.js';
 import { loadHybridPosts } from './posts.js';
 import { initNewsWire } from './news-wire.js';
 import { ENDPOINTS } from './endpoints.js';
+import { debounce } from './utils.js';
 
 window.registerGoogle = () => {
   api.auth.google("index.html");
@@ -937,7 +938,7 @@ function initForexCalendarControls() {
   if (!refreshEl || !filterEl || !titleFilterEl || !impactEl || !sortEl || !limitEl || !tzEl) return;
   if (!refreshEl.dataset.bound) {
     refreshEl.dataset.bound = '1';
-    const refilter = () => { if (applyForexFiltersGlobal) applyForexFiltersGlobal(); else loadForexFactoryData().catch(() => false); };
+    const refilter = debounce(() => { if (applyForexFiltersGlobal) applyForexFiltersGlobal(); else loadForexFactoryData().catch(() => false); }, 300);
     refreshEl.addEventListener('click', () => loadForexFactoryData().catch(() => false));
     filterEl.addEventListener('input', refilter);
     titleFilterEl.addEventListener('input', refilter);
