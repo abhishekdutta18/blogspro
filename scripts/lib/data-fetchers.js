@@ -72,15 +72,22 @@ async function fetchEconomicCalendar() {
     ];
     try {
         let xmlData = "";
-        for (const url of urls) {
-            try {
-                const response = await fetchWithTimeout(url);
-                if (response.ok) {
-                    xmlData = await response.text();
-                    if (xmlData.includes("<event>")) break;
-                }
-            } catch (e) {}
+
+        const fetchPromises = urls.map(url => fetchWithTimeout(url).catch(() => null));
+        const responses = await Promise.all(fetchPromises);
+
+        for (const response of responses) {
+            if (response && response.ok) {
+                try {
+                    const text = await response.text();
+                    if (text.includes("<event>")) {
+                        xmlData = text;
+                        break;
+                    }
+                } catch (e) {}
+            }
         }
+
         if (!xmlData) throw new Error("ForexFactory Down");
         const parser = new XMLParser({ ignoreAttributes: false });
         const parsed = parser.parse(xmlData);
