@@ -63,7 +63,7 @@ export function sanitize(html) {
   html = html.replace(/[\s\t\r\n]+on\w+[\s\t\r\n]*=[\s\t\r\n]*["'][^"']*["']/gi, '');
   html = html.replace(/[\s\t\r\n]+on\w+[\s\t\r\n]*=[\s\t\r\n]*[^\s>]*/gi, '');
   // Block javascript:/data: in href/src, including whitespace/newline obfuscation
-  html = html.replace(/(href|src)\s*=\s*["'][\s\t\r\n]*(?:javascript|data|vbscript):[^"']*/gi, '$1="#"');
+  html = html.replace(/(href|src)\s*=\s*(["'])[\s\t\r\n]*(?:javascript|data|vbscript):[\s\S]*?\2/gi, '$1="#"');
   return html;
 }
 
