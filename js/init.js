@@ -613,6 +613,276 @@ async function loadUpstoxMarketData(opts = {}) {
   return false;
 }
 
+// --- India Calendar Core & Helper Functions ---
+const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const fmtDate = (raw) => {
+  const d = raw ? new Date(raw) : null;
+  if (!d || Number.isNaN(d.getTime())) return 'Date unavailable';
+  return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+};
+const nowStamp = () => new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+const headerStamp = () => new Date().toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+const indiaView = (e) => {
+  const t = String(e.title || '').toLowerCase();
+  if (t.includes('cpi') || t.includes('wpi') || t.includes('inflation')) return 'Analyst view: Inflation trajectory guides RBI reaction function, front-end yields, and rate-sensitive equity sectors. A print above forecast usually hardens rates expectations and can pressure duration-heavy pockets.';
+  if (t.includes('rbi') || t.includes('policy') || t.includes('rate')) return 'Analyst view: RBI tone, vote split, and liquidity guidance can reprice the entire curve quickly. Watch immediate transmission to INR, banks, and high-beta rate plays.';
+  if (t.includes('industrial') || t.includes('production') || t.includes('gdp')) return 'Analyst view: Growth momentum here affects cyclicals, capex themes, and earnings confidence. Upside surprises tend to support industrials, while misses can revive defensives.';
+  if (t.includes('trade') || t.includes('current account')) return 'Analyst view: External-balance data informs INR stability and imported inflation risk. A wider deficit can increase currency sensitivity and hedging demand.';
+  return 'Analyst view: Treat this as a cross-asset trigger; confirm reaction across INR, sovereign yields, banking leaders, and index breadth before positioning.';
+};
+const numFrom = (v) => {
+  const m = String(v ?? '').replace(/,/g, '').match(/-?\d+(\.\d+)?/);
+  return m ? Number(m[0]) : NaN;
+};
+const pctStr = (n) => `${n > 0 ? '+' : ''}${n.toFixed(1)}%`;
+const fmtNum = (n) => Number.isFinite(n) ? n.toFixed(2) : '--';
+const buildIndiaDeskMetrics = (events) => {
+  let highCount = 0;
+  let inflationSignal = 0;
+  let growthSignal = 0;
+  let extSignal = 0;
+  let withForecast = 0;
+  let datedEvents = 0;
+  const sectorHits = { Banks: 0, Autos: 0, FMCG: 0, IT: 0, Metals: 0 };
+  const surprises = [];
+
+  for (const e of events) {
+    const title = String(e.title || '').toLowerCase();
+    const impact = String(e.impact || '').toLowerCase();
+    if (impact.includes('high')) highCount += 1;
+    const actual = numFrom(e.actual);
+    const forecast = numFrom(e.forecast);
+    if (Number.isFinite(actual) && Number.isFinite(forecast)) {
+      withForecast += 1;
+      surprises.push({ title: e.title, diff: actual - forecast });
+    }
+    const dt = new Date(e.date || e.Date || e.datetime || 0);
+    if (!Number.isNaN(dt.getTime())) datedEvents += 1;
+
+    if (title.includes('cpi') || title.includes('wpi') || title.includes('inflation')) inflationSignal += 1;
+    if (title.includes('industrial') || title.includes('production') || title.includes('gdp') || title.includes('pmi')) growthSignal += 1;
+    if (title.includes('trade') || title.includes('current account') || title.includes('fx reserves')) extSignal += 1;
+
+    if (title.includes('rbi') || title.includes('policy') || title.includes('rate') || title.includes('cpi')) sectorHits.Banks += 1;
+    if (title.includes('cpi') || title.includes('fuel') || title.includes('oil')) sectorHits.Autos += 1;
+    if (title.includes('cpi') || title.includes('wpi') || title.includes('food')) sectorHits.FMCG += 1;
+    if (title.includes('trade') || title.includes('inr') || title.includes('services')) sectorHits.IT += 1;
+    if (title.includes('industrial') || title.includes('wpi') || title.includes('manufacturing')) sectorHits.Metals += 1;
+  }
+
+  const holdProb = Math.max(35, Math.min(80, 60 + (inflationSignal * 5) - (growthSignal * 3)));
+  const cutProb = Math.max(5, Math.min(45, 100 - holdProb - Math.max(10, highCount * 2)));
+  const hikeProb = Math.max(5, 100 - holdProb - cutProb);
+  const inrPressure = (extSignal * 0.6 + inflationSignal * 0.4 - growthSignal * 0.2);
+  const total = Math.max(events.length, 1);
+  const confidence = Math.round(((withForecast / total) * 0.45 + (datedEvents / total) * 0.25 + (events.filter((e) => String(e.impact || '').trim().length > 0).length / total) * 0.15 + (Object.values(sectorHits).filter((v) => v > 0).length / 5) * 0.15) * 100);
+  surprises.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+  const topSurprises = surprises.slice(0, 3);
+  const topSector = Object.entries(sectorHits).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Banks';
+  const regimeTag = inflationSignal >= growthSignal + 1 ? 'Inflation-Led' : growthSignal >= inflationSignal + 1 ? 'Growth-Led' : 'Balanced';
+  const thresholdAlert = highCount >= 4 ? 'High alert: cluster of high-impact events this cycle.' : highCount >= 2 ? 'Moderate alert: keep tighter intraday risk around release windows.' : 'Low alert: normal macro cadence expected.';
+  const breadth = surprises.length ? `${surprises.filter((s) => s.diff > 0).length} positive vs ${surprises.filter((s) => s.diff < 0).length} negative surprises` : 'No surprise breadth yet';
+  return { holdProb, cutProb, hikeProb, inrPressure, confidence, topSector, topSurprises, sectorHits, regimeTag, thresholdAlert, breadth };
+};
+const quarterLabel = (ts) => {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return 'Q? ----';
+  const q = Math.floor(d.getMonth() / 3) + 1;
+  return `Q${q} ${d.getFullYear()}`;
+};
+const normalizeEventTitle = (s) => String(s || '').toLowerCase().replace(/\b(y\/y|m\/m|q\/q)\b/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const canonicalIndiaEventKey = (title) => {
+  const t = normalizeEventTitle(title);
+  if (t.includes('cpi') || t.includes('consumer price')) return 'india-cpi';
+  if (t.includes('wpi') || t.includes('wholesale price')) return 'india-wpi';
+  if (t.includes('industrial production') || t.includes('iip')) return 'india-iip';
+  if (t.includes('trade balance')) return 'india-trade-balance';
+  if (t.includes('services pmi')) return 'india-services-pmi';
+  if (t.includes('manufacturing pmi')) return 'india-manufacturing-pmi';
+  if (t.includes('rbi') && (t.includes('policy') || t.includes('rate') || t.includes('repo'))) return 'rbi-policy-rate';
+  return t.split(' ').slice(0, 4).join(' ');
+};
+const eventSeriesValue = (e) => {
+  const a = numFrom(e.actual);
+  if (Number.isFinite(a)) return a;
+  const f = numFrom(e.forecast);
+  if (Number.isFinite(f)) return f;
+  const p = numFrom(e.previous);
+  if (Number.isFinite(p)) return p;
+  return NaN;
+};
+const nextQuarterTs = (ts) => {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return Date.now();
+  const qStartMonth = Math.floor(d.getMonth() / 3) * 3;
+  const qStart = new Date(d.getFullYear(), qStartMonth, 1).getTime();
+  return qStart + (91 * 24 * 3600 * 1000);
+};
+const buildQoqHistorySeries = (event, allEvents) => {
+  const titleKey = canonicalIndiaEventKey(event.title);
+  const nowTs = Date.now();
+  const oneYearAgo = nowTs - (365 * 24 * 3600 * 1000);
+  const related = allEvents.filter((e) => {
+    const t = canonicalIndiaEventKey(e.title);
+    return t === titleKey || t.includes(titleKey) || titleKey.includes(t);
+  }).map((e) => {
+    const ts = new Date(e.date || e.Date || e.datetime || 0).getTime();
+    return { ts, value: eventSeriesValue(e) };
+  }).filter((x) => Number.isFinite(x.ts) && Number.isFinite(x.value) && x.ts >= oneYearAgo && x.ts <= nowTs).sort((a, b) => a.ts - b.ts);
+  const byQuarter = new Map();
+  for (const row of related) byQuarter.set(quarterLabel(row.ts), row);
+  let history = Array.from(byQuarter.entries()).map(([label, row]) => ({ label, value: row.value, ts: row.ts }));
+  history.sort((a, b) => a.ts - b.ts);
+  history = history.slice(-4);
+  if (!history.length) {
+    const currTs = new Date(event.date || nowTs).getTime();
+    const prev = numFrom(event.previous);
+    const act = numFrom(event.actual);
+    if (Number.isFinite(prev)) history.push({ ts: currTs - (91 * 24 * 3600 * 1000), value: prev, label: quarterLabel(currTs - (91 * 24 * 3600 * 1000)) });
+    if (Number.isFinite(act)) history.push({ ts: currTs, value: act, label: quarterLabel(currTs) });
+    else if (Number.isFinite(prev)) history.push({ ts: currTs, value: prev, label: quarterLabel(currTs) });
+  }
+  const fcst = numFrom(event.forecast);
+  let forecastPoint = null;
+  if (Number.isFinite(fcst) && history.length) {
+    const baseTs = history[history.length - 1].ts;
+    const forecastTs = nextQuarterTs(baseTs);
+    forecastPoint = { label: `${quarterLabel(forecastTs)}F`, value: fcst, ts: forecastTs, forecast: true };
+  }
+  return { history, forecastPoint };
+};
+
+// --- India Calendar UI Renderers ---
+const renderQoqGoogleChart = (history, forecastPoint) => {
+  const qoqChartEl = document.getElementById('indiaQoqChart');
+  if (!window.google || !window.google.visualization) return false;
+  qoqChartEl.innerHTML = '<div id="indiaQoqGoogleChart" style="width:100%;height:190px"></div>';
+  qoqChartEl.style.height = '220px';
+  qoqChartEl.style.maxHeight = '220px';
+  const chartEl = document.getElementById('indiaQoqGoogleChart');
+  if (!chartEl) return false;
+  if (indiaQoqChart) indiaQoqChart.clearChart();
+  const hasForecast = !!forecastPoint;
+  const cols = [{ type: 'string', label: 'Quarter' }, { type: 'number', label: 'Historical' }, { type: 'string', role: 'annotation' }, ...(hasForecast ? [{ type: 'number', label: 'Forecast' }] : [])];
+  const rows = history.map((pt) => {
+    const row = [pt.label, pt.value, String(pt.value.toFixed(2))];
+    if (hasForecast) row.push(null);
+    return row;
+  });
+  if (hasForecast) {
+    rows[rows.length - 1][rows[rows.length - 1].length - 1] = history[history.length - 1].value;
+    rows.push([forecastPoint.label, null, null, forecastPoint.value]);
+  }
+  const dataTable = new google.visualization.DataTable();
+  cols.forEach((c) => dataTable.addColumn(c));
+  dataTable.addRows(rows);
+  const options = { ...window.CHART_THEME, chartArea: { ...window.CHART_THEME.chartArea, left: 60 }, series: { 0: { color: '#BFA100', areaOpacity: 0.1, lineWidth: 3 }, ...(hasForecast ? { 1: { color: '#FFB800', lineDashStyle: [4, 4], pointSize: 5 } } : {}) }, hAxis: { ...window.CHART_THEME.hAxis, title: 'Quarterly Period' }, vAxis: { ...window.CHART_THEME.vAxis, title: 'Institutional Delta %' } };
+  indiaQoqChart = new google.visualization.AreaChart(chartEl);
+  indiaQoqChart.draw(dataTable, options);
+  return true;
+};
+const renderQoq = (event) => {
+  const qoqTitleEl = document.getElementById('indiaQoqTitle');
+  const qoqChartEl = document.getElementById('indiaQoqChart');
+  const { history, forecastPoint } = buildQoqHistorySeries(event, indiaCalendarHistoryRaw);
+  if (!history.length) {
+    qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
+    qoqChartEl.innerHTML = '<div class="calendar-empty">No numeric values available for this event.</div>';
+    return;
+  }
+  qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
+  renderQoqGoogleChart(history, forecastPoint);
+};
+const renderIndiaCalendar = () => {
+  const listEl = document.getElementById('indiaCalendarList');
+  const analysisEl = document.getElementById('indiaCalendarAnalysis');
+  const summaryEl = document.getElementById('indiaCalendarSummary');
+  const snapshotEl = document.getElementById('indiaCalendarSnapshot');
+  const inrGaugeNoteEl = document.getElementById('indiaInrGaugeNote');
+  const explainEl = document.getElementById('indiaDeskExplain');
+  const headerDateTimeEl = document.getElementById('indiaHeaderDateTime');
+  const events = indiaCalendarRaw.slice();
+  headerDateTimeEl.textContent = `Date/Time: ${headerStamp()}`;
+  summaryEl.textContent = `Summary: ${events.length} India events tracked`;
+  const topImpact = events.filter((e) => String(e.impact || '').toLowerCase().includes('high')).length;
+  analysisEl.textContent = `Analyst view: ${topImpact} high-impact India releases are on radar; prioritize CPI/RBI prints for rate-sensitive positioning.`;
+  const m = buildIndiaDeskMetrics(events);
+  const surpriseText = m.topSurprises.length ? m.topSurprises.map((s) => `${s.title}: ${s.diff > 0 ? '+' : ''}${s.diff.toFixed(2)}`).join(' | ') : 'No actual-vs-forecast pairs yet';
+  const focusEvents = events.filter((e) => String(e.title || '').trim().length > 0).slice(0, 6).map((e) => esc(e.title)).join(' · ') || 'No event names available';
+  const eventDescriptionFor = (title) => {
+    const t = String(title || '').toLowerCase();
+    if (t.includes('cpi') || t.includes('inflation')) return 'Tracks retail inflation pressure and directly affects RBI policy expectations, short-end yields, and rate-sensitive sectors.';
+    if (t.includes('wpi')) return 'Measures producer-level price pressure and helps anticipate margin trends and pass-through risks across manufacturing-heavy sectors.';
+    if (t.includes('industrial') || t.includes('production') || t.includes('iip')) return 'Captures output momentum and informs growth-sensitive positioning across industrials, metals, and capex-linked names.';
+    if (t.includes('trade balance') || t.includes('current account')) return 'Signals external-balance stress and potential INR volatility via import bill dynamics and dollar demand.';
+    if (t.includes('services pmi') || t.includes('manufacturing pmi')) return 'Shows business activity breadth; sustained expansion supports earnings confidence and cyclical participation.';
+    if (t.includes('rbi') || t.includes('policy') || t.includes('repo') || t.includes('rate')) return 'Defines policy stance, liquidity conditions, and rate-path signaling that can reprice bonds, banks, and the INR quickly.';
+    if (t.includes('gdp')) return 'Broad growth anchor for earnings expectations, valuation multiples, and medium-term risk appetite.';
+    return 'Cross-asset macro trigger: validate with bond yields, INR trend, and sector breadth before scaling risk.';
+  };
+  const keyEventDetails = events.filter((e) => String(e.title || '').trim().length > 0).slice(0, 5).map((e) => `<div><b>${esc(e.title)}:</b> ${eventDescriptionFor(e.title)}</div>`).join('') || '<div><b>Key Event Notes:</b> waiting for event descriptions.</div>';
+  snapshotEl.innerHTML = `
+    <div class="snap-row"><span>Window:</span> <b>${events.length} India events tracked</b></div>
+    <div class="snap-row"><span>Policy Regime:</span> <b>${m.regimeTag}</b></div>
+    <div class="snap-row"><span>RBI Probability:</span> <b>Hold ${m.holdProb}% · Hike ${m.hikeProb}% · Cut ${m.cutProb}%</b></div>
+    <div class="snap-row"><span>INR Pressure:</span> <b>${pctStr(m.inrPressure)} (${m.inrPressure >= 0 ? 'depreciation bias' : 'stability bias'})</b></div>
+    <div class="snap-row"><span>Sector Impact:</span> <b>Top sensitivity in ${m.topSector}</b></div>
+    <div class="snap-row"><span>Surprise Tracker:</span> <b>${surpriseText}</b></div>
+    <div class="snap-row"><span>Confidence Score:</span> <b>${m.confidence}/100 quality</b></div>
+  `;
+  explainEl.innerHTML = `
+    <div><b>How To Read</b></div>
+    <div><b>Rates Lens:</b> RBI Probability combines inflation, growth, and event-density signals to estimate hold/hike/cut bias. Use it with CPI, WPI, and policy events to frame near-term rates direction.</div>
+    <div><b>FX Lens:</b> INR Pressure above zero implies depreciation bias; below zero implies stability/appreciation bias. Confirm with trade-balance and external-flow releases before increasing FX conviction.</div>
+    <div><b>Sector Lens:</b> Sector Impact maps where event clusters are likely to transmit first. Banks and Autos react faster to rates/inflation, while IT and Metals are more exposed to currency and growth swings.</div>
+    <div><b>Data Quality Lens:</b> Confidence Score reflects forecast, impact, date, and coverage completeness. Higher confidence means stronger signal reliability; lower confidence means treat signals as directional, not absolute.</div>
+    <div><b>Execution Lens:</b> Align event surprises with confirmation from yield moves, INR direction, and index breadth to avoid single-print false positives.</div>
+    <div><b>Key Events In Focus:</b> ${focusEvents}</div>
+    <div><b>Key Event Breakdown</b></div>
+    ${keyEventDetails}
+  `;
+  if (window.google && google.visualization) {
+    const probData = google.visualization.arrayToDataTable([['Scenario', 'Probability'], ['Hold', m.holdProb], ['Hike', m.hikeProb], ['Cut', m.cutProb]]);
+    new google.visualization.ColumnChart(document.getElementById('indiaProbChart')).draw(probData, { ...window.CHART_THEME, hAxis: { ...window.CHART_THEME.hAxis, title: 'Policy Catalyst' }, vAxis: { ...window.CHART_THEME.vAxis, title: 'Confidence %' }, legend: { position: 'top', alignment: 'center' } });
+    const inrData = google.visualization.arrayToDataTable([['Label', 'Value'], ['INR Stress', Math.max(0, 50 + (m.inrPressure * 10))]]);
+    new google.visualization.Gauge(document.getElementById('indiaInrGaugeChart')).draw(inrData, { width: 120, height: 120, redFrom: 70, redTo: 100, yellowFrom: 40, yellowTo: 70, minorTicks: 5, greenColor: '#BFA100', yellowColor: '#FFB800', redColor: '#ef4444' });
+    const sectorData = google.visualization.arrayToDataTable([['Sector', 'Sensitivity'], ...Object.entries(m.sectorHits).map(([k, v]) => [k, v])]);
+    new google.visualization.BarChart(document.getElementById('indiaSectorChart')).draw(sectorData, {
+      ...window.CHART_THEME,
+      chartArea: { ...window.CHART_THEME.chartArea, left: 90, width: '70%' },
+      hAxis: { ...window.CHART_THEME.hAxis, title: 'Institutional Exposure Score' },
+      vAxis: { ...window.CHART_THEME.vAxis, title: 'Sector High-Density Vertical' },
+      legend: { position: 'top', alignment: 'center' }
+    });
+  }
+  const gaugePct = Math.max(0, Math.min(100, 50 + (m.inrPressure * 10)));
+  inrGaugeNoteEl.textContent = `Stress Score: ${pctStr(m.inrPressure)} (${gaugePct >= 60 ? 'Downside Risk' : gaugePct <= 40 ? 'Stability Bias' : 'Neutral Corridor'})`;
+  listEl.innerHTML = events.map((e, idx) => `
+    <li class="calendar-item india-event-card" data-india-idx="${idx}">
+      <div class="calendar-item-head">
+        <span class="calendar-country">${esc(e.country || 'IND')}</span>
+        <span class="calendar-impact">${esc(e.impact || 'High')}</span>
+      </div>
+      <span class="calendar-title">${esc(e.title || 'Untitled event')}<span class="calendar-view">${esc(indiaView(e))}</span></span>
+      <span class="calendar-date">${fmtDate(e.date || e.Date || e.datetime)}</span>
+      <div class="calendar-points">
+        <div class="calendar-point"><div class="calendar-point-label">Actual</div><div class="calendar-point-value">${esc(e.actual || 'Pending')}</div></div>
+        <div class="calendar-point"><div class="calendar-point-label">Forecast</div><div class="calendar-point-value">${esc(e.forecast || '--')}</div></div>
+        <div class="calendar-point"><div class="calendar-point-label">Previous</div><div class="calendar-point-value">${esc(e.previous || '--')}</div></div>
+      </div>
+    </li>
+  `).join('') || '<li class="calendar-empty">No India events available.</li>';
+  listEl.querySelectorAll('.india-event-card').forEach((node) => {
+    node.style.cursor = 'pointer';
+    node.addEventListener('click', () => {
+      const idx = Number(node.getAttribute('data-india-idx'));
+      const ev = events[idx];
+      if (ev) renderQoq(ev);
+    });
+  });
+  if (events.length) renderQoq(events[0]);
+};
+// ----------------------------------------------
 async function loadIndiaCalendarData() {
   const listEl = document.getElementById('indiaCalendarList');
   const chipEl = document.getElementById('indiaFeedChip');
@@ -630,263 +900,7 @@ async function loadIndiaCalendarData() {
   const headerDateTimeEl = document.getElementById('indiaHeaderDateTime');
   if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !probChartEl || !inrGaugeChartEl || !inrGaugeNoteEl || !sectorChartEl || !explainEl || !qoqTitleEl || !qoqChartEl || !headerDateTimeEl) return false;
 
-  const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
-  const fmtDate = (raw) => {
-    const d = raw ? new Date(raw) : null;
-    if (!d || Number.isNaN(d.getTime())) return 'Date unavailable';
-    return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-  };
-  const nowStamp = () => new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-  const headerStamp = () => new Date().toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-  const indiaView = (e) => {
-    const t = String(e.title || '').toLowerCase();
-    if (t.includes('cpi') || t.includes('wpi') || t.includes('inflation')) return 'Analyst view: Inflation trajectory guides RBI reaction function, front-end yields, and rate-sensitive equity sectors. A print above forecast usually hardens rates expectations and can pressure duration-heavy pockets.';
-    if (t.includes('rbi') || t.includes('policy') || t.includes('rate')) return 'Analyst view: RBI tone, vote split, and liquidity guidance can reprice the entire curve quickly. Watch immediate transmission to INR, banks, and high-beta rate plays.';
-    if (t.includes('industrial') || t.includes('production') || t.includes('gdp')) return 'Analyst view: Growth momentum here affects cyclicals, capex themes, and earnings confidence. Upside surprises tend to support industrials, while misses can revive defensives.';
-    if (t.includes('trade') || t.includes('current account')) return 'Analyst view: External-balance data informs INR stability and imported inflation risk. A wider deficit can increase currency sensitivity and hedging demand.';
-    return 'Analyst view: Treat this as a cross-asset trigger; confirm reaction across INR, sovereign yields, banking leaders, and index breadth before positioning.';
-  };
-  const numFrom = (v) => {
-    const m = String(v ?? '').replace(/,/g, '').match(/-?\d+(\.\d+)?/);
-    return m ? Number(m[0]) : NaN;
-  };
-  const pctStr = (n) => `${n > 0 ? '+' : ''}${n.toFixed(1)}%`;
-  const fmtNum = (n) => Number.isFinite(n) ? n.toFixed(2) : '--';
-  const buildIndiaDeskMetrics = (events) => {
-    let highCount = 0;
-    let inflationSignal = 0;
-    let growthSignal = 0;
-    let extSignal = 0;
-    let withForecast = 0;
-    let datedEvents = 0;
-    const sectorHits = { Banks: 0, Autos: 0, FMCG: 0, IT: 0, Metals: 0 };
-    const surprises = [];
 
-    for (const e of events) {
-      const title = String(e.title || '').toLowerCase();
-      const impact = String(e.impact || '').toLowerCase();
-      if (impact.includes('high')) highCount += 1;
-      const actual = numFrom(e.actual);
-      const forecast = numFrom(e.forecast);
-      if (Number.isFinite(actual) && Number.isFinite(forecast)) {
-        withForecast += 1;
-        surprises.push({ title: e.title, diff: actual - forecast });
-      }
-      const dt = new Date(e.date || e.Date || e.datetime || 0);
-      if (!Number.isNaN(dt.getTime())) datedEvents += 1;
-
-      if (title.includes('cpi') || title.includes('wpi') || title.includes('inflation')) inflationSignal += 1;
-      if (title.includes('industrial') || title.includes('production') || title.includes('gdp') || title.includes('pmi')) growthSignal += 1;
-      if (title.includes('trade') || title.includes('current account') || title.includes('fx reserves')) extSignal += 1;
-
-      if (title.includes('rbi') || title.includes('policy') || title.includes('rate') || title.includes('cpi')) sectorHits.Banks += 1;
-      if (title.includes('cpi') || title.includes('fuel') || title.includes('oil')) sectorHits.Autos += 1;
-      if (title.includes('cpi') || title.includes('wpi') || title.includes('food')) sectorHits.FMCG += 1;
-      if (title.includes('trade') || title.includes('inr') || title.includes('services')) sectorHits.IT += 1;
-      if (title.includes('industrial') || title.includes('wpi') || title.includes('manufacturing')) sectorHits.Metals += 1;
-    }
-
-    const holdProb = Math.max(35, Math.min(80, 60 + (inflationSignal * 5) - (growthSignal * 3)));
-    const cutProb = Math.max(5, Math.min(45, 100 - holdProb - Math.max(10, highCount * 2)));
-    const hikeProb = Math.max(5, 100 - holdProb - cutProb);
-    const inrPressure = (extSignal * 0.6 + inflationSignal * 0.4 - growthSignal * 0.2);
-    const total = Math.max(events.length, 1);
-    const confidence = Math.round(((withForecast / total) * 0.45 + (datedEvents / total) * 0.25 + (events.filter((e) => String(e.impact || '').trim().length > 0).length / total) * 0.15 + (Object.values(sectorHits).filter((v) => v > 0).length / 5) * 0.15) * 100);
-    surprises.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
-    const topSurprises = surprises.slice(0, 3);
-    const topSector = Object.entries(sectorHits).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Banks';
-    const regimeTag = inflationSignal >= growthSignal + 1 ? 'Inflation-Led' : growthSignal >= inflationSignal + 1 ? 'Growth-Led' : 'Balanced';
-    const thresholdAlert = highCount >= 4 ? 'High alert: cluster of high-impact events this cycle.' : highCount >= 2 ? 'Moderate alert: keep tighter intraday risk around release windows.' : 'Low alert: normal macro cadence expected.';
-    const breadth = surprises.length ? `${surprises.filter((s) => s.diff > 0).length} positive vs ${surprises.filter((s) => s.diff < 0).length} negative surprises` : 'No surprise breadth yet';
-    return { holdProb, cutProb, hikeProb, inrPressure, confidence, topSector, topSurprises, sectorHits, regimeTag, thresholdAlert, breadth };
-  };
-  const quarterLabel = (ts) => {
-    const d = new Date(ts);
-    if (Number.isNaN(d.getTime())) return 'Q? ----';
-    const q = Math.floor(d.getMonth() / 3) + 1;
-    return `Q${q} ${d.getFullYear()}`;
-  };
-  const normalizeEventTitle = (s) => String(s || '').toLowerCase().replace(/\b(y\/y|m\/m|q\/q)\b/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
-  const canonicalIndiaEventKey = (title) => {
-    const t = normalizeEventTitle(title);
-    if (t.includes('cpi') || t.includes('consumer price')) return 'india-cpi';
-    if (t.includes('wpi') || t.includes('wholesale price')) return 'india-wpi';
-    if (t.includes('industrial production') || t.includes('iip')) return 'india-iip';
-    if (t.includes('trade balance')) return 'india-trade-balance';
-    if (t.includes('services pmi')) return 'india-services-pmi';
-    if (t.includes('manufacturing pmi')) return 'india-manufacturing-pmi';
-    if (t.includes('rbi') && (t.includes('policy') || t.includes('rate') || t.includes('repo'))) return 'rbi-policy-rate';
-    return t.split(' ').slice(0, 4).join(' ');
-  };
-  const eventSeriesValue = (e) => {
-    const a = numFrom(e.actual);
-    if (Number.isFinite(a)) return a;
-    const f = numFrom(e.forecast);
-    if (Number.isFinite(f)) return f;
-    const p = numFrom(e.previous);
-    if (Number.isFinite(p)) return p;
-    return NaN;
-  };
-  const nextQuarterTs = (ts) => {
-    const d = new Date(ts);
-    if (Number.isNaN(d.getTime())) return Date.now();
-    const qStartMonth = Math.floor(d.getMonth() / 3) * 3;
-    const qStart = new Date(d.getFullYear(), qStartMonth, 1).getTime();
-    return qStart + (91 * 24 * 3600 * 1000);
-  };
-  const buildQoqHistorySeries = (event, allEvents) => {
-    const titleKey = canonicalIndiaEventKey(event.title);
-    const nowTs = Date.now();
-    const oneYearAgo = nowTs - (365 * 24 * 3600 * 1000);
-    const related = allEvents.filter((e) => {
-      const t = canonicalIndiaEventKey(e.title);
-      return t === titleKey || t.includes(titleKey) || titleKey.includes(t);
-    }).map((e) => {
-      const ts = new Date(e.date || e.Date || e.datetime || 0).getTime();
-      return { ts, value: eventSeriesValue(e) };
-    }).filter((x) => Number.isFinite(x.ts) && Number.isFinite(x.value) && x.ts >= oneYearAgo && x.ts <= nowTs).sort((a, b) => a.ts - b.ts);
-    const byQuarter = new Map();
-    for (const row of related) byQuarter.set(quarterLabel(row.ts), row);
-    let history = Array.from(byQuarter.entries()).map(([label, row]) => ({ label, value: row.value, ts: row.ts }));
-    history.sort((a, b) => a.ts - b.ts);
-    history = history.slice(-4);
-    if (!history.length) {
-      const currTs = new Date(event.date || nowTs).getTime();
-      const prev = numFrom(event.previous);
-      const act = numFrom(event.actual);
-      if (Number.isFinite(prev)) history.push({ ts: currTs - (91 * 24 * 3600 * 1000), value: prev, label: quarterLabel(currTs - (91 * 24 * 3600 * 1000)) });
-      if (Number.isFinite(act)) history.push({ ts: currTs, value: act, label: quarterLabel(currTs) });
-      else if (Number.isFinite(prev)) history.push({ ts: currTs, value: prev, label: quarterLabel(currTs) });
-    }
-    const fcst = numFrom(event.forecast);
-    let forecastPoint = null;
-    if (Number.isFinite(fcst) && history.length) {
-      const baseTs = history[history.length - 1].ts;
-      const forecastTs = nextQuarterTs(baseTs);
-      forecastPoint = { label: `${quarterLabel(forecastTs)}F`, value: fcst, ts: forecastTs, forecast: true };
-    }
-    return { history, forecastPoint };
-  };
-  const renderQoqGoogleChart = (history, forecastPoint) => {
-    if (!window.google || !window.google.visualization) return false;
-    qoqChartEl.innerHTML = '<div id="indiaQoqGoogleChart" style="width:100%;height:190px"></div>';
-    qoqChartEl.style.height = '220px';
-    qoqChartEl.style.maxHeight = '220px';
-    const chartEl = document.getElementById('indiaQoqGoogleChart');
-    if (!chartEl) return false;
-    if (indiaQoqChart) indiaQoqChart.clearChart();
-    const hasForecast = !!forecastPoint;
-    const cols = [{ type: 'string', label: 'Quarter' }, { type: 'number', label: 'Historical' }, { type: 'string', role: 'annotation' }, ...(hasForecast ? [{ type: 'number', label: 'Forecast' }] : [])];
-    const rows = history.map((pt) => {
-      const row = [pt.label, pt.value, String(pt.value.toFixed(2))];
-      if (hasForecast) row.push(null);
-      return row;
-    });
-    if (hasForecast) {
-      rows[rows.length - 1][rows[rows.length - 1].length - 1] = history[history.length - 1].value;
-      rows.push([forecastPoint.label, null, null, forecastPoint.value]);
-    }
-    const dataTable = new google.visualization.DataTable();
-    cols.forEach((c) => dataTable.addColumn(c));
-    dataTable.addRows(rows);
-    const options = { ...window.CHART_THEME, chartArea: { ...window.CHART_THEME.chartArea, left: 60 }, series: { 0: { color: '#BFA100', areaOpacity: 0.1, lineWidth: 3 }, ...(hasForecast ? { 1: { color: '#FFB800', lineDashStyle: [4, 4], pointSize: 5 } } : {}) }, hAxis: { ...window.CHART_THEME.hAxis, title: 'Quarterly Period' }, vAxis: { ...window.CHART_THEME.vAxis, title: 'Institutional Delta %' } };
-    indiaQoqChart = new google.visualization.AreaChart(chartEl);
-    indiaQoqChart.draw(dataTable, options);
-    return true;
-  };
-  const renderQoq = (event) => {
-    const { history, forecastPoint } = buildQoqHistorySeries(event, indiaCalendarHistoryRaw);
-    if (!history.length) {
-      qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
-      qoqChartEl.innerHTML = '<div class="calendar-empty">No numeric values available for this event.</div>';
-      return;
-    }
-    qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
-    renderQoqGoogleChart(history, forecastPoint);
-  };
-
-  const render = () => {
-    const events = indiaCalendarRaw.slice();
-    headerDateTimeEl.textContent = `Date/Time: ${headerStamp()}`;
-    summaryEl.textContent = `Summary: ${events.length} India events tracked`;
-    const topImpact = events.filter((e) => String(e.impact || '').toLowerCase().includes('high')).length;
-    analysisEl.textContent = `Analyst view: ${topImpact} high-impact India releases are on radar; prioritize CPI/RBI prints for rate-sensitive positioning.`;
-    const m = buildIndiaDeskMetrics(events);
-    const surpriseText = m.topSurprises.length ? m.topSurprises.map((s) => `${s.title}: ${s.diff > 0 ? '+' : ''}${s.diff.toFixed(2)}`).join(' | ') : 'No actual-vs-forecast pairs yet';
-    const focusEvents = events.filter((e) => String(e.title || '').trim().length > 0).slice(0, 6).map((e) => esc(e.title)).join(' · ') || 'No event names available';
-    const eventDescriptionFor = (title) => {
-      const t = String(title || '').toLowerCase();
-      if (t.includes('cpi') || t.includes('inflation')) return 'Tracks retail inflation pressure and directly affects RBI policy expectations, short-end yields, and rate-sensitive sectors.';
-      if (t.includes('wpi')) return 'Measures producer-level price pressure and helps anticipate margin trends and pass-through risks across manufacturing-heavy sectors.';
-      if (t.includes('industrial') || t.includes('production') || t.includes('iip')) return 'Captures output momentum and informs growth-sensitive positioning across industrials, metals, and capex-linked names.';
-      if (t.includes('trade balance') || t.includes('current account')) return 'Signals external-balance stress and potential INR volatility via import bill dynamics and dollar demand.';
-      if (t.includes('services pmi') || t.includes('manufacturing pmi')) return 'Shows business activity breadth; sustained expansion supports earnings confidence and cyclical participation.';
-      if (t.includes('rbi') || t.includes('policy') || t.includes('repo') || t.includes('rate')) return 'Defines policy stance, liquidity conditions, and rate-path signaling that can reprice bonds, banks, and the INR quickly.';
-      if (t.includes('gdp')) return 'Broad growth anchor for earnings expectations, valuation multiples, and medium-term risk appetite.';
-      return 'Cross-asset macro trigger: validate with bond yields, INR trend, and sector breadth before scaling risk.';
-    };
-    const keyEventDetails = events.filter((e) => String(e.title || '').trim().length > 0).slice(0, 5).map((e) => `<div><b>${esc(e.title)}:</b> ${eventDescriptionFor(e.title)}</div>`).join('') || '<div><b>Key Event Notes:</b> waiting for event descriptions.</div>';
-    snapshotEl.innerHTML = `
-      <div class="snap-row"><span>Window:</span> <b>${events.length} India events tracked</b></div>
-      <div class="snap-row"><span>Policy Regime:</span> <b>${m.regimeTag}</b></div>
-      <div class="snap-row"><span>RBI Probability:</span> <b>Hold ${m.holdProb}% · Hike ${m.hikeProb}% · Cut ${m.cutProb}%</b></div>
-      <div class="snap-row"><span>INR Pressure:</span> <b>${pctStr(m.inrPressure)} (${m.inrPressure >= 0 ? 'depreciation bias' : 'stability bias'})</b></div>
-      <div class="snap-row"><span>Sector Impact:</span> <b>Top sensitivity in ${m.topSector}</b></div>
-      <div class="snap-row"><span>Surprise Tracker:</span> <b>${surpriseText}</b></div>
-      <div class="snap-row"><span>Confidence Score:</span> <b>${m.confidence}/100 quality</b></div>
-    `;
-    explainEl.innerHTML = `
-      <div><b>How To Read</b></div>
-      <div><b>Rates Lens:</b> RBI Probability combines inflation, growth, and event-density signals to estimate hold/hike/cut bias. Use it with CPI, WPI, and policy events to frame near-term rates direction.</div>
-      <div><b>FX Lens:</b> INR Pressure above zero implies depreciation bias; below zero implies stability/appreciation bias. Confirm with trade-balance and external-flow releases before increasing FX conviction.</div>
-      <div><b>Sector Lens:</b> Sector Impact maps where event clusters are likely to transmit first. Banks and Autos react faster to rates/inflation, while IT and Metals are more exposed to currency and growth swings.</div>
-      <div><b>Data Quality Lens:</b> Confidence Score reflects forecast, impact, date, and coverage completeness. Higher confidence means stronger signal reliability; lower confidence means treat signals as directional, not absolute.</div>
-      <div><b>Execution Lens:</b> Align event surprises with confirmation from yield moves, INR direction, and index breadth to avoid single-print false positives.</div>
-      <div><b>Key Events In Focus:</b> ${focusEvents}</div>
-      <div><b>Key Event Breakdown</b></div>
-      ${keyEventDetails}
-    `;
-    if (window.google && google.visualization) {
-      const probData = google.visualization.arrayToDataTable([['Scenario', 'Probability'], ['Hold', m.holdProb], ['Hike', m.hikeProb], ['Cut', m.cutProb]]);
-      new google.visualization.ColumnChart(document.getElementById('indiaProbChart')).draw(probData, { ...window.CHART_THEME, hAxis: { ...window.CHART_THEME.hAxis, title: 'Policy Catalyst' }, vAxis: { ...window.CHART_THEME.vAxis, title: 'Confidence %' }, legend: { position: 'top', alignment: 'center' } });
-      const inrData = google.visualization.arrayToDataTable([['Label', 'Value'], ['INR Stress', Math.max(0, 50 + (m.inrPressure * 10))]]);
-      new google.visualization.Gauge(document.getElementById('indiaInrGaugeChart')).draw(inrData, { width: 120, height: 120, redFrom: 70, redTo: 100, yellowFrom: 40, yellowTo: 70, minorTicks: 5, greenColor: '#BFA100', yellowColor: '#FFB800', redColor: '#ef4444' });
-      const sectorData = google.visualization.arrayToDataTable([['Sector', 'Sensitivity'], ...Object.entries(m.sectorHits).map(([k, v]) => [k, v])]);
-      new google.visualization.BarChart(document.getElementById('indiaSectorChart')).draw(sectorData, { 
-        ...window.CHART_THEME, 
-        chartArea: { ...window.CHART_THEME.chartArea, left: 90, width: '70%' },
-        hAxis: { ...window.CHART_THEME.hAxis, title: 'Institutional Exposure Score' }, 
-        vAxis: { ...window.CHART_THEME.vAxis, title: 'Sector High-Density Vertical' }, 
-        legend: { position: 'top', alignment: 'center' } 
-      });
-    }
-    const gaugePct = Math.max(0, Math.min(100, 50 + (m.inrPressure * 10)));
-    inrGaugeNoteEl.textContent = `Stress Score: ${pctStr(m.inrPressure)} (${gaugePct >= 60 ? 'Downside Risk' : gaugePct <= 40 ? 'Stability Bias' : 'Neutral Corridor'})`;
-    listEl.innerHTML = events.map((e, idx) => `
-      <li class="calendar-item india-event-card" data-india-idx="${idx}">
-        <div class="calendar-item-head">
-          <span class="calendar-country">${esc(e.country || 'IND')}</span>
-          <span class="calendar-impact">${esc(e.impact || 'High')}</span>
-        </div>
-        <span class="calendar-title">${esc(e.title || 'Untitled event')}<span class="calendar-view">${esc(indiaView(e))}</span></span>
-        <span class="calendar-date">${fmtDate(e.date || e.Date || e.datetime)}</span>
-        <div class="calendar-points">
-          <div class="calendar-point"><div class="calendar-point-label">Actual</div><div class="calendar-point-value">${esc(e.actual || 'Pending')}</div></div>
-          <div class="calendar-point"><div class="calendar-point-label">Forecast</div><div class="calendar-point-value">${esc(e.forecast || '--')}</div></div>
-          <div class="calendar-point"><div class="calendar-point-label">Previous</div><div class="calendar-point-value">${esc(e.previous || '--')}</div></div>
-        </div>
-      </li>
-    `).join('') || '<li class="calendar-empty">No India events available.</li>';
-    listEl.querySelectorAll('.india-event-card').forEach((node) => {
-      node.style.cursor = 'pointer';
-      node.addEventListener('click', () => {
-        const idx = Number(node.getAttribute('data-india-idx'));
-        const ev = events[idx];
-        if (ev) renderQoq(ev);
-      });
-    });
-    if (events.length) renderQoq(events[0]);
-  };
 
   const candidates = [ENDPOINTS.upstox];
   for (const base of candidates) {
@@ -916,7 +930,7 @@ async function loadIndiaCalendarData() {
       chipEl.textContent = 'Live';
       headerDateTimeEl.textContent = `Date/Time: ${headerStamp()}`;
       metaEl.textContent = `Source: India Macro Feed · Events: ${indiaCalendarRaw.length} · Updated: ${nowStamp()}`;
-      render();
+      renderIndiaCalendar();
       return true;
     } catch (_) {}
   }
