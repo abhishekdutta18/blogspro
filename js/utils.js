@@ -72,10 +72,23 @@ export function sanitize(html) {
 // Validates image URL for safety (protocol, domain).
 export function validateImageUrl(url) {
   if (!url) return null;
+
+  // Fast path for data URLs
+  if (url.startsWith('data:image/')) {
+    try {
+      const u = new URL(url);
+      if (u.protocol === 'data:') return url;
+    } catch (_) {
+      return null;
+    }
+    return null;
+  }
+
   try {
     const u = new URL(url);
-    // Only allow https protocol
+    // Only allow https protocol for regular URLs
     if (u.protocol !== 'https:') return null;
+
     // Whitelist safe image domains
     const safeDomains = [
       'cloudinary.com',
@@ -88,8 +101,7 @@ export function validateImageUrl(url) {
     ];
     const hostname = u.hostname.toLowerCase();
     if (!safeDomains.some(domain => hostname.endsWith(domain))) {
-      // Allow data URLs for local/generated images
-      if (!url.startsWith('data:image/')) return null;
+      return null;
     }
     return url;
   } catch (_) {
@@ -128,8 +140,9 @@ export function slugify(text) {
     .replace(/^-+|-+$/g, '');
 }
 // Expose on window for inline onclick handlers in admin.html
-window.slugify = slugify;
-
+if (typeof window !== 'undefined') {
+  window.slugify = slugify;
+}
 
 // ── stripTags ─────────────────────────────────
 // Removes all HTML tags and returns plain text.
