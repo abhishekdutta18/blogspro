@@ -71,12 +71,12 @@ window.backfillUserCreatedAt = async () => {
       return;
     }
 
-    for (const u of missing) {
-      await api.data.update('users', u.id, {
+    await Promise.all(missing.map(u =>
+      api.data.update('users', u.id, {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
-      });
-    }
+      })
+    ));
 
     showToast(`Backfilled ${missing.length} user${missing.length === 1 ? '' : 's'}.`, 'success');
     loadUsers();
