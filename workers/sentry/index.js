@@ -150,10 +150,10 @@ async function handleCallbackQuery(cq, env) {
     if (!Array.isArray(issues) || issues.length === 0) {
       await sendTelegramMessage(chatId, '🟢 No open issues to resolve.', null, env);
     } else {
-      let resolved = 0;
-      for (const issue of issues) {
-        if (await resolveSentryIssue(issue.id, env)) resolved++;
-      }
+      const resolveResults = await Promise.all(
+        issues.map(issue => resolveSentryIssue(issue.id, env))
+      );
+      const resolved = resolveResults.filter(Boolean).length;
       await sendTelegramMessage(chatId, `✅ <b>Bulk resolved ${resolved}/${issues.length} issues.</b>`, null, env);
     }
   }
