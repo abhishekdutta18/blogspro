@@ -33,7 +33,7 @@
     "@google/genai": "^1.50.1",
     "@google/generative-ai": "^0.24.1",
     "@sentry/node": "^10.49.0",
-    "ai": "^6.0.158",
+    "ai": "^6.0.175",
     "dotenv": "^17.4.2",
     "fast-xml-parser": "^5.7.1",
     "figma-js": "^1.16.1-0",
