@@ -1,6 +1,7 @@
 import { cleanEditorHTML, showToast } from "./config.js";
 import { callAI } from "./ai-core.js";
 import { state } from "./state.js";
+import { debounce } from "./utils.js";
 
 let editor = null;
 
@@ -37,7 +38,8 @@ export function initEditor() {
 ========================================= */
 
 function setupEvents() {
-  editor.addEventListener("input", () => { saveHistory(); updateWordCount(); });
+  const debouncedUpdate = debounce(() => { saveHistory(); updateWordCount(); }, 500);
+  editor.addEventListener("input", debouncedUpdate);
   // Mobile reliability: ensure tap focuses editable surface.
   editor.addEventListener("touchstart", () => { editor.focus(); }, { passive: true });
   editor.addEventListener("paste", handlePaste);
