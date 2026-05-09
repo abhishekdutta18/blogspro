@@ -11,6 +11,60 @@
   const SENTRY_RELEASE = "blogspro@2026-04-01";
   const INIT_FLAG      = "__BLOGSPRO_SENTRY_INIT_V2__";
 
+  // Known transient domains — routine CORS/network poll failures from these
+  // hosts are expected and should not flood Sentry. Auth/token errors are
+  // still allowed through so expired Upstox tokens surface in the dashboard.
+  const NOISY_HOSTS = [
+    "blogspro-upstox",
+    "abhishek-dutta1996.workers.dev",
+    "ticker.json",
+    "tradingview.com",
+    "s3.tradingview.com",
+  ];
+
+  function getSentryIntegrations() {
+    return [
+      // v8+ Integrations — Guarded to prevent crash on older SDKs
+      ...(typeof Sentry.browserTracingIntegration === 'function' ? [Sentry.browserTracingIntegration()] : []),
+      ...(typeof Sentry.replayIntegration === 'function' ? [Sentry.replayIntegration({
+        maskAllText: false,
+        blockAllMedia: false,
+      })] : []),
+      ...(typeof Sentry.httpContextIntegration === 'function' ? [Sentry.httpContextIntegration()] : []),
+    ];
+  }
+
+  function handleBeforeSend(event, hint) {
+    // Drop events whose stack or request URL contains a known noisy host
+    // Exception: 5xx errors from the upstream BlogsPro workers MUST be sent
+    const error = hint?.originalException;
+    const msg   = (event.message || "") + JSON.stringify(error || "");
+    const isUpstreamError = /blogspro-upstox|workers\.dev/i.test(msg) && (error?.status >= 500 || event.level === "error");
+
+    if (NOISY_HOSTS.some(h => msg.includes(h)) && !isUpstreamError) return null;
+
+    // Drop fetch/network errors that are just market-data polling failures
+    if (error instanceof TypeError && /fetch|network/i.test(error.message) && !isUpstreamError) return null;
+
+    return event;
+  }
+
+  function setupGlobalHelpers() {
+    window.setSentryUser = function(u) { Sentry.setUser(u); };
+    window.trackEvent = function(name, data) {
+      Sentry.addBreadcrumb({ message: name, data: data, level: "info" });
+    };
+
+    // BlogsPro Intelligence Pulse Tracking
+    window.trackPulse = function(freq, status, metadata = {}) {
+      Sentry.withScope((scope) => {
+        scope.setTag("pulseFrequency", freq);
+        scope.setTag("ingestionStatus", status);
+        scope.setContext("pulse_metadata", metadata);
+        Sentry.captureMessage(`Pulse Sync: ${freq.toUpperCase()} - ${status}`, "info");
+      });
+    };
+  }
 
   function initSentry() {
     if (typeof Sentry === 'undefined' || !Sentry.init) {
@@ -22,18 +76,6 @@
       console.log('[Sentry] Already initialized.');
       return;
     }
-
-    // Known transient domains — routine CORS/network poll failures from these
-    // hosts are expected and should not flood Sentry. Auth/token errors are
-    // still allowed through so expired Upstox tokens surface in the dashboard.
-    const NOISY_HOSTS = [
-      "blogspro-upstox",
-      "abhishek-dutta1996.workers.dev",
-
-      "ticker.json",
-      "tradingview.com",
-      "s3.tradingview.com",
-    ];
 
     Sentry.init({
       dsn: "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336",
@@ -58,15 +100,7 @@
       replaysSessionSampleRate: 0.05,   // 5% of sessions
       replaysOnErrorSampleRate: 1.0,    // 100% of sessions with errors
 
-      integrations: [
-        // v8+ Integrations — Guarded to prevent crash on older SDKs
-        ...(typeof Sentry.browserTracingIntegration === 'function' ? [Sentry.browserTracingIntegration()] : []),
-        ...(typeof Sentry.replayIntegration === 'function' ? [Sentry.replayIntegration({
-          maskAllText: false,
-          blockAllMedia: false,
-        })] : []),
-        ...(typeof Sentry.httpContextIntegration === 'function' ? [Sentry.httpContextIntegration()] : []),
-      ],
+      integrations: getSentryIntegrations(),
 
       ignoreErrors: [
         "ResizeObserver loop limit exceeded",
@@ -78,37 +112,10 @@
         /CORS/i,
       ],
 
-      beforeSend(event, hint) {
-        // Drop events whose stack or request URL contains a known noisy host
-        // Exception: 5xx errors from the upstream BlogsPro workers MUST be sent
-        const error = hint?.originalException;
-        const msg   = (event.message || "") + JSON.stringify(error || "");
-        const isUpstreamError = /blogspro-upstox|workers\.dev/i.test(msg) && (error?.status >= 500 || event.level === "error");
-
-        if (NOISY_HOSTS.some(h => msg.includes(h)) && !isUpstreamError) return null;
- 
-        // Drop fetch/network errors that are just market-data polling failures
-        if (error instanceof TypeError && /fetch|network/i.test(error.message) && !isUpstreamError) return null;
-
-
-        return event;
-      },
+      beforeSend: handleBeforeSend,
     });
 
-    window.setSentryUser = function(u) { Sentry.setUser(u); };
-    window.trackEvent   = function(name, data) {
-      Sentry.addBreadcrumb({ message: name, data: data, level: "info" });
-    };
-
-    // BlogsPro Intelligence Pulse Tracking
-    window.trackPulse = function(freq, status, metadata = {}) {
-      Sentry.withScope((scope) => {
-        scope.setTag("pulseFrequency", freq);
-        scope.setTag("ingestionStatus", status);
-        scope.setContext("pulse_metadata", metadata);
-        Sentry.captureMessage(`Pulse Sync: ${freq.toUpperCase()} - ${status}`, "info");
-      });
-    };
+    setupGlobalHelpers();
     
     console.log('[Sentry] BlogsPro Intelligence V4.0 Observability Active');
   }
