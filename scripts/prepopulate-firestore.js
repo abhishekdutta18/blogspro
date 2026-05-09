@@ -51,12 +51,8 @@ async function prepopulate() {
     const batch = data.slice(-300);
     console.log(`🚀 Migrating last 300 entries to Firestore [${PROJECT_ID}]...`);
 
-    let success = 0;
-    for (const entry of batch) {
-        const ok = await syncEntry(entry);
-        if (ok) success++;
-        if (success % 50 === 0) console.log(`--- Synced ${success} entries...`);
-    }
+    const results = await Promise.all(batch.map(syncEntry));
+    const success = results.filter(Boolean).length;
 
     console.log(`\n✨ Prepopulation Complete: ${success}/${batch.length} entries synced to Firestore.`);
     console.log(`🔗 View here: https://console.firebase.google.com/project/${PROJECT_ID}/firestore/data/~2F${COLLECTION}`);
