@@ -24,7 +24,7 @@
   "dependencies": {
     "@ai-sdk/google": "^3.0.62",
     "@ai-sdk/openai": "^3.0.53",
-    "@aws-sdk/client-s3": "^3.1032.0",
+    "@aws-sdk/client-s3": "^3.1045.0",
     "@cerebras/cerebras_cloud_sdk": "^1.64.1",
     "@genkit-ai/firebase": "^1.33.0",
     "@genkit-ai/google-genai": "^1.33.0",
