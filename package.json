@@ -22,7 +22,7 @@
     "ecc:full-audit": "npm run ecc:quality-gate && npm run ecc:secret-scan && npm run ecc:design-check"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3.0.62",
+    "@ai-sdk/google": "^3.0.71",
     "@ai-sdk/openai": "^3.0.53",
     "@aws-sdk/client-s3": "^3.1032.0",
     "@cerebras/cerebras_cloud_sdk": "^1.64.1",
