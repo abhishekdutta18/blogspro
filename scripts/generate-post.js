@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from 'url';
-import { fetchIndianNews, fetchGlobalNews, fetchMacroPulse } from "./lib/data-fetchers.js";
+import { fetchDynamicNews as fetchIndianNews, fetchUniversalNews as fetchGlobalNews, fetchMacroPulse } from "./lib/data-fetchers.js";
 import { askAI } from "./lib/ai-service.js";
 import { getBaseTemplate } from "./lib/templates.js";
 
@@ -20,7 +20,7 @@ async function generatePost() {
     
     // Posts focus more on Narrative context
     const [inNews, glNews, macro] = await Promise.all([
-        fetchIndianNews(),
+        fetchIndianNews("Market Sentiment (India)"),
         fetchGlobalNews(),
         fetchMacroPulse()
     ]);
