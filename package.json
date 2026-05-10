@@ -50,7 +50,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",
-    "genkit-cli": "^1.32.0",
+    "genkit-cli": "^1.33.0",
     "wrangler": "^4.83.0"
   }
 }
