@@ -477,6 +477,7 @@
  
 <script type="module">
   import { api } from "./js/services/api.js";
+  import { debounce } from "./js/utils.js";
   let currentUser = null;
   let userData    = {};
   let editingId   = null;
@@ -752,7 +753,11 @@
   // Rich text helpers
   window.fmt = (cmd) => { document.getElementById('userEditor').focus(); document.execCommand(cmd, false, null); };
   window.fmtBlock = (tag) => { document.getElementById('userEditor').focus(); document.execCommand('formatBlock', false, tag); };
-  document.getElementById('userEditor').addEventListener('input', updateWordCount);
+
+  // Performance optimization: debounce the expensive updateWordCount function
+  // to avoid blocking the main thread on every keystroke.
+  document.getElementById('userEditor').addEventListener('input', debounce(updateWordCount, 300));
+
   function updateWordCount() {
     const words = (document.getElementById('userEditor').innerText||'').trim().split(/\s+/).filter(Boolean).length;
     document.getElementById('wWordCount').textContent = words;
