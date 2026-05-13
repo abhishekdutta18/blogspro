@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-05-13",
-    "timestamp": 1778655935413,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-05-13 | ASSET_CLASS: MACRO_LIQUIDITY | STATUS: FRAGILE** The current market architecture exhibits the terminal symptoms of LFY (2025) alpha exhaustion. Institutional liquidity profiles are currently masking a systemic ro...",
-    "fileName": "swarm-hourly-1778655935380.html",
+    "timestamp": 1778656104443,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026-05-13 | 09:00 UTC** **MCTS BRANCH: 77-B (STRESS-TESTED)** **ASSET CLASS: GLOBAL MACRO / LIQUIDITY FRICTION** Current market conditions reflect a terminal decoupling between legacy equity indices and real-world liquidity ...",
+    "fileName": "swarm-hourly-1778656104253.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
