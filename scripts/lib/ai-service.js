@@ -1262,13 +1262,15 @@ export const ResourceManager = {
         const isRate = error.includes('429') || error.includes('rate_limit') || error.includes('TPM') || error.includes('quota') || error.includes('RATE_LIMIT');
         const isAuth = error.includes('401') || error.includes('403') || error.includes('402') || error.includes('Unauthorized') || error.includes('API key') || error.includes('Authentication') || error.includes('permission') || error.includes('NOT_FOUND') || error.includes('Not Found') || error.includes('404') || error.includes('PERMISSION_DENIED') || error.includes('Invalid Key') || error.includes('Invalid API Key') || error.includes('CREDIT_EXHAUSTED') || error.includes('4018'); // ERR_NGROK_4018
 
+        const safeErr = typeof error === 'string' && error.length > 250 ? error.substring(0, 250) + '... [TRUNCATED HTML/ERROR]' : error;
+
         if (isRate) {
             console.warn(`⏳ [AI-Balancer] ${name} rate limited. Activating 60000ms cooldown.`);
             this.cooldowns.set(name, Date.now() + 60000);
         } else if (isAuth) {
-            console.warn(`⚠️ [AI-Balancer] Terminal error on ${name}: ${error}. Continuing rotation (Blacklist Disabled).`);
+            console.warn(`⚠️ [AI-Balancer] Terminal error on ${name}: ${safeErr}. Continuing rotation (Blacklist Disabled).`);
         } else {
-            console.warn(`⚠️ [AI-Balancer] ${name} failed with temporary error: ${error}. Retrying next...`);
+            console.warn(`⚠️ [AI-Balancer] ${name} failed with temporary error: ${safeErr}. Retrying next...`);
         }
     },
 
@@ -1402,7 +1404,8 @@ export async function askAI(prompt, options = {}) {
         return response;
     } catch (err) {
         const latency = Date.now() - startTs;
-        console.error(`❌ [AI-Balancer] ${provider.name} failed: ${err.message}`);
+        const safeErrMsg = typeof err.message === 'string' && err.message.length > 250 ? err.message.substring(0, 250) + '... [TRUNCATED HTML/ERROR]' : err.message;
+        console.error(`❌ [AI-Balancer] ${provider.name} failed: ${safeErrMsg}`);
         
         pushSovereignTrace("AI_FAILURE", {
             jobId: options.jobId || 'local',
@@ -1410,7 +1413,7 @@ export async function askAI(prompt, options = {}) {
             latency: latency,
             role: role,
             model: provider.name,
-            message: `Interaction failed: ${err.message}`
+            message: `Interaction failed: ${safeErrMsg}`
         }, env).catch(() => {});
 
         ResourceManager.markFailure(provider.name, err.message);
