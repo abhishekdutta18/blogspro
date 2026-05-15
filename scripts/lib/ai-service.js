@@ -1347,6 +1347,22 @@ export async function askAI(prompt, options = {}) {
     if (role === 'compress') {
         const compressedPrompt = `COMPRESS the following reasoning trace into a 250-word Semantic Summary preserving strategic decisions. DO NOT include raw tokens:\n\n${prompt}`;
         return await generateGeminiContent(compressedPrompt, "gemini-1.5-flash", { env });
+    const fleetRetries = options._fleetRetries || 0;
+
+    // [V16.2] Sovereign Loop Breaker: Prevent infinite loops when Tier-1 nodes ignore cooldowns
+    if (fleetRetries >= 2) {
+        console.error(`🚨 [AI-Balancer] Critical Fleet Depletion / Loop Breaker Triggered. Transitioning to Direct-Dial Anchor...`);
+        try {
+            return await directDialAnchor(prompt, targetModel || 'gemini-1.5-pro', role, env);
+        } catch (e) {
+            console.error(`🚨 [AI-Balancer] Direct-Dial Anchor Failed. ACTIVATING GHOST SIMULATION...`);
+            return generateEmergencyGhostFallback(prompt, role, env);
+        }
+    }
+
+    if (fleetRetries === 1 && !options._resetDone) {
+        await ResourceManager.emergencyReset(env);
+        options._resetDone = true;
     }
 
     if (ResourceManager.pool.length === 0) {
@@ -1358,27 +1374,10 @@ export async function askAI(prompt, options = {}) {
     let provider = ResourceManager.getAvailable(seed, targetModel, { role: role }, triedNodes);
     
     if (!provider) {
-        const fleetRetries = options._fleetRetries || 0;
-        
-        // [V15.5] Emergency Recovery: If fleet is empty after tries, force a reset
-        if (fleetRetries === 1) {
-            await ResourceManager.emergencyReset(env);
-        }
-
-        if (fleetRetries < 2) { 
-            console.warn(`⏳ [AI-Balancer] Fleet Exhausted. No providers available for ${role}. Pausing 5s for recovery (Cycle: ${fleetRetries + 1}/2)...`);
-            await new Promise(r => setTimeout(r, 5000));
-            // Reset tried nodes for the next full fleet attempt
-            return askAI(prompt, { ...options, _fleetRetries: fleetRetries + 1, triedNodes: new Set() });
-        }
-        
-        console.error(`🚨 [AI-Balancer] Critical Fleet Depletion. Transitioning to Direct-Dial Anchor...`);
-        try {
-            return await directDialAnchor(prompt, targetModel || 'gemini-1.5-pro', role, env);
-        } catch (e) {
-            console.error(`🚨 [AI-Balancer] Direct-Dial Anchor Failed. ACTIVATING GHOST SIMULATION...`);
-            return generateEmergencyGhostFallback(prompt, role, env);
-        }
+        console.warn(`⏳ [AI-Balancer] Fleet Exhausted. No providers available for ${role}. Pausing 5s for recovery...`);
+        await new Promise(r => setTimeout(r, 5000));
+        // Reset tried nodes for the next full fleet attempt
+        return askAI(prompt, { ...options, _fleetRetries: fleetRetries + 1, triedNodes: new Set() });
     }
 
     ResourceManager.inflight.set(provider.name, (ResourceManager.inflight.get(provider.name) || 0) + 1);
