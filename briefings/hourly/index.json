@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-05-18",
-    "timestamp": 1779058943422,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-05-17 // LIQUIDITY-STRESS-INDEX: CRITICAL // MCTS BRANCH: 884-B** Current market conditions demonstrate a total decoupling of equity pricing from underlying collateral integrity. The \"Retail Noise\" characterizing the 202...",
-    "fileName": "swarm-hourly-1779058943402.html",
+    "timestamp": 1779058967283,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026-05-17 // LIQUIDITY DRAIN STATUS: CRITICAL** Current institutional price discovery remains bifurcated by persistent liquidity friction and the exhaustion of 2025-carry trade remnants. The \"soft landing\" narrative propagat...",
+    "fileName": "swarm-hourly-1779058967263.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
