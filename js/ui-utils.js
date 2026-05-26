@@ -26,28 +26,17 @@
   }
 
   // ── Scroll Progress Logic ───────────────────────────────────────────
-  // ⚡ Bolt: Wrapped synchronous scroll listener reading layout properties
-  // in requestAnimationFrame with a ticking flag to prevent layout thrashing.
-  // Using { passive: true } to unblock the main thread and ensure smooth scrolling.
-  let isTicking = false;
   window.addEventListener('scroll', function() {
-    if (!isTicking) {
-      window.requestAnimationFrame(function() {
-        const progress = document.getElementById('progress');
-        if (progress) {
-          const el = document.documentElement;
-          const scrollTop = el.scrollTop || document.body.scrollTop;
-          const scrollHeight = el.scrollHeight || document.body.scrollHeight;
-          const clientHeight = el.clientHeight;
+    const progress = document.getElementById('progress');
+    if (!progress) return;
+    const el = document.documentElement;
+    const scrollTop = el.scrollTop || document.body.scrollTop;
+    const scrollHeight = el.scrollHeight || document.body.scrollHeight;
+    const clientHeight = el.clientHeight;
 
-          const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
-          progress.style.width = Math.min(scrolled, 100) + '%';
-        }
-        isTicking = false;
-      });
-      isTicking = true;
-    }
-  }, { passive: true });
+    const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
+    progress.style.width = Math.min(scrolled, 100) + '%';
+  });
 
   console.log('[BlogsPro] UI Utils loaded.');
 })();
