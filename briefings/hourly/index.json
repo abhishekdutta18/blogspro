@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-05-28",
-    "timestamp": 1779973398132,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-05-28-1400Z** **ASSET CLASS: MACRO-EQUITY / LIQUIDITY FRICTION** **SENTIMENT: BEAR-BIASED / STRUCTURAL FRAGILITY** Current market conditions reflect a terminal decoupling between underlying liquidity velocity and the inf...",
-    "fileName": "swarm-hourly-1779973398117.html",
+    "timestamp": 1779973444352,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026-05-28T09:42:00Z | LIQUIDITY VELOCITY: SUB-CRITICAL** The hourly pulse remains an artifact of retail inertia. MCTS nodes currently mapping 2026-2027 trajectories indicate a terminal decay in organic capital inflows. Basel...",
+    "fileName": "swarm-hourly-1779973444334.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
