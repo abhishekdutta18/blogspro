@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-05-29",
-    "timestamp": 1780070582477,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-05-29** **SUBJECT: STRUCTURAL FRAGILITY INDEX (SFI) / LIQUIDITY EROSION** The current market pulse confirms total stagnation in alpha generation. Retail participation is currently relegated to the bottom decile of liquid...",
-    "fileName": "swarm-hourly-1780070582463.html",
+    "timestamp": 1780070624376,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026.05.29 | QUANT_STRAT_REF_8829 | ASSET_CLASS: MACRO_FRAGILITY** The current intraday liquidity profile confirms a total decoupling from the 2025 LFY mean-reversion expectations. Market participants clinging to 2025 growth ...",
+    "fileName": "swarm-hourly-1780070624365.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
