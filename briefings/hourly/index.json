@@ -2,27 +2,27 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-01",
-    "timestamp": 1780308404496,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026.06.01 | MCTS_BRANCH: STAGFLATION_VORTEX | ENTITY_CORRELATION: HIGH** The current market architecture is a facade of stability underpinned by decaying 2025-LFY liquidity mandates. Quantitative models projecting 2026-2027 ...",
-    "fileName": "swarm-hourly-1780308404481.html",
+    "timestamp": 1780311668207,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026.06.01 | MCTS_BRANCH: 88-ALPHA | LIQUIDITY_STATUS: VOLATILE_DRAIN** Current market microstructure confirms the \"Retail Noise\" hypothesis. The 2025 LFY comparative baseline reveals a sustained decay in liquidity velocity, ...",
+    "fileName": "swarm-hourly-1780311668191.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
-      "summary": "RBI: Withdrawal of &#8377;2000 Denomination Banknotes – Status (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62669) | Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62668) | 46th Half-Yearly Report on Management of Foreign Exchange Reserves: October 2025 - March 2026 (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62667) | SEBI:  | GLOBAL: BLOOMBERG | HSBC CEO Pitches Hong Kong Clients, Hires More Bankers After Setbacks - Bloomberg.com | BLOOMBERG | Paramount Is Pulling Every Lever to Sell LBO Debt - Bloomberg.com | BLOOMBERG | JPY/USD: Japan Used Record $73.6 Billion to Support Yen in Past Month - Bloomberg.com | FT | The truth about the American profit machine - Financial Times | FT | AI and real GDP: how big and how fast? - Financial Times | FT | Global asset managers capture just 0.1% of Chinese market in 5 years - Financial Times | REUTERS | AI debt sales reshape global corporate bond markets - Reuters | REUTERS | EU's six biggest economies agree on capital markets supervision - Reuters | REUTERS | Exclusive: From lottery draws to fiscal spending, China broadens digital yuan footprint - Reuters | CNBC | Japanese bond yields are the highest in 40 years. The budget and a 'red flag' from PM Takaichi have markets nervous - CNBC | CNBC | EasyJet soars 10% as Castlelake mulls takeover bid; European stocks dip - CNBC | CNBC | China’s factory activity beats forecasts in May, private survey shows, despite softer official data - CNBC | NIKKEI | China tightens grip on outbound investment after Meta-Manus deal fallout - Nikkei Asia | NIKKEI | Indonesia faces 'vicious' stagflation: Japan consumer goods firm - Nikkei Asia | NIKKEI | ECB warns fiscal, geopolitical risks 'underestimated' by markets - Nikkei Asia",
-      "rbi": "Withdrawal of &#8377;2000 Denomination Banknotes – Status (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62669) | Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62668) | 46th Half-Yearly Report on Management of Foreign Exchange Reserves: October 2025 - March 2026 (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62667)",
+      "summary": "RBI: Money Market Operations as on May 31, 2026 (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62843) | Money Market Operations as on May 30, 2026 (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62842) | RBI launches the Survey on Foreign Liabilities and Assets of Mutual Funds: 2025-26 round (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62841) | SEBI:  | GLOBAL: BLOOMBERG | HSBC CEO Pitches Hong Kong Clients, Hires More Bankers After Setbacks - Bloomberg.com | BLOOMBERG | Paramount Is Pulling Every Lever to Sell LBO Debt - Bloomberg.com | BLOOMBERG | JPY/USD: Japan Used Record $73.6 Billion to Support Yen in Past Month - Bloomberg.com | FT | The truth about the American profit machine - Financial Times | FT | AI and real GDP: how big and how fast? - Financial Times | FT | Global asset managers capture just 0.1% of Chinese market in 5 years - Financial Times | REUTERS | AI debt sales reshape global corporate bond markets - Reuters | REUTERS | EU's six biggest economies agree on capital markets supervision - Reuters | REUTERS | Exclusive: From lottery draws to fiscal spending, China broadens digital yuan footprint - Reuters | CNBC | Japanese bond yields are the highest in 40 years. The budget and a 'red flag' from PM Takaichi have markets nervous - CNBC | CNBC | EasyJet soars 10% as Castlelake mulls takeover bid; European stocks dip - CNBC | CNBC | China’s factory activity beats forecasts in May, private survey shows, despite softer official data - CNBC | NIKKEI | China tightens grip on outbound investment after Meta-Manus deal fallout - Nikkei Asia | NIKKEI | Indonesia faces 'vicious' stagflation: Japan consumer goods firm - Nikkei Asia | NIKKEI | ECB warns fiscal, geopolitical risks 'underestimated' by markets - Nikkei Asia",
+      "rbi": "Money Market Operations as on May 31, 2026 (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62843) | Money Market Operations as on May 30, 2026 (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62842) | RBI launches the Survey on Foreign Liabilities and Assets of Mutual Funds: 2025-26 round (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62841)",
       "sebi": "",
       "docs": [
         {
-          "title": "Withdrawal of &#8377;2000 Denomination Banknotes – Status",
-          "link": "http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62669"
+          "title": "Money Market Operations as on May 31, 2026",
+          "link": "http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62843"
         },
         {
-          "title": "Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract",
-          "link": "http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62668"
+          "title": "Money Market Operations as on May 30, 2026",
+          "link": "http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62842"
         },
         {
-          "title": "46th Half-Yearly Report on Management of Foreign Exchange Reserves: October 2025 - March 2026",
-          "link": "http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62667"
+          "title": "RBI launches the Survey on Foreign Liabilities and Assets of Mutual Funds: 2025-26 round",
+          "link": "http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62841"
         }
       ]
     }
