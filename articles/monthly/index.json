@@ -1,5 +1,20 @@
 [
   {
+    "title": "MONTHLY   Nexus Institutional Terminal",
+    "date": "2026-06-01",
+    "timestamp": 1780308711462,
+    "excerpt": "**INSTITUTIONAL LIQUIDITY AUDIT: Q2 2026 SYSTEMIC VELOCITY REPORT** The internal ledger confirms that the transition from 2025 LFY buoyancy to 2026 structural contraction is complete. Market participant behavior is currently governed by “algorithmic ...",
+    "fileName": "swarm-monthly-1780308711446.html",
+    "type": "article",
+    "frequency": "monthly",
+    "liveNews": {
+      "summary": "Pulse Baseline: Stable.",
+      "rbi": "Neutral.",
+      "sebi": "Neutral.",
+      "docs": []
+    }
+  },
+  {
     "id": "swarm-monthly-24276116106",
     "title": "MONTHLY   Nexus Institutional Terminal",
     "excerpt": "MONTHLY Strategic Manuscript | Nexus Institutional Terminal :root { --nexus-bg: #050505; --nexus-sidebar: #0A0A0A; --nexus-accent: #BFA100; --nexus-text-main: #F8FAFC; ...",
