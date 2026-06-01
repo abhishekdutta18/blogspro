@@ -425,7 +425,7 @@
           // Sanitize related post fields too
           const rTitle = DOMPurify.sanitize(p.title || '');
           const rCat   = DOMPurify.sanitize(p.category || '');
-          return `<div class="related-card" onclick="location.href='post.html?id=${p.id}'">
+          return `<div class="related-card" onclick="location.href='../post.html?id=${p.id}'">
             <div class="related-cat">${rCat}</div>
             <div class="related-name">${rTitle}</div>
             <div class="related-date">${date}</div>
