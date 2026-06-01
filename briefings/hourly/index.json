@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-01",
-    "timestamp": 1780318944161,
-    "excerpt": "**OPERATIONAL TELEMETRY: 06-01-2026 | LIQUIDITY VECTORS: CONSTRAINED | RISK PROFILE: SYSTEMIC DECAY** Current hourly pulse reveals absolute stagnation in high-conviction institutional flow. The drift analysis relative to the 2025 LFY baseline indicat...",
-    "fileName": "swarm-hourly-1780318944139.html",
+    "timestamp": 1780319030852,
+    "excerpt": "**OPERATIONAL TELEMETRY: 06-01-2026-Q2-EXT** **ASSET CLASS: MACRO-LIQUIDITY / SOVEREIGN DEBT** **MCTS NODE: 44-B (FRAGILITY-FOCUSED)** Institutional liquidity has hit a terminal friction point. The 2025 LFY comparative baseline confirms a structural ...",
+    "fileName": "swarm-hourly-1780319030833.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
