@@ -2,16 +2,33 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-02",
-    "timestamp": 1780409160218,
-    "excerpt": "**OPERATIONAL METRICS: JUNE 2, 2026** **SUBJECT: GLOBAL LIQUIDITY EROSION & STRUCTURAL FRAGILITY (Q3-Q4 2026 PROJECTION)** Current market deltas are symptomatic of systemic alpha exhaustion. The 2025 LFY comparative baseline confirms a contraction in...",
-    "fileName": "swarm-hourly-1780409160202.html",
+    "timestamp": 1780412598404,
+    "excerpt": "**OPERATIONAL LOG: 2026-06-02 | SYSTEMIC FRAGILITY STATUS: CRITICAL** Current market conditions reflect a total exhaustion of 2025 alpha. The prevailing institutional sentiment is not merely cautious; it is fundamentally predatory. Retail liquidity, ...",
+    "fileName": "swarm-hourly-1780412598375.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
-      "summary": "RBI:  | SEBI:  | GLOBAL: BLOOMBERG | Alphabet to Raise $80 Billion in Equity for AI Spending - Bloomberg.com | BLOOMBERG | Russia Finance Officials Tell Putin War Spending Is Unaffordable - Bloomberg.com | BLOOMBERG | For Goldman’s Top Bankers, It’s All AI Data Centers All the Time - Bloomberg.com | FT | Short seller Andrew Left found guilty of securities fraud - Financial Times | FT | IPO boom, market doom? - Financial Times | FT | US convertible bonds set for record year as issuers harness AI boom - Financial Times | REUTERS | BOJ should signal clear rate path after June hike, SMFG markets chief says - Reuters | REUTERS | AI debt sales reshape global corporate bond markets - Reuters | REUTERS | Japan tempers yen warnings despite renewed slide towards key 160 level - Reuters | CNBC | Polymarket closes its first block trade as prediction markets push for Wall Street adoption - CNBC | CNBC | Alphabet's stock sale, Iran negotiations, Anthropic's IPO plans and more in Morning Squawk - CNBC | CNBC | Trump picks housing Dir. Bill Pulte as acting intelligence chief, replacing Tulsi Gabbard - CNBC | NIKKEI | Chinese companies receive up to 8 times more subsidies than OECD peers - Nikkei Asia | NIKKEI | How to prevent the 'K-economy' from becoming more K-shaped - Nikkei Asia | NIKKEI | Indonesia faces 'vicious' stagflation: Japan consumer goods firm - Nikkei Asia",
-      "rbi": "",
-      "sebi": "",
-      "docs": []
+      "summary": "RBI: Withdrawal of &#8377;2000 Denomination Banknotes – Status (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62669) | Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62668) | 46th Half-Yearly Report on Management of Foreign Exchange Reserves: October 2025 - March 2026 (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62667) | SEBI: Certificate No. RC9051 of 2026 A.P No. 15397 of 2026 in respect of Vineeta Kabra (PAN: ABNPL7384C) in the matter of Illiquid Stock Options (URL: https://www.sebi.gov.in/enforcement/recovery-proceedings/jun-2026/certificate-no-rc9051-of-2026-a-p-no-15397-of-2026-in-respect-of-vineeta-kabra-pan-abnpl7384c-in-the-matter-of-illiquid-stock-options_101784.html) | Certificate No. RC9051 of 2026 A.P No 15395 of 2026 in respect of Vineeta Kabra (PAN: ABNPL7384C) in the matter of Illiquid Stock Options (URL: https://www.sebi.gov.in/enforcement/recovery-proceedings/jun-2026/certificate-no-rc9051-of-2026-a-p-no-15395-of-2026-in-respect-of-vineeta-kabra-pan-abnpl7384c-in-the-matter-of-illiquid-stock-options_101783.html) | Certificate No. RC9045 of 2026 A.P No. 15399 of 2026 in respect of Subhranshu Roy HUF (PAN: AAXHS8157D) in the matter of Illiquid Stock Options (URL: https://www.sebi.gov.in/enforcement/recovery-proceedings/jun-2026/certificate-no-rc9045-of-2026-a-p-no-15399-of-2026-in-respect-of-subhranshu-roy-huf-pan-aaxhs8157d-in-the-matter-of-illiquid-stock-options_101781.html) | GLOBAL: BLOOMBERG | Russia Finance Officials Tell Putin War Spending Is Unaffordable - Bloomberg.com | BLOOMBERG | For Goldman’s Top Bankers, It’s All AI Data Centers All the Time - Bloomberg.com | BLOOMBERG | GoPro Warns of Going-Concern Risk Amid AI-Fueled Memory Crunch - Bloomberg.com | FT | US convertible bonds set for record year as issuers harness AI boom - Financial Times | FT | Short seller Andrew Left found guilty of securities fraud - Financial Times | FT | IPO boom, market doom? - Financial Times | REUTERS | BOJ should signal clear rate path after June hike, SMFG markets chief says - Reuters | REUTERS | Australia's CBA flags surging AI costs as tasks grow complex, slams 'work slop' - Reuters | REUTERS | AI debt sales reshape global corporate bond markets - Reuters | CNBC | Jim Cramer's top 10 things to watch in the stock market Tuesday - CNBC | CNBC | Polymarket closes its first block trade as prediction markets push for Wall Street adoption - CNBC | CNBC | Alphabet's stock sale, Iran negotiations, Anthropic's IPO plans and more in Morning Squawk - CNBC | NIKKEI | Chinese companies receive up to 8 times more subsidies than OECD peers - Nikkei Asia | NIKKEI | How to prevent the 'K-economy' from becoming more K-shaped - Nikkei Asia | NIKKEI | Indonesia faces 'vicious' stagflation: Japan consumer goods firm - Nikkei Asia",
+      "rbi": "Withdrawal of &#8377;2000 Denomination Banknotes – Status (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62669) | Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62668) | 46th Half-Yearly Report on Management of Foreign Exchange Reserves: October 2025 - March 2026 (URL: http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62667)",
+      "sebi": "Certificate No. RC9051 of 2026 A.P No. 15397 of 2026 in respect of Vineeta Kabra (PAN: ABNPL7384C) in the matter of Illiquid Stock Options (URL: https://www.sebi.gov.in/enforcement/recovery-proceedings/jun-2026/certificate-no-rc9051-of-2026-a-p-no-15397-of-2026-in-respect-of-vineeta-kabra-pan-abnpl7384c-in-the-matter-of-illiquid-stock-options_101784.html) | Certificate No. RC9051 of 2026 A.P No 15395 of 2026 in respect of Vineeta Kabra (PAN: ABNPL7384C) in the matter of Illiquid Stock Options (URL: https://www.sebi.gov.in/enforcement/recovery-proceedings/jun-2026/certificate-no-rc9051-of-2026-a-p-no-15395-of-2026-in-respect-of-vineeta-kabra-pan-abnpl7384c-in-the-matter-of-illiquid-stock-options_101783.html) | Certificate No. RC9045 of 2026 A.P No. 15399 of 2026 in respect of Subhranshu Roy HUF (PAN: AAXHS8157D) in the matter of Illiquid Stock Options (URL: https://www.sebi.gov.in/enforcement/recovery-proceedings/jun-2026/certificate-no-rc9045-of-2026-a-p-no-15399-of-2026-in-respect-of-subhranshu-roy-huf-pan-aaxhs8157d-in-the-matter-of-illiquid-stock-options_101781.html)",
+      "docs": [
+        {
+          "title": "Withdrawal of &#8377;2000 Denomination Banknotes – Status",
+          "link": "http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62669"
+        },
+        {
+          "title": "Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract",
+          "link": "http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62668"
+        },
+        {
+          "title": "46th Half-Yearly Report on Management of Foreign Exchange Reserves: October 2025 - March 2026",
+          "link": "http://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62667"
+        },
+        {
+          "title": "Certificate No. RC9051 of 2026 A.P No. 15397 of 2026 in respect of Vineeta Kabra (PAN: ABNPL7384C) in the matter of Illiquid Stock Options",
+          "link": "https://www.sebi.gov.in/enforcement/recovery-proceedings/jun-2026/certificate-no-rc9051-of-2026-a-p-no-15397-of-2026-in-respect-of-vineeta-kabra-pan-abnpl7384c-in-the-matter-of-illiquid-stock-options_101784.html"
+        }
+      ]
     }
   },
   {
