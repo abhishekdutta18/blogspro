@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-06",
-    "timestamp": 1780751024670,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026.06.06 | LIQUIDITY DRAIN ANALYSIS** Current global delta mapping confirms a terminal exhaustion of the 2025 liquidity injections. The mid-year posture is characterized by extreme structural fragility, with systemic risk v...",
-    "fileName": "swarm-hourly-1780751024649.html",
+    "timestamp": 1780751028418,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-06T09:00:00Z | MCTS-BRANCH: 994-B | VOL-REGIME: STAGNANT** Current liquidity velocity remains trapped within the 2025 LFY mean-reversion corridor. Any bullish delta registered in the last 72 hours is classified as ret...",
+    "fileName": "swarm-hourly-1780751028394.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
