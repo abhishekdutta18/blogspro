@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-06",
-    "timestamp": 1780729264702,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-06 | MCTS_BRANCH: 9942-B | VOL_STATE: ELEVATED** Current market conditions reflect a total erosion of the 2025 LFY liquidity buffers. Institutional sentiment is currently pinned to a structural insolvency trap as the ...",
-    "fileName": "swarm-hourly-1780729264686.html",
+    "timestamp": 1780729333306,
+    "excerpt": "**TELEMETRY: 2026-06-06 09:00:00 UTC | MCTS BRANCH: 0.884 | LFY DRIFT: NEGATIVE** Institutional liquidity across the G7 sovereign debt apparatus reflects a systemic fragility that retail participants remain incapable of pricing. 2025 LFY comparative ...",
+    "fileName": "swarm-hourly-1780729333291.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
