@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-09",
-    "timestamp": 1780988578442,
-    "excerpt": "**OPERATIONAL TELEMETRY // DATE: 2026-06-09 // MCTS BRANCH: 88-ALPHA** Current market posture reflects a terminal disconnect between spot pricing and underlying liquidity degradation. Retail noise currently masks a systemic transition toward total in...",
-    "fileName": "swarm-hourly-1780988578423.html",
+    "timestamp": 1780988591508,
+    "excerpt": "**OPERATIONAL TELEMETRY: JUNE 9, 2026** **STATUS: STRUCTURAL FRAGILITY / HIGH-VELOCITY LIQUIDATION BIAS** **MCTS BRANCH: 0.88-BETA // TERMINAL LIQUIDITY DRAIN** Current market conditions reflect a terminal decoupling between price action and underlyi...",
+    "fileName": "swarm-hourly-1780988591486.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
