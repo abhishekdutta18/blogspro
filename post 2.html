@@ -103,11 +103,18 @@
   const postId = urlParams.get('id');
 
   // Progressive loading indicator
+  let isScrolling = false;
   window.addEventListener('scroll', () => {
-    const el = document.documentElement;
-    const progress = (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100;
-    document.getElementById('progress').style.width = Math.min(progress, 100) + '%';
-  });
+    if (!isScrolling) {
+      window.requestAnimationFrame(() => {
+        const el = document.documentElement;
+        const progress = (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100;
+        document.getElementById('progress').style.width = Math.min(progress, 100) + '%';
+        isScrolling = false;
+      });
+      isScrolling = true;
+    }
+  }, { passive: true });
 
   async function init() {
     const main = document.getElementById('articleBody');
