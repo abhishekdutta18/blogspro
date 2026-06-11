@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-11",
-    "timestamp": 1781182973839,
-    "excerpt": "**OPERATIONAL TELEMETRY: JUNE 11, 2026** **STATUS: STRUCTURAL FRAGILITY / HIGH LIQUIDITY FRICTION** 2026 Q2 liquidity exhaustion is no longer a localized anomaly; it is the systemic baseline. Comparative LFY (2025) data confirms a terminal decelerati...",
-    "fileName": "swarm-hourly-1781182973825.html",
+    "timestamp": 1781183020605,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-11 | MCTS_BRANCH_ID: 8892-DELTA** **CURRENT ASSET CORRELATION: 0.14 (NEGATIVE DRIFT)** Institutional liquidity is currently suffering from structural atrophy. Comparative analysis against 2025 LFY baselines confirms a...",
+    "fileName": "swarm-hourly-1781183020594.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
