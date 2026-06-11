@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-11",
-    "timestamp": 1781168625836,
-    "excerpt": "**OPERATIONAL TELEMETRY: JUNE 11, 2026** **STATUS: STRUCTURAL FRAGILITY ELEVATED** **BASELINE COMPARATIVE: LFY (2025) MEAN REVERSION ANALYSIS** Current market conditions exhibit classic signs of institutional fatigue. The retail-driven liquidity flow...",
-    "fileName": "swarm-hourly-1781168625817.html",
+    "timestamp": 1781168627485,
+    "excerpt": "**OPERATIONAL TELEMETRY: JUNE 11, 2026** **STATUS: STRUCTURAL FRAGILITY DETECTED** **BASELINE DRIFT: 2025 LFY COMPARATIVE** Current market conditions exhibit a profound detachment from fundamental liquidity realities. The prevailing \"soft landing\" na...",
+    "fileName": "swarm-hourly-1781168627471.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
