@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-14",
-    "timestamp": 1781420640255,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-14 | MCTS_BRANCH: 0x9F_STAGNATION | SYSTEM_LOAD: 94%** Current market microstructure confirms the total exhaustion of the 2025 liquidity injection cycle. Institutional appetite for risk-on assets has collapsed into a ...",
-    "fileName": "swarm-hourly-1781420640242.html",
+    "timestamp": 1781420774947,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-14 | MCTS_BRANCH: 88-ALPHA | SYSTEM_STATUS: DERISKING** The current market equilibrium is a hallucination sustained by residual LFY (2025) carry trades that are rapidly hemorrhaging liquidity. Current pulse readings i...",
+    "fileName": "swarm-hourly-1781420774933.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
