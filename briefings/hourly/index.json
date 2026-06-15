@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-15",
-    "timestamp": 1781532171258,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-15T09:00:00Z | MCTS BRANCH: 0.88-BETA | ENTITY LINK: CROSS-CORRELATION DRIFT** Institutional liquidity evaporation is no longer a tail risk; it is the structural baseline. Current hourly pulse metrics confirm zero str...",
-    "fileName": "swarm-hourly-1781532171249.html",
+    "timestamp": 1781532189816,
+    "excerpt": "**OPERATIONAL TELEMETRY: JUNE 15, 2026 | STOCHASTIC VOLATILITY INDEX: 28.4 | LIQUIDITY VELOCITY: SUB-CRITICAL** Current market microstructure reflects a terminal exhaustion of the liquidity cycles that defined the 2025 fiscal period. Any divergence s...",
+    "fileName": "swarm-hourly-1781532189805.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
