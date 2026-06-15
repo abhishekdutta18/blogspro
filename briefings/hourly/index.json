@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-16",
-    "timestamp": 1781559113687,
-    "excerpt": "**OPERATIONAL TELEMETRY: JUNE 15, 2026 | QUANT_STRAT_REF: 88-ALPHA** Current market conditions demonstrate terminal divergence. The decoupling of realized volatility from the 2025 LFY baseline reveals a structural decay in liquidity pools that instit...",
-    "fileName": "swarm-hourly-1781559113671.html",
+    "timestamp": 1781559148222,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026.06.15 / 09:00 UTC** **MCTS BRANCH: 88-ALPHA-GAMMA** **VOLATILITY REGIME: FRACTAL DECAY** Liquidity evaporation across Tier-1 sovereign debt tranches confirms the \"Retail Noise\" hypothesis. The current market delta—a tran...",
+    "fileName": "swarm-hourly-1781559148210.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
