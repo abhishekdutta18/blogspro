@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-15",
-    "timestamp": 1781532157270,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-15T09:00:00Z | QUANT_NODE_ALPHA_7** Current market conditions reflect a terminal decoupling between liquidity velocity and fundamental solvency. The 2025 LFY comparative baseline reveals a catastrophic decay in asset-...",
-    "fileName": "swarm-hourly-1781532157259.html",
+    "timestamp": 1781532171258,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-15T09:00:00Z | MCTS BRANCH: 0.88-BETA | ENTITY LINK: CROSS-CORRELATION DRIFT** Institutional liquidity evaporation is no longer a tail risk; it is the structural baseline. Current hourly pulse metrics confirm zero str...",
+    "fileName": "swarm-hourly-1781532171249.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
