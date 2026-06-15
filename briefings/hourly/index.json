@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-15",
-    "timestamp": 1781528560608,
-    "excerpt": "**OPERATIONAL TELEMETRY: JUNE 15, 2026 | STATUS: HIGH-STRESS LIQUIDATION** Current market conditions reflect a terminal decoupling of equity valuations from macro-liquidity constraints. The prevailing bullish delta—observed in mid-cap indices over th...",
-    "fileName": "swarm-hourly-1781528560596.html",
+    "timestamp": 1781528576817,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-15T09:00:00Z | QUANT-SYNC: ACTIVE** Current market conditions demonstrate a total decoupling from the 2025 LFY mean-reversion baseline, signaling systemic fragility across all G10 liquidity pools. Retail noise, charac...",
+    "fileName": "swarm-hourly-1781528576808.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
