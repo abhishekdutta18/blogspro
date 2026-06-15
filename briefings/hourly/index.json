@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-15",
-    "timestamp": 1781510557312,
-    "excerpt": "**CORE TELEMETRY: 2026.06.15 / LIQUIDITY DRAIN ANALYSIS** Current liquidity flow confirms a severe degradation in market depth across both Tier-1 sovereign debt and high-beta equity proxies. Retail participant volume, historically the primary engine ...",
-    "fileName": "swarm-hourly-1781510557299.html",
+    "timestamp": 1781510599393,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-15-T-1400Z** **STATUS: STRUCTURAL FRAGILITY DETECTED** The drift analysis reveals an terminal decoupling between underlying liquidity velocity and the speculative beta observed in the 2026 Q2 cycle. Institutional cons...",
+    "fileName": "swarm-hourly-1781510599380.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
