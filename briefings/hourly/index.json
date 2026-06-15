@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-15",
-    "timestamp": 1781528576817,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-15T09:00:00Z | QUANT-SYNC: ACTIVE** Current market conditions demonstrate a total decoupling from the 2025 LFY mean-reversion baseline, signaling systemic fragility across all G10 liquidity pools. Retail noise, charac...",
-    "fileName": "swarm-hourly-1781528576808.html",
+    "timestamp": 1781528692646,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-15-T14:00Z** **MCTS BRANCH: 88-ALPHA (DEFLATIONARY CONVERGENCE)** **GRAPHRAG VECTOR: [LIQUIDITY_TRAP_09] [STRUCTURAL_FRAGILITY_X4]** Current market conditions reflect a terminal decoupling between synthetic valuation ...",
+    "fileName": "swarm-hourly-1781528692637.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
