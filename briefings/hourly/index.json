@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-16",
-    "timestamp": 1781614950288,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-16-1400Z** **ASSET CLASS: MACRO/EQUITY/FI-HYBRID** **STANCE: BEARISH BIAS / SYSTEMIC FRAGILITY** The June 16, 2026, operational pulse confirms a total decoupling between retail-driven momentum metrics and institutiona...",
-    "fileName": "swarm-hourly-1781614950271.html",
+    "timestamp": 1781614956873,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-16T09:42:00Z** **STANCE: BEARS STRATIFIED / LIQUIDITY NEGATIVE** **MCTS BRANCH: 884-B (STRUCTURAL FRAGILITY)** The current market pulse is a hallucination of algorithmic feedback loops. Retail sentiment remains anchor...",
+    "fileName": "swarm-hourly-1781614956861.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
