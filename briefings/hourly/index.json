@@ -1,10 +1,10 @@
 [
   {
     "title": "HOURLY   Nexus Institutional Terminal",
-    "date": "2026-06-16",
-    "timestamp": 1781632990945,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-16-1400Z** **ASSET CLASS: MACRO-EQUITY / SYSTEMIC FRAGILITY INDEX** **QUANT DRIFT: NEGATIVE CONVERGENCE** Current hourly pulse analysis confirms complete systemic inertia. Market participants operating on 2025-cycle m...",
-    "fileName": "swarm-hourly-1781632990934.html",
+    "date": "2026-06-17",
+    "timestamp": 1781636633536,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-16-1400Z** **ASSET CLASS: MACRO-EQUITY / SOVEREIGN DEBT INTERFACE** **MCTS BRANCH: 88-B (LIQUIDITY DEPLETION / TERMINAL RECOVERY)** Current market topography reveals a terminal decoupling between underlying liquidity ...",
+    "fileName": "swarm-hourly-1781636633524.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
