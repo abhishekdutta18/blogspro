@@ -161,11 +161,18 @@
     document.getElementById('themeBtn').textContent = '☀️';
   }
 
+  let isScrollingPost = false;
   window.addEventListener('scroll', () => {
-    const el = document.documentElement;
-    document.getElementById('progress').style.width =
-      Math.min((el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100, 100) + '%';
-  });
+    if (!isScrollingPost) {
+      window.requestAnimationFrame(() => {
+        const el = document.documentElement;
+        document.getElementById('progress').style.width =
+          Math.min((el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100, 100) + '%';
+        isScrollingPost = false;
+      });
+      isScrollingPost = true;
+    }
+  }, { passive: true });
 
   // FIX: Defer all Firebase loading until after page has painted.
   // This stops Firebase SDK from blocking FCP/LCP.
