@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-16",
-    "timestamp": 1781593612682,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-16-1400Z** **ASSET CLASS: MACRO-EQUITY / SOVEREIGN DEBT OVERLAY** **STATUS: HIGH-FRICTION / STRUCTURAL FRAGILITY** The 2026 Q2 delta confirms that the retail-driven optimism bleeding over from the 2025 LFY close has r...",
-    "fileName": "swarm-hourly-1781593612669.html",
+    "timestamp": 1781593627337,
+    "excerpt": "**OPERATIONAL TELEMETRY: JUNE 16, 2026** **STATUS: STRUCTURAL FRAGILITY DETECTED** **MODEL: MCTS/GRAPHRAG-EXTRAPOLATION (HORIZON: 2026-2027)** Current market topography reveals a terminal decay in liquidity velocity. Comparison against LFY (2025) fis...",
+    "fileName": "swarm-hourly-1781593627326.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
