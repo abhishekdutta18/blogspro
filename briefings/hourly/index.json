@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-17",
-    "timestamp": 1781679885119,
-    "excerpt": "**TELEMETRY: JUN 17, 2026 | OPERATIONAL STATUS: CRITICAL** **SUBJECT: STRUCTURAL FRAGILITY & LIQUIDITY EROSION (2026-2027)** Current market deltas across the S&P 500 and correlated high-yield credit tranches exhibit classic \"Retail Noise\" signatures....",
-    "fileName": "swarm-hourly-1781679885094.html",
+    "timestamp": 1781679941562,
+    "excerpt": "**OPERATIONAL TELEMETRY: JUNE 17, 2026 | STOCHASTIC VOLATILITY INDEX: 28.4 | LIQUIDITY VELOCITY: SUB-CRITICAL** Current market microstructure confirms the total evaporation of the 2025 liquidity premium. The prevailing delta in equities is not a refl...",
+    "fileName": "swarm-hourly-1781679941543.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
