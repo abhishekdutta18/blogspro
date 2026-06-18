@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-18",
-    "timestamp": 1781757261471,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-18-0800Z** **ASSET CLASS: MACRO-EQUITY / YIELD-SENSITIVE INSTRUMENTS** **STANCE: BEARISH BIAS / SYSTEMIC FRAGILITY PROTOCOL** Current market conditions reflect a terminal decoupling between price-action and underlying...",
-    "fileName": "swarm-hourly-1781757261454.html",
+    "timestamp": 1781758445201,
+    "excerpt": "TELEMETRY: [DATE: 2026-06-18] [MCTS_ROOT: 0.8842] [V_CORRELATION: 1.22] [ALPHA_DECAY: CRITICAL] Liquidity evaporation across Tier-1 sovereign debt tranches confirms the \"Retail Noise\" hypothesis projected in the LFY (2025) baseline. Current volatilit...",
+    "fileName": "swarm-hourly-1781758445181.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
