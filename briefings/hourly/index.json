@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-19",
-    "timestamp": 1781856121349,
-    "excerpt": "**OPERATIONAL TELEMETRY: JUNE 19, 2026** **STATUS: STRUCTURAL FRAGILITY – HIGH** **MCTS BRANCH: 0.884_CUMULATIVE_DOWNSIDE** The current market pulse is a hallucination of algorithmic liquidity. Any uptick in the hourly delta is merely an artifact of ...",
-    "fileName": "swarm-hourly-1781856121334.html",
+    "timestamp": 1781856130290,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-19T09:42:00Z** **STATUS: STRUCTURAL FRAGILITY DETECTED** **MODEL: MCTS_BRANCH_77-ALPHA** The current market equilibrium is an engineered mirage, sustained by institutional exhaustion and a systematic decoupling of equ...",
+    "fileName": "swarm-hourly-1781856130277.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
