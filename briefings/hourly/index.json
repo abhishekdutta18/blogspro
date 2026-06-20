@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-20",
-    "timestamp": 1781956975012,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-20 | 09:42 UTC** **STATUS: STRUCTURAL FRAGILITY DETECTED** **BPRO_ALPHA_INDEX: -0.42 (DETERIORATING)** Current market topography reveals a total exhaustion of the retail-driven liquidity influx that characterized the ...",
-    "fileName": "swarm-hourly-1781956974995.html",
+    "timestamp": 1781957005182,
+    "excerpt": "**TELEMETRY: JUN 20, 2026 | OPERATIONAL LATENCY: 0.04ms | MCTS BRANCH: 88-ALPHA** Liquidity evaporation in secondary credit markets confirms the terminal exhaustion of the 2025 carry trade. Current market velocity, erroneously categorized by retail-g...",
+    "fileName": "swarm-hourly-1781957005168.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
