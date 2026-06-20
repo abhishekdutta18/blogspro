@@ -2,9 +2,9 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-20",
-    "timestamp": 1781939042161,
-    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-20** **STATUS: STRUCTURAL FRAGILITY HIGH** **CORE VECTOR: LIQUIDITY CONTRACTION / RETAIL ALPHA EXHAUSTION** Institutional liquidity across the G7 corridor remains trapped in a state of terminal entropy. Comparative an...",
-    "fileName": "swarm-hourly-1781939042147.html",
+    "timestamp": 1781939166565,
+    "excerpt": "**OPERATIONAL TELEMETRY: 2026-06-20 | 09:42:12 UTC** **STATUS: STRUCTURAL FRAGILITY DETECTED** **BASELINE: 2025 LFY DRIFT ANALYSIS** The current market architecture exhibits the hallmark symptoms of systemic exhaustion. Institutional liquidity, once ...",
+    "fileName": "swarm-hourly-1781939166553.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": {
