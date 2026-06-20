@@ -26,17 +26,30 @@
   }
 
   // ── Scroll Progress Logic ───────────────────────────────────────────
+  let isScrolling = false;
+  // Use requestAnimationFrame with a ticking flag and passive listener
+  // to prevent layout thrashing and reduce main thread blocking
   window.addEventListener('scroll', function() {
-    const progress = document.getElementById('progress');
-    if (!progress) return;
-    const el = document.documentElement;
-    const scrollTop = el.scrollTop || document.body.scrollTop;
-    const scrollHeight = el.scrollHeight || document.body.scrollHeight;
-    const clientHeight = el.clientHeight;
-    
-    const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
-    progress.style.width = Math.min(scrolled, 100) + '%';
-  });
+    if (!isScrolling) {
+      window.requestAnimationFrame(function() {
+        const progress = document.getElementById('progress');
+        if (!progress) {
+          isScrolling = false;
+          return;
+        }
+        const el = document.documentElement;
+        const scrollTop = el.scrollTop || document.body.scrollTop;
+        const scrollHeight = el.scrollHeight || document.body.scrollHeight;
+        const clientHeight = el.clientHeight;
+
+        const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
+        progress.style.width = Math.min(scrolled, 100) + '%';
+
+        isScrolling = false;
+      });
+      isScrolling = true;
+    }
+  }, { passive: true });
 
   console.log('[BlogsPro] UI Utils loaded.');
 })();
