@@ -1,6 +1,38 @@
 [
   {
     "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-06-28",
+    "timestamp": 1782649835755,
+    "excerpt": "Global liquidity fragmentation has accelerated beyond the 2025 baseline, signaling a terminal phase for the current equity delta cycle. Monte Carlo Tree Search (MCTS) simulations indicate a 68% probability of a liquidity vacuum event within Q3 2026, ...",
+    "fileName": "swarm-hourly-1782649835722.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63031) | Auction of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63030) | Indicative Calendar of Market borrowings by State Governments/ Union Territories for the Quarter July – September 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63029) | SEBI: Appeal No. 6911 of 2026 filed by Surajsingh Vakhatsinh Rathod (URL: https://www.sebi.gov.in/enforcement/orders/jun-2026/appeal-no-6911-of-2026-filed-by-surajsingh-vakhatsinh-rathod_102420.html) | Appeal No. 6910 of 2026 filed by Anirudh Prasad Kewat (URL: https://www.sebi.gov.in/enforcement/orders/jun-2026/appeal-no-6910-of-2026-filed-by-anirudh-prasad-kewat_102419.html) | Adjudication Order in the matter of Exfinity Technology Fund (URL: https://www.sebi.gov.in/enforcement/orders/jun-2026/adjudication-order-in-the-matter-of-exfinity-technology-fund_102418.html) | GLOBAL: BLOOMBERG | Iran War: Oman Tells Allies Ships Going Through Hormuz May Have to Pay - Bloomberg.com | BLOOMBERG | US Strikes Iran in Response to Drone Attack in Strait of Hormuz - Bloomberg.com | BLOOMBERG | Lutnick Delayed Canada Bridge Debut to Seek Bigger Cut of Toll Revenue - Bloomberg.com | FT | Bond giant Pimco flexes muscles with private placements push - Financial Times | FT | German carmakers embark on historic job cuts as Chinese rivals flood market - Financial Times | FT | Chart of the Week: Chipmakers are expensive globally - Financial Times | REUTERS | BIS says debt, AI boom and fragilities raise global risks - Reuters | REUTERS | Central bank sees no need for extra measures as worried Russians withdraw cash - Reuters | REUTERS | World Bank approves $1.1 billion emergency financing for Bangladesh - Reuters | CNBC | A 'perfect storm' points to a much smaller U.S. auto market by 2040 - CNBC | CNBC | SpaceX to join the Nasdaq-100 in a fast-tracked process that will drive huge ETF buying demand - CNBC | CNBC | Why investors may want to prioritize bond markets outside the U.S. - CNBC | NIKKEI | Japan maps $2.3tn investment plan across 17 strategic sectors - Nikkei Asia | NIKKEI | China hits dozens of US companies with export controls, procurement bans - Nikkei Asia | NIKKEI | China's premier rejects claims that state subsidies are driving tech rise - Nikkei Asia",
+      "rbi": "Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63031) | Auction of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63030) | Indicative Calendar of Market borrowings by State Governments/ Union Territories for the Quarter July – September 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63029)",
+      "sebi": "Appeal No. 6911 of 2026 filed by Surajsingh Vakhatsinh Rathod (URL: https://www.sebi.gov.in/enforcement/orders/jun-2026/appeal-no-6911-of-2026-filed-by-surajsingh-vakhatsinh-rathod_102420.html) | Appeal No. 6910 of 2026 filed by Anirudh Prasad Kewat (URL: https://www.sebi.gov.in/enforcement/orders/jun-2026/appeal-no-6910-of-2026-filed-by-anirudh-prasad-kewat_102419.html) | Adjudication Order in the matter of Exfinity Technology Fund (URL: https://www.sebi.gov.in/enforcement/orders/jun-2026/adjudication-order-in-the-matter-of-exfinity-technology-fund_102418.html)",
+      "docs": [
+        {
+          "title": "Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63031"
+        },
+        {
+          "title": "Auction of State Government Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63030"
+        },
+        {
+          "title": "Indicative Calendar of Market borrowings by State Governments/ Union Territories for the Quarter July – September 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63029"
+        },
+        {
+          "title": "Appeal No. 6911 of 2026 filed by Surajsingh Vakhatsinh Rathod",
+          "link": "https://www.sebi.gov.in/enforcement/orders/jun-2026/appeal-no-6911-of-2026-filed-by-surajsingh-vakhatsinh-rathod_102420.html"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-06-20",
     "timestamp": 1781960616611,
     "excerpt": "**OPERATIONAL TELEMETRY: 2026.06.20 // MCTS_BRANCH_77-B // LIQUIDITY_DENSITY: CRITICAL** Current market architecture exhibits profound structural fragility as the LFY (2025) fiscal carry-trade positions face final systematic liquidation. We are curre...",
