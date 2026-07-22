@@ -1,0 +1,11 @@
+{
+  "jobId": "dry-run-123",
+  "verticalId": "consolidated",
+  "content": {
+    "manuscript": "It looks like your message was empty! How can I help you today?",
+    "brief": "It looks like you sent an empty message. How can I help you today?\n\n🌳 [MCTS_WINNING_PATH]:\n[[BPRO_INTEL_START]]\nInstitutional skepticism dictates that the current bullish market deltas are transient and will eventually succumb to tail risks, liquidity friction, and regulatory headwinds. The 2026-2027 horizon is particularly fragile, with high-compute simulations indicating a heightened probability of BLACK_SWAN_VOLATILITY.\n\nSimulations suggest that a black swan event in 2026 will trigger a rapid repricing of assets, resulting in a 20-30 basis point spike in 10-year Treasury yields. This, in turn, will lead to a 10-15% decline in equity markets, as risk premia increase and investors scramble to reposition their portfolios.\n\nThe impact on rates will be significant, with the federal funds rate potentially increasing by 50-75 basis points in response to the volatility. This will lead to a reduction in credit flows, as banks and other financial institutions become more risk-averse and tighten lending standards.\n\nThe 2026 pivot will be characterized by a sharp decline in investor sentiment, with the VIX index potentially spiking to 30-40. This will lead to a flight to quality, with investors seeking safe-haven assets such as Treasury bonds and gold.\n\nIn terms of flows, we can expect a significant reduction in capital inflows to emerging markets, as investors become more risk-averse and seek to reduce their exposure to volatile assets. This will lead to a decline in emerging market currencies and a increase in dollar strength.\n\nThe regulatory response to the black swan event will be critical, with policymakers potentially implementing measures to reduce systemic risk and stabilize the financial system. However, the effectiveness of these measures will depend on the severity of the event and the ability of regulators to respond quickly and decisively.\n\nOverall, the BLACK_SWAN_VOLATILITY scenario presents a significant threat to financial stability, and investors should be prepared for a period of extreme volatility and uncertainty. \n[[BPRO_INTEL_END]]",
+    "state": "AUDIT",
+    "fidelityScore": 50
+  },
+  "timestamp": "2026-06-26T17:47:59.377Z"
+}

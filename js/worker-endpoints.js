@@ -13,12 +13,21 @@ export function workerCandidates(path = "") {
   const p = String(path || "").replace(/^\/+/, "");
   const candidates = [];
 
-  // 1. Check for manual overrides in Local Storage (only https:// accepted to prevent SSRF)
+  // 1. Check for manual overrides in Local Storage (only https:// accepted, or http:// on localhost/127.0.0.1)
   const override = localStorage.getItem("bp_ai_worker_url") || localStorage.getItem("bp_ai_api_base");
-  if (override && /^https:\/\/.+/i.test(override)) candidates.push(normalizeBase(override));
+  if (override) {
+    const isLocalHost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname === "[::1]";
+    if (/^https:\/\/.+/i.test(override) || (isLocalHost && /^http:\/\/.+/i.test(override))) {
+      candidates.push(normalizeBase(override));
+    }
+  }
 
-  // 2. Default to Institutional Pulse
-  candidates.push(PULSE_WORKER_BASE);
+  // 2. Default to the specific endpoint based on path
+  if (p === "api/ai" || p === "ai-gateway" || p === "ai/generate") {
+    candidates.push(ENDPOINTS.ai);
+  } else {
+    candidates.push(PULSE_WORKER_BASE);
+  }
 
   // 3. Fallback to origin if running on blogspro.in
   if (window.location.origin.includes("blogspro.in")) {

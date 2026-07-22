@@ -1005,7 +1005,7 @@ function isBloombergPost(post) {
 
 function postEpochMs(post) {
   if (!post) return 0;
-  const rawTs = post.timestamp;
+  const rawTs = post.timestamp || post.createdAt;
   if (typeof rawTs === 'number' && Number.isFinite(rawTs)) return rawTs > 1e12 ? rawTs : rawTs * 1000;
   if (typeof rawTs === 'string') {
     const parsed = Date.parse(rawTs);

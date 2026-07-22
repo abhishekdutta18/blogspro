@@ -5,7 +5,7 @@ import rl from "./reinforcement.js";
 import pLimit from "p-limit";
 
 // Sovereign Infrastructure
-import { askAI } from './ai-service.js';
+import { askAI, askMultipleAIWithConsensus } from './ai-service.js';
 import { 
   saveToCloudBucket, 
   loadFromCloudBucket, 
@@ -37,7 +37,8 @@ import {
   getThinkingPrompt,
   hydrateSwarmPrompts
 } from './prompts.js';
-import { fetchDynamicNews } from './data-fetchers.js';
+import { fetchDynamicNews, fetchStockData, fetchAllFinancialMarkets, fetchWeatherData, fetchMacroPulse, fetchEconomicCalendar } from './data-fetchers.js';
+import { fetchInternetSearch } from './web-searcher.js';
 import { extractKnowledgeGraph, formatGraphContext } from './knowledge-graph.js';
 import { getNextSwarmState, routeToBestModel } from './intelligence-engine.js';
 import { calculateReward } from './rl-metrics.js';
@@ -225,6 +226,11 @@ export async function askAIWithEscalation(prompt, options = {}) {
                 // Tier 4: Cloud Sovereign Anchor (Vertex AI Model Garden)
                 targetModel = 'vertex-llama-405b';
                 console.log(`🏠 [Escalation Tier-4] Cloud Sovereign Final Handshake: ${targetModel}`);
+            }
+
+            if (['research', 'drafter', 'manager'].includes(role)) {
+                console.log(`🤖 [Multi-Model Consensus] Triggering for heavy reasoning role: ${role}`);
+                return await askMultipleAIWithConsensus(prompt, env, 3);
             }
 
             return await askAI(prompt, { ...options, model: targetModel, _retry: 0 }); 
@@ -424,6 +430,8 @@ export async function executeSingleVerticalSwarm(vertical, index, frequency, sem
     let finalManuscript = "";
     let researchBrief = "";
     let thinkingPlan = "";
+    let factCheckData = "";
+    let liveDataContext = "";
 
     while (state !== 'FINALIZE' && state !== 'FORCE_FINALIZE') {
         state = getNextSwarmState(state, { fidelityScore, iterations, type: frequency });
@@ -439,12 +447,58 @@ export async function executeSingleVerticalSwarm(vertical, index, frequency, sem
         }, env);
 
         if (state === 'RESEARCH') {
+            // ── PHASE 1: MANDATORY BASELINE DATA FETCH ──────────────────
+            // These always run regardless of AI query selection.
+            console.log(`📡 [Swarm-Research] Phase 1: Mandatory baseline data fetch...`);
+            const [baselineMarkets, baselineWeather, baselineEconPair] = await Promise.all([
+                fetchAllFinancialMarkets().catch(e => { console.warn(`⚠️ [Baseline] Markets failed: ${e.message}`); return '[Markets data currently unavailable]'; }),
+                fetchWeatherData('Delhi').catch(e => { console.warn(`⚠️ [Baseline] Weather failed: ${e.message}`); return '[Weather data currently unavailable]'; }),
+                Promise.all([
+                    fetchMacroPulse().catch(e => ({ summary: 'Macro pulse unavailable', raw: {} })),
+                    fetchEconomicCalendar().catch(e => ({ text: 'Economic calendar unavailable', raw: [] }))
+                ])
+            ]);
+            const [baselinePulse, baselineCalendar] = baselineEconPair;
+            const baselineEconomics = `[MACRO PULSE]: ${baselinePulse.summary}\nIndia GDP: ${baselinePulse.raw?.india || 'N/A'}% | US CPI: ${baselinePulse.raw?.us || 'N/A'}% | EU GDP: ${baselinePulse.raw?.eu || 'N/A'}%\n\n[ECONOMIC CALENDAR]: ${baselineCalendar.text || 'No high-impact events'}`;
+
+            // Store structured live data for the DRAFT state
+            liveDataContext = `--- LIVE MARKET DATA ---\n${baselineMarkets}\n\n--- WEATHER (Delhi) ---\n${baselineWeather}\n\n--- MACRO ECONOMICS ---\n${baselineEconomics}`;
+            console.log(`✅ [Swarm-Research] Baseline data acquired (${liveDataContext.length} chars).`);
+
+            // ── PHASE 2: AI-DRIVEN SUPPLEMENTARY QUERIES ─────────────────
             const contextLayers = { macro: semanticDigest.strategicLead, blackboard: blackboardContext, history: historicalData };
             const model = modelOverride !== 'auto' ? modelOverride : routeToBestModel('research', env);
             const refinedQueries = await askAIWithEscalation(getHiRAGRetrievalPrompt(vertical.name, contextLayers), { role: 'research', env, model });
-            const searchQueries = refinedQueries.split('\n').filter(q => q.includes('?')).slice(0, 3);
-            const rawPulse = await Promise.all(searchQueries.map(q => fetchDynamicNews(q)));
-            const internetResearch = rawPulse.join('\n\n');
+            const searchQueries = refinedQueries.split('\n')
+                .filter(q => /^(NEWS_SEARCH:|WEB_SEARCH:|STOCK_TICKER:|GLOBAL_MARKETS|MACRO_ECONOMICS|WEATHER:)/.test(q.replace(/^[-*]\s*/, '').trim()))
+                .filter(q => {
+                    // Skip queries that duplicate baseline fetches
+                    const trimmed = q.replace(/^[-*]\s*/, '').trim();
+                    if (trimmed.includes('GLOBAL_MARKETS')) return false; // Already fetched
+                    if (trimmed.includes('MACRO_ECONOMICS')) return false; // Already fetched
+                    return true;
+                })
+                .slice(0, 5);
+                
+            const rawPulse = await Promise.all(searchQueries.map(async queryLine => {
+                const q = queryLine.replace(/^[-*]\s*/, '').trim();
+                if (q.startsWith('WEATHER:')) {
+                    return await fetchWeatherData(q.replace('WEATHER:', '').trim());
+                }
+                if (q.startsWith('STOCK_TICKER:')) {
+                    return await fetchStockData(q.replace('STOCK_TICKER:', '').trim());
+                }
+                if (q.startsWith('WEB_SEARCH:')) {
+                    return await fetchInternetSearch(q.replace('WEB_SEARCH:', '').trim(), env);
+                }
+                if (q.startsWith('NEWS_SEARCH:')) {
+                    return await fetchDynamicNews(q.replace('NEWS_SEARCH:', '').trim());
+                }
+                return await fetchDynamicNews(q);
+            }));
+
+            // ── PHASE 3: MERGE ALL DATA INTO RESEARCH BRIEF ─────────────
+            const internetResearch = [liveDataContext, ...rawPulse].join('\n\n');
             const knowledgeGraph = await extractKnowledgeGraph(internetResearch, env, vertical.id, blackboardContext, modelOverride);
             const semanticMap = formatGraphContext(knowledgeGraph);
             const rlMemory = await rl.getReinforcementContext(env);
@@ -476,9 +530,30 @@ export async function executeSingleVerticalSwarm(vertical, index, frequency, sem
                 frequency,
                 researchBrief,
                 verticalName: vertical.name,
-                thinkingPlan
-            }, 'getDrafterPrompt', [frequency, researchBrief, vertical.name, "", thinkingPlan]), { role: 'generate', env, model, seed: index + iterations });
+                thinkingPlan,
+                historicalData,
+                liveDataContext
+            }, 'getDrafterPrompt', [frequency, researchBrief, vertical.name, "", thinkingPlan, historicalData, liveDataContext]), { role: 'generate', env, model, seed: index + iterations });
             fidelityScore = calculateReward(finalManuscript, frequency === 'monthly' ? 1500 : 500) * 100;
+        }
+
+        if (state === 'FACT_CHECK') {
+            const model = modelOverride !== 'auto' ? modelOverride : routeToBestModel('research', env);
+            const { getFactCheckQueriesPrompt } = await import('./prompts.js');
+            const factCheckResponse = await askAIWithEscalation(getFactCheckQueriesPrompt(finalManuscript), { role: 'research', env, model });
+            
+            const queries = factCheckResponse.split('\n')
+                .map(q => q.replace(/^[-*]\s*/, '').trim())
+                .filter(q => q.startsWith('WEB_SEARCH:'))
+                .map(q => q.replace('WEB_SEARCH:', '').trim())
+                .slice(0, 3);
+
+            if (queries.length > 0) {
+                const results = await Promise.all(queries.map(q => fetchInternetSearch(q, env)));
+                factCheckData = queries.map((q, i) => `QUERY: ${q}\nRESULT: ${results[i]}\n---`).join('\n');
+            } else {
+                factCheckData = "No critical claims extracted for verification.";
+            }
         }
 
         if (state === 'AUDIT') {
@@ -487,7 +562,7 @@ export async function executeSingleVerticalSwarm(vertical, index, frequency, sem
                 manuscript: finalManuscript,
                 verticalName: vertical.name,
                 managerCommand: env.MANAGER_COMMAND || ""
-            }, 'getManagerAuditPrompt', [finalManuscript, vertical.name, env]), { role: 'edit', env, model });
+            }, 'getManagerAuditPrompt', [finalManuscript, vertical.name, env, factCheckData]), { role: 'edit', env, model });
             try { 
                 const audit = JSON.parse(auditRes.replace(/```json\n?|```/g, '').trim());
                 fidelityScore = audit.score;
@@ -584,7 +659,7 @@ export async function runConsensusDesk(frequency, semanticDigest, env, jobId = n
     } catch (e) { return `[${persona.name}]: [FAILED]`; }
   }));
 
-  const modelForConsensus = modelOverride !== 'auto' ? modelOverride : 'node-edit';
+  const modelForConsensus = modelOverride !== 'auto' ? modelOverride : 'gemini-3.1-pro-preview';
   const rawConsensus = await askAI(getConsensusPrompt(simulations.join("\n\n"), frequency), { role: 'edit', env, model: modelForConsensus });
   
   // Extract <telemetry>
@@ -715,6 +790,19 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
     let completedSectors = 0;
     const totalSectors = targetVerticals.length;
 
+    // Fetch baseline data for Anchor paths
+    console.log(`📡 [Anchor] Fetching Global Baseline Data (Markets, Weather, Economics)...`);
+    const [baselineMarkets, baselineWeather, baselineEconPair] = await Promise.all([
+        fetchAllFinancialMarkets(),
+        fetchWeatherData('Delhi'),
+        Promise.all([fetchMacroPulse(), fetchEconomicCalendar()])
+    ]);
+    const pulseText = baselineEconPair[0] && typeof baselineEconPair[0] === 'object' ? (baselineEconPair[0].summary || JSON.stringify(baselineEconPair[0])) : baselineEconPair[0];
+    const calText = baselineEconPair[1] && typeof baselineEconPair[1] === 'object' ? (baselineEconPair[1].summary || baselineEconPair[1].text || JSON.stringify(baselineEconPair[1])) : baselineEconPair[1];
+    const baselineEconomics = `MACRO PULSE:\n${pulseText}\n\nECONOMIC CALENDAR:\n${calText}`;
+    const liveDataContext = `--- LIVE MARKET DATA ---\n${baselineMarkets}\n\n--- WEATHER (Delhi) ---\n${baselineWeather}\n\n--- MACRO ECONOMICS ---\n${baselineEconomics}`;
+    console.log(`✅ [Anchor] Baseline data acquired (${liveDataContext.length} chars).`);
+
     for (const vertical of priorityVerticals) {
       console.log(`⚓ [Anchor] ${vertical.name}...`);
       const news = await fetchDynamicNews(vertical.name);
@@ -723,16 +811,16 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
           frequency,
           dataSnapshot: semanticDigest,
           historicalData,
-          internetResearch: news
-      }, 'getResearcherPrompt', [frequency, semanticDigest, historicalData, news]), { role: 'research', env, model: modelForAnchorRes, extended: true });
+          internetResearch: [liveDataContext, news].filter(Boolean).join('\n\n')
+      }, 'getResearcherPrompt', [frequency, semanticDigest, historicalData, [liveDataContext, news].filter(Boolean).join('\n\n')]), { role: 'research', env, model: modelForAnchorRes, extended: true });
       const modelForMemo = modelOverride !== 'auto' ? modelOverride : 'node-draft';
       const memo = await askAI(`Summarize into a 150-word Strategic Telex Memo:\n\n${brief}`, { role: 'edit', env, model: modelForMemo });
-      const modelForAnchorDraft = modelOverride !== 'auto' ? modelOverride : 'node-draft';
+      const modelForAnchorDraft = modelOverride !== 'auto' ? modelOverride : 'gemini';
       const chapter = await askAI(promptManager.resolve('drafter', {
           frequency,
           researchBrief: brief,
           verticalName: vertical.name
-      }, 'getDrafterPrompt', [frequency, brief, vertical.name]), { role: 'generate', env, model: modelForAnchorDraft });
+      }, 'getDrafterPrompt', [frequency, brief, vertical.name, "", "", historicalData, liveDataContext]), { role: 'generate', env, model: modelForAnchorDraft });
       
       sharedBlackboard.institutionalMemos.push(`[FROM: ${vertical.name.toUpperCase()}]: ${memo}`);
       logBlackboardMemo(vertical.name, memo, { jobId: id, frequency });
@@ -863,7 +951,7 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
   // 9. Final Institutional Synthesis with Fleet-Retry
   let executiveStrategy = "";
   let synthesisRetries = 3;
-  const modelForEditor = modelOverride !== 'auto' ? modelOverride : 'node-editor';
+  const modelForEditor = modelOverride !== 'auto' ? modelOverride : 'gemini-3.1-pro-preview';
 
   while (synthesisRetries > 0) {
     try {
@@ -903,7 +991,7 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
   
   // 🛡️ FINAL $SHIELD AUDIT PASS: Purge all remaining jargon and prompts
   const finalManuscript = rules.sanitizePayload(combinedManuscript);
-  const fidelityResult = validateAndRepair(finalManuscript);
+  const fidelityResult = validateAndRepair(finalManuscript, { threshold: 2500 });
   
   // Publish aggregated telemetry payload to GitHub Issues (Zero-FS Trace)
   await publishGitHubTrace(env, id);
@@ -1086,7 +1174,7 @@ export async function finalizeManuscript(fragments, consensusSummary, frequency,
 
   const combinedManuscript = `${assemblyHeader}<hr>${allChapterContents.join("\n\n")}${recoveryLog}`;
   const finalManuscript = rules.sanitizePayload(combinedManuscript);
-  const fidelityResult = validateAndRepair(finalManuscript);
+  const fidelityResult = validateAndRepair(finalManuscript, { threshold: 2500 });
   
   return await _finalizeAndSync(fidelityResult.content, consensusSummary, frequency, type, env, id, fragments[0]?.liveNews);
 }

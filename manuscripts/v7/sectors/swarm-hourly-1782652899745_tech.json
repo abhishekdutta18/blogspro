@@ -1,0 +1,11 @@
+{
+  "jobId": "swarm-hourly-1782652899745",
+  "verticalId": "tech",
+  "content": {
+    "manuscript": "It looks like you sent an empty message. How can I help you today?",
+    "brief": "[MODEL: Cerebras-GLM-4.7]\nHello! It looks like you sent an empty message. How can I help you today?\n\n\n🌳 [MCTS_WINNING_PATH]:\n[[BPRO_INTEL_START]]\n\nMCTS BRANCH: BLACK_SWAN_VOLATILITY // SECTOR: IT & DIGITAL INFRASTRUCTURE\nDATE: JUNE 28, 2026\n\nThe VIX term structure has inverted violently, breaking the 45-handle, signaling a complete collapse of implied volatility mean-reversion anchors. IT infrastructure liquidity has evaporated; GEX (Gamma Exposure) has plummeted to -2.1B, a 400% deviation from the 2025 baseline, forcing dealers to aggressively delta-hedge into a falling market. This is not a correction; it is a structural unwind.\n\nOvernight Repo Rates have spiked to 6.85% as high-quality collateral (HQLA) scarcity grips the system, crushing the duration-heavy tech complex. The 2026 pivot narrative is officially dead. Cross-asset correlations have converged to 0.95, eliminating diversification alpha. We are witnessing a liquidity vacuum where bid-side depth in semiconductor and cloud infrastructure ETFs has compressed by 80% relative to LFY 2025 volumes.\n\nFlows are violently rotating into short-duration Treasuries and cash, abandoning the \"AI Capex\" thesis as a solvency risk. The Volatility Surface shows a persistent skew steepening, indicating institutional positioning for further downside. The 2026-2027 horizon is now defined by regulatory friction and balance sheet repair. Retail noise is irrelevant; the mechanics of the market are broken. Prepare for forced liquidation across the entire digital infrastructure vertical.\n\n[[BPRO_INTEL_END]]",
+    "state": "AUDIT",
+    "fidelityScore": 50
+  },
+  "timestamp": "2026-06-28T13:35:14.696Z"
+}

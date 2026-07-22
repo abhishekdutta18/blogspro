@@ -24,28 +24,23 @@ async function auditFleet() {
 
     for (const node of nodes) {
         const start = Date.now();
-        console.log(`\n🔍 Checking Node: ${node.name} (${node.model})...`);
+        console.log(`\n🔍 Checking Node: ${node.name}...`);
         
         try {
-            // Institutional Handshake Prompt
-            const handshake = await askAI("Institutional Audit Handshake: Respond with 'ALIGNED' and the current year.", {
-                role: 'generic',
-                model: node.model,
-                env: process.env,
-                node_preference: node.name // Force hit specific node
-            });
+            // Direct call to node.fn to bypass balancer failover & decision-tree routing
+            const handshake = await node.fn("Institutional Audit Handshake: Respond with 'ALIGNED' and the current year.", undefined, process.env);
 
             const latency = Date.now() - start;
-            const status = handshake.includes('ALIGNED') ? 'HEALTHY' : 'MISALIGNED';
+            const status = (handshake && handshake.includes('ALIGNED')) ? 'HEALTHY' : 'MISALIGNED';
             
-            console.log(`${status === 'HEALTHY' ? '✅' : '⚠️'} [${node.name}] Latency: ${latency}ms | Res: "${handshake.substring(0, 15)}..."`);
+            console.log(`${status === 'HEALTHY' ? '✅' : '⚠️'} [${node.name}] Latency: ${latency}ms | Res: "${(handshake || '').substring(0, 15)}..."`);
             
-            report.push({ node: node.name, status, latency, model: node.model });
+            report.push({ node: node.name, status, latency, model: node.name });
             
             await logSwarmPulse('info', `AI Node Health: ${node.name}`, { 
                 latency, 
                 status, 
-                model: node.model 
+                model: node.name 
             });
 
         } catch (err) {

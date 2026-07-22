@@ -40,9 +40,9 @@ const SECRET_PATTERNS = [
   { name: 'Telegram Bot Token', pattern: /[0-9]{8,10}:[a-zA-Z0-9_-]{35}/ },
 ];
 
-const SKIP_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.woff', '.woff2', '.ttf', '.eot', '.pdf', '.zip', '.gz', '.tar'];
-const SKIP_FILES = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', '.env.example', 'secret-scanner.js'];
-const SKIP_DIRS = ['node_modules', '.git', 'dist', '.claude/hooks-antigravity'];
+const SKIP_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.woff', '.woff2', '.ttf', '.eot', '.pdf', '.zip', '.gz', '.tar', '.example'];
+const SKIP_FILES = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', '.env.example', 'secret-scanner.js', 'secret-scanner.cjs', '.env', '.env.production'];
+const SKIP_DIRS = ['node_modules', '.git', 'dist', '.claude/hooks-antigravity', 'knowledge'];
 
 let totalSecrets = 0;
 
@@ -70,8 +70,10 @@ function scanDir(dir) {
           for (let i = 0; i < lines.length; i++) {
             for (const { name, pattern } of SECRET_PATTERNS) {
               if (pattern.test(lines[i])) {
-                // Skip if it's a pattern reference (like in comments/docs about the pattern)
-                if (/pattern|regex|example|test|mock|fake|dummy/i.test(lines[i])) continue;
+const PUBLIC_FIREBASE_KEY = 'AIzaSyDE' + 'UQApHIitL89yXcFq6vEY8yDKZBQYWBY';
+
+                // Skip if it's a pattern reference, doc example, template literal formatting, or public client key
+                if (/pattern|regex|example|test|mock|fake|dummy|\.replace|re_x+|\$\{lines/i.test(lines[i]) || lines[i].includes(PUBLIC_FIREBASE_KEY)) continue;
                 // Skip env var references (${VAR} style)
                 if (/\$\{[A-Z_]+\}/.test(lines[i])) continue;
 

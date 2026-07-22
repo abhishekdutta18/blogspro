@@ -98,6 +98,7 @@
 
 <script type="module">
   import { api } from "./js/services/api.js";
+  import { trackView, formatViews } from "./js/views.js";
 
   const urlParams = new URLSearchParams(window.location.search);
   const postId = urlParams.get('id');
@@ -117,6 +118,9 @@
     }
 
     try {
+      // Async track view
+      trackView(postId).catch(err => console.warn('View tracking failed:', err));
+
       const post = await api.public.data('posts', postId);
       if (!post) {
         renderError("404: POST_NOT_IN_INDEX");
@@ -145,6 +149,8 @@
     document.title = `${title} — BlogsPro`;
     document.getElementById('pageTitle').textContent = `${title} — BlogsPro`;
 
+    const viewsFormatted = typeof p.views === 'number' ? `<span>&#128065; ${formatViews(p.views)}</span>` : '';
+
     main.innerHTML = `
       <header class="article-header">
         <span class="article-cat">${category}</span>
@@ -153,6 +159,7 @@
           <span>${date}</span>
           <span>${readTime} min read</span>
           <span>By ${author}</span>
+          ${viewsFormatted}
         </div>
       </header>
       

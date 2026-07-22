@@ -112,9 +112,15 @@ export class NewsOrchestrator {
     async fetchDynamicNews(query) {
         console.log(`🌲 [NewsTree] Executing Dynamic Search Pulse for: ${query}...`);
         
-        // Tier 1: Search RSS (Fast, Zero Cost)
-        const encoded = encodeURIComponent(`${query} 2025 2026 finance metrics`);
-        const url = `https://news.google.com/rss/search?q=${encoded}&hl=en-US&gl=US&ceid=US:en`;
+        // Detect if query is India-focused for geo-targeting
+        const queryLower = query.toLowerCase();
+        const isIndiaFocused = ['india', 'nse', 'nifty', 'sensex', 'rbi', 'rupee', 'bse', 'sebi'].some(k => queryLower.includes(k));
+        const gl = isIndiaFocused ? 'IN' : 'US';
+        const ceid = isIndiaFocused ? 'IN:en' : 'US:en';
+        
+        // Tier 1: Search RSS (Fast, Zero Cost) — append only year for temporal anchoring
+        const encoded = encodeURIComponent(`${query} 2026`);
+        const url = `https://news.google.com/rss/search?q=${encoded}&hl=en-${gl}&gl=${gl}&ceid=${ceid}`;
         
         const items = await fetchRSS(url);
         if (items.length >= 5) {

@@ -1,0 +1,40 @@
+name: Market Data Auto-Sync
+
+on:
+  schedule:
+    # Run every day at 23:00 UTC (After US markets close)
+    - cron: '0 23 * * *'
+  workflow_dispatch: # Allows manual trigger from the Actions tab
+
+jobs:
+  sync-market-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run Market Data Sync Script
+        run: node scripts/sync-market-data.js
+        env:
+          YAHOO_FINANCE_API_KEY: ${{ secrets.YAHOO_FINANCE_API_KEY }}
+          # Add any other required environment variables here
+          
+      - name: Commit and Push Updated Data
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add knowledge/market_history.json
+          # Check if there are changes before committing
+          git diff --staged --quiet || (git commit -m "chore: auto-sync market data cache [skip ci]" && git push)

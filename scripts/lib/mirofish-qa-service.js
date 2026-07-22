@@ -13,15 +13,15 @@ const MIROFISH_CLI = path.join(__dirname, "../../mirofish/backend/swarm-audit-cl
  * runSwarmAudit
  * High-fidelity institutional review via MiroFish Swarm simulation
  */
-async function runSwarmAudit(content, frequency = "daily") {
+async function runSwarmAudit(content, frequency = "daily", options = {}) {
     console.log("🛠️  Initiating High-Fidelity Swarm Review...");
 
     // V5.4.5: Institutional Pivot - Using true AI Swarm instead of Python Mocks
     try {
-        return await runHighFidelityAuditor(content, frequency);
+        return await runHighFidelityAuditor(content, frequency, options);
     } catch (err) {
         console.warn(`⚠️ High-Fidelity Swarm Failed: ${err.message}. Falling back to Python/Light Auditor.`);
-        return runLightAuditor(content, frequency);
+        return runLightAuditor(content, frequency, options);
     }
 }
 
@@ -29,13 +29,14 @@ async function runSwarmAudit(content, frequency = "daily") {
  * runHighFidelityAuditor
  * V5.4.5 Institutional Grade: Uses the hardened AI Bridge to simulate a multi-persona board.
  */
-async function runHighFidelityAuditor(content, frequency) {
+async function runHighFidelityAuditor(content, frequency, options = {}) {
     const wordCount = content.split(/\s+/).length;
     const has2026 = /2026|2027/.test(content);
     const isStale = /2023|2024/.test(content);
 
-    // V17.0: Adjusted Institutional Heuristics for Hourly/Daily
-    const minWords = (frequency === 'hourly') ? 500 : 1500;
+    // V17.0: Adjusted Institutional Heuristics for Targeted Single Verticals or Hourly/Daily
+    const isTargeted = !!options.targetVertical;
+    const minWords = isTargeted ? 400 : ((frequency === 'hourly') ? 500 : 1500);
     if (frequency !== 'daily' && wordCount < minWords) {
         throw new Error(`QA REJECT: Institutional ${frequency} manuscript is too short (${wordCount} words). Minimum ${minWords} required.`);
     }
@@ -122,13 +123,15 @@ async function runHighFidelityAuditor(content, frequency) {
  * runLightAuditor
  * Fallback institutional review for GHA environment resiliency
  */
-function runLightAuditor(content, frequency) {
+function runLightAuditor(content, frequency, options = {}) {
     console.log("🛡️ Running Light Node Auditor (Internal Fallback)...");
     const wordCount = content.split(/\s+/).length;
     const isStale = /2023|2024/.test(content);
     const has2026 = /2026|2027/.test(content);
 
-    if (frequency !== 'daily' && wordCount < 1000) {
+    const isTargeted = !!options.targetVertical;
+    const minWords = isTargeted ? 400 : (frequency === 'daily' ? 0 : 1000);
+    if (frequency !== 'daily' && wordCount < minWords) {
         throw new Error(`Light Auditor REJECT: Content below density threshold (${wordCount} words).`);
     }
     if (isStale && !has2026) {

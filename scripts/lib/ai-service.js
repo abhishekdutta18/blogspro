@@ -13,16 +13,46 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // --- RESILIENT ENV NORMALIZATION ---
 const normalizeEnv = () => {
-    process.env.GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.GROQ_KEY;
-    process.env.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || process.env.MISTRAL_KEY;
-    process.env.OPENROUTER_KEY = process.env.OPENROUTER_KEY || process.env.OPENROUTER_API_KEY;
-    process.env.SAMBANOVA_API_KEY = process.env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_KEY;
-    process.env.CEREBRAS_API_KEY = process.env.CEREBRAS_API_KEY || process.env.CEREBRAS_KEY;
-    process.env.HF_TOKEN = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
-    process.env.QWEB_API_KEY = process.env.QWEB_API_KEY || process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY || process.env.QWEB_KEY;
-    process.env.CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN || process.env.CF_API_TOKEN || process.env.CF_API_KEY;
-    process.env.CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID || process.env.CLOUDFLARE_ACCOUNT_ID; 
-    process.env.GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY || process.env.GOOGLE_API_KEY;
+    const cleanKeys = [
+        'GROQ_API_KEY', 'GROQ_KEY',
+        'MISTRAL_API_KEY', 'MISTRAL_KEY',
+        'OPENROUTER_KEY', 'OPENROUTER_API_KEY',
+        'SAMBANOVA_API_KEY', 'SAMBANOVA_KEY',
+        'CEREBRAS_API_KEY', 'CEREBRAS_KEY',
+        'HF_TOKEN', 'HUGGINGFACE_TOKEN',
+        'QWEB_API_KEY', 'QWEN_API_KEY', 'DASHSCOPE_API_KEY', 'QWEB_KEY',
+        'CF_API_TOKEN', 'CLOUDFLARE_API_TOKEN', 'CF_API_KEY',
+        'CF_ACCOUNT_ID', 'CLOUDFLARE_ACCOUNT_ID',
+        'GEMINI_API_KEY', 'GEMINI_KEY', 'GOOGLE_API_KEY'
+    ];
+    for (const k of cleanKeys) {
+        if (process.env[k] !== undefined) {
+            const val = String(process.env[k]).trim();
+            if (val === 'undefined' || val === 'null' || !val) {
+                delete process.env[k];
+            }
+        }
+    }
+    
+    const setIfExist = (target, ...sources) => {
+        for (const src of sources) {
+            if (src && src !== 'undefined' && src !== 'null') {
+                process.env[target] = src.trim();
+                return;
+            }
+        }
+    };
+
+    setIfExist('GROQ_API_KEY', process.env.GROQ_API_KEY, process.env.GROQ_KEY);
+    setIfExist('MISTRAL_API_KEY', process.env.MISTRAL_API_KEY, process.env.MISTRAL_KEY);
+    setIfExist('OPENROUTER_KEY', process.env.OPENROUTER_KEY, process.env.OPENROUTER_API_KEY);
+    setIfExist('SAMBANOVA_API_KEY', process.env.SAMBANOVA_API_KEY, process.env.SAMBANOVA_KEY);
+    setIfExist('CEREBRAS_API_KEY', process.env.CEREBRAS_API_KEY, process.env.CEREBRAS_KEY);
+    setIfExist('HF_TOKEN', process.env.HF_TOKEN, process.env.HUGGINGFACE_TOKEN);
+    setIfExist('QWEB_API_KEY', process.env.QWEB_API_KEY, process.env.QWEN_API_KEY, process.env.DASHSCOPE_API_KEY, process.env.QWEB_KEY);
+    setIfExist('CF_API_TOKEN', process.env.CF_API_TOKEN, process.env.CLOUDFLARE_API_TOKEN, process.env.CF_API_KEY);
+    setIfExist('CF_ACCOUNT_ID', process.env.CF_ACCOUNT_ID, process.env.CLOUDFLARE_ACCOUNT_ID);
+    setIfExist('GEMINI_API_KEY', process.env.GEMINI_API_KEY, process.env.GEMINI_KEY, process.env.GOOGLE_API_KEY);
 };
 
 /**
@@ -58,19 +88,20 @@ function mapLegacyModel(model) {
     const lower = model.toLowerCase();
     
     // 1. Gemini Migration (V20.1: 1.5 Deprecated)
-    if (lower.includes('gemini-pro') || lower.includes('gemini-1.5-pro')) return "gemini-1.5-pro-latest";
-    if (lower.includes('gemini-flash') || lower.includes('gemini-1.5-flash')) return "gemini-1.5-flash-latest";
+    if (lower.includes('gemini-pro') || lower.includes('gemini-1.5-pro')) return "gemini-2.5-pro";
+    if (lower.includes('gemini-flash') || lower.includes('gemini-1.5-flash')) return "gemini-2.5-flash";
+    if (lower.includes('gemini-2.0-flash-exp')) return "gemini-2.0-flash";
 
     // 2. Llama Migration (3.1/3.3 -> 4.0)
     if (lower.includes('llama-3.1') || lower.includes('llama-3.3') || lower.includes('llama3')) {
-        if (lower.includes('405b')) return "Meta-Llama-3.1-405B-Instruct-v2";
-        if (lower.includes('70b')) return "llama-3.3-70b";
-        if (lower.includes('8b')) return "llama-3.1-8b";
-        return "llama-3.3-70b";
+        if (lower.includes('405b') || lower.includes('anchor')) return "Meta-Llama-3.3-70B-Instruct";
+        if (lower.includes('70b')) return "Meta-Llama-3.3-70B-Instruct";
+        if (lower.includes('8b')) return "Meta-Llama-3.3-70B-Instruct";
+        return "Meta-Llama-3.3-70B-Instruct";
     }
 
     // 3. DeepSeek Migration
-    if (lower.includes('deepseek-v3')) return "DeepSeek-V3";
+    if (lower.includes('deepseek-v3')) return "DeepSeek-V3.1";
 
     return model;
 }
@@ -84,7 +115,10 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
 
     // Sanitization: Ensure model is valid for Groq
     if (model === "llama3.1-8b") model = "llama-3.1-8b-instant";
-    const groqCompatible = ['llama', 'mixtral', 'gemma', 'whisper', 'distil-'];
+    const groqCompatible = [
+        'llama', 'mixtral', 'gemma', 'whisper', 'distil-', 
+        'gpt-oss', 'qwen', 'allam', 'orpheus', 'compound'
+    ];
     if (!groqCompatible.some(prefix => model?.toLowerCase().includes(prefix))) {
         model = "llama-3.3-70b-versatile";
     }
@@ -161,9 +195,10 @@ async function generateGeminiContent(prompt, model = "gemini-3.1-flash-lite-prev
     // [V21.0] Prompt Sanitizer: Callers may pass objects; normalize to string before dispatch.
     const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
 
-    let models = ["gemini-1.5-pro-latest", "gemini-1.5-flash-latest", "gemini-2.0-flash-exp"];
+    let models = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-3.1-flash-lite-preview", "gemini-flash-latest", "gemini-2.5-pro", "gemini-3.1-pro-preview"];
     if (model?.includes('gemini')) {
-        models = [model, ...models.filter(m => m !== model)];
+        const mappedModel = mapLegacyModel(model);
+        models = [mappedModel, ...models.filter(m => m !== mappedModel)];
     }
     
     await sleep(Math.floor(Math.random() * 1000) + 500);
@@ -219,36 +254,64 @@ async function generateVertexContent(prompt, model = "gemini-3.1-pro-preview", c
 
     const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
 
-    const ai = new GoogleGenAI({ 
-        vertexai: { project: project, location: location }
-    });
-
-    let contents;
-    if (context.vision_payload) {
-        contents = [
-            promptStr,
-            { inlineData: { data: context.vision_payload.base64, mimeType: context.vision_payload.mimeType } }
-        ];
-    } else {
-        contents = promptStr;
+    // Save and temporarily delete Gemini API keys from environment to force ADC
+    const keysToRestore = {};
+    const keyNames = ['GEMINI_API_KEY', 'GEMINI_KEY', 'GOOGLE_API_KEY'];
+    for (const keyName of keyNames) {
+        if (process.env[keyName]) {
+            keysToRestore[keyName] = process.env[keyName];
+            delete process.env[keyName];
+        }
     }
 
-    const response = await ai.models.generateContent({
-        model: geminiModel,
-        contents: contents
-    });
-    
-    return response.text;
+    try {
+        const ai = new GoogleGenAI({ 
+            vertexai: true,
+            project: project,
+            location: location
+        });
+
+        let contents;
+        if (context.vision_payload) {
+            contents = [
+                promptStr,
+                { inlineData: { data: context.vision_payload.base64, mimeType: context.vision_payload.mimeType } }
+            ];
+        } else {
+            contents = promptStr;
+        }
+
+        const response = await ai.models.generateContent({
+            model: geminiModel,
+            contents: contents
+        });
+        
+        return response.text;
+    } finally {
+        // Restore environment variables
+        for (const [keyName, value] of Object.entries(keysToRestore)) {
+            process.env[keyName] = value;
+        }
+    }
 }
 
-async function generateSambaNovaContent(prompt, model = "Meta-Llama-3.1-405B-Instruct-v2", context = {}) {
+async function generateSambaNovaContent(prompt, model = "Meta-Llama-3.3-70B-Instruct", context = {}) {
     const key = context?.SAMBANOVA_API_KEY || process.env.SAMBANOVA_API_KEY;
     if (!key) throw new Error("SAMBANOVA_API_KEY missing.");
 
     // [V21.0] Prompt Sanitizer: Normalize to string
     const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
 
-    const targetModel = mapLegacyModel(model) || "Meta-Llama-3.1-405B-Instruct-v2";
+    let targetModel = mapLegacyModel(model) || "Meta-Llama-3.3-70B-Instruct";
+    const lowerModel = targetModel.toLowerCase();
+    if (lowerModel.includes("405b") || lowerModel.includes("deepseek-v3")) {
+        targetModel = "DeepSeek-V3.1";
+    } else if (lowerModel.includes("70b") || lowerModel.includes("llama")) {
+        targetModel = "Meta-Llama-3.3-70B-Instruct";
+    } else if (!["deepseek-v3.1", "deepseek-v3.2", "meta-llama-3.3-70b-instruct", "minimax-m2.7", "gemma-4-31b-it", "gpt-oss-120b"].includes(lowerModel)) {
+        targetModel = "Meta-Llama-3.3-70B-Instruct";
+    }
+
     const res = await fetch("https://api.sambanova.ai/v1/chat/completions", {
         method: "POST",
         headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
@@ -263,14 +326,18 @@ async function generateSambaNovaContent(prompt, model = "Meta-Llama-3.1-405B-Ins
     return data.choices[0].message.content;
 }
 
-async function generateCerebrasContent(prompt, model = "llama-3.3-70b", context = {}) {
+async function generateCerebrasContent(prompt, model = "zai-glm-4.7", context = {}) {
     const key = context?.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY;
     if (!key) throw new Error("CEREBRAS_API_KEY missing.");
     
     // [V21.0] Prompt Sanitizer: Normalize to string
     const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
 
-    const targetModel = mapLegacyModel(model) || "llama-3.3-70b";
+    let targetModel = "zai-glm-4.7";
+    if (model?.toLowerCase().includes("120b") || model?.toLowerCase().includes("oss")) {
+        targetModel = "gpt-oss-120b";
+    }
+
     const client = new Cerebras({ apiKey: key });
     const completion = await client.chat.completions.create({
         messages: [{ role: "user", content: promptStr }],
@@ -291,8 +358,16 @@ async function generateCloudflareContent(prompt, model = "@cf/meta/llama-3.1-8b-
         headers: { "Authorization": `Bearer ${apiToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({ messages: [{ role: "user", content: promptStr }] })
     });
+    if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`Cloudflare AI Error: ${res.status} - ${errText}`);
+    }
     const data = await res.json();
-    return data.result?.response || data.result?.text;
+    const result = data.result?.response || data.result?.text;
+    if (!result) {
+        throw new Error(`Cloudflare AI returned empty result: ${JSON.stringify(data)}`);
+    }
+    return result;
 }
 
 async function generateHuggingFaceContent(prompt, model = "mistralai/Mistral-7B-Instruct-v0.3", context = {}) {
@@ -305,8 +380,16 @@ async function generateHuggingFaceContent(prompt, model = "mistralai/Mistral-7B-
         headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ inputs: promptStr })
     });
+    if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`HuggingFace Error: ${res.status} - ${errText}`);
+    }
     const data = await res.json();
-    return Array.isArray(data) ? data[0]?.generated_text : data.generated_text;
+    const result = Array.isArray(data) ? data[0]?.generated_text : data.generated_text;
+    if (!result) {
+        throw new Error(`HuggingFace returned empty result: ${JSON.stringify(data)}`);
+    }
+    return result;
 }
 
 async function generateOpenRouterContent(prompt, model = "mistralai/mistral-7b-instruct", context = {}) {
@@ -322,22 +405,41 @@ async function generateOpenRouterContent(prompt, model = "mistralai/mistral-7b-i
             messages: [{ role: "user", content: promptStr }]
         })
     });
+    if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`OpenRouter Error: ${res.status} - ${errText}`);
+    }
     const data = await res.json();
+    if (!data.choices || data.choices.length === 0) {
+        throw new Error(`OpenRouter returned empty choices: ${JSON.stringify(data)}`);
+    }
     return data.choices[0].message.content;
 }
 
-async function generateInstitutionalBridgeContent(prompt, model = "auto", context = {}) {
+async function generateInstitutionalBridgeContent(prompt, model = "llama-3.3-70b-versatile", context = {}) {
     const bridgeUrl = context?.SWARM_AI_BRIDGE || process.env.SWARM_AI_BRIDGE;
     const vaultKey = context?.VAULT_MASTER_KEY || process.env.VAULT_MASTER_KEY;
     if (!bridgeUrl) throw new Error("SWARM_AI_BRIDGE URL missing.");
+
+    // Infer provider for the gateway
+    let provider = 'groq';
+    const lowerModel = model.toLowerCase();
+    if (lowerModel.includes('gemini')) {
+        provider = 'gemini';
+    } else if (lowerModel.includes('sambanova') || lowerModel.includes('deepseek')) {
+        provider = 'sambanova';
+    } else if (lowerModel.includes('huggingface') || lowerModel.includes('mistral') || lowerModel.includes('codestral') || lowerModel.includes('nemo')) {
+        provider = 'huggingface';
+    }
 
     const res = await fetch(bridgeUrl, {
         method: "POST",
         headers: { 
             "Content-Type": "application/json",
+            "X-Vault-Auth": vaultKey || "",
             "X-Vault-Key": vaultKey || "" 
         },
-        body: JSON.stringify({ prompt, model, role: context.role || 'research' })
+        body: JSON.stringify({ prompt, model, provider, role: context.role || 'research' })
     });
     if (!res.ok) throw new Error(`Bridge Error: ${res.status}`);
     const data = await res.json();
@@ -449,7 +551,7 @@ async function generateVertexModelGardenContent(prompt, model = "meta/llama3-405
 async function directDialAnchor(prompt, model, role, env) {
     console.warn(`⚓ [AI-Balancer] Emergency Direct-Dial to Anchor engaged for ${role}.`);
     if (model?.includes('gemini')) return generateGeminiContent(prompt, model, { env });
-    return generateGroqContent(prompt, model, { env });
+    return generateCerebrasContent(prompt, "zai-glm-4.7", { env });
 }
 
 // --- Balancer and Dispatch Logic ---
@@ -465,8 +567,11 @@ export const ResourceManager = {
         normalizeEnv();
         const isPlaceholder = (val) => {
             if (!val || typeof val !== 'string') return false;
-            return val.includes('REPLACE_WITH_KEY') || 
-                   val.includes('YOUR_TOKEN');
+            const lower = val.toLowerCase();
+            return lower.includes('replace_with_key') || 
+                   lower.includes('your_token') ||
+                   /^[0-9_]+$/.test(val) || // matches "1_2_3_4_5_6_7_8_9"
+                   lower.includes('1_2_3_4_5');
         };
         
         const isBridgeActive = !!(env.VAULT_MASTER_KEY || process.env.VAULT_MASTER_KEY || env.SWARM_AI_BRIDGE || process.env.SWARM_AI_BRIDGE);
@@ -488,16 +593,32 @@ export const ResourceManager = {
             return cleaned;
         };
 
+        let rawSamba = env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_KEY || env.SAMBANOVA || '';
+        let rawCerebras = env.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY || env.CEREBRAS || '';
+        
+        if (typeof rawSamba === 'string' && rawSamba.startsWith('csk-')) {
+            console.log('🔄 [AI-Balancer] Crossover Detected: SAMBANOVA key is a Cerebras key.');
+            if (!rawCerebras) {
+                rawCerebras = rawSamba;
+                process.env.CEREBRAS_API_KEY = rawCerebras;
+            }
+            rawSamba = null;
+        }
+
         const activeKeys = {
             Groq: sanitize(env.GROQ_API_KEY || process.env.GROQ_API_KEY || process.env.GROQ_KEY, 'Groq', true),
             Gemini: sanitize(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_KEY, 'Gemini', true),
-            Cerebras: sanitize(env.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY, 'Cerebras', true),
+            Cerebras: sanitize(rawCerebras, 'Cerebras', true),
             HF_TOKEN: sanitize(env.HF_TOKEN || process.env.HF_TOKEN, 'HuggingFace', true),
-            SambaNova: sanitize(env.SAMBANOVA_API_KEY || process.env.SAMBANOVA_KEY, 'SambaNova', true),
+            SambaNova: sanitize(rawSamba, 'SambaNova', true),
             VertexMaaS: !!(env.FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT),
-
-            Cloudflare: sanitize(env.CF_API_TOKEN || process.env.CF_API_TOKEN || env.CLOUDFLARE_API_TOKEN || env.CF_API_KEY, 'Cloudflare', false)
+            Cloudflare: sanitize(env.CF_API_TOKEN || process.env.CF_API_TOKEN || env.CLOUDFLARE_API_TOKEN || env.CF_API_KEY, 'Cloudflare', false),
+            OpenRouter: sanitize(env.OPENROUTER_KEY || process.env.OPENROUTER_KEY || process.env.OPENROUTER_API_KEY, 'OpenRouter', true)
         };
+
+        if (activeKeys.Cerebras) {
+            process.env.CEREBRAS_API_KEY = activeKeys.Cerebras;
+        }
 
         if (process.env.GITHUB_ACTIONS === 'true') {
             console.log("☁️  [AI-Balancer] GHA Mode Detected: Forcing Cloud-First Intelligence.");
@@ -513,37 +634,50 @@ export const ResourceManager = {
         // TIER 1: INSTITUTIONAL RESEARCH & EDITING (High Precision Sovereign Anchor)
         if (activeKeys.SambaNova) {
             // [V15.6] SambaNova 405B: The Primary Strategic Anchor for the Cynical Reconstruction
-            this.pool.push({ name: 'SambaNova-405B-Anchor', fn: (p, m, c) => generateSambaNovaContent(p, "Meta-Llama-3.1-405B-Instruct-v2", c), tier: 1, roles: ['research', 'manager', 'consolidate'], match: /sambanova|405b|anchor/i });
-            this.pool.push({ name: 'DeepSeek-V3-MoE', fn: (p, m, c) => generateSambaNovaContent(p, "DeepSeek-V3", c), tier: 1, roles: ['research', 'edit'], match: /deepseek|v3|reasoning/i });
+            this.pool.push({ name: 'SambaNova-405B-Anchor', fn: (p, m, c) => generateSambaNovaContent(p, "Meta-Llama-3.3-70B-Instruct", c), tier: 1, roles: ['research', 'manager', 'consolidate', 'generate'], match: /sambanova|405b|anchor/i });
+            this.pool.push({ name: 'DeepSeek-V3-MoE', fn: (p, m, c) => generateSambaNovaContent(p, "DeepSeek-V3.1", c), tier: 1, roles: ['research', 'edit', 'generate'], match: /deepseek|v3|reasoning/i });
         }
         if (activeKeys.Cerebras) {
-            this.pool.push({ name: 'Cerebras-Llama-3.1-8b', fn: (p, m, c) => generateCerebrasContent(p, "llama3.1-8b", c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /cerebras|llama|node-generate/i });
+            this.pool.push({ name: 'Cerebras-GLM-4.7', fn: (p, m, c) => generateCerebrasContent(p, "zai-glm-4.7", c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /cerebras|glm|node-generate|node-draft/i });
         }
         if (activeKeys.Groq) {
             this.pool.push({ name: 'Groq-70B-Versatile', fn: (p, m, c) => generateGroqContent(p, m || "llama-3.3-70b-versatile", c), tier: 1, roles: ['research', 'edit', 'draft', 'generate'], match: /groq|node-research|node-edit|node-draft|node-generate|llama/i });
-            this.pool.push({ name: 'Llama-3.1-8B-Auditor', fn: (p, m, c) => generateGroqContent(p, "llama-3.1-8b-instant", c), tier: 2, roles: ['audit', 'repair'], match: /llama|node-audit|node-repair/i });
+            // this.pool.push({ name: 'Llama-4-Scout-17B', fn: (p, m, c) => generateGroqContent(p, "meta-llama/llama-4-scout-17b-16e-instruct", c), tier: 1, roles: ['research', 'edit', 'draft'], match: /scout|llama-4/i });
+            // this.pool.push({ name: 'GPT-OSS-120B', fn: (p, m, c) => generateGroqContent(p, "openai/gpt-oss-120b", c), tier: 1, roles: ['research', 'edit', 'generate'], match: /gpt-oss-120b|oss/i });
+            
+            // this.pool.push({ name: 'Llama-3.1-8B-Auditor', fn: (p, m, c) => generateGroqContent(p, "llama-3.1-8b-instant", c), tier: 2, roles: ['audit', 'repair'], match: /llama|node-audit|node-repair/i });
+            // this.pool.push({ name: 'GPT-OSS-20B', fn: (p, m, c) => generateGroqContent(p, "openai/gpt-oss-20b", c), tier: 2, roles: ['draft', 'audit'], match: /gpt-oss-20b/i });
+            // this.pool.push({ name: 'Qwen-3-32B', fn: (p, m, c) => generateGroqContent(p, "qwen/qwen3-32b", c), tier: 2, roles: ['research', 'draft'], match: /qwen3-32b/i });
+            // this.pool.push({ name: 'Qwen-3.6-27B', fn: (p, m, c) => generateGroqContent(p, "qwen/qwen3.6-27b", c), tier: 2, roles: ['research', 'draft'], match: /qwen3.6-27b/i });
+            // this.pool.push({ name: 'Allam-2-7B', fn: (p, m, c) => generateGroqContent(p, "allam-2-7b", c), tier: 2, roles: ['draft'], match: /allam/i });
+            // this.pool.push({ name: 'Orpheus-V1-English', fn: (p, m, c) => generateGroqContent(p, "canopylabs/orpheus-v1-english", c), tier: 2, roles: ['draft'], match: /orpheus/i });
+            // this.pool.push({ name: 'Groq-Compound', fn: (p, m, c) => generateGroqContent(p, "groq/compound", c), tier: 2, roles: ['draft', 'research'], match: /compound/i });
         }
 
         if (activeKeys.Gemini) {
-            this.pool.push({ name: 'Gemini-3.1-Pro', fn: (p, m, c) => generateGeminiContent(p, "gemini-3.1-pro-preview", c), tier: 3, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /gemini|pro|vertex/i });
-            this.pool.push({ name: 'Gemini-3.1-Flash', fn: (p, m, c) => generateGeminiContent(p, "gemini-3.1-flash-lite-preview", c), tier: 4, roles: ['draft', 'audit', 'generate'], match: /gemini|flash/i });
+            this.pool.push({ name: 'Gemini-3.1-Pro', fn: (p, m, c) => generateGeminiContent(p, "gemini-3.1-pro-preview", c), tier: 0, roles: ['research', 'edit', 'draft', 'audit', 'generate', 'manager', 'consolidate'], match: /gemini|pro|vertex|node-draft/i });
+            this.pool.push({ name: 'Gemini-3.1-Flash', fn: (p, m, c) => generateGeminiContent(p, "gemini-3.1-flash-lite-preview", c), tier: 1, roles: ['draft', 'audit', 'generate', 'edit'], match: /gemini|flash/i });
             // [V21.0] Vertex nodes now route through Gemini API (Vertex SDK deprecated June 2025)
-            this.pool.push({ name: 'Vertex-Gemini-Pro', fn: (p, m, c) => generateGeminiContent(p, "gemini-3.1-pro-preview", c), tier: 5, roles: ['research', 'edit'], match: /vertex.*pro/i });
-            this.pool.push({ name: 'Vertex-Gemini-Flash', fn: (p, m, c) => generateGeminiContent(p, "gemini-3.1-flash-lite-preview", c), tier: 6, roles: ['draft', 'audit'], match: /vertex.*flash/i });
+            this.pool.push({ name: 'Vertex-Gemini-Pro-Fallback', fn: (p, m, c) => generateGeminiContent(p, "gemini-3.1-pro-preview", c), tier: 2, roles: ['research', 'edit'], match: /vertex.*pro/i });
+            this.pool.push({ name: 'Vertex-Gemini-Flash-Fallback', fn: (p, m, c) => generateGeminiContent(p, "gemini-3.1-flash-lite-preview", c), tier: 3, roles: ['draft', 'audit'], match: /vertex.*flash/i });
         }
 
         // [V1.0] GKE Native: Vertex AI Fallback (Zero-Key Resilience)
         const gcpProject = process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
+        /* USER EXPLICITLY DISABLED BILLING, ALWAYS FAILS 
         if (gcpProject) {
-            this.pool.push({ name: 'Vertex-Gemini-Pro', fn: (p, m, c) => generateVertexContent(p, "gemini-3.1-pro-preview", c), tier: 3, roles: ['research', 'manager'], match: /vertex|institutional|pro/i });
-            this.pool.push({ name: 'Vertex-Gemini-Flash', fn: (p, m, c) => generateVertexContent(p, "gemini-3.1-flash-lite-preview", c), tier: 4, roles: ['audit'], match: /vertex|flash/i });
-            console.log("🏙️ [AI-Balancer] GKE Native Vertex AI nodes activated (Fallback Mode).");
+            // Downgraded tier because billing is permanently disabled
+            this.pool.push({ name: 'Vertex-Gemini-Pro', fn: (p, m, c) => generateVertexContent(p, "gemini-3.1-pro-preview", c), tier: 5, roles: ['research', 'manager', 'edit', 'draft', 'audit', 'generate'], match: /vertex|institutional|pro|gemini|node-editor|node-draft/i });
+            this.pool.push({ name: 'Vertex-Gemini-Flash', fn: (p, m, c) => generateVertexContent(p, "gemini-3.1-flash-lite-preview", c), tier: 6, roles: ['audit', 'generate'], match: /vertex|flash/i });
+            console.log("🏙️ [AI-Balancer] GKE Native Vertex AI nodes activated.");
         }
+        */
         if (activeKeys.SambaNova) {
-            this.pool.push({ name: 'SambaNova-70B', fn: generateSambaNovaContent, tier: 2, roles: ['draft'], match: /sambanova|node-draft/i });
+            this.pool.push({ name: 'SambaNova-70B', fn: generateSambaNovaContent, tier: 2, roles: ['draft', 'generate'], match: /sambanova|node-draft/i });
         }
 
         if (activeKeys.VertexMaaS) {
+            /*
             this.pool.push({ 
                 name: 'Vertex-Llama-405B', 
                 fn: (p, m, c) => generateVertexModelGardenContent(p, m || "meta/llama3-405b-instruct-maas", c), 
@@ -566,6 +700,7 @@ export const ResourceManager = {
                 match: /claude|sonnet/i 
             });
             console.log("⚓ [AI-Balancer] Cloud Sovereign Nodes (Vertex Model Garden) online.");
+            */
         }
 
 
@@ -600,7 +735,7 @@ export const ResourceManager = {
 
             // [V12.0] VIRTUAL PROXY NODES (Unlocks Cloud models despite local placeholders)
             // These act as direct mappings to the Edge Bridge to ensure high-parameter utilization.
-            this.pool.push({ name: 'Groq-70B-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "llama-3.3-70b-versatile", c), tier: 1, roles: ['research', 'edit'], match: /groq|node-research|70b/i });
+            this.pool.push({ name: 'Groq-70B-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "llama-3.3-70b-versatile", c), tier: 1, roles: ['research', 'edit'], match: /groq|node-research|node-draft|70b/i });
             this.pool.push({ name: 'DeepSeek-V3-1T', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "DeepSeek-V3", c), tier: 1, roles: ['research', 'edit'], match: /deepseek|v3|1t|reasoning/i });
             // [REMOVED] Gemini-Pro-Proxy
             this.pool.push({ name: 'HuggingFace-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, m || "mistralai/Mistral-7B-Instruct-v0.3", c), tier: 2, roles: ['utility', 'audit'], match: /huggingface|hf|mistral/i });
@@ -898,4 +1033,88 @@ export async function askAI(prompt, options = {}) {
     }
 }
 
-export default { askAI };
+/**
+ * NEW: Multi-Model Architecture
+ * Dispatches a single prompt to multiple models concurrently and synthesizes the results.
+ */
+export async function askMultipleAIWithConsensus(prompt, env, numModels = 3) {
+    console.log(`🤖 [Multi-Model] Initializing parallel execution across ${numModels} nodes...`);
+    await ResourceManager.init(env);
+    
+    // Select top N distinct active providers
+    const activePool = ResourceManager.pool.filter(p => !ResourceManager.failed.has(p.name));
+    const selectedNodes = activePool.slice(0, numModels);
+    
+    if (selectedNodes.length === 0) {
+        console.warn(`⚠️ [Multi-Model] Fleet exhausted. Falling back to single askAI.`);
+        return await askAI(prompt, { env });
+    }
+
+    // Stagger parallel calls by 2s to avoid simultaneous rate-limit hits
+    const promises = selectedNodes.map((node, idx) => {
+        return (async () => {
+            if (idx > 0) await sleep(2000 * idx); // Stagger: 0s, 2s, 4s
+            try {
+                console.log(`🚀 [Multi-Model] Dispatching to ${node.name} (stagger: ${idx * 2}s)...`);
+                const res = await node.fn(prompt, "auto", env);
+                if (!res || typeof res !== 'string' || res.length < 200) {
+                    throw new Error(`Insufficient response length (${res?.length || 0} chars)`);
+                }
+                console.log(`✅ [Multi-Model] ${node.name} returned ${res.length} chars.`);
+                return { model: node.name, text: res, success: true };
+            } catch (err) {
+                console.warn(`⚠️ [Multi-Model] Node ${node.name} failed: ${err.message}`);
+                return { model: node.name, text: '', success: false, error: err.message };
+            }
+        })();
+    });
+
+    const results = await Promise.all(promises);
+    const validResults = results.filter(r => r.success);
+    
+    // CRITICAL FALLBACK: If all parallel nodes failed, fall back to single askAI (which has full retry logic)
+    if (validResults.length === 0) {
+        console.warn(`⚠️ [Multi-Model] All ${numModels} parallel nodes failed. Falling back to single askAI with full retry logic...`);
+        return await askAI(prompt, { env, role: 'draft' });
+    }
+
+    // If only one succeeded, return it directly (no consensus needed)
+    if (validResults.length === 1) {
+        console.warn(`⚠️ [Multi-Model] Only one node (${validResults[0].model}) succeeded. Returning raw output.`);
+        return validResults[0].text;
+    }
+
+    console.log(`🧠 [Multi-Model] Synthesizing consensus from ${validResults.length} successful models: ${validResults.map(r => r.model).join(', ')}...`);
+    
+    // Build a concise consensus prompt WITHOUT re-embedding the entire original prompt (which would overflow context)
+    const modelOutputs = validResults.map(r => `[MODEL: ${r.model}]\n${r.text}`).join('\n\n---\n\n');
+    
+    const consensusPrompt = `You are the Consensus Architect for an institutional research pipeline.
+
+TASK: Merge the following ${validResults.length} independent AI-generated research manuscripts into ONE final, authoritative document.
+
+RULES:
+1. Keep ALL markdown tables, Mermaid charts, and data points that appear in ANY response.
+2. Where models AGREE on a number, use that number with high confidence.
+3. Where models DISAGREE, prefer the number that appears in the majority, or the one closest to the live data values.
+4. Eliminate any hallucinated claims that only ONE model makes and which contradict the others.
+5. The final output MUST be a complete institutional research manuscript (2500+ words) with all required sections, tables, and charts.
+6. Output ONLY the final merged document. No meta-commentary about the merging process.
+7. Preserve [[BPRO_INTEL_START]] and [[BPRO_INTEL_END]] delimiters.
+
+--- MODEL OUTPUTS TO MERGE ---
+${modelOutputs}
+`;
+
+    try {
+        return await askAI(consensusPrompt, { env, role: 'consensus' });
+    } catch (consensusErr) {
+        // If even the consensus step fails, return the best single result
+        console.warn(`⚠️ [Multi-Model] Consensus synthesis failed: ${consensusErr.message}. Returning best single result.`);
+        // Return the longest valid result as "best"
+        validResults.sort((a, b) => b.text.length - a.text.length);
+        return validResults[0].text;
+    }
+}
+
+export default { askAI, askMultipleAIWithConsensus };

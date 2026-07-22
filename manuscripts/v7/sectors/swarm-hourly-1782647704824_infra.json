@@ -1,0 +1,11 @@
+{
+  "jobId": "swarm-hourly-1782647704824",
+  "verticalId": "infra",
+  "content": {
+    "manuscript": "It looks like your message is empty! How can I help you today?",
+    "brief": "The prompt appears to be empty, and assistance is offered to provide help.\n\n🌳 [MCTS_WINNING_PATH]:\n[[BPRO_INTEL_START]]\nJune 28, 2026. The 'BLACK_SWAN_VOLATILITY' branch in Infrastructure & Logistics has materialized. The simulation confirms a systemic fracture in the global supply chain financing matrix, driven by a cascading failure in the Baltic Dry Index derivative complex. Against the LFY 2025 baseline of stable term structures, we are witnessing a 650 basis point inversion in the forward volatility curve. The VIX term structure has shifted into severe backwardation, pricing in a 40% probability of a complete logistics gridlock by Q3.\n\nGamma Exposure (GEX) has collapsed to -$5.8B notional, triggering a forced delta-hedging loop that is aggressively crushing liquidity in logistics equities. The structural liquidity deficit is absolute; institutional order books are thin, with bid-ask spreads widening by 400% in the pre-market. Repo rate spreads have exploded to 8.2% as high-quality collateral evaporates, signaling a severe margin call cascade across the prime brokerage landscape.\n\nFlows are violently rotating out of Global Infra funds into short-duration Treasuries, creating a self-reinforcing liquidity trap. The anticipated 2026 monetary pivot is dead on arrival; central banks are now forced to inject emergency term funding to prevent a trade finance freeze. This is not a market dip; it is a structural solvency event. Retail bullishness has been obliterated by the mechanics of the volatility surface. We remain aggressively short duration and long volatility, positioning for the inevitable contagion into sovereign credit spreads through Q4 2026. The 2027 horizon is now defined by regulatory friction and capital controls.\n[[BPRO_INTEL_END]]",
+    "state": "AUDIT",
+    "fidelityScore": 50
+  },
+  "timestamp": "2026-06-28T12:10:10.849Z"
+}

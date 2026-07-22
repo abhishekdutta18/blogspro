@@ -8,7 +8,7 @@ function stripHTML(html) {
     return html.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
 }
 
-function calculateReward(content, targetWords = 500) {
+function calculateReward(content, targetWords = 2500) {
     if (!content) return 0;
 
     let score = 0;

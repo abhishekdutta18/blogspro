@@ -404,7 +404,7 @@ async function runInstitutionalSwarm() {
     let auditStatus = "PENDING";
     try {
         console.log(`🕵️ [Swarm] Initiating MiroFish Consensus Review [Freq: ${frequency}]...`);
-        await runSwarmAudit(result.final, frequency);
+        await runSwarmAudit(result.final, frequency, { targetVertical: targetVerticalId });
         auditStatus = "AUDITED";
         console.log(`✅ [Swarm] Institutional Review Passed. Status: ${auditStatus}`);
     } catch (e) {
