@@ -26,17 +26,28 @@
   }
 
   // ── Scroll Progress Logic ───────────────────────────────────────────
+  // ⚡ Bolt Optimization: Throttle scroll handler with requestAnimationFrame and { passive: true }
+  // Why: Prevents layout thrashing and unblocks the main thread during scrolling.
+  // Impact: Improves scroll performance and reduces CPU usage during fast scrolling.
+  let isScrolling = false;
   window.addEventListener('scroll', function() {
-    const progress = document.getElementById('progress');
-    if (!progress) return;
-    const el = document.documentElement;
-    const scrollTop = el.scrollTop || document.body.scrollTop;
-    const scrollHeight = el.scrollHeight || document.body.scrollHeight;
-    const clientHeight = el.clientHeight;
-    
-    const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
-    progress.style.width = Math.min(scrolled, 100) + '%';
-  });
+    if (!isScrolling) {
+      window.requestAnimationFrame(function() {
+        const progress = document.getElementById('progress');
+        if (progress) {
+          const el = document.documentElement;
+          const scrollTop = el.scrollTop || document.body.scrollTop;
+          const scrollHeight = el.scrollHeight || document.body.scrollHeight;
+          const clientHeight = el.clientHeight;
+
+          const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
+          progress.style.width = Math.min(scrolled, 100) + '%';
+        }
+        isScrolling = false;
+      });
+      isScrolling = true;
+    }
+  }, { passive: true });
 
   console.log('[BlogsPro] UI Utils loaded.');
 })();
