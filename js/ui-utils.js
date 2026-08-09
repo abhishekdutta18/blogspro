@@ -26,17 +26,28 @@
   }
 
   // ── Scroll Progress Logic ───────────────────────────────────────────
+  let ticking = false;
   window.addEventListener('scroll', function() {
     const progress = document.getElementById('progress');
     if (!progress) return;
-    const el = document.documentElement;
-    const scrollTop = el.scrollTop || document.body.scrollTop;
-    const scrollHeight = el.scrollHeight || document.body.scrollHeight;
-    const clientHeight = el.clientHeight;
     
-    const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
-    progress.style.width = Math.min(scrolled, 100) + '%';
-  });
+    if (!ticking) {
+      window.requestAnimationFrame(function() {
+        // Optimization: Wrap layout property reads and DOM writes in requestAnimationFrame
+        // to prevent layout thrashing and jank during scrolling.
+        const el = document.documentElement;
+        const scrollTop = el.scrollTop || document.body.scrollTop;
+        const scrollHeight = el.scrollHeight || document.body.scrollHeight;
+        const clientHeight = el.clientHeight;
+
+        const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
+        progress.style.width = Math.min(scrolled, 100) + '%';
+
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true }); // passive: true tells browser we won't call preventDefault, improving scroll perf
 
   console.log('[BlogsPro] UI Utils loaded.');
 })();
