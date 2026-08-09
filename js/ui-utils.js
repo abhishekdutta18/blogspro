@@ -33,7 +33,7 @@
     const scrollTop = el.scrollTop || document.body.scrollTop;
     const scrollHeight = el.scrollHeight || document.body.scrollHeight;
     const clientHeight = el.clientHeight;
-    
+
     const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
     progress.style.width = Math.min(scrolled, 100) + '%';
   });
