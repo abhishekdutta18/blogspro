@@ -1,58 +1,104 @@
 {
-  "name": "blogspro-ai-pipeline",
+  "name": "torrent-downloader",
+  "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Automated AI financial content pipeline for blogspro.in",
-  "main": "scripts/generate-article.js",
   "scripts": {
-    "serve:api": "node scripts/local-api-server.js",
-    "generate": "node scripts/generate-article.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "test:smoke": "playwright test",
-    "ecc:quality-gate": "node .claude/hooks-antigravity/quality-gate.cjs",
-    "ecc:secret-scan": "node .claude/hooks-antigravity/secret-scanner.cjs",
-    "ecc:install-hooks": "cp .claude/hooks-antigravity/pre-commit .git/hooks/pre-commit && cp .claude/hooks-antigravity/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-commit .git/hooks/pre-push && echo '✅ Git hooks installed'",
-    "ecc:session-start": "node .claude/hooks-antigravity/session-manager.cjs start",
-    "ecc:session-end": "node .claude/hooks-antigravity/session-manager.cjs end",
-    "ecc:learn": "node .claude/hooks-antigravity/continuous-learning.cjs",
-    "ecc:governance": "node .claude/hooks-antigravity/governance-gate.cjs",
-    "ecc:design-check": "node .claude/hooks-antigravity/design-quality-check.cjs",
-    "ecc:cost-tracker": "node .claude/hooks-antigravity/cost-tracker.cjs",
-    "ecc:notify": "node .claude/hooks-antigravity/desktop-notify.cjs",
-    "ecc:format": "node .claude/hooks-antigravity/format-typecheck.cjs",
-    "ecc:full-audit": "npm run ecc:quality-gate && npm run ecc:secret-scan && npm run ecc:design-check"
+    "dev": "vite",
+    "build": "tsc && vite build && electron-builder",
+    "build:publish": "tsc && vite build && electron-builder --publish always",
+    "release": "npm version patch && git push --follow-tags",
+    "release:minor": "npm version minor && git push --follow-tags",
+    "release:major": "npm version major && git push --follow-tags",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "cap:sync": "npx cap sync",
+    "cap:open:ios": "npx cap open ios",
+    "cap:open:android": "npx cap open android",
+    "deploy": "node ../BlogsPro/blogspro/deploy-worker.js --git-changed"
   },
+  "repository": "https://github.com/abhishekdutta18/TorrentDownloader",
   "dependencies": {
-    "@ai-sdk/google": "^3.0.62",
-    "@ai-sdk/openai": "^3.0.53",
-    "@aws-sdk/client-s3": "^3.1032.0",
-    "@cerebras/cerebras_cloud_sdk": "^1.64.1",
-    "@genkit-ai/firebase": "^1.33.0",
-    "@genkit-ai/google-genai": "^1.33.0",
-    "@genkit-ai/googleai": "^1.28.0",
-    "@genkit-ai/vertexai": "^1.32.0",
-    "@google/genai": "^1.50.1",
-    "@google/generative-ai": "^0.24.1",
-    "@sentry/node": "^10.50.0",
-    "ai": "^6.0.175",
-    "cheerio": "^1.2.0",
-    "dotenv": "^17.4.2",
-    "fast-xml-parser": "^5.7.2",
-    "figma-js": "^1.16.1-0",
-    "firebase-admin": "^13.7.0",
-    "genkit": "^1.32.0",
-    "google-auth-library": "^10.6.2",
-    "google-charts": "^2.0.0",
-    "inngest": "^4.1.0",
-    "puppeteer": "^24.42.0",
-    "toucan-js": "^4.1.1",
-    "y-protocols": "^1.0.7",
-    "yjs": "^13.6.30",
-    "zod": "^3.25.76"
+    "@capacitor/core": "^8.5.0",
+    "isomorphic-git": "^1.41.0",
+    "lucide-react": "^1.30.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "webtorrent": "^3.0.21"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.0",
-    "genkit-cli": "^1.32.0",
-    "wrangler": "^4.83.0"
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/ios": "^8.5.0",
+    "@playwright/test": "^1.62.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@testing-library/react": "^16.3.2",
+    "@types/jsdom": "^30.0.0",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
+    "@typescript-eslint/eslint-plugin": "^7.1.1",
+    "@typescript-eslint/parser": "^7.1.1",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.5.4",
+    "electron": "^30.0.1",
+    "electron-builder": "^24.13.3",
+    "electron-playwright-helpers": "^3.1.1",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "jsdom": "^29.1.1",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.6",
+    "vite-plugin-electron": "^0.28.6",
+    "vite-plugin-electron-renderer": "^0.14.5",
+    "vitest": "^4.1.10"
+  },
+  "main": "dist-electron/main.js",
+  "build": {
+    "appId": "com.torrentdownloader.app",
+    "productName": "Torrent Downloader",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist",
+      "dist-electron"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Network"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "releaseType": "release"
+      }
+    ]
   }
 }
