@@ -76,19 +76,20 @@ async function buildStaticPosts() {
 
       // 1. Hydrate Meta Tags
       const metaTags = `
-  <title>${title} — BlogsPro</title>
-  <meta name="description" content="${excerpt}">
-  <meta property="og:title" content="${title} — BlogsPro">
-  <meta property="og:description" content="${excerpt}">
+  <title id="pageTitle">${title} — BlogsPro</title>
+  <meta name="description" id="metaDesc" content="${excerpt}">
+  <meta property="og:title" id="ogTitle" content="${title} — BlogsPro">
+  <meta property="og:description" id="ogDesc" content="${excerpt}">
   <meta property="og:image" content="${banner}">
-  <meta property="og:url" content="${url}">
+  <meta property="og:url" id="ogUrl" content="${url}">
+  <meta property="og:site_name" content="BlogsPro">
   <meta property="og:type" content="article">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${title} — BlogsPro">
-  <meta name="twitter:description" content="${excerpt}">
+  <meta name="twitter:title" id="twTitle" content="${title} — BlogsPro">
+  <meta name="twitter:description" id="twDesc" content="${excerpt}">
   <meta name="twitter:image" content="${banner}">
-  <link rel="canonical" href="${url}">
-  <script type="application/ld+json">
+  <link rel="canonical" id="canonLink" href="${url}">
+  <script type="application/ld+json" id="ldJson">
   {
     "@context": "https://schema.org",
     "@type": "Article",
