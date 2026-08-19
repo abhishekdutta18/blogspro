@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'api/upstox-worker.js'
-      - 'wrangler.upstox.toml'
+      - "api/upstox-worker.js"
+      - "wrangler.toml"
   workflow_dispatch:
 
 jobs:
@@ -18,8 +18,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "24"
+          cache: "npm"
 
       - name: Deploy to Cloudflare
         env:
