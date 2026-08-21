@@ -9,3 +9,7 @@
 ## 2024-05-19 - Wrangler V3 Secret Put without Account ID
 **Learning:** Running `npx wrangler@3 secret put` or `deploy` without an interactive prompt requires both `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` explicitly defined in the environment. If `CLOUDFLARE_ACCOUNT_ID` is missing, the API call will fail with a 400 error (code 9106) due to missing account context, even if the token is valid.
 **Action:** Always ensure `CLOUDFLARE_ACCOUNT_ID` is passed via `env` in GitHub Actions steps that run non-interactive `wrangler deploy` or `wrangler secret put` commands.
+
+## 2024-05-19 - Wrangler V3 Action Usage
+**Learning:** Running non-interactive Wrangler v3 deployments via manual bash commands requires careful environment variable propagation (like `CLOUDFLARE_ACCOUNT_ID`). Using the official `cloudflare/wrangler-action@v3` simplifies this by managing the authentication context internally.
+**Action:** Use `cloudflare/wrangler-action@v3` for worker deployments in GitHub Actions instead of raw `npx wrangler deploy` commands to ensure robust authentication handling.
