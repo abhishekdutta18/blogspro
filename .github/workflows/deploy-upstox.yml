@@ -21,6 +21,10 @@ jobs:
           node-version: '24'
           cache: 'npm'
 
+      # Prevent wrangler from triggering the root package.json build script which runs `tsc` (unrelated project)
+      - name: Disable default build command
+        run: npm pkg delete scripts.build
+
       - name: Deploy to Cloudflare
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
