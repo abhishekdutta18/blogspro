@@ -1718,18 +1718,28 @@ window.addEventListener('load', () => {
       onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↓</button>
   </div>
   <script>
+    // ⚡ Bolt: Optimize scroll listener to prevent layout thrashing
+    // Uses requestAnimationFrame to sync with browser paints and passive: true to not block scrolling
     // Show/hide floating buttons based on scroll position
+    let scrollTicking = false;
     window.addEventListener('scroll', () => {
-      const el = document.getElementById('scrollFloats');
-      if (!el) return;
-      if (window.scrollY > 300) {
-        el.style.opacity = '1';
-        el.style.pointerEvents = 'auto';
-      } else {
-        el.style.opacity = '0';
-        el.style.pointerEvents = 'none';
+      if (!scrollTicking) {
+        window.requestAnimationFrame(() => {
+          const el = document.getElementById('scrollFloats');
+          if (el) {
+            if (window.scrollY > 300) {
+              el.style.opacity = '1';
+              el.style.pointerEvents = 'auto';
+            } else {
+              el.style.opacity = '0';
+              el.style.pointerEvents = 'none';
+            }
+          }
+          scrollTicking = false;
+        });
+        scrollTicking = true;
       }
-    });
+    }, { passive: true });
   </script>
   <script type="module" src="js/terminal-dispatch.js"></script>
 </body>
