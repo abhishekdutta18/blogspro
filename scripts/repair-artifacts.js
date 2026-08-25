@@ -10,7 +10,7 @@ import path from 'path';
 async function repairArtifacts() {
     console.log("🛠️ [Repair] Starting Institutional Artifact Restoration...");
 
-    const distPath = path.join(process.cwd(), 'dist');
+    const distPath = path.join(process.cwd(), 'p');
     
     if (!fs.existsSync(distPath)) {
         console.error("❌ 'dist/' directory not found. Aborting.");
