@@ -51,7 +51,7 @@ async function buildStaticPosts() {
       })
     });
     if (!res.ok) throw new Error("Failed to fetch posts: " + await res.text());
-    
+
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return console.log("No posts found.");
 
@@ -61,7 +61,7 @@ async function buildStaticPosts() {
       const doc = item.document;
       const docId = doc.name.split('/').pop();
       const fields = doc.fields;
-      
+
       if (!fields || !fields.published || !fields.published.booleanValue) continue;
 
       const title = fields.title?.stringValue || 'Untitled';
@@ -115,14 +115,14 @@ async function buildStaticPosts() {
         ${banner ? `<img src="${banner}" class="article-cover" alt="${title}" style="width:100%; border-radius:8px; margin-bottom:2rem;">` : ''}
         <div class="article-content">${content}</div>
       `;
-      
+
       html = html.replace(/<!-- SSG_CONTENT_START -->[\s\S]*?<!-- SSG_CONTENT_END -->/, `<!-- SSG_CONTENT_START -->${articleHtml}\n  <!-- SSG_CONTENT_END -->`);
 
       // 3. Force the SPA to load this exact post
       html = html.replace("const id = new URLSearchParams(location.search).get('id');", `const id = "${docId}";`);
 
       const outPath = path.join(outDir, `${slug}.html`);
-      
+
       // Minification
       const minifiedHtml = html
         .replace(/>\s+</g, '><')
