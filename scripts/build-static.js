@@ -1,26 +1,26 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // ESM path resolution
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PROJECT_ID = "blogspro-ai";
+const PROJECT_ID = 'blogspro-ai';
 const API_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
 
 async function buildStaticPosts() {
-  const outDir = path.join(__dirname, "../p");
+  const outDir = path.join(__dirname, '../p');
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
 
-  const templatePath = path.join(__dirname, "templates/post.html");
+  const templatePath = path.join(__dirname, 'templates/post.html');
   if (!fs.existsSync(templatePath)) {
     console.error("Template post.html not found!");
     process.exit(1);
   }
-  let template = fs.readFileSync(templatePath, "utf8");
+  let template = fs.readFileSync(templatePath, 'utf8');
 
   // Fix relative paths for files served from /p/ folder
   template = template
@@ -44,41 +44,33 @@ async function buildStaticPosts() {
             fieldFilter: {
               field: { fieldPath: "published" },
               op: "EQUAL",
-              value: { booleanValue: true },
-            },
-          },
-        },
-      }),
+              value: { booleanValue: true }
+            }
+          }
+        }
+      })
     });
-    if (!res.ok)
-      throw new Error("Failed to fetch posts: " + (await res.text()));
+    if (!res.ok) throw new Error("Failed to fetch posts: " + await res.text());
 
     const data = await res.json();
-    if (!Array.isArray(data) || data.length === 0)
-      return console.log("No posts found.");
+    if (!Array.isArray(data) || data.length === 0) return console.log("No posts found.");
 
     let count = 0;
     for (const item of data) {
       if (!item.document) continue;
       const doc = item.document;
-      const docId = doc.name.split("/").pop();
+      const docId = doc.name.split('/').pop();
       const fields = doc.fields;
 
-      if (!fields || !fields.published || !fields.published.booleanValue)
-        continue;
+      if (!fields || !fields.published || !fields.published.booleanValue) continue;
 
-      const title = fields.title?.stringValue || "Untitled";
-      const excerpt = fields.excerpt?.stringValue || "";
-      const banner =
-        fields.coverImage?.stringValue || "https://blogspro.in/og-default.jpg";
-      let content = fields.content?.stringValue || "";
-      const slug =
-        title
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)+/g, "") || docId;
-      const category = fields.category?.stringValue || "General";
-      const author = fields.authorName?.stringValue || "BlogsPro";
+      const title = fields.title?.stringValue || 'Untitled';
+      const excerpt = fields.excerpt?.stringValue || '';
+      const banner = fields.coverImage?.stringValue || 'https://blogspro.in/og-default.jpg';
+      let content = fields.content?.stringValue || '';
+      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || docId;
+      const category = fields.category?.stringValue || 'General';
+      const author = fields.authorName?.stringValue || 'BlogsPro';
       const dateIso = doc.createTime || new Date().toISOString();
       const url = `https://blogspro.in/p/${slug}.html`;
 
@@ -110,42 +102,33 @@ async function buildStaticPosts() {
   }
   </script>`;
 
-      let html = template.replace(
-        /<!-- SSG_META_START -->[\s\S]*?<!-- SSG_META_END -->/,
-        `<!-- SSG_META_START -->${metaTags}\n  <!-- SSG_META_END -->`,
-      );
+      let html = template.replace(/<!-- SSG_META_START -->[\s\S]*?<!-- SSG_META_END -->/, `<!-- SSG_META_START -->${metaTags}\n  <!-- SSG_META_END -->`);
 
       // 2. Inject Static Content
       const articleHtml = `
         <div class="article-meta-top">
           <span class="article-cat">${category}</span>
-          <span class="article-date">${new Date(dateIso).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</span>
+          <span class="article-date">${new Date(dateIso).toLocaleDateString('en-IN', {day:'numeric', month:'long', year:'numeric'})}</span>
         </div>
         <h1 class="article-title">${title}</h1>
-        ${excerpt ? `<p class="article-excerpt">${excerpt}</p>` : ""}
-        ${banner ? `<img src="${banner}" class="article-cover" alt="${title}" style="width:100%; border-radius:8px; margin-bottom:2rem;">` : ""}
+        ${excerpt ? `<p class="article-excerpt">${excerpt}</p>` : ''}
+        ${banner ? `<img src="${banner}" class="article-cover" alt="${title}" style="width:100%; border-radius:8px; margin-bottom:2rem;">` : ''}
         <div class="article-content">${content}</div>
       `;
 
-      html = html.replace(
-        /<!-- SSG_CONTENT_START -->[\s\S]*?<!-- SSG_CONTENT_END -->/,
-        `<!-- SSG_CONTENT_START -->${articleHtml}\n  <!-- SSG_CONTENT_END -->`,
-      );
+      html = html.replace(/<!-- SSG_CONTENT_START -->[\s\S]*?<!-- SSG_CONTENT_END -->/, `<!-- SSG_CONTENT_START -->${articleHtml}\n  <!-- SSG_CONTENT_END -->`);
 
       // 3. Force the SPA to load this exact post
-      html = html.replace(
-        "const id = new URLSearchParams(location.search).get('id');",
-        `const id = "${docId}";`,
-      );
+      html = html.replace("const id = new URLSearchParams(location.search).get('id');", `const id = "${docId}";`);
 
       const outPath = path.join(outDir, `${slug}.html`);
 
       // Minification
       const minifiedHtml = html
-        .replace(/>\s+</g, "><")
-        .replace(/\s{2,}/g, " ")
-        .replace(/\/\*[\s\S]*?\*\//g, "")
-        .replace(/<!--(?![\s\S]*?SSG_)[\s\S]*?-->/g, "");
+        .replace(/>\s+</g, '><')
+        .replace(/\s{2,}/g, ' ')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/<!--(?![\s\S]*?SSG_)[\s\S]*?-->/g, '');
 
       fs.writeFileSync(outPath, minifiedHtml);
       console.log(`✓ Generated: p/${slug}.html`);

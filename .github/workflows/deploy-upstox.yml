@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - "api/upstox-worker.js"
-      - "wrangler.upstox.toml"
+      - "wrangler.toml"
   workflow_dispatch:
 
 jobs:
@@ -35,7 +35,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
         run: |
-          [ -n "$UPSTOX_ACCESS_TOKEN" ] && echo "$UPSTOX_ACCESS_TOKEN" | npx wrangler@3 secret put UPSTOX_ACCESS_TOKEN --env upstox || echo "UPSTOX_ACCESS_TOKEN not set — skipping"
+          [ -n "$UPSTOX_ACCESS_TOKEN" ] && echo "$UPSTOX_ACCESS_TOKEN" | npx wrangler@3 secret put UPSTOX_ACCESS_TOKEN --env upstox -c wrangler.toml || echo "UPSTOX_ACCESS_TOKEN not set — skipping"
 
   notify-failure:
     needs: deploy
