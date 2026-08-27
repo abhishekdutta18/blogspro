@@ -6,6 +6,13 @@ main = "api/upstox-worker.js"
 compatibility_date = "2026-04-01"
 account_id = "b3f4edff1fdc616f329e7d7cb6698307"
 
+[build]
+# OVERRIDE DEFAULT BUILD: The root package.json belongs to an unrelated project (torrent-downloader).
+# We must use a dummy build command here to prevent the Cloudflare Workers CI from running `npm run build`
+# which triggers the unrelated build and causes CI failures.
+command = "echo 'Skipping build'"
+
+
 # KV cache worker (bind CACHE_KV before deploy)
 [env.kv-cache]
 name = "blogspro-kv-cache"
