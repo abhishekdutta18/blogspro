@@ -1,0 +1,64 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/nandadulaldutta/.gemini/antigravity/worktrees/Torrent Downloader/cpp_torrent_downloader_client/build/FluxTorrent.app/Contents/MacOS/FluxTorrent'
+relocations:
+  - { offset: 0xB9A85, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x0, symBinAddr: 0x100001230, symSize: 0x10C }
+  - { offset: 0xB9ABA, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateCMa', symObjAddr: 0x10C, symBinAddr: 0x10000133C, symSize: 0x20 }
+  - { offset: 0xB9B05, size: 0x8, addend: 0x0, symName: '_$s10Foundation4DataVSgSo13NSURLResponseCSgs5Error_pSgIeghggg_So6NSDataCSgAGSo7NSErrorCSgIeyBhyyy_TR', symObjAddr: 0xAAC, symBinAddr: 0x100001CDC, symSize: 0xC8 }
+  - { offset: 0xB9BB5, size: 0x8, addend: 0x0, symName: '_$sIeg_IeyB_TR', symObjAddr: 0x1830, symBinAddr: 0x100002A60, symSize: 0x2C }
+  - { offset: 0xB9BF9, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateCfETo', symObjAddr: 0x2B9C, symBinAddr: 0x100003DCC, symSize: 0x78 }
+  - { offset: 0xB9C28, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC13WebUIDelegateCMa', symObjAddr: 0x2C14, symBinAddr: 0x100003E44, symSize: 0x20 }
+  - { offset: 0xB9C60, size: 0x8, addend: 0x0, symName: '_$ss13_parseInteger5ascii5radixq_Sgx_SitSyRzs010FixedWidthB0R_r0_lFSS_SiTg5', symObjAddr: 0x2C34, symBinAddr: 0x100003E64, symSize: 0x100 }
+  - { offset: 0xB9CF8, size: 0x8, addend: 0x0, symName: '_$ss22__RawDictionaryStorageC4findys10_HashTableV6BucketV6bucket_Sb5foundtxSHRzlFSS_Tg5', symObjAddr: 0x2D34, symBinAddr: 0x100003F64, symSize: 0x64 }
+  - { offset: 0xB9D46, size: 0x8, addend: 0x0, symName: '_$ss22__RawDictionaryStorageC4find_9hashValues10_HashTableV6BucketV6bucket_Sb5foundtx_SitSHRzlFSS_Tg5', symObjAddr: 0x2D98, symBinAddr: 0x100003FC8, symSize: 0xAC }
+  - { offset: 0xB9D9D, size: 0x8, addend: 0x0, symName: '_$ss13_parseInteger5ascii5radixq_Sgx_SitSyRzs010FixedWidthB0R_r0_lFADSRys5UInt8VGXEfU_SS_SiTg5', symObjAddr: 0x2E44, symBinAddr: 0x100004074, symSize: 0x27C }
+  - { offset: 0xB9E6F, size: 0x8, addend: 0x0, symName: '_$sSS8_copyingyS2SFZ', symObjAddr: 0x30C0, symBinAddr: 0x1000042F0, symSize: 0x50 }
+  - { offset: 0xB9E87, size: 0x8, addend: 0x0, symName: '_$sSlsEy11SubSequenceQzqd__cSXRd__5BoundQyd__5IndexRtzluigSS_s16PartialRangeFromVySSAEVGTgq5', symObjAddr: 0x3110, symBinAddr: 0x100004340, symSize: 0x4C }
+  - { offset: 0xB9ED1, size: 0x8, addend: 0x0, symName: '_$sSS8_copyingySSSsFZ', symObjAddr: 0x315C, symBinAddr: 0x10000438C, symSize: 0x144 }
+  - { offset: 0xB9F1F, size: 0x8, addend: 0x0, symName: '_$ss22_ContiguousArrayBufferV19_uninitializedCount15minimumCapacityAByxGSi_SitcfCs5UInt8V_Tt1gq5', symObjAddr: 0x32A0, symBinAddr: 0x1000044D0, symSize: 0x70 }
+  - { offset: 0xB9F62, size: 0x8, addend: 0x0, symName: '_$sSTsE21_copySequenceContents12initializing8IteratorQz_SitSry7ElementQzG_tFSs8UTF8ViewV_Tgq5', symObjAddr: 0x3310, symBinAddr: 0x100004540, symSize: 0x1F8 }
+  - { offset: 0xB9FC4, size: 0x8, addend: 0x0, symName: '_$ss11_StringGutsV27_slowEnsureMatchingEncodingySS5IndexVAEF', symObjAddr: 0x3508, symBinAddr: 0x100004738, symSize: 0x78 }
+  - { offset: 0xBA013, size: 0x8, addend: 0x0, symName: '_$ss17_NativeDictionaryV8setValue_6forKey8isUniqueyq_n_xSbtFSS_SSTg5', symObjAddr: 0x3580, symBinAddr: 0x1000047B0, symSize: 0x15C }
+  - { offset: 0xBA0E9, size: 0x8, addend: 0x0, symName: '_$ss17_NativeDictionaryV4copyyyFSS_SSTg5', symObjAddr: 0x36DC, symBinAddr: 0x10000490C, symSize: 0x178 }
+  - { offset: 0xBA1AF, size: 0x8, addend: 0x0, symName: '_$ss17_NativeDictionaryV20_copyOrMoveAndResize8capacity12moveElementsySi_SbtFSS_SSTg5', symObjAddr: 0x3854, symBinAddr: 0x100004A84, symSize: 0x2B4 }
+  - { offset: 0xBA2AC, size: 0x8, addend: 0x0, symName: ___swift_instantiateConcreteTypeFromMangledNameV2, symObjAddr: 0x4170, symBinAddr: 0x1000053A0, symSize: 0x50 }
+  - { offset: 0xBA2C0, size: 0x8, addend: 0x0, symName: '_$sSo17OS_dispatch_queueCMa', symObjAddr: 0x41C0, symBinAddr: 0x1000053F0, symSize: 0x44 }
+  - { offset: 0xBA2D4, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC9showErroryySSFyyScMYccfU_TA', symObjAddr: 0x4254, symBinAddr: 0x100005484, symSize: 0x2BC }
+  - { offset: 0xBA3F5, size: 0x8, addend: 0x0, symName: _block_copy_helper, symObjAddr: 0x4510, symBinAddr: 0x100005740, symSize: 0x14 }
+  - { offset: 0xBA409, size: 0x8, addend: 0x0, symName: _block_destroy_helper, symObjAddr: 0x4524, symBinAddr: 0x100005754, symSize: 0x8 }
+  - { offset: 0xBA41D, size: 0x8, addend: 0x0, symName: '_$s8Dispatch0A13WorkItemFlagsVACs10SetAlgebraAAWl', symObjAddr: 0x452C, symBinAddr: 0x10000575C, symSize: 0x44 }
+  - { offset: 0xBA431, size: 0x8, addend: 0x0, symName: '_$sSay8Dispatch0A13WorkItemFlagsVGSayxGSTsWl', symObjAddr: 0x4570, symBinAddr: 0x1000057A0, symSize: 0x50 }
+  - { offset: 0xBA445, size: 0x8, addend: 0x0, symName: ___swift_instantiateConcreteTypeFromMangledNameAbstractV2, symObjAddr: 0x45C0, symBinAddr: 0x1000057F0, symSize: 0x54 }
+  - { offset: 0xBA459, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC18checkBackendHealth9startTimey10Foundation4DateV_tFyyScMYccfU_TA', symObjAddr: 0x4680, symBinAddr: 0x1000058B0, symSize: 0x80 }
+  - { offset: 0xBA47A, size: 0x8, addend: 0x0, symName: '_$sS2SSysWl', symObjAddr: 0x4700, symBinAddr: 0x100005930, symSize: 0x40 }
+  - { offset: 0xBA48E, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC18checkBackendHealth9startTimey10Foundation4DateV_tFyAF4DataVSg_So13NSURLResponseCSgs5Error_pSgtYbcfU0_TA', symObjAddr: 0x47AC, symBinAddr: 0x1000059DC, symSize: 0x50 }
+  - { offset: 0xBA4A2, size: 0x8, addend: 0x0, symName: '_$s10Foundation4DataVSgWOe', symObjAddr: 0x47FC, symBinAddr: 0x100005A2C, symSize: 0x14 }
+  - { offset: 0xBA4B6, size: 0x8, addend: 0x0, symName: '_$s10Foundation4DataV15_RepresentationOWOe', symObjAddr: 0x4810, symBinAddr: 0x100005A40, symSize: 0x40 }
+  - { offset: 0xBA4CA, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC18checkBackendHealth9startTimey10Foundation4DateV_tFyAF4DataVSg_So13NSURLResponseCSgs5Error_pSgtYbcfU0_yyScMYccfU_Tf2ninn_nTA', symObjAddr: 0x48BC, symBinAddr: 0x100005AEC, symSize: 0x38 }
+  - { offset: 0xBA4DE, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC18checkBackendHealth9startTimey10Foundation4DateV_tFyAF4DataVSg_So13NSURLResponseCSgs5Error_pSgtYbcfU0_yyScMYccfU_yyScMYccfU_TA', symObjAddr: 0x4960, symBinAddr: 0x100005B90, symSize: 0x40 }
+  - { offset: 0xBA596, size: 0x8, addend: 0x0, symName: '_$s10Foundation4DataV15_RepresentationOWOy', symObjAddr: 0x54F0, symBinAddr: 0x100006720, symSize: 0x40 }
+  - { offset: 0xBAA95, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC13WebUIDelegateC7webView_36runJavaScriptConfirmPanelWithMessage16initiatedByFrame17completionHandlerySo05WKWebH0C_SSSo11WKFrameInfoCySbctFTo', symObjAddr: 0x12C, symBinAddr: 0x10000135C, symSize: 0xBC }
+  - { offset: 0xBAD4E, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC13WebUIDelegateC7webView_34runJavaScriptAlertPanelWithMessage16initiatedByFrame17completionHandlerySo05WKWebH0C_SSSo11WKFrameInfoCyyctFTo', symObjAddr: 0x1E8, symBinAddr: 0x100001418, symSize: 0xB0 }
+  - { offset: 0xBADD5, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC13WebUIDelegateCAEycfcTo', symObjAddr: 0x298, symBinAddr: 0x1000014C8, symSize: 0x3C }
+  - { offset: 0xBAF3A, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC29applicationDidFinishLaunchingyy10Foundation12NotificationVF', symObjAddr: 0x2E0, symBinAddr: 0x100001510, symSize: 0x36C }
+  - { offset: 0xBB263, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC15setupStatusItemyyF', symObjAddr: 0x658, symBinAddr: 0x100001888, symSize: 0x288 }
+  - { offset: 0xBB3B0, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC04showC6WindowyyF', symObjAddr: 0x8E0, symBinAddr: 0x100001B10, symSize: 0x70 }
+  - { offset: 0xBB41A, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC04showC6WindowyyFTo', symObjAddr: 0x950, symBinAddr: 0x100001B80, symSize: 0x28 }
+  - { offset: 0xBB435, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC04quitC0yyFTo', symObjAddr: 0x978, symBinAddr: 0x100001BA8, symSize: 0x1C }
+  - { offset: 0xBB44D, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC04quitC0yyFTo', symObjAddr: 0x978, symBinAddr: 0x100001BA8, symSize: 0x1C }
+  - { offset: 0xBB494, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC17handleGetURLEvent5event14withReplyEventySo07NSAppleK10DescriptorC_AHtFy10Foundation4DataVSg_So13NSURLResponseCSgs5Error_pSgtYbcfU_', symObjAddr: 0x994, symBinAddr: 0x100001BC4, symSize: 0x118 }
+  - { offset: 0xBB59C, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC17handleGetURLEvent5event14withReplyEventySo07NSAppleK10DescriptorC_AHtFTo', symObjAddr: 0xB74, symBinAddr: 0x100001DA4, symSize: 0x68 }
+  - { offset: 0xBB674, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC18checkBackendHealth9startTimey10Foundation4DateV_tF', symObjAddr: 0xBDC, symBinAddr: 0x100001E0C, symSize: 0xC54 }
+  - { offset: 0xBBA6F, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC18checkBackendHealth9startTimey10Foundation4DateV_tFyAF4DataVSg_So13NSURLResponseCSgs5Error_pSgtYbcfU0_', symObjAddr: 0x185C, symBinAddr: 0x100002A8C, symSize: 0x2E0 }
+  - { offset: 0xBBB6B, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC18checkBackendHealth9startTimey10Foundation4DateV_tFyAF4DataVSg_So13NSURLResponseCSgs5Error_pSgtYbcfU0_yyScMYccfU_Tf2ninn_n', symObjAddr: 0x1B3C, symBinAddr: 0x100002D6C, symSize: 0x578 }
+  - { offset: 0xBBD60, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC9showErroryySSF', symObjAddr: 0x20B4, symBinAddr: 0x1000032E4, symSize: 0x210 }
+  - { offset: 0xBBE86, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC12startBackendyyF', symObjAddr: 0x22C4, symBinAddr: 0x1000034F4, symSize: 0x5FC }
+  - { offset: 0xBC128, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC47applicationShouldTerminateAfterLastWindowClosedySbSo13NSApplicationCFTo', symObjAddr: 0x28C0, symBinAddr: 0x100003AF0, symSize: 0x8 }
+  - { offset: 0xBC150, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC24applicationWillTerminateyy10Foundation12NotificationVF', symObjAddr: 0x28C8, symBinAddr: 0x100003AF8, symSize: 0x130 }
+  - { offset: 0xBC1CA, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateCACycfc', symObjAddr: 0x2AA8, symBinAddr: 0x100003CD8, symSize: 0x98 }
+  - { offset: 0xBC204, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateCACycfcTo', symObjAddr: 0x2B40, symBinAddr: 0x100003D70, symSize: 0x20 }
+  - { offset: 0xBC25B, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC13setupMainMenuyyFTf4d_n', symObjAddr: 0x3B08, symBinAddr: 0x100004D38, symSize: 0x56C }
+  - { offset: 0xBC4FA, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC13WebUIDelegateC7webView_36runJavaScriptConfirmPanelWithMessage16initiatedByFrame17completionHandlerySo05WKWebH0C_SSSo11WKFrameInfoCySbctF027$s10ObjectiveC8ObjCBoolVIeyQ10_SbIegy_TR0Y1C8ObjCBoolVIeyBy_Tf1nnncn_nTf4dnddg_n', symObjAddr: 0x4074, symBinAddr: 0x1000052A4, symSize: 0xFC }
+  - { offset: 0xBC672, size: 0x8, addend: 0x0, symName: '_$sSD17dictionaryLiteralSDyxq_Gx_q_td_tcfCSS_SSTt0g5Tf4g_n', symObjAddr: 0x49A0, symBinAddr: 0x100005BD0, symSize: 0x110 }
+  - { offset: 0xBC7A4, size: 0x8, addend: 0x0, symName: '_$s11FluxTorrent11AppDelegateC17handleGetURLEvent5event14withReplyEventySo07NSAppleK10DescriptorC_AHtFTf4ndd_n', symObjAddr: 0x4AB0, symBinAddr: 0x100005CE0, symSize: 0xA00 }
+...
