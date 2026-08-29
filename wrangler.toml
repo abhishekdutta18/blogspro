@@ -6,6 +6,9 @@ main = "api/upstox-worker.js"
 compatibility_date = "2026-04-01"
 account_id = "b3f4edff1fdc616f329e7d7cb6698307"
 
+[build]
+command = "echo 'Skipping build'"
+
 # KV cache worker (bind CACHE_KV before deploy)
 [env.kv-cache]
 name = "blogspro-kv-cache"
@@ -228,6 +231,9 @@ deleted_classes = ["MiroSync", "DataIngestor", "ManuscriptAggregator"]
 name = "blogspro-upstox"
 main = "api/upstox-worker.js"
 compatibility_date = "2026-04-01"
+
+[env.upstox.build]
+command = "echo 'Skipping build'"
 
 [env.upstox.vars]
 # Environment-specific variables
