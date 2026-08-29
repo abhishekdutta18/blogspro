@@ -232,6 +232,9 @@ name = "blogspro-upstox"
 main = "api/upstox-worker.js"
 compatibility_date = "2026-04-01"
 
+[env.upstox.build]
+command = "echo 'Skipping build'"
+
 [env.upstox.vars]
 # Environment-specific variables
 FIREBASE_PROJECT_ID = "blogspro-ai"
