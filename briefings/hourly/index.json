@@ -1,6 +1,38 @@
 [
   {
     "title": "HOURLY   Apex Institutional",
+    "date": "2026-09-04",
+    "timestamp": 1788521807111,
+    "excerpt": "STRATEGIC NEWS WIRE [DRY-RUN MOCK CONTENT]: Strategic Institutional synthesis for BlogsPro 5.0. No AI tokens consumed. [DRY-RUN MOCK CONTENT]: Strategic Institutional synthesis for BlogsPro 5.0. No AI tokens consumed. GLOBAL & INDIAN MACRO [DRY-RUN M...",
+    "fileName": "swarm-hourly-1788521804497.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63519) | Inclusion of “Coastal Local Area Bank Limited” in the Second Schedule to the Reserve Bank of India Act, 1934 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63518) | Government Stock - Full Auction Results (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63517) | SEBI: SEBI to review Settlement Price methodology for Derivative Contracts in the light of CAS rollout (URL: https://www.sebi.gov.in/media-and-notifications/press-releases/sep-2026/sebi-to-review-settlement-price-methodology-for-derivative-contracts-in-the-light-of-cas-rollout_104260.html) | Appeal No. 7028 of 2026 filed by Samar Imran (URL: https://www.sebi.gov.in/enforcement/orders/sep-2026/appeal-no-7028-of-2026-filed-by-samar-imran_104259.html) | Appeal No. 7027 of 2026 filed by Samar Imran (URL: https://www.sebi.gov.in/enforcement/orders/sep-2026/appeal-no-7027-of-2026-filed-by-samar-imran_104258.html) | GLOBAL: BLOOMBERG | BOE’s Pill Fears Central Banks Being Pushed to Finance Deficits - Bloomberg.com | BLOOMBERG | Felix Pago Raises $200 Million to Expand Into Financial Services - Bloomberg.com | BLOOMBERG | Saudis Explore About $8 Billion in Loans as War Strains Finances - Bloomberg.com | FT | Manager of Norway’s $2tn oil fund proposes slashing US Treasury holdings - ft.com | FT | Star Citadel trader to step down amid tumult in energy markets - ft.com | FT | Australian property developer collapse ripples into private credit markets - ft.com | REUTERS | China deploys first 2026 policy financing funds to spur investment - Reuters | REUTERS | Microsoft reveals Azure cloud sales in financial reporting shift - Reuters | REUTERS | IMF's Georgieva says rising bond yields threaten progress on developing country debt - Reuters | CNBC | The inflation genie could be out of the bottle — and bond markets are sounding the alarm - CNBC | CNBC | Shein has made a shaky stock market entry. Can it get its mojo back? - CNBC | CNBC | Global bond sell-off likely not over yet, Mohamed El-Erian tells CNBC - CNBC | NIKKEI | Analysis: Hubei issues a challenge to Xi Jinping's economic policies - Nikkei Asia | NIKKEI | What do 3% yields mean for Japan's businesses, Takaichi's spending plans? - Nikkei Asia | NIKKEI | G20 finance chiefs except China back action on distorted trade - Nikkei Asia",
+      "rbi": "Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63519) | Inclusion of “Coastal Local Area Bank Limited” in the Second Schedule to the Reserve Bank of India Act, 1934 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63518) | Government Stock - Full Auction Results (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63517)",
+      "sebi": "SEBI to review Settlement Price methodology for Derivative Contracts in the light of CAS rollout (URL: https://www.sebi.gov.in/media-and-notifications/press-releases/sep-2026/sebi-to-review-settlement-price-methodology-for-derivative-contracts-in-the-light-of-cas-rollout_104260.html) | Appeal No. 7028 of 2026 filed by Samar Imran (URL: https://www.sebi.gov.in/enforcement/orders/sep-2026/appeal-no-7028-of-2026-filed-by-samar-imran_104259.html) | Appeal No. 7027 of 2026 filed by Samar Imran (URL: https://www.sebi.gov.in/enforcement/orders/sep-2026/appeal-no-7027-of-2026-filed-by-samar-imran_104258.html)",
+      "docs": [
+        {
+          "title": "Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63519"
+        },
+        {
+          "title": "Inclusion of “Coastal Local Area Bank Limited” in the Second Schedule to the Reserve Bank of India Act, 1934",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63518"
+        },
+        {
+          "title": "Government Stock - Full Auction Results",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63517"
+        },
+        {
+          "title": "SEBI to review Settlement Price methodology for Derivative Contracts in the light of CAS rollout",
+          "link": "https://www.sebi.gov.in/media-and-notifications/press-releases/sep-2026/sebi-to-review-settlement-price-methodology-for-derivative-contracts-in-the-light-of-cas-rollout_104260.html"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Apex Institutional",
     "date": "2026-06-28",
     "timestamp": 1782656335695,
     "excerpt": "June 28, 2026. Global liquidity fragmentation has accelerated beyond the structural inflection points observed in LFY 2025. Cross-asset correlations are decoupling at a rate of 4.2% per week, signaling a breakdown in the risk-on transmission mechanis...",
