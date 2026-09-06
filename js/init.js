@@ -95,6 +95,41 @@ function withTimeout(promise, ms = API_TIMEOUT_MS, label = 'request') {
   ]).finally(() => clearTimeout(timer));
 }
 
+
+function parseLooseDate(raw) {
+  if (!raw) return null;
+  if (raw instanceof Date) return Number.isNaN(raw.getTime()) ? null : raw;
+  if (typeof raw === "number") {
+    const d = new Date(raw > 1e11 ? raw : raw * 1000);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const s = String(raw).trim();
+  let d = new Date(s);
+  if (!Number.isNaN(d.getTime())) return d;
+
+  // Handle "MM-DD-YYYY h:mma" or "MM/DD/YYYY h:mma" or "YYYY-MM-DD h:mma"
+  const m = s.match(/^(\d{1,4})[-/](\d{1,2})[-/](\d{1,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?)?$/i);
+  if (m) {
+    let [_, p1, p2, p3, hr, min, sec, ampm] = m;
+    let yr, mo, day;
+    if (p1.length === 4) {
+      yr = p1; mo = p2; day = p3;
+    } else {
+      mo = p1; day = p2; yr = p3;
+    }
+    let h = hr ? parseInt(hr, 10) : 0;
+    const mn = min ? parseInt(min, 10) : 0;
+    const sc = sec ? parseInt(sec, 10) : 0;
+    if (ampm) {
+      if (ampm.toLowerCase() === "pm" && h < 12) h += 12;
+      if (ampm.toLowerCase() === "am" && h === 12) h = 0;
+    }
+    d = new Date(Number(yr), Number(mo) - 1, Number(day), h, mn, sc);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
 async function loadForexFactoryData() {
   const listEl = document.getElementById('forexCalendarList');
   const chipEl = document.getElementById('forexFeedChip');
@@ -118,8 +153,10 @@ async function loadForexFactoryData() {
   if (!listEl || !chipEl || !metaEl || !analysisEl || !summaryEl || !snapshotEl || !countryMixChartEl || !surpriseChartEl || !sessionGaugeChartEl || !sessionGaugeNoteEl || !deskExplainEl || !pastListEl || !filterEl || !titleFilterEl || !impactEl || !sortEl || !limitEl || !tzEl || !skeletonEl) return false;
 
   const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    
+
   const fmtDate = (raw, mode = 'local') => {
-    const d = raw ? new Date(raw) : null;
+    const d = parseLooseDate(raw);
     if (!d || Number.isNaN(d.getTime())) return 'Date unavailable';
     const useUtc = mode === 'utc';
     return d.toLocaleString('en-US', {
@@ -331,7 +368,7 @@ async function loadForexFactoryData() {
     analysisEl.textContent = `Analyst view: ${buildAnalysis(events)}`;
     const baseNow = Date.now();
     const hydrated = events.map((e, idx) => {
-      const t = new Date(e.date || e.Date || e.datetime || 0).getTime();
+      const dObj = parseLooseDate(e.date || e.Date || e.datetime); const t = dObj ? dObj.getTime() : 0;
       if (Number.isFinite(t) && t > 0) return { ...e, __ts: t };
       return { ...e, __ts: baseNow + ((idx + 1) * 6 * 3600 * 1000) };
     });
@@ -633,7 +670,7 @@ async function loadIndiaCalendarData() {
 
   const esc = (v) => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const fmtDate = (raw) => {
-    const d = raw ? new Date(raw) : null;
+    const d = parseLooseDate(raw);
     if (!d || Number.isNaN(d.getTime())) return 'Date unavailable';
     return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   };
@@ -899,7 +936,7 @@ async function loadIndiaCalendarData() {
       if (!raw.length) continue;
       const now = Date.now();
       const hydrated = raw.map((e, i) => {
-        const t = new Date(e.date || e.Date || e.datetime || 0).getTime();
+        const dObj = parseLooseDate(e.date || e.Date || e.datetime); const t = dObj ? dObj.getTime() : 0;
         const ts = Number.isFinite(t) && t > 0 ? t : now + ((i + 1) * 6 * 3600 * 1000);
         return { ...e, __ts: ts, date: e.date || new Date(ts).toISOString() };
       });
@@ -1105,7 +1142,14 @@ function renderPosts(posts) {
   };
   grid.innerHTML = safePosts.map((p, i) => {
     const title = esc(p.title || 'Untitled');
-    const excerpt = esc(p.excerpt || 'No summary available.');
+        let excerpt = esc(p.excerpt || "No summary available.");
+    if (excerpt.includes(":root") || excerpt.includes("{") || excerpt.includes("--") || excerpt.includes("var(") || excerpt.includes("/*")) {
+      const parts = excerpt.split(/[:{]/);
+      excerpt = parts[0].trim();
+      if (excerpt.length < 10) {
+        excerpt = "Strategic Manuscript: Institutional Research available.";
+      }
+    }
     const category = esc(p.category) || 'General';
     const isStrategic = p.category === 'Strategic Research';
     const catClass = isStrategic ? 'post-category strategic' : 'post-category';
@@ -1361,8 +1405,8 @@ function initTVTicker() {
         {"proName": "INDEX:UKX",         "title": "FTSE 100"},
         {"proName": "INDEX:NI225",       "title": "Nikkei 225"},
         {"proName": "INDEX:HSI",         "title": "Hang Seng"},
-        {"proName": "SAXO:GOLD",         "title": "Gold"},
-        {"proName": "SAXO:WTI",          "title": "WTI Crude"},
+        {"proName": "TVC:GOLD",         "title": "Gold"},
+        {"proName": "TVC:USOIL",          "title": "WTI Crude"},
         {"proName": "BINANCE:BTCUSDT",   "title": "Bitcoin"},
         {"proName": "FX:USDINR",         "title": "USD/INR"},
         {"proName": "FX:EURUSD",         "title": "EUR/USD"}
@@ -1567,29 +1611,53 @@ function startMarketAutoRefresh() {
 }
 
 function hydratePolicy(latestPost) {
-  if (!latestPost) return;
   const rbi = document.getElementById('rbiSnippet');
   const sebi = document.getElementById('sebiSnippet');
   const hub = document.getElementById('downloadHub');
 
-  const meta = latestPost.metadata || latestPost;
-  const rbiText = meta.rbi || (meta.policy && meta.policy.rbi) || latestPost.rbi;
-  const sebiText = meta.sebi || (meta.policy && meta.policy.sebi) || latestPost.sebi;
-  const docs = meta.docs || (meta.policy && meta.policy.docs) || latestPost.docs || [];
+  const meta = (latestPost && (latestPost.metadata || latestPost)) || {};
+  const rbiText = meta.rbi || (meta.policy && meta.policy.rbi) || latestPost?.rbi;
+  const sebiText = meta.sebi || (meta.policy && meta.policy.sebi) || latestPost?.sebi;
+  const docs = meta.docs || (meta.policy && meta.policy.docs) || latestPost?.docs || [];
 
-  if (rbi && rbiText) rbi.textContent = rbiText.substring(0, 300) + (rbiText.length > 300 ? '...' : '');
-  if (sebi && sebiText) sebi.textContent = sebiText.substring(0, 300) + (sebiText.length > 300 ? '...' : '');
-  
-  if (hub && docs.length > 0) {
-    hub.innerHTML = docs.slice(0, 4).map(doc => `
-      <a href="${doc.link || '#'}" target="_blank" class="glass-btn" style="padding:0.4rem 0.6rem; font-size:0.72rem; display:flex; align-items:center; gap:0.4rem; text-decoration:none;">
-        <span>📄</span>
-        <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${doc.title}</span>
-        <span>↗</span>
-      </a>
-    `).join('');
+  if (rbi) {
+    rbi.textContent = rbiText
+      ? (rbiText.substring(0, 300) + (rbiText.length > 300 ? '...' : ''))
+      : 'Reserve Bank of India: Accommodative/Neutral policy stance maintained with systemic liquidity and risk surveillance.';
+  }
+  if (sebi) {
+    sebi.textContent = sebiText
+      ? (sebiText.substring(0, 300) + (sebiText.length > 300 ? '...' : ''))
+      : 'Securities and Exchange Board of India: Active market surveillance, risk parameter enforcement, and clearing house margin monitoring.';
+  }
+
+  if (hub) {
+    if (docs.length > 0) {
+      hub.innerHTML = docs.slice(0, 4).map(doc => `
+        <a href="${doc.link || '#'}" target="_blank" rel="noopener noreferrer" class="glass-btn" style="padding:0.4rem 0.6rem; font-size:0.72rem; display:flex; align-items:center; gap:0.4rem; text-decoration:none;">
+          <span>📄</span>
+          <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${doc.title || 'Official Document'}</span>
+          <span>↗</span>
+        </a>
+      `).join('');
+    } else {
+      hub.innerHTML = `
+        <a href="https://www.rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx" target="_blank" rel="noopener noreferrer" class="glass-btn" style="padding:0.4rem 0.6rem; font-size:0.72rem; display:flex; align-items:center; gap:0.4rem; text-decoration:none;">
+          <span>🏛️</span>
+          <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">RBI Press Releases</span>
+          <span>↗</span>
+        </a>
+        <a href="https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=1&smid=0&ssid=7" target="_blank" rel="noopener noreferrer" class="glass-btn" style="padding:0.4rem 0.6rem; font-size:0.72rem; display:flex; align-items:center; gap:0.4rem; text-decoration:none;">
+          <span>⚖️</span>
+          <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">SEBI Circulars Desk</span>
+          <span>↗</span>
+        </a>
+      `;
+    }
   }
 }
+// Initial population so desk is never empty
+hydratePolicy(null);
 document.getElementById('year').textContent = new Date().getFullYear();
 
 // ── Global Exports (bottom reinforcement for module-late consumers) ────────────
