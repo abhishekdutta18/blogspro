@@ -1719,17 +1719,27 @@ window.addEventListener('load', () => {
   </div>
   <script>
     // Show/hide floating buttons based on scroll position
+    let ticking = false;
     window.addEventListener('scroll', () => {
-      const el = document.getElementById('scrollFloats');
-      if (!el) return;
-      if (window.scrollY > 300) {
-        el.style.opacity = '1';
-        el.style.pointerEvents = 'auto';
-      } else {
-        el.style.opacity = '0';
-        el.style.pointerEvents = 'none';
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const el = document.getElementById('scrollFloats');
+          if (!el) {
+            ticking = false;
+            return;
+          }
+          if (window.scrollY > 300) {
+            el.style.opacity = '1';
+            el.style.pointerEvents = 'auto';
+          } else {
+            el.style.opacity = '0';
+            el.style.pointerEvents = 'none';
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
-    });
+    }, { passive: true });
   </script>
   <script type="module" src="js/terminal-dispatch.js"></script>
 </body>
