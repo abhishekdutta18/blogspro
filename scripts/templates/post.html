@@ -16,7 +16,7 @@
   <link rel="canonical"           id="canonLink" href="" />
   <script type="application/ld+json" id="ldJson"></script>
   <!-- Sentry Error Tracking -->
-  <script src="js/sentry-init-v2.js"></script>
+  <script src="${rel}js/sentry-init-v2.js"></script>
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DED9GTRR3E"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DED9GTRR3E');</script>
@@ -136,9 +136,9 @@
 <body>
 <div id="progress"></div>
 <nav>
-  <a class="nav-brand" href="index.html"><img src="logo.svg" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto"></a>
+  <a class="nav-brand" href="${rel}index.html"><img src="${rel}logo.svg" alt="BlogsPro" height="28" style="display:block;height:28px;width:auto"></a>
   <div class="nav-right">
-    <a class="back-link" href="index.html">← All Articles</a>
+    <a class="back-link" href="${rel}index.html">← All Articles</a>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
   </div>
 </nav>
@@ -184,7 +184,7 @@
     function renderFatal(msg) {
       document.getElementById('articleWrap').innerHTML = `
         <div class="error-state"><h2>${msg}</h2>
-        <a href="index.html" style="color:var(--gold)">← Back to all articles</a></div>`;
+        <a href="${rel}index.html" style="color:var(--gold)">← Back to all articles</a></div>`;
     }
 
     try {
@@ -316,8 +316,8 @@
                   <div style="font-size:2rem;margin-bottom:.5rem">⭐</div>
                   <h3>Premium Article</h3>
                   <p>Sign in or create a free account to read this article in full.</p>
-                  <button class="btn-unlock" onclick="location.href='login.html'">Sign In to Read</button>
-                  <p style="margin-top:.75rem;font-size:.75rem"><a href="register.html" style="color:var(--gold)">Create free account →</a></p>
+                  <button class="btn-unlock" onclick="location.href='${rel}login.html'">Sign In to Read</button>
+                  <p style="margin-top:.75rem;font-size:.75rem"><a href="${rel}register.html" style="color:var(--gold)">Create free account →</a></p>
                 </div>
               </div>
             </div>`}
@@ -450,7 +450,7 @@
           <button class="btn-comment" id="btnComment" onclick="postComment('${postId}')" ${!canComment?'disabled':''}>Post Comment</button>
         </div>`
       : `<div class="login-to-comment">
-          <a href="login.html">Sign in</a> or <a href="register.html">create an account</a> to leave a comment.
+          <a href="${rel}login.html">Sign in</a> or <a href="${rel}register.html">create an account</a> to leave a comment.
         </div>`;
 
     try {
@@ -511,7 +511,7 @@
   function renderError(msg) {
     document.getElementById('articleWrap').innerHTML = `
       <div class="error-state"><h2>${msg}</h2>
-      <a href="index.html" style="color:var(--gold)">← Back to all articles</a></div>`;
+      <a href="${rel}index.html" style="color:var(--gold)">← Back to all articles</a></div>`;
   }
 
   // FIX: Escape single quotes in addition to other HTML characters
