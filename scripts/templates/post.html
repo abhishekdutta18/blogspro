@@ -161,11 +161,20 @@
     document.getElementById('themeBtn').textContent = '☀️';
   }
 
+  // ⚡ Bolt: Optimize scroll listener with requestAnimationFrame and passive flag
+  // Why: Synchronous scroll events reading layout properties cause main thread blocking and layout thrashing.
+  let isScrolling = false;
   window.addEventListener('scroll', () => {
-    const el = document.documentElement;
-    document.getElementById('progress').style.width =
-      Math.min((el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100, 100) + '%';
-  });
+    if (!isScrolling) {
+      window.requestAnimationFrame(() => {
+        const el = document.documentElement;
+        document.getElementById('progress').style.width =
+          Math.min((el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100, 100) + '%';
+        isScrolling = false;
+      });
+      isScrolling = true;
+    }
+  }, { passive: true });
 
   // FIX: Defer all Firebase loading until after page has painted.
   // This stops Firebase SDK from blocking FCP/LCP.
