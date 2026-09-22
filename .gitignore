@@ -35,3 +35,6 @@ tmp/
 Thumbs.db
 playwright-report/
 test-results/
+dist/
+briefings/
+p/
