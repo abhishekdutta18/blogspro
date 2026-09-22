@@ -1,7 +1,7 @@
 /**
  * ui-utils.js — Global non-module utilities
- * 
- * These functions are assigned to 'window' to be accessible 
+ *
+ * These functions are assigned to 'window' to be accessible
  * from inline 'onclick' handlers regardless of module loading status.
  */
 
@@ -15,7 +15,7 @@
       themeBtn.textContent = isLight ? '🌙' : '☀️';
     }
     localStorage.setItem('bpTheme', isLight ? 'light' : 'dark');
-    
+
     // Dispatch event for other modules
     window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: isLight ? 'light' : 'dark' } }));
   };
@@ -26,17 +26,27 @@
   }
 
   // ── Scroll Progress Logic ───────────────────────────────────────────
+  // ⚡ Bolt Optimization: Use requestAnimationFrame & passive listener
+  // to prevent layout thrashing caused by synchronous DOM reads during scroll.
+  let scrollTicking = false;
   window.addEventListener('scroll', function() {
-    const progress = document.getElementById('progress');
-    if (!progress) return;
-    const el = document.documentElement;
-    const scrollTop = el.scrollTop || document.body.scrollTop;
-    const scrollHeight = el.scrollHeight || document.body.scrollHeight;
-    const clientHeight = el.clientHeight;
-    
-    const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
-    progress.style.width = Math.min(scrolled, 100) + '%';
-  });
+    if (!scrollTicking) {
+      window.requestAnimationFrame(function() {
+        const progress = document.getElementById('progress');
+        if (progress) {
+          const el = document.documentElement;
+          const scrollTop = el.scrollTop || document.body.scrollTop;
+          const scrollHeight = el.scrollHeight || document.body.scrollHeight;
+          const clientHeight = el.clientHeight;
+
+          const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
+          progress.style.width = Math.min(scrolled, 100) + '%';
+        }
+        scrollTicking = false;
+      });
+      scrollTicking = true;
+    }
+  }, { passive: true });
 
   console.log('[BlogsPro] UI Utils loaded.');
 })();
