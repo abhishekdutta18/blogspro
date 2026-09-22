@@ -89,8 +89,14 @@ function readPayloadFiles(files) {
   const entries = [];
   for (const rel of files) {
     const p = path.resolve(process.cwd(), rel);
-    if (!fs.existsSync(p)) throw new Error(`File not found: ${rel}`);
-    if (!fs.statSync(p).isFile()) throw new Error(`Not a file: ${rel}`);
+    if (!fs.existsSync(p)) {
+      console.warn(`Skipping deleted file: ${rel}`);
+      continue;
+    }
+    if (!fs.statSync(p).isFile()) {
+      console.warn(`Skipping non-file: ${rel}`);
+      continue;
+    }
     const content = fs.readFileSync(p, "utf8");
     entries.push({ path: rel.replace(/\\/g, "/"), content });
   }

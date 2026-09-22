@@ -1,54 +1,72 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
 /**
  * Institutional Artifact Repair Utility (BlogsPro 5.0)
  * ==================================================
- * Purges Gemini references, fixes broken asset paths, and injects 
+ * Purges Gemini references, fixes broken asset paths, and injects
  * "Strategic Research" branding into existing HTML manuscripts.
  */
 async function repairArtifacts() {
-    console.log("🛠️ [Repair] Starting Institutional Artifact Restoration...");
+  console.log("🛠️ [Repair] Starting Institutional Artifact Restoration...");
 
-    const distPath = path.join(process.cwd(), 'dist');
-    
-    if (!fs.existsSync(distPath)) {
-        console.error("❌ 'dist/' directory not found. Aborting.");
-        return;
-    }
+  const distPath = path.join(process.cwd(), "dist");
 
-    const files = fs.readdirSync(distPath).filter(f => f.endsWith('.html'));
+  if (!fs.existsSync(distPath)) {
+    console.error("❌ 'dist/' directory not found. Aborting.");
+    return;
+  }
 
-    console.log(`🔍 Found ${files.length} artifacts to audit.`);
+  const files = fs.readdirSync(distPath).filter((f) => f.endsWith(".html"));
 
-    let repairedCount = 0;
+  console.log(`🔍 Found ${files.length} artifacts to audit.`);
 
-    for (const f of files) {
-        const file = path.join(distPath, f);
-        try {
-            let content = fs.readFileSync(file, 'utf8');
-            const timestamp = f.match(/\d+/)?.[0] || Date.now();
-            const dateStr = new Date(parseInt(timestamp)).toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric'
-            });
+  let repairedCount = 0;
 
-            // 1. Fix Asset Paths (Logo/Favicon)
-            content = content.replace(/src="\.\.\/\.\.\/favicon\.svg"/g, 'src="../favicon.svg"');
-            content = content.replace(/src="\.\.\/\.\.\/logo\.svg"/g, 'src="../logo.svg"');
-            
-            // 2. Fix "undefined" placeholders
-            content = content.replace(/• undefined/g, `• ${dateStr}`);
-            content = content.replace(/<div class="excerpt">undefined<\/div>/g, `<div class="excerpt">Institutional intelligence synthesis for ${dateStr}. Complete vertical data fusion.</div>`);
+  for (const f of files) {
+    const file = path.join(distPath, f);
+    try {
+      let content = fs.readFileSync(file, "utf8");
+      const timestamp = f.match(/\d+/)?.[0] || Date.now();
+      const dateStr = new Date(parseInt(timestamp)).toLocaleDateString(
+        "en-US",
+        {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        },
+      );
 
-            // 3. Purge Gemini References
-            content = content.replace(/Gemini 3\.1 Fleet/gi, 'Institutional Llama-405B Fleet');
-            content = content.replace(/Powered by Gemini/gi, 'Powered by SambaNova Llama-3.1-405B');
+      // 1. Fix Asset Paths (Logo/Favicon)
+      content = content.replace(
+        /src="\.\.\/\.\.\/favicon\.svg"/g,
+        'src="../favicon.svg"',
+      );
+      content = content.replace(
+        /src="\.\.\/\.\.\/logo\.svg"/g,
+        'src="../logo.svg"',
+      );
 
-            // 4. Inject Strategic Research Branding
-            if (!content.includes('strategic-research-badge')) {
-                const badgeHtml = `
+      // 2. Fix "undefined" placeholders
+      content = content.replace(/• undefined/g, `• ${dateStr}`);
+      content = content.replace(
+        /<div class="excerpt">undefined<\/div>/g,
+        `<div class="excerpt">Institutional intelligence synthesis for ${dateStr}. Complete vertical data fusion.</div>`,
+      );
+
+      // 3. Purge Gemini References
+      content = content.replace(
+        /Gemini 3\.1 Fleet/gi,
+        "Institutional Llama-405B Fleet",
+      );
+      content = content.replace(
+        /Powered by Gemini/gi,
+        "Powered by SambaNova Llama-3.1-405B",
+      );
+
+      // 4. Inject Strategic Research Branding
+      if (!content.includes("strategic-research-badge")) {
+        const badgeHtml = `
                 <div class="strategic-research-badge" style="
                     position: fixed; 
                     bottom: 2rem; 
@@ -67,19 +85,21 @@ async function repairArtifacts() {
                 ">
                     🛡️ STRATEGIC RESEARCH AUDIT: PASSED (SambaNova-405B)
                 </div>`;
-                content = content.replace('</body>', `${badgeHtml}\n</body>`);
-            }
+        content = content.replace("</body>", `${badgeHtml}\n</body>`);
+      }
 
-            fs.writeFileSync(file, content);
-            repairedCount++;
-            process.stdout.write('.');
-        } catch (e) {
-            console.error(`\n❌ Failed to repair ${f}: ${e.message}`);
-        }
+      fs.writeFileSync(file, content);
+      repairedCount++;
+      process.stdout.write(".");
+    } catch (e) {
+      console.error(`\n❌ Failed to repair ${f}: ${e.message}`);
     }
+  }
 
-    console.log(`\n\n🏁 [Repair] Restoration Complete!`);
-    console.log(`✅ ${repairedCount} artifacts successfully hardened and rebranded.`);
+  console.log(`\n\n🏁 [Repair] Restoration Complete!`);
+  console.log(
+    `✅ ${repairedCount} artifacts successfully hardened and rebranded.`,
+  );
 }
 
 repairArtifacts();
