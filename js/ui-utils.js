@@ -26,17 +26,29 @@
   }
 
   // ── Scroll Progress Logic ───────────────────────────────────────────
+  let ticking = false;
   window.addEventListener('scroll', function() {
-    const progress = document.getElementById('progress');
-    if (!progress) return;
-    const el = document.documentElement;
-    const scrollTop = el.scrollTop || document.body.scrollTop;
-    const scrollHeight = el.scrollHeight || document.body.scrollHeight;
-    const clientHeight = el.clientHeight;
-    
-    const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
-    progress.style.width = Math.min(scrolled, 100) + '%';
-  });
+    if (!ticking) {
+      window.requestAnimationFrame(function() {
+        // ⚡ Bolt: Performance optimization
+        // Wrapped in requestAnimationFrame to prevent layout thrashing.
+        // Synchronous layout reads (scrollHeight, clientHeight) during scroll
+        // can cause forced synchronous layouts blocking the main thread.
+        const progress = document.getElementById('progress');
+        if (progress) {
+          const el = document.documentElement;
+          const scrollTop = el.scrollTop || document.body.scrollTop;
+          const scrollHeight = el.scrollHeight || document.body.scrollHeight;
+          const clientHeight = el.clientHeight;
+
+          const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
+          progress.style.width = Math.min(scrolled, 100) + '%';
+        }
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true }); // ⚡ Bolt: added { passive: true } to not block scrolling
 
   console.log('[BlogsPro] UI Utils loaded.');
 })();
