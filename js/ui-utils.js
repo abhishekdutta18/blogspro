@@ -26,17 +26,28 @@
   }
 
   // ── Scroll Progress Logic ───────────────────────────────────────────
+  let isTicking = false;
+  // ⚡ Bolt: Added { passive: true } to prevent the scroll event from blocking the main thread.
   window.addEventListener('scroll', function() {
-    const progress = document.getElementById('progress');
-    if (!progress) return;
-    const el = document.documentElement;
-    const scrollTop = el.scrollTop || document.body.scrollTop;
-    const scrollHeight = el.scrollHeight || document.body.scrollHeight;
-    const clientHeight = el.clientHeight;
-    
-    const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
-    progress.style.width = Math.min(scrolled, 100) + '%';
-  });
+    if (!isTicking) {
+      // ⚡ Bolt: Wrapped layout reads (scrollTop, scrollHeight, clientHeight) in requestAnimationFrame
+      // with a ticking flag to decouple them from the fast-firing scroll events and prevent layout thrashing.
+      window.requestAnimationFrame(function() {
+        const progress = document.getElementById('progress');
+        if (progress) {
+          const el = document.documentElement;
+          const scrollTop = el.scrollTop || document.body.scrollTop;
+          const scrollHeight = el.scrollHeight || document.body.scrollHeight;
+          const clientHeight = el.clientHeight;
+
+          const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
+          progress.style.width = Math.min(scrolled, 100) + '%';
+        }
+        isTicking = false;
+      });
+      isTicking = true;
+    }
+  }, { passive: true });
 
   console.log('[BlogsPro] UI Utils loaded.');
 })();
