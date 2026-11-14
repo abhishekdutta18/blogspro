@@ -73,12 +73,20 @@ async function generateSitemap() {
 
     // Static Pages from briefings and articles (automated AI content)
     const scanPaths = [
-      '../../briefings/daily', 
-      '../../briefings/hourly', 
-      '../../articles/weekly', 
-      '../../articles/monthly', 
-      '../../posts'
+      '../briefings/daily', 
+      '../briefings/hourly', 
+      '../briefings/weekly',
+      '../briefings/monthly',
+      '../articles/weekly', 
+      '../articles/monthly', 
+      '../p',
+      '../posts'
     ];
+
+    const seenUrls = new Set();
+    // Add existing URLs to set
+    const existingMatches = urls.match(/<loc>(.*?)<\/loc>/g) || [];
+    existingMatches.forEach(m => seenUrls.add(m.replace(/<\/?loc>/g, '')));
 
     scanPaths.forEach(relPath => {
       const dir = path.join(__dirname, relPath);
@@ -88,12 +96,12 @@ async function generateSitemap() {
           const stats = fs.statSync(path.join(dir, file));
           const lastMod = stats.mtime.toISOString().split('T')[0];
           
-          // Construct loc based on the folder name
-          const folderName = path.basename(dir);
-          const parentName = path.basename(path.dirname(dir));
-          const loc = `${DOMAIN}/${parentName}/${folderName}/${file}`;
+          // Construct loc based on the folder path
+          const relFromRoot = path.relative(path.join(__dirname, '..'), path.join(dir, file));
+          const loc = `${DOMAIN}/${relFromRoot}`;
           
-          if (!urls.includes(loc)) {
+          if (!seenUrls.has(loc)) {
+            seenUrls.add(loc);
             let freq = 'weekly';
             let priority = '0.7';
             
@@ -117,8 +125,13 @@ async function generateSitemap() {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}
 </urlset>`;
 
-    fs.writeFileSync(path.join(__dirname, '../public/sitemap.xml'), sitemap);
-    console.log("✓ sitemap.xml updated successfully!");
+    const rootSitemap = path.join(__dirname, '../sitemap.xml');
+    const publicSitemap = path.join(__dirname, '../public/sitemap.xml');
+    fs.writeFileSync(rootSitemap, sitemap);
+    if (fs.existsSync(path.dirname(publicSitemap))) {
+      fs.writeFileSync(publicSitemap, sitemap);
+    }
+    console.log(`✓ sitemap.xml generated with ${seenUrls.size} URLs!`);
 
   } catch (err) {
     console.error("Sitemap Generation Error:", err);
