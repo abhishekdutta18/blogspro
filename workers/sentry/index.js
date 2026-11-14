@@ -47,7 +47,14 @@ export default {
       return handleGithubWebhook(request, env);
     }
 
-    // Newsletter broadcast (POST /newsletter)
+    // Public newsletter signup from the website (OPTIONS preflight + POST /subscribe)
+    if (url.pathname === '/subscribe') {
+      if (request.method === 'OPTIONS') return handleSubscribePreflight(request);
+      if (request.method === 'POST') return handleSubscribe(request, env);
+      return new Response('Method Not Allowed', { status: 405, headers: { Allow: 'POST, OPTIONS' } });
+    }
+
+    // Newsletter broadcast to all subscribers (POST /newsletter, secret-protected)
     if (url.pathname === '/newsletter' && request.method === 'POST') {
       return handleNewsletterRequest(request, env);
     }
@@ -65,7 +72,7 @@ export default {
     // Health check (GET /)
     return new Response(
       'BlogsPro Unified Bot — Active ✅\n' +
-      'Routes: /setup-webhook  /telegram  /github  /newsletter  /notify-registration  POST /\n' +
+      'Routes: /setup-webhook  /telegram  /github  /subscribe  /newsletter  /notify-registration  POST /\n' +
       'Commands: /status  /subscribers  /posts  /deploy  /resolve all  /broadcast  /stats  /help',
       { headers: { 'Content-Type': 'text/plain' } }
     );
@@ -516,6 +523,103 @@ async function handleNewsletterRequest(request, env) {
     return new Response(JSON.stringify(result), { status: result.success ? 200 : 500, headers: corsHeaders });
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+  }
+}
+
+// ── Public signup ─────────────────────────────────────────────────────────────
+// Only the website's own origins may call /subscribe from a browser.
+const SUBSCRIBE_ALLOWED_ORIGINS = new Set([
+  'https://blogspro.in',
+  'https://www.blogspro.in',
+  'http://localhost:4321',
+  'http://127.0.0.1:4321'
+]);
+const EMAIL_MAX_LENGTH = 254;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SUBSCRIBE_SOURCE_MAX_LENGTH = 64;
+
+/** CORS headers for /subscribe; echoes the origin only when it is allow-listed. */
+function subscribeCorsHeaders(request) {
+  const origin = request.headers.get('Origin') || '';
+  const headers = {
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin'
+  };
+  if (SUBSCRIBE_ALLOWED_ORIGINS.has(origin)) headers['Access-Control-Allow-Origin'] = origin;
+  return headers;
+}
+
+function handleSubscribePreflight(request) {
+  return new Response(null, { status: 204, headers: subscribeCorsHeaders(request) });
+}
+
+function subscribeJson(request, status, body) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...subscribeCorsHeaders(request), 'Content-Type': 'application/json' }
+  });
+}
+
+/**
+ * POST /subscribe {email, source?} — stores the address in Firestore `subscribers`.
+ * The document ID is derived from the lower-cased email, so repeat signups are
+ * idempotent (Firestore answers 409 ALREADY_EXISTS, which we report as success).
+ */
+async function handleSubscribe(request, env) {
+  const origin = request.headers.get('Origin');
+  if (origin && !SUBSCRIBE_ALLOWED_ORIGINS.has(origin)) {
+    return subscribeJson(request, 403, { success: false, error: 'Origin not allowed' });
+  }
+
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return subscribeJson(request, 400, { success: false, error: 'Invalid JSON body' });
+  }
+
+  const email = typeof payload?.email === 'string' ? payload.email.trim().toLowerCase() : '';
+  if (!email || email.length > EMAIL_MAX_LENGTH || !EMAIL_PATTERN.test(email)) {
+    return subscribeJson(request, 400, { success: false, error: 'Invalid email address' });
+  }
+  const source = typeof payload?.source === 'string'
+    ? payload.source.slice(0, SUBSCRIBE_SOURCE_MAX_LENGTH)
+    : 'website';
+
+  const project = env.FIREBASE_PROJECT;
+  const apiKey = env.FIREBASE_API_KEY;
+  if (!project || !apiKey) {
+    console.error('subscribe: FIREBASE_PROJECT / FIREBASE_API_KEY not configured');
+    return subscribeJson(request, 500, { success: false, error: 'Signup is temporarily unavailable' });
+  }
+
+  const docId = encodeURIComponent(email);
+  const url = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/subscribers?documentId=${docId}&key=${apiKey}`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: {
+          email: { stringValue: email },
+          source: { stringValue: source },
+          status: { stringValue: 'active' },
+          createdAt: { timestampValue: new Date().toISOString() }
+        }
+      })
+    });
+
+    if (res.ok || res.status === 409) {
+      return subscribeJson(request, 200, { success: true, alreadySubscribed: res.status === 409 });
+    }
+    const detail = await res.text();
+    console.error(`subscribe: Firestore ${res.status} ${detail.slice(0, 300)}`);
+    return subscribeJson(request, 502, { success: false, error: 'Could not save subscription' });
+  } catch (e) {
+    console.error('subscribe: Firestore request failed', e.message);
+    return subscribeJson(request, 502, { success: false, error: 'Could not save subscription' });
   }
 }
 
