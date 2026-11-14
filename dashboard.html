@@ -486,7 +486,7 @@
     try {
       const res = await api.auth.me();
       if (!res.authenticated) { window.location.href = 'login.html'; return; }
-      if (res.user.role === 'admin') { window.location.href = 'admin.html'; return; }
+      if (res.user.role === 'admin') { window.location.href = 'admin.html?v=vps1'; return; }
       
       currentUser = res.user;
       await loadUserData(res.user);

@@ -80,7 +80,7 @@ const ROLES = [
   };
 
   api.auth.me()
-    .then(me => { if (me?.authenticated) location.replace(me.user?.role === 'admin' ? '/admin.html' : '/account.html'); })
+    .then(me => { if (me?.authenticated) location.replace(me.user?.role === 'admin' ? '/admin.html?v=vps1' : '/account.html?v=vps1'); })
     .catch(() => {});
 
   form.addEventListener('submit', async event => {
@@ -99,7 +99,7 @@ const ROLES = [
     submit.textContent = 'Creating account…';
     try {
       await api.auth.register(name, email, password, role);
-      location.href = '/account.html';
+      location.href = '/account.html?v=vps1';
     } catch (error) {
       showError(friendly(error?.message));
       submit.disabled = false;

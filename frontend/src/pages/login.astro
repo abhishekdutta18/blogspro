@@ -44,7 +44,8 @@ import { siteConfig } from '../data/siteConfig';
   const UNAUTHORIZED_MESSAGES = {
     reader: 'Your account does not have admin access.',
     user: 'Your account does not have admin access.',
-    missing_role: 'Your account has no role yet. Contact the editor to get one assigned.',
+    logged_out: 'Sign in to open that page.',
+    missing_role:'Your account has no role yet. Contact the editor to get one assigned.',
     'permission-denied': 'We could not verify your role. Sign in again.'
   };
 
@@ -63,11 +64,18 @@ import { siteConfig } from '../data/siteConfig';
     errorBox.textContent = message;
     errorBox.classList.remove('hidden');
   };
-  const destinationFor = user => (user?.role === 'admin' ? '/admin.html' : '/account.html');
+  const destinationFor = user => (user?.role === 'admin' ? '/admin.html?v=vps1' : '/account.html?v=vps1');
 
   const params = new URLSearchParams(location.search);
-  if (params.get('error') === 'unauthorized') {
-    showError(UNAUTHORIZED_MESSAGES[params.get('reason')] || 'You need admin access for that page.');
+  const unauthorizedMessage = UNAUTHORIZED_MESSAGES[params.get('reason')] || 'You need admin access for that page.';
+  if (params.get('error') === 'unauthorized' && params.get('reason') === 'logged_out') {
+    // A copy of an admin page saved by the browser before the VPS switch reports "logged_out"
+    // even with a live session. If the session is real, send the user to the fresh page.
+    api.auth.me()
+      .then(me => (me?.authenticated ? location.replace(destinationFor(me.user)) : showError(unauthorizedMessage)))
+      .catch(() => showError(unauthorizedMessage));
+  } else if (params.get('error') === 'unauthorized') {
+    showError(unauthorizedMessage);
   } else if (params.get('error') === 'oauth') {
     showError(OAUTH_MESSAGES[params.get('reason')] || 'Sign-in failed. Try again.');
   } else {
