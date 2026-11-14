@@ -12,26 +12,33 @@ const DOMAIN = 'https://blogspro.in';
 
 async function generateSitemap() {
   try {
-    console.log("Fetching posts for Sitemap...");
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        structuredQuery: {
-          from: [{ collectionId: "posts" }],
-          where: {
-            fieldFilter: {
-              field: { fieldPath: "published" },
-              op: "EQUAL",
-              value: { booleanValue: true }
+    let data = [];
+    try {
+      console.log("Fetching posts for Sitemap...");
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: "posts" }],
+            where: {
+              fieldFilter: {
+                field: { fieldPath: "published" },
+                op: "EQUAL",
+                value: { booleanValue: true }
+              }
             }
           }
-        }
-      })
-    });
-    if (!res.ok) throw new Error("Failed to fetch posts: " + await res.text());
-    
-    const data = await res.json();
+        })
+      });
+      if (res.ok) {
+        data = await res.json();
+      } else {
+        console.warn("Firestore fetch warning (falling back to static scan):", await res.text());
+      }
+    } catch (e) {
+      console.warn("Firestore fetch error (falling back to static scan):", e.message);
+    }
     let urls = '';
 
     // Fixed Pages
