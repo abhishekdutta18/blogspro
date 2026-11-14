@@ -1,0 +1,33 @@
+---
+/**
+ * AboutSection — who writes this and what it covers. Plain prose, no badges.
+ */
+import { siteConfig } from '../data/siteConfig';
+---
+
+<section id="about" class="pt-16 scroll-mt-6" aria-labelledby="about-heading">
+  <div class="section-head">
+    <h2 id="about-heading" class="section-title">About</h2>
+  </div>
+
+  <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+    <div>
+      <div class="font-serif text-xl font-semibold">{siteConfig.author.name}</div>
+      <div class="mt-1 text-sm text-ink-3">{siteConfig.author.title}</div>
+    </div>
+
+    <div class="font-serif text-lg leading-relaxed text-ink-2 max-w-measure space-y-4">
+      <p>{siteConfig.author.bio}</p>
+      <p>
+        {siteConfig.name} covers four areas: payment rails and switch architecture, banking
+        technology, Indian financial regulation (RBI, SEBI, NPCI), and the macro backdrop
+        that moves all three. It is written for people who build and run these systems:
+        switch engineers, compliance and risk teams, and fintech operators.
+      </p>
+      <p>
+        Short briefings go out on an hourly and daily cadence; longer research pieces
+        weekly and monthly.
+      </p>
+    </div>
+  </div>
+</section>

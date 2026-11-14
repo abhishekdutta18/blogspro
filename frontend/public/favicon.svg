@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Background -->
+  <rect width="32" height="32" rx="4" fill="#0d0d0d"/>
+  <!-- Left gold accent bar -->
+  <rect x="0" y="0" width="3" height="32" rx="2" fill="#BFA100"/>
+  <!-- "B" monogram -->
+  <text x="8" y="23"
+    font-family="'JetBrains Mono', 'Courier New', monospace"
+    font-weight="700"
+    font-size="19"
+    fill="#FFB800"
+    letter-spacing="-1">B</text>
+  <!-- Gold underline accent -->
+  <rect x="8" y="26" width="16" height="2" rx="1" fill="#BFA100" opacity="0.8"/>
+  <!-- Tiny trend-line dot cluster (top-right) -->
+  <polyline points="19,6 22,4 25,5 28,2"
+    fill="none" stroke="#BFA100" stroke-width="1.5"
+    stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+  <circle cx="28" cy="2" r="1.5" fill="#FFB800" opacity="0.9"/>
+</svg>

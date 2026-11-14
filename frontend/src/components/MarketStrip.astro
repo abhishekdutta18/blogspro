@@ -1,0 +1,26 @@
+---
+/**
+ * MarketStrip — one quiet row of headline figures under the masthead.
+ * Values are a dated snapshot (marketsAsOf), so the label says "close", never "live".
+ */
+import { marketAssets, marketsAsOf } from '../data/marketData';
+import { formatIsoDate } from '../lib/format';
+
+const STRIP_SYMBOLS = ['NSE:NIFTY', 'BSE:SENSEX', 'NSE:BANKNIFTY', 'USDINR', 'IN10Y', 'GOLD', 'USOIL', 'SPX'];
+const items = STRIP_SYMBOLS
+  .map(symbol => marketAssets.find(asset => asset.symbol === symbol))
+  .filter(asset => asset !== undefined);
+---
+
+<div class="border-b border-rule overflow-x-auto" aria-label={`Market figures as of ${formatIsoDate(marketsAsOf)}`}>
+  <ul class="flex gap-6 py-2.5 text-xs whitespace-nowrap">
+    <li class="text-ink-3">Close, {formatIsoDate(marketsAsOf)}</li>
+    {items.map(asset => (
+      <li class="flex gap-1.5 num">
+        <span class="text-ink-2">{asset.name}</span>
+        <span class="font-mono">{asset.price}</span>
+        <span class={`font-mono ${asset.isPositive ? 'text-up' : 'text-down'}`}>{asset.change}</span>
+      </li>
+    ))}
+  </ul>
+</div>

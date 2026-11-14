@@ -1,0 +1,107 @@
+---
+/**
+ * Sign-in page. Talks to the VPS API (server/) through the shared legacy client
+ * (/js/services/api.js). The session is an HttpOnly cookie set by the API.
+ * After sign-in: admins go to /admin.html, everyone else to /account.html.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import AuthShell from '../components/AuthShell.astro';
+import { siteConfig } from '../data/siteConfig';
+---
+
+<BaseLayout title={`Sign in — ${siteConfig.name}`} description="Sign in to your BlogsPro account.">
+  <Fragment slot="head">
+    <meta name="robots" content="noindex" />
+    <meta name="referrer" content="no-referrer" />
+  </Fragment>
+  <AuthShell heading="Sign in" intro="Editors, contributors and subscribers." idPrefix="login">
+    <form id="loginForm" class="grid gap-4" novalidate>
+      <div>
+        <label for="loginEmail" class="auth-label">Email</label>
+        <input id="loginEmail" type="email" autocomplete="email" required class="auth-input" />
+      </div>
+      <div>
+        <label for="loginPassword" class="auth-label">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" required class="auth-input" />
+      </div>
+      <button type="submit" id="loginSubmit" class="auth-submit mt-2">Sign in</button>
+    </form>
+    <p class="mt-6 text-sm text-ink-2">
+      New here? <a href="/register.html" class="text-accent underline underline-offset-4">Create an account</a>
+    </p>
+  </AuthShell>
+</BaseLayout>
+
+<script is:inline type="module">
+  import { api } from '/js/services/api.js?v=vps1';
+
+  const errorBox = document.getElementById('authError');
+  const form = document.getElementById('loginForm');
+  const submit = document.getElementById('loginSubmit');
+  const email = document.getElementById('loginEmail');
+  const password = document.getElementById('loginPassword');
+
+  const UNAUTHORIZED_MESSAGES = {
+    reader: 'Your account does not have admin access.',
+    user: 'Your account does not have admin access.',
+    missing_role: 'Your account has no role yet. Contact the editor to get one assigned.',
+    'permission-denied': 'We could not verify your role. Sign in again.'
+  };
+
+  // Reasons set by the auth worker's OAuth callback (scripts/auth-proxy-worker.js).
+  const OAUTH_MESSAGES = {
+    denied: 'Sign-in was cancelled.',
+    state: 'That sign-in link expired. Try again.',
+    exchange: 'The provider did not confirm your sign-in. Try again.',
+    no_email: 'Your GitHub account has no verified email address. Verify one on GitHub, then try again.',
+    unverified: 'Your Google account email is not verified.',
+    provider: 'The sign-in provider is not responding. Try again shortly.',
+    unavailable: 'That sign-in option is not set up yet. Use email for now.'
+  };
+
+  const showError = message => {
+    errorBox.textContent = message;
+    errorBox.classList.remove('hidden');
+  };
+  const destinationFor = user => (user?.role === 'admin' ? '/admin.html' : '/account.html');
+
+  const params = new URLSearchParams(location.search);
+  if (params.get('error') === 'unauthorized') {
+    showError(UNAUTHORIZED_MESSAGES[params.get('reason')] || 'You need admin access for that page.');
+  } else if (params.get('error') === 'oauth') {
+    showError(OAUTH_MESSAGES[params.get('reason')] || 'Sign-in failed. Try again.');
+  } else {
+    // Already signed in: skip the form.
+    api.auth.me().then(me => { if (me?.authenticated) location.replace(destinationFor(me.user)); }).catch(() => {});
+  }
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    errorBox.classList.add('hidden');
+    if (!email.value.trim() || !password.value) {
+      showError('Enter your email and password.');
+      return;
+    }
+    submit.disabled = true;
+    submit.textContent = 'Signing in…';
+    try {
+      await api.auth.login(email.value.trim(), password.value);
+      const me = await api.auth.me();
+      location.href = destinationFor(me?.user);
+    } catch (error) {
+      showError(error?.message || 'Sign-in failed. Try again.');
+      submit.disabled = false;
+      submit.textContent = 'Sign in';
+    }
+  });
+
+  const startOAuth = (button, provider) => {
+    button.disabled = true;
+    // The auth worker always returns to /login.html?token=…, handled in <head> above.
+    api.auth[provider](`${location.origin}/login.html`);
+  };
+  const google = document.getElementById('loginGoogle');
+  const github = document.getElementById('loginGithub');
+  google.addEventListener('click', () => startOAuth(google, 'google'));
+  github.addEventListener('click', () => startOAuth(github, 'github'));
+</script>

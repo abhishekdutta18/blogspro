@@ -1,0 +1,56 @@
+---
+/**
+ * Article page — pre-rendered for every entry in data/articles.ts.
+ * Layout lives in ArticleView so pipeline-generated pages match exactly.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ArticleView from '../../components/ArticleView.astro';
+import { articles, getRelatedArticles, type Article } from '../../data/articles';
+import { siteConfig } from '../../data/siteConfig';
+
+export function getStaticPaths() {
+  return articles.map(article => ({ params: { slug: article.slug }, props: { article } }));
+}
+
+interface Props {
+  article: Article;
+}
+
+const { article } = Astro.props;
+const related = getRelatedArticles(article);
+const shareUrl = `${siteConfig.url}/p/${article.slug}.html`;
+---
+
+<BaseLayout title={`${article.title} — ${siteConfig.name}`} description={article.excerpt} article={true}>
+  <ArticleView
+    title={article.title}
+    excerpt={article.excerpt}
+    category={article.category}
+    author={article.author}
+    dateLabel={article.date}
+    readTime={article.readTime}
+    contentHtml={article.content}
+    tags={article.tags}
+    twitterShareHref={`https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}&url=${encodeURIComponent(shareUrl)}`}
+    linkedinShareHref={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
+  />
+
+  {related.length > 0 && (
+    <section aria-labelledby="related-heading" class="pb-6">
+      <div class="section-head">
+        <h2 id="related-heading" class="section-title">Further reading</h2>
+      </div>
+      <ul class="grid gap-8 md:grid-cols-3">
+        {related.map(item => (
+          <li>
+            <div class="kicker">{item.category}</div>
+            <h3 class="mt-1.5 font-serif text-xl font-semibold leading-snug">
+              <a href={`/p/${item.slug}.html`} class="headline-link">{item.title}</a>
+            </h3>
+            <p class="mt-1.5 text-xs text-ink-3">{item.date} · {item.readTime}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+</BaseLayout>

@@ -1,0 +1,23 @@
+---
+/**
+ * Home page — lead story, research archive, policy calendar, markets, about, signup.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import MarketStrip from '../components/MarketStrip.astro';
+import LeadStory from '../components/LeadStory.astro';
+import ResearchArchive from '../components/ResearchArchive.astro';
+import PolicyCalendar from '../components/PolicyCalendar.astro';
+import MarketsTable from '../components/MarketsTable.astro';
+import AboutSection from '../components/AboutSection.astro';
+import Newsletter from '../components/Newsletter.astro';
+---
+
+<BaseLayout>
+  <MarketStrip />
+  <LeadStory />
+  <ResearchArchive />
+  <PolicyCalendar />
+  <MarketsTable />
+  <AboutSection />
+  <Newsletter />
+</BaseLayout>
