@@ -55,7 +55,8 @@ export const ENDPOINTS = {
   pulse:        resolve('pulse'),
   upstox:       resolve('upstox'),
   upstoxStable: resolve('upstoxStable'),
-  auth:         resolve('auth'),
+  // Auth and admin data are served by the VPS API on the site's own origin (server/).
+  auth:         '',
   newsletter:   resolve('newsletter'),
   ai:           resolve('ai'),
 };

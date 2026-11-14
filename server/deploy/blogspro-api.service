@@ -1,0 +1,32 @@
+[Unit]
+Description=BlogsPro auth and admin data API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=blogspro-api
+Group=blogspro-api
+WorkingDirectory=/opt/blogspro-api
+EnvironmentFile=/etc/blogspro-api.env
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning /opt/blogspro-api/index.js
+Restart=on-failure
+RestartSec=3
+
+# Hardening: read-only system, writable only where the database lives.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/blogspro-api
+StateDirectory=blogspro-api
+StateDirectoryMode=0700
+
+[Install]
+WantedBy=multi-user.target

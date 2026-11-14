@@ -3,8 +3,10 @@
 // Handles Auth, Data, and Swarm operations via the server-side worker.
 // ═══════════════════════════════════════════════
 
-import { ENDPOINTS } from '../endpoints.js';
+import { ENDPOINTS } from '../endpoints.js?v=vps1';
 const API_BASE = ENDPOINTS.auth;
+// Sessions moved to an HttpOnly cookie; forget tokens issued by the old auth worker.
+try { localStorage.removeItem("fb_token"); } catch (_) {}
 const NEWSLETTER_BASE = ENDPOINTS.newsletter;
 const FIREBASE_API_KEY = "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY";
 
@@ -118,11 +120,8 @@ const auth = {
     } catch (_) {}
   },
   me: async () => {
-    const token = localStorage.getItem("fb_token");
-    if (!token) return { authenticated: false };
-    const res = await fetchJson("/auth/me");
-    if (res.token) localStorage.setItem("fb_token", res.token);
-    return res;
+    // Session lives in an HttpOnly cookie on blogspro.in; there is no client-side token.
+    return fetchJson("/auth/me");
   },
   google: (redirect) => {
      window.location.href = `${API_BASE}/auth/login/google?redirect=${encodeURIComponent(redirect || window.location.href)}`;
@@ -132,7 +131,16 @@ const auth = {
   },
   // Higher-order auth functions (profile updates) route via Proxy
   updateProfile: (data) => patch("/auth/profile", data),
-  updatePassword: (password) => post("/auth/password", { password })
+  updatePassword: (password) => post("/auth/password", { password }),
+  updateEmail: async () => {
+    throw new Error("Email changes aren't available yet. Contact the editor.");
+  },
+  deleteAccount: async () => {
+    const me = await fetchJson("/auth/me");
+    if (!me?.authenticated) throw new Error("Sign in again to delete your account.");
+    await fetchJson(`/api/data/users/${encodeURIComponent(me.user.uid)}`, { method: "DELETE" });
+    await auth.logout();
+  }
 };
 
 async function patch(url, data) {
@@ -226,7 +234,7 @@ const publicApi = {
     const base = `/api/public/data/${col}`;
     return id ? fetchJson(`${base}/${id}`) : fetchJson(base);
   },
-  subscribe: (email) => post(`${NEWSLETTER_BASE}/newsletter`, { 
+  subscribe: (email) => post("/api/subscribe", { 
     email, 
     source: window.location.hostname 
   }),
