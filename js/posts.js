@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 // posts.js — Post CRUD and dashboard data (Proxy-based)
 // ═══════════════════════════════════════════════
-import { api } from './services/api.js';
+import { api } from './services/api.js?v=vps1';
 import { stripTags, slugify, showToast } from './config.js';
 import { state } from './state.js';
 

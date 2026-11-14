@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 // site-settings.js — Global Website Settings (Proxy-based)
 // ═══════════════════════════════════════════════
-import { api }       from './services/api.js';
+import { api }       from './services/api.js?v=vps1';
 import { showToast } from './config.js';
 
 let imagesEnabled = true;

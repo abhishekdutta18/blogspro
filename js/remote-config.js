@@ -2,7 +2,7 @@
 // remote-config.js — Remote Configuration (Proxy-based)
 // Loads AI provider API keys and configurations via the secure server proxy.
 // ═══════════════════════════════════════════════
-import { api } from './services/api.js';
+import { api } from './services/api.js?v=vps1';
 
 export let AI_KEYS = {};
 export let NEWSLETTER_CONFIG = { 

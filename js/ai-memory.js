@@ -3,7 +3,7 @@
 // Features: #18, #19, #28
 // Stores successful AI prompt patterns in Firestore via Secure Proxy
 // ═══════════════════════════════════════════════
-import { api } from './services/api.js';
+import { api } from './services/api.js?v=vps1';
 
 const MEMORY_COLLECTION = 'ai_memory';
 const SUCCESS_THRESHOLD = 70;

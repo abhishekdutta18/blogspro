@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 // newsletter.js — Newsletter generation and manual sending (Proxy-based)
 // ═══════════════════════════════════════════════
-import { api } from './services/api.js';
+import { api } from './services/api.js?v=vps1';
 import { sanitize, showToast, injectUtm, trackEvent, NEWSLETTER_CONFIG } from './config.js';
 import { state } from './state.js';
 
