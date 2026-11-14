@@ -1,3 +1,13 @@
+import {
+  OAuthError, isProvider, randomState, stateCookie, clearStateCookie, isStateValid,
+  buildAuthorizeUrl, exchangeGoogleCode, fetchGithubIdentity
+} from "../server/src/oauth.js";
+
+const LOGIN_PAGE = "https://blogspro.in/login.html";
+const STAFF_ROLES = new Set(["admin", "editor", "coauthor"]);
+const ADMIN_ONLY_COLLECTIONS = new Set(["users", "subscribers"]);
+const REQUESTABLE_ROLES = new Set(["editor", "coauthor"]);
+
 // Web Crypto helpers (no nodejs_compat needed)
 function b64url(buf) {
   return btoa(String.fromCharCode(...new Uint8Array(buf)))
@@ -168,7 +178,7 @@ async function verifyFirebaseIdToken(token, projectId) {
     );
 
     if (!valid) return null;
-    return { uid: payload.sub, email: payload.email };
+    return { uid: payload.sub, email: payload.email, emailVerified: payload.email_verified === true };
   } catch (e) {
     console.error("Firebase Verify Error:", e);
     return null;
@@ -236,6 +246,50 @@ function setSessionCookie(jwt) {
   return {
     "Set-Cookie": `bp_session=${jwt}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${7 * 24 * 3600}`,
   };
+}
+
+/** The admin email allow-list only applies to addresses the identity provider verified. */
+function isVerifiedAdmin(email, emailVerified) {
+  return emailVerified === true && isAdmin(email);
+}
+
+function redirectWithCookies(location, cookies) {
+  const headers = new Headers({ Location: location, "Cache-Control": "no-store" });
+  cookies.forEach(cookie => headers.append("Set-Cookie", cookie));
+  return new Response(null, { status: 303, headers });
+}
+
+function oauthErrorRedirect(reason) {
+  return redirectWithCookies(`${LOGIN_PAGE}?error=oauth&reason=${encodeURIComponent(reason)}`, [clearStateCookie()]);
+}
+
+/** Resolves the role for a provider-verified identity and hands the session to /login.html. */
+async function completeOAuthLogin(identity, env, sessionSecret, projectId) {
+  if (!identity?.email || identity.verified !== true) return oauthErrorRedirect("unverified");
+
+  let role = null;
+  try {
+    const accessToken = await getAccessToken(JSON.parse(env.FIREBASE_SERVICE_ACCOUNT));
+    role = await fetchRole(projectId, accessToken, identity.uid, identity.email);
+  } catch (e) {
+    console.error("Role fetch error:", e?.message);
+  }
+  if (isVerifiedAdmin(identity.email, true)) role = "admin";
+
+  const jwt = await signJwt({ uid: identity.uid, email: identity.email, role: role || "reader", ev: true }, sessionSecret);
+  return redirectWithCookies(`${LOGIN_PAGE}?token=${jwt}`, [setSessionCookie(jwt)["Set-Cookie"], clearStateCookie()]);
+}
+
+/** Firebase password accounts are unverified until the user clicks the email link. */
+async function lookupEmailVerified(idToken, webApiKey) {
+  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${webApiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+  if (!res.ok) return false;
+  const data = await res.json().catch(() => ({}));
+  return data.users?.[0]?.emailVerified === true;
 }
 
 export default {
@@ -316,7 +370,7 @@ export default {
       if (!payload) {
         const fbUser = await verifyFirebaseIdToken(token, projectId);
         if (fbUser) {
-          payload = { uid: fbUser.uid, email: fbUser.email, isFirebase: true };
+          payload = { uid: fbUser.uid, email: fbUser.email, ev: fbUser.emailVerified, isFirebase: true };
         }
       }
     }
@@ -329,7 +383,8 @@ export default {
     // Role Resolution
     let role = payload?.role || "reader";
     if (payload && (!payload.role || payload.role === "reader")) {
-      if (isAdmin(payload.email)) {
+      // Tokens without ev:true (unverified or pre-fix) never get the allow-list upgrade.
+      if (isVerifiedAdmin(payload.email, payload.ev)) {
         role = "admin";
       } else if (!payload.role) {
         try {
@@ -429,6 +484,10 @@ export default {
       const col = seg[0];
       const docId = seg[1];
       if (!col) return jsonResponse({ error: "Not found" }, 404, {}, req);
+      if (!payload) return jsonResponse({ error: "Sign in required" }, 401, {}, req);
+      const isOwnProfile = col === "users" && docId === payload.uid;
+      const isAllowed = ADMIN_ONLY_COLLECTIONS.has(col) ? role === "admin" : STAFF_ROLES.has(role);
+      if (!isOwnProfile && !isAllowed) return jsonResponse({ error: "Forbidden" }, 403, {}, req);
       try {
         const opts = Object.fromEntries(url.searchParams);
         if (req.method === "GET") {
@@ -470,14 +529,12 @@ export default {
         role = await fetchRole(projectId, token, uid, email);
       } catch (e) {}
 
-      // Institutional Whitelist Override
-      if (isAdmin(email)) {
-        role = "admin";
-      }
+      // Allow-list override only for an email Firebase has verified.
+      const emailVerified = await lookupEmailVerified(data.idToken, env.FIREBASE_WEB_API_KEY);
+      if (isVerifiedAdmin(email, emailVerified)) role = "admin";
+      role = role || "reader";
 
-      if (role !== "admin") return jsonResponse({ error: "Unauthorized" }, 403, {}, req);
-
-      const jwt = await signJwt({ uid, email, role }, sessionSecret);
+      const jwt = await signJwt({ uid, email, role, ev: emailVerified }, sessionSecret);
       return jsonResponse({ success: true, role, token: jwt }, 200, setSessionCookie(jwt), req);
     }
 
@@ -489,44 +546,58 @@ export default {
         if (!credential) return jsonResponse({ error: "No credential received" }, 400, {}, req);
 
         const googleUser = await verifyGoogleIdToken(credential, env.GOOGLE_CLIENT_ID);
-        if (!googleUser) return jsonResponse({ error: "Invalid Google token" }, 401, {}, req);
-
-        const { uid, email } = googleUser;
-        const sa = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT);
-        
-        let role = null;
-        try {
-          const accessToken = await getAccessToken(sa);
-          role = await fetchRole(env.FIREBASE_PROJECT_ID, accessToken, uid, email);
-        } catch (e) {
-          console.error("Role fetch error:", e);
-        }
-
-        // Auto-admin for primary account, otherwise default
-        if (isAdmin(email)) {
-          role = "admin";
-        }
-        
-        const jwt = await signJwt({ uid, email, role: role || "reader" }, sessionSecret);
-        
-        // Redirect to login.html with token for localStorage capture (Institutional Bridge)
-        const redirectUrl = `https://blogspro.in/login.html?token=${jwt}`;
-        return new Response(null, {
-          status: 303,
-          headers: {
-            "Location": redirectUrl,
-            ...setSessionCookie(jwt)
-          }
-        });
+        if (!googleUser) return oauthErrorRedirect("exchange");
+        return completeOAuthLogin(googleUser, env, sessionSecret, projectId);
       } catch (e) {
-        return jsonResponse({ error: "Callback processing failed" }, 500, {}, req);
+        return oauthErrorRedirect("provider");
+      }
+    }
+
+    // OAuth authorization-code flow: GET /auth/login/<provider> → provider → GET /auth/callback/<provider>
+    const oauthRoute = path.match(/^\/auth\/(login|callback)\/([a-z]+)$/);
+    if (oauthRoute && req.method === "GET" && isProvider(oauthRoute[2])) {
+      const [, step, provider] = oauthRoute;
+      const clientId = provider === "google" ? googleId : githubId;
+      const clientSecret = provider === "google" ? googleSecret : githubSecret;
+      const redirectUri = `${url.origin}/auth/callback/${provider}`;
+
+      // The return page is fixed; the client's ?redirect= is ignored so this can't be an open redirect.
+      if (step === "login") {
+        const state = randomState();
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: buildAuthorizeUrl(provider, { clientId, redirectUri, state }),
+            "Set-Cookie": stateCookie(provider, state),
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+
+      if (url.searchParams.get("error")) return oauthErrorRedirect("denied");
+      if (!isStateValid(cookieHeader, provider, url.searchParams.get("state"))) return oauthErrorRedirect("state");
+      const code = url.searchParams.get("code");
+      if (!code) return oauthErrorRedirect("exchange");
+
+      try {
+        // Wrapped: Workers throws "Illegal invocation" when fetch is called as a method of another object.
+        const params = { code, clientId, clientSecret, redirectUri, fetchImpl: (...args) => fetch(...args) };
+        const identity = provider === "google"
+          ? await verifyGoogleIdToken(await exchangeGoogleCode(params), googleId)
+          : await fetchGithubIdentity(params);
+        if (!identity) return oauthErrorRedirect("exchange");
+        return completeOAuthLogin(identity, env, sessionSecret, projectId);
+      } catch (e) {
+        console.error(`OAuth ${provider} callback failed:`, e?.message);
+        return oauthErrorRedirect(e instanceof OAuthError ? e.reason : "provider");
       }
     }
 
     // Register
     if (path === "/auth/register" && req.method === "POST") {
       const body = await req.json().catch(() => ({}));
-      const { name, email, password, requestedRole } = body;
+      const { name, email, password } = body;
+      const askedRole = body.role || body.requestedRole;
       if (!name || !email || !password) return jsonResponse({ error: "Name, email and password required" }, 400, {}, req);
 
       const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${env.FIREBASE_WEB_API_KEY}`, {
@@ -541,10 +612,14 @@ export default {
       const data = await res.json();
       const uid = data.localId;
       
-      const role = isAdmin(email) ? "admin" : (requestedRole || "reader");
-      await fsCreate("users", uid, { name, email, role, createdAt: new Date().toISOString() });
+      // New password accounts are unverified, so everyone starts as a reader.
+      // Editor/co-author is stored as a request for the admin to approve.
+      const role = "reader";
+      const record = { name, email, role, createdAt: new Date().toISOString() };
+      const userDoc = REQUESTABLE_ROLES.has(askedRole) ? { ...record, requestedRole: askedRole } : record;
+      await fsCreate("users", uid, userDoc);
 
-      const jwt = await signJwt({ uid, email, role }, sessionSecret);
+      const jwt = await signJwt({ uid, email, role, ev: false }, sessionSecret);
       return jsonResponse({ success: true, role, token: jwt }, 200, setSessionCookie(jwt), req);
     }
 
@@ -559,7 +634,7 @@ export default {
     // Me
     if (path === "/auth/me" && req.method === "GET") {
       if (!payload) return jsonResponse({ authenticated: false }, 200, {}, req);
-      const jwt = await signJwt({ uid: payload.uid, email: payload.email, role: payload.role }, sessionSecret);
+      const jwt = await signJwt({ uid: payload.uid, email: payload.email, role: payload.role, ev: payload.ev === true }, sessionSecret);
       return jsonResponse({ 
         authenticated: true, 
         user: { uid: payload.uid, email: payload.email, role: payload.role },
