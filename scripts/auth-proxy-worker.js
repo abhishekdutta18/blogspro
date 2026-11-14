@@ -2,6 +2,11 @@ import {
   OAuthError, isProvider, randomState, stateCookie, clearStateCookie, isStateValid,
   buildAuthorizeUrl, exchangeGoogleCode, fetchGithubIdentity
 } from "../server/src/oauth.js";
+import { signAssertion } from "../server/src/bridge.js";
+
+// Where relayed sign-ins are finished: the VPS API checks the assertion against its state cookie.
+const BRIDGE_TARGET = "https://blogspro.in/auth/bridge";
+const MAX_STATE_LENGTH = 128;
 
 const LOGIN_PAGE = "https://blogspro.in/login.html";
 const STAFF_ROLES = new Set(["admin", "editor", "coauthor"]);
@@ -261,6 +266,32 @@ function redirectWithCookies(location, cookies) {
 
 function oauthErrorRedirect(reason) {
   return redirectWithCookies(`${LOGIN_PAGE}?error=oauth&reason=${encodeURIComponent(reason)}`, [clearStateCookie()]);
+}
+
+/**
+ * Relay mode: the login was started on the VPS, which holds the state cookie. This worker
+ * only owns the registered callback URL and the client secret, so it exchanges the code,
+ * signs who the provider vouched for (plus the returned state), and sends the browser on.
+ */
+async function relayToVps(provider, params, { clientId, clientSecret, redirectUri, googleId }, bridgeSecret) {
+  const code = params.get("code");
+  const state = params.get("state") || "";
+  if (!code || !state || state.length > MAX_STATE_LENGTH) return oauthErrorRedirect("exchange");
+  try {
+    // Wrapped: Workers throws "Illegal invocation" when fetch is called as a method of another object.
+    const exchange = { code, clientId, clientSecret, redirectUri, fetchImpl: (...args) => fetch(...args) };
+    const identity = provider === "google"
+      ? await verifyGoogleIdToken(await exchangeGoogleCode(exchange), googleId)
+      : await fetchGithubIdentity(exchange);
+    if (!identity?.email) return oauthErrorRedirect("exchange");
+    const assertion = await signAssertion({
+      provider, email: identity.email, name: identity.name || "", verified: identity.verified === true, state
+    }, bridgeSecret);
+    return redirectWithCookies(`${BRIDGE_TARGET}?a=${encodeURIComponent(assertion)}`, []);
+  } catch (e) {
+    console.error(`OAuth ${provider} relay failed:`, e?.message);
+    return oauthErrorRedirect(e instanceof OAuthError ? e.reason : "provider");
+  }
 }
 
 /** Resolves the role for a provider-verified identity and hands the session to /login.html. */
@@ -575,6 +606,9 @@ export default {
       }
 
       if (url.searchParams.get("error")) return oauthErrorRedirect("denied");
+      if (env.OAUTH_BRIDGE_SECRET) {
+        return relayToVps(provider, url.searchParams, { clientId, clientSecret, redirectUri, googleId }, env.OAUTH_BRIDGE_SECRET);
+      }
       if (!isStateValid(cookieHeader, provider, url.searchParams.get("state"))) return oauthErrorRedirect("state");
       const code = url.searchParams.get("code");
       if (!code) return oauthErrorRedirect("exchange");
