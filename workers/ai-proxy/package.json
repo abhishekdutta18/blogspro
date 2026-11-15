@@ -1,0 +1,12 @@
+{
+  "name": "blogspro-ai-proxy",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker that holds AI provider keys and forwards chat calls for the swarm.",
+  "scripts": {
+    "test": "node --test 'test/**/*.test.mjs'",
+    "deploy": "npx wrangler deploy",
+    "push-keys": "node bin/push-keys.mjs",
+    "check-keys": "node bin/push-keys.mjs --check"
+  }
+}

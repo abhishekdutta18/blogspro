@@ -1,0 +1,3 @@
+# Provider keys are pasted here locally and pushed to Cloudflare; never commit them.
+keys.env
+.dev.vars

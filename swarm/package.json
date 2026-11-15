@@ -1,0 +1,15 @@
+{
+  "name": "blogspro-swarm",
+  "private": true,
+  "type": "module",
+  "description": "Hourly market briefing swarm. Runs on the VPS, writes to the API's SQLite database.",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "hourly": "node --disable-warning=ExperimentalWarning bin/run.js --freq=hourly",
+    "hourly:dry": "node --disable-warning=ExperimentalWarning --env-file=../.env bin/run.js --freq=hourly --dry-run",
+    "test": "node --disable-warning=ExperimentalWarning --test 'test/**/*.test.mjs'",
+    "probe": "node --disable-warning=ExperimentalWarning --env-file=../.env bin/probe.js"
+  }
+}
