@@ -1,14 +1,24 @@
 import { extractChartBlocks } from "../../js/chart-engine/index.js";
+import { escapeHtml, renderLink, shieldMarkup } from "./html-sanitizer.js";
 
+const MD_LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
+
+/**
+ * Markdown -> HTML for untrusted LLM output.
+ * Raw HTML is reduced to an allowlist and shielded behind tokens before any markdown regex runs
+ * (see html-sanitizer.js), so every transform below only ever sees escaped text.
+ */
 function parseMD(md) {
     if (!md) return "";
-    
-    let processed = md
+
+    const cleaned = md
         .replace(/SENTIMENT_SCORE:\s*[\d\w\[\]\/\-\s]*/gi, '')
         .replace(/PRICE_INFO:\s*[\d\w\:\.\,\|\s\[\]\(\)\-\%]*/gi, '')
         .replace(/Weekend Price Info:\s*[\d\w\:\.\,\|\s\[\]\(\)\-\%]*/gi, '')
         .replace(/--- SYSTEM CONTEXT ---[\s\S]*?--- UNIVERSAL NEWS ---/gi, '')
         .trim();
+    const { text: processed, stash, restore } = shieldMarkup(cleaned);
+    const toLink = (_, label, url) => renderLink(label, url, stash);
 
     const lines = processed.split('\n');
     let inTable = false;
@@ -46,7 +56,7 @@ function parseMD(md) {
             } else if (!isSeparator) {
                 tableHtml += '<tr>' + cols.map(c => {
                     let content = c;
-                    content = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+                    content = content.replace(MD_LINK_RE, toLink);
                     
                     const numRegex = /^\d[\d,.]*$/;
                     if (numRegex.test(c.replace(/[%$₹,.]/g, ''))) {
@@ -77,11 +87,13 @@ function parseMD(md) {
         .replace(/^[#\s]*### (.*$)/gim, '<h3>$1</h3>')
         .replace(/^[#\s]*## (.*$)/gim, '<h2>$1</h2>')
         .replace(/^[#\s]*# (.*$)/gim, '<h1>$1</h1>')
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+        .replace(MD_LINK_RE, toLink)
         .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
         .replace(/^\- (.*$)/gim, '<li>$1</li>')
         .replace(/---/g, '<hr class="institutional-divider">');
-        
+    // Tags come back only now: block detection below needs them, the inline regexes must not see them.
+    finalHtml = restore(finalHtml);
+
     finalHtml = finalHtml.split('\n\n').map(block => {
         const trimmed = block.trim();
         if (!trimmed) return '';
@@ -104,16 +116,33 @@ function renderBody(md, chartOptions = {}) {
     return restore(parseMD(text));
 }
 
+/**
+ * Escape every payload field interpolated into a page shell. Model-generated title/excerpt are
+ * untrusted; freq/rel/dateLabel are escaped too so no caller has to reason about their origin.
+ */
+function escapeShellFields({ title, excerpt, dateLabel, freq, rel }) {
+    return {
+        title: escapeHtml(title),
+        excerpt: escapeHtml(excerpt),
+        dateLabel: escapeHtml(dateLabel),
+        freq: escapeHtml(String(freq ?? "").toUpperCase()),
+        rel: escapeHtml(rel),
+    };
+}
+
+/**
+ * `scripts` is trusted, caller-supplied markup (never model output) and is inserted verbatim.
+ */
 function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileName, rel = "../../", sentimentScore = 50, priceInfo = { last: "0", high: "0", low: "0" }, scripts = "" }) {
-    const seoDescription = excerpt || "Institutional Strategic Manuscript - 16-Vertical Specialized Market Synthesis.";
     const finalBody = renderBody(content);
+    const safe = escapeShellFields({ title, excerpt, dateLabel, freq, rel });
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} | Nexus Institutional Terminal</title>
+    <title>${safe.title} | Nexus Institutional Terminal</title>
     <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -176,14 +205,14 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
 </head>
 <body>
     <a href="/" class="global-logo" title="Back to Intelligence Hub">
-        <img src="${rel}favicon.svg" alt="Nexus Icon">
+        <img src="${safe.rel}favicon.svg" alt="Nexus Icon">
     </a>
 
     <div class="app-container">
         <main class="main-content">
-            <div class="status-tag">${freq.toUpperCase()} STRATEGIC MANUSCRIPT • ${dateLabel}</div>
-            <h1>${title}</h1>
-            <div class="excerpt">${excerpt}</div>
+            <div class="status-tag">${safe.freq} STRATEGIC MANUSCRIPT • ${safe.dateLabel}</div>
+            <h1>${safe.title}</h1>
+            <div class="excerpt">${safe.excerpt}</div>
             
             <div class="institutional-adsense">
                 <div class="ads-label">COMMERCIAL PROTOCOL</div>
@@ -250,12 +279,12 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
 function getEmailTemplate({ title, excerpt, content, dateLabel, fileName, freq, priceInfo = { last: "N/A", high: "N/A", low: "N/A" } }) {
     const finalBody = renderBody(content, { target: 'email' }); // Gmail/Outlook strip inline SVG: charts ship as tables
     return `<!DOCTYPE html><html><body style="background: #050505; color: #D1D5DB; font-family: sans-serif; padding: 20px;">
-        <h1 style="color: #F8FAFC;">${title}</h1>
-        <div style="border-left: 4px solid #FFB800; padding-left: 15px; margin: 20px 0;">${excerpt}</div>
+        <h1 style="color: #F8FAFC;">${escapeHtml(title)}</h1>
+        <div style="border-left: 4px solid #FFB800; padding-left: 15px; margin: 20px 0;">${escapeHtml(excerpt)}</div>
         <div>${finalBody}</div>
     </body></html>`;
 }
 
 import { getApexTemplate } from './apex-template.js';
 
-export { getBaseTemplate, getEmailTemplate, getApexTemplate, parseMD };
+export { getBaseTemplate, getEmailTemplate, getApexTemplate, parseMD, renderBody, escapeShellFields };

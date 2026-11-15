@@ -1,4 +1,5 @@
-import { parseMD } from './templates.js';
+import { renderBody, escapeShellFields } from './templates.js';
+import { escapeHtml } from './html-sanitizer.js';
 
 /**
  * Apex Institutional Terminal (V2.0.0)
@@ -17,16 +18,19 @@ export function getApexTemplate({
     rel = "../../",
     logoPath = "logo.svg" 
 }) {
-    const finalBody = parseMD(content);
+    // Charts render server-side as SVG: raw <chart-data> no longer survives parseMD's sanitizer.
+    const finalBody = renderBody(content);
     const now = new Date();
     const displayDate = dateLabel || now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    const safe = escapeShellFields({ title, excerpt, dateLabel: displayDate, freq, rel });
+    const safeLogoPath = escapeHtml(logoPath);
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} | Apex Institutional</title>
+    <title>${safe.title} | Apex Institutional</title>
     <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
@@ -230,7 +234,7 @@ export function getApexTemplate({
     <div class="apex-grid">
         <aside class="apex-sidebar">
             <a href="/" class="brand-container">
-                <div class="brand-logo"><img src="${rel}${logoPath}" alt="Logo"></div>
+                <div class="brand-logo"><img src="${safe.rel}${safeLogoPath}" alt="Logo"></div>
                 <div class="brand-text">BlogsPro <span style="color:var(--apex-accent)">Apex</span></div>
             </a>
 
@@ -245,15 +249,15 @@ export function getApexTemplate({
             <a href="#" class="nav-item">🏗️ Infrastructure</a>
             
             <div style="margin-top: auto; padding-top: 2rem;">
-                <div class="nav-label">${displayDate}</div>
+                <div class="nav-label">${safe.dateLabel}</div>
                 <div style="font-size:0.6rem; color:var(--apex-text-muted); opacity:0.5;">Confidential Institutional Briefing</div>
             </div>
         </aside>
 
         <main class="apex-main">
-            <div class="status-badge"><div class="pulse-dot"></div> Live ${freq.toUpperCase()} Pulse</div>
-            <h1>${title}</h1>
-            <div class="apex-excerpt">${excerpt}</div>
+            <div class="status-badge"><div class="pulse-dot"></div> Live ${safe.freq} Pulse</div>
+            <h1>${safe.title}</h1>
+            <div class="apex-excerpt">${safe.excerpt}</div>
 
             <section class="apex-content">
                 ${finalBody}

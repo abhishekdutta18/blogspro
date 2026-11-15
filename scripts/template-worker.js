@@ -1,4 +1,4 @@
-import { getBaseTemplate, parseMD } from "./lib/templates.js";
+import { getBaseTemplate } from "./lib/templates.js";
 
 /**
  * BlogsPro Template Engine Worker (V4.0)
@@ -17,14 +17,12 @@ export default {
       const data = await request.json();
       const { title, excerpt, content, dateLabel, type, freq, fileName, rel, sentimentScore, priceInfo } = data;
 
-      // 1. Core Structural Transformation (Markdown -> HTML)
-      const transformedContent = parseMD(content);
-
-      // 2. Wrap in Industrial Bloomberg-Gold Template
+      // Markdown -> sanitized HTML (charts included) happens once, inside getBaseTemplate.
+      // Pre-parsing here would feed HTML back through the sanitizer and strip its styling and charts.
       const html = getBaseTemplate({
         title,
         excerpt,
-        content: transformedContent, // Note: getBaseTemplate might already call parseMD, ensuring double-safety
+        content,
         dateLabel,
         type,
         freq,
