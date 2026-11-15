@@ -1,23 +1,16 @@
 import { renderBody, escapeShellFields } from './templates.js';
-import { escapeHtml } from './html-sanitizer.js';
-
-const STABLE_BASELINE = "Pulse Baseline: Stable.";
-const NEUTRAL = "Neutral.";
-const ITEM_SEPARATOR = ' | ';
-const GLOBAL_MARKER = ' | GLOBAL: ';
+import { liveNewsItems } from './live-news.js';
 
 /**
- * Live news-wire block. Items are scraped headlines (untrusted), so each one is escaped;
- * only the labels and layout are markup. Accepts the legacy string shape or { rbi, sebi, summary }.
- * @param {string | { rbi?: string, sebi?: string, summary?: string } | null | undefined} liveNews
+ * Live news-wire block; item text arrives escaped from liveNewsItems.
  * @returns {string} HTML, or '' when there is nothing worth showing
  */
 function renderLiveNews(liveNews) {
-    if (!liveNews || liveNews === STABLE_BASELINE) return "";
-    const rows = typeof liveNews === 'string'
-        ? liveNews.split(ITEM_SEPARATOR).map(item => `<div>${escapeHtml(item)}</div>`)
-        : newsObjectItems(liveNews).map(item => `<div style="margin-bottom:0.5rem">${item}</div>`);
-    if (!rows.length) return "";
+    const items = liveNewsItems(liveNews);
+    if (!items.length) return "";
+    const rows = items.map(({ label, html }) => label
+        ? `<div style="margin-bottom:0.5rem"><strong>${label}:</strong> ${html}</div>`
+        : `<div>${html}</div>`);
     return `
             <div class="terminal-block">
                 <div style="margin-bottom: 1rem; color: var(--accent); font-weight: bold;">LIVE_DATA_STREAM_PRIMED</div>
@@ -27,21 +20,6 @@ function renderLiveNews(liveNews) {
             </div>`;
 }
 
-function newsObjectItems({ rbi, sebi, summary }) {
-    const items = [];
-    if (rbi && rbi !== NEUTRAL) items.push(`<strong>RBI:</strong> ${escapeHtml(rbi)}`);
-    if (sebi && sebi !== NEUTRAL) items.push(`<strong>SEBI:</strong> ${escapeHtml(sebi)}`);
-    const globalOnly = String(summary || "").split(GLOBAL_MARKER)[1];
-    if (globalOnly) {
-        globalOnly.split(ITEM_SEPARATOR).forEach(item => items.push(`<strong>GLOBAL:</strong> ${escapeHtml(item)}`));
-    }
-    return items;
-}
-
-/**
- * [V16.0] Institutional Briefing Template
- * Designed for maximum readability and zero fluff.
- */
 export function getBriefingTemplate({ title, excerpt, content, dateLabel, type, freq, fileName, rel = "../../", scripts = "", liveNews = "" }) {
     const finalBody = renderBody(content);
     const safe = escapeShellFields({ title, excerpt, dateLabel, freq, rel });

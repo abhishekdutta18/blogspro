@@ -1,4 +1,28 @@
-import { parseMD } from './templates.js';
+import { renderBody, escapeShellFields } from './templates.js';
+import { liveNewsItems } from './live-news.js';
+
+/**
+ * Strategic news-wire block; item text arrives escaped from liveNewsItems.
+ * @returns {string} HTML, or '' when there is nothing worth showing
+ */
+function renderLiveNews(liveNews) {
+    const items = liveNewsItems(liveNews, { splitRegulatorItems: true });
+    if (!items.length) return "";
+    const rows = items.map(({ label, html }) => label
+        ? `<div class="news-item"><span class="news-tag">${label}</span> ${html}</div>`
+        : `
+                        <div class="news-item">
+                            <span class="news-tag">LIVE_WIRE</span> ${html}
+                        </div>
+                    `);
+    return `
+                <div class="news-terminal">
+                    <div class="news-header">STRATEGIC_NEWS_WIRE</div>
+                    <div class="news-feed">
+                        ${rows.join('')}
+                    </div>
+                </div>`;
+}
 
 /**
  * [V17.0] Institutional Terminal V2.0 Template
@@ -8,27 +32,30 @@ import { parseMD } from './templates.js';
  */
 export function getTerminalV2Template({ title, excerpt, content, dateLabel, type, freq, fileName, rel = "../../", scripts = "", liveNews = "" }) {
     // Sanitize content: Strip DOCTYPE, html, head, body if AI hallucinations included them
-    let sanitizedContent = content;
-    if (content.includes('<!DOCTYPE html>') || content.includes('<html')) {
-        const bodyMatch = content.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    const source = String(content ?? "");
+    let sanitizedContent = source;
+    if (source.includes('<!DOCTYPE html>') || source.includes('<html')) {
+        const bodyMatch = source.match(/<body[^>]*>([\s\S]*)<\/body>/i);
         if (bodyMatch) {
             sanitizedContent = bodyMatch[1];
         } else {
             // If no body tag, strip head if present
-            sanitizedContent = content.replace(/<head[\s\S]*?<\/head>/gi, '')
+            sanitizedContent = source.replace(/<head[\s\S]*?<\/head>/gi, '')
                                      .replace(/<!DOCTYPE[\s\S]*?>/gi, '')
                                      .replace(/<\/?html[^>]*>/gi, '')
                                      .replace(/<\/?body[^>]*>/gi, '');
         }
     }
-    const finalBody = parseMD(sanitizedContent);
+    // Charts render server-side; renderBody also sanitizes the model's markup.
+    const finalBody = renderBody(sanitizedContent);
+    const safe = escapeShellFields({ title, excerpt, dateLabel: String(dateLabel ?? "").toUpperCase(), freq, rel });
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} | Institutional Terminal</title>
+    <title>${safe.title} | Institutional Terminal</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&family=Cormorant+Garamond:ital,wght@1,600&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -232,19 +259,19 @@ export function getTerminalV2Template({ title, excerpt, content, dateLabel, type
         <div class="header-ribbon">
             <span>TERMINAL_ID: BPRO-INST-PULSE</span>
             <span>SYSTEM_STATUS: ONLINE</span>
-            <span>TIMESTAMP: ${dateLabel.toUpperCase()}</span>
+            <span>TIMESTAMP: ${safe.dateLabel}</span>
         </div>
 
         <div class="container">
             <div class="title-block">
-                <h1>${title}</h1>
-                <div class="abstract">${excerpt}</div>
+                <h1>${safe.title}</h1>
+                <div class="abstract">${safe.excerpt}</div>
             </div>
 
             <div class="data-grid">
                 <div class="data-card">
                     <span class="data-label">Pulse Frequency</span>
-                    <span class="data-value">${freq.toUpperCase()} STRATEGIC UPDATE</span>
+                    <span class="data-value">${safe.freq} STRATEGIC UPDATE</span>
                 </div>
                 <div class="data-card">
                     <span class="data-label">Analytical Density</span>
@@ -260,39 +287,7 @@ export function getTerminalV2Template({ title, excerpt, content, dateLabel, type
                 ${finalBody}
             </article>
 
-            ${liveNews ? (function() {
-                let newsHtml = "";
-                if (typeof liveNews === 'string') {
-                    if (liveNews === "Pulse Baseline: Stable.") return "";
-                    newsHtml = liveNews.split(' | ').map(item => `
-                        <div class="news-item">
-                            <span class="news-tag">LIVE_WIRE</span> ${item}
-                        </div>
-                    `).join('');
-                } else {
-                    const items = [];
-                    if (liveNews.rbi && liveNews.rbi !== "Neutral.") {
-                        liveNews.rbi.split(' | ').forEach(i => items.push(`<span class="news-tag">RBI</span> ${i}`));
-                    }
-                    if (liveNews.sebi && liveNews.sebi !== "Neutral.") {
-                        liveNews.sebi.split(' | ').forEach(i => items.push(`<span class="news-tag">SEBI</span> ${i}`));
-                    }
-                    const summaryText = liveNews.summary || "";
-                    const globalOnly = summaryText.split(' | GLOBAL: ')[1];
-                    if (globalOnly) {
-                        globalOnly.split(' | ').forEach(gi => items.push(`<span class="news-tag">GLOBAL</span> ${gi}`));
-                    }
-                    newsHtml = items.map(item => `<div class="news-item">${item}</div>`).join('');
-                }
-                if (!newsHtml) return "";
-                return `
-                <div class="news-terminal">
-                    <div class="news-header">STRATEGIC_NEWS_WIRE</div>
-                    <div class="news-feed">
-                        ${newsHtml}
-                    </div>
-                </div>`;
-            })() : ''}
+            ${renderLiveNews(liveNews)}
 
             <footer>
                 <a href="/" class="back-link">ACCESS TERMINAL_CORE</a>

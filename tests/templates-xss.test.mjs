@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { parseMD, renderBody, getBaseTemplate, getEmailTemplate, getApexTemplate } from '../scripts/lib/templates.js';
 import { escapeHtml, safeUrl } from '../scripts/lib/html-sanitizer.js';
 import { getBriefingTemplate } from '../scripts/lib/briefing-template.js';
+import { getTerminalV2Template } from '../scripts/lib/terminal-v2-template.js';
 
 /** Every tag in the output, with double-quoted values blanked so we only see attribute names. */
 function tagShells(html) {
@@ -245,6 +246,44 @@ test('getBriefingTemplate omits the news block for the stable baseline', () => {
 
 test('getBriefingTemplate renders charts server-side', () => {
   const html = getBriefingTemplate({ title: 'T', content: '<chart-data>[["A", 1], ["B", 2]]</chart-data>', freq: 'daily' });
+  assert.match(html, /<figure class="bp-chart"/);
+  assert.doesNotMatch(html, /&lt;chart-data/);
+});
+
+// ── hourly terminal template ──────────────────────
+test('getTerminalV2Template escapes payload fields and sanitizes the body', () => {
+  const html = getTerminalV2Template({ ...HOSTILE, content: '## Body\n\n<img src=x onerror=alert(1)> text' });
+  assertNoActiveContent(html.match(/<article>([\s\S]*?)<\/article>/)[1]);
+  assert.doesNotMatch(html, /<script>alert|<svg onload|weekly<script/i);
+  assert.match(html, /<title>Fed&#39;s &quot;Higher&quot; Path&lt;\/title&gt;/);
+  assert.match(html, /TIMESTAMP: &lt;SVG ONLOAD=ALERT\(1\)&gt;/);
+  assert.match(html, /WEEKLY&lt;SCRIPT&gt; STRATEGIC UPDATE/);
+  assert.match(html, /<h2>Body<\/h2>/);
+});
+
+test('getTerminalV2Template escapes live news items in both shapes', () => {
+  const fromString = getTerminalV2Template({ title: 'T', content: 'x', freq: 'hourly', dateLabel: 'd', liveNews: 'Calm | <img src=x onerror=alert(1)>' });
+  assert.match(fromString, /<span class="news-tag">LIVE_WIRE<\/span> &lt;img src=x onerror=alert\(1\)&gt;/);
+
+  const fromObject = getTerminalV2Template({
+    title: 'T', content: 'x', freq: 'hourly', dateLabel: 'd',
+    liveNews: { rbi: 'Repo held | <script>a()</script>', sebi: 'Neutral.', summary: 'l | GLOBAL: Fed <b>holds</b>' },
+  });
+  assert.match(fromObject, /<div class="news-item"><span class="news-tag">RBI<\/span> Repo held<\/div>/);
+  assert.match(fromObject, /<span class="news-tag">RBI<\/span> &lt;script&gt;a\(\)&lt;\/script&gt;/);
+  assert.match(fromObject, /<span class="news-tag">GLOBAL<\/span> Fed &lt;b&gt;holds&lt;\/b&gt;/);
+  assert.doesNotMatch(fromObject, /news-tag">SEBI/);
+});
+
+test('getTerminalV2Template strips a hallucinated document shell and survives missing content', () => {
+  const html = getTerminalV2Template({ title: 'T', freq: 'hourly', dateLabel: 'd', content: '<!DOCTYPE html><html><head><title>x</title></head><body>## Inner</body></html>' });
+  assert.match(html, /<h2>Inner<\/h2>/);
+  assert.doesNotMatch(html.match(/<article>([\s\S]*?)<\/article>/)[1], /DOCTYPE|&lt;html/);
+  assert.doesNotThrow(() => getTerminalV2Template({ title: 'T', freq: 'hourly', dateLabel: 'd' }));
+});
+
+test('getTerminalV2Template renders charts server-side', () => {
+  const html = getTerminalV2Template({ title: 'T', content: '<chart-data>[["A", 1], ["B", 2]]</chart-data>', freq: 'hourly', dateLabel: 'd' });
   assert.match(html, /<figure class="bp-chart"/);
   assert.doesNotMatch(html, /&lt;chart-data/);
 });
