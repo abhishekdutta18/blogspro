@@ -11,12 +11,16 @@ import { renderStats, renderTable } from './render-html.js';
 import { resolveTheme } from './theme.js';
 import { escapeHtml, formatValue } from './format.js';
 import { canvasFor } from './svg.js';
+import { mermaidToChart } from './mermaid.js';
 
-export { normalizeChart, ChartSpecError } from './normalize.js';
+export { normalizeChart, ChartSpecError, parsePayload } from './normalize.js';
+export { mermaidToChart } from './mermaid.js';
+export { CHART_PROMPT_SPEC, CHART_PROMPT_EXAMPLES } from './prompt-spec.js';
 export { DARK_THEME, LIGHT_THEME } from './theme.js';
 
 const CHART_TAG = /<chart-data\b[^>]*>([\s\S]*?)<\/chart-data>/gi;
 const UNCLOSED_TAG = /<chart-data\b[^>]*>[\s\S]*?(?=\n[ \t]*\n|$)/gi;
+const MERMAID_FENCE = /```mermaid[ \t]*\n([\s\S]*?)```/g;
 const MIN_SVG_WIDTH = 480; // keeps 10px chart text >= ~7.5px on screen
 const SVG_RENDERERS = Object.freeze({ bar: renderBars, line: renderLines, pie: renderPie, gauge: renderGauge });
 const HTML_RENDERERS = Object.freeze({ stats: renderStats, table: renderTable });
@@ -140,6 +144,7 @@ export function extractChartBlocks(text, options = {}) {
     failures.push({ index: rendered.length, error: error.message });
     return place(invalidChartFallback(raw, error));
   };
+  let rescued = 0;
   const shielded = String(text ?? '')
     .replace(CHART_TAG, (_, raw) => {
       try {
@@ -148,8 +153,38 @@ export function extractChartBlocks(text, options = {}) {
         return fail(raw, err);
       }
     })
-    .replace(UNCLOSED_TAG, match => fail(match, new ChartSpecError('unclosed <chart-data> tag')));
+    .replace(UNCLOSED_TAG, match => fail(match, new ChartSpecError('unclosed <chart-data> tag')))
+    .replace(MERMAID_FENCE, (match, source) => {
+      const payload = mermaidToChart(source);
+      if (!payload) return match; // not a chart (flowchart etc.): leave it as the author wrote it
+      try {
+        const html = renderChart(payload, { ...options, idSuffix: rendered.length });
+        rescued += 1;
+        return place(html);
+      } catch (err) {
+        return fail(source, err);
+      }
+    });
   const token = new RegExp(`(?:<p\\b[^>]*>\\s*)?@@BPC_${nonce}_(\\d+)@@(?:\\s*</p>)?`, 'g');
   const restore = html => html.replace(token, (_, i) => rendered[Number(i)] ?? '');
-  return { text: shielded, restore, failures };
+  return { text: shielded, restore, failures, rescued };
+}
+
+/**
+ * Check every <chart-data> block without rendering a page — for validators and correction loops.
+ * Error messages are the engine's own, so they can be fed back to the model verbatim.
+ * @param {string} text
+ * @returns {{ count: number, failures: { index: number, error: string }[] }}
+ */
+export function auditCharts(text) {
+  const blocks = [...String(text ?? '').matchAll(CHART_TAG)].map(m => m[1]);
+  const failures = blocks.flatMap((raw, index) => {
+    try {
+      normalizeChart(decodeEntities(raw));
+      return [];
+    } catch (err) {
+      return [{ index, error: err instanceof Error ? err.message : String(err) }];
+    }
+  });
+  return { count: blocks.length, failures };
 }

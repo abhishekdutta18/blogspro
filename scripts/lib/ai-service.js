@@ -1094,7 +1094,7 @@ export async function askMultipleAIWithConsensus(prompt, env, numModels = 3) {
 TASK: Merge the following ${validResults.length} independent AI-generated research manuscripts into ONE final, authoritative document.
 
 RULES:
-1. Keep ALL markdown tables, Mermaid charts, and data points that appear in ANY response.
+1. Keep ALL markdown tables, <chart-data> chart blocks (verbatim JSON), and data points that appear in ANY response.
 2. Where models AGREE on a number, use that number with high confidence.
 3. Where models DISAGREE, prefer the number that appears in the majority, or the one closest to the live data values.
 4. Eliminate any hallucinated claims that only ONE model makes and which contradict the others.

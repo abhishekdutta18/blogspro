@@ -1,4 +1,5 @@
 import { extractChartBlocks } from "../../js/chart-engine/index.js";
+import { reportChartFailures } from "./chart-telemetry.js";
 
 function parseMD(md) {
     if (!md) return "";
@@ -100,7 +101,7 @@ function parseMD(md) {
  */
 function renderBody(md, chartOptions = {}) {
     const { text, restore, failures } = extractChartBlocks(md || "", chartOptions);
-    failures.forEach(f => console.warn(`📊 [ChartEngine] chart #${f.index} dropped: ${f.error}`));
+    reportChartFailures(failures, { target: chartOptions.target ?? 'web' });
     return restore(parseMD(text));
 }
 
@@ -258,4 +259,4 @@ function getEmailTemplate({ title, excerpt, content, dateLabel, fileName, freq, 
 
 import { getApexTemplate } from './apex-template.js';
 
-export { getBaseTemplate, getEmailTemplate, getApexTemplate, parseMD };
+export { getBaseTemplate, getEmailTemplate, getApexTemplate, parseMD, renderBody };
