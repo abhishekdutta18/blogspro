@@ -215,30 +215,8 @@ export default {
         return wrapResponse({ success: true, jobId, message: "Durable Dispatch Initiated", type, frequency: freq });
       }
 
-      // 6. VAULT (Secret Propagation for Browser Rendering & GitHub Swarm)
-      if (pathname === "/vault" && request.method === "POST") {
-        const vaultAuth = request.headers.get("X-Vault-Auth") || "";
-        if (!vaultAuth || (vaultAuth !== env.VAULT_MASTER_KEY && vaultAuth !== "BPRO_GIGA_PULSE_2026_HARDENED")) {
-          logSwarmBreadcrumb("Unauthorized Vault Access Attempt", { auth: !!vaultAuth }, sentry);
-          return wrapResponse({ error: "Unauthorized Vault Access" }, 403);
-        }
-
-        // Institutional Payload: Return actual values managed via scripts/sync-secrets.mjs
-        return wrapResponse({ 
-          status: "authenticated", 
-          secrets: {
-            GH_PAT: env.GH_PAT || null,
-            GEMINI: env.GEMINI_API_KEY || null,
-            GROQ: env.GROQ_API_KEY || null,
-            MISTRAL: env.MISTRAL_API_KEY || null,
-            SAMBANOVA: env.SAMBANOVA_API_KEY || null,
-            HUGGINGFACE: env.HF_TOKEN || null,
-            OLLAMA_PROD: env.OLLAMA_PROD_URL || null,
-            INNGEST: env.INNGEST_SIGNING_KEY || null,
-            SENTRY: env.SENTRY_DSN || null
-          } 
-        });
-      }
+      // 6. VAULT — removed 2026-11-15. It returned every secret to any caller holding a
+      // password that was hardcoded in this public repo. Secrets must never leave the worker.
 
       // 6.5. AI GATEWAY (V7.2 - Institutional Key Restoration)
       if (pathname === "/ai-gateway" && request.method === "POST") {
