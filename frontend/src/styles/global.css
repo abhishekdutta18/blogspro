@@ -109,7 +109,8 @@
   font-weight: 600;
   margin-top: 1.6em;
 }
-.prose-article p:first-of-type::first-letter {
+/* Direct child only: a first paragraph inside a list, quote or figure gets no drop cap. */
+.prose-article > p:first-of-type::first-letter {
   float: left;
   font-size: 3.4em;
   line-height: 0.85;
@@ -117,7 +118,7 @@
   font-weight: 600;
 }
 .prose-article strong { font-weight: 600; }
-.prose-article a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.prose-article a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
 .prose-article ul { list-style: disc; padding-left: 1.4em; }
 .prose-article ol { list-style: decimal; padding-left: 1.4em; }
 .prose-article li + li { margin-top: 0.4em; }
@@ -142,5 +143,11 @@
   line-height: 1.6;
   overflow-x: auto;
 }
+/* Figures recovered from the old chart widgets: caption, data table, source line. */
+.prose-article figure { margin-top: 2em; margin-bottom: 2em; overflow-x: auto; }
+.prose-article figcaption { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem; line-height: 1.5; color: var(--ink-2); margin-bottom: 0.75em; }
+.prose-article figcaption strong { display: block; font-size: 0.95rem; color: var(--ink); }
+.prose-article figure p { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.8rem; color: var(--ink-2); margin-top: 0.6em; }
+.prose-article caption { caption-side: top; text-align: left; font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; font-size: 0.9rem; padding-bottom: 0.5em; }
 .prose-article table { width: 100%; border-collapse: collapse; font-family: 'IBM Plex Sans', sans-serif; font-size: 0.9rem; }
 .prose-article th, .prose-article td { border-bottom: 1px solid var(--rule); padding: 0.5em 0.6em; text-align: left; }

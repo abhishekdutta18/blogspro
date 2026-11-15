@@ -3,6 +3,8 @@
 
 import { withFullText, type PostSnapshot } from '../lib/articleContent';
 import firestorePosts from './firestore-posts.json';
+// Full text rebuilt from git history by scripts/recover_articles.py while Firestore is unreachable.
+import recoveredPosts from './recovered-posts.json';
 
 export interface Article {
   slug: string;
@@ -394,8 +396,11 @@ const curatedArticles: Article[] = [
   }
 ];
 
-/** Archive with full Firestore text merged in and read times computed from the text. */
-export const articles: Article[] = curatedArticles.map(article => withFullText(article, firestorePosts as PostSnapshot[]));
+// A live Firestore snapshot comes first, so a real sync wins over the recovered copy.
+const fullTextSources: PostSnapshot[] = [...(firestorePosts as PostSnapshot[]), ...(recoveredPosts as PostSnapshot[])];
+
+/** Archive with full text merged in and read times computed from the text. */
+export const articles: Article[] = curatedArticles.map(article => withFullText(article, fullTextSources));
 
 export function getFeaturedArticle(): Article {
   return articles.find(a => a.featured) || articles[0];
