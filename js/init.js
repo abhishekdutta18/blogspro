@@ -7,6 +7,9 @@ import { loadHybridPosts } from './posts.js';
 import { initNewsWire } from './news-wire.js';
 import { ENDPOINTS } from './endpoints.js?v=vps1';
 import { debounce } from './utils.js';
+import { mountDashboardChart } from './dashboard-charts.js';
+
+const GAUGE_MAX_WIDTH = '360px';
 
 window.registerGoogle = () => {
   api.auth.google("index.html");
@@ -67,7 +70,6 @@ let forexCalendarRaw = [];
 let forexCalendarPast = [];
 let indiaCalendarRaw = [];
 let indiaCalendarHistoryRaw = [];
-let indiaQoqChart = null;
 let applyForexFiltersGlobal = null;
 let cryptoCache = null;
 let cryptoCacheAt = 0;
@@ -235,19 +237,11 @@ async function loadForexFactoryData() {
       <div><b>Risk Note:</b> Clustered high-impact prints can widen spreads around the minute of release.</div>
     `;
     const topCountries = Object.entries(byCountry).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    if (window.google && google.visualization) {
-      const data = google.visualization.arrayToDataTable([
-        ['Country', 'Events'],
-        ...topCountries.map(([c, n]) => [c, n])
-      ]);
-      const options = { 
-        ...window.CHART_THEME, 
-        pieHole: 0.4, 
-        chartArea: { width: '90%', height: '70%' },
-        legend: { position: 'bottom', textStyle: { color: 'rgba(191,161,0,0.8)', fontSize: 9 } }
-      };
-      new google.visualization.PieChart(document.getElementById('forexCountryMixChart')).draw(data, options);
-    }
+    mountDashboardChart(countryMixChartEl, {
+      type: 'pie',
+      pieHole: 0.4,
+      data: [['Country', 'Events'], ...topCountries.map(([c, n]) => [c, n])],
+    }, { empty: 'No events in the active filter set' });
 
     const surpriseRows = filtered
       .map((e) => {
@@ -259,19 +253,13 @@ async function loadForexFactoryData() {
       .filter(Boolean)
       .sort((a, b) => b.s - a.s)
       .slice(0, 4);
-    if (window.google && google.visualization && surpriseRows.length) {
-      const data = google.visualization.arrayToDataTable([
-        ['Event', 'Surprise'],
-        ...surpriseRows.map(r => [r.title.slice(0, 15), r.s])
-      ]);
-      const options = { 
-        ...window.CHART_THEME, 
-        hAxis: { ...window.CHART_THEME.hAxis, title: 'Event Dispersion' },
-        vAxis: { ...window.CHART_THEME.vAxis, title: 'Absolute Surprise' },
-        legend: { position: 'none' }
-      };
-      new google.visualization.BarChart(document.getElementById('forexSurpriseChart')).draw(data, options);
-    }
+    mountDashboardChart(surpriseChartEl, {
+      type: 'bar',
+      hAxis: { title: 'Event Dispersion' },
+      vAxis: { title: 'Absolute Surprise' },
+      legend: { position: 'none' },
+      data: [['Event', 'Surprise'], ...surpriseRows.map(r => [r.title.slice(0, 15), r.s])],
+    }, { empty: 'Awaiting actual-vs-forecast pairs' });
 
     const sess = { asia: 0, europe: 0, us: 0 };
     filtered.forEach((e) => {
@@ -286,20 +274,13 @@ async function loadForexFactoryData() {
     const peakMap = { asia: 'Asia session', europe: 'Europe session', us: 'US session' };
     const totalSess = Math.max(1, sess.asia + sess.europe + sess.us);
     const heat = Math.round((Number(peak[1] || 0) / totalSess) * 100);
-    if (window.google && google.visualization) {
-      const data = google.visualization.arrayToDataTable([
-        ['Label', 'Value'],
-        ['Risk', heat]
-      ]);
-      const options = {
-        width: 120, height: 120,
-        redFrom: 75, redTo: 100,
-        yellowFrom: 50, yellowTo: 75,
-        minorTicks: 5,
-        greenColor: '#BFA100', yellowColor: '#FFB800', redColor: '#ef4444'
-      };
-      new google.visualization.Gauge(document.getElementById('forexSessionGaugeChart')).draw(data, options);
-    }
+    mountDashboardChart(sessionGaugeChartEl, {
+      type: 'gauge',
+      redFrom: 75, redTo: 100,
+      yellowFrom: 50, yellowTo: 75,
+      unit: '%',
+      data: [['Label', 'Value'], ['Risk', heat]],
+    }, { maxWidth: GAUGE_MAX_WIDTH });
     sessionGaugeNoteEl.textContent = `${peakMap[peak[0]] || 'Session'} concentration: ${heat}% of tracked releases`;
     deskExplainEl.innerHTML = `
       <div><b>Country Event Mix:</b> ${topCountries.map(([c, n]) => `${c} (${n})`).join(', ') || 'No mix available'}.</div>
@@ -805,32 +786,23 @@ async function loadIndiaCalendarData() {
     }
     return { history, forecastPoint };
   };
-  const renderQoqGoogleChart = (history, forecastPoint) => {
-    if (!window.google || !window.google.visualization) return false;
-    qoqChartEl.innerHTML = '<div id="indiaQoqGoogleChart" style="width:100%;height:190px"></div>';
-    qoqChartEl.style.height = '220px';
-    qoqChartEl.style.maxHeight = '220px';
-    const chartEl = document.getElementById('indiaQoqGoogleChart');
-    if (!chartEl) return false;
-    if (indiaQoqChart) indiaQoqChart.clearChart();
+  const renderQoqChart = (history, forecastPoint) => {
     const hasForecast = !!forecastPoint;
+    const lastIdx = history.length - 1;
     const cols = [{ type: 'string', label: 'Quarter' }, { type: 'number', label: 'Historical' }, { type: 'string', role: 'annotation' }, ...(hasForecast ? [{ type: 'number', label: 'Forecast' }] : [])];
-    const rows = history.map((pt) => {
+    // The forecast series starts at the last actual print so the dashed segment joins the area.
+    const rows = history.map((pt, i) => {
       const row = [pt.label, pt.value, String(pt.value.toFixed(2))];
-      if (hasForecast) row.push(null);
-      return row;
+      return hasForecast ? [...row, i === lastIdx ? pt.value : null] : row;
     });
-    if (hasForecast) {
-      rows[rows.length - 1][rows[rows.length - 1].length - 1] = history[history.length - 1].value;
-      rows.push([forecastPoint.label, null, null, forecastPoint.value]);
-    }
-    const dataTable = new google.visualization.DataTable();
-    cols.forEach((c) => dataTable.addColumn(c));
-    dataTable.addRows(rows);
-    const options = { ...window.CHART_THEME, chartArea: { ...window.CHART_THEME.chartArea, left: 60 }, series: { 0: { color: '#BFA100', areaOpacity: 0.1, lineWidth: 3 }, ...(hasForecast ? { 1: { color: '#FFB800', lineDashStyle: [4, 4], pointSize: 5 } } : {}) }, hAxis: { ...window.CHART_THEME.hAxis, title: 'Quarterly Period' }, vAxis: { ...window.CHART_THEME.vAxis, title: 'Institutional Delta %' } };
-    indiaQoqChart = new google.visualization.AreaChart(chartEl);
-    indiaQoqChart.draw(dataTable, options);
-    return true;
+    const forecastRow = hasForecast ? [[forecastPoint.label, null, null, forecastPoint.value]] : [];
+    mountDashboardChart(qoqChartEl, {
+      type: 'area',
+      hAxis: { title: 'Quarterly Period' },
+      vAxis: { title: 'Institutional Delta %' },
+      series: hasForecast ? { 1: { lineDashStyle: [4, 4] } } : {},
+      data: [cols, ...rows, ...forecastRow],
+    }, { empty: 'No numeric values available for this event.' });
   };
   const renderQoq = (event) => {
     const { history, forecastPoint } = buildQoqHistorySeries(event, indiaCalendarHistoryRaw);
@@ -840,7 +812,7 @@ async function loadIndiaCalendarData() {
       return;
     }
     qoqTitleEl.textContent = `India QoQ Historical Trend · ${event.title || 'Selected Event'}`;
-    renderQoqGoogleChart(history, forecastPoint);
+    renderQoqChart(history, forecastPoint);
   };
 
   const render = () => {
@@ -884,21 +856,25 @@ async function loadIndiaCalendarData() {
       <div><b>Key Event Breakdown</b></div>
       ${keyEventDetails}
     `;
-    if (window.google && google.visualization) {
-      const probData = google.visualization.arrayToDataTable([['Scenario', 'Probability'], ['Hold', m.holdProb], ['Hike', m.hikeProb], ['Cut', m.cutProb]]);
-      new google.visualization.ColumnChart(document.getElementById('indiaProbChart')).draw(probData, { ...window.CHART_THEME, hAxis: { ...window.CHART_THEME.hAxis, title: 'Policy Catalyst' }, vAxis: { ...window.CHART_THEME.vAxis, title: 'Confidence %' }, legend: { position: 'top', alignment: 'center' } });
-      const inrData = google.visualization.arrayToDataTable([['Label', 'Value'], ['INR Stress', Math.max(0, 50 + (m.inrPressure * 10))]]);
-      new google.visualization.Gauge(document.getElementById('indiaInrGaugeChart')).draw(inrData, { width: 120, height: 120, redFrom: 70, redTo: 100, yellowFrom: 40, yellowTo: 70, minorTicks: 5, greenColor: '#BFA100', yellowColor: '#FFB800', redColor: '#ef4444' });
-      const sectorData = google.visualization.arrayToDataTable([['Sector', 'Sensitivity'], ...Object.entries(m.sectorHits).map(([k, v]) => [k, v])]);
-      new google.visualization.BarChart(document.getElementById('indiaSectorChart')).draw(sectorData, { 
-        ...window.CHART_THEME, 
-        chartArea: { ...window.CHART_THEME.chartArea, left: 90, width: '70%' },
-        hAxis: { ...window.CHART_THEME.hAxis, title: 'Institutional Exposure Score' }, 
-        vAxis: { ...window.CHART_THEME.vAxis, title: 'Sector High-Density Vertical' }, 
-        legend: { position: 'top', alignment: 'center' } 
-      });
-    }
+    mountDashboardChart(probChartEl, {
+      type: 'column',
+      hAxis: { title: 'Policy Catalyst' },
+      vAxis: { title: 'Confidence %' },
+      data: [['Scenario', 'Probability'], ['Hold', m.holdProb], ['Hike', m.hikeProb], ['Cut', m.cutProb]],
+    });
     const gaugePct = Math.max(0, Math.min(100, 50 + (m.inrPressure * 10)));
+    mountDashboardChart(inrGaugeChartEl, {
+      type: 'gauge',
+      redFrom: 70, redTo: 100,
+      yellowFrom: 40, yellowTo: 70,
+      data: [['Label', 'Value'], ['INR Stress', gaugePct]],
+    }, { maxWidth: GAUGE_MAX_WIDTH });
+    mountDashboardChart(sectorChartEl, {
+      type: 'bar',
+      hAxis: { title: 'Institutional Exposure Score' },
+      vAxis: { title: 'Sector High-Density Vertical' },
+      data: [['Sector', 'Sensitivity'], ...Object.entries(m.sectorHits).map(([k, v]) => [k, v])],
+    }, { empty: 'No sector exposure in the current event set' });
     inrGaugeNoteEl.textContent = `Stress Score: ${pctStr(m.inrPressure)} (${gaugePct >= 60 ? 'Downside Risk' : gaugePct <= 40 ? 'Stability Bias' : 'Neutral Corridor'})`;
     listEl.innerHTML = events.map((e, idx) => `
       <li class="calendar-item india-event-card" data-india-idx="${idx}">
@@ -1310,13 +1286,7 @@ function fmtViews(n) {
     { id: 'about', fn: () => loadAbout() },
     { id: 'intel', fn: () => initIntelHub() },
     { id: 'market', fn: () => loadUpstoxMarketData({ showLoading: true }) },
-    { id: 'forex', fn: async () => {
-      await Promise.race([
-        window.chartsReadyPromise || Promise.resolve(), 
-        new Promise(res => setTimeout(res, 5000))
-      ]);
-      return await loadForexFactoryData();
-    }},
+    { id: 'forex', fn: () => loadForexFactoryData() },
     { id: 'india', fn: () => loadIndiaCalendarData() },
     { id: 'tvTicker', fn: () => initTVTicker() },
     { id: 'tvHub', fn: () => initTVHub() },
