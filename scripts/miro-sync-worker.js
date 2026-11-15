@@ -3,6 +3,13 @@ import * as sync from 'y-protocols/dist/sync.cjs';
 import * as awareness from 'y-protocols/dist/awareness.cjs';
 import { encoding, decoding } from 'lib0';
 import { saveSnapshot } from './lib/storage-bridge.js';
+import { renderTerminalCharts } from './lib/miro-terminal-charts.js';
+
+const TELEMETRY_CORS = Object.freeze({
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': '*',
+});
 
 /**
  * MiroSync Durable Object
@@ -22,6 +29,14 @@ export class MiroSyncS {
         Y.applyUpdate(this.doc, stored);
       }
     });
+  }
+
+  /** Newest-first [jobId, job] entries from the shared swarm-progress map. */
+  recentJobs(limit) {
+    const entries = [...this.doc.getMap('swarm-progress').entries()];
+    return entries
+      .sort(([, a], [, b]) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, limit);
   }
 
   async fetch(request) {
@@ -83,24 +98,19 @@ export class MiroSyncS {
 
     // 1.5. Failsafe Telemetry Snapshot (Conflict-Free JSON Stream)
     if (url.pathname === '/telemetry' && request.method === 'GET') {
-      const progressMap = this.doc.getMap('swarm-progress');
-      const data = Object.fromEntries(progressMap.entries());
-      
       // 🚀 optimization: Only send the 5 most recent jobs to the client to prevent payload bloat
-      const sortedKeys = Object.keys(data).sort((a, b) => 
-        new Date(data[b].timestamp).getTime() - new Date(data[a].timestamp).getTime()
-      );
-      
-      const filteredData = {};
-      sortedKeys.slice(0, 5).forEach(k => filteredData[k] = data[k]);
-
+      const filteredData = Object.fromEntries(this.recentJobs(5));
       return new Response(JSON.stringify(filteredData), {
-        headers: { 
-          'Content-Type': 'application/json',
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, OPTIONS",
-          "Access-Control-Allow-Headers": "*"
-        }
+        headers: { 'Content-Type': 'application/json', ...TELEMETRY_CORS }
+      });
+    }
+
+    // 1.6. Terminal chart panels for the newest job, rendered server-side by the shared chart engine
+    if (url.pathname === '/telemetry/charts' && request.method === 'GET') {
+      const [latest] = this.recentJobs(1);
+      const charts = latest ? renderTerminalCharts(latest[1]) : null;
+      return new Response(JSON.stringify(charts), {
+        headers: { 'Content-Type': 'application/json', ...TELEMETRY_CORS }
       });
     }
 
@@ -420,7 +430,6 @@ const TERMINAL_HTML = `
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BlogsPro Institutional Swarm Terminal | V7.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
-    <script src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
         :root {
             --gold: #BFA100;
@@ -512,7 +521,12 @@ const TERMINAL_HTML = `
         }
 
         .stat-label { font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; font-weight: 700; }
-        .chart-container { height: 160px; width: 100%; }
+        .chart-container { min-height: 160px; width: 100%; }
+        /* Engine figures arrive server-rendered with their own card chrome; sit them flush in the panels. */
+        .chart-host > .bp-chart { margin: 0 !important; padding: 0 !important; border: 0 !important; background: transparent !important; }
+        /* The 3-pane sidebar is ~250px, under the engine's 480px SVG min-width: scale down rather than scroll,
+           so both OASIS gauges stay visible. Exact values remain in each chart's "View data" table. */
+        #chart_latency svg, #chart_oasis svg { min-width: 0 !important; }
 
         /* [V6.0] Ghost Projection Overlay */
         .ghost-box {
@@ -598,12 +612,12 @@ const TERMINAL_HTML = `
 
                 <div class="panel">
                     <div class="stat-label">System Stress [Latency ms]</div>
-                    <div id="chart_latency" class="chart-container"></div>
+                    <div id="chart_latency" class="chart-container chart-host"></div>
                 </div>
 
                 <div class="panel">
                     <div class="stat-label">OASIS [GHOST vs LIVE]</div>
-                    <div id="chart_oasis" class="chart-container"></div>
+                    <div id="chart_oasis" class="chart-container chart-host"></div>
                 </div>
             </section>
         </aside>
@@ -614,12 +628,12 @@ const TERMINAL_HTML = `
             <section>
                 <div class="panel" style="border-color: #333;">
                     <div class="stat-label">Disagreement Heatmap (Variance Matrices)</div>
-                    <div id="chart_heatmap" style="height: 250px;"></div>
+                    <div id="chart_heatmap" class="chart-host" style="min-height: 250px;"></div>
                 </div>
 
                 <div class="panel" style="border-color: #333;">
                     <div class="stat-label">Alignment Evolution (Institutional Drift)</div>
-                    <div id="chart_timeline" style="height: 180px;"></div>
+                    <div id="chart_timeline" class="chart-host" style="min-height: 180px;"></div>
                 </div>
 
                 <div id="ghost-projection"></div>
@@ -645,68 +659,17 @@ const TERMINAL_HTML = `
     </main>
 
     <script>
-        google.charts.load('current', {'packages':['corechart', 'table', 'gauge']});
-        
-        let charts = { latency: null, heatmap: null, timeline: null, oasis: null };
-        
-        google.charts.setOnLoadCallback(() => {
-            charts.latency = new google.visualization.AreaChart(document.getElementById('chart_latency'));
-            charts.heatmap = new google.visualization.Table(document.getElementById('chart_heatmap'));
-            charts.timeline = new google.visualization.LineChart(document.getElementById('chart_timeline'));
-            charts.oasis = new google.visualization.Gauge(document.getElementById('chart_oasis'));
-            poll(); 
-        });
+        // Chart panels arrive as server-rendered SVG/HTML from /telemetry/charts (shared chart engine).
+        // A null section means no new data: keep whatever the panel last showed.
+        const CHART_HOSTS = { latency: 'chart_latency', heatmap: 'chart_heatmap', timeline: 'chart_timeline', oasis: 'chart_oasis' };
 
-        function updateCharts(job) {
-            if (!charts.latency) return;
-
-            // 1. Latency Trace
-            if (job.trace) {
-                const rows = [['Stage', 'ms']];
-                job.trace.forEach(t => { if(t.duration) rows.push([t.stepId.split('_').pop(), t.duration]); });
-                if(rows.length > 1) {
-                    charts.latency.draw(google.visualization.arrayToDataTable(rows), {
-                        backgroundColor: 'transparent', colors: ['#BFA100'], legend: 'none',
-                        chartArea: { width: '90%', height: '80%' },
-                        areaOpacity: 0.1,
-                        hAxis: { textStyle: { color: '#444', fontSize: 7 }, gridlines: { color: 'transparent' } },
-                        vAxis: { textStyle: { color: '#444', fontSize: 7 }, gridlines: { color: '#111' } }
-                    });
-                }
-            }
-
-            // 2. Heatmap
-            if (job.disagreementHeatmap) {
-                const data = new google.visualization.DataTable();
-                data.addColumn('string', 'P_Alpha');
-                data.addColumn('string', 'P_Beta');
-                data.addColumn('number', 'Delta');
-                job.disagreementHeatmap.forEach(h => data.addRow([h.p1, h.p2, h.variance]));
-                charts.heatmap.draw(data, { width: '100%', height: '100%', cssClassNames: { headerRow: 'h-row', tableRow: 't-row' } });
-            }
-
-            // 3. Timeline
-            if (job.consensusTimeline) {
-                const rows = [['Step', 'Alignment']];
-                job.consensusTimeline.forEach(t => rows.push([t.step.toString(), t.alignment]));
-                charts.timeline.draw(google.visualization.arrayToDataTable(rows), {
-                    backgroundColor: 'transparent', colors: ['#00A3FF'], legend: 'none',
-                    chartArea: { width: '90%', height: '80%' },
-                    hAxis: { textStyle: { color: '#444', fontSize: 7 }, gridlines: { color: 'transparent' } },
-                    vAxis: { textStyle: { color: '#444', fontSize: 7 }, gridlines: { color: '#111' } }
-                });
-            }
-
-            // 4. OASIS Gauge
-            const gData = google.visualization.arrayToDataTable([
-                ['Label', 'Value'],
-                ['Ghost', job.ghostProjection?.telemetry?.swarmSentiment || 0],
-                ['Live', job.swarmSentiment || 0]
-            ]);
-            charts.oasis.draw(gData, {
-                width: '100%', height: 160,
-                redFrom: 0, redTo: 20, yellowFrom: 20, yellowTo: 50, greenFrom: 50, greenTo: 100,
-                minorTicks: 5
+        async function updateCharts() {
+            const res = await fetch('/telemetry/charts');
+            if (!res.ok) throw new Error('charts HTTP ' + res.status);
+            const charts = await res.json();
+            if (!charts) return;
+            Object.entries(CHART_HOSTS).forEach(([key, id]) => {
+                if (charts[key] !== null) document.getElementById(id).innerHTML = charts[key];
             });
         }
 
@@ -718,7 +681,7 @@ const TERMINAL_HTML = `
                 if (jobs.length > 0) {
                     const job = jobs[0];
                     renderUI(job);
-                    updateCharts(job);
+                    await updateCharts();
                 }
                 document.getElementById('storage-active').innerText = jobs.length;
             } catch (e) { console.error('Poll Error:', e); }
@@ -743,6 +706,8 @@ const TERMINAL_HTML = `
                 g.innerHTML = '<div class="ghost-box"><span class="ghost-tag">SPECULATIVE_GHOST</span><div class="stat-label">Projection Confidence: ' + confidence + '%</div><div style="font-size: 11px; color: var(--ghost); font-family: monospace;">' + summary + '</div></div>';
             }
         }
+
+        poll();
 
         async function triggerSync() {
             const b = document.querySelector('.btn-primary'); b.innerText = 'SYNCING...';
