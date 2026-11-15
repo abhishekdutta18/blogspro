@@ -5,8 +5,10 @@ import { formatValue } from './format.js';
 import { canvasFor, r1, text, truncate } from './svg.js';
 
 const MIN_CATEGORY_LABEL_SPACING = 56;
+const TICK_CHAR_WIDTH = 6.2; // 10px mono/sans digit width
+const MIN_VALUE_GUTTER = 56;
 
-/** [lo, hi] of everything the value axis must show: stacked sums, zero for bars, fixed yMin/yMax. */
+/** [lo, hi] of everything the value axis must show: stacked sums, zero for bars, references, fixed yMin/yMax. */
 function valueDomain(spec) {
   const values = spec.series.flatMap(s => s.values).filter(v => v !== null);
   const sums = spec.stacked
@@ -15,16 +17,17 @@ function valueDomain(spec) {
       return [vs.filter(v => v > 0).reduce((a, b) => a + b, 0), vs.filter(v => v < 0).reduce((a, b) => a + b, 0)];
     })
     : values;
-  const withZero = spec.type === 'bar' ? [...sums, 0] : sums;
-  return [spec.yMin ?? Math.min(...withZero), spec.yMax ?? Math.max(...withZero)];
+  const references = spec.references.flatMap(r => (r.kind === 'line' ? [r.value] : [r.from, r.to]));
+  const shown = [...sums, ...references, ...(spec.type === 'bar' ? [0] : [])];
+  return [spec.yMin ?? Math.min(...shown), spec.yMax ?? Math.max(...shown)];
 }
 
 /** Plot box margins by orientation and chrome (legend, direct labels, axis titles). */
-function plotBox(spec, canvas, { legend, directLabels }) {
+function plotBox(spec, canvas, { legend, directLabels }, tickLabelChars) {
   if (spec.sparkline) return { left: 4, right: canvas.width - 4, top: 6, bottom: canvas.height - 6 };
   const horizontal = spec.orientation === 'horizontal' && spec.type === 'bar';
   return {
-    left: horizontal ? 118 : 56 + (spec.yLabel ? 10 : 0),
+    left: horizontal ? 118 : Math.max(MIN_VALUE_GUTTER, tickLabelChars * TICK_CHAR_WIDTH + 14) + (spec.yLabel ? 10 : 0),
     right: canvas.width - (directLabels ? 96 : horizontal ? 64 : 20),
     top: legend ? 36 : 16,
     bottom: canvas.height - (spec.xLabel ? 52 : 36),
@@ -37,9 +40,11 @@ function plotBox(spec, canvas, { legend, directLabels }) {
  */
 export function buildFrame(spec, chrome) {
   const canvas = canvasFor(spec);
-  const plot = plotBox(spec, canvas, chrome);
   const [lo, hi] = valueDomain(spec);
   const ticks = niceTicks(lo, hi);
+  // Size the value gutter to the widest tick label ("₹1,23,456Cr" needs more than "4%").
+  const tickLabelChars = Math.max(...ticks.map(t => formatValue(t, spec.unit).length));
+  const plot = plotBox(spec, canvas, chrome, tickLabelChars);
   const domain = [spec.yMin ?? ticks[0], spec.yMax ?? ticks.at(-1)];
   const horizontal = spec.orientation === 'horizontal' && spec.type === 'bar';
   const value = horizontal ? linearScale(domain, [plot.left, plot.right]) : linearScale(domain, [plot.bottom, plot.top]);

@@ -2,6 +2,7 @@
 // annotations and sparklines. Gaps (null) break the line instead of bridging it.
 import { formatValue } from './format.js';
 import { buildFrame, renderAxes } from './frame.js';
+import { renderReferenceBands, renderReferenceLines } from './render-references.js';
 import { r1, tip, text, truncate, legendRow, avoidCollisions } from './svg.js';
 
 const MARKER_LIMIT = 24; // above this many points, markers become noise
@@ -101,7 +102,9 @@ export function renderLines(spec, theme) {
   const frame = buildFrame(spec, { legend, directLabels });
   return [
     renderAxes(spec, frame, theme),
+    renderReferenceBands(spec, frame, theme),
     spec.series.map((s, si) => renderSeries(spec, frame, theme, s, si)).join(''),
+    renderReferenceLines(spec, frame, theme),
     directLabels ? renderDirectLabels(spec, frame, theme) : '',
     legend ? legendRow(spec.series.map(s => s.name), theme, { x: frame.plot.left, dashed: spec.series.map(s => s.dashed) }) : '',
   ].join('');

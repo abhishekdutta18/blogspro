@@ -103,7 +103,7 @@ test('compactNumber and formatValue', () => {
   assert.equal(compactNumber(1500), '1.5K');
   assert.equal(compactNumber(2_300_000), '2.3M');
   assert.equal(formatValue(14.2, '%'), '14.2%');
-  assert.equal(formatValue(1200, '₹'), '₹1.2K');
+  assert.equal(formatValue(1200, '₹'), '₹1,200'); // rupees group (lakh/crore), never K/M
   assert.equal(formatValue(3, 'bps'), '3 bps');
   assert.equal(formatValue(89, '$B'), '$89B');
   assert.equal(formatValue(-12, '₹Cr'), '-₹12Cr');
