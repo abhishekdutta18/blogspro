@@ -32,7 +32,6 @@ export function getApexTemplate({
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${safe.title} | Apex Institutional</title>
     <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
         :root {
             --apex-bg: #020617;
@@ -264,52 +263,6 @@ export function getApexTemplate({
             </section>
         </main>
     </div>
-
-    <script>
-        // 🏰 APEX CHART ENGINE v3.0
-        if (typeof google !== 'undefined' && google.charts) {
-            google.charts.load('current', {packages: ['corechart', 'bar', 'line', 'table']});
-            google.charts.setOnLoadCallback(() => {
-                document.querySelectorAll('chart-data').forEach((tag, i) => {
-                    try {
-                        const raw = tag.textContent.trim();
-                        const payload = JSON.parse(raw);
-                        tag.style.display = 'none'; 
-                        
-                        const containerId = payload.id || 'dynamic-chart-' + i;
-                        let container = document.getElementById(containerId);
-                        if (!container) {
-                            container = document.createElement('div');
-                            container.id = containerId;
-                            container.className = 'terminal-chart';
-                            tag.parentNode.insertBefore(container, tag);
-                        }
-
-                        const data = google.visualization.arrayToDataTable(payload.data);
-                        const options = {
-                            backgroundColor: 'transparent',
-                            colors: ['#10b981', '#6366f1', '#f8fafc', '#ec4899'],
-                            chartArea: { width: '85%', height: '70%', top: 40 },
-                            legend: { position: 'bottom', textStyle: { color: '#94a3b8', fontSize: 10, fontName: 'Mulish' } },
-                            hAxis: { textStyle: { color: '#94a3b8', fontName: 'JetBrains Mono' }, gridlines: { color: 'rgba(255,255,255,0.05)' } },
-                            vAxis: { textStyle: { color: '#94a3b8', fontName: 'JetBrains Mono' }, gridlines: { color: 'rgba(255,255,255,0.05)' } },
-                            titleTextStyle: { color: '#f8fafc', fontSize: 14, fontName: 'Mulish' }
-                        };
-
-                        let chart;
-                        if (payload.type === 'pie') chart = new google.visualization.PieChart(container);
-                        else if (payload.type === 'bar') chart = new google.visualization.BarChart(container);
-                        else chart = new google.visualization.LineChart(container);
-                        
-                        chart.draw(data, options);
-                    } catch (e) {
-                        console.error("📊 [Apex] Chart Integration Failure:", e);
-                        tag.style.display = 'none';
-                    }
-                });
-            });
-        }
-    </script>
 </body>
 </html>`;
 }
