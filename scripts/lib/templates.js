@@ -3,6 +3,33 @@ import { escapeHtml, renderLink, shieldMarkup } from "./html-sanitizer.js";
 
 const MD_LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
 
+/** A whole cell that is a signed change: "+0.25", "-18bps", "▲ 2%", "−3.5" (U+2212). */
+const DELTA_CELL_RE = /^([+\-−▲▼])\s*([$₹]?\d[\d,]*(?:\.\d+)?\s*(?:%|bps|bp|pp)?)$/i;
+const UP_SIGNS = new Set(['+', '▲']);
+const DELTA_UP_STYLE = 'color:#00D166; font-weight:700;';
+const DELTA_DOWN_STYLE = 'color:#FF3B30; font-weight:700;';
+const PLAIN_NUMBER_RE = /^\d[\d,.]*$/;
+const RUPEE_THRESHOLD = 1000;
+
+/**
+ * Table body cell. Only a cell that is entirely a signed number gets ▲/▼ styling, so labels,
+ * dates and links containing '-' or '+' ("10Y G-Sec", "2026-11-15", "AA+") render untouched.
+ * @param {string} cell  escaped cell text (may contain shield tokens)
+ * @param {(match: string, label: string, url: string) => string} toLink  markdown link renderer
+ * @returns {string} cell HTML
+ */
+function formatTableCell(cell, toLink) {
+    const delta = cell.match(DELTA_CELL_RE);
+    if (delta) {
+        const isUp = UP_SIGNS.has(delta[1]);
+        return `<span style="${isUp ? DELTA_UP_STYLE : DELTA_DOWN_STYLE}">${isUp ? '▲' : '▼'} ${delta[2]}</span>`;
+    }
+    // Legacy currency guess for bare numbers, kept unchanged (see PR notes: it mislabels rates).
+    const isBareNumber = PLAIN_NUMBER_RE.test(cell.replace(/[%$₹,.]/g, '')) && !/[%$₹]/.test(cell);
+    if (isBareNumber) return parseFloat(cell.replace(/,/g, '')) > RUPEE_THRESHOLD ? `₹${cell}` : `$${cell}`;
+    return cell.replace(MD_LINK_RE, toLink);
+}
+
 /**
  * Markdown -> HTML for untrusted LLM output.
  * Raw HTML is reduced to an allowlist and shielded behind tokens before any markdown regex runs
@@ -54,22 +81,7 @@ function parseMD(md) {
                 tableHtml = '<div class="table-container"><table><thead><tr>' + 
                             cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
             } else if (!isSeparator) {
-                tableHtml += '<tr>' + cols.map(c => {
-                    let content = c;
-                    content = content.replace(MD_LINK_RE, toLink);
-                    
-                    const numRegex = /^\d[\d,.]*$/;
-                    if (numRegex.test(c.replace(/[%$₹,.]/g, ''))) {
-                        if (!c.includes('%') && !c.includes('$') && !c.includes('₹')) {
-                            if (parseFloat(c.replace(/,/g,'')) > 1000) content = `₹${c}`;
-                            else content = `$${c}`;
-                        }
-                    }
-
-                    if (c.includes('+') || c.includes('▲')) content = `<span style="color:#00D166; font-weight:700;">▲ ${c.replace(/[\+\^▲]/g,'')}</span>`;
-                    else if (c.includes('-') || c.includes('▼')) content = `<span style="color:#FF3B30; font-weight:700;">▼ ${c.replace(/[\-\▼]/g,'')}</span>`;
-                    return `<td>${content}</td>`;
-                }).join('') + '</tr>';
+                tableHtml += '<tr>' + cols.map(c => `<td>${formatTableCell(c, toLink)}</td>`).join('') + '</tr>';
             }
         } else {
             if (inTable) {

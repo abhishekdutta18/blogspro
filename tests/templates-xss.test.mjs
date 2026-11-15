@@ -157,6 +157,41 @@ test('tables keep currency and delta formatting', () => {
   ].join(''));
 });
 
+/** Body cells of a one-row table whose single data row is `cells`. */
+function rowCells(...cells) {
+  const header = cells.map((_, i) => `H${i}`);
+  const out = parseMD(`| ${header.join(' | ')} |\n|${header.map(() => '---').join('|')}|\n| ${cells.join(' | ')} |`);
+  return [...out.matchAll(/<td>(.*?)<\/td>/g)].map(m => m[1]);
+}
+
+test('only signed numbers in table cells get delta styling', () => {
+  const [up, down, pct, bps, arrowUp, arrowDown, unicodeMinus] =
+    rowCells('+0.25', '-1.2', '+8.3%', '-18bps', '▲ 2%', '▼ 0.4%', '−3.5');
+  assert.equal(up, '<span style="color:#00D166; font-weight:700;">▲ 0.25</span>');
+  assert.equal(down, '<span style="color:#FF3B30; font-weight:700;">▼ 1.2</span>');
+  assert.equal(pct, '<span style="color:#00D166; font-weight:700;">▲ 8.3%</span>');
+  assert.equal(bps, '<span style="color:#FF3B30; font-weight:700;">▼ 18bps</span>');
+  assert.equal(arrowUp, '<span style="color:#00D166; font-weight:700;">▲ 2%</span>');
+  assert.equal(arrowDown, '<span style="color:#FF3B30; font-weight:700;">▼ 0.4%</span>');
+  assert.equal(unicodeMinus, '<span style="color:#FF3B30; font-weight:700;">▼ 3.5</span>');
+});
+
+test('hyphens and pluses in ordinary table text are left alone', () => {
+  const [label, date, quarter, plus, dash, ratio] =
+    rowCells('10Y G-Sec', '2026-11-15', 'Q2-2026', 'AA+ rated', '-', 'Debt-to-GDP 82%');
+  assert.equal(label, '10Y G-Sec');
+  assert.equal(date, '2026-11-15');
+  assert.equal(quarter, 'Q2-2026');
+  assert.equal(plus, 'AA+ rated');
+  assert.equal(dash, '-');
+  assert.equal(ratio, 'Debt-to-GDP 82%');
+});
+
+test('links with hyphenated URLs in table cells stay links', () => {
+  const [cell] = rowCells('[RBI note](https://rbi.org.in/press-release-2026)', 'x'); // tables need 2+ columns
+  assert.equal(cell, '<a href="https://rbi.org.in/press-release-2026" target="_blank" rel="noopener noreferrer">RBI note</a>');
+});
+
 test('pipeline wrappers and the hidden meta excerpt survive intact', () => {
   const md = [
     '<div id="sector-macro" class="institutional-sector" data-vertical-id="macro">',
