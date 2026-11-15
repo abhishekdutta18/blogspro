@@ -2,6 +2,9 @@
 // Handles the Developer Testing Platform Dashboard
 
 const API_BASE = 'http://localhost:8081'; // The unified local API server
+// Classic script: load the chart-engine helper once (resolves relative to this file).
+const chartsReady = import('./dashboard-charts.js');
+const ENGINE_CHART_TYPE = /^(Pie|Bar|Column|Area|Line)Chart$/; // Google type names the engine reads as-is
 
 document.addEventListener('DOMContentLoaded', () => {
     checkServerHealth();
@@ -246,97 +249,51 @@ async function handleInstitutionalPipeline() {
                 const { svg } = await mermaid.render(`mermaid_${Date.now()}_${i}`, textContent);
                 div.innerHTML = svg;
             } catch (e) {
-                console.warn("Mermaid failed, attempting Google Charts fallback...", e);
-                if (window.google && google.visualization) {
-                    try {
-                        const lines = textContent.split('\n').map(l => l.trim()).filter(l => l);
-                        let title = "Fallback Chart";
-                        let isPie = false;
-                        let dataRows = [];
-                        
-                        for (let line of lines) {
-                            if (line.toLowerCase().startsWith('pie')) {
-                                isPie = true;
-                                const match = line.match(/title\s+(.+)/i);
-                                if (match) title = match[1];
-                            } else if (isPie && line.includes(':')) {
-                                let [label, val] = line.split(':').map(s => s.trim());
-                                label = label.replace(/['"]/g, '');
-                                dataRows.push([label, parseFloat(val)]);
-                            }
-                        }
-                        
-                        if (isPie && dataRows.length > 0) {
-                            const data = new google.visualization.DataTable();
-                            data.addColumn('string', 'Category');
-                            data.addColumn('number', 'Value');
-                            data.addRows(dataRows);
-                            
-                            const options = {
-                                title: title,
-                                backgroundColor: 'transparent',
-                                textStyle: { color: '#f4f4f5' },
-                                titleTextStyle: { color: '#c9a84c' },
-                                legend: { textStyle: { color: '#f4f4f5' } }
-                            };
-                            div.style.minHeight = '300px';
-                            const chart = new google.visualization.PieChart(div);
-                            chart.draw(data, options);
-                        } else {
-                            div.innerHTML = `<span style="color:var(--red)">Mermaid failed. Fallback to Google Charts failed (Not a Pie chart).</span>`;
-                        }
-                    } catch(fallbackErr) {
-                        div.innerHTML = `<span style="color:var(--red)">Mermaid & Google Charts failed.</span>`;
+                console.warn("Mermaid failed, attempting chart-engine fallback...", e);
+                const lines = textContent.split('\n').map(l => l.trim()).filter(l => l);
+                let title = "Fallback Chart";
+                let isPie = false;
+                const dataRows = [];
+                for (const line of lines) {
+                    if (line.toLowerCase().startsWith('pie')) {
+                        isPie = true;
+                        const match = line.match(/title\s+(.+)/i);
+                        if (match) title = match[1];
+                    } else if (isPie && line.includes(':')) {
+                        const [label, val] = line.split(':').map(s => s.trim());
+                        dataRows.push([label.replace(/['"]/g, ''), parseFloat(val)]);
                     }
+                }
+                if (isPie && dataRows.length > 0) {
+                    const { mountDashboardChart } = await chartsReady;
+                    mountDashboardChart(div, { type: 'pie', title, data: [['Category', 'Value'], ...dataRows] }, { empty: 'Mermaid failed and the pie data could not be charted.' });
                 } else {
-                    div.innerHTML = `<span style="color:var(--red)">Mermaid failed and Google Charts not loaded.</span>`;
+                    div.innerHTML = `<span style="color:var(--red)">Mermaid failed. Chart fallback only supports pie charts.</span>`;
                 }
             }
         }
         
-        // 2. Find and render Google Charts
-        const googleCharts = outputDiv.querySelectorAll('.gchart');
-        if (googleCharts.length > 0) {
-            for (let index = 0; index < googleCharts.length; index++) {
-                const el = googleCharts[index];
+        // 2. Render .gchart blocks (AI output with Google-style data-type/columns/rows) via the chart engine
+        const chartBlocks = outputDiv.querySelectorAll('.gchart');
+        if (chartBlocks.length > 0) {
+            for (let index = 0; index < chartBlocks.length; index++) {
+                const el = chartBlocks[index];
                 let rendered = false;
                 const title = el.getAttribute('data-title') || 'Chart';
                 const type = el.getAttribute('data-type') || 'PieChart';
                 const rowsRaw = el.getAttribute('data-rows') || '[]';
                 
-                if (window.google && google.visualization) {
-                    try {
-                        const columns = JSON.parse(el.getAttribute('data-columns') || '[]');
-                        const rows = JSON.parse(rowsRaw);
-                        
-                        const data = new google.visualization.DataTable();
-                        columns.forEach(col => {
-                            data.addColumn(typeof rows[0][columns.indexOf(col)] === 'number' ? 'number' : 'string', col);
-                        });
-                        data.addRows(rows);
-                        
-                        const options = {
-                            title: title,
-                            backgroundColor: 'transparent',
-                            textStyle: { color: '#f4f4f5' },
-                            titleTextStyle: { color: '#c9a84c' },
-                            legend: { textStyle: { color: '#f4f4f5' } }
-                        };
-                        
-                        const chartId = `gchart_${index}_${Date.now()}`;
-                        el.id = chartId;
-                        el.style.minHeight = '300px';
-                        
-                        let chart;
-                        if (type === 'PieChart') chart = new google.visualization.PieChart(document.getElementById(chartId));
-                        else if (type === 'BarChart') chart = new google.visualization.BarChart(document.getElementById(chartId));
-                        else chart = new google.visualization.LineChart(document.getElementById(chartId));
-                        
-                        chart.draw(data, options);
-                        rendered = true;
-                    } catch(e) {
-                        console.warn("Google Chart rendering failed:", e);
-                    }
+                try {
+                    const columns = JSON.parse(el.getAttribute('data-columns') || '[]');
+                    const rows = JSON.parse(rowsRaw);
+                    const { mountDashboardChart } = await chartsReady;
+                    rendered = mountDashboardChart(el, {
+                        type: ENGINE_CHART_TYPE.test(type) ? type : 'LineChart', // unknown types drew as lines before
+                        title,
+                        data: [columns, ...rows],
+                    });
+                } catch (e) {
+                    console.warn("Chart rendering failed:", e);
                 }
                 
                 if (!rendered && type === 'PieChart') {
@@ -349,10 +306,10 @@ async function handleInstitutionalPipeline() {
                         const { svg } = await mermaid.render(`mermaid_fb_${index}_${Date.now()}`, mermaidText);
                         el.innerHTML = svg;
                     } catch(fallbackErr) {
-                        el.innerHTML = `<span style="color:red">Both Google Charts and Mermaid failed</span>`;
+                        el.innerHTML = `<span style="color:red">Both the chart engine and Mermaid failed</span>`;
                     }
                 } else if (!rendered) {
-                    el.innerHTML = `<span style="color:red">Google Charts failed and Mermaid fallback only supports PieCharts</span>`;
+                    el.innerHTML = `<span style="color:red">Chart could not be drawn; the Mermaid fallback only supports pie charts</span>`;
                 }
             }
         }
