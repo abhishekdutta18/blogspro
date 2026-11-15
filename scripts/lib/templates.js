@@ -8,8 +8,6 @@ const DELTA_CELL_RE = /^([+\-−▲▼])\s*([$₹]?\d[\d,]*(?:\.\d+)?\s*(?:%|bps
 const UP_SIGNS = new Set(['+', '▲']);
 const DELTA_UP_STYLE = 'color:#00D166; font-weight:700;';
 const DELTA_DOWN_STYLE = 'color:#FF3B30; font-weight:700;';
-const PLAIN_NUMBER_RE = /^\d[\d,.]*$/;
-const RUPEE_THRESHOLD = 1000;
 
 /**
  * Table body cell. Only a cell that is entirely a signed number gets ▲/▼ styling, so labels,
@@ -24,9 +22,7 @@ function formatTableCell(cell, toLink) {
         const isUp = UP_SIGNS.has(delta[1]);
         return `<span style="${isUp ? DELTA_UP_STYLE : DELTA_DOWN_STYLE}">${isUp ? '▲' : '▼'} ${delta[2]}</span>`;
     }
-    // Legacy currency guess for bare numbers, kept unchanged (see PR notes: it mislabels rates).
-    const isBareNumber = PLAIN_NUMBER_RE.test(cell.replace(/[%$₹,.]/g, '')) && !/[%$₹]/.test(cell);
-    if (isBareNumber) return parseFloat(cell.replace(/,/g, '')) > RUPEE_THRESHOLD ? `₹${cell}` : `$${cell}`;
+    // Numbers render as written: units can't be inferred from magnitude (6.25% is not "$6.25").
     return cell.replace(MD_LINK_RE, toLink);
 }
 

@@ -147,14 +147,19 @@ test('headings, bold, bullets and dividers are unchanged', () => {
   );
 });
 
-test('tables keep currency and delta formatting', () => {
+test('tables keep delta formatting and show numbers exactly as written', () => {
   const out = parseMD('| Metric | Value | Change |\n|---|---|---|\n| Repo | 6.5 | +0.25 |\n| GDP | 4200 | -1.2 |');
   assert.equal(out, [
     '<div class="table-container"><table><thead><tr><th>Metric</th><th>Value</th><th>Change</th></tr></thead><tbody>',
-    '<tr><td>Repo</td><td>$6.5</td><td><span style="color:#00D166; font-weight:700;">▲ 0.25</span></td></tr>',
-    '<tr><td>GDP</td><td>₹4200</td><td><span style="color:#FF3B30; font-weight:700;">▼ 1.2</span></td></tr>',
+    '<tr><td>Repo</td><td>6.5</td><td><span style="color:#00D166; font-weight:700;">▲ 0.25</span></td></tr>',
+    '<tr><td>GDP</td><td>4200</td><td><span style="color:#FF3B30; font-weight:700;">▼ 1.2</span></td></tr>',
     '</tbody></table></div>',
   ].join(''));
+});
+
+test('table cells never gain a currency the model did not write', () => {
+  const [rate, index, big, dollars, rupees, pct] = rowCells('6.25', '92.5', '1,755', '$92.5', '₹1,620', '6.71%');
+  assert.deepEqual([rate, index, big, dollars, rupees, pct], ['6.25', '92.5', '1,755', '$92.5', '₹1,620', '6.71%']);
 });
 
 /** Body cells of a one-row table whose single data row is `cells`. */
