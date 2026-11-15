@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseMD, renderBody, getBaseTemplate, getEmailTemplate, getApexTemplate } from '../scripts/lib/templates.js';
 import { escapeHtml, safeUrl } from '../scripts/lib/html-sanitizer.js';
+import { getBriefingTemplate } from '../scripts/lib/briefing-template.js';
 
 /** Every tag in the output, with double-quoted values blanked so we only see attribute names. */
 function tagShells(html) {
@@ -209,6 +210,41 @@ for (const [name, render] of [['getBaseTemplate', getBaseTemplate], ['getEmailTe
 
 test('getApexTemplate renders charts server-side', () => {
   const html = getApexTemplate({ title: 'T', excerpt: 'E', content: '<chart-data>[["A", 1], ["B", 2]]</chart-data>', freq: 'weekly' });
+  assert.match(html, /<figure class="bp-chart"/);
+  assert.doesNotMatch(html, /&lt;chart-data/);
+});
+
+// ── daily briefing template ───────────────────────
+test('getBriefingTemplate escapes payload fields and sanitizes the body', () => {
+  const html = getBriefingTemplate({ ...HOSTILE, content: '## Body\n\n<img src=x onerror=alert(1)> text' });
+  assertNoActiveContent(html.match(/<article>([\s\S]*?)<\/article>/)[1]);
+  assert.doesNotMatch(html, /<script>alert|<svg onload|weekly<script/i);
+  assert.match(html, /Fed&#39;s &quot;Higher&quot; Path&lt;\/title&gt;&lt;script&gt;/);
+  assert.match(html, /WEEKLY&lt;SCRIPT&gt; Pulse • &lt;svg onload=alert\(1\)&gt;/);
+  assert.match(html, /<h2>Body<\/h2>/);
+});
+
+test('getBriefingTemplate escapes live news items in both shapes', () => {
+  const fromString = getBriefingTemplate({ title: 'T', content: 'x', freq: 'daily', liveNews: 'Rates hold | <img src=x onerror=alert(1)>' });
+  assert.match(fromString, /<div>Rates hold<\/div><div>&lt;img src=x onerror=alert\(1\)&gt;<\/div>/);
+
+  const fromObject = getBriefingTemplate({
+    title: 'T', content: 'x', freq: 'daily',
+    liveNews: { rbi: '<script>a()</script>', sebi: 'Neutral.', summary: 'local | GLOBAL: Fed <b>holds</b> | ECB cuts' },
+  });
+  assert.match(fromObject, /<strong>RBI:<\/strong> &lt;script&gt;a\(\)&lt;\/script&gt;/);
+  assert.doesNotMatch(fromObject, /SEBI:/);
+  assert.match(fromObject, /<strong>GLOBAL:<\/strong> Fed &lt;b&gt;holds&lt;\/b&gt;/);
+  assert.match(fromObject, /<strong>GLOBAL:<\/strong> ECB cuts/);
+});
+
+test('getBriefingTemplate omits the news block for the stable baseline', () => {
+  const html = getBriefingTemplate({ title: 'T', content: 'x', freq: 'daily', liveNews: 'Pulse Baseline: Stable.' });
+  assert.doesNotMatch(html, /LIVE_DATA_STREAM_PRIMED/);
+});
+
+test('getBriefingTemplate renders charts server-side', () => {
+  const html = getBriefingTemplate({ title: 'T', content: '<chart-data>[["A", 1], ["B", 2]]</chart-data>', freq: 'daily' });
   assert.match(html, /<figure class="bp-chart"/);
   assert.doesNotMatch(html, /&lt;chart-data/);
 });

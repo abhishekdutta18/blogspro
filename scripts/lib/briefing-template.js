@@ -1,18 +1,57 @@
-import { parseMD } from './templates.js';
+import { renderBody, escapeShellFields } from './templates.js';
+import { escapeHtml } from './html-sanitizer.js';
+
+const STABLE_BASELINE = "Pulse Baseline: Stable.";
+const NEUTRAL = "Neutral.";
+const ITEM_SEPARATOR = ' | ';
+const GLOBAL_MARKER = ' | GLOBAL: ';
+
+/**
+ * Live news-wire block. Items are scraped headlines (untrusted), so each one is escaped;
+ * only the labels and layout are markup. Accepts the legacy string shape or { rbi, sebi, summary }.
+ * @param {string | { rbi?: string, sebi?: string, summary?: string } | null | undefined} liveNews
+ * @returns {string} HTML, or '' when there is nothing worth showing
+ */
+function renderLiveNews(liveNews) {
+    if (!liveNews || liveNews === STABLE_BASELINE) return "";
+    const rows = typeof liveNews === 'string'
+        ? liveNews.split(ITEM_SEPARATOR).map(item => `<div>${escapeHtml(item)}</div>`)
+        : newsObjectItems(liveNews).map(item => `<div style="margin-bottom:0.5rem">${item}</div>`);
+    if (!rows.length) return "";
+    return `
+            <div class="terminal-block">
+                <div style="margin-bottom: 1rem; color: var(--accent); font-weight: bold;">LIVE_DATA_STREAM_PRIMED</div>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 0.5rem; opacity: 0.8;">
+                    ${rows.join('')}
+                </div>
+            </div>`;
+}
+
+function newsObjectItems({ rbi, sebi, summary }) {
+    const items = [];
+    if (rbi && rbi !== NEUTRAL) items.push(`<strong>RBI:</strong> ${escapeHtml(rbi)}`);
+    if (sebi && sebi !== NEUTRAL) items.push(`<strong>SEBI:</strong> ${escapeHtml(sebi)}`);
+    const globalOnly = String(summary || "").split(GLOBAL_MARKER)[1];
+    if (globalOnly) {
+        globalOnly.split(ITEM_SEPARATOR).forEach(item => items.push(`<strong>GLOBAL:</strong> ${escapeHtml(item)}`));
+    }
+    return items;
+}
 
 /**
  * [V16.0] Institutional Briefing Template
  * Designed for maximum readability and zero fluff.
  */
 export function getBriefingTemplate({ title, excerpt, content, dateLabel, type, freq, fileName, rel = "../../", scripts = "", liveNews = "" }) {
-    const finalBody = parseMD(content);
+    const finalBody = renderBody(content);
+    const safe = escapeShellFields({ title, excerpt, dateLabel, freq, rel });
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} | Institutional Briefing</title>
+    <title>${safe.title} | Institutional Briefing</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -151,41 +190,17 @@ export function getBriefingTemplate({ title, excerpt, content, dateLabel, type, 
         <header>
             <div class="meta-strip">
                 <span>Registry: Institutional-AI</span>
-                <span>${freq.toUpperCase()} Pulse • ${dateLabel}</span>
+                <span>${safe.freq} Pulse • ${safe.dateLabel}</span>
             </div>
-            <h1>${title}</h1>
-            <div class="abstract">${excerpt}</div>
+            <h1>${safe.title}</h1>
+            <div class="abstract">${safe.excerpt}</div>
         </header>
 
         <article>
             ${finalBody}
         </article>
 
-        ${liveNews ? (function() {
-            let newsHtml = "";
-            if (typeof liveNews === 'string') {
-                if (liveNews === "Pulse Baseline: Stable.") return "";
-                newsHtml = liveNews.split(' | ').map(item => `<div>${item}</div>`).join('');
-            } else {
-                const items = [];
-                if (liveNews.rbi && liveNews.rbi !== "Neutral.") items.push(`<strong>RBI:</strong> ${liveNews.rbi}`);
-                if (liveNews.sebi && liveNews.sebi !== "Neutral.") items.push(`<strong>SEBI:</strong> ${liveNews.sebi}`);
-                const summaryText = liveNews.summary || "";
-                const globalOnly = summaryText.split(' | GLOBAL: ')[1];
-                if (globalOnly) {
-                    globalOnly.split(' | ').forEach(gi => items.push(`<strong>GLOBAL:</strong> ${gi}`));
-                }
-                newsHtml = items.map(item => `<div style="margin-bottom:0.5rem">${item}</div>`).join('');
-            }
-            if (!newsHtml) return "";
-            return `
-            <div class="terminal-block">
-                <div style="margin-bottom: 1rem; color: var(--accent); font-weight: bold;">LIVE_DATA_STREAM_PRIMED</div>
-                <div style="display: grid; grid-template-columns: 1fr; gap: 0.5rem; opacity: 0.8;">
-                    ${newsHtml}
-                </div>
-            </div>`;
-        })() : ''}
+        ${renderLiveNews(liveNews)}
 
         <footer>
             <a href="/" class="back-link">← Return to Terminal</a>
