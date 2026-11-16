@@ -19,3 +19,19 @@ export function reportChartFailures(failures, context = {}) {
     logSwarmBreadcrumb('chart_dropped', { chart: index + 1, error, ...context }).catch(() => {});
   });
 }
+
+/**
+ * Charts the engine drew in a simpler form because a renderer failed on valid input (wide-only
+ * SVG, or the data table). This is an engine defect, not a model mistake, so it is logged as an
+ * error for the build log. It stays a breadcrumb in Sentry for the same reason failures do: one
+ * event per chart per page would file one GitHub issue each.
+ * @param {{ index: number, stage: string, error: string }[]} degraded from extractChartBlocks()
+ * @param {{ target?: string }} [context]
+ * @returns {void}
+ */
+export function reportChartDegradations(degraded, context = {}) {
+  degraded.forEach(({ index, stage, error }) => {
+    console.error(`📊 [ChartEngine] engine defect: chart #${index + 1} ${stage} layout failed (${error}); shown in a simpler form`);
+    logSwarmBreadcrumb('chart_degraded', { chart: index + 1, stage, error, ...context }).catch(() => {});
+  });
+}

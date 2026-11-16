@@ -15,6 +15,7 @@ import { resolveTheme } from './theme.js';
 import { escapeHtml, formatValue, formatFull } from './format.js';
 import { WIDE, NARROW, canvasFor } from './svg.js';
 import { mermaidToChart } from './mermaid.js';
+import { renderLayers } from './degrade.js';
 
 export { normalizeChart, ChartSpecError, parsePayload } from './normalize.js';
 export { mermaidToChart } from './mermaid.js';
@@ -93,30 +94,49 @@ function svgFor(spec, theme, id, layout, minWidth) {
  * The plot: a wide SVG plus a narrow one laid out for phone columns. Inline styles show only the
  * wide one (safe where page CSS is stripped); the page CSS from chartPageAssets() swaps them by
  * container width. Without container-query support the wide SVG scrolls in its own frame.
+ * A layout that fails is dropped (see degrade.js); returns null when no SVG could be drawn.
  */
-function svgBlock(spec, theme, id) {
-  if (spec.sparkline) return `<div>${svgFor(spec, theme, id, WIDE, 0)}</div>`;
+function svgBlock(spec, theme, id, onDegrade) {
+  const layers = renderLayers({
+    wide: () => svgFor(spec, theme, id, WIDE, spec.sparkline ? 0 : MIN_SVG_WIDTH),
+    narrow: spec.sparkline ? undefined : () => svgFor(spec, theme, `${id}-n`, NARROW, 0),
+  }, onDegrade);
+  if (!layers) return null;
+  if (spec.sparkline) return `<div>${layers.wide}</div>`;
+  if (!layers.narrow) return `<div style="overflow-x:auto">${layers.wide}</div>`;
   return `<div class="bp-plot" style="container-type:inline-size">` +
-    `<div class="bp-wide" style="overflow-x:auto">${svgFor(spec, theme, id, WIDE, MIN_SVG_WIDTH)}</div>` +
-    `<div class="bp-narrow" style="display:none">${svgFor(spec, theme, `${id}-n`, NARROW, 0)}</div></div>`;
+    `<div class="bp-wide" style="overflow-x:auto">${layers.wide}</div>` +
+    `<div class="bp-narrow" style="display:none">${layers.narrow}</div></div>`;
+}
+
+/** The SVG plot, or the open data table when no SVG layout could be drawn. */
+function plotFor(spec, theme, id, onDegrade) {
+  const svg = svgBlock(spec, theme, id, onDegrade);
+  return svg === null ? { plot: dataTable(spec, theme, { open: true }), hasTable: true } : { plot: svg, hasTable: false };
 }
 
 /**
  * Render a chart payload to a self-contained HTML <figure>.
+ * Invalid input throws; a renderer failure on valid input degrades instead (narrow layout →
+ * wide only → data table) and is passed to `onDegrade`, so a reader never loses the data to an
+ * engine bug. Callers that build pages should report those (extractChartBlocks does).
  * @param {unknown} input raw <chart-data> text, parsed object/array, or a ChartSpec
- * @param {{ theme?: 'dark'|'light'|object, target?: 'web'|'email', idSuffix?: string|number }} [options]
+ * @param {{ theme?: 'dark'|'light'|object, target?: 'web'|'email', idSuffix?: string|number,
+ *   onDegrade?: (report: import('./degrade.js').Degradation) => void }} [options]
  * @returns {string}
  * @throws {ChartSpecError} when the payload cannot be charted honestly
  */
-export function renderChart(input, { theme, target = 'web', idSuffix } = {}) {
+export function renderChart(input, { theme, target = 'web', idSuffix, onDegrade = () => {} } = {}) {
   const spec = normalizeChart(input);
   const t = resolveTheme(theme ?? spec.theme);
   const baseId = spec.id || hashId(`${JSON.stringify(spec)}|${t.name}|${target}`);
   const id = idSuffix === undefined ? baseId : `${baseId}-${idSuffix}`;
   const email = target === 'email';
   const isHtmlType = spec.type in HTML_RENDERERS;
-  const plot = isHtmlType ? HTML_RENDERERS[spec.type](spec, t) : email ? dataTable(spec, t, { open: true }) : svgBlock(spec, t, id);
-  const tableView = isHtmlType || email ? '' : dataTable(spec, t, { open: false });
+  const { plot, hasTable } = isHtmlType ? { plot: HTML_RENDERERS[spec.type](spec, t), hasTable: true }
+    : email ? { plot: dataTable(spec, t, { open: true }), hasTable: true }
+      : plotFor(spec, t, id, onDegrade);
+  const tableView = hasTable ? '' : dataTable(spec, t, { open: false });
   const source = spec.source ? `<div style="margin-top:10px;padding-top:8px;border-top:1px solid ${t.border};font:italic 10px ${t.fontFamily};color:${t.textMuted}">${escapeHtml(spec.source)}</div>` : '';
   const padding = spec.sparkline ? '10px' : '20px';
   return `<figure class="bp-chart" id="${id}" data-chart-type="${spec.type}" data-ink="${escapeHtml(t.textPrimary)}" style="margin:2.5rem 0;padding:${padding};background:${t.surface};border:1px solid ${t.border};border-radius:4px">${captionBlock(spec, t)}${plot}${tableView}${source}</figure>`;
@@ -152,13 +172,21 @@ function makeNonce() {
  *
  * @param {string} text markdown/HTML containing <chart-data> blocks
  * @param {{ theme?: 'dark'|'light'|object, target?: 'web'|'email' }} [options]
- * @returns {{ text: string, restore: (html: string) => string, failures: { index: number, error: string }[], rescued: number, count: number }}
+ * @returns {{ text: string, restore: (html: string) => string, failures: { index: number, error: string }[],
+ *   degraded: { index: number, stage: string, error: string }[], rescued: number, count: number }}
+ *   `failures` = charts dropped (invalid input); `degraded` = engine bugs on valid charts, shown in a
+ *   simpler form — report these as defects, not content problems.
  *   `count` = charts actually rendered (failed blocks excluded), e.g. to decide whether a page needs chartPageAssets()
  */
 export function extractChartBlocks(text, options = {}) {
   const nonce = makeNonce();
   const rendered = [];
   const failures = [];
+  const degraded = [];
+  const render = payload => {
+    const index = rendered.length;
+    return renderChart(payload, { ...options, idSuffix: index, onDegrade: report => degraded.push({ index, ...report }) });
+  };
   const place = html => {
     rendered.push(html);
     return `\n\n@@BPC_${nonce}_${rendered.length - 1}@@\n\n`;
@@ -172,7 +200,7 @@ export function extractChartBlocks(text, options = {}) {
   const shielded = String(text ?? '')
     .replace(CHART_TAG, (_, raw) => {
       try {
-        return place(renderChart(decodeEntities(raw), { ...options, idSuffix: rendered.length }));
+        return place(render(decodeEntities(raw)));
       } catch (err) {
         return fail(raw, err);
       }
@@ -182,7 +210,7 @@ export function extractChartBlocks(text, options = {}) {
       const payload = mermaidToChart(source);
       if (!payload) return match; // not a chart (flowchart etc.): leave it as the author wrote it
       try {
-        const html = renderChart(payload, { ...options, idSuffix: rendered.length });
+        const html = render(payload);
         rescued += 1;
         return place(html);
       } catch (err) {
@@ -191,7 +219,7 @@ export function extractChartBlocks(text, options = {}) {
     });
   const token = new RegExp(`(?:<p\\b[^>]*>\\s*)?@@BPC_${nonce}_(\\d+)@@(?:\\s*</p>)?`, 'g');
   const restore = html => html.replace(token, (_, i) => rendered[Number(i)] ?? '');
-  return { text: shielded, restore, failures, rescued, count: rendered.length - failures.length };
+  return { text: shielded, restore, failures, degraded, rescued, count: rendered.length - failures.length };
 }
 
 /**
