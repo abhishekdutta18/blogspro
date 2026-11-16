@@ -10,13 +10,19 @@ export const CHART_PROMPT_EXAMPLES = Object.freeze([
   { type: 'pie', title: 'Swarm consensus sentiment', unit: '%', source: 'Source: Swarm consensus', data: [['Stance', 'Share'], ['Bullish', 45], ['Neutral', 30], ['Bearish', 25]] },
   { type: 'gauge', title: 'INR stress', label: 'INR stress', value: 58, min: 0, max: 100, yellowFrom: 50, yellowTo: 75, redFrom: 75, redTo: 100, source: 'Source: desk model' },
   { type: 'stats', title: 'Key prints', source: 'Source: NSE, RBI', labels: ['Nifty 50', 'Repo rate', '10Y G-Sec'], datasets: [{ name: 'values', values: ['24,312', '6.25%', '6.71%'] }] },
+  { type: 'waterfall', title: 'Fiscal deficit bridge, FY25 to FY26 BE', unit: '%', source: 'Source: Union Budget', totals: ['FY25 RE', 'FY26 BE'], data: [['Step', 'Change (% of GDP)'], ['FY25 RE', 4.8], ['Tax revenue', -0.3], ['Capex', 0.1], ['Subsidies', -0.2], ['FY26 BE', null]] },
+  { type: 'heatmap', title: 'Sector returns by quarter', unit: '%', source: 'Source: NSE', data: [['Sector', 'Q1', 'Q2', 'Q3', 'Q4'], ['Banks', 4.2, -1.8, 6.1, 2.4], ['IT', -3.5, 2.2, -0.8, 5], ['Auto', 7.1, 3.4, -2.6, 1.2]] },
+  { type: 'candlestick', title: 'Nifty 50, daily', source: 'Source: NSE', data: [['Date', 'Open', 'High', 'Low', 'Close'], ['2025-11-10', 25500, 25700, 25450, 25690], ['2025-11-11', 25690, 25720, 25520, 25560], ['2025-11-12', 25560, 25900, 25540, 25870]] },
   { type: 'table', title: 'Scenario matrix', source: 'Source: Swarm consensus', labels: ['Probability', 'Nifty target', 'Trigger'], datasets: [{ name: 'Base', values: ['55%', '25,400', 'Rate pause'] }, { name: 'Bull', values: ['25%', '27,000', 'FII return'] }, { name: 'Bear', values: ['20%', '21,800', 'Oil > $95'] }] },
 ]);
 
 const TYPE_GUIDE = [
   'column = vertical bars (compare a few items, scenarios, periods)',
   'bar = horizontal bars (rank sectors/countries; long labels)',
-  'line / area = trends over time (mark forecasts with "series":{"1":{"dashed":true}})',
+  'line / area = trends over time (mark forecasts with "series":{"1":{"dashed":true}}); ISO dates (YYYY-MM-DD) as labels get a true time axis; use "curve":"step" for values that hold until the next change (repo rate, policy decisions)',
+  'waterfall = bridge from an opening to a closing figure; name the opening/closing rows in "totals"; a total with null is computed',
+  'heatmap = one measure across rows x columns (returns by sector and month), up to 12 columns',
+  'candlestick = daily prices, rows [ISO date, open, high, low, close]; high/low must enclose open/close',
   'pie = shares of one whole, max 6 slices, values >= 0',
   'gauge = one risk/stress reading with red/yellow bands',
   'stats = 2-6 headline numbers (values may be pre-formatted strings)',
@@ -33,7 +39,7 @@ export const CHART_PROMPT_SPEC = `CHART FORMAT (rendered by the BlogsPro chart e
 - A single series with gains and losses is colored by sign automatically; do not split it into two series.
 - Types:
 ${TYPE_GUIDE}
-- Max 6 series, 60 rows. Use null for a missing value, never 0. No placeholder or uniform made-up numbers.
+- Max 6 series (heatmap: 12 columns), 60 rows. Use null for a missing value, never 0. No placeholder or uniform made-up numbers.
 - Omit the chart entirely if you have no verifiable institutional source.
 Examples:
 ${CHART_PROMPT_EXAMPLES.map(e => `<chart-data>${JSON.stringify(e)}</chart-data>`).join('\n')}`;

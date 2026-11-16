@@ -25,6 +25,11 @@ export function pieGeometry(spec, layout) {
 }
 const PIE_LEGEND_ROW = 28;
 
+/** Heatmap grid: header row for column labels, rows sized to fit MAX_HEIGHT, color key below. */
+export const HEATMAP = Object.freeze({ header: 30, key: 46, rowMin: 14, rowMax: 28 });
+export const heatRowHeight = spec =>
+  Math.min(HEATMAP.rowMax, Math.max(HEATMAP.rowMin, Math.floor((MAX_HEIGHT - HEATMAP.header - HEATMAP.key) / spec.categories.length)));
+
 /**
  * Canvas (viewBox) size for a spec. Horizontal bars grow with category count
  * (Google BarChart parity: labels.length * 36 + 60) so long lists stay legible.
@@ -39,6 +44,7 @@ export function canvasFor(spec, layout = WIDE) {
     if (layout !== NARROW || spec.gauges.length === 1) return { width, height: layout.gaugeHeight };
     return { width, height: Math.ceil(spec.gauges.length / gaugeColumns(spec, layout)) * GAUGE_ROW_HEIGHT + 20 };
   }
+  if (spec.type === 'heatmap') return { width, height: HEATMAP.header + spec.categories.length * heatRowHeight(spec) + HEATMAP.key };
   if (spec.type === 'pie' && layout === NARROW) {
     const { legendTop } = pieGeometry(spec, layout);
     return { width, height: legendTop + spec.categories.length * PIE_LEGEND_ROW };
