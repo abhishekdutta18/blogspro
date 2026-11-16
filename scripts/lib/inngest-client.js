@@ -1,20 +1,24 @@
 import { Inngest } from "inngest";
 
-export const INNGEST_SIGNING_KEY = "signkey-prod-da8bf4172979eda4d892588ea271764fc3989d474a260eddbbd846b5aab8406a";
-
-export const inngest = new Inngest({ 
-  id: "blogspro-swarm",
-  signingKey: INNGEST_SIGNING_KEY 
-});
+/**
+ * Inngest client for the pulse worker.
+ *
+ * No signing key is set here. The `serve()` handler calls
+ * `client.setEnvVars(env)` with the Worker bindings on every request, and the
+ * client then reads `INNGEST_SIGNING_KEY` from them (the `[env.pulse.vars]`
+ * entry or a `wrangler secret`). Keys must never be committed in source.
+ */
+export const inngest = new Inngest({ id: "blogspro-swarm" });
 
 /**
- * Institutional Inngest Dispatcher
- * Allows passing Cloudflare Env to ensure keys are populated for event sending.
+ * Client for sending events from a Worker, with keys taken from its env.
+ * @param {{ INNGEST_EVENT_KEY?: string, INNGEST_SIGNING_KEY?: string }} [env]
+ * @returns {Inngest}
  */
 export const getInngestClient = (env) => {
-  return new Inngest({ 
+  return new Inngest({
     id: "blogspro-swarm",
     eventKey: env?.INNGEST_EVENT_KEY || "local-dummy-key",
-    signingKey: env?.INNGEST_SIGNING_KEY || INNGEST_SIGNING_KEY
+    signingKey: env?.INNGEST_SIGNING_KEY,
   });
 };
