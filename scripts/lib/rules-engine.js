@@ -1,4 +1,5 @@
 import { pushSovereignTrace } from './storage-bridge.js';
+import { parsePayload } from '../../js/chart-engine/index.js';
 
 /**
  * BlogsPro Swarm Rules Engine (V2.3)
@@ -6,7 +7,7 @@ import { pushSovereignTrace } from './storage-bridge.js';
  * Deterministic Structural Guardrails with Sovereign Audit Heartbeat.
  * Responsible for:
  * 1. Table Reconstruction (Markdown Repair).
- * 2. Visual Injection (Slot-filling for charts).
+ * 2. Legacy chart-mount cleanup (charts render server-side).
  * 3. JSON Hardening (Context-aware unique IDs).
  * 4. Institutional Sections (Abstract, Abbreviations, Citations).
  * 5. $Shield Governance (Sanitization & Anti-Hallucination).
@@ -207,69 +208,40 @@ export function repairTables(content, auditContext = {}) {
   return repaired.join('\n');
 }
 
-/**
- * Ensures every <chart-data> has a matching .terminal-chart placeholder.
- * If no charts or placeholders exist, injects a fallback at the top.
- */
-export function injectVisuals(content, verticalName, verticalId, auditContext = {}) {
-  const { jobId = 'local', env = {} } = auditContext;
-  let updated = content;
-  
-  // 1. Identify all chart data IDs (after hardening) or existing placeholders
-  const chartDataMatches = [...updated.matchAll(/<chart-data>[\s\S]*?"id":\s*"(chart_[^"]+)"[\s\S]*?<\/chart-data>/gi)];
-  const chartDataIds = chartDataMatches.map(m => m[1]);
-  const existingDivIds = [...updated.matchAll(/id="(chart_[^"]+)"/gi)].map(m => m[1]);
-  
-  // 2. For every chart data block, ensure a container exists before it
-  updated = updated.replace(/<chart-data>([\s\S]*?"id":\s*"(chart_[^"]+)"[\s\S]*?)<\/chart-data>/gi, (match, inner, id) => {
-    if (!existingDivIds.includes(id)) {
-      console.log(`📡 [RulesEngine] Slot-filling missing container for ${id}`);
-      pushSovereignTrace("SHIELD_REPAIR", {
-        jobId, vertical: verticalId, status: "info", role: "shield",
-        message: `Injected interactive chart container: ${id}`
-      }, env).catch(() => {});
-      return `<div class="card terminal-chart" id="${id}"></div>\n${match}`;
-    }
-    return match;
-  });
+// Empty Google Charts mount points that older prompts and this engine used to emit.
+const LEGACY_CHART_MOUNT = /<div\b[^>]*\bterminal-chart\b[^>]*>\s*<\/div>\n?/gi;
 
-  // 3. Absolute Fallback: Removed. In a Truth-First system, we do not inject placeholders.
-  // Visual deficits are handled as part of the manuscript's purely analytical narrative.
-  
-  return updated;
+/**
+ * Removes legacy `.terminal-chart` mount points. Charts now render server-side as
+ * self-contained figures (js/chart-engine), so an empty mount is a blank card whose id
+ * collides with the chart's own figure id. Name kept for existing call sites.
+ * @param {string} content manuscript markdown/HTML
+ * @returns {string}
+ */
+export function injectVisuals(content) {
+  return content.replace(LEGACY_CHART_MOUNT, '');
 }
 
 /**
- * Sanitizes JSON and ensures unique IDs for multiple charts.
+ * Normalises every <chart-data> payload to strict JSON with a unique per-vertical id.
+ * Parsing goes through the chart engine (strict JSON, then bounded repair), so text such as
+ * "India's CPI" survives. Unparseable blocks are left exactly as written: the validator
+ * reports the engine's reason to the correction loop, and the renderer drops them with
+ * telemetry. Nothing is fabricated in their place.
+ * @param {string} content
+ * @param {string} [verticalId]
+ * @returns {string}
  */
-export function hardenJson(content, verticalId = "default", auditContext = {}) {
-  const { jobId = 'local', env = {} } = auditContext;
+export function hardenJson(content, verticalId = "default") {
   let chartIndex = 0;
   return content.replace(/<chart-data>([\s\S]*?)<\/chart-data>/gi, (match, inner) => {
+    const id = `chart_${verticalId}_${chartIndex++}`;
     try {
-      let clean = inner.trim()
-        .replace(/```json\n?|```/g, '') 
-        .replace(/'/g, '"')           
-        .replace(/,\s*([\}\]])/g, '$1'); 
-      
-      let payload = JSON.parse(clean);
-      const uniqueId = `chart_${verticalId}_${chartIndex++}`;
-      
-      if (Array.isArray(payload)) {
-        // Recovery for malformed array-only responses
-        payload = { 
-          id: uniqueId, 
-          labels: payload.map(i => Array.isArray(i) ? i[0] : 'Item'),
-          datasets: [{ name: "Value", values: payload.map(i => Array.isArray(i) ? i[1] : 0) }]
-        };
-      } else {
-        payload.id = uniqueId;
-      }
-      
+      const parsed = parsePayload(inner);
+      const payload = Array.isArray(parsed) ? { id, data: parsed } : { ...parsed, id };
       return `<chart-data>${JSON.stringify(payload)}</chart-data>`;
-    } catch (e) {
-      const fallbackId = `chart_${verticalId}_err_${chartIndex++}`;
-      return `<chart-data>{"id": "${fallbackId}", "labels": ["Error"], "datasets": [{"name": "Failure", "values": [0]}]}</chart-data>`;
+    } catch {
+      return match;
     }
   });
 }

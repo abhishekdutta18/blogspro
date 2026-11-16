@@ -4,6 +4,7 @@ import * as awareness from 'y-protocols/dist/awareness.cjs';
 import { encoding, decoding } from 'lib0';
 import { saveSnapshot } from './lib/storage-bridge.js';
 import { renderTerminalCharts } from './lib/miro-terminal-charts.js';
+import { chartPageAssets } from '../js/chart-engine/index.js';
 
 const TELEMETRY_CORS = Object.freeze({
   'Access-Control-Allow-Origin': '*',
@@ -524,8 +525,9 @@ const TERMINAL_HTML = `
         .chart-container { min-height: 160px; width: 100%; }
         /* Engine figures arrive server-rendered with their own card chrome; sit them flush in the panels. */
         .chart-host > .bp-chart { margin: 0 !important; padding: 0 !important; border: 0 !important; background: transparent !important; }
-        /* The 3-pane sidebar is ~250px, under the engine's 480px SVG min-width: scale down rather than scroll,
-           so both OASIS gauges stay visible. Exact values remain in each chart's "View data" table. */
+        /* Fallback for browsers without container queries: the engine CSS below swaps in the narrow SVG in the
+           ~250px sidebar; without it, scale the 480px-min wide SVG down rather than scroll, so both OASIS gauges
+           stay visible. Exact values remain in each chart's "View data" table. */
         #chart_latency svg, #chart_oasis svg { min-width: 0 !important; }
 
         /* [V6.0] Ghost Projection Overlay */
@@ -581,6 +583,7 @@ const TERMINAL_HTML = `
         .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
 
     </style>
+    ${chartPageAssets()}
 </head>
 <body>
     <header>

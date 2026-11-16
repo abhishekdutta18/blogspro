@@ -1,11 +1,11 @@
 // render-pie.js — Pie / donut via stroke-dasharray rings. One formula covers a solid pie
 // (hole 0), any donut (Google pieHole, Chart.js cutout) and a 100% slice with no arc math.
 import { formatValue } from './format.js';
-import { r1, tip, text, truncate } from './svg.js';
+import { WIDE, PIE_LEGEND_ROW, pieGeometry, r1, tip, text, truncate } from './svg.js';
 import { seriesColor } from './theme.js';
 
-const DONUT = Object.freeze({ cx: 170, cy: 180, radius: 124, gap: 2 });
-const LEGEND = Object.freeze({ x: 330, right: 620, rowHeight: 28 });
+const SLICE_GAP = 2;
+const LEGEND_LABEL_CHARS = Object.freeze({ wide: 18, narrow: 22 });
 const MIN_HOLE_FOR_TOTAL = 0.45; // center total only fits inside a real hole
 
 function layoutSlices(spec) {
@@ -24,10 +24,12 @@ function layoutSlices(spec) {
  * Render a pie ChartSpec (already folded to <= 7 slices) as an SVG body.
  * @param {import('./normalize.js').ChartSpec} spec
  * @param {import('./theme.js').DARK_THEME} theme
+ * @param {import('./svg.js').WIDE} [layout]
  * @returns {string}
  */
-export function renderPie(spec, theme) {
-  const { cx, cy, radius, gap } = DONUT;
+export function renderPie(spec, theme, layout = WIDE) {
+  const { cx, cy, radius, legendX, legendRight, legendTop } = pieGeometry(spec, layout);
+  const gap = SLICE_GAP;
   const inner = radius * spec.hole;
   const ringRadius = (radius + inner) / 2; // a stroke centred here spans [inner, radius]
   const thickness = radius - inner;
@@ -42,12 +44,14 @@ export function renderPie(spec, theme) {
     return `<circle class="bp-slice" cx="${cx}" cy="${cy}" r="${r1(ringRadius)}" fill="none" stroke="${seriesColor(theme, s.i)}" stroke-width="${r1(thickness)}" stroke-dasharray="${r1(dash)} ${r1(circumference - dash)}" stroke-dashoffset="${r1(-s.start * circumference)}" transform="rotate(-90 ${cx} ${cy})">${tip(label)}</circle>`;
   });
 
+  // Wide: legend centred beside the donut. Narrow: legend rows start below it.
+  const firstRow = legendTop ?? cy - (slices.length * PIE_LEGEND_ROW) / 2 + 14;
   const legend = slices.map((s, row) => {
-    const y = cy - (slices.length * LEGEND.rowHeight) / 2 + row * LEGEND.rowHeight + 14;
+    const y = firstRow + row * PIE_LEGEND_ROW;
     const figure = isPercent ? formatValue(s.value, '%') : `${formatValue(s.value, spec.unit)} · ${r1(s.share * 100)}%`;
-    return `<rect x="${LEGEND.x}" y="${r1(y - 9)}" width="10" height="10" rx="2" fill="${seriesColor(theme, s.i)}"/>` +
-      text(LEGEND.x + 18, y, truncate(s.label, 18), { size: 11, fill: theme.textSecondary, font }) +
-      text(LEGEND.right, y, figure, { anchor: 'end', size: 11, fill: theme.textPrimary, font });
+    return `<rect x="${legendX}" y="${r1(y - 9)}" width="10" height="10" rx="2" fill="${seriesColor(theme, s.i)}"/>` +
+      text(legendX + 18, y, truncate(s.label, LEGEND_LABEL_CHARS[layout.name]), { size: 11, fill: theme.textSecondary, font }) +
+      text(legendRight, y, figure, { anchor: 'end', size: 11, fill: theme.textPrimary, font });
   });
 
   const center = isPercent || spec.hole < MIN_HOLE_FOR_TOTAL ? '' :

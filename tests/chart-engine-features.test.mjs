@@ -10,6 +10,9 @@ import { niceTicks } from '../js/chart-engine/scale.js';
 import { renderChart, extractChartBlocks } from '../js/chart-engine/index.js';
 
 const count = (html, re) => (html.match(re) || []).length;
+
+/** The wide SVG only: figures also carry a narrow copy, so mark counts are taken from one. */
+const wideSvg = html => html.split('<div class="bp-narrow"')[0];
 const withTimeout = (fn, ms = 500) => {
   const t0 = performance.now();
   fn();
@@ -87,13 +90,13 @@ test('stacked bars accept Google isStacked, Chart.js scales.stacked and plain st
   assert.equal(normalizeChart({ type: 'column', isStacked: true, data: rows }).stacked, true);
   assert.equal(normalizeChart({ type: 'bar', options: { scales: { x: { stacked: true } } }, data: rows }).stacked, true);
   const html = renderChart({ type: 'column', stacked: true, data: rows });
-  assert.equal(count(html, /class="bp-bar"/g), 4);
+  assert.equal(count(wideSvg(html), /class="bp-bar"/g), 4);
 });
 
 test('area chart draws a filled region under each line', () => {
   const html = renderChart({ type: 'area', data: [['t', 'v'], ['a', 1], ['b', 3], ['c', 2]] });
-  assert.equal(count(html, /class="bp-area"/g), 1);
-  assert.equal(count(html, /class="bp-line"/g), 1);
+  assert.equal(count(wideSvg(html), /class="bp-area"/g), 1);
+  assert.equal(count(wideSvg(html), /class="bp-line"/g), 1);
 });
 
 test('smooth curves use cubic segments (Chart.js tension / Google curveType)', () => {

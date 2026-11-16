@@ -4,11 +4,33 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mountDashboardChart } from '../js/dashboard-charts.js';
 
+/**
+ * Minimal stand-in for the host's document: just the surface mountChart's ensureChartRuntime
+ * touches at mount time (style tag in <head>, a root attribute guard, document listeners).
+ */
+function fakeDocument() {
+  const headChildren = [];
+  const rootAttrs = new Set();
+  const listeners = [];
+  return {
+    headChildren,
+    listeners,
+    head: {
+      querySelector: sel => (sel === 'style[data-bp-chart-css]' ? headChildren[0] ?? null : null),
+      appendChild: node => headChildren.push(node),
+    },
+    documentElement: { hasAttribute: a => rootAttrs.has(a), setAttribute: a => rootAttrs.add(a) },
+    createElement: () => ({ setAttribute() {}, textContent: '' }),
+    addEventListener: type => listeners.push(type),
+  };
+}
+
 /** Minimal stand-in for a host element: innerHTML + querySelector for the mounted figure. */
-function fakeHost(id = 'host') {
+function fakeHost(id = 'host', ownerDocument = fakeDocument()) {
   const figure = { style: {} };
   return {
     id,
+    ownerDocument,
     innerHTML: '',
     figure,
     querySelector(selector) {
@@ -59,4 +81,7 @@ test('re-mounting replaces the previous chart instead of appending (no DOM growt
   mountDashboardChart(el, payload);
   assert.equal(el.innerHTML, first);
   assert.equal(el.innerHTML.match(/<figure/g).length, 1);
+  // The tooltip/crosshair runtime installs once per document, not once per sync tick.
+  assert.equal(el.ownerDocument.headChildren.length, 1);
+  assert.equal(el.ownerDocument.listeners.filter(t => t === 'pointermove').length, 1);
 });

@@ -15,6 +15,7 @@
  *   ← generate-briefing.js  : calls in the executeAuditedBriefing loop
  *   ← generate-article.js   : calls in the executeAuditedGeneration loop
  */
+import { auditCharts } from '../../js/chart-engine/index.js';
 
 import rl from './reinforcement.js';
 
@@ -49,14 +50,10 @@ function validateContent(content, options = {}) {
     const citations = (content.match(/\[[^\]]+\]\([^)]+\)/g) || []).length;
     if (citations < 2) failures.push(`Verification failure (Found ${citations} hyperlinked citations, need at least 2 distinct sources).`);
 
-    // ── RULE 5: Chart Data Presence & JSON Validity ───────────────────────────
-    const chartMatch = content.match(/<chart-data>([\s\S]*?)<\/chart-data>/);
-    if (!chartMatch) {
-        failures.push("Missing <chart-data> JSON array tag at the very end.");
-    } else {
-        const raw = chartMatch[1].trim();
-        try { JSON.parse(raw); } catch(e) { failures.push(`JSON_SYNTAX_ERROR: ${e.message}`); }
-    }
+    // ── RULE 5: Every chart renders through the engine (any position, any count) ─
+    const charts = auditCharts(content);
+    if (charts.count === 0) failures.push("Missing <chart-data> chart: include at least one chart in the CHART FORMAT.");
+    charts.failures.forEach(f => failures.push(`CHART_REJECTED: chart #${f.index + 1} cannot render — ${f.error}. Rewrite it in the CHART FORMAT or remove it.`));
 
     // ── RULE 6: System Artifact Leakage ──────────────────────────────────────
     if (/<rule-check>/i.test(content)) failures.push("QA_SYSTEM_ARTIFACT: <rule-check> tag found in output.");

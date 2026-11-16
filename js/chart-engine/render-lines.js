@@ -1,12 +1,14 @@
 // render-lines.js — Line, area, smooth (monotone cubic), dashed forecast series, point
 // annotations and sparklines. Gaps (null) break the line instead of bridging it.
-import { formatValue } from './format.js';
+import { escapeHtml, formatValue } from './format.js';
 import { buildFrame, renderAxes } from './frame.js';
-import { r1, tip, text, truncate, legendRow, avoidCollisions } from './svg.js';
+import { renderReferenceBands, renderReferenceLines } from './render-references.js';
+import { WIDE, r1, tip, text, truncate, legendRow, avoidCollisions } from './svg.js';
 
 const MARKER_LIMIT = 24; // above this many points, markers become noise
 const AREA_OPACITY = 0.12;
 const DASH = '6 4';
+const DIRECT_LABEL_CHARS = Object.freeze({ wide: 11, narrow: 9 });
 
 /** Split a series into contiguous runs of [x, y] points (null values end a run). */
 function segments(values, frame) {
@@ -69,7 +71,9 @@ function renderSeries(spec, frame, theme, s, si) {
     const label = spec.annotate === 'all' || (spec.annotate === 'last' && i === last)
       ? text(cx, cy - 9, formatValue(v, spec.unit), { anchor: 'middle', size: 9, fill: theme.textSecondary, font: theme.fontFamily, cls: 'bp-annotation' })
       : '';
-    const hit = `<circle cx="${cx}" cy="${cy}" r="9" fill="transparent">${tip(`${spec.categories[i]} · ${s.name}: ${formatValue(v, spec.unit)}`)}</circle>`;
+    // data-* hooks let the page runtime build a crosshair readout for every series at index i.
+    const hooks = `data-i="${i}" data-cat="${escapeHtml(spec.categories[i])}" data-label="${escapeHtml(`${s.name}: ${formatValue(v, spec.unit)}`)}"`;
+    const hit = `<circle cx="${cx}" cy="${cy}" r="9" fill="transparent" ${hooks}>${tip(`${spec.categories[i]} · ${s.name}: ${formatValue(v, spec.unit)}`)}</circle>`;
     return marker + label + hit;
   }).join('');
   return area + line + points;
@@ -77,32 +81,43 @@ function renderSeries(spec, frame, theme, s, si) {
 
 /** End-of-line series names for 2–4 lines, so identity is never color-alone. All-null series skipped (review H4). */
 function renderDirectLabels(spec, frame, theme) {
+  const chars = DIRECT_LABEL_CHARS[frame.layout.name];
   const ends = spec.series
     .map((s, si) => ({ si, name: s.name, last: s.values.findLastIndex(v => v !== null) }))
     .filter(e => e.last >= 0)
     .map(e => ({ ...e, y: frame.value(spec.series[e.si].values[e.last]) }));
   return avoidCollisions(ends).map(({ si, name, y }) =>
     `<line x1="${frame.plot.right + 6}" x2="${frame.plot.right + 14}" y1="${r1(y)}" y2="${r1(y)}" stroke="${theme.series[si]}" stroke-width="2"${spec.series[si].dashed ? ` stroke-dasharray="3 2"` : ''}/>` +
-    text(frame.plot.right + 18, y + 3, truncate(name, 11), { fill: theme.textSecondary, font: theme.fontFamily }),
+    text(frame.plot.right + 18, y + 3, truncate(name, chars), { fill: theme.textSecondary, font: theme.fontFamily }),
   ).join('');
+}
+
+/** Empty group the page runtime draws its crosshair into; carries the category x positions. */
+function crosshairHook(spec, frame) {
+  const xs = spec.categories.map((_, i) => r1(frame.center(i))).join(',');
+  return `<g class="bp-crosshair" data-x="${xs}" data-top="${r1(frame.plot.top)}" data-bottom="${r1(frame.plot.bottom)}"></g>`;
 }
 
 /**
  * Render a line/area/sparkline ChartSpec to an SVG body.
  * @param {import('./normalize.js').ChartSpec} spec
  * @param {import('./theme.js').DARK_THEME} theme
+ * @param {import('./svg.js').WIDE} [layout]
  * @returns {string}
  */
-export function renderLines(spec, theme) {
+export function renderLines(spec, theme, layout = WIDE) {
   const multi = spec.series.length >= 2;
   const chromeless = spec.sparkline;
   const directLabels = !chromeless && multi && spec.series.length <= 4;
-  const legend = !chromeless && multi && spec.legend;
-  const frame = buildFrame(spec, { legend, directLabels });
+  const legend = !chromeless && multi && spec.legend ? spec.series.map(s => s.name) : null;
+  const frame = buildFrame(spec, { legend, directLabels }, layout);
   return [
     renderAxes(spec, frame, theme),
+    renderReferenceBands(spec, frame, theme),
     spec.series.map((s, si) => renderSeries(spec, frame, theme, s, si)).join(''),
+    renderReferenceLines(spec, frame, theme),
     directLabels ? renderDirectLabels(spec, frame, theme) : '',
-    legend ? legendRow(spec.series.map(s => s.name), theme, { x: frame.plot.left, dashed: spec.series.map(s => s.dashed) }) : '',
+    legend ? legendRow(legend, theme, { x: frame.plot.left, right: frame.canvas.width - 16, dashed: spec.series.map(s => s.dashed) }) : '',
+    chromeless ? '' : crosshairHook(spec, frame),
   ].join('');
 }
