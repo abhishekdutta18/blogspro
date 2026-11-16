@@ -1,4 +1,4 @@
-// render-lines.js — Line, area, smooth (monotone cubic), dashed forecast series, point
+// render-lines.js — Line, area, smooth (monotone cubic), step, dashed forecast series, point
 // annotations and sparklines. Gaps (null) break the line instead of bridging it.
 import { escapeHtml, formatValue } from './format.js';
 import { buildFrame, renderAxes } from './frame.js';
@@ -44,6 +44,8 @@ function monotoneTangents(pts) {
 
 function runPath(pts, curve) {
   const start = `M${r1(pts[0][0])},${r1(pts[0][1])}`;
+  // Step-after: hold the previous value flat to the next x, then move vertically to its value.
+  if (curve === 'step') return start + pts.slice(1).map(([x, y]) => `H${r1(x)}V${r1(y)}`).join('');
   if (curve !== 'smooth' || pts.length < 3) return start + pts.slice(1).map(([x, y]) => `L${r1(x)},${r1(y)}`).join('');
   const tan = monotoneTangents(pts);
   return start + pts.slice(1).map(([x, y], k) => {

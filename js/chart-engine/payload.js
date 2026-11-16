@@ -11,10 +11,12 @@ export const LIMITS = Object.freeze({
   MIN_ABS_VALUE: 1e-12, // below this, treat as zero (denormals break toFixed)
   MAX_CATEGORIES: 60,
   MAX_SERIES: 6, // equals the validated palette length — hues never cycle
+  MAX_HEATMAP_COLUMNS: 12, // heatmap columns share one color ramp, so twelve months fit
   MAX_PIE_SLICES: 6, // beyond this, fold into "Other"
   MAX_GAUGES: 4,
   MAX_REFERENCES: 4, // reference lines + bands per chart; more is clutter
   MAX_TEXT: 120,
+  MAX_MAP_KEYS: 200, // keys inspected in an object-map payload before truncation
 });
 
 /** Thrown for any payload that cannot be charted honestly. */
@@ -43,7 +45,9 @@ function repairJson(text) {
 export function parsePayload(raw) {
   if (typeof raw !== 'string') throw new ChartSpecError('payload must be a string');
   if (raw.length > LIMITS.MAX_RAW_CHARS) throw new ChartSpecError('payload too large');
-  const text = raw.replace(/```(?:json)?/gi, '').trim();
+  // Upstream HTML steps sometimes turn newlines inside the block into <br>. A space keeps the JSON
+  // valid both between tokens and inside string values (a raw newline would not be).
+  const text = raw.replace(/```(?:json)?/gi, '').replace(/<br\s*\/?>/gi, ' ').trim();
   try {
     return JSON.parse(text);
   } catch (strictError) {
