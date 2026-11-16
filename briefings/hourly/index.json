@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-16",
+    "timestamp": 1794820186113,
+    "excerpt": "**OPERATIONAL MEMORANDUM: Q4 2026 LIQUIDITY VELOCITY & STRUCTURAL FRAGILITY** Current market microstructure exhibits a terminal decay in realized liquidity, masked by a facade of synthetic volume originating from HFT-driven Dark Pool cross-matching. ...",
+    "fileName": "swarm-hourly-1794820186108.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Money Market Operations as on November 15, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63981) | Money Market Operations as on November 14, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63980) | RBI cancels Certificate of Registration of 49 NBFCs (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63979) | SEBI:  | GLOBAL: BLOOMBERG | Banks Cool on Manchester City Player Finance as Sanctions Loom - Bloomberg.com | BLOOMBERG | If Your Bank Could Detect Dementia, Would You Let It? - Bloomberg.com | BLOOMBERG | Blackstone-Backed Data Center Firm Adds $1.5 Billion Financing - Bloomberg.com | FT | Biggest IPOs this year lose investors money as AI frenzy fades - Financial Times | FT | Anthropic’s IPO is the next big test for AI - Financial Times | FT | ‘Low fire, low hire’ job market hurts US and UK productivity - Financial Times | REUTERS | EXCLUSIVE Royal Bank of Canada eliminates climate, ESG roles amid reorganization, sources say - Reuters | REUTERS | AI rockets to top of worries about financial system in latest Fed survey - Reuters | REUTERS | UK, Norway and Canada launch $10 billion climate finance initiative - Reuters | CNBC | China’s slowdown deepens in October as industrial output, retail sales, investment miss estimates - CNBC | CNBC | Bitcoin may drop 40% or more as it nears technical warning level, strategist says - CNBC | CNBC | Japan's economy unexpectedly contracts in third-quarter as elevated energy costs bite - CNBC | NIKKEI | China central bank hikes foreign reserve requirement for 1st time in 5 years - Nikkei Asia | NIKKEI | Subaru retools boxer engine for fuel economy, with eye on hybrids - Nikkei Asia | NIKKEI | Quad leaders eye Manila meeting on economic, strategic security - Nikkei Asia",
+      "rbi": "Money Market Operations as on November 15, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63981) | Money Market Operations as on November 14, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63980) | RBI cancels Certificate of Registration of 49 NBFCs (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63979)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Money Market Operations as on November 15, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63981"
+        },
+        {
+          "title": "Money Market Operations as on November 14, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63980"
+        },
+        {
+          "title": "RBI cancels Certificate of Registration of 49 NBFCs",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63979"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-16",
     "timestamp": 1794817503457,
     "excerpt": "Observed systemic liquidity friction has intensified beyond LFY projections, directly contradicting the ephemeral \"no strategic drift\" heuristic. SOFR-OIS spreads have sustained at 12-15bps since Q3 2026, representing a 30% widening from the LFY (202...",
     "fileName": "swarm-hourly-1794817503451.html",
