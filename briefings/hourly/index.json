@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-16",
+    "timestamp": 1794841781159,
+    "excerpt": "**OPERATIONAL MEMO: Q4-2026 LIQUIDITY VECTORS & SYSTEMIC FRAGILITY** **DATE: NOVEMBER 16, 2026** **SUBJECT: STRUCTURAL DECAY IN EQUITIES AND FIXED INCOME TRANCHE INTEGRITY** The current market architecture exhibits the terminal stages of the liquidit...",
+    "fileName": "swarm-hourly-1794841781153.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: RBI to conduct 2-day Variable Rate Reverse Repo (VRRR) auction under LAF on November 17, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63984) | Auction of Government of India Dated Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63983) | Result: Conversion/Switch Auction of Government of India Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63982) | SEBI:  | GLOBAL: BLOOMBERG | ECB’s Vujcic Warns AI and High Debt Threaten Financial Stability - Bloomberg | BLOOMBERG | Banks Cool on Manchester City Player Finance as Sanctions Loom - Bloomberg | BLOOMBERG | Disney Embraces AI It Once Fought, From Animation to Finance and Film - Bloomberg.com | FT | US tech stocks open lower amid Nvidia fallout - Financial Times | FT | The perfect sell-off - Financial Times | FT | Biggest IPOs this year lose investors money as AI frenzy fades - Financial Times | REUTERS | Fed's Barr warns on AI risks to financial system - Reuters | REUTERS | EXCLUSIVE: Italian court places Revolut unit under supervision over money-laundering - Reuters | REUTERS | Global banks set to enter 2027 on strong footing, Moody's report says - Reuters | CNBC | Jim Cramer's top 10 things to watch in the stock market Monday - CNBC | CNBC | Nvidia gets two more price target cuts from analysts ahead of earnings - CNBC | CNBC | From AI to oil, here are Goldman and Morgan Stanley’s outlooks for 2027 - CNBC | NIKKEI | China central bank hikes foreign reserve requirement for 1st time in 5 years - Nikkei Asia | NIKKEI | Subaru retools boxer engine for fuel economy, with eye on hybrids - Nikkei Asia | NIKKEI | Quad leaders eye Manila meeting on economic, strategic security - Nikkei Asia",
+      "rbi": "RBI to conduct 2-day Variable Rate Reverse Repo (VRRR) auction under LAF on November 17, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63984) | Auction of Government of India Dated Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63983) | Result: Conversion/Switch Auction of Government of India Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63982)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "RBI to conduct 2-day Variable Rate Reverse Repo (VRRR) auction under LAF on November 17, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63984"
+        },
+        {
+          "title": "Auction of Government of India Dated Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63983"
+        },
+        {
+          "title": "Result: Conversion/Switch Auction of Government of India Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63982"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-16",
     "timestamp": 1794837849232,
     "excerpt": "**OPERATIONAL MEMO: Q4-2026 LIQUIDITY DEPLETION AND VOLATILITY REGIME SHIFT** Current market conditions reflect a systemic exhaustion of the liquidity tailwinds that artificially suppressed realized volatility throughout 2025. The transition from the...",
     "fileName": "swarm-hourly-1794837849227.html",
