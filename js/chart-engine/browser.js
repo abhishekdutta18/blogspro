@@ -27,16 +27,18 @@ export function ensureChartRuntime(doc = document) {
  * @param {Element} el
  * @param {unknown} input payload or ChartSpec
  * @param {Parameters<typeof renderChart>[1]} [options]
- * @returns {{ ok: true } | { ok: false, error: string }}
+ * @returns {{ ok: true, degraded: { stage: string, error: string }[] } | { ok: false, error: string }}
+ *   `degraded` lists layouts that failed and were simplified (an engine defect worth reporting)
  */
 export function mountChart(el, input, options) {
   try {
     // Scope ids to the host element so identical data mounted twice never collides.
     mountCount += 1;
     const idSuffix = options?.idSuffix ?? (el.id || `m${mountCount}`);
-    el.innerHTML = renderChart(input, { ...options, idSuffix });
+    const degraded = [];
+    el.innerHTML = renderChart(input, { ...options, idSuffix, onDegrade: report => degraded.push(report) });
     ensureChartRuntime(el.ownerDocument);
-    return { ok: true };
+    return { ok: true, degraded };
   } catch (err) {
     el.innerHTML = '';
     return { ok: false, error: err instanceof Error ? err.message : String(err) };

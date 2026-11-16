@@ -127,15 +127,47 @@ export function enhanceCharts(doc) {
     else if (tipEl) tipEl.hidden = true;
   };
 
-  doc.addEventListener('pointermove', onPointer, { passive: true });
-  doc.addEventListener('pointerdown', onPointer, { passive: true });
-  doc.addEventListener('pointerout', e => {
+  // Listeners run on every pointer move: a bug here would raise an error per frame and flood
+  // error reporting (the Sentry webhook files a GitHub issue per event). The first error is
+  // reported once and the runtime switches off; charts stay readable as static SVG.
+  const attached = [];
+  let disabled = false;
+  const disable = err => {
+    disabled = true;
+    attached.forEach(([type, fn, opts]) => doc.removeEventListener(type, fn, opts));
+    root.setAttribute('data-bp-charts', 'off');
+    try {
+      hide();
+    } catch (cleanupErr) {
+      // Teardown is best effort; the original error below is the one worth reporting.
+      void cleanupErr;
+    }
+    const view = doc.defaultView;
+    if (view && typeof view.reportError === 'function') view.reportError(err);
+    else setTimeout(() => { throw err; });
+  };
+  const on = (type, fn, opts) => {
+    const guarded = e => {
+      if (disabled) return;
+      try {
+        fn(e);
+      } catch (err) {
+        disable(err);
+      }
+    };
+    attached.push([type, guarded, opts]);
+    doc.addEventListener(type, guarded, opts);
+  };
+
+  on('pointermove', onPointer, { passive: true });
+  on('pointerdown', onPointer, { passive: true });
+  on('pointerout', e => {
     if (e.pointerType !== 'mouse') return;
     const into = e.relatedTarget;
     if (!into || !into.closest || !into.closest('.bp-chart svg')) hide();
   }, { passive: true });
-  doc.addEventListener('scroll', hide, { passive: true, capture: true });
-  doc.addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
+  on('scroll', hide, { passive: true, capture: true });
+  on('keydown', e => { if (e.key === 'Escape') hide(); });
 }
 
 /** CSS for the narrow/wide swap and the tooltip (for injecting into a live document's <head>). */
