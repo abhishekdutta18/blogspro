@@ -13,9 +13,20 @@ on:
           - weekly
           - monthly
       type:
-        description: 'Type (article, tome)'
+        description: 'Type (article = multi-vertical manuscript, pulse = single consolidated briefing)'
         required: true
         default: 'article'
+        type: choice
+        options:
+          - article
+          - pulse
+
+# One run per frequency at a time. Overlapping hourly runs all pushed to main
+# and raced on the same refs (Sentry #435). A queued run waits instead of
+# being cancelled; GitHub keeps only the newest pending run per group.
+concurrency:
+  group: institutional-research-${{ inputs.freq }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -27,7 +38,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-    timeout-minutes: 360
+    # Hourly must finish inside its slot, otherwise the concurrency group
+    # blocks the next hour. Other frequencies keep the 6h ceiling.
+    timeout-minutes: ${{ fromJSON(inputs.freq == 'hourly' && '50' || '360') }}
     outputs:
       tome_file: ${{ steps.swarm.outputs.tome_file }}
       tome_name: ${{ steps.swarm.outputs.tome_name }}
@@ -55,8 +68,9 @@ jobs:
 
       - name: 🛡️ Pre-Flight Check & GKE Handoff
         id: handoff
+        env:
+          FREQ: ${{ inputs.freq }}
         run: |
-          FREQ="${{ github.event.inputs.freq }}"
           if [[ "$FREQ" == "weekly" || "$FREQ" == "monthly" ]]; then
             echo "handoff=gke" >> $GITHUB_OUTPUT
             echo "⏭️ [Handoff] $FREQ pulse detected. Handing off to Sovereign GKE Cluster."
@@ -79,9 +93,11 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           ASSET_DOMAIN: "https://blogspro.in"
+          FREQ: ${{ inputs.freq }}
+          TOME_TYPE: ${{ inputs.type }}
         run: |
           mkdir -p ./dist
-          node scripts/generate-institutional-tome.js --freq="${{ github.event.inputs.freq }}" --type="${{ github.event.inputs.type }}" --force
+          node scripts/generate-institutional-tome.js --freq="$FREQ" --type="$TOME_TYPE" --force
 
   pdf-generation:
     name: PDF Manuscript Print
@@ -116,7 +132,7 @@ jobs:
         env:
           FILE_NAME: ${{ needs.research.outputs.tome_name }}
           TYPE: ${{ needs.research.outputs.tome_type }}
-          FREQUENCY: ${{ github.event.inputs.freq }}
+          FREQUENCY: ${{ inputs.freq }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -146,7 +162,7 @@ jobs:
       - name: Upload PDF Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: institutional-pdf-${{ github.event.inputs.freq }}
+          name: institutional-pdf-${{ inputs.freq }}
           path: ./artifacts/*.pdf
           if-no-files-found: warn
 
@@ -171,9 +187,11 @@ jobs:
 
 
       - name: Final Archival Verification
+        env:
+          TOME_FILE: ${{ needs.research.outputs.tome_file }}
         run: |
           echo "Institutional Manuscript Successfully Archived."
-          echo "Path: ${{ needs.research.outputs.tome_file }}"
+          echo "Path: $TOME_FILE"
 
   deploy:
     name: Production Deploy
