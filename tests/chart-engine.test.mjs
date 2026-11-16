@@ -2,6 +2,9 @@
 // Run: node --test tests/chart-engine.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+
+/** The wide SVG only: figures also carry a narrow copy, so mark counts are taken from one. */
+const wideSvg = html => html.split('<div class="bp-narrow"')[0];
 import { normalizeChart, parsePayload, toNumber, ChartSpecError } from '../js/chart-engine/normalize.js';
 import { niceTicks } from '../js/chart-engine/scale.js';
 import { compactNumber, formatValue, escapeHtml } from '../js/chart-engine/format.js';
@@ -119,7 +122,7 @@ test('renderChart emits accessible figure with svg and data table', () => {
   assert.match(html, /^<figure class="bp-chart"/);
   assert.match(html, /<svg[^>]+role="img"[^>]+aria-labelledby=/);
   assert.match(html, /<table/);
-  assert.equal((html.match(/<path class="bp-bar"/g) || []).length, 2);
+  assert.equal((wideSvg(html).match(/<path class="bp-bar"/g) || []).length, 2);
 });
 
 test('renderChart escapes hostile titles and labels', () => {
@@ -141,7 +144,7 @@ test('line chart breaks the path at missing values', () => {
 
 test('pie renders one ring segment per slice', () => {
   const html = renderChart({ type: 'pie', data: [['S', 'A'], ['Bank', 35], ['Tech', 65]] });
-  assert.equal((html.match(/class="bp-slice"/g) || []).length, 2);
+  assert.equal((wideSvg(html).match(/class="bp-slice"/g) || []).length, 2);
 });
 
 test('multi-series charts get a legend, single series does not', () => {

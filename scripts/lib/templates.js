@@ -1,4 +1,4 @@
-import { extractChartBlocks } from "../../js/chart-engine/index.js";
+import { extractChartBlocks, chartPageAssets } from "../../js/chart-engine/index.js";
 import { reportChartFailures } from "./chart-telemetry.js";
 
 function parseMD(md) {
@@ -100,9 +100,12 @@ function parseMD(md) {
  * Invalid payloads are reported (never leaked as raw JSON) so telemetry can track LLM chart quality.
  */
 function renderBody(md, chartOptions = {}) {
-    const { text, restore, failures } = extractChartBlocks(md || "", chartOptions);
-    reportChartFailures(failures, { target: chartOptions.target ?? 'web' });
-    return restore(parseMD(text));
+    const target = chartOptions.target ?? 'web';
+    const { text, restore, failures, count } = extractChartBlocks(md || "", chartOptions);
+    reportChartFailures(failures, { target });
+    // Web pages with charts get the narrow-layout CSS + tap tooltips once; email clients strip scripts.
+    const assets = target === 'web' && count > 0 ? chartPageAssets() : "";
+    return restore(parseMD(text)) + assets;
 }
 
 function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileName, rel = "../../", sentimentScore = 50, priceInfo = { last: "0", high: "0", low: "0" }, scripts = "" }) {

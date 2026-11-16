@@ -2,7 +2,7 @@
 // bars, grouped or stacked. 4px rounded data-end, square baseline end, 2px surface gaps.
 import { formatValue } from './format.js';
 import { buildFrame, renderAxes } from './frame.js';
-import { r1, tip, text, legendRow } from './svg.js';
+import { WIDE, r1, tip, text, legendRow } from './svg.js';
 import { renderReferenceBands, renderReferenceLines } from './render-references.js';
 
 const BAR_GAP = 2;
@@ -83,12 +83,13 @@ function fillFor(spec, theme) {
  * Render a bar ChartSpec to an SVG body.
  * @param {import('./normalize.js').ChartSpec} spec
  * @param {import('./theme.js').DARK_THEME} theme
+ * @param {import('./svg.js').WIDE} [layout]
  * @returns {string}
  */
-export function renderBars(spec, theme) {
+export function renderBars(spec, theme, layout = WIDE) {
   const multi = spec.series.length >= 2;
-  const legend = multi && spec.legend && !spec.sparkline;
-  const frame = buildFrame(spec, { legend, directLabels: false });
+  const legend = multi && spec.legend && !spec.sparkline ? spec.series.map(s => s.name) : null;
+  const frame = buildFrame(spec, { legend, directLabels: false }, layout);
   const bars = layoutBars(spec, frame);
   const fill = fillFor(spec, theme);
   const gapStroke = spec.stacked ? ` stroke="${theme.surface}" stroke-width="${BAR_GAP}"` : '';
@@ -103,7 +104,7 @@ export function renderBars(spec, theme) {
     marks,
     renderReferenceLines(spec, frame, theme),
     annotations(spec, bars, frame, theme),
-    legend ? legendRow(spec.series.map(s => s.name), theme, { x: frame.plot.left }) : '',
+    legend ? legendRow(legend, theme, { x: frame.plot.left, right: frame.canvas.width - 16 }) : '',
     '</g>',
   ].join('');
 }

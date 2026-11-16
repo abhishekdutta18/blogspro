@@ -2,6 +2,9 @@
 // Run: node --test tests/chart-engine-finance.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+
+/** The wide SVG only: figures also carry a narrow copy, so mark counts are taken from one. */
+const wideSvg = html => html.split('<div class="bp-narrow"')[0];
 import { formatValue } from '../js/chart-engine/format.js';
 import { renderChart, normalizeChart, DARK_THEME, LIGHT_THEME } from '../js/chart-engine/index.js';
 
@@ -34,7 +37,7 @@ test('non-rupee formatting is unchanged', () => {
 
 // ── Polarity ──
 const flows = { type: 'bar', title: 'FII flows', unit: '₹Cr', data: [['Sector', 'Flow'], ['Financials', 4210], ['IT', -1850], ['Energy', 960]] };
-const fills = html => [...html.matchAll(/class="bp-bar" d="[^"]*" fill="([^"]+)"/g)].map(m => m[1]);
+const fills = html => [...wideSvg(html).matchAll(/class="bp-bar" d="[^"]*" fill="([^"]+)"/g)].map(m => m[1]);
 
 test('a single mixed-sign series colors bars by sign (blue gains, red losses)', () => {
   assert.deepEqual(fills(renderChart(flows, { theme: 'light' })), [LIGHT_THEME.positive, LIGHT_THEME.negative, LIGHT_THEME.positive]);
