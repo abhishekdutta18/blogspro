@@ -1,5 +1,5 @@
 import { extractChartBlocks, chartPageAssets } from "../../js/chart-engine/index.js";
-import { reportChartFailures } from "./chart-telemetry.js";
+import { reportChartFailures, reportChartDegradations } from "./chart-telemetry.js";
 import { escapeHtml, renderLink, shieldMarkup } from "./html-sanitizer.js";
 
 const MD_LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
@@ -121,8 +121,9 @@ function parseMD(md) {
  */
 function renderBody(md, chartOptions = {}) {
     const target = chartOptions.target ?? 'web';
-    const { text, restore, failures, count } = extractChartBlocks(md || "", chartOptions);
+    const { text, restore, failures, degraded, count } = extractChartBlocks(md || "", chartOptions);
     reportChartFailures(failures, { target });
+    reportChartDegradations(degraded, { target });
     // Web pages with charts get the narrow-layout CSS + tap tooltips once; email clients strip scripts.
     const assets = target === 'web' && count > 0 ? chartPageAssets() : "";
     return restore(parseMD(text)) + assets;
