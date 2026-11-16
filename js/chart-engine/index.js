@@ -7,9 +7,12 @@ import { renderBars } from './render-bars.js';
 import { renderLines } from './render-lines.js';
 import { renderPie } from './render-pie.js';
 import { renderGauge } from './render-gauge.js';
+import { renderWaterfall } from './render-waterfall.js';
+import { renderHeatmap } from './render-heatmap.js';
+import { renderCandles } from './render-candles.js';
 import { renderStats, renderTable } from './render-html.js';
 import { resolveTheme } from './theme.js';
-import { escapeHtml, formatValue } from './format.js';
+import { escapeHtml, formatValue, formatFull } from './format.js';
 import { WIDE, NARROW, canvasFor } from './svg.js';
 import { mermaidToChart } from './mermaid.js';
 
@@ -23,7 +26,10 @@ const CHART_TAG = /<chart-data\b[^>]*>([\s\S]*?)<\/chart-data>/gi;
 const UNCLOSED_TAG = /<chart-data\b[^>]*>[\s\S]*?(?=\n[ \t]*\n|$)/gi;
 const MERMAID_FENCE = /```mermaid[ \t]*\n([\s\S]*?)```/g;
 const MIN_SVG_WIDTH = 480; // keeps 10px chart text >= ~7.5px on screen
-const SVG_RENDERERS = Object.freeze({ bar: renderBars, line: renderLines, pie: renderPie, gauge: renderGauge });
+const SVG_RENDERERS = Object.freeze({
+  bar: renderBars, line: renderLines, pie: renderPie, gauge: renderGauge,
+  waterfall: renderWaterfall, heatmap: renderHeatmap, candlestick: renderCandles,
+});
 const HTML_RENDERERS = Object.freeze({ stats: renderStats, table: renderTable });
 
 /** djb2 — deterministic short id so re-renders produce identical HTML (clean git diffs). */
@@ -38,6 +44,10 @@ function describe(spec) {
   if (spec.type === 'gauge') return spec.gauges.map(g => `${g.label} at ${formatValue(g.value, spec.unit)} of ${formatValue(g.max, spec.unit)}`).join('; ') + '.';
   const values = spec.series.flatMap(s => s.values).filter(v => v !== null);
   const range = `${formatValue(Math.min(...values), spec.unit)} to ${formatValue(Math.max(...values), spec.unit)}`;
+  const n = spec.categories.length;
+  if (spec.type === 'heatmap') return `Heatmap of ${n} rows by ${spec.series.length} columns, values ranging ${range}.`;
+  if (spec.type === 'candlestick') return `${spec.candle === 'ohlc' ? 'OHLC' : 'Candlestick'} chart of ${n} periods, from ${spec.categories[0]} to ${spec.categories[n - 1]}, trading ${range}.`;
+  if (spec.type === 'waterfall') return `Waterfall of ${n} steps from ${spec.categories[0]} to ${spec.categories[n - 1]}.`;
   const kind = spec.type === 'bar' ? `${spec.stacked ? 'stacked ' : ''}${spec.orientation} bar` : spec.area ? 'area' : spec.type;
   return `${kind} chart of ${spec.series.map(s => s.name).join(', ')} across ${spec.categories.length} categories, ranging ${range}.`;
 }
@@ -45,9 +55,10 @@ function describe(spec) {
 /** Rows for the table view of an SVG chart. */
 function tableRows(spec) {
   if (spec.type === 'gauge') return { head: ['', 'Value'], rows: spec.gauges.map(g => [g.label, formatValue(g.value, spec.unit)]) };
+  const format = spec.type === 'candlestick' ? formatFull : formatValue; // prices are read exactly
   return {
     head: ['', ...spec.series.map(s => s.name)],
-    rows: spec.categories.map((c, i) => [c, ...spec.series.map(s => (s.values[i] === null ? '–' : formatValue(s.values[i], spec.unit)))]),
+    rows: spec.categories.map((c, i) => [c, ...spec.series.map(s => (s.values[i] === null ? '–' : format(s.values[i], spec.unit)))]),
   };
 }
 

@@ -9,7 +9,7 @@
     "generate": "node scripts/generate-article.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:smoke": "playwright test",
-    "test:charts": "node --test tests/chart-engine.test.mjs tests/chart-engine-features.test.mjs tests/chart-pipeline.test.mjs tests/chart-engine-finance.test.mjs tests/chart-engine-mobile.test.mjs",
+    "test:charts": "node --test tests/chart-engine.test.mjs tests/chart-engine-features.test.mjs tests/chart-pipeline.test.mjs tests/chart-engine-finance.test.mjs tests/chart-engine-mobile.test.mjs tests/chart-engine-forms.test.mjs",
     "test:templates": "node --test tests/templates-xss.test.mjs",
     "ecc:quality-gate": "node .claude/hooks-antigravity/quality-gate.cjs",
     "ecc:secret-scan": "node .claude/hooks-antigravity/secret-scanner.cjs",

@@ -4,7 +4,7 @@
 // and the admin chart-builder (name/subtitle/source, stats, table). Pure; never evals.
 
 /**
- * @typedef {'bar'|'line'|'pie'|'gauge'|'stats'|'table'} ChartType
+ * @typedef {'bar'|'line'|'pie'|'gauge'|'stats'|'table'|'waterfall'|'heatmap'|'candlestick'} ChartType
  * @typedef {{ readonly name: string, readonly values: readonly (number|null)[], readonly dashed: boolean }} Series
  * @typedef {'good'|'warning'|'critical'|'normal'} Level
  * @typedef {{ readonly label: string, readonly value: number, readonly min: number, readonly max: number,
@@ -12,15 +12,17 @@
  * @typedef {{ kind: 'line', value: number, label: string } | { kind: 'band', from: number, to: number, label: string }} Reference
  * @typedef {Readonly<{
  *   type: ChartType, orientation: 'horizontal'|'vertical', stacked: boolean, area: boolean,
- *   curve: 'linear'|'smooth', sparkline: boolean, hole: number, legend: boolean,
+ *   curve: 'linear'|'smooth'|'step', sparkline: boolean, hole: number, legend: boolean,
  *   annotate: 'all'|'last'|null, yMin: number|null, yMax: number|null, theme: 'dark'|'light'|null,
  *   id: string, name: string, title: string, subtitle: string, source: string, unit: string,
  *   xLabel: string, yLabel: string, categories: readonly string[], series: readonly Series[],
- *   cells: readonly (readonly string[])[], gauges: readonly Gauge[], references: readonly Reference[]
+ *   cells: readonly (readonly string[])[], gauges: readonly Gauge[], references: readonly Reference[],
+ *   totals: readonly boolean[], times: readonly number[]|null, candle: 'candle'|'ohlc'
  * }>} ChartSpec
  */
 import { ChartSpecError, LIMITS, parsePayload, toNumber, clip, lookup } from './payload.js';
 import { extractTable } from './shapes.js';
+import { resolveWaterfall, validateCandles, readTimes, sortByTime } from './forms.js';
 
 export { ChartSpecError, parsePayload, toNumber, LIMITS } from './payload.js';
 
@@ -37,12 +39,28 @@ const TYPE_TABLE = Object.freeze({
   gauge: { type: 'gauge' }, meter: { type: 'gauge' },
   stats: { type: 'stats' }, stat: { type: 'stats' }, kpi: { type: 'stats' },
   table: { type: 'table' }, comparison: { type: 'table' },
+  waterfall: { type: 'waterfall' }, bridge: { type: 'waterfall' },
+  heatmap: { type: 'heatmap' }, matrix: { type: 'heatmap' },
+  candlestick: { type: 'candlestick', candle: 'candle' }, candles: { type: 'candlestick', candle: 'candle' },
+  ohlc: { type: 'candlestick', candle: 'ohlc' },
 });
+const TIME_AXIS_TYPES = Object.freeze(['line', 'candlestick']);
 const DEFAULT_HOLE = 0.62;
 const LEVEL_PRIORITY = Object.freeze(['critical', 'warning', 'good']);
 
 /** Read the first defined value among option paths. */
 const pick = (...values) => values.find(v => v !== undefined && v !== null);
+
+/**
+ * Line interpolation. 'step' holds each value until the next point (policy rates, prices); any
+ * Chart.js `stepped` value maps to it, since step-after is the reading finance charts need.
+ */
+function readCurve(base, o, datasets, tension) {
+  const stepped = pick(base.stepped, o.elements?.line?.stepped, ...datasets.map(d => d?.stepped));
+  if (['step', 'steps', 'stepped'].includes(base.curve) || (stepped !== undefined && stepped !== false)) return 'step';
+  if (base.curve === 'smooth' || pick(base.curveType, o.curveType) === 'function' || Number(tension) > 0) return 'smooth';
+  return 'linear';
+}
 
 function readFlags(base, kind) {
   const o = base.options ?? {};
@@ -56,7 +74,7 @@ function readFlags(base, kind) {
     orientation: orientation === 'vertical' ? 'vertical' : 'horizontal',
     stacked: Boolean(pick(base.stacked, base.isStacked, o.isStacked, scales.x?.stacked, scales.y?.stacked, false)),
     area: Boolean(kind.area || base.area === true || datasets.some(d => d?.fill === true)),
-    curve: base.curve === 'smooth' || pick(base.curveType, o.curveType) === 'function' || Number(tension) > 0 ? 'smooth' : 'linear',
+    curve: readCurve(base, o, datasets, tension),
     sparkline: Boolean(kind.sparkline || base.sparkline === true),
     legend: !legendOff,
     yMin: toNumber(pick(base.yMin, scales.y?.min, base.vAxis?.viewWindow?.min, o.vAxis?.viewWindow?.min)),
@@ -130,16 +148,30 @@ function foldPie(table) {
   };
 }
 
-function resolvePlotted(kind, table) {
+/** Form-specific shaping after the generic checks: waterfall levels, candle validation, date order. */
+function shapeForm(type, table, base) {
+  const dated = TIME_AXIS_TYPES.includes(type) && base.xType !== 'category' ? readTimes(table.categories) : null;
+  const ordered = dated ? sortByTime(table, dated) : { table, times: null };
+  if (type === 'waterfall') {
+    const { totals, values } = resolveWaterfall(ordered.table, base.totals);
+    return { table: { ...ordered.table, series: [{ ...ordered.table.series[0], values }] }, totals, times: null };
+  }
+  if (type === 'candlestick') return { table: { ...ordered.table, series: validateCandles(ordered.table) }, totals: [], times: ordered.times };
+  return { table: ordered.table, totals: [], times: ordered.times };
+}
+
+function resolvePlotted(kind, table, base) {
   if (kind.type === 'stats' || kind.type === 'table') {
     if (!table.cells.some(col => col.some(Boolean))) throw new ChartSpecError('no cell values');
-    return { type: kind.type, table };
+    return { type: kind.type, table, totals: [], times: null };
   }
   if (!table.series.some(s => s.values.some(v => v !== null))) throw new ChartSpecError('no finite values to plot');
+  if (['waterfall', 'heatmap', 'candlestick'].includes(kind.type)) return { type: kind.type, ...shapeForm(kind.type, table, base) };
   const pieable = table.series[0].values.every(v => v === null || v >= 0) && table.series[0].values.some(v => v > 0);
   const type = kind.type === 'pie' && !pieable ? 'bar' : kind.type;
   assertNotPlaceholder(type, table.series);
-  return { type, table: type === 'pie' ? foldPie(table) : table };
+  if (type === 'pie') return { type, table: foldPie(table), totals: [], times: null };
+  return { type, ...shapeForm(type, table, base) };
 }
 
 const MAX_REFERENCE_INPUT = 50; // bound the work done on untrusted arrays before filtering
@@ -159,7 +191,7 @@ function toReference(raw) {
 
 /** Reference lines (repo rate, targets) and bands (RBI tolerance band) — cartesian charts only. */
 function readReferences(base, type) {
-  if ((type !== 'bar' && type !== 'line') || !Array.isArray(base.references)) return [];
+  if (!['bar', 'line', 'waterfall', 'candlestick'].includes(type) || !Array.isArray(base.references)) return [];
   return base.references.slice(0, MAX_REFERENCE_INPUT).map(toReference).filter(Boolean).slice(0, LIMITS.MAX_REFERENCES);
 }
 
@@ -186,9 +218,10 @@ export function normalizeChart(input) {
   const kind = lookup(TYPE_TABLE, base.type) ?? { type: 'bar', orientation: 'horizontal' };
   const hasTable = Array.isArray(base.data) || Array.isArray(base.labels) || Array.isArray(base.data?.labels);
   const gauges = kind.type === 'gauge' ? buildGauges(base, hasTable ? extractTable(base) : null) : [];
+  const maxSeries = kind.type === 'heatmap' ? LIMITS.MAX_HEATMAP_COLUMNS : LIMITS.MAX_SERIES;
   const plotted = kind.type === 'gauge'
-    ? { type: 'gauge', table: { categories: [], series: [], cells: [], annotate: null } }
-    : resolvePlotted(kind, extractTable(base));
+    ? { type: 'gauge', table: { categories: [], series: [], cells: [], annotate: null }, totals: [], times: null }
+    : resolvePlotted(kind, extractTable(base, maxSeries), base);
   const annotate = ['all', 'last'].includes(base.annotate) ? base.annotate : base.annotate === 'none' ? null : plotted.table.annotate;
   const theme = base.theme === 'light' || base.theme === 'dark' ? base.theme : null;
 
@@ -211,5 +244,8 @@ export function normalizeChart(input) {
     cells: plotted.table.cells.map(col => [...col]),
     gauges,
     references: readReferences(base, plotted.type),
+    totals: [...plotted.totals],
+    times: plotted.times ? [...plotted.times] : null,
+    candle: kind.candle ?? 'candle',
   });
 }

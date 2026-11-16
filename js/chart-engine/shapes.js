@@ -3,6 +3,7 @@
 //   • bare rows              [['x',1],['y',2]]                                   (LLM shorthand)
 //   • admin datasets         { labels, datasets:[{ name, values }] }             (chart-builder.js)
 //   • Chart.js config        { data:{ labels, datasets:[{ label, data, borderDash }] } }
+//   • object maps            { data:{ "Base": 40, "Bull": 30 } } or { data:{ A:{x:1,y:2}, B:{x:3,y:4} } }
 // Each returns { categories, series:[{ name, values, dashed }], cells, annotate }.
 import { ChartSpecError, LIMITS, toNumber, clip } from './payload.js';
 
@@ -46,7 +47,7 @@ function seriesOption(base, position) {
 }
 
 /** Google DataTable / bare rows. */
-export function fromRows(rows, base) {
+export function fromRows(rows, base, maxSeries = LIMITS.MAX_SERIES) {
   const valid = rows.filter(r => Array.isArray(r) && r.length >= 2);
   if (valid.length === 0) throw new ChartSpecError('data has no [label, value] rows');
   const forceHeader = base.header === true ? true : base.header === false ? false : null;
@@ -54,7 +55,7 @@ export function fromRows(rows, base) {
   const body = (withHeader ? valid.slice(1) : valid).slice(0, LIMITS.MAX_CATEGORIES);
   const width = Math.max(...valid.map(r => r.length)) - 1;
   const columns = readColumns(withHeader ? valid[0] : null, width, base.yLabel || base.title || 'Value');
-  const dataColumns = columns.filter(c => c.role === null || c.role === 'data').slice(0, LIMITS.MAX_SERIES);
+  const dataColumns = columns.filter(c => c.role === null || c.role === 'data').slice(0, maxSeries);
   return {
     categories: body.map(r => clip(r[0])),
     series: dataColumns.map((c, position) => ({
@@ -68,10 +69,10 @@ export function fromRows(rows, base) {
 }
 
 /** Admin chart-builder datasets and Chart.js datasets. */
-export function fromDatasets({ labels, datasets }) {
+export function fromDatasets({ labels, datasets }, maxSeries = LIMITS.MAX_SERIES) {
   if (!Array.isArray(datasets) || datasets.length === 0) throw new ChartSpecError('datasets must be a non-empty array');
   const categories = labels.slice(0, LIMITS.MAX_CATEGORIES).map(label => clip(label)); // not .map(clip): index would become `max`
-  const picked = datasets.slice(0, LIMITS.MAX_SERIES).map(ds => (ds && typeof ds === 'object' ? ds : {}));
+  const picked = datasets.slice(0, maxSeries).map(ds => (ds && typeof ds === 'object' ? ds : {}));
   const raw = picked.map(ds => (Array.isArray(ds.values) ? ds.values : Array.isArray(ds.data) ? ds.data : []));
   return {
     categories,
@@ -92,13 +93,54 @@ function isDashed(opts) {
     (Array.isArray(opts.borderDash) && opts.borderDash.length > 0);
 }
 
+const isMap = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+/** Bounded own entries of an untrusted object. */
+const mapEntries = obj => Object.keys(obj).slice(0, LIMITS.MAX_MAP_KEYS).map(k => [k, obj[k]]);
+
+/**
+ * Object maps, the shape models reach for when naming values: `{ name: number }` is one series;
+ * `{ seriesName: { category: number } }` is one series per outer key, and every inner map must
+ * have the same keys. Anything mixed is rejected rather than guessed.
+ */
+export function fromMap(map, base, maxSeries = LIMITS.MAX_SERIES) {
+  const entries = mapEntries(map);
+  if (entries.length === 0) throw new ChartSpecError('data map is empty');
+  if (entries.every(([, v]) => !isMap(v))) {
+    const rows = entries.slice(0, LIMITS.MAX_CATEGORIES);
+    return {
+      categories: rows.map(([k]) => clip(k)),
+      series: [{ name: clip(base.yLabel || base.title || 'Value'), values: rows.map(([, v]) => toNumber(v)), dashed: false }],
+      cells: [rows.map(([, v]) => cellText(v))],
+      annotate: null,
+    };
+  }
+  if (!entries.every(([, v]) => isMap(v))) throw new ChartSpecError('data map mixes single values and nested maps');
+  const keys = mapEntries(entries[0][1]).map(([k]) => k).slice(0, LIMITS.MAX_CATEGORIES);
+  const sameKeys = entries.every(([, v]) => { const own = Object.keys(v); return own.length === keys.length && keys.every(k => Object.hasOwn(v, k)); });
+  if (!sameKeys) throw new ChartSpecError('nested data maps must all have the same keys');
+  const picked = entries.slice(0, maxSeries);
+  return {
+    categories: keys.map(k => clip(k)),
+    series: picked.map(([name, v]) => ({ name: clip(name), values: keys.map(k => toNumber(v[k])), dashed: false })),
+    cells: picked.map(([, v]) => keys.map(k => cellText(v[k]))),
+    annotate: null,
+  };
+}
+
+/** A payload that is itself a map of numeric maps, with no `type`, `data` or other chart keys. */
+const isBareSeriesMap = base => !('type' in base) && Object.keys(base).length > 0 && Object.values(base).every(isMap);
+
 /**
  * Pick the right reader for a payload object.
  * @param {Record<string, any>} base
+ * @param {number} [maxSeries] value columns kept (heatmap columns are not colored series, so may exceed the palette)
  */
-export function extractTable(base) {
-  if (Array.isArray(base.data)) return fromRows(base.data, base);
-  if (base.data && typeof base.data === 'object' && Array.isArray(base.data.labels)) return fromDatasets(base.data);
-  if (Array.isArray(base.labels)) return fromDatasets(base);
+export function extractTable(base, maxSeries = LIMITS.MAX_SERIES) {
+  if (Array.isArray(base.data)) return fromRows(base.data, base, maxSeries);
+  if (base.data && typeof base.data === 'object' && Array.isArray(base.data.labels)) return fromDatasets(base.data, maxSeries);
+  if (Array.isArray(base.labels)) return fromDatasets(base, maxSeries);
+  if (isMap(base.data)) return fromMap(base.data, base, maxSeries);
+  if (isBareSeriesMap(base)) return fromMap(base, {}, maxSeries);
   throw new ChartSpecError('no chartable data (expected `data` rows, `labels` + `datasets`, or Chart.js `data`)');
 }

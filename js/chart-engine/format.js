@@ -73,3 +73,34 @@ export function formatValue(n, unit = '') {
   if (!unit) return body;
   return unit === '%' ? `${body}%` : `${body} ${unit}`;
 }
+
+/**
+ * Like formatValue, but never compacts ("25,650", "₹1,23,456"): for prices and for axis ticks
+ * whose compact labels would collide ("25.6K" twice).
+ * @param {number} n
+ * @param {string} [unit]
+ * @returns {string}
+ */
+export function formatFull(n, unit = '') {
+  if (!Number.isFinite(n)) return '–';
+  const symbol = PREFIX_UNITS.find(s => unit.startsWith(s));
+  const sign = n < 0 ? '-' : '';
+  if (symbol) return `${sign}${symbol}${groupDigits(Math.abs(n), symbol)}${unit.slice(symbol.length)}`;
+  const body = `${sign}${groupDigits(Math.abs(n), 'default')}`;
+  if (!unit) return body;
+  return unit === '%' ? `${body}%` : `${body} ${unit}`;
+}
+
+/**
+ * Labels for a set of axis ticks: compact unless two would read the same (or `exact`, for
+ * prices), then full.
+ * @param {number[]} ticks
+ * @param {string} [unit]
+ * @param {boolean} [exact]
+ * @returns {string[]}
+ */
+export function tickLabels(ticks, unit = '', exact = false) {
+  if (exact) return ticks.map(t => formatFull(t, unit));
+  const compact = ticks.map(t => formatValue(t, unit));
+  return new Set(compact).size === compact.length ? compact : ticks.map(t => formatFull(t, unit));
+}
