@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-16",
+    "timestamp": 1794834230028,
+    "excerpt": "**OPERATIONAL MEMORANDUM: Q4 2026 LIQUIDITY VULNERABILITY MATRIX** Current market microstructure exhibits a terminal disconnect between spot price action and the underlying systemic plumbing. The November 2026 environment, anchored against the 2025 L...",
+    "fileName": "swarm-hourly-1794834230023.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Auction of Government of India Dated Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63983) | Result: Conversion/Switch Auction of Government of India Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63982) | Money Market Operations as on November 15, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63981) | SEBI:  | GLOBAL: BLOOMBERG | ECB’s Vujcic Warns AI and High Debt Threaten Financial Stability - Bloomberg.com | BLOOMBERG | Banks Cool on Manchester City Player Finance as Sanctions Loom - Bloomberg.com | BLOOMBERG | If Your Bank Could Detect Dementia, Would You Let It? - Bloomberg.com | FT | US tech stocks set to open lower amid Nvidia fallout - Financial Times | FT | The perfect sell-off - Financial Times | FT | The whole world is long America - Financial Times | REUTERS | Fed's Barr warns on AI risks to financial system - Reuters | REUTERS | EXCLUSIVE: Italian court places Revolut unit under supervision over money-laundering - Reuters | REUTERS | Global banks set to enter 2027 on strong footing, Moody's report says - Reuters | CNBC | From AI to oil, here are Goldman and Morgan Stanley’s outlooks for 2027 - CNBC | CNBC | Nvidia stock falls nearly 4% as investors price in fallout from Jensen Huang's resignation - CNBC | CNBC | China confirms Xi-Trump-Putin historic summit. What will be on the agenda? - CNBC | NIKKEI | China central bank hikes foreign reserve requirement for 1st time in 5 years - Nikkei Asia | NIKKEI | Subaru retools boxer engine for fuel economy, with eye on hybrids - Nikkei Asia | NIKKEI | Quad leaders eye Manila meeting on economic, strategic security - Nikkei Asia",
+      "rbi": "Auction of Government of India Dated Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63983) | Result: Conversion/Switch Auction of Government of India Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63982) | Money Market Operations as on November 15, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63981)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Auction of Government of India Dated Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63983"
+        },
+        {
+          "title": "Result: Conversion/Switch Auction of Government of India Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63982"
+        },
+        {
+          "title": "Money Market Operations as on November 15, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63981"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-16",
     "timestamp": 1794830532254,
     "excerpt": "**OPERATIONAL MEMO: Q4-2026 LIQUIDITY DRAIN & STRUCTURAL FRAGILITY** Current SOFR-OIS spreads indicate a fundamental degradation in interbank trust, diverging from the compressed 2025 LFY baselines. The liquidity map reveals a systematic migration of...",
     "fileName": "swarm-hourly-1794830532248.html",
