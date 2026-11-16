@@ -9,13 +9,14 @@
  * @typedef {'good'|'warning'|'critical'|'normal'} Level
  * @typedef {{ readonly label: string, readonly value: number, readonly min: number, readonly max: number,
  *   readonly bands: readonly { from: number, to: number, level: Level }[], readonly level: Level }} Gauge
+ * @typedef {{ kind: 'line', value: number, label: string } | { kind: 'band', from: number, to: number, label: string }} Reference
  * @typedef {Readonly<{
  *   type: ChartType, orientation: 'horizontal'|'vertical', stacked: boolean, area: boolean,
  *   curve: 'linear'|'smooth', sparkline: boolean, hole: number, legend: boolean,
  *   annotate: 'all'|'last'|null, yMin: number|null, yMax: number|null, theme: 'dark'|'light'|null,
  *   id: string, name: string, title: string, subtitle: string, source: string, unit: string,
  *   xLabel: string, yLabel: string, categories: readonly string[], series: readonly Series[],
- *   cells: readonly (readonly string[])[], gauges: readonly Gauge[]
+ *   cells: readonly (readonly string[])[], gauges: readonly Gauge[], references: readonly Reference[]
  * }>} ChartSpec
  */
 import { ChartSpecError, LIMITS, parsePayload, toNumber, clip, lookup } from './payload.js';
@@ -141,6 +142,27 @@ function resolvePlotted(kind, table) {
   return { type, table: type === 'pie' ? foldPie(table) : table };
 }
 
+const MAX_REFERENCE_INPUT = 50; // bound the work done on untrusted arrays before filtering
+const REFERENCE_LABEL_CHARS = 40;
+
+/** One `{value, label}` line or `{from, to, label}` band; anything else is dropped. */
+function toReference(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const label = clip(raw.label ?? '', REFERENCE_LABEL_CHARS);
+  const value = toNumber(raw.value);
+  if (value !== null) return { kind: 'line', value, label };
+  const from = toNumber(raw.from);
+  const to = toNumber(raw.to);
+  if (from === null || to === null) return null;
+  return { kind: 'band', from: Math.min(from, to), to: Math.max(from, to), label };
+}
+
+/** Reference lines (repo rate, targets) and bands (RBI tolerance band) — cartesian charts only. */
+function readReferences(base, type) {
+  if ((type !== 'bar' && type !== 'line') || !Array.isArray(base.references)) return [];
+  return base.references.slice(0, MAX_REFERENCE_INPUT).map(toReference).filter(Boolean).slice(0, LIMITS.MAX_REFERENCES);
+}
+
 const deepFreeze = value => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
     Object.values(value).forEach(deepFreeze);
@@ -188,5 +210,6 @@ export function normalizeChart(input) {
     series: plotted.table.series.map(s => ({ name: s.name, values: [...s.values], dashed: Boolean(s.dashed) })),
     cells: plotted.table.cells.map(col => [...col]),
     gauges,
+    references: readReferences(base, plotted.type),
   });
 }

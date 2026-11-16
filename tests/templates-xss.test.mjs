@@ -222,7 +222,16 @@ test('renderBody restores chart SVG without escaping it', () => {
   const out = renderBody('Intro\n\n<chart-data>[["A", 1], ["B", 2]]</chart-data>\n\nOutro <script>x</script>');
   assert.match(out, /<figure class="bp-chart"/);
   assert.match(out, /<svg\b/);
-  assert.doesNotMatch(out, /&lt;svg|&lt;figure|chart-data|<script/);
+  assert.doesNotMatch(out, /&lt;svg|&lt;figure|chart-data|<script>x/);
+  // Web pages with charts get exactly one trusted script: the chart engine's tooltip enhancer.
+  assert.equal(out.match(/<script\b/g)?.length, 1);
+  assert.match(out, /<script>\(function enhanceCharts/);
+});
+
+test('email renderBody keeps charts but carries no script', () => {
+  const out = renderBody('<chart-data>[["A", 1], ["B", 2]]</chart-data>\n\n<script>x</script>', { target: 'email' });
+  assert.match(out, /<figure class="bp-chart"/);
+  assert.doesNotMatch(out, /<script/);
 });
 
 // ── template interpolations ───────────────────────

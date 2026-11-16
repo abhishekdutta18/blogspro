@@ -13,6 +13,7 @@ export const LIMITS = Object.freeze({
   MAX_SERIES: 6, // equals the validated palette length — hues never cycle
   MAX_PIE_SLICES: 6, // beyond this, fold into "Other"
   MAX_GAUGES: 4,
+  MAX_REFERENCES: 4, // reference lines + bands per chart; more is clutter
   MAX_TEXT: 120,
 });
 

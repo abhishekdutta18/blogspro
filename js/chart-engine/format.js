@@ -1,7 +1,17 @@
 // format.js — Escaping and number formatting shared by all renderers. Pure.
 
 const HTML_ESCAPES = Object.freeze({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' });
-const PREFIX_UNITS = new Set(['₹', '$', '€', '£']);
+const PREFIX_UNITS = Object.freeze(['₹', '$', '€', '£']);
+// Indian scale words: lakh = 1e5, crore = 1e7, lakh crore = 1e12 (how RBI/Budget figures are quoted).
+const RUPEE_STEPS = Object.freeze([
+  [1e12, 'L Cr'],
+  [1e7, 'Cr'],
+  [1e5, 'L'],
+]);
+const GROUPERS = Object.freeze({
+  '₹': new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }), // 1,23,456
+  default: new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }), // 123,456
+});
 const COMPACT_STEPS = Object.freeze([
   [1e12, 'T'],
   [1e9, 'B'],
@@ -27,17 +37,39 @@ export function compactNumber(n) {
   return step ? `${trimNumber(n / step[0], 1)}${step[1]}` : trimNumber(n);
 }
 
+/** Digit grouping in the convention of the currency (Indian lakh grouping for ₹). */
+function groupDigits(abs, symbol) {
+  return (GROUPERS[symbol] ?? GROUPERS.default).format(abs);
+}
+
+/** 250000 -> "2.5L", 12500000 -> "1.25Cr", 2.5e12 -> "2.5L Cr"; below a lakh, grouped. */
+function rupeeCompact(abs) {
+  const step = RUPEE_STEPS.find(([size]) => abs >= size);
+  return step ? `${trimNumber(abs / step[0], 2)}${step[1]}` : groupDigits(abs, '₹');
+}
+
+/** Magnitude text for a currency amount: a unit that already names its scale is never re-scaled. */
+function currencyMagnitude(abs, symbol, scale) {
+  if (scale) return groupDigits(abs, symbol); // "₹Cr" 4210 -> "4,210", never "4.2K"
+  return symbol === '₹' ? rupeeCompact(abs) : compactNumber(abs);
+}
+
 /**
- * Attach a unit: currency symbols prefix ("₹1.2K"), currency+scale splits around the number
- * ("$B" -> "$89B", "₹Cr" -> "₹12Cr"), "%" suffixes tight, anything else suffixes with a space.
+ * Attach a unit. Currency symbols prefix ("$1.5K", "₹2.5L"); currency + scale splits around a
+ * grouped number ("$B" -> "$1,250B", "₹Cr" -> "₹1,23,456Cr"); "%" suffixes tight; anything
+ * else suffixes with a space ("25 bps").
+ * @param {number} n
+ * @param {string} [unit]
+ * @returns {string}
  */
 export function formatValue(n, unit = '') {
-  const body = compactNumber(n);
-  if (!unit) return body;
-  const symbol = [...PREFIX_UNITS].find(s => unit.startsWith(s));
+  if (!Number.isFinite(n)) return '–';
+  const symbol = PREFIX_UNITS.find(s => unit.startsWith(s));
   if (symbol) {
     const scale = unit.slice(symbol.length);
-    return n < 0 ? `-${symbol}${body.slice(1)}${scale}` : `${symbol}${body}${scale}`;
+    return `${n < 0 ? '-' : ''}${symbol}${currencyMagnitude(Math.abs(n), symbol, scale)}${scale}`;
   }
+  const body = compactNumber(n);
+  if (!unit) return body;
   return unit === '%' ? `${body}%` : `${body} ${unit}`;
 }

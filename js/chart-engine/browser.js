@@ -3,8 +3,24 @@
 //   upgradeLegacyCharts — migrate admin chart-builder markup already stored in Firestore posts
 //   hydrateChartTags    — render <chart-data> elements left in already-published HTML
 import { renderChart } from './index.js';
+import { chartCss, enhanceCharts } from './runtime.js';
 
 let mountCount = 0;
+
+/**
+ * Install the narrow-layout CSS and tap/crosshair listeners in a live document, once.
+ * Server-rendered pages get the same thing inline from chartPageAssets().
+ * @param {Document} [doc]
+ */
+export function ensureChartRuntime(doc = document) {
+  if (!doc.head.querySelector('style[data-bp-chart-css]')) {
+    const style = doc.createElement('style');
+    style.setAttribute('data-bp-chart-css', '');
+    style.textContent = chartCss();
+    doc.head.appendChild(style);
+  }
+  enhanceCharts(doc);
+}
 
 /**
  * Render a chart into `el`, replacing its contents. Safe to call repeatedly for live dashboards.
@@ -19,6 +35,7 @@ export function mountChart(el, input, options) {
     mountCount += 1;
     const idSuffix = options?.idSuffix ?? (el.id || `m${mountCount}`);
     el.innerHTML = renderChart(input, { ...options, idSuffix });
+    ensureChartRuntime(el.ownerDocument);
     return { ok: true };
   } catch (err) {
     el.innerHTML = '';
@@ -54,6 +71,7 @@ export function upgradeLegacyCharts(root = document, options = { theme: 'light' 
       failed += 1; // leave the legacy fallback HTML in place — it still renders without JS
     }
   });
+  if (upgraded > 0) ensureChartRuntime(root.ownerDocument ?? root);
   return { upgraded, failed };
 }
 
@@ -75,5 +93,6 @@ export function hydrateChartTags(root = document, options) {
       failed += 1;
     }
   });
+  if (rendered > 0) ensureChartRuntime(root.ownerDocument ?? root);
   return { rendered, failed };
 }

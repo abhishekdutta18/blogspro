@@ -19,7 +19,7 @@ export function getApexTemplate({
     logoPath = "logo.svg" 
 }) {
     // Charts render server-side as SVG: raw <chart-data> no longer survives parseMD's sanitizer.
-    const finalBody = renderBody(content);
+    const finalBody = renderBody(content, { theme: 'dark' });
     const now = new Date();
     const displayDate = dateLabel || now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
     const safe = escapeShellFields({ title, excerpt, dateLabel: displayDate, freq, rel });
@@ -211,17 +211,6 @@ export function getApexTemplate({
         td { padding: 1rem 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.02); }
         tr:last-child td { border-bottom: none; }
 
-        /* --- CHARTS --- */
-        .terminal-chart {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--apex-border);
-            border-radius: 16px;
-            min-height: 400px;
-            margin: 2rem 0;
-            position: relative;
-        }
-        .chart-tag { position: absolute; top: 1rem; right: 1rem; font-family: 'JetBrains Mono'; font-size: 0.6rem; color: var(--apex-accent); opacity: 0.4; }
-
         /* --- SCROLLBAR --- */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--apex-bg); }
@@ -263,6 +252,7 @@ export function getApexTemplate({
             </section>
         </main>
     </div>
+
 </body>
 </html>`;
 }

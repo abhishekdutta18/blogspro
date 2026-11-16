@@ -4,6 +4,8 @@
  * prompts are managed here to ensure a unified "Single Source of Truth."
  */
 
+import { CHART_PROMPT_SPEC } from '../../js/chart-engine/prompt-spec.js';
+
 const INSTITUTIONAL_PERSONA = `You are a Principal Institutional Liquidator and Lead Derivatives & Quant Strategist for BlogsPro.
 Your tone is COLD, AUTHORITATIVE, and AGGRESSIVELY CYNICAL. You speak in the language of a $100B Asset Manager's internal memo.
 
@@ -48,7 +50,7 @@ const STRUCTURAL_RULES = `
 3. Word Count Rule: Word count targets (500/1,500/10,000/20,000) refer ONLY to the dense, analytical narrative body. Tables, Abstracts, Glossaries, and Citations are EXTRA (Bonus).
 4. 🛡️ SURGICAL GROUNDING RULE: If you cannot find a REAL, VERIFIABLE institutional source for a specific claim or chart, you MUST wrap that specific segment in '<audit-purge reason="no_grounding">...</audit-purge>'. Outputting hallucinated data without this tag is a CRITICAL FAILURE.
 5. Incremental Analysis: YOU MUST explicitly calculate the % delta or structural shift between 2025 (Baseline) and 2026 (Current) for at least 3 key metrics in each chapter.
-6. 📊 VISUALIZATION: You must use \`\`\`mermaid\`\`\` blocks for charting and standard Markdown syntax for tables. Do NOT use HTML tables or <chart-data> tags.
+6. 📊 VISUALIZATION: Charts are <chart-data> JSON blocks in the CHART FORMAT (never mermaid or images). Tables use standard Markdown syntax, not HTML tables. If no CHART FORMAT is given in this prompt, keep existing <chart-data> blocks unchanged and add none.
 7. Density: Output pure markdown/HTML fragments ONLY. NEVER output <!DOCTYPE>, <html>, <head>, or <body> tags. Any attempt to output a full document will result in immediate termination of the node.
 8. 🚫 NO LAYOUT: Do NOT output any <style> blocks, navigational elements, or internal layout wrappers (divs for columns/sidebars). Output ONLY the core analytical narrative using semantic tags and markdown.
 9. 🔏 ZERO-ECHO RULE: You MUST wrap the entire manuscript body (excluding telemetry) in [[BPRO_INTEL_START]] and [[BPRO_INTEL_END]] delimiters.
@@ -56,10 +58,10 @@ const STRUCTURAL_RULES = `
 
 const CHART_SYNC_RULE = `
 MULTIPLE CHART SYNCHRONIZATION:
-- Propose MULTIPLE \`\`\`mermaid\`\`\` chart blocks (Min 2) at the end of relevant sections.
-- Format: Use standard Mermaid.js syntax (e.g., pie, xyChart, bar).
-- 🚫 TRUTH-FIRST SOURCE: If the source is not a specific agency (RBI, IMF, Fed, etc.), OMIT the chart block entirely. Do not inject charts with "General Market Data" sources.
-- 🔍 DIRECT OCR INJECTION: If you receive institutional data from a 'vision_parse' tool call, visualize it accurately using a Mermaid chart.
+- Place 2 or more <chart-data> charts at the end of relevant sections; each must answer a question the text raises.
+- 🚫 TRUTH-FIRST SOURCE: If the source is not a specific agency (RBI, IMF, Fed, etc.), OMIT the chart entirely. Do not inject charts with "General Market Data" sources.
+- 🔍 DIRECT OCR INJECTION: If you receive institutional data from a 'vision_parse' tool call, chart it accurately as a <chart-data> block.
+${CHART_PROMPT_SPEC}
 `;
 
 let CONSENSUS_PERSONAS = [];
@@ -117,7 +119,7 @@ ${marketContext}
 --- MANDATORY STRUCTURAL OUTPUT REQUIREMENTS ---
 ${STRUCTURAL_RULES}
 ${CHART_SYNC_RULE}
-- Output inside <chart-data>{ "sentiment": [...], "macro": [...] }</chart-data>
+- Close with a "pie" <chart-data> of swarm sentiment (Bullish / Neutral / Bearish shares) and a "column" <chart-data> of the key macro prints, both in the CHART FORMAT.
 - 🔏 Enforce [[BPRO_INTEL_START]] and [[BPRO_INTEL_END]] delimiters.
 `;
 }
@@ -144,11 +146,11 @@ News Stream: ${news}
 1. START with <h2>${verticalName}</h2>.
 2. Include at least TWO high-density data tables.
 3. Use extremely technical, quantitative language. No fluff.
-4. Inject exactly one <div class="card terminal-chart" id="chart_${verticalId}"></div>.
+4. Do not emit chart containers or <div> placeholders; charts are <chart-data> blocks only.
 
 --- FINAL CHART DATA ---
 ${CHART_SYNC_RULE}
-<chart-data>[["Label", Value], ...]</chart-data>
+- End with at least one <chart-data> block in the CHART FORMAT above.
 - 🔏 Enforce [[BPRO_INTEL_START]] and [[BPRO_INTEL_END]] delimiters.
 `;
 }
@@ -227,12 +229,8 @@ TODAY'S DATE is ${currentDate}. You must treat this as the current, live date. D
 <rules>
   <design_rules>
     - Currency: Use EXACT symbols (₹, $, €) for all financial deltas/values.
-    - Charts: Include EXACTLY THREE (3) data visualizations using Mermaid.js spread evenly throughout the document. Output exact Mermaid markdown blocks. ⚠️ CRITICAL: To prevent syntax errors, ONLY use 'pie' charts or 'graph TD' (flowcharts). Do NOT attempt to use xyChart, line, or bar charts. The charts MUST use actual numbers from <live_data>. ⚠️ PIE CHART RULE: ALL values in pie charts MUST be POSITIVE numbers. NEVER use negative values. If showing percentage declines, use the absolute value (e.g., use 3.5 not -3.5) and indicate the decline in the label text (e.g., "IT Decline" : 3.5). ⚠️ TEMPORAL DRIFT RULE: At least ONE of your Mermaid charts MUST explicitly compare 2026 metrics against 2025 (LFY) baseline data to show structural drift.
-      Example PieChart: \`\`\`mermaid
-      pie title Institutional Allocation
-      "Private Equity" : 40
-      "Distressed Debt" : 60
-      \`\`\`
+    - Charts: Include EXACTLY THREE (3) <chart-data> charts spread evenly through the document, each built from actual numbers in <live_data>. ⚠️ PIE RULE: pie values are shares of one whole and MUST be >= 0; show declines (e.g. FII outflows) as a horizontal "bar" chart, which plots negatives correctly. ⚠️ TEMPORAL DRIFT RULE: at least ONE chart MUST compare 2026 metrics against the 2025 (LFY) baseline — a "column" chart with one series per year.
+${CHART_PROMPT_SPEC}
     - Tables: You MUST include AT LEAST FIVE (5) Markdown tables (5+ rows each). Specifically:
       1. MACRO/CURRENCY SNAPSHOT TABLE (Must include GDP and CPI data from MACRO ECONOMICS section)
       2. MACRO DRIFT ANALYSIS (Must compare 2025 LFY vs 2026 Current for Unemployment, Nifty Returns, Currency)
@@ -449,7 +447,8 @@ MANDATORY DELPHI-METHOD SYNTHESIS:
 2. Create 3 TACTICAL SCENARIOS (Base Case, Extreme Bull, Tail Risk Bear).
 3. Specify 16-vertical cross-asset correlations for each scenario.
 4. Output a single, authoritative 1,200-1,500 word strategic synthesis.
-5. Include a final <chart-data> block summarizing 'Swarm Consensus Sentiment' and 'Scenario Probability Weights' for each of the 3 scenarios.
+5. End with two <chart-data> blocks: a "pie" of 'Swarm Consensus Sentiment' and a "column" of 'Scenario Probability Weights' for the 3 scenarios.
+${CHART_PROMPT_SPEC}
 
 💎 QUALITY STANDARD: Adopt the cold, clinical, highly-dense tone of a veteran Chief Strategist. Zero filler words. Every sentence must synthesize a specific risk, flow, or yield.
 
@@ -484,7 +483,8 @@ const INSTITUTIONAL_STYLING = `
 2. STRUCTURE: No conversational fluff. Start with TACTICAL_POSITIONING.
 3. DATA: 0% filler, 100% density.
 4. CITATIONS: Use [ExpertPersonaName] for every strategic claim.
-5. HTML: Use <table> and <chart-data> for all quantitative summaries.
+5. DATA BLOCKS: Use Markdown tables and <chart-data> charts for all quantitative summaries.
+${CHART_PROMPT_SPEC}
 ------------------------------------------------
 `;
 
@@ -502,8 +502,8 @@ CRITICAL GATEKEEPER RULES:
    ⚠️ DATA HIERARCHY: The LIVE MARKET DATA FEED (prices, indices, macro indicators) is the GROUND TRUTH. It is real-time data fetched at generation time. News headlines may be from OLDER articles (days, weeks, or months old) and MUST NOT be used to contradict live market prices. If a news headline says "crude oil above $100" but the LIVE DATA shows $69.92, the LIVE DATA is correct and the headline is stale. Do NOT penalize the manuscript for using accurate live data.
 2. HISTORICAL DATA INTEGRITY: Are there at least TWO tables/charts comparing 2026 (Current) to 2025 (LFY) or 2024 (Historical)? (FAIL if no. ${isAdHoc ? 'EXCEPTION: Since this is an interactive/ad-hoc query, ONE table is sufficient. Do not fail if there is only 1 table.' : ''})
 3. LIVE DATA TABLES: Does the manuscript contain at least ONE Markdown table with real market prices, indices, or macro indicators sourced from live data feeds? Tables with invented/placeholder numbers are a FAIL.
-4. MERMAID CHART: Does the manuscript contain at least ONE Mermaid.js chart (pie, xyChart, etc.) using actual numeric values? (FAIL if missing or uses placeholder data)
-5. ECHO & STRAY CODE DETECTION: Search for prompt leaks (e.g., "You are a...", "ROLE:", "TASK:") or stray markdown code blocks other than mermaid. (FAIL if yes)
+4. CHARTS: Does the manuscript contain at least ONE <chart-data> chart using actual numeric values? (FAIL if missing or uses placeholder data)
+5. ECHO & STRAY CODE DETECTION: Search for prompt leaks (e.g., "You are a...", "ROLE:", "TASK:") or stray markdown code blocks, including mermaid (charts belong in <chart-data> blocks). (FAIL if yes)
 6. HUMAN READABILITY: Does the prose flow naturally? Is it free of robotic filler (e.g., "In this analysis...")? (FAIL if yes)
 7. DATA DENSITY: Is every technical claim supported by a specific metric? (FAIL if no)
 
@@ -744,7 +744,8 @@ TODAY'S DATE is ${new Date().toISOString().split('T')[0]}. Treat this as the cur
   <design_rules>
     - Currency: Use EXACT symbols (₹, $, €) for all financial deltas/values.
     - Formatting: Structure your response into 3-5 logical sections that directly address the query. Do NOT force a 9-chapter memo unless requested.
-    - Visuals (QUERY DEPENDENT): If the query naturally calls for quantitative data (e.g. market share, asset allocations), use exactly ONE Mermaid 'pie' or 'graph TD' chart. ⚠️ CRITICAL: If you use a Mermaid chart, it MUST contain actual numeric values (e.g., node labels like 'Oil[-16%]' or 'CPI[+2.4%]') to pass institutional audit. If the query is purely conceptual, omit the chart.
+    - Visuals (QUERY DEPENDENT): If the query naturally calls for quantitative data (e.g. market share, asset allocations, rate paths), include exactly ONE <chart-data> chart built from actual numbers. If the query is purely conceptual, omit the chart.
+${CHART_PROMPT_SPEC}
     - Tables (QUERY DEPENDENT): If the query involves historical comparisons or specific assets, include a Markdown table. If not, omit it.
   </design_rules>
 

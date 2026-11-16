@@ -5,6 +5,8 @@
 //   dark  vs #070707: all pass (gold stepped #BFA100 -> #a88e00 to sit in the dark L band)
 //   light vs #ffffff: all pass; aqua contrast 2.82 < 3:1 -> relief = every chart ships a table view
 // Status colors are reserved for gauge state and always paired with a text label.
+// Polarity (gains/losses) uses the blue<->red diverging pair, never status green/red — validated
+// as a pair: light ΔE 21.6 CVD / 32.3 normal, dark ΔE 19.2 / 29.0, both >= 3:1 vs surface.
 
 const STATUS = Object.freeze({ good: '#0ca30c', warning: '#fab219', critical: '#d03b3b', normal: '#64748B' });
 
@@ -20,6 +22,8 @@ export const DARK_THEME = Object.freeze({
   textSecondary: '#94A3B8',
   textMuted: '#64748B',
   accent: '#a88e00',
+  positive: '#3987e5',
+  negative: '#e66767',
   otherSlice: '#475569',
   status: STATUS,
   fontFamily: "'JetBrains Mono', ui-monospace, monospace",
@@ -38,6 +42,8 @@ export const LIGHT_THEME = Object.freeze({
   textSecondary: '#444444',
   textMuted: '#666666',
   accent: '#8f7600',
+  positive: '#2a78d6',
+  negative: '#e34948',
   otherSlice: '#94a3b8',
   status: STATUS,
   fontFamily: "'DM Sans', system-ui, sans-serif",
