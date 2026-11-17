@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-17",
+    "timestamp": 1794913803634,
+    "excerpt": "Elevated systemic fragility persists, manifesting as deepening structural liquidity deficits across all major market segments. High-compute MCTS simulations for 2026-2027 project an 81% probability of severe liquidity dislocation events, a material i...",
+    "fileName": "swarm-hourly-1794913803627.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Directions under Section 35A read with Section 56 of the Banking Regulation Act, 1949 – Nagar Sahakari Bank Ltd., Etawah – Extension of Period (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63988) | Result of Yield/Price Based Auction of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63987) | Result of the 2-day Variable Rate Reverse Repo (VRRR)  auction held on November 17, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63986) | SEBI:  | GLOBAL: BLOOMBERG | India Weighs Capital Gains, Transaction Tax Change, Mint Reports - Bloomberg.com | BLOOMBERG | NBIM, GIC, BlackRock Said to Invest in Bajaj Finance Share Sale - Bloomberg.com | BLOOMBERG | Banks Cool on Manchester City Player Finance as Sanctions Loom - Bloomberg.com | FT | Stocks slide as Nvidia results loom - Financial Times | FT | UK jobs market stalled ahead of October Budget - Financial Times | FT | Making the US dollar great again - Financial Times | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | REUTERS | Nvidia's AI financing machine may survive Huang, but with less risk appetite - Reuters | REUTERS | Carney to meet Xi on Tuesday to talk food, energy and financial services - Reuters | CNBC | South Korea will suspend all aircraft operation for 35 minutes and markets will open late. Here’s why - CNBC | CNBC | Payward co-CEO says stock markets will move to 24/7 trading as tokenized equities grow - CNBC | CNBC | Iran escalates threats as third U.S. carrier arrives in Middle East, tanker struck in Hormuz - CNBC | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | China central bank hikes foreign reserve requirement for 1st time in 5 years - Nikkei Asia | NIKKEI | Quad leaders eye Manila meeting on economic, strategic security - Nikkei Asia",
+      "rbi": "Directions under Section 35A read with Section 56 of the Banking Regulation Act, 1949 – Nagar Sahakari Bank Ltd., Etawah – Extension of Period (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63988) | Result of Yield/Price Based Auction of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63987) | Result of the 2-day Variable Rate Reverse Repo (VRRR)  auction held on November 17, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63986)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Directions under Section 35A read with Section 56 of the Banking Regulation Act, 1949 – Nagar Sahakari Bank Ltd., Etawah – Extension of Period",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63988"
+        },
+        {
+          "title": "Result of Yield/Price Based Auction of State Government Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63987"
+        },
+        {
+          "title": "Result of the 2-day Variable Rate Reverse Repo (VRRR)  auction held on November 17, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63986"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-17",
     "timestamp": 1794910496911,
     "excerpt": "**OPERATIONAL MEMORANDUM: LIQUIDITY VULNERABILITY AND VOLATILITY SURFACE DEGRADATION** Current terminal flow analytics for November 17, 2026, indicate a terminal breakdown in structural liquidity, rendering the Q4-2025 comparative baseline functional...",
     "fileName": "swarm-hourly-1794910496904.html",
