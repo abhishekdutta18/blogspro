@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-17",
+    "timestamp": 1794924151123,
+    "excerpt": "**OPERATIONAL MEMORANDUM: Q4 2026 LIQUIDITY DEPLETION & STRUCTURAL FRAGILITY** Current market conditions as of November 17, 2026, indicate a terminal exhaustion of the liquidity tailwinds that defined the LFY (2025). The transition from the 2024-2025...",
+    "fileName": "swarm-hourly-1794924151117.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: RBI to conduct Overnight Variable Rate Reverse Repo (VRRR) auction under LAF on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63991) | Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series VIII due on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63990) | State Government Securities - Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63989) | SEBI:  | GLOBAL: BLOOMBERG | India Weighs Capital Gains, Transaction Tax Change, Mint Reports - Bloomberg.com | BLOOMBERG | NBIM, GIC, BlackRock Said to Invest in Bajaj Finance Share Sale - Bloomberg.com | BLOOMBERG | Banks Cool on Manchester City Player Finance as Sanctions Loom - Bloomberg.com | FT | US tech stocks set to stabilise after volatile run of trading - Financial Times | FT | Banks seek to curb AI debt exposure as backlash mounts - Financial Times | FT | CVC plans to back out of Italian deal with Advent, triggering potential legal clash - Financial Times | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | REUTERS | For investors, a truly safe haven is hard to find - Reuters | REUTERS | Nvidia's AI financing machine may survive Huang, but with less risk appetite - Reuters | CNBC | South Korea will suspend all aircraft operation for 35 minutes and markets will open late. Here’s why - CNBC | CNBC | Investor Steve Eisman says the AI neocloud stocks are in 'big trouble' from Nvidia fallout - CNBC | CNBC | Trump has arrived in Asia. Here’s what he said about Iran and Deutsche Bank - CNBC | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | China central bank hikes foreign reserve requirement for 1st time in 5 years - Nikkei Asia | NIKKEI | Quad leaders eye Manila meeting on economic, strategic security - Nikkei Asia",
+      "rbi": "RBI to conduct Overnight Variable Rate Reverse Repo (VRRR) auction under LAF on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63991) | Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series VIII due on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63990) | State Government Securities - Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63989)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "RBI to conduct Overnight Variable Rate Reverse Repo (VRRR) auction under LAF on November 18, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63991"
+        },
+        {
+          "title": "Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series VIII due on November 18, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63990"
+        },
+        {
+          "title": "State Government Securities - Full Auction Result",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63989"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-17",
     "timestamp": 1794920565995,
     "excerpt": "**OPERATIONAL MEMO: Q4-26 LIQUIDITY DRAIN AND VOLATILITY SURFACE DEFORMATION** Current SOFR dynamics indicate a persistent structural friction within the repo corridor, exacerbated by the Treasury’s frantic issuance cadence to service 2025-carryover ...",
     "fileName": "swarm-hourly-1794920565989.html",
