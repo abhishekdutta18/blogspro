@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-17",
+    "timestamp": 1794939686609,
+    "excerpt": "Institutional liquidity profiles as of November 17, 2026, indicate a terminal breakdown in market depth, characterized by a persistent widening of the bid-ask spread in off-the-run Treasuries. The 2025 LFY comparative baseline reveals a catastrophic ...",
+    "fileName": "swarm-hourly-1794939686602.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: RBI to conduct Overnight Variable Rate Reverse Repo (VRRR) auction under LAF on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63991) | Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series VIII due on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63990) | State Government Securities - Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63989) | SEBI:  | GLOBAL: BLOOMBERG | Deutsche Bank Drops as Leak Shows Links to Russia, Epstein - Bloomberg.com | BLOOMBERG | Banks Cool on Manchester City Player Finance as Sanctions Loom - Bloomberg.com | BLOOMBERG | NBIM, GIC, BlackRock Said to Invest in Bajaj Finance Share Sale - Bloomberg.com | FT | US tech stocks slide ahead of Nvidia results - Financial Times | FT | Banks seek to curb AI debt exposure as backlash mounts - Financial Times | FT | Rothschild & Co anchors Italy at heart of European growth plan - Financial Times | REUTERS | Nvidia turmoil marks the end of easy money for the AI trade - Reuters | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | REUTERS | Home Depot names insider McPhail CEO, bets on sustained sales recovery - Reuters | CNBC | Kalshi takes down controversial Trump 'mention' markets at CFTC's request - CNBC | CNBC | Jim Cramer's top 10 things to watch in the stock market Tuesday - CNBC | CNBC | Former Nvidia CEO Jensen Huang says he’s open to returning in first statement since resignation - CNBC | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | China central bank hikes foreign reserve requirement for 1st time in 5 years - Nikkei Asia | NIKKEI | Quad leaders eye Manila meeting on economic, strategic security - Nikkei Asia",
+      "rbi": "RBI to conduct Overnight Variable Rate Reverse Repo (VRRR) auction under LAF on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63991) | Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series VIII due on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63990) | State Government Securities - Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63989)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "RBI to conduct Overnight Variable Rate Reverse Repo (VRRR) auction under LAF on November 18, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63991"
+        },
+        {
+          "title": "Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series VIII due on November 18, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63990"
+        },
+        {
+          "title": "State Government Securities - Full Auction Result",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63989"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-17",
     "timestamp": 1794924151123,
     "excerpt": "**OPERATIONAL MEMORANDUM: Q4 2026 LIQUIDITY DEPLETION & STRUCTURAL FRAGILITY** Current market conditions as of November 17, 2026, indicate a terminal exhaustion of the liquidity tailwinds that defined the LFY (2025). The transition from the 2024-2025...",
     "fileName": "swarm-hourly-1794924151117.html",
