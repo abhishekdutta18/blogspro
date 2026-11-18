@@ -1,6 +1,34 @@
 [
   {
     "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-18",
+    "timestamp": 1794996904936,
+    "excerpt": "MEMORANDUM // DESK OF LEAD QUANT STRATEGIST & PRINCIPAL LIQUIDATOR OPERATIONAL DATE: NOVEMBER 18, 2026 | 14:30 EST COMPARATIVE BASELINE: LFY 2025 AUDITED MATRIX | DEEP BASELINE: 2024 SUBJECT: STRUCTURAL LIQUIDITY DEFICITS & SYSTEMIC GAMMA DISLOCATION...",
+    "fileName": "swarm-hourly-1794996904929.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Treasury Bills: Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995) | 91-Day, 182-Day and 364-Day T-Bill Auction Result: Cut-off (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63994) | Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63993) | SEBI:  | GLOBAL: FT | US dollar rally erases ‘liberation day’ losses as rate expectations rise - Financial Times | FT | US tech stocks slide ahead of Nvidia results - Financial Times | FT | CVC plans to back out of Italian deal with Advent, triggering potential legal clash - Financial Times | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | REUTERS | Deutsche Bank chair backs CEO after reports expose past lapses; Trump calls tax leak 'illegal' - Reuters | REUTERS | EXCLUSIVE: Italian court places Revolut unit under supervision over money-laundering failings - Reuters | CNBC | China’s Xi calls for removing trade and investment barriers ahead of his meeting with Trump and Putin - CNBC | CNBC | Wednesday's big stock stories: What’s likely to move the market in the next trading session - CNBC | CNBC | 'Who and what comes next': Analysts expect Nvidia investor uncertainty despite earnings beat - CNBC | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia",
+      "rbi": "Treasury Bills: Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995) | 91-Day, 182-Day and 364-Day T-Bill Auction Result: Cut-off (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63994) | Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63993)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Treasury Bills: Full Auction Result",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995"
+        },
+        {
+          "title": "91-Day, 182-Day and 364-Day T-Bill Auction Result: Cut-off",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63994"
+        },
+        {
+          "title": "Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 18, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63993"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-17",
     "timestamp": 1794939686609,
     "excerpt": "Institutional liquidity profiles as of November 17, 2026, indicate a terminal breakdown in market depth, characterized by a persistent widening of the bid-ask spread in off-the-run Treasuries. The 2025 LFY comparative baseline reveals a catastrophic ...",
