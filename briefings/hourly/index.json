@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-18",
+    "timestamp": 1794999969432,
+    "excerpt": "Observed surface-level market stability, as indicated by the hourly pulse, is a negligible metric. Current aggregates merely reflect latent structural vulnerabilities, particularly when cross-referenced against LFY (2025) baselines. Q3 2026 net liqui...",
+    "fileName": "swarm-hourly-1794999969425.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Treasury Bills: Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995) | 91-Day, 182-Day and 364-Day T-Bill Auction Result: Cut-off (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63994) | Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63993) | SEBI:  | GLOBAL: FT | Low-profile VCs set for $100bn windfall from Anthropic IPO - Financial Times | FT | US dollar rally erases ‘liberation day’ losses as rate expectations rise - Financial Times | FT | US tech stocks slide ahead of Nvidia results - Financial Times | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | REUTERS | Deutsche Bank chair backs CEO after reports expose past lapses; Trump calls tax leak 'illegal' - Reuters | REUTERS | EXCLUSIVE: Italian court places Revolut unit under supervision over money-laundering failings - Reuters | CNBC | Treasury yields hold steady as investors look ahead to Fed minutes - CNBC | CNBC | China’s Xi calls for removing trade and investment barriers ahead of his meeting with Trump and Putin - CNBC | CNBC | Wednesday's big stock stories: What’s likely to move the market in the next trading session - CNBC | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia",
+      "rbi": "Treasury Bills: Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995) | 91-Day, 182-Day and 364-Day T-Bill Auction Result: Cut-off (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63994) | Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63993)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Treasury Bills: Full Auction Result",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995"
+        },
+        {
+          "title": "91-Day, 182-Day and 364-Day T-Bill Auction Result: Cut-off",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63994"
+        },
+        {
+          "title": "Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 18, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63993"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-18",
     "timestamp": 1794996904936,
     "excerpt": "MEMORANDUM // DESK OF LEAD QUANT STRATEGIST & PRINCIPAL LIQUIDATOR OPERATIONAL DATE: NOVEMBER 18, 2026 | 14:30 EST COMPARATIVE BASELINE: LFY 2025 AUDITED MATRIX | DEEP BASELINE: 2024 SUBJECT: STRUCTURAL LIQUIDITY DEFICITS & SYSTEMIC GAMMA DISLOCATION...",
     "fileName": "swarm-hourly-1794996904929.html",
