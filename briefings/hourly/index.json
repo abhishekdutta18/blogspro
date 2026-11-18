@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-18",
+    "timestamp": 1795015013664,
+    "excerpt": "The current market regime is characterized by an acute exhaustion of liquidity buffers, masking a profound structural fragility. As of November 18, 2026, the S&P 500 GEX profile has collapsed into a persistent \"negative gamma\" state, exacerbated by t...",
+    "fileName": "swarm-hourly-1795015013658.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: RBI to conduct Overnight Variable Rate Reverse Repo (VRRR) auction under LAF on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63997) | Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series II due on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63996) | Treasury Bills: Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995) | SEBI:  | GLOBAL: BLOOMBERG | Apollo’s Europe Head Sees Massive Finance Demand for AI, Defense - Bloomberg.com | BLOOMBERG | Banks Pause $480 Million Chip Loan Tied to China’s ByteDance - Bloomberg.com | BLOOMBERG | Private Credit Helps Morgan Stanley Avoid $1.3 Billion Hung Loan - Bloomberg.com | FT | Low-profile VCs set for $100bn windfall from Anthropic IPO - Financial Times | FT | US dollar rally erases ‘liberation day’ losses as rate expectations rise - Financial Times | FT | US tech stocks slide ahead of Nvidia results - Financial Times | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | REUTERS | Deutsche Bank chair backs CEO after reports expose past lapses; Trump calls tax leak 'illegal' - Reuters | REUTERS | EXCLUSIVE: Italian court places Revolut unit under supervision over money-laundering failings - Reuters | CNBC | Jim Cramer's top 10 things to watch in the stock market Wednesday - CNBC | CNBC | Jensen Huang has agreed to appear before Senate banking committee, Chairman Scott says - CNBC | CNBC | Nvidia's numbers and Anthropic anticipation drive Nasdaq futures up - CNBC | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia",
+      "rbi": "RBI to conduct Overnight Variable Rate Reverse Repo (VRRR) auction under LAF on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63997) | Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series II due on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63996) | Treasury Bills: Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "RBI to conduct Overnight Variable Rate Reverse Repo (VRRR) auction under LAF on November 19, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63997"
+        },
+        {
+          "title": "Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series II due on November 19, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63996"
+        },
+        {
+          "title": "Treasury Bills: Full Auction Result",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-18",
     "timestamp": 1795010863042,
     "excerpt": "**OPERATIONAL MEMO: Q4-2026 LIQUIDITY VELOCITY & STRUCTURAL FRAGILITY** Current overnight SOFR prints confirm a persistent structural drainage in the repo markets, with the effective rate oscillating near the upper bound of the Fed’s corridor, signal...",
     "fileName": "swarm-hourly-1795010863035.html",
