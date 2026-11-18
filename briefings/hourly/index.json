@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-18",
+    "timestamp": 1795006914128,
+    "excerpt": "Current systemic pulse indicates a terminal breakdown in liquidity depth across G10 sovereign bond complexes, compounded by the structural exhaustion of the LFY (2025) carry trade. Total Gamma Exposure (GEX) across SPX and NDX option chains is curren...",
+    "fileName": "swarm-hourly-1795006914121.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series II due on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63996) | Treasury Bills: Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995) | 91-Day, 182-Day and 364-Day T-Bill Auction Result: Cut-off (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63994) | SEBI:  | GLOBAL: BLOOMBERG | Apollo’s Europe Head Sees Massive Finance Demand for AI, Defense - Bloomberg.com | BLOOMBERG | Bilt Seeks $18 Billion Valuation as It Pushes Past Rent Rewards - Bloomberg.com | BLOOMBERG | Banks Pause $480 Million Chip Loan Tied to China’s ByteDance - Bloomberg.com | FT | Low-profile VCs set for $100bn windfall from Anthropic IPO - Financial Times | FT | When’s the crash? Ask a journalist - Financial Times | FT | US dollar rally erases ‘liberation day’ losses as rate expectations rise - Financial Times | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | REUTERS | Deutsche Bank chair backs CEO after reports expose past lapses; Trump calls tax leak 'illegal' - Reuters | REUTERS | EXCLUSIVE: Italian court places Revolut unit under supervision over money-laundering failings - Reuters | CNBC | Ukraine allies reject U.S. criticism of deep strikes inside Russia ahead of Trump-Putin-Xi summit - CNBC | CNBC | Lowe's posts strong online sales, raises outlook despite slow housing market - CNBC | CNBC | Trump lands in China for historic meeting with Xi, Putin - CNBC | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia",
+      "rbi": "Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series II due on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63996) | Treasury Bills: Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995) | 91-Day, 182-Day and 364-Day T-Bill Auction Result: Cut-off (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63994)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series II due on November 19, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63996"
+        },
+        {
+          "title": "Treasury Bills: Full Auction Result",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995"
+        },
+        {
+          "title": "91-Day, 182-Day and 364-Day T-Bill Auction Result: Cut-off",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63994"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-18",
     "timestamp": 1795003448436,
     "excerpt": "**OPERATIONAL MEMO: Q4-2026 LIQUIDITY INFLECTION AND SYSTEMIC VOLATILITY REGIMES** Current systemic volatility, calibrated against LFY (2025) realized variance, indicates a critical breakdown in Gamma neutrality across SPX and NDX option chains. The ...",
     "fileName": "swarm-hourly-1795003448430.html",
