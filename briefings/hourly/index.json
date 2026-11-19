@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-19",
+    "timestamp": 1795086188756,
+    "excerpt": "Current structural liquidity in the OIS-SOFR corridor indicates a terminal decoupling of risk-free rates from systemic equity pricing, rendering the 2026 Q4 rally a purely derivative-driven artifact of mechanical rebalancing rather than fundamental g...",
+    "fileName": "swarm-hourly-1795086188750.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000) | Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999) | Money Market Operations as on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63998) | SEBI:  | GLOBAL: BLOOMBERG | South Korean Watchdog Asks Financial Firms to Report AI Exposure - Bloomberg | BLOOMBERG | Saudi Public Investment Fund’s Riyadh Headquarters Damaged - Bloomberg | BLOOMBERG | MAS Warns AI Agents Could Move Money Faster, Raise Finance Risks - Bloomberg | REUTERS | UK finance sector cyber incidents hit second-highest level in five years - Reuters | REUTERS | Global securities watchdog urges immediate action on quantum risks to finance - Reuters | REUTERS | Fed policymakers concerned about financial system risks, minutes show - Reuters | CNBC | Takaichi gets chilly reception in China on first Japan leader visit since 2019 - CNBC | CNBC | Thursday's big stock stories: What’s likely to move the market in the next trading session - CNBC | CNBC | Inside India newsletter: Foreign flows helped the market recover. Now it faces the inflation test - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia",
+      "rbi": "Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000) | Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999) | Money Market Operations as on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63998)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000"
+        },
+        {
+          "title": "Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999"
+        },
+        {
+          "title": "Money Market Operations as on November 18, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63998"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-19",
     "timestamp": 1795082764229,
     "excerpt": "**SUBJECT: STRUCTURAL LIQUIDITY DEFICITS AND Q4-2026 GAMMA OVERHANG** Operational liquidity remains bifurcated, characterized by a persistent widening of the TED spread and acute degradation in underlying collateral quality. Current SOFR-OIS volatili...",
     "fileName": "swarm-hourly-1795082764223.html",
