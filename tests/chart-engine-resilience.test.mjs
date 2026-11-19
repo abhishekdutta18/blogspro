@@ -57,6 +57,39 @@ test('extractChartBlocks reports no degradation for healthy charts', () => {
   assert.equal(result.failures.length, 0);
 });
 
+// ── Rejected charts: readers get a short note, never raw JSON or engine error text ──
+const pageWith = payload => `Intro.\n\n<chart-data>${payload}</chart-data>\n\nOutro.`;
+const renderPage = (payload, options) => {
+  const r = extractChartBlocks(pageWith(payload), options);
+  return { ...r, html: r.restore(r.text) };
+};
+
+test('a rejected chart becomes a short note naming the chart, with its title escaped', () => {
+  const { html, failures, count } = renderPage('{"type":"bar","title":"Repo <b>path</b>","data":[["Q","Rate"],["Q1",0],["Q2",0]]}');
+  assert.equal(failures.length, 1, 'still reported for telemetry');
+  assert.equal(count, 0, 'a note is not a chart: pages without real charts need no runtime');
+  assert.match(html, /role="note"[^>]*>Chart unavailable: Repo &lt;b&gt;path&lt;\/b&gt;</);
+  assert.doesNotMatch(html, /<b>/);
+  assert.doesNotMatch(html, /placeholder|all zero/, 'engine error text is for the correction loop, not readers');
+  assert.match(html, /Intro\.[\s\S]*Chart unavailable[\s\S]*Outro\./);
+});
+
+test('an unparseable or unclosed chart gets the note without a title and leaks no raw payload', () => {
+  for (const page of [pageWith('{"type":"bar", nope'), 'Intro.\n\n<chart-data>{"type":"line","title":"Secret"\n\nOutro.']) {
+    const r = extractChartBlocks(page);
+    const html = r.restore(r.text);
+    assert.match(html, />Chart unavailable</);
+    assert.doesNotMatch(html, /\{"type"|nope|Secret/);
+  }
+});
+
+test('the note uses the requested theme and inline styles only (works in email)', () => {
+  const light = renderPage('{"type":"bar","data":[]}', { theme: 'light', target: 'email' }).html;
+  const dark = renderPage('{"type":"bar","data":[]}', { theme: 'dark' }).html;
+  assert.match(light, /<div role="note" style="[^"]+">/);
+  assert.notEqual(light.match(/style="[^"]+"/)[0], dark.match(/style="[^"]+"/)[0]);
+});
+
 // ── Seeded fuzz: the engine's contract under hostile input ──
 const VALUES = [0, -1, 1e-12, 1e15, -1e300, 5e-324, null, 'NaN', 'Infinity', '', '₹4,210', true, [], {}, 2 ** 53];
 const LABELS = ['', 'a'.repeat(300), '<script>x</script>', '2025-02-30', '2025-11-10', 'Q1', 'Q1', '‮'];
