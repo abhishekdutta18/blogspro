@@ -6,7 +6,7 @@
 // ═══════════════════════════════════════════════
 import { callAI } from './ai-core.js';
 import { renderChart } from './chart-engine/index.js';
-import { upgradeLegacyCharts } from './chart-engine/browser.js';
+import { upgradeLegacyCharts, browserDegradeReporter } from './chart-engine/browser.js';
 
 const THEME = {
   bg:       '#ffffff',
@@ -284,7 +284,7 @@ Rules:
 
   // Render through the unified chart engine (static SVG/HTML, light theme to match the editor).
   try {
-    return renderChart({ ...data, id: chartId }, { theme: 'light' });
+    return renderChart({ ...data, id: chartId }, { theme: 'light', onDegrade: browserDegradeReporter('chart-builder') });
   } catch (err) {
     console.warn('[bp-chart] engine rejected AI chart:', err instanceof Error ? err.message : err);
     return '';

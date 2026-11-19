@@ -23,6 +23,21 @@ export function ensureChartRuntime(doc = document) {
 }
 
 /**
+ * An `onDegrade` callback for browser renders. A degraded chart is an engine defect, not bad
+ * input, so it is logged distinctly and added as a `chart_degraded` breadcrumb (the server-side
+ * name). Never a Sentry event: the Sentry webhook files a GitHub issue per event.
+ * @param {string} source which caller rendered the chart (e.g. 'chart-builder')
+ * @param {{ trackEvent?: (name: string, data: object) => void }} [view] window; trackEvent comes from sentry-init-v2.js
+ * @returns {(report: { stage: string, error: string }) => void}
+ */
+export function browserDegradeReporter(source, view = globalThis) {
+  return ({ stage, error }) => {
+    console.warn(`[bp-chart] engine defect: ${stage} layout failed (${error}); shown in a simpler form`);
+    if (typeof view.trackEvent === 'function') view.trackEvent('chart_degraded', { stage, error, source });
+  };
+}
+
+/**
  * Render a chart into `el`, replacing its contents. Safe to call repeatedly for live dashboards.
  * @param {Element} el
  * @param {unknown} input payload or ChartSpec
