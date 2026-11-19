@@ -4,7 +4,7 @@
 #   1. reinstall node_modules when package-lock.json changes
 #   2. generate the tome under a hard time limit (pushes to GitHub via GH_PAT from .env)
 #   3. rebuild static pages + sitemap, rsync the web root to blogspro-web-vps
-# A failed or timed-out generation still rebuilds and syncs the site, but the run exits non-zero.
+# A failed generation or page build still syncs what exists, but the run exits non-zero.
 set -euo pipefail
 
 readonly WEB_ROOT=/var/www/blogspro
@@ -56,11 +56,16 @@ main() {
     *) log "ERROR: generation exited $status" ;;
   esac
 
-  node scripts/build-static.js
-  node scripts/generate-sitemap.js
+  # Page builds read Firestore and fail when its quota is spent; still ship what was generated.
+  local build_status=0
+  node scripts/build-static.js || build_status=$?
+  node scripts/generate-sitemap.js || build_status=$?
+  (( build_status == 0 )) || log "ERROR: page build failed ($build_status); syncing existing pages"
+
   sync_web
   log "Synced to $WEB_VPS"
-  exit "$status"
+  (( status != 0 )) && exit "$status"
+  exit "$build_status"
 }
 
 main
