@@ -1,4 +1,4 @@
-import { initFirebase } from './firebase-service.js';
+import { getDocument, listDocuments, isStoreConfigured } from './vps-store.js';
 import { hydrateSwarmPrompts } from './prompts.js';
 import * as localPrompts from './prompts.js';
 import { genkit } from 'genkit';
@@ -18,49 +18,33 @@ class PromptManager {
     }
 
     /**
-     * [V1.0] Cloud Sync
-     * Pulls all managed prompt templates from Firebase AI Logic (Firestore store).
+     * Pulls server-managed prompt templates (prompt_templates) and the research
+     * vertical list (institutional_config/verticals) from the BlogsPro API.
+     * Without the API the local Dotprompt and prompts.js fallbacks are used.
      */
-    async sync() {
-        console.log("📡 [PromptManager] Synchronizing with Firebase AI Logic...");
-        const { db } = initFirebase();
-        if (!db) {
-            console.warn("⚠️ [PromptManager] Firebase not initialized. Using local fallbacks.");
+    async sync(env) {
+        if (!isStoreConfigured(env)) {
+            console.warn("⚠️ [PromptManager] Document store not configured. Using local fallbacks.");
             return false;
         }
-
-        try {
-            // 1. Fetch Logic Templates
-            const snapshot = await db.collection(this.collectionName).get();
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                this.templates.set(doc.id, data.template);
-            });
-
-            // 2. Fetch Institutional Vertical Scaling
-            const configRef = db.collection('institutional_config').doc('verticals');
-            const configDoc = await configRef.get();
-            if (configDoc.exists) {
-                const data = configDoc.data();
-                if (data.list) {
-                    hydrateSwarmPrompts({ VERTICALS: data.list });
-                    console.log(`📡 [PromptManager] Hydrated ${data.list.length} research verticals from cloud.`);
-                }
-            }
-
-            this.isInitialized = true;
-            console.log(`✅ [PromptManager] Synchronized ${this.templates.size} cloud logic templates.`);
-            return true;
-        } catch (error) {
-            console.error(`❌ [PromptManager] Cloud sync failed: ${error.message}`);
-            return false;
+        const templates = await listDocuments(this.collectionName, {}, env);
+        for (const doc of templates) {
+            if (doc.template) this.templates.set(doc.id, doc.template);
         }
+        const verticals = await getDocument('institutional_config', 'verticals', env);
+        if (Array.isArray(verticals?.list)) {
+            hydrateSwarmPrompts({ VERTICALS: verticals.list });
+            console.log(`📡 [PromptManager] Hydrated ${verticals.list.length} research verticals from the API.`);
+        }
+        this.isInitialized = true;
+        console.log(`✅ [PromptManager] Synchronized ${this.templates.size} server templates.`);
+        return true;
     }
 
     /**
      * Resolves a prompt template with variables.
      * [V16.5] HARDENED HANDSHAKE:
-     * 1. Check Cloud-synced cache (Firebase AI Logic Priority)
+     * 1. Check server-synced templates
      * 2. Check local Genkit .prompt files
      * 3. Fallback to legacy function-based prompts
      */
@@ -73,7 +57,7 @@ class PromptManager {
 
         // 1. [Cloud Priority]
         if (template) {
-            console.log(`📡 [PromptManager] Resolved '${templateId}' from Firebase Server Template (ACTIVE).`);
+            console.log(`📡 [PromptManager] Resolved '${templateId}' from a server template.`);
             return this._interpolate(template, variables);
         }
 

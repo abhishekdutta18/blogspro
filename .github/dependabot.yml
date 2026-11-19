@@ -10,9 +10,6 @@ updates:
     open-pull-requests-limit: 5
     labels: ["deps"]
     ignore:
-      - dependency-name: "firebase"
-        # Pin firebase manually because Firestore rules/emulator versions must stay in sync
-        update-types: ["version-update:semver-major"]
       - dependency-name: "chart.js"
         # Google Charts used; avoid pulling in Chart.js accidentally
         update-types: ["version-update:semver-major"]

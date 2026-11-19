@@ -1,3 +1,4 @@
+import { getDocument, listDocuments, saveDocument, isStoreConfigured } from '../../scripts/lib/vps-store.js';
 /**
  * BlogsPro Sentry + GitHub + Telegram Bot Worker
  *
@@ -13,8 +14,8 @@
  *
  * Bot Commands:
  *  /status              — Unresolved Sentry issues with Resolve buttons
- *  /subscribers         — Newsletter subscriber count from Firestore
- *  /posts               — Last 5 published posts from Firestore
+ *  /subscribers         — Newsletter subscriber count from the BlogsPro API
+ *  /posts               — Last 5 published posts from the BlogsPro API
  *  /deploy              — Trigger GitHub Pages deploy via workflow_dispatch
  *  /resolve all         — Bulk-resolve all unresolved Sentry issues
  *  /help                — Full command reference
@@ -171,15 +172,9 @@ async function handleCallbackQuery(cq, env) {
 
   // ✅ Approve User Role
   else if (data.startsWith('approve:')) {
-    const [_, uid, role] = data.split(':');
-    const ok = await updateUserRole(uid, role, env);
-    if (ok) {
-      await editTelegramMessage(chatId, msgId, origText + `\n\n✅ <b>Approved ${role.toUpperCase()} by ${escapeHtml(user)}</b>`, { inline_keyboard: [] }, env);
-      await answerCallbackQuery(cq.id, `✅ User approved as ${role}!`, env);
-    } else {
-      await editTelegramMessage(chatId, msgId, origText + `\n\n❌ <b>Approval failed for ${uid}</b>`, { inline_keyboard: [] }, env);
-      await answerCallbackQuery(cq.id, '❌ Approval failed. Check Firestore API Key.', env);
-    }
+    const [, uid, role] = data.split(':');
+    await editTelegramMessage(chatId, msgId, origText + `\n\nℹ️ <b>Set ${escapeHtml(role || '')} for ${escapeHtml(uid || '')} in Admin → Users on blogspro.in.</b>`, { inline_keyboard: [] }, env);
+    await answerCallbackQuery(cq.id, 'Roles are managed in the admin dashboard.', env);
   }
 
   // ❌ Reject User Role
@@ -257,7 +252,7 @@ async function handleCommand(message, env) {
   if (cmd === '/subscribers') {
     const count = await fetchSubscriberCount(env);
     if (count === null) {
-      await sendTelegramMessage(chatId, '❌ Could not fetch subscriber count from Firestore.', null, env);
+      await sendTelegramMessage(chatId, '❌ Could not fetch subscriber count from the BlogsPro API.', null, env);
     } else {
       const milestone = count > 0 && count % 100 === 0 ? `\n\n🎉 <b>Milestone reached!</b>` : '';
       await sendTelegramMessage(chatId, `📧 <b>Newsletter Subscribers: ${count}</b>${milestone}`, null, env);
@@ -269,7 +264,7 @@ async function handleCommand(message, env) {
   if (cmd === '/posts') {
     const posts = await fetchRecentPosts(5, env);
     if (posts === null) {
-      await sendTelegramMessage(chatId, '❌ Could not fetch posts from Firestore.', null, env);
+      await sendTelegramMessage(chatId, '❌ Could not fetch posts from the BlogsPro API.', null, env);
       return new Response('OK');
     }
     if (posts.length === 0) {
@@ -563,9 +558,9 @@ function subscribeJson(request, status, body) {
 }
 
 /**
- * POST /subscribe {email, source?} — stores the address in Firestore `subscribers`.
+ * POST /subscribe {email, source?} — stores the address in `subscribers` on the BlogsPro API.
  * The document ID is derived from the lower-cased email, so repeat signups are
- * idempotent (Firestore answers 409 ALREADY_EXISTS, which we report as success).
+ * idempotent (an existing address is reported as alreadySubscribed).
  */
 async function handleSubscribe(request, env) {
   const origin = request.headers.get('Origin');
@@ -588,39 +583,20 @@ async function handleSubscribe(request, env) {
     ? payload.source.slice(0, SUBSCRIBE_SOURCE_MAX_LENGTH)
     : 'website';
 
-  const project = env.FIREBASE_PROJECT;
-  const apiKey = env.FIREBASE_API_KEY;
-  if (!project || !apiKey) {
-    console.error('subscribe: FIREBASE_PROJECT / FIREBASE_API_KEY not configured');
+  if (!isStoreConfigured(env)) {
+    console.error('subscribe: BLOGSPRO_SERVICE_TOKEN not configured');
     return subscribeJson(request, 500, { success: false, error: 'Signup is temporarily unavailable' });
   }
 
-  const docId = encodeURIComponent(email);
-  const url = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/subscribers?documentId=${docId}&key=${apiKey}`;
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fields: {
-          email: { stringValue: email },
-          source: { stringValue: source },
-          status: { stringValue: 'active' },
-          createdAt: { timestampValue: new Date().toISOString() }
-        }
-      })
-    });
-
-    if (res.ok || res.status === 409) {
-      return subscribeJson(request, 200, { success: true, alreadySubscribed: res.status === 409 });
-    }
-    const detail = await res.text();
-    console.error(`subscribe: Firestore ${res.status} ${detail.slice(0, 300)}`);
-    return subscribeJson(request, 502, { success: false, error: 'Could not save subscription' });
-  } catch (e) {
-    console.error('subscribe: Firestore request failed', e.message);
-    return subscribeJson(request, 502, { success: false, error: 'Could not save subscription' });
+  // Subscribers are keyed by email, as /api/subscribe on the VPS stores them.
+  if (await getDocument('subscribers', email, env)) {
+    return subscribeJson(request, 200, { success: true, alreadySubscribed: true });
   }
+  const stored = await saveDocument('subscribers', {
+    email, source, status: 'active', createdAt: new Date().toISOString()
+  }, env, email);
+  if (stored) return subscribeJson(request, 200, { success: true, alreadySubscribed: false });
+  return subscribeJson(request, 502, { success: false, error: 'Could not save subscription' });
 }
 
 async function handleRegistrationNotify(request, env) {
@@ -677,29 +653,8 @@ async function sendNewsletter(subject, html, env) {
 }
 
 async function fetchSubscriberEmails(env) {
-  const project = env.FIREBASE_PROJECT;
-  const apiKey  = env.FIREBASE_API_KEY;
-  const url     = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/subscribers?key=${apiKey}&pageSize=1000`;
-  const res = await fetch(url);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return (data.documents || []).map(d => d.fields?.email?.stringValue).filter(Boolean);
-}
-
-async function updateUserRole(uid, role, env) {
-  try {
-    const project = env.FIREBASE_PROJECT;
-    const apiKey  = env.FIREBASE_API_KEY;
-    const url     = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/users/${uid}?key=${apiKey}&updateMask.fieldPaths=role`;
-    const res = await fetch(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: { role: { stringValue: role } } })
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  const subscribers = await listDocuments('subscribers', { where: { status: 'active' } }, env);
+  return subscribers.map(doc => doc.email).filter(Boolean);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -776,75 +731,20 @@ async function sendDailySummary(env) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// FIRESTORE REST API
+// BLOGSPRO API (documents on the VPS)
 // ══════════════════════════════════════════════════════════════════════════════
 
+/** @returns {Promise<number|null>} active subscribers, or null when the store is unavailable */
 async function fetchSubscriberCount(env) {
-  try {
-    const project = env.FIREBASE_PROJECT;
-    const apiKey  = env.FIREBASE_API_KEY;
-    const base    = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents`;
-
-    let total = 0;
-    let pageToken = '';
-    do {
-      const url = `${base}/subscribers?key=${apiKey}&pageSize=300${pageToken ? `&pageToken=${pageToken}` : ''}`;
-      const res  = await fetch(url);
-      if (!res.ok) return null;
-      const data = await res.json();
-      total     += (data.documents || []).length;
-      pageToken  = data.nextPageToken || '';
-    } while (pageToken);
-
-    return total;
-  } catch (e) {
-    console.error('fetchSubscriberCount error:', e.message);
-    return null;
-  }
+  if (!isStoreConfigured(env)) return null;
+  const subscribers = await listDocuments('subscribers', { where: { status: 'active' } }, env);
+  return subscribers.length;
 }
 
 async function fetchRecentPosts(limit, env) {
-  try {
-    const project = env.FIREBASE_PROJECT;
-    const apiKey  = env.FIREBASE_API_KEY;
-    const url     = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents:runQuery?key=${apiKey}`;
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        structuredQuery: {
-          from: [{ collectionId: 'posts' }],
-          where: {
-            fieldFilter: {
-              field: { fieldPath: 'published' },
-              op: 'EQUAL',
-              value: { booleanValue: true }
-            }
-          },
-          orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
-          limit
-        }
-      })
-    });
-
-    if (!res.ok) return null;
-    const results = await res.json();
-
-    return results
-      .filter(r => r.document)
-      .map(r => {
-        const fields = r.document.fields || {};
-        return {
-          title:    fields.title?.stringValue    || '',
-          slug:     fields.slug?.stringValue     || '',
-          category: fields.category?.stringValue || ''
-        };
-      });
-  } catch (e) {
-    console.error('fetchRecentPosts error:', e.message);
-    return null;
-  }
+  if (!isStoreConfigured(env)) return null;
+  const posts = await listDocuments('posts', { where: { published: true }, orderBy: 'createdAt desc', limit }, env);
+  return posts.map(post => ({ title: post.title || '', slug: post.slug || '', category: post.category || '' }));
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

@@ -1,5 +1,5 @@
 /**
- * build-static.js — renders every published Firestore post to <site>/p/<slug>.html.
+ * build-static.js — renders every published post (BlogsPro API) to <site>/p/<slug>.html.
  *
  * Pages are built from <site>/post-template.html, which the Astro frontend emits
  * (frontend/src/pages/post-template.astro), so pipeline pages share the site design.
@@ -15,13 +15,12 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { listPublicDocuments } from './lib/vps-store.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PROJECT_ID = 'blogspro-ai';
 const SITE_URL = 'https://blogspro.in';
-const API_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
 const GENERATOR_MARKER = 'content="blogspro-ssg"';
 const DEFAULT_IMAGE = `${SITE_URL}/og-default.jpg`;
 
@@ -53,22 +52,21 @@ export function formatDate(iso) {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: '2-digit', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(time);
 }
 
-/** Converts a Firestore REST document into a plain post object. */
+/** Converts a BlogsPro API post document into the fields the template needs. */
 export function toPost(doc) {
-  const fields = doc.fields || {};
-  const docId = doc.name.split('/').pop();
-  const title = fields.title?.stringValue || 'Untitled';
+  const docId = String(doc.id);
+  const title = doc.title || 'Untitled';
   return {
     docId,
     title,
     slug: slugify(title, docId),
-    excerpt: fields.excerpt?.stringValue || '',
-    content: fields.content?.stringValue || '',
-    category: fields.category?.stringValue || 'Research',
-    author: fields.authorName?.stringValue || 'BlogsPro Research Desk',
-    image: fields.coverImage?.stringValue || DEFAULT_IMAGE,
-    publishedIso: doc.createTime || new Date().toISOString(),
-    published: fields.published?.booleanValue === true
+    excerpt: doc.excerpt || '',
+    content: doc.content || '',
+    category: doc.category || 'Research',
+    author: doc.authorName || 'BlogsPro Research Desk',
+    image: doc.coverImage || DEFAULT_IMAGE,
+    publishedIso: doc.createdAt || doc.publishedAt || new Date().toISOString(),
+    published: doc.published === true
   };
 }
 
@@ -111,19 +109,9 @@ export function renderPost(template, post) {
 }
 
 async function fetchPublishedDocs() {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      structuredQuery: {
-        from: [{ collectionId: 'posts' }],
-        where: { fieldFilter: { field: { fieldPath: 'published' }, op: 'EQUAL', value: { booleanValue: true } } }
-      }
-    })
-  });
-  if (!res.ok) throw new Error(`Failed to fetch posts: ${res.status} ${await res.text()}`);
-  const data = await res.json();
-  return Array.isArray(data) ? data.filter(item => item.document).map(item => item.document) : [];
+  const docs = await listPublicDocuments('posts');
+  if (docs === null) throw new Error('Failed to fetch posts from the BlogsPro API.');
+  return docs;
 }
 
 function readIfExists(filePath) {
@@ -142,7 +130,7 @@ async function buildStaticPosts() {
   }
   fs.mkdirSync(outDir, { recursive: true });
 
-  console.log('Fetching posts from Firestore...');
+  console.log('Fetching posts from the BlogsPro API...');
   const posts = (await fetchPublishedDocs()).map(toPost).filter(post => post.published);
   if (posts.length === 0) {
     console.log('No published posts found.');

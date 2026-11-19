@@ -243,7 +243,7 @@ async function generateGeminiContent(prompt, model = "gemini-3.1-flash-lite-prev
  * Uses Workload Identity on GKE/CloudRun.
  */
 async function generateVertexContent(prompt, model = "gemini-3.1-pro-preview", context = {}) {
-    const project = context?.FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
+    const project = context?.GOOGLE_CLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || context?.FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
     const location = context?.GOOGLE_CLOUD_LOCATION || process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
 
     if (!project) throw new Error("GOOGLE_CLOUD_PROJECT missing for Vertex AI.");
@@ -451,7 +451,7 @@ async function generateInstitutionalBridgeContent(prompt, model = "llama-3.3-70b
  * Leverages GKE Workload Identity to route high-fidelity models via Google Cloud.
  */
 async function generateVertexModelGardenContent(prompt, model = "meta/llama3-405b-instruct-maas", context = {}) {
-    const project = context?.FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
+    const project = context?.GOOGLE_CLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || context?.FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
     const location = context?.GOOGLE_CLOUD_LOCATION || process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
     
     // [V21.0] Prompt Sanitizer: Normalize to string for MaaS compliance
@@ -611,7 +611,7 @@ export const ResourceManager = {
             Cerebras: sanitize(rawCerebras, 'Cerebras', true),
             HF_TOKEN: sanitize(env.HF_TOKEN || process.env.HF_TOKEN, 'HuggingFace', true),
             SambaNova: sanitize(rawSamba, 'SambaNova', true),
-            VertexMaaS: !!(env.FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT),
+            VertexMaaS: !!(env.GOOGLE_CLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || env.FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID),
             Cloudflare: sanitize(env.CF_API_TOKEN || process.env.CF_API_TOKEN || env.CLOUDFLARE_API_TOKEN || env.CF_API_KEY, 'Cloudflare', false),
             OpenRouter: sanitize(env.OPENROUTER_KEY || process.env.OPENROUTER_KEY || process.env.OPENROUTER_API_KEY, 'OpenRouter', true)
         };
@@ -663,7 +663,7 @@ export const ResourceManager = {
         }
 
         // [V1.0] GKE Native: Vertex AI Fallback (Zero-Key Resilience)
-        const gcpProject = process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
+        const gcpProject = process.env.GOOGLE_CLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID;
         /* USER EXPLICITLY DISABLED BILLING, ALWAYS FAILS 
         if (gcpProject) {
             // Downgraded tier because billing is permanently disabled

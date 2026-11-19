@@ -58,7 +58,7 @@ export async function extractKnowledgeGraph(data, env, verticalId = "global", bl
 
         console.log(`✅ [GraphRAG] Successfully extracted ${graph.entities?.length || 0} entities via ${attempts > 0 ? 'REPAIR' : 'STRICT'} mode.`);
         
-        if (env && env.FIREBASE_PROJECT_ID) {
+        if (env) {
             pushTelemetryLog("GRAPH_UPDATE", {
                 frequency: "pulse",
                 status: "success",

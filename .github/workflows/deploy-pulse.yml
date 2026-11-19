@@ -125,8 +125,6 @@ jobs:
           TELEGRAM_BOT_TOKEN: "${{ secrets.TELEGRAM_BOT_TOKEN }}"
           TELEGRAM_CHAT_ID: "${{ secrets.TELEGRAM_CHAT_ID }}"
           VAULT_MASTER_KEY: "${{ secrets.VAULT_MASTER_KEY }}"
-          FIREBASE_SERVICE_ACCOUNT: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
-          FIREBASE_WEB_API_KEY: "${{ secrets.FIREBASE_WEB_API_KEY }}"
           SESSION_SECRET: "${{ secrets.SESSION_SECRET }}"
           GOOGLE_CLIENT_ID: "${{ secrets.GOOGLE_CLIENT_ID }}"
           GOOGLE_CLIENT_SECRET: "${{ secrets.GOOGLE_CLIENT_SECRET }}"
@@ -162,9 +160,7 @@ jobs:
 
             # [V12.0] Auth-specific Secret Propagation
             if [ "$env" = "auth" ]; then
-              echo "🔐 Pushing specific Auth Proxy secrets..."
-              echo "$FIREBASE_SERVICE_ACCOUNT" | npx wrangler secret put FIREBASE_SERVICE_ACCOUNT $OPTS --config $CONF
-              echo "$FIREBASE_WEB_API_KEY" | npx wrangler secret put FIREBASE_WEB_API_KEY $OPTS --config $CONF
+              echo "🔐 Pushing OAuth relay secrets..."
               echo "$SESSION_SECRET" | npx wrangler secret put SESSION_SECRET $OPTS --config $CONF
               echo "$GOOGLE_CLIENT_ID" | npx wrangler secret put GOOGLE_CLIENT_ID $OPTS --config $CONF
               echo "$GOOGLE_CLIENT_SECRET" | npx wrangler secret put GOOGLE_CLIENT_SECRET $OPTS --config $CONF
