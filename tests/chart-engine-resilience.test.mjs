@@ -125,6 +125,44 @@ test('a runtime error is reported once, then the runtime switches itself off', (
   assert.equal([...listeners.values()].flat().length, 0, 'all listeners removed');
 });
 
+test('switching off puts native <title> tooltips back on marks the runtime had prepared', () => {
+  const { doc, fire } = fakeDocument();
+  const markAttrs = new Map([['data-tip', 'FY25 RE: 4.8%'], ['aria-label', 'FY25 RE: 4.8%']]);
+  const prepended = [];
+  const mark = {
+    getAttribute: k => markAttrs.get(k) ?? null,
+    removeAttribute: k => markAttrs.delete(k),
+    prepend: node => prepended.push(node),
+  };
+  const svgAttrs = new Set(['data-bp-ready']);
+  const svg = { removeAttribute: k => svgAttrs.delete(k), querySelectorAll: () => [mark] };
+  doc.querySelectorAll = sel => (sel === 'svg[data-bp-ready]' ? [svg] : []);
+  doc.createElementNS = (ns, tag) => ({ ns, tag, textContent: '' });
+  enhanceCharts(doc);
+  fire('pointermove', { type: 'pointermove', pointerType: 'mouse', target: { closest: () => { throw new Error('dom bug'); } } });
+  assert.deepEqual(prepended.map(n => [n.tag, n.textContent]), [['title', 'FY25 RE: 4.8%']]);
+  assert.equal(markAttrs.has('data-tip'), false);
+  assert.equal(markAttrs.get('aria-label'), 'FY25 RE: 4.8%', 'aria-label stays for screen readers');
+  assert.equal(svgAttrs.has('data-bp-ready'), false);
+});
+
+test('browser degradations are warned and breadcrumbed, never raised as Sentry events', async () => {
+  const { browserDegradeReporter } = await import('../js/chart-engine/browser.js');
+  const warned = [];
+  const crumbs = [];
+  const original = console.warn;
+  console.warn = (...args) => warned.push(args.join(' '));
+  try {
+    browserDegradeReporter('chart-builder', { trackEvent: (name, data) => crumbs.push([name, data]) })({ stage: 'narrow', error: 'TypeError: x' });
+    browserDegradeReporter('chart-builder', {})({ stage: 'wide', error: 'RangeError: y' }); // no Sentry on the page
+  } finally {
+    console.warn = original;
+  }
+  assert.equal(warned.length, 2);
+  assert.match(warned[0], /engine defect.*narrow.*TypeError: x/);
+  assert.deepEqual(crumbs, [['chart_degraded', { stage: 'narrow', error: 'TypeError: x', source: 'chart-builder' }]]);
+});
+
 // ── Page-build telemetry: degraded charts are engine defects, not content problems ──
 test('degraded charts are logged as engine defects with the stage that failed', async () => {
   const { reportChartDegradations } = await import('../scripts/lib/chart-telemetry.js');
