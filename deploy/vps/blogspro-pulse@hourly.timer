@@ -1,0 +1,9 @@
+[Unit]
+Description=BlogsPro hourly briefing
+
+[Timer]
+OnCalendar=*-*-* *:00:00 UTC
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

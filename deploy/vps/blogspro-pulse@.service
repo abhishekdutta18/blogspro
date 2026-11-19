@@ -1,0 +1,14 @@
+[Unit]
+Description=BlogsPro %i pulse (generate, build, sync to web VPS)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+StateDirectory=blogspro-pulse
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/blogspro-pulse/run-pulse.sh %i
+TimeoutStartSec=6h
+Nice=5

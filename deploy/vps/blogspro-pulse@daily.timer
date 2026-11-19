@@ -1,0 +1,10 @@
+[Unit]
+Description=BlogsPro daily article (00:00 UTC / 05:30 IST)
+
+[Timer]
+OnCalendar=*-*-* 00:00:00 UTC
+AccuracySec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
