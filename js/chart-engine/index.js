@@ -2,7 +2,8 @@
 // Zero dependencies, isomorphic (Node pipeline + browser admin/dashboards). Output is a
 // self-contained <figure> with inline styles, so charts survive GitHub Pages without JS,
 // PDFs (puppeteer), RSS, crawlers and — via target:'email' — email clients.
-import { normalizeChart, ChartSpecError } from './normalize.js';
+import { normalizeChart, ChartSpecError, parsePayload } from './normalize.js';
+import { clip } from './payload.js';
 import { renderBars } from './render-bars.js';
 import { renderLines } from './render-lines.js';
 import { renderPie } from './render-pie.js';
@@ -142,16 +143,35 @@ export function renderChart(input, { theme, target = 'web', idSuffix, onDegrade 
   return `<figure class="bp-chart" id="${id}" data-chart-type="${spec.type}" data-ink="${escapeHtml(t.textPrimary)}" style="margin:2.5rem 0;padding:${padding};background:${t.surface};border:1px solid ${t.border};border-radius:4px">${captionBlock(spec, t)}${plot}${tableView}${source}</figure>`;
 }
 
+/** Longest chart title quoted in the "Chart unavailable" note. */
+const NOTE_TITLE_MAX = 120;
+
+/** The payload's title, if it still parses; '' otherwise. Best effort: the payload was rejected. */
+function payloadTitle(raw) {
+  try {
+    const payload = parsePayload(decodeEntities(raw));
+    return typeof payload?.title === 'string' ? clip(payload.title, NOTE_TITLE_MAX) : '';
+  } catch {
+    return '';
+  }
+}
+
 /**
- * What a reader sees when a <chart-data> payload cannot be rendered. Default: nothing
- * (the failure is still reported via extractChartBlocks().failures for telemetry).
- * @param {string} raw original payload text — untrusted, escape before any output
- * @param {Error} error why normalization failed
+ * What a reader sees when a <chart-data> payload cannot be rendered: a short "Chart unavailable"
+ * note, naming the chart when its title survives. The engine's error text is never shown (it is
+ * written for the correction loop); the failure is still reported via extractChartBlocks().failures.
+ * Inline styles only, so it also works in email.
+ * @param {string} raw original payload text — untrusted, escaped before output
+ * @param {Error} error why normalization failed (reported elsewhere, not shown)
+ * @param {'dark'|'light'|object} [theme]
  * @returns {string}
  */
 // eslint-disable-next-line no-unused-vars
-export function invalidChartFallback(raw, error) {
-  return ''; // TODO(policy): decide what readers see for a broken chart — see PR notes
+export function invalidChartFallback(raw, error, theme) {
+  const t = resolveTheme(theme);
+  const title = payloadTitle(raw);
+  const text = title ? `Chart unavailable: ${escapeHtml(title)}` : 'Chart unavailable';
+  return `<div role="note" style="margin:1.5rem 0;padding:10px 14px;background:${t.surface};border:1px dashed ${t.border};border-radius:4px;font:italic 12px ${t.fontFamily};color:${t.textSecondary}">${text}</div>`;
 }
 
 /** Undo HTML entity escaping some upstream steps apply to chart JSON. */
@@ -194,7 +214,7 @@ export function extractChartBlocks(text, options = {}) {
   const fail = (raw, err) => {
     const error = err instanceof Error ? err : new Error(String(err));
     failures.push({ index: rendered.length, error: error.message });
-    return place(invalidChartFallback(raw, error));
+    return place(invalidChartFallback(raw, error, options.theme));
   };
   let rescued = 0;
   const shielded = String(text ?? '')
