@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-19",
+    "timestamp": 1795097186575,
+    "excerpt": "**OPERATIONAL MEMO: Q4-2026 LIQUIDITY TERMINATION & SYSTEMIC DECAY** Current SOFR dynamics indicate a structural fracture in the overnight collateral transmission mechanism. As of November 19, 2026, the persistence of the 2025 LFY (Last Fiscal Year) ...",
+    "fileName": "swarm-hourly-1795097186568.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Auction of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64004) | RBI to conduct 3-day Variable Rate Repo (VRR) auction under LAF on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64003) | Finances of Panchayati Raj Institutions (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64002) | SEBI:  | GLOBAL: BLOOMBERG | Saudi Public Investment Fund’s Riyadh Headquarters Damaged - Bloomberg.com | BLOOMBERG | South Korean Watchdog Asks Financial Firms to Report AI Exposure - Bloomberg.com | BLOOMBERG | MAS Warns AI Agents Could Move Money Faster, Raise Finance Risks - Bloomberg | FT | Energy markets can ‘manage without’ the Strait of Hormuz, says IEA - Financial Times | FT | Anthropic revenue target: $600bn, soonish - Financial Times | FT | Gold loses its lustre for investors - Financial Times | REUTERS | Global securities watchdog urges immediate action on quantum risks to finance - Reuters | REUTERS | UK finance sector cyber incidents hit second-highest level in five years - Reuters | REUTERS | Apollo scraps $2 billion loan to Manchester City owner, FT says - Reuters | CNBC | Gold's bad year is getting worse. Why its price keeps falling - CNBC | CNBC | Anthropic is ready for its IPO. Three analysts see huge gains for the stock - CNBC | CNBC | Takaichi gets chilly reception in China on first Japan leader visit since 2019 - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia",
+      "rbi": "Auction of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64004) | RBI to conduct 3-day Variable Rate Repo (VRR) auction under LAF on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64003) | Finances of Panchayati Raj Institutions (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64002)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Auction of State Government Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64004"
+        },
+        {
+          "title": "RBI to conduct 3-day Variable Rate Repo (VRR) auction under LAF on November 20, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64003"
+        },
+        {
+          "title": "Finances of Panchayati Raj Institutions",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64002"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-19",
     "timestamp": 1795093493283,
     "excerpt": "Current structural liquidity in the OIS-SOFR corridor indicates a deepening bifurcation between core collateral availability and secondary market solvency. As of the Q4 2026 reporting window, the 2025 LFY comparative baseline confirms an annualized c...",
     "fileName": "swarm-hourly-1795093493277.html",
