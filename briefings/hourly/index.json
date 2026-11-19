@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-19",
+    "timestamp": 1795093493283,
+    "excerpt": "Current structural liquidity in the OIS-SOFR corridor indicates a deepening bifurcation between core collateral availability and secondary market solvency. As of the Q4 2026 reporting window, the 2025 LFY comparative baseline confirms an annualized c...",
+    "fileName": "swarm-hourly-1795093493277.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Finances of Panchayati Raj Institutions (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64002) | Overseas Direct Investment for October 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64001) | Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000) | SEBI:  | GLOBAL: BLOOMBERG | Saudi Public Investment Fund’s Riyadh Headquarters Damaged - Bloomberg.com | BLOOMBERG | South Korean Watchdog Asks Financial Firms to Report AI Exposure - Bloomberg.com | BLOOMBERG | MAS Warns AI Agents Could Move Money Faster, Raise Finance Risks - Bloomberg | FT | Anthropic revenue target: $600bn, soonish - Financial Times | FT | Energy markets can ‘manage without’ the Strait of Hormuz, says IEA - Financial Times | FT | JPMorgan seeks to revive stalled software debt sale with steep price cuts - Financial Times | REUTERS | Global securities watchdog urges immediate action on quantum risks to finance - Reuters | REUTERS | UK finance sector cyber incidents hit second-highest level in five years - Reuters | REUTERS | Fed policymakers concerned about financial system risks, minutes show - Reuters | CNBC | Takaichi gets chilly reception in China on first Japan leader visit since 2019 - CNBC | CNBC | Anthropic is ready for its IPO. Three analysts see huge gains for the stock - CNBC | CNBC | Thursday's big stock stories: What’s likely to move the market in the next trading session - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia",
+      "rbi": "Finances of Panchayati Raj Institutions (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64002) | Overseas Direct Investment for October 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64001) | Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Finances of Panchayati Raj Institutions",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64002"
+        },
+        {
+          "title": "Overseas Direct Investment for October 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64001"
+        },
+        {
+          "title": "Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-19",
     "timestamp": 1795089756633,
     "excerpt": "**OPERATIONAL MEMO: Q4-2026 LIQUIDITY TERMINATION & SYSTEMIC DECOUPLING** The current market architecture, characterized by a persistent erosion of depth-of-book, confirms our Q3 hypothesis regarding the inevitable collapse of retail-fueled gamma mom...",
     "fileName": "swarm-hourly-1795089756626.html",
