@@ -888,6 +888,9 @@ export const ResourceManager = {
  * V7.1: Institutional Role-Based Semantic Dispatcher
  * Implements Local-First Cascade and Semantic Compression.
  */
+/** Full passes over the fleet after the first one, before askAI gives up with FLEET_EXHAUSTION_PERMANENT. */
+const MAX_FLEET_RECOVERIES = 2;
+
 export async function askAI(prompt, options = {}) {
     const env = options.env || process.env;
     if (env.DRY_RUN) {
@@ -896,8 +899,9 @@ export async function askAI(prompt, options = {}) {
     }
     const { role = 'generate', model, env: envOpt = {}, seed = 0, frequency = 'hourly', _retry = 0, jobId = null } = options;
 
-    // [V14.1] Autonomous Fleet Revaluation: Clear blacklists for fresh swarm runs
-    if (jobId && jobId.startsWith('swarm-') && _retry === 0) {
+    // [V14.1] Autonomous Fleet Revaluation: Clear blacklists for fresh swarm runs.
+    // Only on the first pass: re-clearing on every recovery cycle kept failed nodes "available" forever.
+    if (jobId && jobId.startsWith('swarm-') && _retry === 0 && !options._fleetRetries) {
         ResourceManager.revaluateFleet();
     }
     
@@ -956,10 +960,10 @@ export async function askAI(prompt, options = {}) {
             await ResourceManager.emergencyReset(env);
         }
 
-        if (fleetRetries < 2) { 
+        if (fleetRetries < MAX_FLEET_RECOVERIES) { 
             const isHighPriority = options.jobId?.startsWith('swarm-monthly');
             const pauseMs = 65000;
-            console.warn(`⏳ [AI-Balancer] Fleet Exhausted. No providers available for ${role}. Pausing ${pauseMs/1000}s for recovery (Cycle: ${fleetRetries + 1}/2)...`);
+            console.warn(`⏳ [AI-Balancer] Fleet Exhausted. No providers available for ${role}. Pausing ${pauseMs/1000}s for recovery (Cycle: ${fleetRetries + 1}/${MAX_FLEET_RECOVERIES})...`);
             await new Promise(r => setTimeout(r, pauseMs));
             // Reset tried nodes for the next full fleet attempt
             return askAI(prompt, { ...options, _retry: 0, _fleetRetries: fleetRetries + 1, triedNodes: new Set() });
@@ -1026,8 +1030,13 @@ export async function askAI(prompt, options = {}) {
         triedNodes.add(provider.name);
         
         if (_retry >= 3) { // [V15.5] Lowered from 5 to 3
-            console.error(`❌ [AI-Balancer] ${provider.name} repeatedly failed. Escalating to Fleet Recovery...`);
-            return askAI(prompt, { ...options, _retry: 0, _fleetRetries: (options._fleetRetries || 0) + 1, triedNodes: new Set() });
+            const fleetRetries = (options._fleetRetries || 0) + 1;
+            if (fleetRetries > MAX_FLEET_RECOVERIES) {
+                console.error(`💀 [AI-Balancer-Fatal] ${role}: providers kept failing across ${MAX_FLEET_RECOVERIES} recovery cycles. Giving up.`);
+                throw new Error("FLEET_EXHAUSTION_PERMANENT");
+            }
+            console.error(`❌ [AI-Balancer] ${provider.name} repeatedly failed. Escalating to Fleet Recovery (cycle ${fleetRetries}/${MAX_FLEET_RECOVERIES})...`);
+            return askAI(prompt, { ...options, _retry: 0, _fleetRetries: fleetRetries, triedNodes: new Set() });
         }
         return askAI(prompt, { ...options, _retry: _retry + 1, triedNodes });
     }
