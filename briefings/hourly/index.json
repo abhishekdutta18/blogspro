@@ -2,6 +2,21 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-20",
+    "timestamp": 1795179998663,
+    "excerpt": "Current market state: 2026-11-20. LFY (2025) comparative drift analysis confirms a 14.2% structural liquidity contraction in Tier-1 repo markets relative to the 2024 historical baseline. The current VIX compression—hovering near 11.8 despite systemic...",
+    "fileName": "swarm-hourly-1795179998656.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI:  | SEBI:  | GLOBAL: BLOOMBERG | SpaceX Sells $32 Billion of AI Chip Debt at Yields Topping 8% - Bloomberg.com | BLOOMBERG | Saudi Public Investment Fund’s Riyadh Headquarters Damaged - Bloomberg.com | BLOOMBERG | Metro Bank Draws Early Interest From Barclays, Lone Star - Bloomberg.com | FT | Oil loses grip on bond markets as inflation ‘virus’ spreads - Financial Times | FT | Anthropic shares slide as fears over AI boom dominate - Financial Times | FT | Lenders aim to bar SpaceX from launching $40bn of chips into orbit - Financial Times | REUTERS | ECB to make euro swaps more accessible in global push, Lagarde says - Reuters | REUTERS | EXCLUSIVE: Citi underestimated risky assets by $35 billion after incorrectly recording trades, sources say - Reuters | REUTERS | Anthropic's blockbuster debut tests Wall Street's faith in AI boom - Reuters | CNBC | Anthropic defies the odds, holding record IPO despite ‘massively disruptive’ market - CNBC | CNBC | Anthropic shares fall 8% in premarket amid AI selloff as Nvidia, AMD shares drop - CNBC | CNBC | Anthropic IPO 'exactly what the markets need,' but analysts warn of volatility - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia",
+      "rbi": "",
+      "sebi": "",
+      "docs": []
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-20",
     "timestamp": 1795176131262,
     "excerpt": "**OPERATIONAL MEMORANDUM: LIQUIDITY DRAIN AND VOLATILITY SURFACE DECAY (Q4 2026)** Current market topography reveals a terminal state of liquidity exhaustion. With the SOFR-OIS spread hovering at 14 basis points—a stark departure from the compressed ...",
     "fileName": "swarm-hourly-1795176131255.html",
