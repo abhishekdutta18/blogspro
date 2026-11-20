@@ -5,7 +5,7 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  askAI, ResourceManager, filterDisabledProviders, generateCloudflareContent, generateGitHubModelsContent,
+  askAI, ResourceManager, filterDisabledProviders, generateCloudflareContent, generateGitHubModelsContent, generateGroqContent,
 } from '../scripts/lib/ai-service.js';
 
 const realFetch = globalThis.fetch;
@@ -73,4 +73,21 @@ test('askAI still runs when routing prefers a model no node serves (Gemini remov
   ResourceManager.pool = [{ name: 'GitHub-Models', tier: 1, roles: ['research'], match: /github/, fn: async () => reply }];
   assert.equal(await askAI('Summarise.', { role: 'research' }), reply);
   assert.equal(await askAI('Summarise.', { role: 'research', model: 'node-editor' }), reply);
+});
+
+test('Groq defaults to a model the free tier serves and ignores retired ids', async () => {
+  stubFetch(OPENAI_SHAPE);
+  assert.equal(await generateGroqContent('hi', undefined, { GROQ_API_KEY: 'gsk_test' }), 'Rates steady.');
+  assert.equal(lastRequest.body.model, 'openai/gpt-oss-120b');
+  await generateGroqContent('hi', 'gemini-3.1-pro-preview', { GROQ_API_KEY: 'gsk_test' });
+  assert.equal(lastRequest.body.model, 'openai/gpt-oss-120b');
+});
+
+test('Groq rate limits keep their status, so the node cools down instead of being blacklisted', async () => {
+  stubFetch({ error: { message: 'Rate limit reached for model openai/gpt-oss-120b', code: 'rate_limit_exceeded' } }, 429);
+  const err = await generateGroqContent('hi', undefined, { GROQ_API_KEY: 'gsk_test' }).catch((e) => e);
+  assert.match(err.message, /429/);
+  ResourceManager.markFailure('Groq', err.message);
+  assert.equal(ResourceManager.failed.has('Groq'), false);
+  assert.ok(ResourceManager.cooldowns.has('Groq'));
 });

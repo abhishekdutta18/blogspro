@@ -106,7 +106,10 @@ function mapLegacyModel(model) {
     return model;
 }
 
-async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", context = {}) {
+/** Groq retired its Llama 3.x ids for this account; free-tier chat models are gpt-oss and qwen. GROQ_MODEL overrides. */
+const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+
+export async function generateGroqContent(prompt, model = DEFAULT_GROQ_MODEL, context = {}) {
     const key = context?.GROQ_API_KEY || process.env.GROQ_API_KEY;
     if (!key) throw new Error("GROQ_API_KEY missing.");
 
@@ -115,12 +118,9 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
 
     // Sanitization: Ensure model is valid for Groq
     if (model === "llama3.1-8b") model = "llama-3.1-8b-instant";
-    const groqCompatible = [
-        'llama', 'mixtral', 'gemma', 'whisper', 'distil-', 
-        'gpt-oss', 'qwen', 'allam', 'orpheus', 'compound'
-    ];
+    const groqCompatible = ['gpt-oss', 'qwen', 'allam', 'compound'];
     if (!groqCompatible.some(prefix => model?.toLowerCase().includes(prefix))) {
-        model = "llama-3.3-70b-versatile";
+        model = DEFAULT_GROQ_MODEL;
     }
 
     const controller = new AbortController();
@@ -164,7 +164,7 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
                         const ocrResult = await generateGroqContent(`
                             TASK: Extract all institutional metrics, tables, and financial data.
                             CHART RULE: Identify any charts, plots, or data series.
-                        `, "llama-3.1-70b-versatile", { ...context, vision_payload: doc });
+                        `, DEFAULT_GROQ_MODEL, { ...context, vision_payload: doc });
                         messages.push({ role: "tool", tool_call_id: toolCall.id, content: ocrResult });
                     } else {
                         messages.push({ role: "tool", tool_call_id: toolCall.id, content: "Error: Document unreachable." });
@@ -180,7 +180,8 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
         }
 
         if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
-        throw new Error(`Groq API Error: ${data.error?.message || "Unknown error"}`);
+        // Keep the status and code so markFailure can tell rate limits (cooldown) from dead keys (blacklist).
+        throw new Error(`Groq API Error: ${res.status} ${data.error?.code || ''} - ${data.error?.message || "Unknown error"}`);
     } catch (err) {
         throw err;
     } finally {
@@ -724,7 +725,7 @@ export const ResourceManager = {
             this.pool.push({ name: 'Cerebras', fn: (p, m, c) => generateCerebrasContent(p, DEFAULT_CEREBRAS_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /cerebras|glm|node-generate|node-draft/i });
         }
         if (activeKeys.Groq) {
-            this.pool.push({ name: 'Groq-70B-Versatile', fn: (p, m, c) => generateGroqContent(p, m || "llama-3.3-70b-versatile", c), tier: 1, roles: ['research', 'edit', 'draft', 'generate'], match: /groq|node-research|node-edit|node-draft|node-generate|llama/i });
+            this.pool.push({ name: 'Groq', fn: (p, m, c) => generateGroqContent(p, DEFAULT_GROQ_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'generate'], match: /groq|node-research|node-edit|node-draft|node-generate|llama/i });
             // this.pool.push({ name: 'Llama-4-Scout-17B', fn: (p, m, c) => generateGroqContent(p, "meta-llama/llama-4-scout-17b-16e-instruct", c), tier: 1, roles: ['research', 'edit', 'draft'], match: /scout|llama-4/i });
             // this.pool.push({ name: 'GPT-OSS-120B', fn: (p, m, c) => generateGroqContent(p, "openai/gpt-oss-120b", c), tier: 1, roles: ['research', 'edit', 'generate'], match: /gpt-oss-120b|oss/i });
             
