@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-20",
+    "timestamp": 1795183528889,
+    "excerpt": "**OPERATIONAL MEMO: Q4-2026 LIQUIDITY VECTORS & SYSTEMIC FRAGILITY** **DATE: NOVEMBER 20, 2026** **SUBJECT: STRUCTURAL DECAY IN CORE MARGINAL LIQUIDITY** Current market microstructure reflects a terminal exhaustion of the liquidity tailwinds that def...",
+    "fileName": "swarm-hourly-1795183528882.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015) | Auction of 91-Day, 182-Day and 364-Day Treasury Bills (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64014) | Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64013) | SEBI:  | GLOBAL: BLOOMBERG | SpaceX Sells $32 Billion of AI Chip Debt at Yields Topping 8% - Bloomberg.com | BLOOMBERG | Indian Billionaire Raises $720 Million Private Credit for Megha Buyout - Bloomberg.com | BLOOMBERG | UBS Plans to Shift Hundreds of Roles to India in Offshoring Push - Bloomberg.com | FT | Oil loses grip on bond markets as inflation ‘virus’ spreads - Financial Times | FT | So, Anthropic is finally a public company. What now? - Financial Times | FT | Anthropic shares slide 10% as fears over AI boom dominate - Financial Times | REUTERS | ECB to make euro swaps more accessible in global push, Lagarde says - Reuters | REUTERS | EXCLUSIVE: Citi underestimated risky assets by $35 billion after incorrectly recording trades, sources say - Reuters | REUTERS | Anthropic's blockbuster debut tests Wall Street's faith in AI boom - Reuters | CNBC | Anthropic defies the odds, holding record IPO despite ‘massively disruptive’ market - CNBC | CNBC | Anthropic shares fall 8% in premarket amid AI selloff as Nvidia, AMD shares drop - CNBC | CNBC | Tech wreck drags Anthropic into the red on its second day of trading - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia",
+      "rbi": "RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015) | Auction of 91-Day, 182-Day and 364-Day Treasury Bills (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64014) | Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64013)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "RBI imposes monetary penalty on Fusion Finance Limited",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015"
+        },
+        {
+          "title": "Auction of 91-Day, 182-Day and 364-Day Treasury Bills",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64014"
+        },
+        {
+          "title": "Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64013"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-20",
     "timestamp": 1795179998663,
     "excerpt": "Current market state: 2026-11-20. LFY (2025) comparative drift analysis confirms a 14.2% structural liquidity contraction in Tier-1 repo markets relative to the 2024 historical baseline. The current VIX compression—hovering near 11.8 despite systemic...",
     "fileName": "swarm-hourly-1795179998656.html",
