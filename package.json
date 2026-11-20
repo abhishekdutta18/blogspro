@@ -44,6 +44,7 @@
     "google-auth-library": "^10.6.2",
     "google-charts": "^2.0.0",
     "inngest": "^4.1.0",
+    "pg": "^8.16.3",
     "puppeteer": "^24.42.0",
     "toucan-js": "^4.1.1",
     "y-protocols": "^1.0.7",
@@ -51,7 +52,9 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.3.7",
     "@playwright/test": "^1.44.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "genkit-cli": "^1.32.0",
     "vitest": "^3.2.4",
     "wrangler": "^4.83.0"
