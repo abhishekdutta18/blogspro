@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { normalizeInstitutionalPem } from './sanitizer.js';
+import { putFileWithRetry } from './github-contents.js';
 const __dirname = (typeof process !== 'undefined' && import.meta && import.meta.url && import.meta.url.startsWith('file:'))
   ? path.dirname(fileURLToPath(import.meta.url))
   : "";
@@ -1028,73 +1029,21 @@ async function pushSovereignNewsletter(subject, html, env) {
  * Commits one or more files directly to the repository using the GH Contents API.
  */
 async function pushMultipleToGitHub(filesToPush, commitMsg, owner, repo, token, branch = 'main') {
-    const authHeader = `Bearer ${token}`;
-    
-    for (const file of filesToPush) {
-        const { path: ghPath, localPath } = file;
-        const fs = await getFs();
-        if (!fs) throw new Error("FS unavailable for GitHub push");
-        
+    const fs = await getFs();
+    if (!fs) throw new Error("FS unavailable for GitHub push");
+
+    for (const { path: ghPath, localPath } of filesToPush) {
         const content = fs.readFileSync(localPath, 'utf8');
-        const encoded = Buffer.from(content).toString('base64');
-        
-        // 1. Get current SHA if exists
-        const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${ghPath}?ref=${branch}`;
-        const getRes = await fetch(getUrl, {
-            headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github+json', 'User-Agent': 'blogspro-swarm' }
-        });
-        
-        let sha = null;
-        if (getRes.status === 200) {
-            const data = await getRes.json();
-            sha = data.sha;
-        }
-
-        // 2. Put Content
-        const putUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${ghPath}`;
-        const body = {
+        // Retries stale-ref (409) and concurrent-create (422) conflicts with backoff.
+        await putFileWithRetry({
+            owner,
+            repo,
+            token,
+            branch,
+            path: ghPath,
+            contentBase64: Buffer.from(content).toString('base64'),
             message: commitMsg,
-            content: encoded,
-            branch: branch,
-            ...(sha ? { sha } : {})
-        };
-
-        const putRes = await fetch(putUrl, {
-            method: 'PUT',
-            headers: { 
-                'Authorization': authHeader, 
-                'Content-Type': 'application/json',
-                'User-Agent': 'blogspro-swarm'
-            },
-            body: JSON.stringify(body)
         });
-
-        if (!putRes.ok) {
-            const errText = await putRes.text();
-            // [V22.2] Aggressive SHA-conflict auto-recovery
-            if (putRes.status === 409 || putRes.status === 422) {
-                console.warn(`⚠️ [GitHub] SHA conflict on ${ghPath} (${putRes.status}). Re-fetching SHA and retrying...`);
-                const retryGet = await fetch(getUrl, {
-                    headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github+json', 'User-Agent': 'blogspro-swarm' }
-                });
-                if (retryGet.status === 200) {
-                    const retryData = await retryGet.json();
-                    const retrySha = retryData.sha;
-                    const retryBody = { ...body, sha: retrySha };
-                    const retryRes = await fetch(putUrl, {
-                        method: 'PUT',
-                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'User-Agent': 'blogspro-swarm' },
-                        body: JSON.stringify(retryBody)
-                    });
-                    if (retryRes.ok) {
-                        console.log(`✓ [GitHub] SHA-conflict resolved on retry: ${ghPath}`);
-                        continue;
-                    }
-                    throw new Error(`GitHub Push Retry Failed [${ghPath}]: ${await retryRes.text()}`);
-                }
-            }
-            throw new Error(`GitHub Push Failed [${ghPath}]: ${errText}`);
-        }
         console.log(`✓ [GitHub] Synchronized: ${ghPath}`);
     }
 }

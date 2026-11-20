@@ -13,6 +13,8 @@ export const inngest = new Inngest({
  * Institutional Inngest Dispatcher
  * Allows passing Cloudflare Env to ensure keys are populated for event sending.
  * Keys come only from Wrangler secrets (`npx wrangler secret put ... --env pulse`).
+ * @param {{ INNGEST_EVENT_KEY?: string, INNGEST_SIGNING_KEY?: string }} [env]
+ * @returns {Inngest}
  */
 export const getInngestClient = (env) => {
   return new Inngest({
