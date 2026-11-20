@@ -326,17 +326,17 @@ async function generateSambaNovaContent(prompt, model = "Meta-Llama-3.3-70B-Inst
     return data.choices[0].message.content;
 }
 
-async function generateCerebrasContent(prompt, model = "zai-glm-4.7", context = {}) {
+/** Cerebras retired zai-glm-4.7 (2026-11); override with CEREBRAS_MODEL when the catalogue changes again. */
+const DEFAULT_CEREBRAS_MODEL = process.env.CEREBRAS_MODEL || "gpt-oss-120b";
+
+async function generateCerebrasContent(prompt, model = DEFAULT_CEREBRAS_MODEL, context = {}) {
     const key = context?.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY;
     if (!key) throw new Error("CEREBRAS_API_KEY missing.");
     
     // [V21.0] Prompt Sanitizer: Normalize to string
     const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
 
-    let targetModel = "zai-glm-4.7";
-    if (model?.toLowerCase().includes("120b") || model?.toLowerCase().includes("oss")) {
-        targetModel = "gpt-oss-120b";
-    }
+    const targetModel = model || DEFAULT_CEREBRAS_MODEL;
 
     const client = new Cerebras({ apiKey: key });
     const completion = await client.chat.completions.create({
@@ -416,7 +416,7 @@ async function generateOpenRouterContent(prompt, model = "mistralai/mistral-7b-i
     return data.choices[0].message.content;
 }
 
-async function generateInstitutionalBridgeContent(prompt, model = "llama-3.3-70b-versatile", context = {}) {
+export async function generateInstitutionalBridgeContent(prompt, model = "llama-3.3-70b-versatile", context = {}) {
     const bridgeUrl = context?.SWARM_AI_BRIDGE || process.env.SWARM_AI_BRIDGE;
     const vaultKey = context?.VAULT_MASTER_KEY || process.env.VAULT_MASTER_KEY;
     if (!bridgeUrl) throw new Error("SWARM_AI_BRIDGE URL missing.");
@@ -441,9 +441,22 @@ async function generateInstitutionalBridgeContent(prompt, model = "llama-3.3-70b
         },
         body: JSON.stringify({ prompt, model, provider, role: context.role || 'research' })
     });
-    if (!res.ok) throw new Error(`Bridge Error: ${res.status}`);
+    if (!res.ok) throw new Error(`Bridge Error: ${res.status}${await bridgeErrorDetail(res)}`);
     const data = await res.json();
     return data.response;
+}
+
+/** Upstream error text from a failed bridge response (" - <message>"), so callers can tell dead keys from outages. */
+async function bridgeErrorDetail(res) {
+    const body = await res.text().catch(() => '');
+    if (!body) return '';
+    try {
+        const parsed = JSON.parse(body);
+        const message = typeof parsed.error === 'string' ? parsed.error : parsed.error?.message;
+        return ` - ${String(message || body).slice(0, 300)}`;
+    } catch {
+        return ` - ${body.slice(0, 300)}`;
+    }
 }
 
 /**
@@ -551,10 +564,29 @@ async function generateVertexModelGardenContent(prompt, model = "meta/llama3-405
 async function directDialAnchor(prompt, model, role, env) {
     console.warn(`⚓ [AI-Balancer] Emergency Direct-Dial to Anchor engaged for ${role}.`);
     if (model?.includes('gemini')) return generateGeminiContent(prompt, model, { env });
-    return generateCerebrasContent(prompt, "zai-glm-4.7", { env });
+    return generateCerebrasContent(prompt, DEFAULT_CEREBRAS_MODEL, { env });
 }
 
 // --- Balancer and Dispatch Logic ---
+/**
+ * Error text that means a provider cannot recover within this run: bad or revoked keys, unpaid plans,
+ * closed billing, retired models. Anything else (5xx without detail, network errors) is treated as temporary.
+ */
+const TERMINAL_ERROR_PATTERNS = [
+    '401', '402', '403', '404', 'Unauthorized', 'API key', 'Authentication', 'permission', 'NOT_FOUND', 'Not Found',
+    'PERMISSION_DENIED', 'Invalid Key', 'Invalid API Key', 'invalid_api_key', 'CREDIT_EXHAUSTED', 'DAILY_QUOTA_EXCEEDED',
+    'QUOTA_EXCEEDED', '4018', // ERR_NGROK_4018
+    'does not exist', 'archived', 'Payment required', 'payment_required', 'User not found', 'billing account',
+];
+
+/** How long revaluateFleet keeps a terminally failed node out; longer than the longest daily run. */
+const TERMINAL_BLACKLIST_MS = 60 * 60 * 1000;
+
+/** True when a provider error means the node is dead for this run and must be blacklisted, not retried. */
+export function isTerminalProviderError(message = '') {
+    return TERMINAL_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+}
+
 export const ResourceManager = {
     inflight: new Map(),
     failedAt: new Map(),
@@ -638,7 +670,7 @@ export const ResourceManager = {
             this.pool.push({ name: 'DeepSeek-V3-MoE', fn: (p, m, c) => generateSambaNovaContent(p, "DeepSeek-V3.1", c), tier: 1, roles: ['research', 'edit', 'generate'], match: /deepseek|v3|reasoning/i });
         }
         if (activeKeys.Cerebras) {
-            this.pool.push({ name: 'Cerebras-GLM-4.7', fn: (p, m, c) => generateCerebrasContent(p, "zai-glm-4.7", c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /cerebras|glm|node-generate|node-draft/i });
+            this.pool.push({ name: 'Cerebras', fn: (p, m, c) => generateCerebrasContent(p, DEFAULT_CEREBRAS_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /cerebras|glm|node-generate|node-draft/i });
         }
         if (activeKeys.Groq) {
             this.pool.push({ name: 'Groq-70B-Versatile', fn: (p, m, c) => generateGroqContent(p, m || "llama-3.3-70b-versatile", c), tier: 1, roles: ['research', 'edit', 'draft', 'generate'], match: /groq|node-research|node-edit|node-draft|node-generate|llama/i });
@@ -840,7 +872,7 @@ export const ResourceManager = {
         if (current > 0) this.inflight.set(name, current - 1);
         
         const isRate = error.includes('429') || error.includes('rate_limit') || error.includes('TPM') || error.includes('RATE_LIMIT');
-        const isAuth = error.includes('401') || error.includes('403') || error.includes('402') || error.includes('Unauthorized') || error.includes('API key') || error.includes('Authentication') || error.includes('permission') || error.includes('NOT_FOUND') || error.includes('Not Found') || error.includes('404') || error.includes('PERMISSION_DENIED') || error.includes('Invalid Key') || error.includes('Invalid API Key') || error.includes('CREDIT_EXHAUSTED') || error.includes('DAILY_QUOTA_EXCEEDED') || error.includes('QUOTA_EXCEEDED') || error.includes('4018'); // ERR_NGROK_4018
+        const isAuth = isTerminalProviderError(error);
 
         if (isRate) {
             console.warn(`⏳ [AI-Balancer] ${name} rate limited. Activating 60000ms cooldown.`);
@@ -879,7 +911,14 @@ export const ResourceManager = {
 
     revaluateFleet() {
         console.log("♻️ [AI-Balancer] Harvesting fresh fleet nodes...");
-        this.failed.clear();
+        // Dead keys and retired models stay out for the rest of a run; older entries get another chance.
+        const now = Date.now();
+        for (const name of [...this.failed]) {
+            const failedAt = this.failedAt.get(name) || 0;
+            if (now - failedAt < TERMINAL_BLACKLIST_MS) continue;
+            this.failed.delete(name);
+            this.failedAt.delete(name);
+        }
         // Preserving temporary cooldowns to prevent recursive 429 loops (The Suicide Loop Fix)
     }
 };
