@@ -1,10 +1,11 @@
 ---
 /**
- * Home page — lead story, research archive, policy calendar, markets, about, signup.
+ * Home page — lead story, latest hourly briefings, research archive, policy calendar, markets, about, signup.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import MarketStrip from '../components/MarketStrip.astro';
 import LeadStory from '../components/LeadStory.astro';
+import BriefingFeed from '../components/BriefingFeed.astro';
 import ResearchArchive from '../components/ResearchArchive.astro';
 import PolicyCalendar from '../components/PolicyCalendar.astro';
 import MarketsTable from '../components/MarketsTable.astro';
@@ -15,6 +16,7 @@ import Newsletter from '../components/Newsletter.astro';
 <BaseLayout>
   <MarketStrip />
   <LeadStory />
+  <BriefingFeed id="briefings" heading="Latest briefings" limit={6} showAllLink />
   <ResearchArchive />
   <PolicyCalendar />
   <MarketsTable />

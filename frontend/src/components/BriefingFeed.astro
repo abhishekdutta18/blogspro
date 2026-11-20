@@ -1,0 +1,87 @@
+---
+/**
+ * BriefingFeed — the latest hourly briefings, read in the browser from /briefings/hourly/index.json.
+ * The pipeline rewrites that index on every run, so new briefings appear without rebuilding the site.
+ * Text from the index is model output: it is set with textContent only (see lib/briefings.js).
+ */
+interface Props {
+  id: string;
+  heading: string;
+  limit?: number;
+  showAllLink?: boolean;
+}
+
+const { id, heading, limit = 6, showAllLink = false } = Astro.props;
+---
+
+<section id={id} class="pt-12 scroll-mt-6" aria-labelledby={`${id}-heading`}>
+  <div class="section-head">
+    <h2 id={`${id}-heading`} class="section-title">{heading}</h2>
+    {showAllLink && <a href="/briefings.html" class="text-sm text-accent underline-offset-4 hover:underline">All briefings</a>}
+  </div>
+
+  <ol class="divide-y divide-rule border-y border-rule" data-briefing-feed data-limit={limit} aria-live="polite">
+    <li class="py-5 text-sm text-ink-3" data-briefing-status>Loading the latest briefings…</li>
+  </ol>
+  <noscript><p class="py-5 text-sm text-ink-2">Turn on JavaScript to see the latest briefings.</p></noscript>
+</section>
+
+<script>
+  import { parseBriefingIndex } from '../lib/briefings.js';
+
+  const INDEX_URL = '/briefings/hourly/index.json';
+
+  function renderItem(item) {
+    const li = document.createElement('li');
+    li.className = 'grid gap-x-8 gap-y-1 py-5 sm:grid-cols-[10rem_minmax(0,1fr)]';
+
+    const time = document.createElement('time');
+    time.className = 'text-xs text-ink-3 sm:pt-1.5 num';
+    time.dateTime = new Date(item.timestamp).toISOString();
+    time.textContent = item.time;
+
+    const body = document.createElement('div');
+    const kicker = document.createElement('div');
+    kicker.className = 'kicker';
+    kicker.textContent = 'Hourly briefing';
+    const link = document.createElement('a');
+    // Excerpts are long and open the same way each hour, so they read as body text, not headlines.
+    link.className = 'headline-link mt-1.5 block max-w-measure text-[0.95rem] leading-relaxed text-ink line-clamp-3';
+    link.href = item.href;
+    link.textContent = item.excerpt || 'Read the briefing';
+    body.append(kicker, link);
+
+    li.append(time, body);
+    return li;
+  }
+
+  function showStatus(list, message) {
+    const li = document.createElement('li');
+    li.className = 'py-5 text-sm text-ink-2';
+    li.textContent = message;
+    list.replaceChildren(li);
+  }
+
+  async function loadFeeds() {
+    const lists = document.querySelectorAll('[data-briefing-feed]');
+    if (lists.length === 0) return;
+    let index;
+    try {
+      const res = await fetch(INDEX_URL, { cache: 'no-cache' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      index = await res.json();
+    } catch (error) {
+      console.warn('[briefings] could not load the briefing index:', error);
+      lists.forEach((list) => showStatus(list, 'Briefings are unavailable right now. Please try again shortly.'));
+      return;
+    }
+    lists.forEach((list) => {
+      const limit = Number(list.dataset.limit) || 6;
+      const items = parseBriefingIndex(index, { frequency: 'hourly', limit });
+      if (items.length === 0) return showStatus(list, 'No briefings have been published yet.');
+      list.replaceChildren(...items.map(renderItem));
+    });
+  }
+
+  loadFeeds();
+</script>
