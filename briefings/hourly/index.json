@@ -2,6 +2,38 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-20",
+    "timestamp": 1795168998332,
+    "excerpt": "**OPERATIONAL MEMO: Q4-2026 LIQUIDITY ARCHITECTURE & DERIVATIVE DECAY** Current SOFR-OIS spreads indicate a profound breakdown in interbank trust, effectively decoupling the federal funds rate from effective collateral mobility. As of November 20, 20...",
+    "fileName": "swarm-hourly-1795168998326.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Government Stock - Auction Results: Cut-off (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64011) | Result of the Second 3-day Variable Rate Repo (VRR) auction held on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64010) | Reserve Bank issues Foreign Exchange Management (Export and Import of Goods and Services) (Second Amendment) Regulations, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64009) | SEBI: Adjudication Order in the matter of Intelligent Money Managers Private Limited (URL: https://www.sebi.gov.in/enforcement/orders/nov-2026/adjudication-order-in-the-matter-of-intelligent-money-managers-private-limited_105852.html) | SEBI hosts IOSCO’s Asia-Pacific Regional Committee Regulatory Roundtable on Market Infrastructure Institutions (URL: https://www.sebi.gov.in/media-and-notifications/press-releases/nov-2026/sebi-hosts-iosco-s-asia-pacific-regional-committee-regulatory-roundtable-on-market-infrastructure-institutions_105848.html) | Appeal No. 7166 of 2026 filed by Arjun singh (URL: https://www.sebi.gov.in/enforcement/orders/nov-2026/appeal-no-7166-of-2026-filed-by-arjun-singh_105825.html) | GLOBAL: BLOOMBERG | UBS Plans to Shift Hundreds of Roles to India in Offshoring Push - Bloomberg.com | BLOOMBERG | Canada Bank Regulator Eases Rules for Smaller Lenders to Boost Competition - Bloomberg.com | BLOOMBERG | South Korean Watchdog Asks Financial Firms to Report AI Exposure - Bloomberg.com | FT | Oil loses grip on bond markets as inflation ‘virus’ spreads - Financial Times | FT | Tech stocks fall as Anthropic IPO fails to reignite AI trade - Financial Times | FT | So, Anthropic is finally a public company. What now? - Financial Times | REUTERS | Anthropic's blockbuster debut tests Wall Street's faith in AI boom - Reuters | REUTERS | Fed's Barr worried regulatory changes may increase financial sector risks - Reuters | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | CNBC | Anthropic IPO 'exactly what the markets need,' but analysts warn of volatility - CNBC | CNBC | Senate passes BAAJA permitting reform bill backed by AI, energy sectors - CNBC | CNBC | Friday's big stock stories: What’s likely to move the market in the next trading session - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia",
+      "rbi": "Government Stock - Auction Results: Cut-off (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64011) | Result of the Second 3-day Variable Rate Repo (VRR) auction held on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64010) | Reserve Bank issues Foreign Exchange Management (Export and Import of Goods and Services) (Second Amendment) Regulations, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64009)",
+      "sebi": "Adjudication Order in the matter of Intelligent Money Managers Private Limited (URL: https://www.sebi.gov.in/enforcement/orders/nov-2026/adjudication-order-in-the-matter-of-intelligent-money-managers-private-limited_105852.html) | SEBI hosts IOSCO’s Asia-Pacific Regional Committee Regulatory Roundtable on Market Infrastructure Institutions (URL: https://www.sebi.gov.in/media-and-notifications/press-releases/nov-2026/sebi-hosts-iosco-s-asia-pacific-regional-committee-regulatory-roundtable-on-market-infrastructure-institutions_105848.html) | Appeal No. 7166 of 2026 filed by Arjun singh (URL: https://www.sebi.gov.in/enforcement/orders/nov-2026/appeal-no-7166-of-2026-filed-by-arjun-singh_105825.html)",
+      "docs": [
+        {
+          "title": "Government Stock - Auction Results: Cut-off",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64011"
+        },
+        {
+          "title": "Result of the Second 3-day Variable Rate Repo (VRR) auction held on November 20, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64010"
+        },
+        {
+          "title": "Reserve Bank issues Foreign Exchange Management (Export and Import of Goods and Services) (Second Amendment) Regulations, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64009"
+        },
+        {
+          "title": "Adjudication Order in the matter of Intelligent Money Managers Private Limited",
+          "link": "https://www.sebi.gov.in/enforcement/orders/nov-2026/adjudication-order-in-the-matter-of-intelligent-money-managers-private-limited_105852.html"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-20",
     "timestamp": 1795165507867,
     "excerpt": "Current structural fragility in Q4 2026 is manifesting as a localized liquidity vacuum, obscured by superficial index stability. Cross-verification of the SOFR-OIS spread indicates a persistent wedge, signaling a chronic lack of depth in the repo mar...",
     "fileName": "swarm-hourly-1795165507860.html",
