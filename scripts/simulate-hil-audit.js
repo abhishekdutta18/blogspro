@@ -1,5 +1,5 @@
 import { applyHumanRefinement } from './lib/swarm-orchestrator.js';
-import { syncToFirestore } from './lib/storage-bridge.js';
+import { saveRecord } from './lib/storage-bridge.js';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -35,7 +35,7 @@ async function simulateHILAudit() {
     };
 
     try {
-        await syncToFirestore("institutional_audits", initialAuditData, env, jobId);
+        await saveRecord("institutional_audits", initialAuditData, env, jobId);
         console.log(`✅ [Success] Initial Draft synced to Firestore.`);
 
         // 2. Simulated Refinement Phase (Triggered by user feedback in Admin UI)

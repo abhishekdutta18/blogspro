@@ -1,0 +1,68 @@
+---
+/**
+ * AuthShell — narrow, centered panel used by the sign-in and registration pages.
+ * Includes the OAuth provider buttons and a shared error area (#authError).
+ */
+interface Props {
+  heading: string;
+  intro: string;
+  /** Prefix for the provider button ids, e.g. "login" -> #loginGoogle, #loginGithub. */
+  idPrefix: string;
+}
+
+const { heading, intro, idPrefix } = Astro.props;
+---
+
+<section class="py-12 sm:py-16">
+  <div class="max-w-sm mx-auto">
+    <h1 class="font-serif text-4xl font-semibold tracking-tight">{heading}</h1>
+    <p class="mt-2 text-ink-2">{intro}</p>
+
+    <p id="authError" role="alert" class="hidden mt-6 border-l-2 border-down pl-3 text-sm text-down"></p>
+
+    <div class="mt-8 grid gap-3">
+      <button type="button" id={`${idPrefix}Google`} class="auth-provider">Continue with Google</button>
+      <button type="button" id={`${idPrefix}Github`} class="auth-provider">Continue with GitHub</button>
+    </div>
+
+    <div class="my-8 flex items-center gap-3 text-xs uppercase tracking-[0.14em] text-ink-3">
+      <span class="h-px flex-1 bg-rule"></span>or with email<span class="h-px flex-1 bg-rule"></span>
+    </div>
+
+    <slot />
+  </div>
+</section>
+
+<style is:global>
+  .auth-provider {
+    width: 100%;
+    border: 1px solid var(--rule-strong);
+    padding: 0.7rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 120ms, color 120ms;
+  }
+  .auth-provider:hover { background: var(--ink); color: var(--paper); }
+  .auth-provider:disabled { opacity: 0.6; cursor: progress; }
+
+  .auth-label { display: block; font-size: 0.8rem; font-weight: 500; color: var(--ink-2); margin-bottom: 0.35rem; }
+  .auth-input {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding: 0.65rem 0.75rem;
+    font-size: 0.95rem;
+  }
+  .auth-input:focus { outline: none; border-color: var(--ink); }
+  .auth-submit {
+    width: 100%;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 120ms;
+  }
+  .auth-submit:hover { background: var(--accent); }
+  .auth-submit:disabled { opacity: 0.6; cursor: progress; }
+</style>

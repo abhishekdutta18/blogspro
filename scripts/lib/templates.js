@@ -1,3 +1,6 @@
+import { extractChartBlocks, chartPageAssets } from "../../js/chart-engine/index.js";
+import { reportChartFailures, reportChartDegradations } from "./chart-telemetry.js";
+
 function parseMD(md) {
     if (!md) return "";
     
@@ -91,9 +94,24 @@ function parseMD(md) {
     return finalHtml.replace(/<li>/g, '<ul><li>').replace(/<\/li>/g, '</li></ul>').replace(/<\/ul>\s*<ul>/g, '').trim();
 }
 
+/**
+ * Markdown -> HTML with charts rendered server-side as static SVG.
+ * Charts are shielded from parseMD via placeholder tokens, then restored.
+ * Invalid payloads are reported (never leaked as raw JSON) so telemetry can track LLM chart quality.
+ */
+function renderBody(md, chartOptions = {}) {
+    const target = chartOptions.target ?? 'web';
+    const { text, restore, failures, degraded, count } = extractChartBlocks(md || "", chartOptions);
+    reportChartFailures(failures, { target });
+    reportChartDegradations(degraded, { target });
+    // Web pages with charts get the narrow-layout CSS + tap tooltips once; email clients strip scripts.
+    const assets = target === 'web' && count > 0 ? chartPageAssets() : "";
+    return restore(parseMD(text)) + assets;
+}
+
 function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileName, rel = "../../", sentimentScore = 50, priceInfo = { last: "0", high: "0", low: "0" }, scripts = "" }) {
     const seoDescription = excerpt || "Institutional Strategic Manuscript - 16-Vertical Specialized Market Synthesis.";
-    const finalBody = parseMD(content);
+    const finalBody = renderBody(content);
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -102,7 +120,6 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title} | Nexus Institutional Terminal</title>
     <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
         :root {
             --nexus-bg: #030303;
@@ -215,53 +232,6 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
     </div>
 
     <script>
-        // 🏰 INSTITUTIONAL HARDENED CHART ENGINE v2.2
-        if (typeof google !== 'undefined' && google.charts) {
-            google.charts.load('current', {packages: ['corechart', 'bar', 'line', 'table']});
-            google.charts.setOnLoadCallback(() => {
-                document.querySelectorAll('chart-data').forEach((tag, i) => {
-                    try {
-                        const bt = String.fromCharCode(96);
-                        const raw = tag.textContent.trim().replace(new RegExp(bt + bt + bt + 'json\\n?|' + bt + bt + bt, 'g'), '');
-                        const payload = JSON.parse(raw);
-                        tag.style.setProperty('display', 'none', 'important'); 
-                        
-                        const containerId = payload.id || 'dynamic-chart-' + i;
-                        let container = document.getElementById(containerId);
-                        if (!container) {
-                            container = document.createElement('div');
-                            container.id = containerId;
-                            container.className = 'terminal-chart';
-                            tag.parentNode.insertBefore(container, tag);
-                        }
-
-                        const data = google.visualization.arrayToDataTable(payload.data);
-                        const options = {
-                            backgroundColor: 'transparent',
-                            colors: ['#BFA100', '#F8FAFC', '#64748B', '#00D166'],
-                            chartArea: { width: '85%', height: '70%', top: 40 },
-                            legend: { position: 'bottom', textStyle: { color: '#94A3B8', fontSize: 10 } },
-                            hAxis: { textStyle: { color: '#94A3B8' }, gridlines: { color: 'rgba(255,255,255,0.05)' } },
-                            vAxis: { textStyle: { color: '#94A3B8' }, gridlines: { color: 'rgba(255,255,255,0.05)' } },
-                            titleTextStyle: { color: '#BFA100', fontSize: 14 }
-                        };
-
-                        let chart;
-                        if (payload.type === 'pie') chart = new google.visualization.PieChart(container);
-                        else if (payload.type === 'bar') chart = new google.visualization.BarChart(container);
-                        else chart = new google.visualization.LineChart(container);
-                        
-                        chart.draw(data, options);
-                    } catch (e) {
-                        console.error("📊 [Nexus] Chart Error:", e);
-                        tag.style.display = 'none';
-                    }
-                });
-            });
-        }
-        // Fail-safe: Always hide raw JSON regardless of Google Charts status
-        document.querySelectorAll('chart-data').forEach(tag => tag.style.setProperty('display', 'none', 'important'));
-
         // 🚀 HASH-FREE SMOOTH SCROLL (Institutional Integration)
         document.addEventListener('click', (e) => {
             const link = e.target.closest('a[href^="#"]');
@@ -283,7 +253,7 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
 }
 
 function getEmailTemplate({ title, excerpt, content, dateLabel, fileName, freq, priceInfo = { last: "N/A", high: "N/A", low: "N/A" } }) {
-    const finalBody = parseMD(content);
+    const finalBody = renderBody(content, { target: 'email' }); // Gmail/Outlook strip inline SVG: charts ship as tables
     return `<!DOCTYPE html><html><body style="background: #050505; color: #D1D5DB; font-family: sans-serif; padding: 20px;">
         <h1 style="color: #F8FAFC;">${title}</h1>
         <div style="border-left: 4px solid #FFB800; padding-left: 15px; margin: 20px 0;">${excerpt}</div>
@@ -293,4 +263,4 @@ function getEmailTemplate({ title, excerpt, content, dateLabel, fileName, freq, 
 
 import { getApexTemplate } from './apex-template.js';
 
-export { getBaseTemplate, getEmailTemplate, getApexTemplate, parseMD };
+export { getBaseTemplate, getEmailTemplate, getApexTemplate, parseMD, renderBody };

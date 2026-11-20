@@ -1,5 +1,5 @@
 // js/health.js (Proxy-based)
-import { api } from "./services/api.js";
+import { api } from "./services/api.js?v=vps1";
 
 
 export function initHealthMonitor() {

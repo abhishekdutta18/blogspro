@@ -3,25 +3,14 @@
 // Handles Auth, Data, and Swarm operations via the server-side worker.
 // ═══════════════════════════════════════════════
 
-import { ENDPOINTS } from '../endpoints.js';
+import { ENDPOINTS } from '../endpoints.js?v=vps1';
 const API_BASE = ENDPOINTS.auth;
+// Sessions moved to an HttpOnly cookie; forget tokens issued by the old auth worker.
+try { localStorage.removeItem("fb_token"); } catch (_) {}
 const NEWSLETTER_BASE = ENDPOINTS.newsletter;
-const FIREBASE_API_KEY = "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY";
-
-const FIREBASE_ERROR_MESSAGES = {
-  "EMAIL_NOT_FOUND": "No account found with this email address.",
-  "INVALID_PASSWORD": "Incorrect password.",
-  "INVALID_LOGIN_CREDENTIALS": "Incorrect email or password.",
-  "USER_DISABLED": "This account has been disabled. Contact support.",
-  "TOO_MANY_ATTEMPTS_TRY_LATER": "Too many failed attempts. Please wait and try again.",
-  "EMAIL_EXISTS": "An account with this email already exists.",
-  "WEAK_PASSWORD": "Password is too weak. Use at least 8 characters.",
-  "INVALID_EMAIL": "Please enter a valid email address.",
-};
-
-function mapFirebaseError(raw) {
-  const code = raw?.error?.errors?.[0]?.message || raw?.error?.message || raw?.error || "";
-  return FIREBASE_ERROR_MESSAGES[code] || code || "Request failed";
+/** The API answers errors as { error: "readable message" }. */
+function apiErrorMessage(raw) {
+  return raw?.error?.message || raw?.error || "Request failed";
 }
 
 async function fetchWithRetry(url, options = {}, retries = 3, backoff = 1000) {
@@ -78,7 +67,7 @@ async function fetchJson(url, options = {}, timeoutMs = 15000) {
     
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(mapFirebaseError(err));
+      throw new Error(apiErrorMessage(err));
     }
     
     return res.json();
@@ -118,11 +107,8 @@ const auth = {
     } catch (_) {}
   },
   me: async () => {
-    const token = localStorage.getItem("fb_token");
-    if (!token) return { authenticated: false };
-    const res = await fetchJson("/auth/me");
-    if (res.token) localStorage.setItem("fb_token", res.token);
-    return res;
+    // Session lives in an HttpOnly cookie on blogspro.in; there is no client-side token.
+    return fetchJson("/auth/me");
   },
   google: (redirect) => {
      window.location.href = `${API_BASE}/auth/login/google?redirect=${encodeURIComponent(redirect || window.location.href)}`;
@@ -132,7 +118,16 @@ const auth = {
   },
   // Higher-order auth functions (profile updates) route via Proxy
   updateProfile: (data) => patch("/auth/profile", data),
-  updatePassword: (password) => post("/auth/password", { password })
+  updatePassword: (password) => post("/auth/password", { password }),
+  updateEmail: async () => {
+    throw new Error("Email changes aren't available yet. Contact the editor.");
+  },
+  deleteAccount: async () => {
+    const me = await fetchJson("/auth/me");
+    if (!me?.authenticated) throw new Error("Sign in again to delete your account.");
+    await fetchJson(`/api/data/users/${encodeURIComponent(me.user.uid)}`, { method: "DELETE" });
+    await auth.logout();
+  }
 };
 
 async function patch(url, data) {
@@ -226,7 +221,7 @@ const publicApi = {
     const base = `/api/public/data/${col}`;
     return id ? fetchJson(`${base}/${id}`) : fetchJson(base);
   },
-  subscribe: (email) => post(`${NEWSLETTER_BASE}/newsletter`, { 
+  subscribe: (email) => post("/api/subscribe", { 
     email, 
     source: window.location.hostname 
   }),

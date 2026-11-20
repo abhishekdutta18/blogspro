@@ -1,3 +1,4 @@
+import { getDocument, listDocuments, saveDocument, isStoreConfigured } from '../../scripts/lib/vps-store.js';
 /**
  * BlogsPro Sentry + GitHub + Telegram Bot Worker
  *
@@ -13,8 +14,8 @@
  *
  * Bot Commands:
  *  /status              — Unresolved Sentry issues with Resolve buttons
- *  /subscribers         — Newsletter subscriber count from Firestore
- *  /posts               — Last 5 published posts from Firestore
+ *  /subscribers         — Newsletter subscriber count from the BlogsPro API
+ *  /posts               — Last 5 published posts from the BlogsPro API
  *  /deploy              — Trigger GitHub Pages deploy via workflow_dispatch
  *  /resolve all         — Bulk-resolve all unresolved Sentry issues
  *  /help                — Full command reference
@@ -47,7 +48,14 @@ export default {
       return handleGithubWebhook(request, env);
     }
 
-    // Newsletter broadcast (POST /newsletter)
+    // Public newsletter signup from the website (OPTIONS preflight + POST /subscribe)
+    if (url.pathname === '/subscribe') {
+      if (request.method === 'OPTIONS') return handleSubscribePreflight(request);
+      if (request.method === 'POST') return handleSubscribe(request, env);
+      return new Response('Method Not Allowed', { status: 405, headers: { Allow: 'POST, OPTIONS' } });
+    }
+
+    // Newsletter broadcast to all subscribers (POST /newsletter, secret-protected)
     if (url.pathname === '/newsletter' && request.method === 'POST') {
       return handleNewsletterRequest(request, env);
     }
@@ -65,7 +73,7 @@ export default {
     // Health check (GET /)
     return new Response(
       'BlogsPro Unified Bot — Active ✅\n' +
-      'Routes: /setup-webhook  /telegram  /github  /newsletter  /notify-registration  POST /\n' +
+      'Routes: /setup-webhook  /telegram  /github  /subscribe  /newsletter  /notify-registration  POST /\n' +
       'Commands: /status  /subscribers  /posts  /deploy  /resolve all  /broadcast  /stats  /help',
       { headers: { 'Content-Type': 'text/plain' } }
     );
@@ -164,15 +172,9 @@ async function handleCallbackQuery(cq, env) {
 
   // ✅ Approve User Role
   else if (data.startsWith('approve:')) {
-    const [_, uid, role] = data.split(':');
-    const ok = await updateUserRole(uid, role, env);
-    if (ok) {
-      await editTelegramMessage(chatId, msgId, origText + `\n\n✅ <b>Approved ${role.toUpperCase()} by ${escapeHtml(user)}</b>`, { inline_keyboard: [] }, env);
-      await answerCallbackQuery(cq.id, `✅ User approved as ${role}!`, env);
-    } else {
-      await editTelegramMessage(chatId, msgId, origText + `\n\n❌ <b>Approval failed for ${uid}</b>`, { inline_keyboard: [] }, env);
-      await answerCallbackQuery(cq.id, '❌ Approval failed. Check Firestore API Key.', env);
-    }
+    const [, uid, role] = data.split(':');
+    await editTelegramMessage(chatId, msgId, origText + `\n\nℹ️ <b>Set ${escapeHtml(role || '')} for ${escapeHtml(uid || '')} in Admin → Users on blogspro.in.</b>`, { inline_keyboard: [] }, env);
+    await answerCallbackQuery(cq.id, 'Roles are managed in the admin dashboard.', env);
   }
 
   // ❌ Reject User Role
@@ -250,7 +252,7 @@ async function handleCommand(message, env) {
   if (cmd === '/subscribers') {
     const count = await fetchSubscriberCount(env);
     if (count === null) {
-      await sendTelegramMessage(chatId, '❌ Could not fetch subscriber count from Firestore.', null, env);
+      await sendTelegramMessage(chatId, '❌ Could not fetch subscriber count from the BlogsPro API.', null, env);
     } else {
       const milestone = count > 0 && count % 100 === 0 ? `\n\n🎉 <b>Milestone reached!</b>` : '';
       await sendTelegramMessage(chatId, `📧 <b>Newsletter Subscribers: ${count}</b>${milestone}`, null, env);
@@ -262,7 +264,7 @@ async function handleCommand(message, env) {
   if (cmd === '/posts') {
     const posts = await fetchRecentPosts(5, env);
     if (posts === null) {
-      await sendTelegramMessage(chatId, '❌ Could not fetch posts from Firestore.', null, env);
+      await sendTelegramMessage(chatId, '❌ Could not fetch posts from the BlogsPro API.', null, env);
       return new Response('OK');
     }
     if (posts.length === 0) {
@@ -519,6 +521,84 @@ async function handleNewsletterRequest(request, env) {
   }
 }
 
+// ── Public signup ─────────────────────────────────────────────────────────────
+// Only the website's own origins may call /subscribe from a browser.
+const SUBSCRIBE_ALLOWED_ORIGINS = new Set([
+  'https://blogspro.in',
+  'https://www.blogspro.in',
+  'http://localhost:4321',
+  'http://127.0.0.1:4321'
+]);
+const EMAIL_MAX_LENGTH = 254;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SUBSCRIBE_SOURCE_MAX_LENGTH = 64;
+
+/** CORS headers for /subscribe; echoes the origin only when it is allow-listed. */
+function subscribeCorsHeaders(request) {
+  const origin = request.headers.get('Origin') || '';
+  const headers = {
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin'
+  };
+  if (SUBSCRIBE_ALLOWED_ORIGINS.has(origin)) headers['Access-Control-Allow-Origin'] = origin;
+  return headers;
+}
+
+function handleSubscribePreflight(request) {
+  return new Response(null, { status: 204, headers: subscribeCorsHeaders(request) });
+}
+
+function subscribeJson(request, status, body) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...subscribeCorsHeaders(request), 'Content-Type': 'application/json' }
+  });
+}
+
+/**
+ * POST /subscribe {email, source?} — stores the address in `subscribers` on the BlogsPro API.
+ * The document ID is derived from the lower-cased email, so repeat signups are
+ * idempotent (an existing address is reported as alreadySubscribed).
+ */
+async function handleSubscribe(request, env) {
+  const origin = request.headers.get('Origin');
+  if (origin && !SUBSCRIBE_ALLOWED_ORIGINS.has(origin)) {
+    return subscribeJson(request, 403, { success: false, error: 'Origin not allowed' });
+  }
+
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return subscribeJson(request, 400, { success: false, error: 'Invalid JSON body' });
+  }
+
+  const email = typeof payload?.email === 'string' ? payload.email.trim().toLowerCase() : '';
+  if (!email || email.length > EMAIL_MAX_LENGTH || !EMAIL_PATTERN.test(email)) {
+    return subscribeJson(request, 400, { success: false, error: 'Invalid email address' });
+  }
+  const source = typeof payload?.source === 'string'
+    ? payload.source.slice(0, SUBSCRIBE_SOURCE_MAX_LENGTH)
+    : 'website';
+
+  if (!isStoreConfigured(env)) {
+    console.error('subscribe: BLOGSPRO_SERVICE_TOKEN not configured');
+    return subscribeJson(request, 500, { success: false, error: 'Signup is temporarily unavailable' });
+  }
+
+  // Subscribers are keyed by email, as /api/subscribe on the VPS stores them.
+  if (await getDocument('subscribers', email, env)) {
+    return subscribeJson(request, 200, { success: true, alreadySubscribed: true });
+  }
+  const stored = await saveDocument('subscribers', {
+    email, source, status: 'active', createdAt: new Date().toISOString()
+  }, env, email);
+  if (stored) return subscribeJson(request, 200, { success: true, alreadySubscribed: false });
+  return subscribeJson(request, 502, { success: false, error: 'Could not save subscription' });
+}
+
 async function handleRegistrationNotify(request, env) {
   const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
   try {
@@ -573,29 +653,8 @@ async function sendNewsletter(subject, html, env) {
 }
 
 async function fetchSubscriberEmails(env) {
-  const project = env.FIREBASE_PROJECT;
-  const apiKey  = env.FIREBASE_API_KEY;
-  const url     = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/subscribers?key=${apiKey}&pageSize=1000`;
-  const res = await fetch(url);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return (data.documents || []).map(d => d.fields?.email?.stringValue).filter(Boolean);
-}
-
-async function updateUserRole(uid, role, env) {
-  try {
-    const project = env.FIREBASE_PROJECT;
-    const apiKey  = env.FIREBASE_API_KEY;
-    const url     = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/users/${uid}?key=${apiKey}&updateMask.fieldPaths=role`;
-    const res = await fetch(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: { role: { stringValue: role } } })
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  const subscribers = await listDocuments('subscribers', { where: { status: 'active' } }, env);
+  return subscribers.map(doc => doc.email).filter(Boolean);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -672,75 +731,20 @@ async function sendDailySummary(env) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// FIRESTORE REST API
+// BLOGSPRO API (documents on the VPS)
 // ══════════════════════════════════════════════════════════════════════════════
 
+/** @returns {Promise<number|null>} active subscribers, or null when the store is unavailable */
 async function fetchSubscriberCount(env) {
-  try {
-    const project = env.FIREBASE_PROJECT;
-    const apiKey  = env.FIREBASE_API_KEY;
-    const base    = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents`;
-
-    let total = 0;
-    let pageToken = '';
-    do {
-      const url = `${base}/subscribers?key=${apiKey}&pageSize=300${pageToken ? `&pageToken=${pageToken}` : ''}`;
-      const res  = await fetch(url);
-      if (!res.ok) return null;
-      const data = await res.json();
-      total     += (data.documents || []).length;
-      pageToken  = data.nextPageToken || '';
-    } while (pageToken);
-
-    return total;
-  } catch (e) {
-    console.error('fetchSubscriberCount error:', e.message);
-    return null;
-  }
+  if (!isStoreConfigured(env)) return null;
+  const subscribers = await listDocuments('subscribers', { where: { status: 'active' } }, env);
+  return subscribers.length;
 }
 
 async function fetchRecentPosts(limit, env) {
-  try {
-    const project = env.FIREBASE_PROJECT;
-    const apiKey  = env.FIREBASE_API_KEY;
-    const url     = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents:runQuery?key=${apiKey}`;
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        structuredQuery: {
-          from: [{ collectionId: 'posts' }],
-          where: {
-            fieldFilter: {
-              field: { fieldPath: 'published' },
-              op: 'EQUAL',
-              value: { booleanValue: true }
-            }
-          },
-          orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
-          limit
-        }
-      })
-    });
-
-    if (!res.ok) return null;
-    const results = await res.json();
-
-    return results
-      .filter(r => r.document)
-      .map(r => {
-        const fields = r.document.fields || {};
-        return {
-          title:    fields.title?.stringValue    || '',
-          slug:     fields.slug?.stringValue     || '',
-          category: fields.category?.stringValue || ''
-        };
-      });
-  } catch (e) {
-    console.error('fetchRecentPosts error:', e.message);
-    return null;
-  }
+  if (!isStoreConfigured(env)) return null;
+  const posts = await listDocuments('posts', { where: { published: true }, orderBy: 'createdAt desc', limit }, env);
+  return posts.map(post => ({ title: post.title || '', slug: post.slug || '', category: post.category || '' }));
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

@@ -1,11 +1,11 @@
 import { loadRemoteConfig } from "./config.js";
 import "./state.js";
-import { initAuth, initLogout } from "./auth.js";
-import { initNav } from "./nav.js";
+import { initAuth, initLogout } from "./auth.js?v=vps1";
+import { initNav } from "./nav.js?v=vps1";
 import { initEditor } from "./editor.js";
 import { initDrawer } from "./ai-drawer.js";
 import { loadAll } from "./posts.js";
-import "./users.js";
+import "./users.js?v=vps1";
 import "./subscribers.js";
 import "./newsletter.js";
 import "./seo-page.js";

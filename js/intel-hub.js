@@ -2,7 +2,7 @@
 // intel-hub.js — Strategic Intelligence Hub (Proxy-based)
 // Fetches and renders AI-generated market pulses & articles via Proxy
 // ═══════════════════════════════════════════════
-import { api } from './services/api.js';
+import { api } from './services/api.js?v=vps1';
 import { initNewsWire } from './news-wire.js';
 
 /**

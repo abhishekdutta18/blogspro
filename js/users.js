@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 // users.js — User management (Proxy-based)
 // ═══════════════════════════════════════════════
-import { api } from './services/api.js';
+import { api } from './services/api.js?v=vps1';
 import { showToast } from './config.js';
 
 export async function loadUsers() {

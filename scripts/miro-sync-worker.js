@@ -48,7 +48,7 @@ export class MiroSyncS {
 
     // 0.5 [V7.0] Manual Archival Trigger
     if (url.pathname === '/archive' && request.method === 'GET') {
-      await this.archiveToFirebase();
+      await this.archiveOldRecords();
       return new Response(JSON.stringify({ 
         success: true, 
         message: "V7.0 Proactive Archiving Initiated",
@@ -61,7 +61,7 @@ export class MiroSyncS {
       });
     }
 
-    // Handle snapshot export to Firebase
+    // Snapshot export
     if (url.pathname === '/snapshot') {
       const update = Y.encodeStateAsUpdate(this.doc);
       const filename = `snapshot-${Date.now()}.yjs`;
@@ -228,7 +228,7 @@ export class MiroSyncS {
 
     // [V7.0] Archive Access (Durable Object "Warm" Archive)
     if (url.pathname === '/archive' && request.method === 'POST') {
-      const result = await this.archiveToFirebase();
+      const result = await this.archiveOldRecords();
       return new Response(JSON.stringify(result), {
         headers: { 'Content-Type': 'application/json', "Access-Control-Allow-Origin": "*" }
       });
@@ -345,15 +345,15 @@ export class MiroSyncS {
   }
 
   async scheduled(event, env, ctx) {
-    console.log("⏰ [Cron] Durable State Sync: Initiating Firebase Archiving...");
-    await this.archiveToFirebase();
+    console.log("⏰ [Cron] Durable State Sync: Archiving records older than 90 days...");
+    await this.archiveOldRecords();
   }
 
   /**
    * V7.0 Lifecycle Management: 
-   * Moves records > 90 days to Firebase and purges from DO.
+   * Moves records older than 90 days from swarm-progress to swarm-archive.
    */
-  async archiveToFirebase() {
+  async archiveOldRecords() {
     const progressMap = this.doc.getMap('swarm-progress');
     const archiveMap = this.doc.getMap('swarm-archive');
     const THREE_MONTHS_MS = 90 * 24 * 60 * 60 * 1000;
@@ -373,16 +373,11 @@ export class MiroSyncS {
     }
 
     if (archivedCount > 0) {
-      if (!this.env.FIREBASE_STORAGE_BUCKET) {
-        console.warn("⚠️ [MiroSync] Archival skipped: FIREBASE_STORAGE_BUCKET not configured.");
-        return { archivedCount: 0, activeCount: progressMap.size, status: "SKIPPED_CONFIG" };
-      }
-
       const date = new Date();
       const folder = `${new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date).toUpperCase()}${date.getFullYear()}`;
       const base = `archive/${folder}`;
 
-      // 1. Persist the FULL Yjs Document to Firebase (Binary State Dataset)
+      // 1. Export the full Yjs document (kept only where the media store has a disk)
       const fullUpdate = Y.encodeStateAsUpdate(this.doc);
       const binaryName = `miro-archive-binary-${Date.now()}.yjs`;
       await saveSnapshot(fullUpdate, `${base}/state`, this.env, binaryName);
@@ -395,7 +390,7 @@ export class MiroSyncS {
       const update = Y.encodeStateAsUpdate(this.doc);
       await this.state.storage.put('doc', update);
 
-      console.log(`📦 [MiroSync] V7.0 Archive: Successfully moved ${archivedCount} records to Firebase Dataset [${folder}].`);
+      console.log(`📦 [MiroSync] V7.0 Archive: Successfully moved ${archivedCount} records to swarm-archive [${folder}].`);
     }
 
     return { archivedCount, activeCount: progressMap.size };

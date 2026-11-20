@@ -6,7 +6,7 @@
 import { callAI } from './ai-core.js';
 import { sanitize, showToast } from './config.js';
 import { state } from './state.js';
-import { api } from './services/api.js';
+import { api } from './services/api.js?v=vps1';
 
 // ── Tab switching (AI / Images) ──────────────
 export function v2ShowTab(tab) {

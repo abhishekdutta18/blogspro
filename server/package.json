@@ -1,0 +1,11 @@
+{
+  "name": "blogspro-api",
+  "private": true,
+  "type": "module",
+  "description": "BlogsPro auth and admin data API (runs on the VPS behind nginx).",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning index.js",
+    "test": "node --disable-warning=ExperimentalWarning --test 'test/**/*.test.mjs'"
+  }
+}

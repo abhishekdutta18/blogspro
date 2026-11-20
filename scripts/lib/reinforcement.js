@@ -1,125 +1,33 @@
-import admin from 'firebase-admin';
-import { initFirebase } from './firebase-service.js';
+import { listDocuments, saveDocument } from './vps-store.js';
 
 const MAX_ENTRIES = 500;
 const COLLECTION = 'ai_reinforcement_ledger';
+const PREVIEW_LIMIT = 1000;
 
+/**
+ * Reinforcement ledger: every validator success/failure is stored in the
+ * ai_reinforcement_ledger collection on the BlogsPro API, and the newest
+ * MAX_ENTRIES are loaded back to steer later generations.
+ */
 class ReinforcementSystem {
     constructor() {
         this.ledger = [];
-        this.isNode = typeof process !== 'undefined' && process.versions?.node;
     }
 
     async syncEntry(entry, env = {}) {
-        const projectId = env.FIREBASE_PROJECT_ID || (this.isNode ? process.env.FIREBASE_PROJECT_ID : null);
-        if (!projectId) {
-            if (this.isNode) console.warn("⚠️ [RL] FIREBASE_PROJECT_ID missing in env/process.env");
-            return;
-        }
-
-        // 1. Node.js Path (Admin SDK)
-        if (this.isNode) {
-            try {
-                const { db } = initFirebase();
-                if (db) {
-                    await db.collection(COLLECTION).add({
-                        ...entry,
-                        timestamp: admin.firestore.Timestamp.fromDate(new Date(entry.timestamp))
-                    });
-                    return;
-                }
-            } catch (e) {
-                console.warn("⚠️ [RL] Admin SDK Sync failed, falling back to REST:", e.message);
-            }
-        }
-        
-        // 2. REST Path (Workers / Fallback)
-        const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${COLLECTION}`;
-        const fields = {
-            type: { stringValue: entry.type },
-            timestamp: { timestampValue: entry.timestamp },
-            task: { stringValue: entry.task },
-            pattern: { stringValue: entry.pattern || "" },
-            preview: { stringValue: entry.preview ? entry.preview.substring(0, 1000) : "" }
-        };
-
-        if (entry.failures && Array.isArray(entry.failures)) {
-            fields.failures = { arrayValue: { values: entry.failures.map(f => ({ stringValue: f })) } };
-        }
-
-        try {
-            await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ fields })
-            });
-        } catch (e) {
-            console.error("⚠️ [RL] REST Sync Fail:", e.message);
-        }
+        await saveDocument(COLLECTION, {
+            type: entry.type,
+            timestamp: entry.timestamp,
+            task: entry.task,
+            pattern: entry.pattern || "",
+            failures: Array.isArray(entry.failures) ? entry.failures : [],
+            preview: entry.preview ? String(entry.preview).substring(0, PREVIEW_LIMIT) : ""
+        }, env, null);
     }
 
     async load(env = {}) {
-        const projectId = env.FIREBASE_PROJECT_ID || (this.isNode ? process.env.FIREBASE_PROJECT_ID : null);
-        if (!projectId) return;
-
-        // 1. Node.js Path (Admin SDK)
-        if (this.isNode) {
-            try {
-                const { db } = initFirebase();
-                if (db) {
-                    const snapshot = await db.collection(COLLECTION)
-                        .orderBy('timestamp', 'desc')
-                        .limit(MAX_ENTRIES)
-                        .get();
-                    
-                    this.ledger = snapshot.docs.map(doc => {
-                        const data = doc.data();
-                        return {
-                            ...data,
-                            timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : data.timestamp
-                        };
-                    });
-                    return;
-                }
-            } catch (e) {
-                console.warn("⚠️ [RL] Admin SDK Load failed, falling back to REST:", e.message);
-            }
-        }
-
-        // 2. REST Path (Workers / Fallback)
-        const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
-        const query = {
-            structuredQuery: {
-                from: [{ collectionId: COLLECTION }],
-                orderBy: [{ field: { fieldPath: 'timestamp' }, direction: 'DESCENDING' }],
-                limit: MAX_ENTRIES
-            }
-        };
-
-        try {
-            const res = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(query)
-            });
-            const results = await res.json();
-            
-            this.ledger = (results || [])
-                .filter(r => r.document)
-                .map(r => {
-                    const fields = r.document.fields;
-                    return {
-                        type: fields.type?.stringValue,
-                        timestamp: fields.timestamp?.timestampValue,
-                        task: fields.task?.stringValue,
-                        pattern: fields.pattern?.stringValue,
-                        failures: fields.failures?.arrayValue?.values?.map(v => v.stringValue) || [],
-                        preview: fields.preview?.stringValue
-                    };
-                });
-        } catch (e) {
-            console.error("⚠️ [RL] REST Load Fail:", e.message);
-        }
+        const entries = await listDocuments(COLLECTION, { orderBy: 'timestamp desc', limit: MAX_ENTRIES }, env);
+        if (entries.length > 0) this.ledger = entries;
     }
 
 

@@ -1,7 +1,7 @@
 // Centralized worker endpoint config for all BlogsPro Institutional operations.
 // Strictly favors the Durable Pulse Orchestrator (V5.4).
 
-import { ENDPOINTS } from './endpoints.js';
+import { ENDPOINTS } from './endpoints.js?v=vps1';
 
 const PULSE_WORKER_BASE = ENDPOINTS.pulse;
 

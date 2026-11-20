@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 // profile.js — Admin Profile management (Proxy-based)
 // ═══════════════════════════════════════════════
-import { api } from './services/api.js';
+import { api } from './services/api.js?v=vps1';
 import { showToast } from './config.js';
 import { state } from './state.js';
 

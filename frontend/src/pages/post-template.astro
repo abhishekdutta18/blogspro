@@ -1,0 +1,43 @@
+---
+/**
+ * post-template — NOT a public page. Builds to dist/post-template.html, which
+ * scripts/build-static.js fills in for every published post from the BlogsPro API.
+ *
+ * Each __BP_*__ token is replaced by the pipeline:
+ *   __BP_TITLE__, __BP_EXCERPT__, __BP_CATEGORY__, __BP_AUTHOR__, __BP_DATE__ — HTML-escaped text
+ *   __BP_URL__, __BP_IMAGE__ — HTML-escaped absolute URLs
+ *   __BP_TITLE_URI__, __BP_URL_URI__ — URI-encoded, for share links
+ *   __BP_JSONLD__ — JSON-LD <script> block
+ *   __BP_CONTENT__ — article body HTML
+ * Elements marked data-template-only are stripped from generated pages.
+ * Underscore tokens survive both HTML escaping and encodeURIComponent unchanged.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ArticleView from '../components/ArticleView.astro';
+import { siteConfig } from '../data/siteConfig';
+---
+
+<BaseLayout
+  title={`__BP_TITLE__ — ${siteConfig.name}`}
+  description="__BP_EXCERPT__"
+  image="__BP_IMAGE__"
+  article={true}
+  canonicalUrl="__BP_URL__"
+>
+  <Fragment slot="head">
+    <meta name="robots" content="noindex" data-template-only />
+    <meta name="generator" content="blogspro-ssg" />
+    <Fragment set:html="__BP_JSONLD__" />
+  </Fragment>
+
+  <ArticleView
+    title="__BP_TITLE__"
+    excerpt="__BP_EXCERPT__"
+    category="__BP_CATEGORY__"
+    author="__BP_AUTHOR__"
+    dateLabel="__BP_DATE__"
+    contentHtml="__BP_CONTENT__"
+    twitterShareHref="https://twitter.com/intent/tweet?text=__BP_TITLE_URI__&url=__BP_URL_URI__"
+    linkedinShareHref="https://www.linkedin.com/sharing/share-offsite/?url=__BP_URL_URI__"
+  />
+</BaseLayout>

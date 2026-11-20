@@ -5,7 +5,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 import { ResourceManager } from "./ai-service.js";
-import { pushTelemetryLog } from "./firebase-service.js";
+import { pushTelemetryLog } from "./storage-bridge.js";
 
 const MIROFISH_CLI = path.join(__dirname, "../../mirofish/backend/swarm-audit-cli.py");
 

@@ -1,4 +1,4 @@
-import { api } from './services/api.js';
+import { api } from './services/api.js?v=vps1';
 import { showToast, slugify, sanitize } from './config.js';
 import { state } from './state.js';
 

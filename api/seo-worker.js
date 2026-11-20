@@ -1,4 +1,6 @@
-import { getGoogleAccessToken, pushTelemetryLog } from "../scripts/lib/storage-bridge.js";
+import { pushTelemetryLog } from "../scripts/lib/storage-bridge.js";
+
+const DEFAULT_API_URL = "https://blogspro.in";
 
 export default {
   async fetch(request, env, ctx) {
@@ -23,25 +25,19 @@ export default {
     let html = await response.text();
 
     try {
-      // 2. Query Firestore REST API for the specific post data
-      const firebaseUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/posts/${postId}`;
-      
-      const token = await getGoogleAccessToken(env);
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      const dbRes = await fetch(firebaseUrl, { headers });
+      // 2. Read the post from the BlogsPro API (public route: published posts only)
+      const apiUrl = String(env.BLOGSPRO_API_URL || DEFAULT_API_URL).replace(/\/+$/, "");
+      const dbRes = await fetch(`${apiUrl}/api/public/data/posts/${encodeURIComponent(postId)}`);
 
       if (dbRes.ok) {
         const data = await dbRes.json();
-        
-        // Ensure post is published
-        if (data.fields && data.fields.published && data.fields.published.booleanValue) {
+
+        {
           const _attr = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-          const title = _attr(data.fields.title?.stringValue || 'BlogsPro Article');
-          const excerpt = _attr(data.fields.excerpt?.stringValue || data.fields.title?.stringValue || 'BlogsPro Article');
-          const banner = /^https?:\/\//.test(data.fields.coverImage?.stringValue||'') ? data.fields.coverImage.stringValue : 'https://blogspro.in/og-default.jpg';
-          const authorFullName = _attr(data.fields.authorName?.stringValue || 'BlogsPro');
+          const title = _attr(data.title || 'BlogsPro Article');
+          const excerpt = _attr(data.excerpt || data.title || 'BlogsPro Article');
+          const banner = /^https?:\/\//.test(String(data.coverImage || '')) ? data.coverImage : 'https://blogspro.in/og-default.jpg';
+          const authorFullName = _attr(data.authorName || 'BlogsPro');
           
           // 3. Inject explicit SEO tags into the HTML template for Scrapers/Googlebot
           

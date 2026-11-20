@@ -5,6 +5,8 @@
 // Theme: dark navy bg, gold accents, cream text.
 // ═══════════════════════════════════════════════
 import { callAI } from './ai-core.js';
+import { renderChart } from './chart-engine/index.js';
+import { upgradeLegacyCharts, browserDegradeReporter } from './chart-engine/browser.js';
 
 const THEME = {
   bg:       '#ffffff',
@@ -50,6 +52,9 @@ const GC_THEME = {
 // Call this after setting editor.innerHTML or any content update.
 // ─────────────────────────────────────────────
 export async function initBpCharts(containerEl = document.body) {
+  // Migrate legacy Google-Charts blocks (posts saved before the engine) to engine output in place.
+  // Anything the engine cannot parse keeps its legacy markup and falls through to the path below.
+  upgradeLegacyCharts(containerEl, { theme: 'light' });
   // If Google Charts SDK is not yet ready, wait for it (with 5s timeout).
   // window.bpChartsReady is set in admin.html when google.charts.load() is called.
   if (!window.google?.visualization) {
@@ -277,16 +282,12 @@ Rules:
     if (allSame) return ''; // Reject suspiciously uniform data
   }
 
-  // Inject the chartId for referencing
-  data._chartId = chartId;
-
-  switch(data.type) {
-    case 'bar':   return buildBarChart(data);
-    case 'line':  return buildLineChart(data);
-    case 'pie':   return buildPieChart(data);
-    case 'stats': return buildStatsCards(data);
-    case 'table': return buildDataTable(data);
-    default:      return buildBarChart(data);
+  // Render through the unified chart engine (static SVG/HTML, light theme to match the editor).
+  try {
+    return renderChart({ ...data, id: chartId }, { theme: 'light', onDegrade: browserDegradeReporter('chart-builder') });
+  } catch (err) {
+    console.warn('[bp-chart] engine rejected AI chart:', err instanceof Error ? err.message : err);
+    return '';
   }
 }
 

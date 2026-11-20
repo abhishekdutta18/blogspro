@@ -1,6 +1,6 @@
 import { askAI, ResourceManager } from './lib/ai-service.js';
 import { runSwarmAudit } from './lib/mirofish-qa-service.js';
-import { initFirebase, pushTelemetryLog } from './lib/firebase-service.js';
+import { pushTelemetryLog } from './lib/storage-bridge.js';
 
 async function verifyInstitutionalDensity() {
     console.log("🦾 [BlogsPro-SOTA] Starting Genuine Institutional Swarm Verification (Phase 15)...");

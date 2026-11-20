@@ -1,0 +1,114 @@
+---
+/**
+ * Registration page. Creates the account through the shared legacy client
+ * (/js/services/api.js). Editor and co-author roles are requests: the auth
+ * worker notifies the admin to approve them; until then the account is a reader.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import AuthShell from '../components/AuthShell.astro';
+import { siteConfig } from '../data/siteConfig';
+
+const ROLES = [
+  { id: 'reader', label: 'Reader', detail: 'Read research and get the weekly briefing.' },
+  { id: 'editor', label: 'Editor', detail: 'Review and edit drafts. Needs approval.' },
+  { id: 'coauthor', label: 'Co-author', detail: 'Write and publish research. Needs approval.' }
+];
+---
+
+<BaseLayout title={`Create an account — ${siteConfig.name}`} description="Create a BlogsPro account.">
+  <meta slot="head" name="robots" content="noindex" />
+  <AuthShell heading="Create an account" intro="Free for readers. Contributor roles are approved by the editor." idPrefix="register">
+    <form id="registerForm" class="grid gap-4" novalidate>
+      <div>
+        <label for="regName" class="auth-label">Name</label>
+        <input id="regName" type="text" autocomplete="name" required class="auth-input" />
+      </div>
+      <div>
+        <label for="regEmail" class="auth-label">Email</label>
+        <input id="regEmail" type="email" autocomplete="email" required class="auth-input" />
+      </div>
+      <div>
+        <label for="regPass" class="auth-label">Password <span class="font-normal text-ink-3">(8+ characters)</span></label>
+        <input id="regPass" type="password" autocomplete="new-password" minlength="8" required class="auth-input" />
+      </div>
+
+      <fieldset class="mt-1">
+        <legend class="auth-label">I want to</legend>
+        <div class="grid gap-2">
+          {ROLES.map((role, index) => (
+            <label class="flex gap-3 border border-rule px-3 py-2.5 cursor-pointer has-[:checked]:border-ink">
+              <input type="radio" name="role" value={role.id} checked={index === 0} class="mt-1 accent-[var(--accent)]" />
+              <span>
+                <span class="block text-sm font-medium">{role.label}</span>
+                <span class="block text-xs text-ink-3">{role.detail}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <button type="submit" id="regSubmit" class="auth-submit mt-2">Create account</button>
+    </form>
+    <p class="mt-6 text-sm text-ink-2">
+      Already have an account? <a href="/login.html" class="text-accent underline underline-offset-4">Sign in</a>
+    </p>
+  </AuthShell>
+</BaseLayout>
+
+<script is:inline type="module">
+  import { api } from '/js/services/api.js?v=vps1';
+
+  const MIN_PASSWORD_LENGTH = 8;
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const FRIENDLY_ERRORS = [
+    ['EMAIL_EXISTS', 'That email is already registered. Sign in instead.'],
+    ['INVALID_EMAIL', 'That email address is not valid.'],
+    ['WEAK_PASSWORD', 'Choose a stronger password.']
+  ];
+
+  const errorBox = document.getElementById('authError');
+  const form = document.getElementById('registerForm');
+  const submit = document.getElementById('regSubmit');
+
+  const showError = message => {
+    errorBox.textContent = message;
+    errorBox.classList.remove('hidden');
+  };
+  const friendly = message => {
+    const match = FRIENDLY_ERRORS.find(([code]) => (message || '').includes(code));
+    return match ? match[1] : message || 'Registration failed. Try again.';
+  };
+
+  api.auth.me()
+    .then(me => { if (me?.authenticated) location.replace(me.user?.role === 'admin' ? '/admin.html?v=vps1' : '/account.html?v=vps1'); })
+    .catch(() => {});
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    errorBox.classList.add('hidden');
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPass').value;
+    const role = form.querySelector('input[name="role"]:checked')?.value || 'reader';
+
+    if (!name) return showError('Enter your name.');
+    if (!EMAIL_PATTERN.test(email)) return showError('Enter a valid email address.');
+    if (password.length < MIN_PASSWORD_LENGTH) return showError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+
+    submit.disabled = true;
+    submit.textContent = 'Creating account…';
+    try {
+      await api.auth.register(name, email, password, role);
+      location.href = '/account.html?v=vps1';
+    } catch (error) {
+      showError(friendly(error?.message));
+      submit.disabled = false;
+      submit.textContent = 'Create account';
+    }
+  });
+
+  const google = document.getElementById('registerGoogle');
+  const github = document.getElementById('registerGithub');
+  google.addEventListener('click', () => { google.disabled = true; api.auth.google(`${location.origin}/login.html`); });
+  github.addEventListener('click', () => { github.disabled = true; api.auth.github(`${location.origin}/login.html`); });
+</script>

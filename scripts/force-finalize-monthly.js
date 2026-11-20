@@ -12,7 +12,7 @@ import {
     getInstitutionalSettings,
     pushTelemetryLog,
     updateIndex,
-    syncToFirestore
+    saveRecord
 } from "./lib/storage-bridge.js";
 import { askAI } from "./lib/ai-service.js";
 
@@ -79,7 +79,7 @@ async function forceFinalize(jobId, frequency = 'monthly') {
         console.log(`🗂️ [Dual-Sync] Updating Static Index & Firestore Articles...`);
         await Promise.all([
             updateIndex(entry, frequency, env),
-            syncToFirestore("articles", entry, env)
+            saveRecord("articles", entry, env)
         ]);
 
         // 4. Publish Trace
