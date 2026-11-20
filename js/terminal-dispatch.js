@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════
 import { api } from './services/api.js?v=vps1';
 import { showToast, slugify } from './config.js'; // config.js is likely in public/js/ too
+import { mountDashboardChart } from './dashboard-charts.js';
 
 let dispatchTimerInterval = null;
 let dispatchStartTime = null;
@@ -66,9 +67,9 @@ export async function dispatchSwarm(frequency = 'daily') {
  * Fetches success/failure and latency data via Proxy.
  */
 export async function updateSwarmTelemetry() {
-  const successCtx = document.getElementById('swarmSuccessChart')?.getContext('2d');
-  const latencyCtx = document.getElementById('swarmLatencyChart')?.getContext('2d');
-  if (!successCtx || !latencyCtx) return;
+  const successEl = document.getElementById('swarmSuccessChart');
+  const latencyEl = document.getElementById('swarmLatencyChart');
+  if (!successEl || !latencyEl) return;
 
   try {
     const [ledgerLogs, telemetryLogs] = await Promise.all([
@@ -96,54 +97,18 @@ export async function updateSwarmTelemetry() {
     });
     const latencyData = logs.map((l) => l.latency || Math.floor(Math.random() * 500) + 200);
 
-    // Chart.js is assumed to be globally available
-    new Chart(successCtx, {
+    // mountDashboardChart replaces the host contents, so repeat calls (nav re-entry) re-render cleanly.
+    mountDashboardChart(successEl, {
       type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Reliability (%)',
-          data: successData,
-          borderColor: '#c9a84c',
-          backgroundColor: 'rgba(201,168,76,0.1)',
-          borderWidth: 2,
-          tension: 0.4,
-          pointRadius: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.05)' } },
-          x: { display: false }
-        }
-      }
-    });
+      data: { labels, datasets: [{ label: 'Reliability (%)', data: successData, tension: 0.4 }] },
+      options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } }
+    }, { empty: 'No telemetry yet' });
 
-    new Chart(latencyCtx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Latency (ms)',
-          data: latencyData,
-          backgroundColor: 'rgba(59,130,246,0.3)',
-          borderColor: 'rgba(59,130,246,0.6)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { grid: { color: 'rgba(255,255,255,0.05)' } },
-          x: { display: false }
-        }
-      }
-    });
+    mountDashboardChart(latencyEl, {
+      type: 'column',
+      data: { labels, datasets: [{ label: 'Latency (ms)', data: latencyData }] },
+      options: { plugins: { legend: { display: false } } }
+    }, { empty: 'No telemetry yet' });
   } catch (err) {
     console.warn('[Telemetry] Load failed:', err);
   }

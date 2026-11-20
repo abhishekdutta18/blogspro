@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BlogsPro | RL-Terminal-Alpha</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bloom-bg: #0A0A0B;
@@ -202,7 +201,7 @@
         .chart-wrap {
             background: var(--bloom-panel);
             padding: 1.5rem;
-            height: 250px;
+            min-height: 250px;
         }
 
         /* --- Animations --- */
@@ -301,9 +300,7 @@
 | DXY    | 104.2       | Bearish|
 
 &lt;chart-data&gt;[[l,v]]&lt;/chart-data&gt;</pre>
-                <div id="error-donut-container" style="height: 150px; margin-top: 2rem;">
-                     <canvas id="errorDonut"></canvas>
-                </div>
+                <div id="errorDonut" style="margin-top: 2rem;"></div>
             </div>
         </div>
 
@@ -311,21 +308,22 @@
         <div class="analytics-grid">
             <div class="chart-wrap">
                 <div class="panel-header" style="margin-bottom: 1rem; background:none; border:none; padding: 0;">Performance Curve</div>
-                <canvas id="mainCurve"></canvas>
+                <div id="mainCurve"></div>
             </div>
             <div class="chart-wrap">
                 <div class="panel-header" style="margin-bottom: 1rem; background:none; border:none; padding: 0;">Vertical Success Distribution</div>
-                <canvas id="barVerticals"></canvas>
+                <div id="barVerticals"></div>
             </div>
             <div class="chart-wrap">
                 <div class="panel-header" style="margin-bottom: 1rem; background:none; border:none; padding: 0;">System Latency Pulse (Sim)</div>
-                <canvas id="latencyPulse"></canvas>
+                <div id="latencyPulse"></div>
             </div>
         </div>
     </main>
 
     <script>
-        let mainChart, barChart, donutChart, pulseChart;
+        // Classic script (inline onclick handlers call syncData), so the engine helper is loaded once via import().
+        const chartsReady = import('./js/dashboard-charts.js');
         let lastSyncTime = Date.now();
 
         async function syncData() {
@@ -412,14 +410,11 @@
                 `;
             });
 
-            renderCharts(ledger);
+            renderCharts(ledger).catch(err => console.warn('Chart render failed:', err));
         }
 
-        function renderCharts(data) {
-            const ctxCurve = document.getElementById('mainCurve').getContext('2d');
-            const ctxBar = document.getElementById('barVerticals').getContext('2d');
-            const ctxDonut = document.getElementById('errorDonut').getContext('2d');
-            const ctxPulse = document.getElementById('latencyPulse').getContext('2d');
+        async function renderCharts(data) {
+            const { mountDashboardChart } = await chartsReady;
 
             // 1. Success Curve (last 100)
             const curveLabels = data.slice(-100).map((_, i) => i);
@@ -428,52 +423,20 @@
                 if (d.type === 'SUCCESS') runningSum++;
                 return runningSum;
             });
-
-            if (mainChart) mainChart.destroy();
-            mainChart = new Chart(ctxCurve, {
+            mountDashboardChart(document.getElementById('mainCurve'), {
                 type: 'line',
-                data: {
-                    labels: curveLabels,
-                    datasets: [{
-                        label: 'Total Verified Patterns',
-                        data: curveData,
-                        borderColor: '#FFB800',
-                        borderWidth: 2,
-                        pointRadius: 0,
-                        fill: true,
-                        backgroundColor: 'rgba(255, 184, 0, 0.05)'
-                    }]
-                },
-                options: { 
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { 
-                        x: { display: false }, 
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666' } } 
-                    } 
-                }
-            });
+                data: { labels: curveLabels, datasets: [{ label: 'Total Verified Patterns', data: curveData, fill: true }] },
+                options: { plugins: { legend: { display: false } } }
+            }, { empty: 'No ledger entries yet' });
 
             // 2. Vertical Bar
             const vLabels = Object.keys(data.reduce((acc, d) => ({...acc, [d.task]: 1}), {}));
             const vData = vLabels.map(l => data.filter(d => d.task === l && d.type === 'SUCCESS').length);
-
-            if (barChart) barChart.destroy();
-            barChart = new Chart(ctxBar, {
-                type: 'bar',
-                data: {
-                    labels: vLabels.map(l => l.substring(0, 10)),
-                    datasets: [{ data: vData, backgroundColor: '#00FF94', borderRadius: 2 }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { display: false }, ticks: { color: '#666', font: { size: 9 } } },
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666' } }
-                    }
-                }
-            });
+            mountDashboardChart(document.getElementById('barVerticals'), {
+                type: 'column',
+                data: { labels: vLabels.map(l => l.substring(0, 10)), datasets: [{ label: 'Successes', data: vData }] },
+                options: { plugins: { legend: { display: false } } }
+            }, { empty: 'No verified patterns yet' });
 
             // 3. Error Donut
             const failures = {};
@@ -487,43 +450,19 @@
             });
             const fLabels = Object.keys(failures).slice(0, 5);
             const fData = fLabels.map(l => failures[l]);
-
-            if (donutChart) donutChart.destroy();
-            donutChart = new Chart(ctxDonut, {
+            mountDashboardChart(document.getElementById('errorDonut'), {
                 type: 'doughnut',
-                data: {
-                    labels: fLabels,
-                    datasets: [{ 
-                        data: fData, 
-                        backgroundColor: ['#FF4D4D', '#FFB800', '#00FF94', '#4D9BFF', '#A04DFF'],
-                        borderWidth: 0,
-                        hoverOffset: 4
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { position: 'right', labels: { color: '#666', font: { size: 10 } } } 
-                    },
-                    cutout: '70%'
-                }
-            });
+                data: { labels: fLabels, datasets: [{ label: 'Failures', data: fData }] },
+                options: { cutout: '70%' }
+            }, { empty: 'No failures recorded' });
 
             // 4. Latency Pulse (Random Visualizer)
             const pulseLabels = [...Array(30).keys()];
             const pulseData = pulseLabels.map(() => Math.random() * 5 + 2);
-            if (pulseChart) pulseChart.destroy();
-            pulseChart = new Chart(ctxPulse, {
-                type: 'line',
-                data: {
-                    labels: pulseLabels,
-                    datasets: [{ data: pulseData, borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.4 }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { x: { display: false }, y: { display: false } }
-                }
+            mountDashboardChart(document.getElementById('latencyPulse'), {
+                type: 'sparkline',
+                data: { labels: pulseLabels, datasets: [{ label: 'Latency (sim)', data: pulseData, tension: 0.4 }] },
+                options: { plugins: { legend: { display: false } } }
             });
         }
 
