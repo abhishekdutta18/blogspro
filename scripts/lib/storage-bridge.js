@@ -279,10 +279,17 @@ export async function getPendingAudits(env) {
   return [...audits].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
-/** Records a reviewer's decision on pending_audits/<id>. */
+// Audit ids come from the dashboard and Telegram callback_data. Allow only plain id
+// characters, so a crafted id can never address a document outside pending_audits.
+const AUDIT_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+
+/** Records a reviewer's decision on pending_audits/<id>. Returns false for invalid ids. */
 export async function updateAuditStatus(id, status, feedback = '', env) {
-  if (!id) return false;
-  return saveRecord('pending_audits', { status, feedback, reviewedAt: new Date().toISOString() }, env, id);
+  if (typeof id !== 'string' || !AUDIT_ID_PATTERN.test(id)) {
+    console.error('⚠️ [StorageBridge] updateAuditStatus: rejected invalid audit id');
+    return false;
+  }
+  return saveRecord('pending_audits', { status, feedback: String(feedback ?? ''), reviewedAt: new Date().toISOString() }, env, id);
 }
 
 /** Saves a pipeline artifact (manuscript, PDF, research fragment) to the media store. */
