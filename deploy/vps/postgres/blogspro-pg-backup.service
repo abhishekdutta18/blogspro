@@ -1,0 +1,22 @@
+[Unit]
+Description=BlogsPro Postgres backup (dump, restore check, encrypt, upload to R2)
+Wants=network-online.target
+After=network-online.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=oneshot
+User=postgres
+Group=postgres
+EnvironmentFile=/etc/blogspro/pg-backup.env
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+StateDirectory=blogspro-pg-backup
+StateDirectoryMode=0700
+ExecStart=/opt/blogspro-pg/backup.sh
+TimeoutStartSec=1h
+Nice=10
+IOSchedulingClass=idle
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
