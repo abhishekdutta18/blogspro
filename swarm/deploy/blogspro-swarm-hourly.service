@@ -1,0 +1,30 @@
+# /etc/systemd/system/blogspro-swarm-hourly.service — one hourly briefing run.
+# Runs as the API's user because the database directory (/var/lib/blogspro-api) is 0700.
+# AI keys live in their own env file so the always-on API process never holds them.
+[Unit]
+Description=BlogsPro hourly briefing swarm
+After=network-online.target blogspro-api.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=blogspro-api
+Group=blogspro-api
+WorkingDirectory=/opt/blogspro-swarm
+EnvironmentFile=/etc/blogspro-swarm.env
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning /opt/blogspro-swarm/bin/run.js --freq=hourly
+# Hard deadline for a degraded run (slow providers, fleet pauses). Killing it is safe:
+# the only write is one SQLite upsert at the very end. A oneshot timer never overlaps runs.
+TimeoutStartSec=15min
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/blogspro-api

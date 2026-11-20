@@ -1,0 +1,9 @@
+# blogspro-ai-proxy — AI provider keys live here as secrets, never in this file:
+#   npx wrangler secret put SWARM_PROXY_TOKEN   (shared with the swarm's env file)
+#   npx wrangler secret put GROQ_API_KEY        (and SAMBANOVA_API_KEY, MISTRAL_API_KEY, OPENROUTER_KEY)
+# Deliberately its own config: deploy-pulse.yml does not deploy it, so a push to main
+# can never ship it with different code than what was reviewed here.
+name = "blogspro-ai-proxy"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+workers_dev = true

@@ -1,0 +1,12 @@
+# /etc/systemd/system/blogspro-swarm-hourly.timer — five past every hour, IST.
+# Persistent=true runs a missed slot once after the VPS comes back.
+[Unit]
+Description=Run the BlogsPro hourly briefing swarm
+
+[Timer]
+OnCalendar=*-*-* *:05:00 Asia/Kolkata
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target
