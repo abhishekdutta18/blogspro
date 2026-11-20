@@ -347,27 +347,78 @@ async function generateCerebrasContent(prompt, model = DEFAULT_CEREBRAS_MODEL, c
     return completion.choices[0].message.content;
 }
 
-async function generateCloudflareContent(prompt, model = "@cf/meta/llama-3.1-8b-instruct", context = {}) {
-    const accountId = context?.CF_ACCOUNT_ID || process.env.CF_ACCOUNT_ID;
-    const apiToken = context?.CF_API_TOKEN || process.env.CF_API_TOKEN;
-    if (!accountId || !apiToken) throw new Error("Cloudflare Credentials missing.");
+/** Workers AI caps replies at 256 tokens unless asked for more; briefings need far longer output. */
+const CLOUDFLARE_MAX_TOKENS = 4096;
+const DEFAULT_CLOUDFLARE_MODEL = process.env.CLOUDFLARE_AI_MODEL || "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+
+/** Cloudflare credentials: a scoped API token, or the account's global API key plus email. Null when neither is set. */
+function cloudflareAuth(context = {}) {
+    const read = (...names) => names.map((n) => context?.[n] || process.env[n]).find(Boolean);
+    const accountId = read('CF_ACCOUNT_ID', 'CLOUDFLARE_ACCOUNT_ID');
+    if (!accountId) return null;
+    const token = read('CF_API_TOKEN', 'CLOUDFLARE_API_TOKEN');
+    if (token) return { accountId, headers: { "Authorization": `Bearer ${token}` } };
+    const email = read('CLOUDFLARE_EMAIL');
+    const globalKey = read('CLOUDFLARE_API_KEY');
+    if (email && globalKey) return { accountId, headers: { "X-Auth-Email": email, "X-Auth-Key": globalKey } };
+    return null;
+}
+
+export async function generateCloudflareContent(prompt, model = DEFAULT_CLOUDFLARE_MODEL, context = {}) {
+    const auth = cloudflareAuth(context);
+    if (!auth) throw new Error("Cloudflare Credentials missing.");
 
     const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
-    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`, {
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${auth.accountId}/ai/run/${model}`, {
         method: "POST",
-        headers: { "Authorization": `Bearer ${apiToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [{ role: "user", content: promptStr }] })
+        headers: { ...auth.headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: [{ role: "user", content: promptStr }], max_tokens: CLOUDFLARE_MAX_TOKENS })
     });
     if (!res.ok) {
         const errText = await res.text().catch(() => "");
-        throw new Error(`Cloudflare AI Error: ${res.status} - ${errText}`);
+        throw new Error(`Cloudflare AI Error: ${res.status} - ${errText.slice(0, 300)}`);
     }
     const data = await res.json();
-    const result = data.result?.response || data.result?.text;
+    const result = data.result?.choices?.[0]?.message?.content || data.result?.response || data.result?.text;
     if (!result) {
-        throw new Error(`Cloudflare AI returned empty result: ${JSON.stringify(data)}`);
+        throw new Error(`Cloudflare AI returned empty result: ${JSON.stringify(data).slice(0, 300)}`);
     }
     return result;
+}
+
+const GITHUB_MODELS_URL = "https://models.github.ai/inference/chat/completions";
+/** Low-tier GitHub Models allow ~150 requests/day and 8k input tokens per request on the free plan. */
+const DEFAULT_GITHUB_MODEL = process.env.GITHUB_MODELS_MODEL || "openai/gpt-4.1-mini";
+
+function githubModelsToken(context = {}) {
+    return context?.GITHUB_MODELS_TOKEN || process.env.GITHUB_MODELS_TOKEN || context?.GH_PAT || process.env.GH_PAT || null;
+}
+
+export async function generateGitHubModelsContent(prompt, model = DEFAULT_GITHUB_MODEL, context = {}) {
+    const token = githubModelsToken(context);
+    if (!token) throw new Error("GitHub Models token missing (GITHUB_MODELS_TOKEN or GH_PAT).");
+
+    const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
+    const res = await fetch(GITHUB_MODELS_URL, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model, messages: [{ role: "user", content: promptStr }] })
+    });
+    if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`GitHub Models Error: ${res.status} - ${errText.slice(0, 300)}`);
+    }
+    const data = await res.json();
+    const result = data.choices?.[0]?.message?.content;
+    if (!result) throw new Error(`GitHub Models returned empty result: ${JSON.stringify(data).slice(0, 300)}`);
+    return result;
+}
+
+/** Drops nodes whose name contains any family in a comma list (AI_DISABLED_PROVIDERS), e.g. "gemini". */
+export function filterDisabledProviders(pool, disabledList = '') {
+    const families = String(disabledList).split(',').map((f) => f.trim().toLowerCase()).filter(Boolean);
+    if (families.length === 0) return pool;
+    return pool.filter((node) => !families.some((family) => node.name.toLowerCase().includes(family)));
 }
 
 async function generateHuggingFaceContent(prompt, model = "mistralai/Mistral-7B-Instruct-v0.3", context = {}) {
@@ -737,8 +788,12 @@ export const ResourceManager = {
 
 
         // TIER 3: RESILIENCE FALLBACKS
-        if (activeKeys.Cloudflare) {
-             this.pool.push({ name: 'Cloudflare', fn: generateCloudflareContent, tier: 3, roles: ['utility'], match: /cloudflare|node-utility/i }); 
+        // Free tiers that need no billing: Cloudflare Workers AI (10k neurons/day) and GitHub Models.
+        if (cloudflareAuth(env)) {
+             this.pool.push({ name: 'Cloudflare-Workers-AI', fn: (p, m, c) => generateCloudflareContent(p, DEFAULT_CLOUDFLARE_MODEL, { ...env, ...c }), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate', 'utility', 'manager', 'consolidate'], match: /cloudflare|workers-ai|llama|node-utility|node-editor|node-research|node-draft|node-generate/i });
+        }
+        if (githubModelsToken(env)) {
+             this.pool.push({ name: 'GitHub-Models', fn: (p, m, c) => generateGitHubModelsContent(p, DEFAULT_GITHUB_MODEL, { ...env, ...c }), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate', 'manager', 'consolidate'], match: /github|gpt|openai|node-editor|node-research|node-draft|node-generate/i });
         }
         if (activeKeys.HuggingFace) {
              this.pool.push({ name: 'HuggingFace', fn: generateHuggingFaceContent, tier: 3, roles: ['utility'], match: /huggingface|hf|node-utility/i });
@@ -778,6 +833,11 @@ export const ResourceManager = {
             console.log("🏙️ [AI-Balancer] Institutional Bridge & Proxy Nodes Active. (V15.5 Hardened)");
         }
         
+        const disabled = env.AI_DISABLED_PROVIDERS || process.env.AI_DISABLED_PROVIDERS || '';
+        if (disabled) {
+            this.pool = filterDisabledProviders(this.pool, disabled);
+            console.log(`🚫 [AI-Balancer] Providers disabled by AI_DISABLED_PROVIDERS: ${disabled}`);
+        }
         this.pool.forEach(p => this.inflight.set(p.name, 0));
         console.log(`🌐 [AI-Balancer] V5.4.1 Pool initialized (${this.pool.length} nodes): ${this.pool.map(p => p.name).join(', ')}`);
         
@@ -975,8 +1035,9 @@ export async function askAI(prompt, options = {}) {
     if (targetModel && targetModel !== 'auto') {
         const hasCandidate = ResourceManager.pool.some(p => p.match && p.match.test(targetModel));
         if (!hasCandidate) {
-            console.error(`🚫 [AI-PreFlight] CRITICAL: Manual model override '${targetModel}' is unavailable (likely missing API Key).`);
-            throw new Error(`[AI-Fleet-Fatal] Manual model override '${targetModel}' is not present in the active pool. Check your GHA Secrets.`);
+            // Routing and callers name models that may be disabled or keyless; serve the role from the rest of the fleet.
+            console.warn(`⚠️ [AI-PreFlight] No node serves '${targetModel}'. Falling back to any node for role '${role}'.`);
+            targetModel = 'auto';
         }
     }
 
