@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-21",
+    "timestamp": 1795208694483,
+    "excerpt": "SOFR sits at 5.35% on 20 Nov 2026, a 250 bps premium to the 2025 LFY average of 5.10%; overnight repo spreads have widened to 32 bps versus 25 bps in 2025, reflecting a 28 % liquidity premium. Dark‑pool net shorts on the S&P 500 reached 2.4 B contrac...",
+    "fileName": "swarm-hourly-1795208694475.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015) | SEBI:  | GLOBAL: BLOOMBERG | SpaceX Sells $32 Billion of AI Chip Debt at Yields Topping 8% - Bloomberg.com | BLOOMBERG | Indian Billionaire Raises $720 Million Private Credit for Megha Buyout - Bloomberg.com | BLOOMBERG | UBS Plans to Shift Hundreds of Roles to India in Offshoring Push - Bloomberg.com | FT | The AI fever in markets is breaking - Financial Times | FT | Oil loses grip on bond markets as inflation ‘virus’ spreads - Financial Times | FT | So, Anthropic is finally a public company. What now? - Financial Times | REUTERS | EXCLUSIVE: Citi underestimated risky assets by $35 billion after incorrectly recording trades, sources say - Reuters | REUTERS | Anthropic's blockbuster debut tests Wall Street's faith in AI boom - Reuters | REUTERS | ECB to make euro swaps more accessible in global push, Lagarde says - Reuters | CNBC | Prediction markets outlook for stocks in 2026 dims amid AI sell-off - CNBC | CNBC | Anthropic could be tipping point for AI trade. Where investors should go from here - CNBC | CNBC | We’re making another small buy as the market sell-off deepens - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia",
+      "rbi": "Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Conversion/Switch of State Government Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017"
+        },
+        {
+          "title": "RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016"
+        },
+        {
+          "title": "RBI imposes monetary penalty on Fusion Finance Limited",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-21",
     "timestamp": 1795205647400,
     "excerpt": "As of November 20, 2026, our high-compute simulations indicate a heightened state of structural fragility in the global financial system, with a pronounced emphasis on tail risks and liquidity friction. The current SOFR (Secured Overnight Financing R...",
     "fileName": "swarm-hourly-1795205647392.html",
