@@ -58,3 +58,14 @@ test("getInngestClient takes the signing key from env only", () => {
   const withoutKey = getInngestClient({});
   assert.equal(withoutKey.signingKey, undefined);
 });
+
+test("deploy workflow pushes the moved secrets from GitHub secrets", () => {
+  const wf = readFileSync(path.join(ROOT, ".github/workflows/deploy-pulse.yml"), "utf8");
+  for (const name of ["INNGEST_EVENT_KEY", "INNGEST_SIGNING_KEY"]) {
+    assert.match(wf, new RegExp(`\\$\\{\\{ secrets\\.${name} \\}\\}`), `${name} not read from GitHub secrets`);
+    assert.match(wf, new RegExp(`wrangler secret put ${name} \\$OPTS`), `${name} not pushed to pulse`);
+  }
+  for (const name of ["SWARM_INTERNAL_TOKEN", "TELEGRAM_BOT_TOKEN", "TELEGRAM_ADMIN_CHAT_ID"]) {
+    assert.match(wf, new RegExp(`wrangler secret put ${name} --env hil-station`), `${name} not pushed to hil-station`);
+  }
+});
