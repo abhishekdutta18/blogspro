@@ -1,15 +1,48 @@
 import { extractChartBlocks, chartPageAssets } from "../../js/chart-engine/index.js";
 import { reportChartFailures, reportChartDegradations } from "./chart-telemetry.js";
+import { escapeHtml, renderLink, shieldMarkup } from "./html-sanitizer.js";
 
+const MD_LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
+
+/** A whole cell that is a signed change: "+0.25", "-18bps", "▲ 2%", "−3.5" (U+2212). */
+const DELTA_CELL_RE = /^([+\-−▲▼])\s*([$₹]?\d[\d,]*(?:\.\d+)?\s*(?:%|bps|bp|pp)?)$/i;
+const UP_SIGNS = new Set(['+', '▲']);
+const DELTA_UP_STYLE = 'color:#00D166; font-weight:700;';
+const DELTA_DOWN_STYLE = 'color:#FF3B30; font-weight:700;';
+
+/**
+ * Table body cell. Only a cell that is entirely a signed number gets ▲/▼ styling, so labels,
+ * dates and links containing '-' or '+' ("10Y G-Sec", "2026-11-15", "AA+") render untouched.
+ * @param {string} cell  escaped cell text (may contain shield tokens)
+ * @param {(match: string, label: string, url: string) => string} toLink  markdown link renderer
+ * @returns {string} cell HTML
+ */
+function formatTableCell(cell, toLink) {
+    const delta = cell.match(DELTA_CELL_RE);
+    if (delta) {
+        const isUp = UP_SIGNS.has(delta[1]);
+        return `<span style="${isUp ? DELTA_UP_STYLE : DELTA_DOWN_STYLE}">${isUp ? '▲' : '▼'} ${delta[2]}</span>`;
+    }
+    // Numbers render as written: units can't be inferred from magnitude (6.25% is not "$6.25").
+    return cell.replace(MD_LINK_RE, toLink);
+}
+
+/**
+ * Markdown -> HTML for untrusted LLM output.
+ * Raw HTML is reduced to an allowlist and shielded behind tokens before any markdown regex runs
+ * (see html-sanitizer.js), so every transform below only ever sees escaped text.
+ */
 function parseMD(md) {
     if (!md) return "";
-    
-    let processed = md
+
+    const cleaned = md
         .replace(/SENTIMENT_SCORE:\s*[\d\w\[\]\/\-\s]*/gi, '')
         .replace(/PRICE_INFO:\s*[\d\w\:\.\,\|\s\[\]\(\)\-\%]*/gi, '')
         .replace(/Weekend Price Info:\s*[\d\w\:\.\,\|\s\[\]\(\)\-\%]*/gi, '')
         .replace(/--- SYSTEM CONTEXT ---[\s\S]*?--- UNIVERSAL NEWS ---/gi, '')
         .trim();
+    const { text: processed, stash, restore } = shieldMarkup(cleaned);
+    const toLink = (_, label, url) => renderLink(label, url, stash);
 
     const lines = processed.split('\n');
     let inTable = false;
@@ -45,22 +78,7 @@ function parseMD(md) {
                 tableHtml = '<div class="table-container"><table><thead><tr>' + 
                             cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
             } else if (!isSeparator) {
-                tableHtml += '<tr>' + cols.map(c => {
-                    let content = c;
-                    content = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-                    
-                    const numRegex = /^\d[\d,.]*$/;
-                    if (numRegex.test(c.replace(/[%$₹,.]/g, ''))) {
-                        if (!c.includes('%') && !c.includes('$') && !c.includes('₹')) {
-                            if (parseFloat(c.replace(/,/g,'')) > 1000) content = `₹${c}`;
-                            else content = `$${c}`;
-                        }
-                    }
-
-                    if (c.includes('+') || c.includes('▲')) content = `<span style="color:#00D166; font-weight:700;">▲ ${c.replace(/[\+\^▲]/g,'')}</span>`;
-                    else if (c.includes('-') || c.includes('▼')) content = `<span style="color:#FF3B30; font-weight:700;">▼ ${c.replace(/[\-\▼]/g,'')}</span>`;
-                    return `<td>${content}</td>`;
-                }).join('') + '</tr>';
+                tableHtml += '<tr>' + cols.map(c => `<td>${formatTableCell(c, toLink)}</td>`).join('') + '</tr>';
             }
         } else {
             if (inTable) {
@@ -78,11 +96,13 @@ function parseMD(md) {
         .replace(/^[#\s]*### (.*$)/gim, '<h3>$1</h3>')
         .replace(/^[#\s]*## (.*$)/gim, '<h2>$1</h2>')
         .replace(/^[#\s]*# (.*$)/gim, '<h1>$1</h1>')
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+        .replace(MD_LINK_RE, toLink)
         .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
         .replace(/^\- (.*$)/gim, '<li>$1</li>')
         .replace(/---/g, '<hr class="institutional-divider">');
-        
+    // Tags come back only now: block detection below needs them, the inline regexes must not see them.
+    finalHtml = restore(finalHtml);
+
     finalHtml = finalHtml.split('\n\n').map(block => {
         const trimmed = block.trim();
         if (!trimmed) return '';
@@ -109,16 +129,33 @@ function renderBody(md, chartOptions = {}) {
     return restore(parseMD(text)) + assets;
 }
 
+/**
+ * Escape every payload field interpolated into a page shell. Model-generated title/excerpt are
+ * untrusted; freq/rel/dateLabel are escaped too so no caller has to reason about their origin.
+ */
+function escapeShellFields({ title, excerpt, dateLabel, freq, rel }) {
+    return {
+        title: escapeHtml(title),
+        excerpt: escapeHtml(excerpt),
+        dateLabel: escapeHtml(dateLabel),
+        freq: escapeHtml(String(freq ?? "").toUpperCase()),
+        rel: escapeHtml(rel),
+    };
+}
+
+/**
+ * `scripts` is trusted, caller-supplied markup (never model output) and is inserted verbatim.
+ */
 function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileName, rel = "../../", sentimentScore = 50, priceInfo = { last: "0", high: "0", low: "0" }, scripts = "" }) {
-    const seoDescription = excerpt || "Institutional Strategic Manuscript - 16-Vertical Specialized Market Synthesis.";
     const finalBody = renderBody(content);
+    const safe = escapeShellFields({ title, excerpt, dateLabel, freq, rel });
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} | Nexus Institutional Terminal</title>
+    <title>${safe.title} | Nexus Institutional Terminal</title>
     <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -181,14 +218,14 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
 </head>
 <body>
     <a href="/" class="global-logo" title="Back to Intelligence Hub">
-        <img src="${rel}favicon.svg" alt="Nexus Icon">
+        <img src="${safe.rel}favicon.svg" alt="Nexus Icon">
     </a>
 
     <div class="app-container">
         <main class="main-content">
-            <div class="status-tag">${freq.toUpperCase()} STRATEGIC MANUSCRIPT • ${dateLabel}</div>
-            <h1>${title}</h1>
-            <div class="excerpt">${excerpt}</div>
+            <div class="status-tag">${safe.freq} STRATEGIC MANUSCRIPT • ${safe.dateLabel}</div>
+            <h1>${safe.title}</h1>
+            <div class="excerpt">${safe.excerpt}</div>
             
             <div class="institutional-adsense">
                 <div class="ads-label">COMMERCIAL PROTOCOL</div>
@@ -255,12 +292,12 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
 function getEmailTemplate({ title, excerpt, content, dateLabel, fileName, freq, priceInfo = { last: "N/A", high: "N/A", low: "N/A" } }) {
     const finalBody = renderBody(content, { target: 'email' }); // Gmail/Outlook strip inline SVG: charts ship as tables
     return `<!DOCTYPE html><html><body style="background: #050505; color: #D1D5DB; font-family: sans-serif; padding: 20px;">
-        <h1 style="color: #F8FAFC;">${title}</h1>
-        <div style="border-left: 4px solid #FFB800; padding-left: 15px; margin: 20px 0;">${excerpt}</div>
+        <h1 style="color: #F8FAFC;">${escapeHtml(title)}</h1>
+        <div style="border-left: 4px solid #FFB800; padding-left: 15px; margin: 20px 0;">${escapeHtml(excerpt)}</div>
         <div>${finalBody}</div>
     </body></html>`;
 }
 
 import { getApexTemplate } from './apex-template.js';
 
-export { getBaseTemplate, getEmailTemplate, getApexTemplate, parseMD, renderBody };
+export { getBaseTemplate, getEmailTemplate, getApexTemplate, parseMD, renderBody, escapeShellFields };
