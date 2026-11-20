@@ -106,6 +106,25 @@ Append-only event tables with 30-day retention: `telemetry_events`, which merges
 swarm_telemetry and telemetry_logs, plus `swarm_fragments`, `audits` (pending_audits
 and institutional_audits) and `pulse_briefings`.
 
+## Compute placement
+
+The user's direction on 2026-11-20 was to move computational load onto the VPS.
+Postgres is localhost-only, so the rule is: **anything that reads or writes
+BlogsPro data runs on blogspro-ai-vps.** Anything that only shapes edge
+responses stays on Cloudflare.
+
+| Workload | Today | After |
+|---|---|---|
+| Hourly, daily and weekly generation and the static build | VPS (`blogspro-pulse@` timers) | unchanged |
+| `manual-dispatch.yml`: daily generation at 05:00 UTC on Actions | duplicates the VPS daily pulse, failed each of the last 3 days, writes Firestore | **Stage 1: remove the schedule.** Manual runs use `sudo systemctl start blogspro-pulse@daily` |
+| `deploy.yml`: `build-static` and `generate-sitemap` on push (GitHub Pages) | reads Firestore; Cloudflare's origin is nginx, not Pages | **Stage 1: drop the data build steps.** The VPS pulse owns builds |
+| Data Workers: newsletter, sentry-webhook, auth-proxy, data-hub, pulse, hil/telegram | Cloudflare, calling the Firestore REST API | **Stage 2: become routes in `blogspro-api` or VPS timers** with direct DB access. No internal service-token API is needed |
+| SEO worker (`api/seo-worker.js`) | Cloudflare, reads posts from Firestore | **Stays at the edge.** Reads a static `posts-index.json` that `build-static` writes, so page views never wait on the API |
+| kv-cache, upstox, the miro Durable Objects | Cloudflare, no Firestore | unchanged |
+
+Any new scheduled job that writes `/var/www/blogspro` takes
+`flock /var/lib/blogspro-pulse/run.lock`, the same lock the pulse uses.
+
 ## Stages (one PR each, each VPS deploy approved by you)
 
 0. **Postgres on the VPS:** `deploy/vps/postgres/`.
