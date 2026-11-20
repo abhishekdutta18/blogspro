@@ -715,6 +715,43 @@ export async function getPendingAuditsREST(env) {
   }
 }
 
+// Firestore document ids from callers (dashboard, Telegram callback_data) go into a URL path.
+// Allow only plain id characters so "../" or "?" cannot redirect the PATCH to another document.
+const AUDIT_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+
+/**
+ * Sets status/feedback on a pending_audits document via the Firestore REST API.
+ * Used by scripts/hil-worker.js (dashboard approve/reject and Telegram callbacks).
+ * Restored after it was dropped by accident in c0fb7f5b; ids are now validated.
+ */
+export async function updateAuditStatusREST(docId, status, feedback = "", env) {
+  if (!env || !env.FIREBASE_PROJECT_ID) return;
+  if (typeof docId !== "string" || !AUDIT_ID_PATTERN.test(docId)) {
+    console.error("⚠️ [StorageBridge] updateAuditStatusREST: rejected invalid audit id");
+    return;
+  }
+  const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/pending_audits/${docId}?updateMask.fieldPaths=status&updateMask.fieldPaths=feedback&updateMask.fieldPaths=updatedAt`;
+
+  try {
+    const headers = { "Content-Type": "application/json" };
+    const token = await getGoogleAccessToken(env);
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const payload = {
+      fields: {
+        status: { stringValue: status },
+        feedback: { stringValue: String(feedback ?? "") },
+        updatedAt: { timestampValue: new Date().toISOString() }
+      }
+    };
+
+    const res = await fetch(url, { method: "PATCH", headers, body: JSON.stringify(payload) });
+    if (!res.ok) console.error(`❌ [StorageBridge] Update Audit REST Fail (${docId}):`, await res.text());
+  } catch (e) {
+    console.error("⚠️ [StorageBridge] updateAuditStatusREST Error:", e.message);
+  }
+}
+
 /**
  * 🛰️ [V10.1] Google Drive Rocket-Bucket Bridge
  * Saves a file to a specific Google Drive folder (Bucket).
