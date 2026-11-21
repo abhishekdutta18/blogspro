@@ -106,7 +106,10 @@ function mapLegacyModel(model) {
     return model;
 }
 
-async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", context = {}) {
+/** Groq retired its Llama 3.x ids for this account; free-tier chat models are gpt-oss and qwen. GROQ_MODEL overrides. */
+const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+
+export async function generateGroqContent(prompt, model = DEFAULT_GROQ_MODEL, context = {}) {
     const key = context?.GROQ_API_KEY || process.env.GROQ_API_KEY;
     if (!key) throw new Error("GROQ_API_KEY missing.");
 
@@ -115,12 +118,9 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
 
     // Sanitization: Ensure model is valid for Groq
     if (model === "llama3.1-8b") model = "llama-3.1-8b-instant";
-    const groqCompatible = [
-        'llama', 'mixtral', 'gemma', 'whisper', 'distil-', 
-        'gpt-oss', 'qwen', 'allam', 'orpheus', 'compound'
-    ];
+    const groqCompatible = ['gpt-oss', 'qwen', 'allam', 'compound'];
     if (!groqCompatible.some(prefix => model?.toLowerCase().includes(prefix))) {
-        model = "llama-3.3-70b-versatile";
+        model = DEFAULT_GROQ_MODEL;
     }
 
     const controller = new AbortController();
@@ -164,7 +164,7 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
                         const ocrResult = await generateGroqContent(`
                             TASK: Extract all institutional metrics, tables, and financial data.
                             CHART RULE: Identify any charts, plots, or data series.
-                        `, "llama-3.1-70b-versatile", { ...context, vision_payload: doc });
+                        `, DEFAULT_GROQ_MODEL, { ...context, vision_payload: doc });
                         messages.push({ role: "tool", tool_call_id: toolCall.id, content: ocrResult });
                     } else {
                         messages.push({ role: "tool", tool_call_id: toolCall.id, content: "Error: Document unreachable." });
@@ -180,7 +180,8 @@ async function generateGroqContent(prompt, model = "llama-3.3-70b-versatile", co
         }
 
         if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
-        throw new Error(`Groq API Error: ${data.error?.message || "Unknown error"}`);
+        // Keep the status and code so markFailure can tell rate limits (cooldown) from dead keys (blacklist).
+        throw new Error(`Groq API Error: ${res.status} ${data.error?.code || ''} - ${data.error?.message || "Unknown error"}`);
     } catch (err) {
         throw err;
     } finally {
@@ -326,17 +327,17 @@ async function generateSambaNovaContent(prompt, model = "Meta-Llama-3.3-70B-Inst
     return data.choices[0].message.content;
 }
 
-async function generateCerebrasContent(prompt, model = "zai-glm-4.7", context = {}) {
+/** Cerebras retired zai-glm-4.7 (2026-11); override with CEREBRAS_MODEL when the catalogue changes again. */
+const DEFAULT_CEREBRAS_MODEL = process.env.CEREBRAS_MODEL || "gpt-oss-120b";
+
+async function generateCerebrasContent(prompt, model = DEFAULT_CEREBRAS_MODEL, context = {}) {
     const key = context?.CEREBRAS_API_KEY || process.env.CEREBRAS_API_KEY;
     if (!key) throw new Error("CEREBRAS_API_KEY missing.");
     
     // [V21.0] Prompt Sanitizer: Normalize to string
     const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
 
-    let targetModel = "zai-glm-4.7";
-    if (model?.toLowerCase().includes("120b") || model?.toLowerCase().includes("oss")) {
-        targetModel = "gpt-oss-120b";
-    }
+    const targetModel = model || DEFAULT_CEREBRAS_MODEL;
 
     const client = new Cerebras({ apiKey: key });
     const completion = await client.chat.completions.create({
@@ -347,27 +348,78 @@ async function generateCerebrasContent(prompt, model = "zai-glm-4.7", context = 
     return completion.choices[0].message.content;
 }
 
-async function generateCloudflareContent(prompt, model = "@cf/meta/llama-3.1-8b-instruct", context = {}) {
-    const accountId = context?.CF_ACCOUNT_ID || process.env.CF_ACCOUNT_ID;
-    const apiToken = context?.CF_API_TOKEN || process.env.CF_API_TOKEN;
-    if (!accountId || !apiToken) throw new Error("Cloudflare Credentials missing.");
+/** Workers AI caps replies at 256 tokens unless asked for more; briefings need far longer output. */
+const CLOUDFLARE_MAX_TOKENS = 4096;
+const DEFAULT_CLOUDFLARE_MODEL = process.env.CLOUDFLARE_AI_MODEL || "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+
+/** Cloudflare credentials: a scoped API token, or the account's global API key plus email. Null when neither is set. */
+function cloudflareAuth(context = {}) {
+    const read = (...names) => names.map((n) => context?.[n] || process.env[n]).find(Boolean);
+    const accountId = read('CF_ACCOUNT_ID', 'CLOUDFLARE_ACCOUNT_ID');
+    if (!accountId) return null;
+    const token = read('CF_API_TOKEN', 'CLOUDFLARE_API_TOKEN');
+    if (token) return { accountId, headers: { "Authorization": `Bearer ${token}` } };
+    const email = read('CLOUDFLARE_EMAIL');
+    const globalKey = read('CLOUDFLARE_API_KEY');
+    if (email && globalKey) return { accountId, headers: { "X-Auth-Email": email, "X-Auth-Key": globalKey } };
+    return null;
+}
+
+export async function generateCloudflareContent(prompt, model = DEFAULT_CLOUDFLARE_MODEL, context = {}) {
+    const auth = cloudflareAuth(context);
+    if (!auth) throw new Error("Cloudflare Credentials missing.");
 
     const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
-    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`, {
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${auth.accountId}/ai/run/${model}`, {
         method: "POST",
-        headers: { "Authorization": `Bearer ${apiToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [{ role: "user", content: promptStr }] })
+        headers: { ...auth.headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: [{ role: "user", content: promptStr }], max_tokens: CLOUDFLARE_MAX_TOKENS })
     });
     if (!res.ok) {
         const errText = await res.text().catch(() => "");
-        throw new Error(`Cloudflare AI Error: ${res.status} - ${errText}`);
+        throw new Error(`Cloudflare AI Error: ${res.status} - ${errText.slice(0, 300)}`);
     }
     const data = await res.json();
-    const result = data.result?.response || data.result?.text;
+    const result = data.result?.choices?.[0]?.message?.content || data.result?.response || data.result?.text;
     if (!result) {
-        throw new Error(`Cloudflare AI returned empty result: ${JSON.stringify(data)}`);
+        throw new Error(`Cloudflare AI returned empty result: ${JSON.stringify(data).slice(0, 300)}`);
     }
     return result;
+}
+
+const GITHUB_MODELS_URL = "https://models.github.ai/inference/chat/completions";
+/** Low-tier GitHub Models allow ~150 requests/day and 8k input tokens per request on the free plan. */
+const DEFAULT_GITHUB_MODEL = process.env.GITHUB_MODELS_MODEL || "openai/gpt-4.1-mini";
+
+function githubModelsToken(context = {}) {
+    return context?.GITHUB_MODELS_TOKEN || process.env.GITHUB_MODELS_TOKEN || context?.GH_PAT || process.env.GH_PAT || null;
+}
+
+export async function generateGitHubModelsContent(prompt, model = DEFAULT_GITHUB_MODEL, context = {}) {
+    const token = githubModelsToken(context);
+    if (!token) throw new Error("GitHub Models token missing (GITHUB_MODELS_TOKEN or GH_PAT).");
+
+    const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
+    const res = await fetch(GITHUB_MODELS_URL, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model, messages: [{ role: "user", content: promptStr }] })
+    });
+    if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`GitHub Models Error: ${res.status} - ${errText.slice(0, 300)}`);
+    }
+    const data = await res.json();
+    const result = data.choices?.[0]?.message?.content;
+    if (!result) throw new Error(`GitHub Models returned empty result: ${JSON.stringify(data).slice(0, 300)}`);
+    return result;
+}
+
+/** Drops nodes whose name contains any family in a comma list (AI_DISABLED_PROVIDERS), e.g. "gemini". */
+export function filterDisabledProviders(pool, disabledList = '') {
+    const families = String(disabledList).split(',').map((f) => f.trim().toLowerCase()).filter(Boolean);
+    if (families.length === 0) return pool;
+    return pool.filter((node) => !families.some((family) => node.name.toLowerCase().includes(family)));
 }
 
 async function generateHuggingFaceContent(prompt, model = "mistralai/Mistral-7B-Instruct-v0.3", context = {}) {
@@ -416,7 +468,7 @@ async function generateOpenRouterContent(prompt, model = "mistralai/mistral-7b-i
     return data.choices[0].message.content;
 }
 
-async function generateInstitutionalBridgeContent(prompt, model = "llama-3.3-70b-versatile", context = {}) {
+export async function generateInstitutionalBridgeContent(prompt, model = "llama-3.3-70b-versatile", context = {}) {
     const bridgeUrl = context?.SWARM_AI_BRIDGE || process.env.SWARM_AI_BRIDGE;
     const vaultKey = context?.VAULT_MASTER_KEY || process.env.VAULT_MASTER_KEY;
     if (!bridgeUrl) throw new Error("SWARM_AI_BRIDGE URL missing.");
@@ -441,9 +493,22 @@ async function generateInstitutionalBridgeContent(prompt, model = "llama-3.3-70b
         },
         body: JSON.stringify({ prompt, model, provider, role: context.role || 'research' })
     });
-    if (!res.ok) throw new Error(`Bridge Error: ${res.status}`);
+    if (!res.ok) throw new Error(`Bridge Error: ${res.status}${await bridgeErrorDetail(res)}`);
     const data = await res.json();
     return data.response;
+}
+
+/** Upstream error text from a failed bridge response (" - <message>"), so callers can tell dead keys from outages. */
+async function bridgeErrorDetail(res) {
+    const body = await res.text().catch(() => '');
+    if (!body) return '';
+    try {
+        const parsed = JSON.parse(body);
+        const message = typeof parsed.error === 'string' ? parsed.error : parsed.error?.message;
+        return ` - ${String(message || body).slice(0, 300)}`;
+    } catch {
+        return ` - ${body.slice(0, 300)}`;
+    }
 }
 
 /**
@@ -551,10 +616,29 @@ async function generateVertexModelGardenContent(prompt, model = "meta/llama3-405
 async function directDialAnchor(prompt, model, role, env) {
     console.warn(`⚓ [AI-Balancer] Emergency Direct-Dial to Anchor engaged for ${role}.`);
     if (model?.includes('gemini')) return generateGeminiContent(prompt, model, { env });
-    return generateCerebrasContent(prompt, "zai-glm-4.7", { env });
+    return generateCerebrasContent(prompt, DEFAULT_CEREBRAS_MODEL, { env });
 }
 
 // --- Balancer and Dispatch Logic ---
+/**
+ * Error text that means a provider cannot recover within this run: bad or revoked keys, unpaid plans,
+ * closed billing, retired models. Anything else (5xx without detail, network errors) is treated as temporary.
+ */
+const TERMINAL_ERROR_PATTERNS = [
+    '401', '402', '403', '404', 'Unauthorized', 'API key', 'Authentication', 'permission', 'NOT_FOUND', 'Not Found',
+    'PERMISSION_DENIED', 'Invalid Key', 'Invalid API Key', 'invalid_api_key', 'CREDIT_EXHAUSTED', 'DAILY_QUOTA_EXCEEDED',
+    'QUOTA_EXCEEDED', '4018', // ERR_NGROK_4018
+    'does not exist', 'archived', 'Payment required', 'payment_required', 'User not found', 'billing account',
+];
+
+/** How long revaluateFleet keeps a terminally failed node out; longer than the longest daily run. */
+const TERMINAL_BLACKLIST_MS = 60 * 60 * 1000;
+
+/** True when a provider error means the node is dead for this run and must be blacklisted, not retried. */
+export function isTerminalProviderError(message = '') {
+    return TERMINAL_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+}
+
 export const ResourceManager = {
     inflight: new Map(),
     failedAt: new Map(),
@@ -638,10 +722,10 @@ export const ResourceManager = {
             this.pool.push({ name: 'DeepSeek-V3-MoE', fn: (p, m, c) => generateSambaNovaContent(p, "DeepSeek-V3.1", c), tier: 1, roles: ['research', 'edit', 'generate'], match: /deepseek|v3|reasoning/i });
         }
         if (activeKeys.Cerebras) {
-            this.pool.push({ name: 'Cerebras-GLM-4.7', fn: (p, m, c) => generateCerebrasContent(p, "zai-glm-4.7", c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /cerebras|glm|node-generate|node-draft/i });
+            this.pool.push({ name: 'Cerebras', fn: (p, m, c) => generateCerebrasContent(p, DEFAULT_CEREBRAS_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /cerebras|glm|node-generate|node-draft/i });
         }
         if (activeKeys.Groq) {
-            this.pool.push({ name: 'Groq-70B-Versatile', fn: (p, m, c) => generateGroqContent(p, m || "llama-3.3-70b-versatile", c), tier: 1, roles: ['research', 'edit', 'draft', 'generate'], match: /groq|node-research|node-edit|node-draft|node-generate|llama/i });
+            this.pool.push({ name: 'Groq', fn: (p, m, c) => generateGroqContent(p, DEFAULT_GROQ_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'generate'], match: /groq|node-research|node-edit|node-draft|node-generate|llama/i });
             // this.pool.push({ name: 'Llama-4-Scout-17B', fn: (p, m, c) => generateGroqContent(p, "meta-llama/llama-4-scout-17b-16e-instruct", c), tier: 1, roles: ['research', 'edit', 'draft'], match: /scout|llama-4/i });
             // this.pool.push({ name: 'GPT-OSS-120B', fn: (p, m, c) => generateGroqContent(p, "openai/gpt-oss-120b", c), tier: 1, roles: ['research', 'edit', 'generate'], match: /gpt-oss-120b|oss/i });
             
@@ -705,8 +789,12 @@ export const ResourceManager = {
 
 
         // TIER 3: RESILIENCE FALLBACKS
-        if (activeKeys.Cloudflare) {
-             this.pool.push({ name: 'Cloudflare', fn: generateCloudflareContent, tier: 3, roles: ['utility'], match: /cloudflare|node-utility/i }); 
+        // Free tiers that need no billing: Cloudflare Workers AI (10k neurons/day) and GitHub Models.
+        if (cloudflareAuth(env)) {
+             this.pool.push({ name: 'Cloudflare-Workers-AI', fn: (p, m, c) => generateCloudflareContent(p, DEFAULT_CLOUDFLARE_MODEL, { ...env, ...c }), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate', 'utility', 'manager', 'consolidate'], match: /cloudflare|workers-ai|llama|node-utility|node-editor|node-research|node-draft|node-generate/i });
+        }
+        if (githubModelsToken(env)) {
+             this.pool.push({ name: 'GitHub-Models', fn: (p, m, c) => generateGitHubModelsContent(p, DEFAULT_GITHUB_MODEL, { ...env, ...c }), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate', 'manager', 'consolidate'], match: /github|gpt|openai|node-editor|node-research|node-draft|node-generate/i });
         }
         if (activeKeys.HuggingFace) {
              this.pool.push({ name: 'HuggingFace', fn: generateHuggingFaceContent, tier: 3, roles: ['utility'], match: /huggingface|hf|node-utility/i });
@@ -735,17 +823,22 @@ export const ResourceManager = {
 
             // [V12.0] VIRTUAL PROXY NODES (Unlocks Cloud models despite local placeholders)
             // These act as direct mappings to the Edge Bridge to ensure high-parameter utilization.
-            this.pool.push({ name: 'Groq-70B-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "llama-3.3-70b-versatile", c), tier: 1, roles: ['research', 'edit'], match: /groq|node-research|node-draft|70b/i });
+            this.pool.push({ name: 'Groq-Bridge-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, DEFAULT_GROQ_MODEL, c), tier: 1, roles: ['research', 'edit'], match: /groq|node-research|node-draft|70b/i });
             this.pool.push({ name: 'DeepSeek-V3-1T', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "DeepSeek-V3", c), tier: 1, roles: ['research', 'edit'], match: /deepseek|v3|1t|reasoning/i });
             // [REMOVED] Gemini-Pro-Proxy
             this.pool.push({ name: 'HuggingFace-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, m || "mistralai/Mistral-7B-Instruct-v0.3", c), tier: 2, roles: ['utility', 'audit'], match: /huggingface|hf|mistral/i });
             
             // [V12.0] Gemma-4 Shadow Audit (Cloud Proxy for GHA Continuity)
-            this.pool.push({ name: 'Llama-3.1-8B-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "llama-3.1-8b-instant", c), tier: 2, roles: ['audit', 'repair'], match: /llama|node-audit|node-repair/i });
+            this.pool.push({ name: 'Groq-Bridge-20B-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "openai/gpt-oss-20b", c), tier: 2, roles: ['audit', 'repair'], match: /llama|node-audit|node-repair/i });
 
             console.log("🏙️ [AI-Balancer] Institutional Bridge & Proxy Nodes Active. (V15.5 Hardened)");
         }
         
+        const disabled = env.AI_DISABLED_PROVIDERS || process.env.AI_DISABLED_PROVIDERS || '';
+        if (disabled) {
+            this.pool = filterDisabledProviders(this.pool, disabled);
+            console.log(`🚫 [AI-Balancer] Providers disabled by AI_DISABLED_PROVIDERS: ${disabled}`);
+        }
         this.pool.forEach(p => this.inflight.set(p.name, 0));
         console.log(`🌐 [AI-Balancer] V5.4.1 Pool initialized (${this.pool.length} nodes): ${this.pool.map(p => p.name).join(', ')}`);
         
@@ -840,7 +933,7 @@ export const ResourceManager = {
         if (current > 0) this.inflight.set(name, current - 1);
         
         const isRate = error.includes('429') || error.includes('rate_limit') || error.includes('TPM') || error.includes('RATE_LIMIT');
-        const isAuth = error.includes('401') || error.includes('403') || error.includes('402') || error.includes('Unauthorized') || error.includes('API key') || error.includes('Authentication') || error.includes('permission') || error.includes('NOT_FOUND') || error.includes('Not Found') || error.includes('404') || error.includes('PERMISSION_DENIED') || error.includes('Invalid Key') || error.includes('Invalid API Key') || error.includes('CREDIT_EXHAUSTED') || error.includes('DAILY_QUOTA_EXCEEDED') || error.includes('QUOTA_EXCEEDED') || error.includes('4018'); // ERR_NGROK_4018
+        const isAuth = isTerminalProviderError(error);
 
         if (isRate) {
             console.warn(`⏳ [AI-Balancer] ${name} rate limited. Activating 60000ms cooldown.`);
@@ -879,7 +972,14 @@ export const ResourceManager = {
 
     revaluateFleet() {
         console.log("♻️ [AI-Balancer] Harvesting fresh fleet nodes...");
-        this.failed.clear();
+        // Dead keys and retired models stay out for the rest of a run; older entries get another chance.
+        const now = Date.now();
+        for (const name of [...this.failed]) {
+            const failedAt = this.failedAt.get(name) || 0;
+            if (now - failedAt < TERMINAL_BLACKLIST_MS) continue;
+            this.failed.delete(name);
+            this.failedAt.delete(name);
+        }
         // Preserving temporary cooldowns to prevent recursive 429 loops (The Suicide Loop Fix)
     }
 };
@@ -888,6 +988,9 @@ export const ResourceManager = {
  * V7.1: Institutional Role-Based Semantic Dispatcher
  * Implements Local-First Cascade and Semantic Compression.
  */
+/** Full passes over the fleet after the first one, before askAI gives up with FLEET_EXHAUSTION_PERMANENT. */
+const MAX_FLEET_RECOVERIES = 2;
+
 export async function askAI(prompt, options = {}) {
     const env = options.env || process.env;
     if (env.DRY_RUN) {
@@ -896,8 +999,9 @@ export async function askAI(prompt, options = {}) {
     }
     const { role = 'generate', model, env: envOpt = {}, seed = 0, frequency = 'hourly', _retry = 0, jobId = null } = options;
 
-    // [V14.1] Autonomous Fleet Revaluation: Clear blacklists for fresh swarm runs
-    if (jobId && jobId.startsWith('swarm-') && _retry === 0) {
+    // [V14.1] Autonomous Fleet Revaluation: Clear blacklists for fresh swarm runs.
+    // Only on the first pass: re-clearing on every recovery cycle kept failed nodes "available" forever.
+    if (jobId && jobId.startsWith('swarm-') && _retry === 0 && !options._fleetRetries) {
         ResourceManager.revaluateFleet();
     }
     
@@ -932,8 +1036,9 @@ export async function askAI(prompt, options = {}) {
     if (targetModel && targetModel !== 'auto') {
         const hasCandidate = ResourceManager.pool.some(p => p.match && p.match.test(targetModel));
         if (!hasCandidate) {
-            console.error(`🚫 [AI-PreFlight] CRITICAL: Manual model override '${targetModel}' is unavailable (likely missing API Key).`);
-            throw new Error(`[AI-Fleet-Fatal] Manual model override '${targetModel}' is not present in the active pool. Check your GHA Secrets.`);
+            // Routing and callers name models that may be disabled or keyless; serve the role from the rest of the fleet.
+            console.warn(`⚠️ [AI-PreFlight] No node serves '${targetModel}'. Falling back to any node for role '${role}'.`);
+            targetModel = 'auto';
         }
     }
 
@@ -956,10 +1061,10 @@ export async function askAI(prompt, options = {}) {
             await ResourceManager.emergencyReset(env);
         }
 
-        if (fleetRetries < 2) { 
+        if (fleetRetries < MAX_FLEET_RECOVERIES) { 
             const isHighPriority = options.jobId?.startsWith('swarm-monthly');
             const pauseMs = 65000;
-            console.warn(`⏳ [AI-Balancer] Fleet Exhausted. No providers available for ${role}. Pausing ${pauseMs/1000}s for recovery (Cycle: ${fleetRetries + 1}/2)...`);
+            console.warn(`⏳ [AI-Balancer] Fleet Exhausted. No providers available for ${role}. Pausing ${pauseMs/1000}s for recovery (Cycle: ${fleetRetries + 1}/${MAX_FLEET_RECOVERIES})...`);
             await new Promise(r => setTimeout(r, pauseMs));
             // Reset tried nodes for the next full fleet attempt
             return askAI(prompt, { ...options, _retry: 0, _fleetRetries: fleetRetries + 1, triedNodes: new Set() });
@@ -1026,8 +1131,13 @@ export async function askAI(prompt, options = {}) {
         triedNodes.add(provider.name);
         
         if (_retry >= 3) { // [V15.5] Lowered from 5 to 3
-            console.error(`❌ [AI-Balancer] ${provider.name} repeatedly failed. Escalating to Fleet Recovery...`);
-            return askAI(prompt, { ...options, _retry: 0, _fleetRetries: (options._fleetRetries || 0) + 1, triedNodes: new Set() });
+            const fleetRetries = (options._fleetRetries || 0) + 1;
+            if (fleetRetries > MAX_FLEET_RECOVERIES) {
+                console.error(`💀 [AI-Balancer-Fatal] ${role}: providers kept failing across ${MAX_FLEET_RECOVERIES} recovery cycles. Giving up.`);
+                throw new Error("FLEET_EXHAUSTION_PERMANENT");
+            }
+            console.error(`❌ [AI-Balancer] ${provider.name} repeatedly failed. Escalating to Fleet Recovery (cycle ${fleetRetries}/${MAX_FLEET_RECOVERIES})...`);
+            return askAI(prompt, { ...options, _retry: 0, _fleetRetries: fleetRetries, triedNodes: new Set() });
         }
         return askAI(prompt, { ...options, _retry: _retry + 1, triedNodes });
     }
