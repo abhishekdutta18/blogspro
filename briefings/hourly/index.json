@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-21",
+    "timestamp": 1795238548299,
+    "excerpt": "Hourly Pulse – Structural Liquidity Deficit Confirmation SOFR 5‑month average 2026‑11: 5.35 % (↑ 15 bps YoY, 2025‑average 5.20 %). Fed Funds Effective Rate: 5.30 % (Δ +10 bps Q/Q). Primary Dealer Repo Spread (overnight‑to‑tri‑party): 12 bps (2025‑ave...",
+    "fileName": "swarm-hourly-1795238548291.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015) | SEBI:  | GLOBAL: BLOOMBERG | SpaceX Sells $32 Billion of AI Chip Debt at Yields Topping 8% - Bloomberg.com | BLOOMBERG | UBS Plans to Shift Hundreds of Roles to India in Offshoring Push - Bloomberg.com | BLOOMBERG | PGA Tour Taps Ex-Citi Banker Alex Berkett as New Finance Chief - Bloomberg.com | FT | The AI fever in markets is breaking - Financial Times | FT | So, Anthropic is finally a public company. What now? - Financial Times | FT | Oil loses grip on bond markets as inflation ‘virus’ spreads - Financial Times | REUTERS | Apollo, Goldman lead $44 billion SpaceX GPU debt financing - Reuters | REUTERS | EXCLUSIVE: Citi underestimated risky assets by $35 billion after incorrectly recording trades, sources say - Reuters | REUTERS | Anthropic's blockbuster debut tests Wall Street's faith in AI boom - Reuters | CNBC | S&P 500 correction: Five forces behind the market sell-off - CNBC | CNBC | Is the bull market cracking? What to watch for next week after the AI washout - CNBC | CNBC | Chart Master: Key levels to a down market. - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia",
+      "rbi": "Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Conversion/Switch of State Government Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017"
+        },
+        {
+          "title": "RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016"
+        },
+        {
+          "title": "RBI imposes monetary penalty on Fusion Finance Limited",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-21",
     "timestamp": 1795231119557,
     "excerpt": "2026‑2027 Liquidity & Derivative Landscape SOFR today sits at 4.12%, a 0.45% uptick from the 3.67% average in 2025, reflecting tightening repo demand. The repo spread widened to 35 bps against the 28 bps baseline, signaling heightened counter‑party r...",
     "fileName": "swarm-hourly-1795231119549.html",
