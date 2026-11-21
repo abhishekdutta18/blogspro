@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-21",
+    "timestamp": 1795223796372,
+    "excerpt": "SOFR & Repo Market Stress SOFR stands at 4.75% in Q1 2026, a 0.55 pp rise over the 2025 baseline of 4.20%. Repo spreads have ballooned to 150 bps versus 90 bps in 2025, reflecting a 60 bps widening in the collateralized funding market. Dark‑pool acti...",
+    "fileName": "swarm-hourly-1795223796364.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015) | SEBI:  | GLOBAL: BLOOMBERG | SpaceX Sells $32 Billion of AI Chip Debt at Yields Topping 8% - Bloomberg.com | BLOOMBERG | UBS Plans to Shift Hundreds of Roles to India in Offshoring Push - Bloomberg.com | BLOOMBERG | Indian Billionaire Raises $720 Million Private Credit for Megha Buyout - Bloomberg.com | FT | US tech stocks plunge into bear market in worst week since Covid-19 crisis - Financial Times | FT | The AI fever in markets is breaking - Financial Times | FT | Oil loses grip on bond markets as inflation ‘virus’ spreads - Financial Times | REUTERS | Apollo, Goldman lead $44 billion SpaceX GPU debt financing - Reuters | REUTERS | EXCLUSIVE: Citi underestimated risky assets by $35 billion after incorrectly recording trades, sources say - Reuters | REUTERS | Anthropic's blockbuster debut tests Wall Street's faith in AI boom - Reuters | CNBC | S&P 500 correction: Five forces behind the market sell-off - CNBC | CNBC | Is the bull market cracking? What to watch for next week after the AI washout - CNBC | CNBC | Prediction markets outlook for stocks in 2026 dims amid AI sell-off - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia",
+      "rbi": "Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Conversion/Switch of State Government Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017"
+        },
+        {
+          "title": "RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016"
+        },
+        {
+          "title": "RBI imposes monetary penalty on Fusion Finance Limited",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-21",
     "timestamp": 1795215759913,
     "excerpt": "Liquidity Friction Index (LFI) 2026‑Q3:** 1.42 × 10⁹ bps‑days, up 27 % YoY; SOFR 2026‑Q3 average 5.31 % vs 4.78 % in 2025‑Q3, widening the repo‑rate spread to 45 bps against the Fed’s overnight reverse repo facility. The widening reflects a 12‑basis‑...",
     "fileName": "swarm-hourly-1795215759906.html",
