@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-21",
+    "timestamp": 1795277106557,
+    "excerpt": "SOFR today stands at 4.52%, a 0.32% jump from the 4.20% benchmark in 2025, while the repo spread has ballooned to 150 bps versus 80 bps in 2025. VIX sits at 18.3, a 52% compression relative to the 12.0 level recorded in 2025, yet the skew remains ste...",
+    "fileName": "swarm-hourly-1795277106550.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015) | SEBI:  | GLOBAL: BLOOMBERG | UBS Plans to Shift Hundreds of Roles to India in Offshoring Push - Bloomberg.com | BLOOMBERG | SpaceX Sells $32 Billion of AI Chip Debt at Yields Topping 8% - Bloomberg.com | BLOOMBERG | Canada Bank Regulator Eases Rules for Smaller Lenders to Boost Competition - Bloomberg.com | FT | US tech stocks plunge into bear market in worst week since Covid-19 crisis - Financial Times | FT | The AI fever in markets is breaking - Financial Times | FT | How can investors succeed in markets today? - Financial Times | REUTERS | EXCLUSIVE: Citi underestimated risky assets by $35 billion after incorrectly recording trades, sources say - Reuters | REUTERS | Apollo, Goldman lead $44 billion SpaceX GPU debt financing - Reuters | REUTERS | EU countries, lawmakers strike deal to revamp sustainable finance rules - Reuters | CNBC | State and federal battle over prediction markets regulation heats up after midterms - CNBC | CNBC | During Wall Street's worst week in over a year, we put money to work. What we're buying - CNBC | CNBC | Trump orders federal contractors to notify White House before giving Congress information - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia",
+      "rbi": "Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Conversion/Switch of State Government Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017"
+        },
+        {
+          "title": "RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016"
+        },
+        {
+          "title": "RBI imposes monetary penalty on Fusion Finance Limited",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-21",
     "timestamp": 1795259060521,
     "excerpt": "The 2025 baseline for the SOFR curve shows a 4.20% overnight rate, with a 12‑month forward curve flattening to 3.95%. Repo spreads widened from 120 bps in Q1 to 150 bps by Q4, reflecting a 30‑bps increase in collateral demand. Gamma exposure on the e...",
     "fileName": "swarm-hourly-1795259060513.html",
@@ -1352,34 +1380,6 @@
     "frequency": "hourly",
     "liveNews": {
       "summary": "RBI: Result: Conversion/Switch Auction of Government of India Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63982) | Money Market Operations as on November 15, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63981) | Money Market Operations as on November 14, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63980) | SEBI:  | GLOBAL: BLOOMBERG | Banks Cool on Manchester City Player Finance as Sanctions Loom - Bloomberg.com | BLOOMBERG | If Your Bank Could Detect Dementia, Would You Let It? - Bloomberg.com | BLOOMBERG | Blackstone-Backed Data Center Firm Adds $1.5 Billion Financing - Bloomberg.com | FT | The whole world is long America - Financial Times | FT | Biggest IPOs this year lose investors money as AI frenzy fades - Financial Times | FT | European banks’ risk transfer boom raises exposure to ‘forced deleveraging’ - Financial Times | REUTERS | Fed's Barr warns on AI risks to financial system - Reuters | REUTERS | EXCLUSIVE: Italian court places Revolut unit under supervision over money-laundering - Reuters | REUTERS | Global banks set to enter 2027 on strong footing, Moody's report says - Reuters | CNBC | Nvidia stock falls again as investors price in fallout from Jensen Huang's resignation - CNBC | CNBC | China confirms Xi-Trump-Putin historic summit. What will be on the agenda? - CNBC | CNBC | Gold holds steady as investors await Warsh remarks for rate signals - CNBC | NIKKEI | China central bank hikes foreign reserve requirement for 1st time in 5 years - Nikkei Asia | NIKKEI | Subaru retools boxer engine for fuel economy, with eye on hybrids - Nikkei Asia | NIKKEI | Quad leaders eye Manila meeting on economic, strategic security - Nikkei Asia",
-      "rbi": "Result: Conversion/Switch Auction of Government of India Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63982) | Money Market Operations as on November 15, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63981) | Money Market Operations as on November 14, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63980)",
-      "sebi": "",
-      "docs": [
-        {
-          "title": "Result: Conversion/Switch Auction of Government of India Securities",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63982"
-        },
-        {
-          "title": "Money Market Operations as on November 15, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63981"
-        },
-        {
-          "title": "Money Market Operations as on November 14, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63980"
-        }
-      ]
-    }
-  },
-  {
-    "title": "HOURLY   Nexus Institutional Terminal",
-    "date": "2026-11-16",
-    "timestamp": 1794826941933,
-    "excerpt": "**SUBJECT: STRUCTURAL LIQUIDITY DEFICIT AND GEX DECAY (Q4 2026 CYCLE)** Current market topography reveals a terminal degradation in underlying liquidity, manifesting as a parabolic increase in Realized Volatility vs. Implied Volatility (IV/RV) diverg...",
-    "fileName": "swarm-hourly-1794826941927.html",
-    "type": "briefing",
-    "frequency": "hourly",
-    "liveNews": {
-      "summary": "RBI: Result: Conversion/Switch Auction of Government of India Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63982) | Money Market Operations as on November 15, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63981) | Money Market Operations as on November 14, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63980) | SEBI:  | GLOBAL: BLOOMBERG | Banks Cool on Manchester City Player Finance as Sanctions Loom - Bloomberg.com | BLOOMBERG | If Your Bank Could Detect Dementia, Would You Let It? - Bloomberg.com | BLOOMBERG | Blackstone-Backed Data Center Firm Adds $1.5 Billion Financing - Bloomberg.com | FT | Biggest IPOs this year lose investors money as AI frenzy fades - Financial Times | FT | European banks’ risk transfer boom raises exposure to ‘forced deleveraging’ - Financial Times | FT | Anthropic’s IPO is the next big test for AI - Financial Times | REUTERS | EXCLUSIVE: Italian court places Revolut unit under supervision over money-laundering - Reuters | REUTERS | Global banks set to enter 2027 on strong footing, Moody's report says - Reuters | REUTERS | Colette Kress, the CFO who challenged Huang's bets, is Nvidia's interim CEO - Reuters | CNBC | Nvidia stock falls again as investors price in fallout from Jensen Huang's resignation - CNBC | CNBC | China confirms Xi-Trump-Putin historic summit. What will be on the agenda? - CNBC | CNBC | Gold holds steady as investors await Warsh remarks for rate signals - CNBC | NIKKEI | China central bank hikes foreign reserve requirement for 1st time in 5 years - Nikkei Asia | NIKKEI | Subaru retools boxer engine for fuel economy, with eye on hybrids - Nikkei Asia | NIKKEI | Quad leaders eye Manila meeting on economic, strategic security - Nikkei Asia",
       "rbi": "Result: Conversion/Switch Auction of Government of India Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63982) | Money Market Operations as on November 15, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63981) | Money Market Operations as on November 14, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63980)",
       "sebi": "",
       "docs": [
