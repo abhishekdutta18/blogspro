@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-22",
+    "timestamp": 1795294971864,
+    "excerpt": "As of November 21, 2026, our high-compute simulations indicate a heightened state of structural fragility in the global markets, with a pronounced emphasis on tail risks and liquidity friction. The current SOFR (Secured Overnight Financing Rate) term...",
+    "fileName": "swarm-hourly-1795294971857.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015) | SEBI:  | GLOBAL: BLOOMBERG | UBS Plans to Shift Hundreds of Roles to India in Offshoring Push - Bloomberg.com | BLOOMBERG | Canada Bank Regulator Eases Rules for Smaller Lenders to Boost Competition - Bloomberg.com | BLOOMBERG | Indian Billionaire Raises $720 Million Private Credit for Megha Buyout - Bloomberg.com | FT | US tech stocks plunge into bear market in worst week since Covid-19 crisis - Financial Times | FT | The dead hand of history weighs on Deutsche Bank - Financial Times | FT | The AI fever in markets is breaking - Financial Times | REUTERS | EXCLUSIVE: Citi underestimated risky assets by $35 billion after incorrectly recording trades, sources say - Reuters | REUTERS | Anthropic's blockbuster debut tests Wall Street's faith in AI boom - Reuters | REUTERS | EU countries, lawmakers strike deal to revamp sustainable finance rules - Reuters | CNBC | State and federal battle over prediction markets regulation heats up after midterms - CNBC | CNBC | From trash to treasure: Most hated stocks are winning as AI bull market rolls over - CNBC | CNBC | During Wall Street's worst week in over a year, we put money to work. What we're buying - CNBC | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia | NIKKEI | Japan logs trade deficit for 6th straight month in October - Nikkei Asia",
+      "rbi": "Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Conversion/Switch of State Government Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017"
+        },
+        {
+          "title": "RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016"
+        },
+        {
+          "title": "RBI imposes monetary penalty on Fusion Finance Limited",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-22",
     "timestamp": 1795291342574,
     "excerpt": "As of November 21, 2026, our high-compute simulations indicate a heightened state of structural fragility in the global financial system, with a pronounced increase in volatility surfaces and gamma exposure (GEX) across major asset classes. The SOFR ...",
     "fileName": "swarm-hourly-1795291342567.html",
@@ -1352,34 +1380,6 @@
     "frequency": "hourly",
     "liveNews": {
       "summary": "RBI: Directions under Section 35A read with Section 56 of the Banking Regulation Act, 1949 – Nagar Sahakari Bank Ltd., Etawah – Extension of Period (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63988) | Result of Yield/Price Based Auction of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63987) | Result of the 2-day Variable Rate Reverse Repo (VRRR)  auction held on November 17, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63986) | SEBI:  | GLOBAL: BLOOMBERG | India Weighs Capital Gains, Transaction Tax Change, Mint Reports - Bloomberg.com | BLOOMBERG | NBIM, GIC, BlackRock Said to Invest in Bajaj Finance Share Sale - Bloomberg.com | BLOOMBERG | Banks Cool on Manchester City Player Finance as Sanctions Loom - Bloomberg.com | FT | Stocks slide as Nvidia results loom - Financial Times | FT | UK jobs market stalled ahead of October Budget - Financial Times | FT | Making the US dollar great again - Financial Times | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | REUTERS | Nvidia's AI financing machine may survive Huang, but with less risk appetite - Reuters | REUTERS | Carney to meet Xi on Tuesday to talk food, energy and financial services - Reuters | CNBC | South Korea will suspend all aircraft operation for 35 minutes and markets will open late. Here’s why - CNBC | CNBC | Payward co-CEO says stock markets will move to 24/7 trading as tokenized equities grow - CNBC | CNBC | Iran escalates threats as third U.S. carrier arrives in Middle East, tanker struck in Hormuz - CNBC | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | China central bank hikes foreign reserve requirement for 1st time in 5 years - Nikkei Asia | NIKKEI | Quad leaders eye Manila meeting on economic, strategic security - Nikkei Asia",
-      "rbi": "Directions under Section 35A read with Section 56 of the Banking Regulation Act, 1949 – Nagar Sahakari Bank Ltd., Etawah – Extension of Period (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63988) | Result of Yield/Price Based Auction of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63987) | Result of the 2-day Variable Rate Reverse Repo (VRRR)  auction held on November 17, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63986)",
-      "sebi": "",
-      "docs": [
-        {
-          "title": "Directions under Section 35A read with Section 56 of the Banking Regulation Act, 1949 – Nagar Sahakari Bank Ltd., Etawah – Extension of Period",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63988"
-        },
-        {
-          "title": "Result of Yield/Price Based Auction of State Government Securities",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63987"
-        },
-        {
-          "title": "Result of the 2-day Variable Rate Reverse Repo (VRRR)  auction held on November 17, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63986"
-        }
-      ]
-    }
-  },
-  {
-    "title": "HOURLY   Nexus Institutional Terminal",
-    "date": "2026-11-17",
-    "timestamp": 1794910496911,
-    "excerpt": "**OPERATIONAL MEMORANDUM: LIQUIDITY VULNERABILITY AND VOLATILITY SURFACE DEGRADATION** Current terminal flow analytics for November 17, 2026, indicate a terminal breakdown in structural liquidity, rendering the Q4-2025 comparative baseline functional...",
-    "fileName": "swarm-hourly-1794910496904.html",
-    "type": "briefing",
-    "frequency": "hourly",
-    "liveNews": {
-      "summary": "RBI: Directions under Section 35A read with Section 56 of the Banking Regulation Act, 1949 – Nagar Sahakari Bank Ltd., Etawah – Extension of Period (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63988) | Result of Yield/Price Based Auction of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63987) | Result of the 2-day Variable Rate Reverse Repo (VRRR)  auction held on November 17, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63986) | SEBI:  | GLOBAL: BLOOMBERG | India Weighs Capital Gains, Transaction Tax Change, Mint Reports - Bloomberg.com | BLOOMBERG | NBIM, GIC, BlackRock Said to Invest in Bajaj Finance Share Sale - Bloomberg.com | BLOOMBERG | RBNZ Flags Growing Private Credit Risks in Real Estate Finance - Bloomberg.com | FT | Stocks slide as Nvidia results loom - Financial Times | FT | Nasdaq 100 sinks 2.7% in gloomy start to pivotal week for AI trade - Financial Times | FT | The perfect sell-off - Financial Times | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | REUTERS | Nvidia's AI financing machine may survive Huang, but with less risk appetite - Reuters | REUTERS | Carney to meet Xi on Tuesday to talk food, energy and financial services - Reuters | CNBC | South Korea will suspend all aircraft operation for 35 minutes and markets will open late. Here’s why - CNBC | CNBC | Payward co-CEO says stock markets will move to 24/7 trading as tokenized equities grow - CNBC | CNBC | Iran escalates threats as third U.S. carrier arrives in Middle East, tanker struck in Hormuz - CNBC | NIKKEI | China's economy softens across the board as factory output, spending slow - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | China central bank hikes foreign reserve requirement for 1st time in 5 years - Nikkei Asia",
       "rbi": "Directions under Section 35A read with Section 56 of the Banking Regulation Act, 1949 – Nagar Sahakari Bank Ltd., Etawah – Extension of Period (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63988) | Result of Yield/Price Based Auction of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63987) | Result of the 2-day Variable Rate Reverse Repo (VRRR)  auction held on November 17, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63986)",
       "sebi": "",
       "docs": [
