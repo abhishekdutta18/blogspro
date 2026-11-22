@@ -42,6 +42,8 @@ sudo rsync -a --delete --exclude node_modules "$REMOTE_STAGE/" /opt/blogspro-mir
 sudo rm -f /opt/blogspro-miro-sync/blogspro-miro-sync.service
 cd /opt/blogspro-miro-sync && sudo npm install --omit=dev --no-audit --no-fund --loglevel=error
 sudo chown -R root:root /opt/blogspro-miro-sync
+# mktemp -d stages at 0700 and rsync -a carries that over; the service user must be able to read the code.
+sudo chmod -R u=rwX,go=rX /opt/blogspro-miro-sync
 sudo install -m 0644 "$REMOTE_STAGE/blogspro-miro-sync.service" /etc/systemd/system/blogspro-miro-sync.service
 rm -rf "$REMOTE_STAGE"
 sudo systemctl daemon-reload

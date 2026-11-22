@@ -7,6 +7,8 @@ sync + awareness on any path).
 
 **From:** Durable Object `MiroSyncS` in worker `blogspro-miro-sync` (`wrangler.miro-sync.toml`).
 **To:** Node service `blogspro-miro-sync` on the Oracle VPS that already serves `blogspro.in`.
+Host `blogspro-ai-vps`, `130.210.53.134`, user `ubuntu` (same target as `deploy.yml`); the maintainer's
+Mac reaches it with `~/.ssh/id_ed25519`.
 It runs under systemd on `127.0.0.1:8788` (8787 is `blogspro-api`), behind nginx at
 `https://sync.blogspro.in`.
 
