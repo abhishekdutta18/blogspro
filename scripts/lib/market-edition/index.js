@@ -39,7 +39,7 @@ export async function generateMarketEdition({ askAI, env = process.env, now = ne
   console.log(`📈 [Edition] ${quotesOk} quotes, ${headlines.length} headlines`);
   if (quotesOk === 0 && headlines.length === 0) throw new Error('EDITION_NO_DATA: every quote and news feed failed');
 
-  const marketText = snapshotToText(markets);
+  const marketText = snapshotToText(markets, now.getTime());
   const board = await runViewBoard({ askAI, env, edition, marketText, headlinesText: headlinesToText(headlines) });
   let text = null;
   try {

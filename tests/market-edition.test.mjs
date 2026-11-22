@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolveEdition } from '../scripts/lib/market-edition/editions.js';
-import { parseChart, snapshotToText } from '../scripts/lib/market-edition/market-data.js';
+import { marketStatus, parseChart, snapshotToText } from '../scripts/lib/market-edition/market-data.js';
 import { parseRss, selectHeadlines } from '../scripts/lib/market-edition/news-feed.js';
 import { buildConsensus, parsePersonaReply } from '../scripts/lib/market-edition/view-board.js';
 import { parseWriterReply } from '../scripts/lib/market-edition/edition-writer.js';
@@ -34,12 +34,22 @@ test('parseChart computes the day move from the previous close and rejects missi
 });
 
 test('snapshotToText marks unavailable instruments instead of guessing', () => {
+  const now = Date.UTC(2026, 10, 22, 19, 30);
   const text = snapshotToText([{ title: 'India', quotes: [
-    { name: 'Nifty 50', ok: true, price: 25800.6, currency: 'INR', changePct: 2.0145 },
+    { name: 'Nifty 50', ok: true, price: 25800.6, currency: 'INR', changePct: 2.0145, asOf: Date.UTC(2026, 10, 20, 10, 0), exchangeTz: 'Asia/Kolkata' },
     { name: 'Sensex', ok: false },
-  ] }]);
-  assert.match(text, /Nifty 50: 25800\.60 INR \(\+2\.01% on the day\)/);
+  ] }], now);
+  assert.match(text, /Nifty 50: 25800\.60 INR \(\+2\.01% vs previous close; closed, Fri 20 Nov session\)/);
   assert.match(text, /Sensex: unavailable/);
+});
+
+test('marketStatus uses the exchange day for closed sessions and "live" for fresh quotes', () => {
+  const now = Date.UTC(2026, 10, 22, 19, 30);
+  // Friday 16:00 New York close is Friday 21:00 UTC (Saturday in IST): the session is Friday's.
+  assert.equal(marketStatus({ asOf: Date.UTC(2026, 10, 20, 21, 0), exchangeTz: 'America/New_York' }, now), 'closed, Fri 20 Nov session');
+  assert.equal(marketStatus({ asOf: now - 10 * 60 * 1000, exchangeTz: 'UTC' }, now), 'live');
+  assert.equal(marketStatus({ asOf: Date.UTC(2026, 10, 20, 21, 0), exchangeTz: 'Not/AZone' }, now), 'closed, Fri 20 Nov session');
+  assert.equal(marketStatus({ asOf: null }, now), 'status unknown');
 });
 
 test('parseRss decodes entities and CDATA, keeps only http(s) links, splits Google News sources', () => {
@@ -111,6 +121,11 @@ test('renderEditionBody escapes model and feed text', () => {
   assert.doesNotMatch(html, /<script>|<img|<b>|href="javascript/);
   assert.match(html, /&lt;script&gt;/);
   assert.match(html, /class="up">\+0\.50/);
+  const dated = renderEditionBody({
+    markets: [{ title: 'Global', quotes: [{ name: 'S&P 500', ok: true, price: 1, change: 0, changePct: 0, asOf: Date.UTC(2026, 10, 20, 21, 0) }] }],
+    headlines: [], text: null, board: null,
+  });
+  assert.match(dated, /as of Sat 21 Nov, 02:30 IST/);
 });
 
 function fakeFetch({ failAll = false } = {}) {

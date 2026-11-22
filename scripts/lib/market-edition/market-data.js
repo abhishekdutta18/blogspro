@@ -62,6 +62,7 @@ export function parseChart(json) {
     changePct: hasPrev ? (change / prevClose) * 100 : null,
     currency: typeof meta.currency === 'string' ? meta.currency : '',
     asOf: Number.isFinite(meta.regularMarketTime) ? meta.regularMarketTime * 1000 : null,
+    exchangeTz: typeof meta.exchangeTimezoneName === 'string' ? meta.exchangeTimezoneName : 'UTC',
   };
 }
 
@@ -93,14 +94,48 @@ export async function fetchMarketSnapshot({ fetchImpl = fetch } = {}) {
   );
 }
 
-/** Plain-text table of the snapshot for the writer prompt. */
-export function snapshotToText(groups) {
+const LAST_TRADE = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false,
+});
+
+/** "Fri 20 Nov, 03:05 IST" for a quote time, or '' when unknown. */
+export function formatLastTrade(ms) {
+  return Number.isFinite(ms) ? `${LAST_TRADE.format(new Date(ms)).replace(/,? at /, ', ')} IST` : '';
+}
+
+// A quote older than this is treated as a closed session rather than live trading.
+const LIVE_WINDOW_MS = 90 * 60 * 1000;
+
+/** Day of a timestamp in the exchange's own timezone ("Fri 20 Nov"), falling back to UTC for unknown zones. */
+function sessionDay(ms, timeZone) {
+  const opts = { weekday: 'short', day: 'numeric', month: 'short' };
+  try {
+    return new Intl.DateTimeFormat('en-GB', { ...opts, timeZone }).format(new Date(ms)).replace(',', '');
+  } catch {
+    return new Intl.DateTimeFormat('en-GB', { ...opts, timeZone: 'UTC' }).format(new Date(ms)).replace(',', '');
+  }
+}
+
+/** "live" while a quote is fresh, otherwise "closed, Fri 20 Nov session" in the exchange's local day. */
+export function marketStatus(quote, now = Date.now()) {
+  if (!Number.isFinite(quote.asOf)) return 'status unknown';
+  return now - quote.asOf <= LIVE_WINDOW_MS ? 'live' : `closed, ${sessionDay(quote.asOf, quote.exchangeTz)} session`;
+}
+
+/** Latest quote time in a group (ms), or null. */
+export function latestQuoteTime(group) {
+  const times = group.quotes.filter((q) => q.ok && Number.isFinite(q.asOf)).map((q) => q.asOf);
+  return times.length ? Math.max(...times) : null;
+}
+
+/** Plain-text table of the snapshot for the writer prompt, with each market's live/closed status. */
+export function snapshotToText(groups, now = Date.now()) {
   return groups
     .map((group) => {
       const lines = group.quotes.map((q) => {
         if (!q.ok) return `- ${q.name}: unavailable`;
-        const move = q.changePct === null ? 'change n/a' : `${q.changePct >= 0 ? '+' : ''}${q.changePct.toFixed(2)}% on the day`;
-        return `- ${q.name}: ${q.price.toFixed(2)} ${q.currency} (${move})`;
+        const move = q.changePct === null ? 'change n/a' : `${q.changePct >= 0 ? '+' : ''}${q.changePct.toFixed(2)}% vs previous close`;
+        return `- ${q.name}: ${q.price.toFixed(2)} ${q.currency} (${move}; ${marketStatus(q, now)})`;
       });
       return `${group.title}:\n${lines.join('\n')}`;
     })

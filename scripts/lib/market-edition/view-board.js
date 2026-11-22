@@ -34,6 +34,7 @@ export function personaPrompt(persona, { edition, marketText, headlinesText }) {
     `Edition: ${edition.label}. ${edition.focus}`,
     `MARKET DATA (the only figures you may cite):\n${marketText}`,
     `HEADLINES:\n${headlinesText || 'No headlines available.'}`,
+    'Quotes are marked live or closed; a closed market is not trading now. USD/INR falling means a stronger rupee.',
     'Give your stance on Indian equities for the next session.',
     `Reply with JSON only: {"stance": one of ${JSON.stringify(STANCES)}, "conviction": 1-5, "points": [2-3 short reasons citing the data above]}`,
   ].join('\n\n');

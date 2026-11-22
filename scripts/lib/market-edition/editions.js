@@ -10,7 +10,7 @@ export const EDITIONS = Object.freeze([
     hourIst: 8,
     label: 'Morning brief',
     focus:
-      'Pre-market setup for India. Lead with how US and European markets closed overnight and how Asia is trading now, ' +
+      'Pre-market setup for India. Lead with how US and European markets last closed and how Asia is trading (or last closed), ' +
       'then what that implies for the Indian open (Nifty, Bank Nifty, rupee). End with the events and data due today.',
   },
   {
@@ -26,7 +26,7 @@ export const EDITIONS = Object.freeze([
     hourIst: 22,
     label: 'Evening wrap',
     focus:
-      'Global evening wrap. Lead with how Europe closed and how the US session is trading, plus bonds, the dollar, oil, gold ' +
+      'Global evening wrap. Lead with how Europe closed and the US session (live if its quotes are live, otherwise its last close), plus bonds, the dollar, oil, gold ' +
       'and crypto. Connect it back to how Indian markets are likely to open tomorrow.',
   },
 ]);

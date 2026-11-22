@@ -4,6 +4,8 @@
  * snapshot, not from the model, so the table is right even when the commentary is missing.
  */
 
+import { formatLastTrade, latestQuoteTime } from './market-data.js';
+
 const NUMBER = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function escapeHtml(value) {
@@ -35,7 +37,7 @@ function quoteRow(q) {
 function marketTables(groups) {
   return groups.map((g) => `
     <table class="quotes">
-      <caption>${escapeHtml(g.title)}</caption>
+      <caption>${escapeHtml(g.title)}${latestQuoteTime(g) ? ` <span class="asof">as of ${escapeHtml(formatLastTrade(latestQuoteTime(g)))}</span>` : ''}</caption>
       <thead><tr><th scope="col">Instrument</th><th scope="col">Last</th><th scope="col">Change</th><th scope="col">Day</th></tr></thead>
       <tbody>${g.quotes.map(quoteRow).join('')}</tbody>
     </table>`).join('');
@@ -96,7 +98,7 @@ h2{font-size:1.35rem;margin:2.5rem 0 1rem;padding-top:1rem;border-top:2px solid 
 .quotes caption{text-align:left;font-weight:700;padding:.25rem 0;color:var(--ink-2)}
 .quotes th,.quotes td{padding:.4rem .5rem;border-bottom:1px solid var(--rule);text-align:right}.quotes th[scope=row],.quotes thead th:first-child{text-align:left;font-weight:500}
 .quotes thead th{font-size:.75rem;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
-.up{color:var(--up)}.down{color:var(--down)}.na{color:var(--ink-3)}
+.asof{font-weight:400;font-size:.8rem;color:var(--ink-3)}.up{color:var(--up)}.down{color:var(--down)}.na{color:var(--ink-3)}
 .stories{padding-left:1.25rem}.stories li{margin-bottom:1.25rem}.source{font-size:.8rem;color:var(--ink-3)}.stories p{margin:.25rem 0 0}
 .badge{display:inline-block;padding:.1rem .6rem;border-radius:999px;background:var(--ink);color:var(--bg);font-weight:700;text-transform:capitalize;margin-right:.5rem}
 .stance{color:var(--ink-2)}details{margin-top:1rem;color:var(--ink-2)}summary{cursor:pointer}.board li{margin:.5rem 0}
