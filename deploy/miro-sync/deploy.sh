@@ -24,7 +24,8 @@ FILES=(
   scripts/lib/miro-terminal-html.js
   scripts/lib/miro-terminal-charts.js
   scripts/lib/storage-bridge.js
-  scripts/lib/sanitizer.js
+  scripts/lib/vps-store.js
+  scripts/lib/media-store.js
 )
 for f in "${FILES[@]}"; do mkdir -p "$STAGE/$(dirname "$f")" && cp "$ROOT/$f" "$STAGE/$f"; done
 mkdir -p "$STAGE/js" && cp -R "$ROOT/js/chart-engine" "$STAGE/js/chart-engine"
@@ -37,7 +38,7 @@ ssh "${SSH_OPTS[@]}" "$SSH_TARGET" REMOTE_STAGE="$REMOTE_STAGE" bash -s <<'REMOT
 set -euo pipefail
 id blogspro-miro-sync >/dev/null 2>&1 || sudo useradd --system --no-create-home --shell /usr/sbin/nologin blogspro-miro-sync
 sudo mkdir -p /opt/blogspro-miro-sync
-sudo rsync -a --delete --exclude node_modules --exclude knowledge "$REMOTE_STAGE/" /opt/blogspro-miro-sync/
+sudo rsync -a --delete --exclude node_modules "$REMOTE_STAGE/" /opt/blogspro-miro-sync/
 sudo rm -f /opt/blogspro-miro-sync/blogspro-miro-sync.service
 cd /opt/blogspro-miro-sync && sudo npm install --omit=dev --no-audit --no-fund --loglevel=error
 sudo chown -R root:root /opt/blogspro-miro-sync

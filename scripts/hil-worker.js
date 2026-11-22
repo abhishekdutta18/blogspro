@@ -4,7 +4,7 @@
  * Premium Human-in-the-Loop review dashboard for BlogsPro AI Swarm.
  */
 
-import { getPendingAuditsREST, updateAuditStatusREST } from "./lib/storage-bridge.js";
+import { getPendingAudits, updateAuditStatus } from "./lib/storage-bridge.js";
 
 export default {
   async fetch(request, env) {
@@ -18,14 +18,14 @@ export default {
 
     // 1. API: Get Pending Audits
     if (url.pathname === "/api/pending") {
-      const audits = await getPendingAuditsREST(env);
+      const audits = await getPendingAudits(env);
       return new Response(JSON.stringify(audits), { headers: { "Content-Type": "application/json" } });
     }
 
     // 2. API: Action (Approve/Reject)
     if (url.pathname === "/api/action" && request.method === "POST") {
       const { id, action, feedback } = await request.json();
-      await updateAuditStatusREST(id, action === 'approve' ? 'APPROVED' : 'REJECTED', feedback, env);
+      await updateAuditStatus(id, action === 'approve' ? 'APPROVED' : 'REJECTED', feedback, env);
       return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
     }
 
@@ -36,7 +36,7 @@ export default {
         const query = update.callback_query;
         const [action, auditId] = query.data.split(':');
         
-        await updateAuditStatusREST(auditId, action === 'approve' ? 'APPROVED' : 'REJECTED', `via Telegram (${query.from.username})`, env);
+        await updateAuditStatus(auditId, action === 'approve' ? 'APPROVED' : 'REJECTED', `via Telegram (${query.from.username})`, env);
         
         // Respond to Telegram to stop loading spinner & update message
         const botToken = env.TELEGRAM_BOT_TOKEN;

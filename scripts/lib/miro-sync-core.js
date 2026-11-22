@@ -184,8 +184,11 @@ export class MiroSyncCore {
     return json({ status: 'success' }, { headers: PUSH_CORS });
   }
 
-  /** Moves swarm-progress records older than 90 days into swarm-archive and deep storage. */
-  async archiveToFirebase() {
+  /**
+   * Moves swarm-progress records older than 90 days into swarm-archive, exporting the doc and the
+   * pruned batch through saveSnapshot (written only where the media store has a disk).
+   */
+  async archiveOldRecords() {
     const progressMap = this.doc.getMap('swarm-progress');
     const archiveMap = this.doc.getMap('swarm-archive');
     const now = Date.now();
@@ -194,10 +197,6 @@ export class MiroSyncCore {
       return !Number.isNaN(t) && now - t > ARCHIVE_AGE_MS;
     });
     if (stale.length === 0) return { archivedCount: 0, activeCount: progressMap.size };
-    if (!this.env.FIREBASE_STORAGE_BUCKET) {
-      this.logger.warn('[MiroSync] Archival skipped: FIREBASE_STORAGE_BUCKET not configured.');
-      return { archivedCount: 0, activeCount: progressMap.size, status: 'SKIPPED_CONFIG' };
-    }
 
     this.doc.transact(() => {
       stale.forEach(([key, value]) => { archiveMap.set(key, value); progressMap.delete(key); });
@@ -314,11 +313,11 @@ const ROUTES = Object.freeze([
   {
     path: '/archive', method: 'GET',
     handle: async (core) => {
-      await core.archiveToFirebase();
+      await core.archiveOldRecords();
       return json({ success: true, message: 'V7.0 Proactive Archiving Initiated', timestamp: new Date().toISOString() });
     },
   },
-  { path: '/archive', method: 'POST', handle: async (core) => json(await core.archiveToFirebase()) },
+  { path: '/archive', method: 'POST', handle: async (core) => json(await core.archiveOldRecords()) },
   {
     path: '/snapshot', auth: true,
     handle: async (core) => {

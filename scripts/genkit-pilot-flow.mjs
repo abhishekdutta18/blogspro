@@ -1,20 +1,10 @@
 import 'dotenv/config';
 import { genkit, z } from 'genkit';
-import { enableFirebaseTelemetry } from '@genkit-ai/firebase';
 import { googleAI } from '@genkit-ai/google-genai';
 import { askAI, ResourceManager } from './lib/ai-service.js';
 import { fetchDynamicNews } from './lib/data-fetchers.js';
 import { promptManager } from './lib/prompt-manager.js';
 import 'dotenv/config';
-
-/**
- * [V16.6] PRODUCTION HANDSHAKE
- * Explicitly identifying the project to ensure local telemetry is routed to the Firebase Console.
- */
-enableFirebaseTelemetry({
-  projectId: process.env.FIREBASE_PROJECT_ID || 'blogspro-ai',
-  forceProperty: true // Ensure traces are exported immediately
-});
 
 /**
  * [V16.7] DYNAMIC KEY HYDRATION

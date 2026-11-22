@@ -43,9 +43,10 @@ pass `vars.MIRO_SYNC_URL` / `secrets.MIRO_SYNC_TOKEN`, which are empty until pha
    (creates the `blogspro-miro-sync` system user, `/opt/blogspro-miro-sync`, and the systemd unit).
 3. **Secrets:** create `/etc/blogspro-miro-sync.env` from `deploy/miro-sync/blogspro-miro-sync.env.example`
    (`root:blogspro-miro-sync`, `0640`). `MIRO_SYNC_TOKEN=$(openssl rand -hex 32)`.
-   For off-box backups also set `FIREBASE_STORAGE_BUCKET` and place the service account at
-   `/opt/blogspro-miro-sync/knowledge/firebase-service-account.json` (`0640`). Local disk is the
-   source of truth either way; GCS backups fail soft while Firebase billing is off.
+   `MEDIA_DIR` (default in the template: `/var/lib/blogspro-miro-sync/media`) receives `/snapshot`,
+   `FINAL_MANUSCRIPT` and archive exports plus periodic backups through `saveSnapshot`. Keep it out of
+   the web root, whose `/media` nginx serves publicly. `doc.yjs` in `/var/lib/blogspro-miro-sync` is the
+   source of truth; these snapshots are on the same disk, so they are history, not off-box backup.
 4. **Seed (optional):** copy the DO's current doc so nothing is lost:
    ```bash
    sudo -u blogspro-miro-sync node /opt/blogspro-miro-sync/scripts/miro-sync-seed.mjs \

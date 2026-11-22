@@ -10,7 +10,7 @@ async function testExtendedSwarm() {
     console.log("🐝 [Test] Starting Deep-Reflect Prototype (Single Vertical)...");
 
     const mockEnv = {
-        FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID || "blogspro-test",
+        GOOGLE_CLOUD_PROJECT: process.env.GOOGLE_CLOUD_PROJECT || "blogspro-test",
         GROQ_API_KEY: process.env.GROQ_API_KEY,
         GEMINI_API_KEY: process.env.GEMINI_API_KEY,
         OPENROUTER_KEY: process.env.OPENROUTER_KEY,

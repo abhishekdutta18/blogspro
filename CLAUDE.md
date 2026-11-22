@@ -1,10 +1,10 @@
 # BlogsPro — Claude Code Context
 
 ## Project Overview
-AI-powered institutional intelligence pipeline built on Firebase + GitHub Pages + Cloudflare Workers + GKE.
+AI-powered institutional intelligence pipeline built on a VPS API + Cloudflare Workers + GKE. No Firebase: data, auth and files live on the VPS.
 
 - **Live site:** https://blogspro.in
-- **Firebase project:** `blogspro-ai`
+- **GCP project (Vertex AI only):** `blogspro-ai` — env `GOOGLE_CLOUD_PROJECT`
 - **Cloudflare account:** `b3f4edff1fdc616f329e7d7cb6698307`
 
 ## Architecture
@@ -12,8 +12,8 @@ AI-powered institutional intelligence pipeline built on Firebase + GitHub Pages 
 | Layer | Technology |
 |-------|-----------|
 | Hosting | GitHub Pages |
-| Database | Firebase Firestore |
-| Auth | Firebase Auth |
+| Database | BlogsPro API on the VPS (`server/`, SQLite) |
+| Auth | BlogsPro API sessions; Google/GitHub via the OAuth relay worker |
 | Edge Workers | Cloudflare Workers (3 workers) |
 | Email | Resend API (`newsletter@mail.blogspro.in`) |
 | Error Monitoring | Sentry |
@@ -42,7 +42,7 @@ The core value engine. Generates institutional-grade AI intelligence on 4 freque
 | `scripts/lib/swarm-orchestrator.js` | Multi-agent swarm synthesis, hourly/daily generation |
 | `scripts/generate-institutional-tome.js` | Master pipeline orchestrator (all frequencies) |
 | `scripts/PROD_LAUNCH.mjs` | Production cascade launcher |
-| `scripts/lib/storage-bridge.js` | Firebase/GCS persistence layer |
+| `scripts/lib/storage-bridge.js` | Persistence: documents via `vps-store.js` (service API), files via `media-store.js` (VPS disk) |
 | `scripts/lib/templates.js` | Institutional HTML templating |
 | `scripts/lib/briefing-template.js` | Hourly/daily briefing template |
 | `scripts/lib/news-orchestrator.js` | Live news acquisition for pulse priming |
@@ -103,7 +103,6 @@ workers/sentry/   Sentry webhook worker
 Configured in `.claude/settings.json`. Requires these env vars set locally:
 
 ```bash
-export FIREBASE_SERVICE_ACCOUNT_KEY_PATH="/path/to/service-account.json"
 export GITHUB_PERSONAL_ACCESS_TOKEN="ghp_..."
 export RESEND_API_KEY="re_..."
 export SENTRY_AUTH_TOKEN="sntrys_..."
@@ -112,13 +111,14 @@ export CLOUDFLARE_API_TOKEN="..."
 
 ### What each MCP server can do
 
-- **firebase** — Read/write Firestore (posts, subscribers, users, ai_memory, swarm telemetry, prompts)
 - **github** — Manage PRs, issues, Actions workflow runs for `abhishekdutta18/blogspro`
 - **resend** — Send emails, manage subscriber contacts, create broadcast campaigns
 - **sentry** — Query errors, triage issues, view event details for BlogsPro project
 - **cloudflare** — Deploy/manage workers, DNS, R2, Zero Trust
 
-## Firestore Collections
+## Collections (BlogsPro API)
+
+Pipeline and workers reach them through `/api/service/data/<collection>` with `BLOGSPRO_SERVICE_TOKEN`; `users` and `sessions` are never exposed there.
 
 | Collection | Purpose |
 |-----------|---------|

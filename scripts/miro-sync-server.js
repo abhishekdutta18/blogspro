@@ -7,8 +7,10 @@
 //   MIRO_SYNC_HOST             listen address (default 127.0.0.1 — the TLS reverse proxy fronts it)
 //   MIRO_SYNC_DATA_DIR         absolute dir for the Yjs state file (default <cwd>/data/miro-sync)
 //   MIRO_SYNC_TOKEN            when set, /push, /snapshot and catch-all writes need "Bearer <token>"
-//   MIRO_SYNC_BACKUP_MINUTES   off-box saveSnapshot cadence when the doc changed (default 30, 0 = off)
-//   FIREBASE_STORAGE_BUCKET / FIREBASE_PROJECT_ID + knowledge/firebase-service-account.json for saveSnapshot
+//   MIRO_SYNC_BACKUP_MINUTES   saveSnapshot cadence while the doc keeps changing (default 30, 0 = off)
+//   MEDIA_DIR                  where saveSnapshot writes (media-store). Backups run only when it is set;
+//                              point it at a private dir, NOT the nginx-served web root /media.
+//   BLOGSPRO_API_URL / BLOGSPRO_SERVICE_TOKEN  optional: lets saveSnapshot record its latest_snapshots pointer
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -63,7 +65,7 @@ async function writeFetchResponse(res, response) {
 
 function startBackups(core, env, logger) {
   const minutes = Number(env.MIRO_SYNC_BACKUP_MINUTES ?? DEFAULT_BACKUP_MINUTES);
-  if (!minutes || !env.FIREBASE_STORAGE_BUCKET) return () => {};
+  if (!minutes || !env.MEDIA_DIR) return () => {};
   let dirty = false;
   const markDirty = () => { dirty = true; };
   core.doc.on('update', markDirty);
@@ -71,7 +73,7 @@ function startBackups(core, env, logger) {
     if (!dirty) return;
     dirty = false;
     const key = await saveSnapshot(Y.encodeStateAsUpdate(core.doc), 'miro-sync-state', env, `state-${Date.now()}.yjs`);
-    if (!key) { dirty = true; logger.warn('[MiroSync] off-box backup failed; will retry next interval'); }
+    if (!key) { dirty = true; logger.warn('[MiroSync] snapshot backup failed; will retry next interval'); }
   }, minutes * 60 * 1000);
   timer.unref();
   return () => { clearInterval(timer); core.doc.off('update', markDirty); };

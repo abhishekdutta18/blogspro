@@ -1,4 +1,5 @@
-import { getGoogleAccessToken, pushTelemetryLog } from '../scripts/lib/storage-bridge.js';
+import { pushTelemetryLog } from '../scripts/lib/storage-bridge.js';
+import { listDocuments, deleteDocument, isStoreConfigured } from '../scripts/lib/vps-store.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -169,46 +170,9 @@ export default {
       }
 
       try {
-        const PROJECT_ID = env.FIREBASE_PROJECT_ID || 'blogspro-ai';
-        // Find document ID for this email
-        const queryUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
-        const queryBody = {
-          structuredQuery: {
-            from: [{ collectionId: 'subscribers' }],
-            where: {
-              fieldFilter: {
-                field: { fieldPath: 'email' },
-                op: 'EQUAL',
-                value: { stringValue: email }
-              }
-            },
-            limit: 1
-          }
-        };
-
-        const token = await getGoogleAccessToken(env);
-        const headers = { 'Content-Type': 'application/json' };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        const listRes = await fetch(queryUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(queryBody)
-        });
-        const results = await listRes.json();
-        
-        if (results && results[0] && results[0].document) {
-          const docPath = results[0].document.name;
-          const headers = {};
-          const token = await getGoogleAccessToken(env);
-          if (token) headers['Authorization'] = `Bearer ${token}`;
-          
-          const delRes = await fetch(`https://firestore.googleapis.com/v1/${docPath}`, { 
-            method: 'DELETE',
-            headers
-          });
-          if (!delRes.ok) throw new Error('Delete failed');
-        }
+        if (!isStoreConfigured(env)) throw new Error('Subscriber store not configured');
+        // Subscribers are keyed by their lower-cased email; a missing one is already unsubscribed.
+        await deleteDocument('subscribers', email.trim().toLowerCase(), env);
 
         return new Response(`
           <!DOCTYPE html>
@@ -262,44 +226,17 @@ export default {
         });
       }
 
-    const PROJECT_ID = env.FIREBASE_PROJECT_ID;
-    if (!PROJECT_ID) {
-      return new Response(JSON.stringify({ error: "Internal Error: Project context missing." }), { status: 500 });
+    if (!isStoreConfigured(env)) {
+      return new Response(JSON.stringify({ error: "Internal Error: subscriber store not configured." }), { status: 500 });
     }
-      
-      // 1. Fetch ALL subscribers from Firestore REST API (handling pagination)
-      console.log('Fetching subscribers from Firestore...');
-      let emails = [];
-      let pageToken = '';
-      const baseUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/subscribers`;
 
-      const token = await getGoogleAccessToken(env);
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      let paginationRounds = 0;
-      const MAX_PAGINATION_ROUNDS = 50; // cap at ~5000 subscribers to prevent memory exhaustion
-      do {
-        if (++paginationRounds > MAX_PAGINATION_ROUNDS) {
-          console.warn('[newsletter] Pagination cap hit — truncating subscriber fetch');
-          break;
-        }
-        const url = pageToken ? `${baseUrl}?pageToken=${pageToken}` : baseUrl;
-        const dbRes = await fetch(url, { headers });
-        if (!dbRes.ok) {
-          const dbError = await dbRes.text();
-          throw new Error(`Failed to fetch subscribers: ${dbRes.status} - ${dbError}`);
-        }
-        const data = await dbRes.json();
-        if (data.documents) {
-          const batchSubs = data.documents.map(doc => ({
-            email: doc.fields?.email?.stringValue,
-            name: doc.fields?.name?.stringValue || doc.fields?.displayName?.stringValue || 'Reader'
-          })).filter(s => s.email);
-          emails = emails.concat(batchSubs);
-        }
-        pageToken = data.nextPageToken || '';
-      } while (pageToken);
+      // 1. Active subscribers from the BlogsPro API
+      console.log('Fetching subscribers from the BlogsPro API...');
+      const MAX_SUBSCRIBERS = 5000; // keeps one send within the Worker's memory budget
+      const subscribers = await listDocuments('subscribers', { where: { status: 'active' }, limit: MAX_SUBSCRIBERS }, env);
+      const emails = subscribers
+        .map(doc => ({ email: doc.email, name: doc.name || doc.displayName || 'Reader' }))
+        .filter(s => s.email);
 
       console.log(`Found ${emails.length} total subscribers`);
 

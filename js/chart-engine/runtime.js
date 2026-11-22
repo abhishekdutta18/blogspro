@@ -54,6 +54,20 @@ export function enhanceCharts(doc) {
     });
   };
 
+  // Undo prepare(): without the runtime, only a real <title> gives a mark its hover text.
+  // aria-label stays, so screen readers lose nothing either way.
+  const unprepare = () => {
+    doc.querySelectorAll('svg[data-bp-ready]').forEach(svg => {
+      svg.querySelectorAll('[data-tip]').forEach(mark => {
+        const title = doc.createElementNS(SVG_NS, 'title');
+        title.textContent = mark.getAttribute('data-tip');
+        mark.prepend(title);
+        mark.removeAttribute('data-tip');
+      });
+      svg.removeAttribute('data-bp-ready');
+    });
+  };
+
   const clearCross = () => {
     if (activeCross) activeCross.replaceChildren();
     activeCross = null;
@@ -136,12 +150,15 @@ export function enhanceCharts(doc) {
     disabled = true;
     attached.forEach(([type, fn, opts]) => doc.removeEventListener(type, fn, opts));
     root.setAttribute('data-bp-charts', 'off');
-    try {
-      hide();
-    } catch (cleanupErr) {
-      // Teardown is best effort; the original error below is the one worth reporting.
-      void cleanupErr;
-    }
+    // Teardown is best effort and step by step (one failing must not skip the other);
+    // the original error below is the one worth reporting.
+    [hide, unprepare].forEach(step => {
+      try {
+        step();
+      } catch (cleanupErr) {
+        void cleanupErr;
+      }
+    });
     const view = doc.defaultView;
     if (view && typeof view.reportError === 'function') view.reportError(err);
     else setTimeout(() => { throw err; });

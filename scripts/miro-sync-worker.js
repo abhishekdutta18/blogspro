@@ -36,7 +36,7 @@ export class MiroSyncS {
   }
 
   async scheduled() {
-    await this.core.archiveToFirebase();
+    await this.core.archiveOldRecords();
   }
 }
 

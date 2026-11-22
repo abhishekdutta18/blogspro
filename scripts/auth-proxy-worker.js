@@ -1,60 +1,27 @@
-import {
-  OAuthError, isProvider, randomState, stateCookie, clearStateCookie, isStateValid,
-  buildAuthorizeUrl, exchangeGoogleCode, fetchGithubIdentity
-} from "../server/src/oauth.js";
+/**
+ * auth-proxy-worker.js — OAuth relay for the BlogsPro VPS API.
+ *
+ * Sign-in starts and ends on the VPS (https://blogspro.in/auth/login/<provider>). The provider
+ * apps have this worker's callback URL registered, so the provider returns here; the worker
+ * exchanges the code with the client secret, signs the identity the provider vouched for, and
+ * sends the browser to /auth/bridge, where the VPS checks it against its own state cookie.
+ *
+ * Settings: GOOGLE_CLIENT_ID/SECRET, GITHUB_CLIENT_ID/SECRET, OAUTH_BRIDGE_SECRET.
+ * Sessions, accounts and data live on the VPS; this worker stores nothing.
+ */
+import { OAuthError, isProvider, clearStateCookie, exchangeGoogleCode, fetchGithubIdentity } from "../server/src/oauth.js";
 import { signAssertion } from "../server/src/bridge.js";
 
+const SITE_ORIGIN = "https://blogspro.in";
 // Where relayed sign-ins are finished: the VPS API checks the assertion against its state cookie.
-const BRIDGE_TARGET = "https://blogspro.in/auth/bridge";
+const BRIDGE_TARGET = `${SITE_ORIGIN}/auth/bridge`;
+const LOGIN_PAGE = `${SITE_ORIGIN}/login.html`;
 const MAX_STATE_LENGTH = 128;
 
-const LOGIN_PAGE = "https://blogspro.in/login.html";
-const STAFF_ROLES = new Set(["admin", "editor", "coauthor"]);
-const ADMIN_ONLY_COLLECTIONS = new Set(["users", "subscribers"]);
-const REQUESTABLE_ROLES = new Set(["editor", "coauthor"]);
-
-// Web Crypto helpers (no nodejs_compat needed)
-function b64url(buf) {
-  return btoa(String.fromCharCode(...new Uint8Array(buf)))
-    .replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-}
 function fromB64url(str) {
   return atob(str.replace(/-/g, "+").replace(/_/g, "/"));
 }
 
-// Minimal JWT (HS256) — Web Crypto HMAC
-async function signJwt(payload, secret, expSeconds = 7 * 24 * 3600) {
-  const now = Math.floor(Date.now() / 1000);
-  const body = { iat: now, exp: now + expSeconds, ...payload };
-  const enc = (obj) => b64url(new TextEncoder().encode(JSON.stringify(obj)));
-  const data = `${enc({ alg: "HS256", typ: "JWT" })}.${enc(body)}`;
-  const key = await crypto.subtle.importKey(
-    "raw", new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
-  return `${data}.${b64url(sig)}`;
-}
-
-async function verifyJwt(token, secret) {
-  const parts = token.split(".");
-  if (parts.length !== 3) return null;
-  const [h, b, s] = parts;
-  const key = await crypto.subtle.importKey(
-    "raw", new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" }, false, ["verify"]
-  );
-  const sigBytes = Uint8Array.from(fromB64url(s), c => c.charCodeAt(0));
-  const valid = await crypto.subtle.verify(
-    "HMAC", key, sigBytes, new TextEncoder().encode(`${h}.${b}`)
-  );
-  if (!valid) return null;
-  const body = JSON.parse(fromB64url(b));
-  if (body.exp && body.exp < Math.floor(Date.now() / 1000)) return null;
-  return body;
-}
-
-// Google Public Keys Cache
 let googleKeysCache = null;
 async function getGooglePublicKeys() {
   if (googleKeysCache) return googleKeysCache;
@@ -106,158 +73,6 @@ async function verifyGoogleIdToken(token, clientId) {
   }
 }
 
-// Service account → access token for Firestore REST (Web Crypto RSA)
-async function getAccessToken(sa) {
-  const now = Math.floor(Date.now() / 1000);
-  const enc = (obj) => b64url(new TextEncoder().encode(JSON.stringify(obj)));
-  const header = enc({ alg: "RS256", typ: "JWT" });
-  const claimset = enc({
-    iss: sa.client_email,
-    scope: "https://www.googleapis.com/auth/datastore",
-    aud: "https://oauth2.googleapis.com/token",
-    exp: now + 3600,
-    iat: now,
-  });
-
-  const pemStripped = sa.private_key
-    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
-    .replace(/-----END PRIVATE KEY-----/g, "")
-    .replace(/\n/g, "")
-    .trim();
-  const keyData = Uint8Array.from(atob(pemStripped), c => c.charCodeAt(0));
-
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8", keyData.buffer,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false, ["sign"]
-  );
-  const sigBuf = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5", cryptoKey,
-    new TextEncoder().encode(`${header}.${claimset}`)
-  );
-
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: `${header}.${claimset}.${b64url(sigBuf)}`,
-    }),
-  });
-  if (!res.ok) throw new Error("token fetch failed");
-  return (await res.json()).access_token;
-}
-
-// ── Firebase ID Token Verification (Web Crypto RSA) ─────────────────────────
-async function verifyFirebaseIdToken(token, projectId) {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const [hB64, pB64, sB64] = parts;
-    const header = JSON.parse(fromB64url(hB64));
-    const payload = JSON.parse(fromB64url(pB64));
-
-    // 1. Basic Claims
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp < now) return null;
-    if (payload.aud !== projectId) return null;
-    if (payload.iss !== `https://securetoken.google.com/${projectId}`) return null;
-    if (!payload.sub) return null;
-
-    // 2. RSA Signature Check (Google JWK)
-    const jwkRes = await fetch("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com");
-    if (!jwkRes.ok) return null;
-    const jwkData = await jwkRes.json();
-    const jwk = jwkData.keys.find(k => k.kid === header.kid);
-    if (!jwk) return null;
-
-    const cryptoKey = await crypto.subtle.importKey(
-      "jwk", jwk,
-      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-      false, ["verify"]
-    );
-
-    const sigBytes = Uint8Array.from(fromB64url(sB64), c => c.charCodeAt(0));
-    const valid = await crypto.subtle.verify(
-      "RSASSA-PKCS1-v1_5", cryptoKey, sigBytes, new TextEncoder().encode(`${hB64}.${pB64}`)
-    );
-
-    if (!valid) return null;
-    return { uid: payload.sub, email: payload.email, emailVerified: payload.email_verified === true };
-  } catch (e) {
-    console.error("Firebase Verify Error:", e);
-    return null;
-  }
-}
-
-async function fetchRole(projectId, accessToken, uid, email = null) {
-  // 1. Try UID lookup
-  let url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${uid}`;
-  let res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (res.ok) {
-    const doc = await res.json();
-    if (doc.fields?.role?.stringValue) return doc.fields.role.stringValue;
-  }
-
-  // 2. Try Email lookup (User's preferred schema)
-  if (email) {
-    url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${email}`;
-    res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (res.ok) {
-      const doc = await res.json();
-      if (doc.fields?.role?.stringValue) return doc.fields.role.stringValue;
-    }
-  }
-
-  return null;
-}
-
-function isAdmin(email) {
-  if (!email) return false;
-  const adminEmails = [
-    "abhishek.dutta1996@gmail.com",
-    "abhishekdutta18@gmail.com",
-    "abhishek@blogspro.com",
-    "abhishek.dutta1996@admin.blogspro.in",
-    "nandadulaldutta.ndd@gmail.com"
-  ];
-  return adminEmails.includes(email.toLowerCase());
-}
-
-function jsonResponse(body, status = 200, headers = {}, req = null) {
-  const origin = req?.headers.get("Origin");
-  // Institutional CORS: Allow production, localhost, and specific subdomains
-  const allowedOrigins = [
-    "https://blogspro.in",
-    "https://admin.blogspro.in",
-    "http://localhost:8888",
-    "http://127.0.0.1:8888"
-  ];
-  const allowedOrigin = (origin && allowedOrigins.includes(origin)) ? origin : (origin === "null" ? "null" : allowedOrigins[0]);
-  
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Credentials": "true",
-    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-  };
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json", ...corsHeaders, ...headers },
-  });
-}
-
-function setSessionCookie(jwt) {
-  return {
-    "Set-Cookie": `bp_session=${jwt}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${7 * 24 * 3600}`,
-  };
-}
-
-/** The admin email allow-list only applies to addresses the identity provider verified. */
-function isVerifiedAdmin(email, emailVerified) {
-  return emailVerified === true && isAdmin(email);
-}
-
 function redirectWithCookies(location, cookies) {
   const headers = new Headers({ Location: location, "Cache-Control": "no-store" });
   cookies.forEach(cookie => headers.append("Set-Cookie", cookie));
@@ -294,421 +109,39 @@ async function relayToVps(provider, params, { clientId, clientSecret, redirectUr
   }
 }
 
-/** Resolves the role for a provider-verified identity and hands the session to /login.html. */
-async function completeOAuthLogin(identity, env, sessionSecret, projectId) {
-  if (!identity?.email || identity.verified !== true) return oauthErrorRedirect("unverified");
-
-  let role = null;
-  try {
-    const accessToken = await getAccessToken(JSON.parse(env.FIREBASE_SERVICE_ACCOUNT));
-    role = await fetchRole(projectId, accessToken, identity.uid, identity.email);
-  } catch (e) {
-    console.error("Role fetch error:", e?.message);
-  }
-  if (isVerifiedAdmin(identity.email, true)) role = "admin";
-
-  const jwt = await signJwt({ uid: identity.uid, email: identity.email, role: role || "reader", ev: true }, sessionSecret);
-  return redirectWithCookies(`${LOGIN_PAGE}?token=${jwt}`, [setSessionCookie(jwt)["Set-Cookie"], clearStateCookie()]);
+function json(body, status) {
+  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
 }
 
-/** Firebase password accounts are unverified until the user clicks the email link. */
-async function lookupEmailVerified(idToken, webApiKey) {
-  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${webApiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idToken }),
-  });
-  if (!res.ok) return false;
-  const data = await res.json().catch(() => ({}));
-  return data.users?.[0]?.emailVerified === true;
+function providerCredentials(provider, env) {
+  return provider === "google"
+    ? { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET }
+    : { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET };
 }
 
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
-    const path = url.pathname;
-    const FRONTEND_URL = "https://blogspro.in";
+    if (url.pathname === "/health") return json({ ok: true, ts: Date.now() }, 200);
 
-    // CORS Preflight (Institutional Hardening V12.5)
-    if (req.method === "OPTIONS") {
-      const origin = req.headers.get("Origin");
-      const allowedOrigins = ["https://blogspro.in", "https://admin.blogspro.in", "http://localhost:8888"];
-      const responseOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
-      
-      return new Response(null, {
-        status: 204,
-        headers: {
-          "Access-Control-Allow-Origin": responseOrigin,
-          "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-          "Access-Control-Allow-Credentials": "true",
-          "Access-Control-Max-Age": "86400",
-        },
-      });
+    const oauthRoute = url.pathname.match(/^\/auth\/(login|callback)\/([a-z]+)$/);
+    if (!oauthRoute || req.method !== "GET" || !isProvider(oauthRoute[2])) return json({ error: "Not found" }, 404);
+    const [, step, provider] = oauthRoute;
+
+    // The VPS holds the state cookie, so every login starts there. Fixed target: no open redirect.
+    if (step === "login") {
+      return new Response(null, { status: 302, headers: { Location: `${SITE_ORIGIN}/auth/login/${provider}`, "Cache-Control": "no-store" } });
     }
 
-    // Health
-    if (path === "/health") return jsonResponse({ ok: true, ts: Date.now() }, 200, {}, req);
+    if (url.searchParams.get("error")) return oauthErrorRedirect("denied");
+    if (!url.searchParams.get("code")) return oauthErrorRedirect("exchange");
 
-    // Parse service account & config
-    let serviceAccount = null;
-    try { 
-      if (env.FIREBASE_SERVICE_ACCOUNT) {
-        serviceAccount = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT); 
-      }
-    } catch (e) {
-      return jsonResponse({ error: `Service Account JSON Parse Error: ${e.message}` }, 400, {}, req);
+    const { clientId, clientSecret } = providerCredentials(provider, env);
+    if (!env.OAUTH_BRIDGE_SECRET || !clientId || !clientSecret) {
+      console.error(`OAuth relay for ${provider} is missing its client credentials or OAUTH_BRIDGE_SECRET.`);
+      return json({ error: "Sign-in is not configured." }, 503);
     }
-
-    const projectId = env.FIREBASE_PROJECT_ID || serviceAccount?.project_id;
-    const sessionSecret = env.SESSION_SECRET;
-    const webApiKey = env.FIREBASE_WEB_API_KEY;
-    const googleId = env.GOOGLE_CLIENT_ID;
-    const googleSecret = env.GOOGLE_CLIENT_SECRET;
-    const githubId = env.GITHUB_CLIENT_ID;
-    const githubSecret = env.GITHUB_CLIENT_SECRET;
-
-    // Diagnostic Check: Pinpoint missing secrets causing 404
-    if (!serviceAccount?.private_key || !sessionSecret || !projectId || !webApiKey || !googleId || !googleSecret || !githubId || !githubSecret) {
-      const missing = [];
-      if (!serviceAccount?.private_key) missing.push("FIREBASE_SERVICE_ACCOUNT (private_key)");
-      if (!sessionSecret) missing.push("SESSION_SECRET");
-      if (!projectId) missing.push("FIREBASE_PROJECT_ID");
-      if (!webApiKey) missing.push("FIREBASE_WEB_API_KEY");
-      if (!googleId) missing.push("GOOGLE_CLIENT_ID");
-      if (!googleSecret) missing.push("GOOGLE_CLIENT_SECRET");
-      if (!githubId) missing.push("GITHUB_CLIENT_ID");
-      if (!githubSecret) missing.push("GITHUB_CLIENT_SECRET");
-      
-      return jsonResponse({ 
-        error: "Auth Proxy Misconfigured", 
-        missing,
-        env_keys: Object.keys(env)
-      }, 404, {}, req);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // 1. Session Extraction (Hybrid: Cookie OR Authorization Header)
-    // ─────────────────────────────────────────────────────────────────────────
-    let payload = null;
-    const authHeader = req.headers.get("Authorization");
-    const cookieHeader = req.headers.get("Cookie") || "";
-    
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.split(" ")[1];
-      // Try verifying as Proxy JWT first, then as Firebase ID Token
-      payload = await verifyJwt(token, sessionSecret);
-      if (!payload) {
-        const fbUser = await verifyFirebaseIdToken(token, projectId);
-        if (fbUser) {
-          payload = { uid: fbUser.uid, email: fbUser.email, ev: fbUser.emailVerified, isFirebase: true };
-        }
-      }
-    }
-    
-    if (!payload) {
-      const match = cookieHeader.match(/bp_session=([^;]+)/);
-      if (match) payload = await verifyJwt(match[1], sessionSecret);
-    }
-
-    // Role Resolution
-    let role = payload?.role || "reader";
-    if (payload && (!payload.role || payload.role === "reader")) {
-      // Tokens without ev:true (unverified or pre-fix) never get the allow-list upgrade.
-      if (isVerifiedAdmin(payload.email, payload.ev)) {
-        role = "admin";
-      } else if (!payload.role) {
-        try {
-          const accessToken = await getAccessToken(serviceAccount);
-          const fRole = await fetchRole(projectId, accessToken, payload.uid, payload.email);
-          if (fRole) role = fRole;
-        } catch (e) {}
-      }
-      payload.role = role;
-    }
-
-    // ── Firestore helpers ─────────────────────────────────────────────────────
-    const fsVal = (v) => {
-      if (!v) return null;
-      if (v.stringValue !== undefined) return v.stringValue;
-      if (v.integerValue !== undefined) return Number(v.integerValue);
-      if (v.doubleValue !== undefined) return v.doubleValue;
-      if (v.booleanValue !== undefined) return v.booleanValue;
-      if (v.timestampValue !== undefined) return v.timestampValue;
-      if (v.nullValue !== undefined) return null;
-      if (v.arrayValue) return (v.arrayValue.values || []).map(fsVal);
-      if (v.mapValue) return Object.fromEntries(Object.entries(v.mapValue.fields || {}).map(([k, w]) => [k, fsVal(w)]));
-      return null;
-    };
-    const fsDoc = (doc) => {
-      if (!doc?.fields) return null;
-      const obj = doc.name ? { _id: doc.name.split("/").pop() } : {};
-      for (const [k, v] of Object.entries(doc.fields)) obj[k] = fsVal(v);
-      return obj;
-    };
-    const fsGet = async (col, docId) => {
-      const token = await getAccessToken(serviceAccount);
-      const r = await fetch(
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${col}/${docId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!r.ok) return null;
-      return fsDoc(await r.json());
-    };
-    const fsCreate = async (col, docId, data) => {
-      const token = await getAccessToken(serviceAccount);
-      const fields = {};
-      for (const [k, v] of Object.entries(data)) {
-        if (typeof v === "string") fields[k] = { stringValue: v };
-        else if (typeof v === "number") fields[k] = { doubleValue: v };
-        else if (typeof v === "boolean") fields[k] = { booleanValue: v };
-      }
-      const r = await fetch(
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${col}?documentId=${docId}`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ fields }),
-        }
-      );
-      return r.ok;
-    };
-    const fsQuery = async (col, opts = {}) => {
-      const token = await getAccessToken(serviceAccount);
-      const [orderField, orderDir] = (opts.orderBy || "").split(" ");
-      const q = { structuredQuery: { from: [{ collectionId: col }] } };
-      if (orderField) q.structuredQuery.orderBy = [{ field: { fieldPath: orderField }, direction: orderDir === "desc" ? "DESCENDING" : "ASCENDING" }];
-      if (opts.limit) q.structuredQuery.limit = Number(opts.limit);
-      const r = await fetch(
-        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`,
-        { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(q) }
-      );
-      if (!r.ok) return [];
-      const rows = await r.json();
-      return (Array.isArray(rows) ? rows : []).filter(x => x.document).map(x => fsDoc(x.document)).filter(Boolean);
-    };
-
-    // ── Public Data Routes (no session required) ──────────────────────────────
-    const PUBLIC_COLLECTIONS = new Set(["posts", "site", "pulse_briefings", "articles"]);
-    if (path.startsWith("/api/public/data/") && serviceAccount?.private_key && projectId) {
-      const seg = path.slice("/api/public/data/".length).split("/").filter(Boolean);
-      const col = seg[0];
-      const docId = seg[1];
-      if (!col || !PUBLIC_COLLECTIONS.has(col)) return jsonResponse({ error: "Not found" }, 404, {}, req);
-      try {
-        const opts = Object.fromEntries(url.searchParams);
-        if (docId) {
-          const doc = await fsGet(col, docId);
-          if (!doc) return jsonResponse({ error: "Not found" }, 404, {}, req);
-          return jsonResponse(doc, 200, { "Cache-Control": "public, max-age=60" }, req);
-        }
-        const docs = await fsQuery(col, opts);
-        return jsonResponse(docs, 200, { "Cache-Control": "public, max-age=30" }, req);
-      } catch (e) {
-        return jsonResponse({ error: "Data unavailable" }, 503, {}, req);
-      }
-    }
-
-    // ── Authenticated Data Routes ─────────────────────────────────────────────
-    if (path.startsWith("/api/data/") && serviceAccount?.private_key && projectId) {
-      const seg = path.slice("/api/data/".length).split("/").filter(Boolean);
-      const col = seg[0];
-      const docId = seg[1];
-      if (!col) return jsonResponse({ error: "Not found" }, 404, {}, req);
-      if (!payload) return jsonResponse({ error: "Sign in required" }, 401, {}, req);
-      const isOwnProfile = col === "users" && docId === payload.uid;
-      const isAllowed = ADMIN_ONLY_COLLECTIONS.has(col) ? role === "admin" : STAFF_ROLES.has(role);
-      if (!isOwnProfile && !isAllowed) return jsonResponse({ error: "Forbidden" }, 403, {}, req);
-      try {
-        const opts = Object.fromEntries(url.searchParams);
-        if (req.method === "GET") {
-          if (docId) {
-            const doc = await fsGet(col, docId);
-            if (!doc) return jsonResponse({ error: "Not found" }, 404, {}, req);
-            return jsonResponse(doc, 200, { "Cache-Control": "private, max-age=10" }, req);
-          }
-          const docs = await fsQuery(col, opts);
-          return jsonResponse(docs, 200, { "Cache-Control": "private, max-age=10" }, req);
-        }
-      } catch (e) {
-        return jsonResponse({ error: "Data unavailable" }, 503, {}, req);
-      }
-    }
-
-    // Login
-    if (path === "/auth/login" && req.method === "POST") {
-      const body = await req.json().catch(() => ({}));
-      const { email, password } = body;
-      if (!email || !password) return jsonResponse({ error: "Email and password required" }, 400, {}, req);
-
-      const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${env.FIREBASE_WEB_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, returnSecureToken: true }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        return jsonResponse({ error: err.error?.message || "Auth failed" }, 401, {}, req);
-      }
-      const data = await res.json();
-      const uid = data.localId;
-      const sa = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT);
-
-      let role = null;
-      try {
-        const token = await getAccessToken(sa);
-        role = await fetchRole(projectId, token, uid, email);
-      } catch (e) {}
-
-      // Allow-list override only for an email Firebase has verified.
-      const emailVerified = await lookupEmailVerified(data.idToken, env.FIREBASE_WEB_API_KEY);
-      if (isVerifiedAdmin(email, emailVerified)) role = "admin";
-      role = role || "reader";
-
-      const jwt = await signJwt({ uid, email, role, ev: emailVerified }, sessionSecret);
-      return jsonResponse({ success: true, role, token: jwt }, 200, setSessionCookie(jwt), req);
-    }
-
-    // Google Callback (GSI login_uri)
-    if (path === "/auth/callback/google" && req.method === "POST") {
-      try {
-        const formData = await req.formData();
-        const credential = formData.get("credential");
-        if (!credential) return jsonResponse({ error: "No credential received" }, 400, {}, req);
-
-        const googleUser = await verifyGoogleIdToken(credential, env.GOOGLE_CLIENT_ID);
-        if (!googleUser) return oauthErrorRedirect("exchange");
-        return completeOAuthLogin(googleUser, env, sessionSecret, projectId);
-      } catch (e) {
-        return oauthErrorRedirect("provider");
-      }
-    }
-
-    // OAuth authorization-code flow: GET /auth/login/<provider> → provider → GET /auth/callback/<provider>
-    const oauthRoute = path.match(/^\/auth\/(login|callback)\/([a-z]+)$/);
-    if (oauthRoute && req.method === "GET" && isProvider(oauthRoute[2])) {
-      const [, step, provider] = oauthRoute;
-      const clientId = provider === "google" ? googleId : githubId;
-      const clientSecret = provider === "google" ? googleSecret : githubSecret;
-      const redirectUri = `${url.origin}/auth/callback/${provider}`;
-
-      // The return page is fixed; the client's ?redirect= is ignored so this can't be an open redirect.
-      if (step === "login") {
-        const state = randomState();
-        return new Response(null, {
-          status: 302,
-          headers: {
-            Location: buildAuthorizeUrl(provider, { clientId, redirectUri, state }),
-            "Set-Cookie": stateCookie(provider, state),
-            "Cache-Control": "no-store",
-          },
-        });
-      }
-
-      if (url.searchParams.get("error")) return oauthErrorRedirect("denied");
-      if (env.OAUTH_BRIDGE_SECRET) {
-        return relayToVps(provider, url.searchParams, { clientId, clientSecret, redirectUri, googleId }, env.OAUTH_BRIDGE_SECRET);
-      }
-      if (!isStateValid(cookieHeader, provider, url.searchParams.get("state"))) return oauthErrorRedirect("state");
-      const code = url.searchParams.get("code");
-      if (!code) return oauthErrorRedirect("exchange");
-
-      try {
-        // Wrapped: Workers throws "Illegal invocation" when fetch is called as a method of another object.
-        const params = { code, clientId, clientSecret, redirectUri, fetchImpl: (...args) => fetch(...args) };
-        const identity = provider === "google"
-          ? await verifyGoogleIdToken(await exchangeGoogleCode(params), googleId)
-          : await fetchGithubIdentity(params);
-        if (!identity) return oauthErrorRedirect("exchange");
-        return completeOAuthLogin(identity, env, sessionSecret, projectId);
-      } catch (e) {
-        console.error(`OAuth ${provider} callback failed:`, e?.message);
-        return oauthErrorRedirect(e instanceof OAuthError ? e.reason : "provider");
-      }
-    }
-
-    // Register
-    if (path === "/auth/register" && req.method === "POST") {
-      const body = await req.json().catch(() => ({}));
-      const { name, email, password } = body;
-      const askedRole = body.role || body.requestedRole;
-      if (!name || !email || !password) return jsonResponse({ error: "Name, email and password required" }, 400, {}, req);
-
-      const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${env.FIREBASE_WEB_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, returnSecureToken: true }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        return jsonResponse({ error: err.error?.message || "Registration failed" }, 401, {}, req);
-      }
-      const data = await res.json();
-      const uid = data.localId;
-      
-      // New password accounts are unverified, so everyone starts as a reader.
-      // Editor/co-author is stored as a request for the admin to approve.
-      const role = "reader";
-      const record = { name, email, role, createdAt: new Date().toISOString() };
-      const userDoc = REQUESTABLE_ROLES.has(askedRole) ? { ...record, requestedRole: askedRole } : record;
-      await fsCreate("users", uid, userDoc);
-
-      const jwt = await signJwt({ uid, email, role, ev: false }, sessionSecret);
-      return jsonResponse({ success: true, role, token: jwt }, 200, setSessionCookie(jwt), req);
-    }
-
-    // Logout
-    if (path === "/auth/logout" && req.method === "POST") {
-      return new Response(null, {
-        status: 204,
-        headers: { "Set-Cookie": "bp_session=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None" },
-      });
-    }
-
-    // Me
-    if (path === "/auth/me" && req.method === "GET") {
-      if (!payload) return jsonResponse({ authenticated: false }, 200, {}, req);
-      const jwt = await signJwt({ uid: payload.uid, email: payload.email, role: payload.role, ev: payload.ev === true }, sessionSecret);
-      return jsonResponse({ 
-        authenticated: true, 
-        user: { uid: payload.uid, email: payload.email, role: payload.role },
-        token: jwt
-      }, 200, {}, req);
-    }
-
-    // ── DIAGNOSTIC ENDPOINT ──────────────────────────────────────────────────
-    if (path === "/api/diag/env") {
-      const hasSA = !!env.FIREBASE_SERVICE_ACCOUNT;
-      const hasSecret = !!env.SESSION_SECRET;
-      return jsonResponse({ status: "ALIGNED", firebase: hasSA, session: hasSecret, role });
-    }
-
-    // ── TEST BENCH GATED ROUTES (Admin Only) ──────────────────────────────────
-    if (path.startsWith("/api/testbench")) {
-      if (role !== "admin") return jsonResponse({ error: "Access Denied: Admin role required for Test Bench" }, 403, {}, req);
-      
-      const PULSE_URL = env.PULSE_URL || "https://blogspro-pulse.abhishek-dutta1996.workers.dev";
-      
-      // Proxy Audit Request
-      if (path === "/api/testbench/audit" && req.method === "POST") {
-        const body = await req.json();
-        const res = await fetch(`${PULSE_URL}/api/internal/audit`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${env.INTERNAL_ACCESS_TOKEN || ''}` },
-          body: JSON.stringify(body)
-        });
-        return new Response(res.body, { status: res.status, headers: { ...res.headers, "Access-Control-Allow-Origin": "*" } });
-      }
-
-      // Proxy Tracer Logs
-      if (path === "/api/testbench/tracer") {
-        const res = await fetch(`${PULSE_URL}/api/swarm/telemetry`, {
-          headers: { "Authorization": `Bearer ${env.INTERNAL_ACCESS_TOKEN || ''}` }
-        });
-        return new Response(res.body, { status: res.status, headers: { ...res.headers, "Access-Control-Allow-Origin": "*" } });
-      }
-    }
-
-    return jsonResponse({ error: "Not found" }, 404, {}, req);
+    const redirectUri = `${url.origin}/auth/callback/${provider}`;
+    return relayToVps(provider, url.searchParams, { clientId, clientSecret, redirectUri, googleId: env.GOOGLE_CLIENT_ID }, env.OAUTH_BRIDGE_SECRET);
   },
 };

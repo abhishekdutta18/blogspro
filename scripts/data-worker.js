@@ -32,30 +32,10 @@ export default {
     const force = url.searchParams.get("force") === "true";
 
     try {
-      // 1. Load context from Firestore if fresh (unless 'force' is true)
-      if (!force && env.FIREBASE_PROJECT_ID) {
-        try {
-          const snapshotMeta = await fetch(`https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/latest_snapshots/latest_${frequency}`).then(r => r.json());
-          
-          // Fix: Standardize on doubleValue for timestamps
-          if (snapshotMeta.fields && snapshotMeta.fields.timestamp) {
-            const timestamp = parseFloat(snapshotMeta.fields.timestamp.doubleValue || snapshotMeta.fields.timestamp.integerValue);
-            if (Date.now() - timestamp < 300000) { 
-              console.log(`⚡ [DataHub] Serving ${frequency} snapshot from Storage: ${snapshotMeta.fields.key.stringValue}`);
-              const storageUrl = `https://storage.googleapis.com/${env.FIREBASE_STORAGE_BUCKET}/${snapshotMeta.fields.key.stringValue}`;
-              const res = await fetch(storageUrl);
-              return new Response(await res.text(), { headers: { "Content-Type": "application/json" } });
-            }
-          }
-        } catch (e) {
-          console.warn(`⚠️ [DataHub] Snapshot Cache Miss: ${e.message}`);
-        }
-      }
-
-      // 2. Perform fresh ingestion
+      // 1. Fresh ingestion (Workers have no disk for a snapshot cache)
       const data = await ingest(frequency, env);
 
-      // 3. Save Snapshot to R2 (Temporal Memory)
+      // 2. Snapshot record (stored only where the media store has a disk)
       await saveSnapshot(data, frequency, env);
 
       return new Response(JSON.stringify(data), {

@@ -19,6 +19,14 @@ function providerConfig(id, secret, hasBridge) {
   return hasBridge ? Object.freeze({ clientId: id, clientSecret: null, viaBridge: true }) : null;
 }
 
+/** Minimum length for SERVICE_TOKEN; a shorter value leaves the service API switched off. */
+const MIN_SERVICE_TOKEN_LENGTH = 32;
+
+function serviceToken(env) {
+  const token = (env.SERVICE_TOKEN || '').trim();
+  return token.length >= MIN_SERVICE_TOKEN_LENGTH ? token : null;
+}
+
 function bridgeConfig(env) {
   const origin = env.OAUTH_BRIDGE_ORIGIN;
   const secret = env.OAUTH_BRIDGE_SECRET;
@@ -36,6 +44,8 @@ export function loadConfig(env = process.env) {
   const oauthBridge = bridgeConfig(env);
   return Object.freeze({
     oauthBridge,
+    // Bearer token for /api/service/* (pipeline and Cloudflare workers); null = off.
+    serviceToken: serviceToken(env),
     host: env.HOST || '127.0.0.1',
     port: Number(env.PORT || DEFAULT_PORT),
     dbPath: env.DB_PATH || '/var/lib/blogspro-api/blogspro.db',

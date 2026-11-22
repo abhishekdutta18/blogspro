@@ -2,12 +2,16 @@
 // Run: node --test tests/miro-sync-core.test.mjs
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import * as Y from 'yjs';
 import { MiroSyncCore, nextProgressEntry, DOC_KEY } from '../scripts/lib/miro-sync-core.js';
 
 const cores = [];
 after(() => cores.forEach((c) => c.destroy()));
 const track = (core) => { cores.push(core); return core; };
+const quiet = { info() {}, warn() {}, error() {} };
 
 function memoryStore() {
   const data = new Map();
@@ -102,12 +106,25 @@ test('persist + load round-trips the doc through storage (V1 encoding)', async (
   assert.equal(b.doc.getMap('swarm-progress').get('keep-me').stage, 'AUDIT');
 });
 
-test('archive skips without a bucket and leaves records in place', async () => {
-  const core = track(await new MiroSyncCore({ storage: memoryStore(), logger: { info() {}, warn() {}, error() {} } }).load());
-  core.doc.getMap('swarm-progress').set('old', { jobId: 'old', timestamp: '2020-01-01T00:00:00Z' });
+test('archive moves records older than 90 days, exports them to MEDIA_DIR and persists', async (t) => {
+  const mediaDir = await mkdtemp(path.join(os.tmpdir(), 'miro-media-'));
+  t.after(() => rm(mediaDir, { recursive: true, force: true }));
+  const store = memoryStore();
+  const core = track(await new MiroSyncCore({ storage: store, env: { MEDIA_DIR: mediaDir }, logger: quiet }).load());
+  const progress = core.doc.getMap('swarm-progress');
+  progress.set('old', { jobId: 'old', timestamp: '2020-01-01T00:00:00Z' });
+  progress.set('fresh', { jobId: 'fresh', timestamp: new Date().toISOString() });
+
   const out = await (await core.handleRequest(req('/archive', { method: 'POST' }))).json();
-  assert.equal(out.status, 'SKIPPED_CONFIG');
-  assert.ok(core.doc.getMap('swarm-progress').has('old'));
+
+  assert.deepEqual(out, { archivedCount: 1, activeCount: 1 });
+  assert.ok(core.doc.getMap('swarm-archive').has('old'));
+  assert.ok(!progress.has('old'));
+  assert.ok(store.data.has(DOC_KEY), 'archive persists the doc');
+  const listed = await (await core.handleRequest(req('/archive/retrieve?id=old'))).json();
+  assert.equal(listed.jobId, 'old');
+  const exported = await readdir(path.join(mediaDir, 'snapshots', 'archive'), { recursive: true });
+  assert.ok(exported.some((f) => f.endsWith('.json')) && exported.some((f) => f.endsWith('.yjs')));
 });
 
 test('a WS session gets sync step 1 on open and edits from one peer reach another', async () => {

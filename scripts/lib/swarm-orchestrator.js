@@ -9,12 +9,12 @@ import { askAI, askMultipleAIWithConsensus } from './ai-service.js';
 import { 
   saveToCloudBucket, 
   loadFromCloudBucket, 
-  syncToFirestore, 
+  saveRecord, 
   pushSovereignTrace, 
   getHistoricalData,
-  saveToGDriveBucket,
   pushTelemetryLog
 } from './storage-bridge.js';
+import { isStoreConfigured } from './vps-store.js';
 import { logSwarmBreadcrumb, captureSwarmError, logSwarmPulse, logBlackboardMemo } from './sentry-bridge.js';
 import { promptManager } from './prompt-manager.js';
 import { hydrateRemoteContext } from './remote-config.js';
@@ -137,7 +137,6 @@ function logTrace(message, data = null) {
 }
 
 export async function saveSectorFragment(jobId, verticalId, content, env = {}) {
-    const bucket = env.FIREBASE_STORAGE_BUCKET || "blogspro-asset";
     const fragmentData = { 
         jobId, 
         verticalId, 
@@ -145,11 +144,8 @@ export async function saveSectorFragment(jobId, verticalId, content, env = {}) {
         timestamp: new Date().toISOString() 
     };
 
-    // Remote Persistence (Primary)
-    if (env.FIREBASE_PROJECT_ID) {
-        const fileName = `sectors/${jobId}/${verticalId}.json`;
-        await saveToCloudBucket(fileName, fragmentData, env);
-    }
+    // Media store (read back by loadFromCloudBucket for this job)
+    const isStored = Boolean(await saveToCloudBucket(`sectors/${jobId}/${verticalId}.json`, fragmentData, env));
 
     // Local Persistence (Redundancy Fallback for GHA Artifacts)
     let currentBase = process.cwd();
@@ -163,22 +159,16 @@ export async function saveSectorFragment(jobId, verticalId, content, env = {}) {
     const filePath = path.join(absoluteSectorDir, `${jobId}_${verticalId}.json`);
     fs.writeFileSync(filePath, safeStringify(fragmentData, 2));
     
-    console.log(`💾 [Fragment-Sync] Sector ${verticalId} saved to ${env.FIREBASE_PROJECT_ID ? 'Cloud & ' : ''}Local [${jobId}]`);
+    console.log(`💾 [Fragment-Sync] Sector ${verticalId} saved to ${isStored ? 'media store & ' : ''}local [${jobId}]`);
 }
 
 export async function loadSectorFragments(jobId, env = {}) {
     let cloudFragments = [];
     let localFragments = [];
 
-    // 1. Load from Cloud (Firebase/R2)
-    if (env.FIREBASE_PROJECT_ID) {
-        try {
-            cloudFragments = await loadFromCloudBucket(jobId, env);
-            console.log(`📡 [Assembly] Recovered ${cloudFragments.length} fragments from Cloud Bucket.`);
-        } catch (e) {
-            console.warn(`⚠️ [Assembly] Cloud fetch failed: ${e.message}`);
-        }
-    }
+    // 1. Load from the media store
+    cloudFragments = await loadFromCloudBucket(jobId, env);
+    console.log(`📡 [Assembly] Recovered ${cloudFragments.length} fragments from the media store.`);
     
     // 2. Load from Local (GHA Artifacts/FS)
     if (fs.existsSync(SECTOR_DIR)) {
@@ -281,7 +271,7 @@ export async function runGhostSim(frequency, semanticDigest, env, jobId, modelOv
 }
 
 export async function notifyProgress(env, jobId, data) {
-  if (!hasMiroSync(env) && !env.AUTH_PROXY_URL && !env.FIREBASE_PROJECT_ID) return;
+  if (!hasMiroSync(env) && !env.AUTH_PROXY_URL && !isStoreConfigured(env)) return;
   
   // [V7.0] UI-Independent High-Fidelity Progress Visualization (ANSI CLI)
   if (data.progress !== undefined) {
@@ -310,7 +300,7 @@ export async function notifyProgress(env, jobId, data) {
     console.warn("⚠️ [Sentry-Telemetry] Failed:", e.message);
   }
 
-  if (env && (hasMiroSync(env) || env.AUTH_PROXY_URL || env.FIREBASE_PROJECT_ID)) {
+  if (env && (hasMiroSync(env) || env.AUTH_PROXY_URL || isStoreConfigured(env))) {
     try {
       const payload = { 
         source: data.source || "SWARM_PROGRESS", 
@@ -321,9 +311,9 @@ export async function notifyProgress(env, jobId, data) {
 
       const isHourly = String(jobId || '').includes('hourly');
 
-      if (isHourly && env.FIREBASE_PROJECT_ID) {
-        // GCP Firebase Telemetry Bridge (Hourly Only)
-        await syncToFirestore('live_telemetry', { id: jobId, ...payload }, env);
+      if (isHourly && isStoreConfigured(env)) {
+        // Hourly runs report to live_telemetry on the BlogsPro API
+        await saveRecord('live_telemetry', { id: jobId, ...payload }, env);
       } else if (!isHourly && hasMiroSync(env)) {
         // MiroSync Bridge (Daily/Monthly): VPS service when MIRO_SYNC_URL is set, else the legacy Durable Object
         try {
@@ -337,9 +327,9 @@ export async function notifyProgress(env, jobId, data) {
             throw new Error(`MiroSync returned status: ${res.status}`);
           }
         } catch (cfError) {
-          console.warn(`⚠️ [MiroSync Fallback] Sync Failed (${cfError.message}). Falling back to GCP Firestore...`);
-          if (env.FIREBASE_PROJECT_ID) {
-            await syncToFirestore('live_telemetry', { id: jobId, ...payload }, env);
+          console.warn(`⚠️ [MiroSync Fallback] Sync Failed (${cfError.message}). Falling back to the BlogsPro API...`);
+          if (isStoreConfigured(env)) {
+            await saveRecord('live_telemetry', { id: jobId, ...payload }, env);
           }
         }
       }
@@ -1046,28 +1036,24 @@ async function _finalizeAndSync(fidelityContent, consensusSummary, frequency, ty
     await generatePDF(tmpHtmlPath, frequency); 
     const pdfBuffer = fs.readFileSync(tmpPdfPath);
     
-    // Mirror to Cloud Bucket (GCS/Firebase) and Drive Anchor (GDrive)
+    // Store the manuscript and its PDF in the media store on the VPS.
     await Promise.all([
       saveToCloudBucket(`manuscripts/${id}.html`, finalHtml, env),
-      saveToCloudBucket(`manuscripts/${id}.pdf`, pdfBuffer, env),
-      saveToGDriveBucket(`${id}.pdf`, pdfBuffer, env)
+      saveToCloudBucket(`manuscripts/${id}.pdf`, pdfBuffer, env)
     ]);
-    
-    // Triple-Persistence Audit Entry in Firestore
+
     const publicDomain = env.ASSET_DOMAIN || "https://blogspro.in";
-    const bucketId = env.FIREBASE_STORAGE_BUCKET || "blogspro-asset";
-    
-    await syncToFirestore("institutional_outputs", {
+    await saveRecord("institutional_outputs", {
         jobId: id,
         frequency,
         type,
         wordCount: finalCount,
-        firebaseUrl: `${publicDomain}/manuscripts/${id}.pdf`,
-        gcsUrl: `gs://${bucketId}/manuscripts/${id}.pdf`,
+        pdfUrl: `${publicDomain}/media/manuscripts/${id}.pdf`,
+        mediaKey: `manuscripts/${id}.pdf`,
         timestamp: new Date().toISOString()
     }, env);
 
-    console.log(`✅ [Triple-Persistence] Institutional Manuscript Synchronized to GCS, Firebase & Google Drive: ${id}`);
+    console.log(`✅ [Persistence] Manuscript stored in the media store and recorded: ${id}`);
     
     // [V10.6 Hardening] Sentry Heartbeat
     await logSwarmPulse('info', `Institutional Manuscript Finalized: ${id}`, {

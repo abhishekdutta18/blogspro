@@ -3,7 +3,7 @@ import {
     listAllManuscripts, 
     getCloudMedia, 
     updateIndex, 
-    syncToFirestore,
+    saveRecord,
     getInstitutionalSettings
 } from './lib/storage-bridge.js';
 
@@ -75,7 +75,7 @@ async function reindex() {
             console.log(`🗂️ [Dual-Sync] Updating ${entry.frequency} index for "${entry.id}"...`);
             // Individual syncing to avoid KV/Firestore lock contention in massive batches
             await updateIndex(entry, entry.frequency, env);
-            await syncToFirestore("articles", entry, env);
+            await saveRecord("articles", entry, env);
         } catch (e) {
             console.error(`❌ [Persistence] Batch error for ${entry.id}:`, e.message);
         }
