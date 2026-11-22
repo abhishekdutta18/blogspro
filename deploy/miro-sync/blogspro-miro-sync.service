@@ -1,0 +1,34 @@
+[Unit]
+Description=BlogsPro MiroSync swarm bridge (Yjs sync + telemetry)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=blogspro-miro-sync
+Group=blogspro-miro-sync
+WorkingDirectory=/opt/blogspro-miro-sync
+EnvironmentFile=/etc/blogspro-miro-sync.env
+ExecStart=/usr/bin/node /opt/blogspro-miro-sync/scripts/miro-sync-server.js
+Restart=on-failure
+RestartSec=3
+# SIGTERM flushes the Yjs doc to disk before exit; give it time.
+TimeoutStopSec=15
+
+# Hardening: read-only system, writable only where the Yjs state lives.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/blogspro-miro-sync
+StateDirectory=blogspro-miro-sync
+StateDirectoryMode=0700
+
+[Install]
+WantedBy=multi-user.target

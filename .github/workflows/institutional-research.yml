@@ -75,6 +75,8 @@ jobs:
           CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          MIRO_SYNC_URL: ${{ vars.MIRO_SYNC_URL }}
+          MIRO_SYNC_TOKEN: ${{ secrets.MIRO_SYNC_TOKEN }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -119,6 +121,8 @@ jobs:
           FREQUENCY: ${{ github.event.inputs.freq }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          MIRO_SYNC_URL: ${{ vars.MIRO_SYNC_URL }}
+          MIRO_SYNC_TOKEN: ${{ secrets.MIRO_SYNC_TOKEN }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           OUTPUT_DIR: "./artifacts"
         run: |
