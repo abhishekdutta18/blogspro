@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-22",
+    "timestamp": 1795338169968,
+    "excerpt": "2026‑2027 Liquidity & Risk Landscape – Institutional Assessment SOFR has climbed from 4.12 % in Q4 2025 to 4.30 % in Q4 2026, a 18 bps uptick that compresses repo spreads to 65 bps from 50 bps in 2025. The repo market now exhibits a 12 bps widening i...",
+    "fileName": "swarm-hourly-1795338169961.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015) | SEBI:  | GLOBAL: BLOOMBERG | Canada Bank Regulator Eases Rules for Smaller Lenders to Boost Competition - Bloomberg.com | BLOOMBERG | UBS Plans to Shift Hundreds of Roles to India in Offshoring Push - Bloomberg.com | BLOOMBERG | New Zealand Dollar Hits Lowest Since Global Financial Crisis - Bloomberg.com | FT | US tech stocks plunge into bear market in worst week since Covid-19 crisis - Financial Times | FT | Oil shipped through Hormuz falls as Iranian strikes increase - Financial Times | FT | The dead hand of history weighs on Deutsche Bank - Financial Times | REUTERS | EXCLUSIVE: Citi underestimated risky assets by $35 billion after incorrectly recording trades, sources say - Reuters | REUTERS | Anthropic's blockbuster debut tests Wall Street's faith in AI boom - Reuters | REUTERS | EU countries, lawmakers strike deal to revamp sustainable finance rules - Reuters | CNBC | State and federal battle over prediction markets regulation heats up after midterms - CNBC | CNBC | I never wanted the American Dream and I felt like something was wrong with me—until I moved abroad - CNBC | CNBC | During Wall Street's worst week in over a year, we put money to work. What we're buying - CNBC | NIKKEI | BlackRock CEO warns tighter AI regulations could lead to US recession - Nikkei Asia | NIKKEI | Japan logs trade deficit for 6th straight month in October - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia",
+      "rbi": "Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Conversion/Switch of State Government Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017"
+        },
+        {
+          "title": "RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016"
+        },
+        {
+          "title": "RBI imposes monetary penalty on Fusion Finance Limited",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-22",
     "timestamp": 1795331134807,
     "excerpt": "Liquidity Friction Index (LFI) 2026‑Q3:** 1.87 × 10⁹ bps‑adjusted, up 42 % YoY from 2025‑Q3 (1.31 × 10⁹). SOFR sits at 5.35 % (Fed target 5.25‑5.50 %). Overnight repo spreads widened to 28 bps versus 12 bps in 2025, reflecting a 133 % premium on coll...",
     "fileName": "swarm-hourly-1795331134800.html",
@@ -1366,34 +1394,6 @@
         {
           "title": "Treasury Bills: Full Auction Result",
           "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995"
-        }
-      ]
-    }
-  },
-  {
-    "title": "HOURLY   Nexus Institutional Terminal",
-    "date": "2026-11-18",
-    "timestamp": 1795006914128,
-    "excerpt": "Current systemic pulse indicates a terminal breakdown in liquidity depth across G10 sovereign bond complexes, compounded by the structural exhaustion of the LFY (2025) carry trade. Total Gamma Exposure (GEX) across SPX and NDX option chains is curren...",
-    "fileName": "swarm-hourly-1795006914121.html",
-    "type": "briefing",
-    "frequency": "hourly",
-    "liveNews": {
-      "summary": "RBI: Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series II due on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63996) | Treasury Bills: Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995) | 91-Day, 182-Day and 364-Day T-Bill Auction Result: Cut-off (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63994) | SEBI:  | GLOBAL: BLOOMBERG | Apollo’s Europe Head Sees Massive Finance Demand for AI, Defense - Bloomberg.com | BLOOMBERG | Bilt Seeks $18 Billion Valuation as It Pushes Past Rent Rewards - Bloomberg.com | BLOOMBERG | Banks Pause $480 Million Chip Loan Tied to China’s ByteDance - Bloomberg.com | FT | Low-profile VCs set for $100bn windfall from Anthropic IPO - Financial Times | FT | When’s the crash? Ask a journalist - Financial Times | FT | US dollar rally erases ‘liberation day’ losses as rate expectations rise - Financial Times | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | REUTERS | Deutsche Bank chair backs CEO after reports expose past lapses; Trump calls tax leak 'illegal' - Reuters | REUTERS | EXCLUSIVE: Italian court places Revolut unit under supervision over money-laundering failings - Reuters | CNBC | Ukraine allies reject U.S. criticism of deep strikes inside Russia ahead of Trump-Putin-Xi summit - CNBC | CNBC | Lowe's posts strong online sales, raises outlook despite slow housing market - CNBC | CNBC | Trump lands in China for historic meeting with Xi, Putin - CNBC | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia",
-      "rbi": "Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series II due on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63996) | Treasury Bills: Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995) | 91-Day, 182-Day and 364-Day T-Bill Auction Result: Cut-off (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63994)",
-      "sebi": "",
-      "docs": [
-        {
-          "title": "Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series II due on November 19, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63996"
-        },
-        {
-          "title": "Treasury Bills: Full Auction Result",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63995"
-        },
-        {
-          "title": "91-Day, 182-Day and 364-Day T-Bill Auction Result: Cut-off",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63994"
         }
       ]
     }
