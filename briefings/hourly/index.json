@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-22",
+    "timestamp": 1795309680306,
+    "excerpt": "Strategic Drift Assessment – Hourly Pulse (Nov 22 2026): SOFR anchored at 5.32 % (Fed H.8, 2026‑11‑20), repo‑overnight spread widened to 28 bps versus 2025‑FY average 14 bps, indicating acute funding strain. GEX on S&P 500 options sits at –$1.9 T, a ...",
+    "fileName": "swarm-hourly-1795309680298.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015) | SEBI:  | GLOBAL: BLOOMBERG | PGA Tour Taps Ex-Citi Banker Alex Berkett as New Finance Chief - Bloomberg.com | BLOOMBERG | Canada Bank Regulator Eases Rules for Smaller Lenders to Boost Competition - Bloomberg.com | BLOOMBERG | UBS Plans to Shift Hundreds of Roles to India in Offshoring Push - Bloomberg.com | FT | US tech stocks plunge into bear market in worst week since Covid-19 crisis - Financial Times | FT | Oil shipped through Hormuz falls as Iranian strikes increase - Financial Times | FT | The dead hand of history weighs on Deutsche Bank - Financial Times | REUTERS | EXCLUSIVE: Citi underestimated risky assets by $35 billion after incorrectly recording trades, sources say - Reuters | REUTERS | Anthropic's blockbuster debut tests Wall Street's faith in AI boom - Reuters | REUTERS | EU countries, lawmakers strike deal to revamp sustainable finance rules - Reuters | CNBC | State and federal battle over prediction markets regulation heats up after midterms - CNBC | CNBC | During Wall Street's worst week in over a year, we put money to work. What we're buying - CNBC | CNBC | From trash to treasure: Most hated stocks are winning as AI bull market rolls over - CNBC | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | Japan logs trade deficit for 6th straight month in October - Nikkei Asia | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia",
+      "rbi": "Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Conversion/Switch of State Government Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017"
+        },
+        {
+          "title": "RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016"
+        },
+        {
+          "title": "RBI imposes monetary penalty on Fusion Finance Limited",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-22",
     "timestamp": 1795306193560,
     "excerpt": "Liquidity Friction Index (LFI) 2026‑Q3:** 1.84 × 10⁹ bps‑days, a 27 % uplift vs. 2025‑FY average (1.44 × 10⁹). The surge originates from a 115 bps widening in the SOFR‑OIS spread (5.35 % vs. 5.23 % in 2025‑Q4) and a 38 % contraction in Tier‑1 repo av...",
     "fileName": "swarm-hourly-1795306193552.html",
@@ -1352,34 +1380,6 @@
     "frequency": "hourly",
     "liveNews": {
       "summary": "RBI: RBI to conduct Overnight Variable Rate Reverse Repo (VRRR) auction under LAF on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63991) | Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series VIII due on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63990) | State Government Securities - Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63989) | SEBI:  | GLOBAL: BLOOMBERG | Deutsche Bank Drops as Leak Shows Links to Russia, Epstein - Bloomberg.com | BLOOMBERG | Banks Cool on Manchester City Player Finance as Sanctions Loom - Bloomberg.com | BLOOMBERG | NBIM, GIC, BlackRock Said to Invest in Bajaj Finance Share Sale - Bloomberg.com | FT | US tech stocks slide ahead of Nvidia results - Financial Times | FT | Banks seek to curb AI debt exposure as backlash mounts - Financial Times | FT | Rothschild & Co anchors Italy at heart of European growth plan - Financial Times | REUTERS | Nvidia turmoil marks the end of easy money for the AI trade - Reuters | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | REUTERS | Home Depot names insider McPhail CEO, bets on sustained sales recovery - Reuters | CNBC | Kalshi takes down controversial Trump 'mention' markets at CFTC's request - CNBC | CNBC | Jim Cramer's top 10 things to watch in the stock market Tuesday - CNBC | CNBC | Former Nvidia CEO Jensen Huang says he’s open to returning in first statement since resignation - CNBC | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | China central bank hikes foreign reserve requirement for 1st time in 5 years - Nikkei Asia | NIKKEI | Quad leaders eye Manila meeting on economic, strategic security - Nikkei Asia",
-      "rbi": "RBI to conduct Overnight Variable Rate Reverse Repo (VRRR) auction under LAF on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63991) | Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series VIII due on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63990) | State Government Securities - Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63989)",
-      "sebi": "",
-      "docs": [
-        {
-          "title": "RBI to conduct Overnight Variable Rate Reverse Repo (VRRR) auction under LAF on November 18, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63991"
-        },
-        {
-          "title": "Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series VIII due on November 18, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63990"
-        },
-        {
-          "title": "State Government Securities - Full Auction Result",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63989"
-        }
-      ]
-    }
-  },
-  {
-    "title": "HOURLY   Nexus Institutional Terminal",
-    "date": "2026-11-17",
-    "timestamp": 1794924151123,
-    "excerpt": "**OPERATIONAL MEMORANDUM: Q4 2026 LIQUIDITY DEPLETION & STRUCTURAL FRAGILITY** Current market conditions as of November 17, 2026, indicate a terminal exhaustion of the liquidity tailwinds that defined the LFY (2025). The transition from the 2024-2025...",
-    "fileName": "swarm-hourly-1794924151117.html",
-    "type": "briefing",
-    "frequency": "hourly",
-    "liveNews": {
-      "summary": "RBI: RBI to conduct Overnight Variable Rate Reverse Repo (VRRR) auction under LAF on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63991) | Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series VIII due on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63990) | State Government Securities - Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63989) | SEBI:  | GLOBAL: BLOOMBERG | India Weighs Capital Gains, Transaction Tax Change, Mint Reports - Bloomberg.com | BLOOMBERG | NBIM, GIC, BlackRock Said to Invest in Bajaj Finance Share Sale - Bloomberg.com | BLOOMBERG | Banks Cool on Manchester City Player Finance as Sanctions Loom - Bloomberg.com | FT | US tech stocks set to stabilise after volatile run of trading - Financial Times | FT | Banks seek to curb AI debt exposure as backlash mounts - Financial Times | FT | CVC plans to back out of Italian deal with Advent, triggering potential legal clash - Financial Times | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | REUTERS | For investors, a truly safe haven is hard to find - Reuters | REUTERS | Nvidia's AI financing machine may survive Huang, but with less risk appetite - Reuters | CNBC | South Korea will suspend all aircraft operation for 35 minutes and markets will open late. Here’s why - CNBC | CNBC | Investor Steve Eisman says the AI neocloud stocks are in 'big trouble' from Nvidia fallout - CNBC | CNBC | Trump has arrived in Asia. Here’s what he said about Iran and Deutsche Bank - CNBC | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | China central bank hikes foreign reserve requirement for 1st time in 5 years - Nikkei Asia | NIKKEI | Quad leaders eye Manila meeting on economic, strategic security - Nikkei Asia",
       "rbi": "RBI to conduct Overnight Variable Rate Reverse Repo (VRRR) auction under LAF on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63991) | Premature redemption under Sovereign Gold Bond (SGB) Scheme - Redemption Price for premature redemption of SGB 2020-21 Series VIII due on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63990) | State Government Securities - Full Auction Result (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63989)",
       "sebi": "",
       "docs": [
