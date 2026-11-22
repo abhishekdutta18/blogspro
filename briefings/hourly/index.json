@@ -2,6 +2,34 @@
   {
     "title": "HOURLY   Nexus Institutional Terminal",
     "date": "2026-11-22",
+    "timestamp": 1795370589502,
+    "excerpt": "As of November 22, 2026, our high-compute simulations indicate a heightened state of structural fragility in the global financial system, with a notable increase in volatility surfaces and gamma exposure (GEX) across major asset classes. The current ...",
+    "fileName": "swarm-hourly-1795370589495.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": {
+      "summary": "RBI: Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015) | SEBI:  | GLOBAL: BLOOMBERG | Taiwan Mulls Lowering Margin Requirement to Support Stock Market - Bloomberg.com | BLOOMBERG | Snarled Climate Talks Seek Breakthrough on Fossil Fuels, Finance - Bloomberg.com | BLOOMBERG | Canada Bank Regulator Eases Rules for Smaller Lenders to Boost Competition - Bloomberg.com | FT | Did Anthropic and its bankers get a key call wrong after IPO? - Financial Times | FT | Will Anthropic’s IPO buck the tech sell-off? - Financial Times | FT | US tech stocks plunge into bear market in worst week since Covid-19 crisis - Financial Times | REUTERS | Correction or deeper reckoning? Investors seek signs US stock selling will abate - Reuters | REUTERS | EXCLUSIVE: Citi underestimated risky assets by $35 billion after incorrectly recording trades, sources say - Reuters | REUTERS | Anthropic's blockbuster debut tests Wall Street's faith in AI boom - Reuters | CNBC | As prediction markets grow, so do the number of short sellers counting on DraftKings to fall - CNBC | CNBC | The Nasdaq is in freefall. Here's one stock to look at - CNBC | CNBC | During Wall Street's worst week in over a year, we put money to work. What we're buying - CNBC | NIKKEI | World Bank's India poverty estimates questioned over scale of gains - Nikkei Asia | NIKKEI | BlackRock CEO warns tighter AI regulations could lead to US recession - Nikkei Asia | NIKKEI | Japan logs trade deficit for 6th straight month in October - Nikkei Asia",
+      "rbi": "Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015)",
+      "sebi": "",
+      "docs": [
+        {
+          "title": "Conversion/Switch of State Government Securities",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017"
+        },
+        {
+          "title": "RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016"
+        },
+        {
+          "title": "RBI imposes monetary penalty on Fusion Finance Limited",
+          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015"
+        }
+      ]
+    }
+  },
+  {
+    "title": "HOURLY   Nexus Institutional Terminal",
+    "date": "2026-11-22",
     "timestamp": 1795363430802,
     "excerpt": "2026‑2027 Structural Fragility Assessment – Institutional Lens SOFR closed at 4.12% in Q4 2025, a 0.45 pp rise from 3.67% in Q4 2024. Repo spreads widened to 35 bps against the 2025 baseline of 22 bps, reflecting heightened collateral scarcity and a ...",
     "fileName": "swarm-hourly-1795363430795.html",
@@ -1352,34 +1380,6 @@
     "frequency": "hourly",
     "liveNews": {
       "summary": "RBI: Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000) | Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999) | Money Market Operations as on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63998) | SEBI:  | GLOBAL: BLOOMBERG | MAS Warns AI Agents Could Move Money Faster, Raise Finance Risks - Bloomberg.com | BLOOMBERG | South Korean Watchdog Asks Financial Firms to Report AI Exposure - Bloomberg | BLOOMBERG | Iran Hit Key Infrastructure, Isn’t Behind Tech Outages, US Says - Bloomberg | FT | Energy markets can ‘manage without’ the Strait of Hormuz, says IEA - Financial Times | FT | Anthropic’s magnificent IPO - Financial Times | FT | JPMorgan seeks to revive stalled software debt sale with steep price cuts - Financial Times | REUTERS | UK finance sector cyber incidents hit second-highest level in five years - Reuters | REUTERS | Fed policymakers concerned about financial system risks, minutes show - Reuters | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | CNBC | Jim Cramer says Nvidia has a new problem — and it has nothing to do with earnings - CNBC | CNBC | Nvidia interim CEO Kress tells employees ‘let’s move forward’ at first all-hands meeting since Jensen Huang exit - CNBC | CNBC | Fed officials expect more rate hikes, worry about AI impact on inflation, minutes show - CNBC | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia | NIKKEI | ASEAN falls short on Myanmar crisis, South China Sea pact at Manila summit - Nikkei Asia",
-      "rbi": "Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000) | Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999) | Money Market Operations as on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63998)",
-      "sebi": "",
-      "docs": [
-        {
-          "title": "Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000"
-        },
-        {
-          "title": "Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999"
-        },
-        {
-          "title": "Money Market Operations as on November 18, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63998"
-        }
-      ]
-    }
-  },
-  {
-    "title": "HOURLY   Nexus Institutional Terminal",
-    "date": "2026-11-19",
-    "timestamp": 1795075582705,
-    "excerpt": "**OPERATIONAL MEMO: Q4-2026 LIQUIDITY DEPLETION & VOLATILITY CONVEXITY** The transition into November 2026 reveals a terminal decay in the market’s structural integrity, characterized by a persistent widening of the SOFR-OIS spread that suggests syst...",
-    "fileName": "swarm-hourly-1795075582698.html",
-    "type": "briefing",
-    "frequency": "hourly",
-    "liveNews": {
-      "summary": "RBI: Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000) | Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999) | Money Market Operations as on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63998) | SEBI:  | GLOBAL: BLOOMBERG | MAS Warns AI Agents Could Move Money Faster, Raise Finance Risks - Bloomberg.com | BLOOMBERG | Iran Hit Key Infrastructure, Isn’t Behind Tech Outages, US Says - Bloomberg.com | BLOOMBERG | Bilt Seeks $18 Billion Valuation as It Pushes Past Rent Rewards - Bloomberg.com | FT | Energy markets can ‘manage without’ the Strait of Hormuz, says IEA - Financial Times | FT | JPMorgan seeks to revive stalled software debt sale with steep price cuts - Financial Times | FT | US tech stocks oscillate after Nvidia results - Financial Times | REUTERS | UK finance sector cyber incidents hit second-highest level in five years - Reuters | REUTERS | Data watchdog probes massive Deutsche Bank leak - Reuters | REUTERS | Fed policymakers concerned about financial system risks, minutes show - Reuters | CNBC | Thursday's big stock stories: What’s likely to move the market in the next trading session - CNBC | CNBC | Inside India newsletter: Foreign flows helped the market recover. Now it faces the inflation test - CNBC | CNBC | The 'exceptional' dollar scenario that forced Deutsche Bank to change its FX forecasts - CNBC | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | ASEAN falls short on Myanmar crisis, South China Sea pact at Manila summit - Nikkei Asia | NIKKEI | APEC China: 5 things to know about Xi Jinping's diplomatic show - Nikkei Asia",
       "rbi": "Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000) | Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999) | Money Market Operations as on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63998)",
       "sebi": "",
       "docs": [
