@@ -1,0 +1,87 @@
+---
+/**
+ * Newsletter — email signup posted to the newsletter worker.
+ * Reports failure honestly: success is only shown when the endpoint returns 2xx.
+ */
+const NEWSLETTER_ENDPOINT = '/api/subscribe';
+---
+
+<section id="newsletter" class="pt-16 scroll-mt-6" aria-labelledby="newsletter-heading">
+  <div class="border-y-2 border-rule-strong py-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-center">
+    <div>
+      <h2 id="newsletter-heading" class="font-serif text-2xl font-semibold tracking-tight">The weekly briefing</h2>
+      <p class="mt-2 text-ink-2 leading-relaxed max-w-md">
+        One email a week with the research published that week. Unsubscribe from any issue.
+      </p>
+    </div>
+
+    <form id="subscribeForm" class="flex flex-col sm:flex-row gap-3" data-endpoint={NEWSLETTER_ENDPOINT} novalidate>
+      <label for="subEmail" class="sr-only">Email address</label>
+      <input
+        type="email"
+        id="subEmail"
+        name="email"
+        required
+        autocomplete="email"
+        placeholder="you@company.com"
+        class="flex-1 min-w-0 bg-transparent border border-rule focus:border-ink px-3 py-2.5 text-sm placeholder:text-ink-3 focus:outline-none"
+      />
+      <input type="text" name="_hp" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true" />
+      <button
+        type="submit"
+        id="subBtn"
+        class="shrink-0 bg-ink text-paper px-5 py-2.5 text-sm font-medium hover:bg-accent transition-colors disabled:opacity-60"
+      >
+        Subscribe
+      </button>
+    </form>
+    <p id="subFeedback" class="md:col-start-2 text-sm min-h-[1.25rem]" role="status" aria-live="polite"></p>
+  </div>
+</section>
+
+<script is:inline>
+  (() => {
+    const form = document.getElementById('subscribeForm');
+    const input = document.getElementById('subEmail');
+    const button = document.getElementById('subBtn');
+    const feedback = document.getElementById('subFeedback');
+    if (!form || !input || !button || !feedback) return;
+
+    const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    const show = (message, isError) => {
+      feedback.textContent = message;
+      feedback.style.color = isError ? 'var(--down)' : 'var(--up)';
+    };
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const email = input.value.trim();
+      const honeypot = form.querySelector('input[name="_hp"]');
+      if (honeypot && honeypot.value) return;
+      if (!EMAIL_PATTERN.test(email)) {
+        show('Enter a valid email address.', true);
+        input.focus();
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = 'Subscribing…';
+      try {
+        const response = await fetch(form.dataset.endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, source: 'blogspro.in' })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        show('Subscribed. Check your inbox for the next issue.', false);
+        input.value = '';
+      } catch {
+        show('Could not subscribe right now. Please try again in a minute.', true);
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Subscribe';
+      }
+    });
+  })();
+</script>

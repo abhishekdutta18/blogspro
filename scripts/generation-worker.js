@@ -1,7 +1,7 @@
 import { getMarketContext, fetchEconomicCalendar, fetchMultiAssetData, fetchSentimentData, fetchUniversalNews, fetchRBIData, fetchSEBIData, fetchUpstoxData, fetchMFData, fetchPEVCData, fetchInsuranceData, fetchGIFTCityData, fetchCentralBankPulse, fetchMacroPulse, fetchCCILData } from "./lib/data-fetchers.js";
 import { askAI } from "./lib/ai-service.js";
 import { getBriefingPrompt, getArticlePrompt, getSanitizerPrompt } from "./lib/prompts.js";
-import { saveBriefing, updateIndex, syncToFirestore } from "./lib/storage-bridge.js";
+import { saveBriefing, updateIndex, saveRecord } from "./lib/storage-bridge.js";
 import { generateMiroForecast } from "./lib/mirofish-persona.js";
 import { applyContentCorrections } from "./lib/content-corrector.js";
 
@@ -136,7 +136,7 @@ export async function generateBriefingJob(frequency, env, modelOverride = "auto"
 
   const entry = { id: Date.now(), title: `${frequency.toUpperCase()} Pulse - ${mktInfo.day}`, date: new Date().toISOString(), file: fileName, frequency, sentiment: sentiment.value };
   await updateIndex(entry, frequency, env);
-  await syncToFirestore("pulse_briefings", entry, env); // NEW: Firestore Sync
+  await saveRecord("pulse_briefings", entry, env);
   await triggerPdfWebhook(fileName, frequency, env);
   await notifyTelegram(entry, "briefing", env); // NEW: Telegram Notify
 
@@ -219,7 +219,7 @@ export async function generateArticleJob(frequency, env, jobId = null, verticalI
 
     const entry = { id: Date.now(), title: `${frequency.toUpperCase()} Tome`, date: new Date().toISOString(), file: fileName, frequency, type: "article" };
     await updateIndex(entry, frequency, env);
-    await syncToFirestore("articles", entry, env);
+    await saveRecord("articles", entry, env);
     await triggerPdfWebhook(fileName, frequency, env);
     await notifyTelegram(entry, "article", env);
 

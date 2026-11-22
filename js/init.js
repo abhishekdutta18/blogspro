@@ -1,11 +1,11 @@
 // BlogsPro — Page Initialisation (extracted from index.html)
 // This file bootstraps all homepage modules and data loaders.
 
-import { api } from './services/api.js';
+import { api } from './services/api.js?v=vps1';
 import { initIntelHub } from './intel-hub.js';
 import { loadHybridPosts } from './posts.js';
 import { initNewsWire } from './news-wire.js';
-import { ENDPOINTS } from './endpoints.js';
+import { ENDPOINTS } from './endpoints.js?v=vps1';
 import { debounce } from './utils.js';
 
 window.registerGoogle = () => {

@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 // auth.js — Auth guard & user session (Proxy-based)
 // ═══════════════════════════════════════════════
-import { api } from './services/api.js';
+import { api } from './services/api.js?v=vps1';
 import { state } from './state.js';
 import { loadAll } from './posts.js';
 import { identifyUser } from './analytics.js';

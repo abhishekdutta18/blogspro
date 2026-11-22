@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import { fetch } from 'undici'; // Use node built-in or undici if native is unavailable in Node 18
 import { executeMultiAgentSwarm } from "./lib/swarm-orchestrator.js";
-import { getRecentSnapshots, getHistoricalData, saveBriefing, updateIndex, syncToFirestore, pushTelemetryLog } from "./lib/storage-bridge.js";
+import { getRecentSnapshots, getHistoricalData, saveBriefing, updateIndex, saveRecord, pushTelemetryLog } from "./lib/storage-bridge.js";
 import fs from 'fs';
 import path from 'path';
 
@@ -58,8 +58,8 @@ async function runBriefingProxy() {
         };
         
         // [V1.1] DUAL-SYNC: Save to both collections to ensure frontend compatibility
-        await syncToFirestore("pulse_briefings", entry, env);
-        await syncToFirestore("posts", entry, env);
+        await saveRecord("pulse_briefings", entry, env);
+        await saveRecord("posts", entry, env);
         
         console.log(`🏁 [Proxy] Cycle Complete: ${frequency}`);
         await pushTelemetryLog("BRIEFING_COMPLETE", { frequency, jobId: id, status: "success", message: `Briefing Finalized: ${fileName}` }, env);

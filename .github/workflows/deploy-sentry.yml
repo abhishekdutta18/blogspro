@@ -70,8 +70,6 @@ jobs:
           GITHUB_PAT:       ${{ secrets.GH_PAT }}
           WEBHOOK_SECRET:   ${{ secrets.WEBHOOK_SECRET }}
           RESEND_API_KEY:   ${{ secrets.RESEND_API_KEY }}
-          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
-          FIREBASE_PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
           NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}
         run: |
           [ -n "$TELEGRAM_BOT_TOKEN" ] && echo "$TELEGRAM_BOT_TOKEN" | npx wrangler@3 secret put TELEGRAM_BOT_TOKEN || echo "Skipping TELEGRAM_BOT_TOKEN"
@@ -82,8 +80,6 @@ jobs:
           [ -n "$GITHUB_PAT" ]     && echo "$GITHUB_PAT"     | npx wrangler@3 secret put GITHUB_PAT || echo "Skipping GITHUB_PAT"
           [ -n "$WEBHOOK_SECRET" ] && echo "$WEBHOOK_SECRET" | npx wrangler@3 secret put GITHUB_WEBHOOK_SECRET || echo "Skipping GITHUB_WEBHOOK_SECRET"
           [ -n "$RESEND_API_KEY" ] && echo "$RESEND_API_KEY" | npx wrangler@3 secret put RESEND_API_KEY || echo "Skipping RESEND_API_KEY"
-          [ -n "$FIREBASE_API_KEY" ] && echo "$FIREBASE_API_KEY" | npx wrangler@3 secret put FIREBASE_API_KEY || echo "Skipping FIREBASE_API_KEY"
-          [ -n "$FIREBASE_PROJECT" ] && echo "$FIREBASE_PROJECT" | npx wrangler@3 secret put FIREBASE_PROJECT || echo "Skipping FIREBASE_PROJECT"
           [ -n "$NEWSLETTER_SECRET" ] && echo "$NEWSLETTER_SECRET" | npx wrangler@3 secret put NEWSLETTER_SECRET || echo "Skipping NEWSLETTER_SECRET"
 
       - name: Register Telegram webhook

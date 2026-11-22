@@ -1,0 +1,26 @@
+---
+/**
+ * Footer — wordmark, short description and plain links.
+ */
+import { siteConfig } from '../data/siteConfig';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="w-full border-t border-rule mt-20">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10 grid gap-8 sm:grid-cols-[1fr_auto] text-sm">
+    <div class="max-w-md">
+      <div class="font-serif text-xl font-semibold">{siteConfig.name}</div>
+      <p class="mt-2 text-ink-2 leading-relaxed">{siteConfig.description}</p>
+    </div>
+    <ul class="flex flex-wrap sm:flex-col gap-x-6 gap-y-2 text-ink-2">
+      {siteConfig.nav.map(item => (
+        <li><a href={item.href} class="hover:text-ink hover:underline underline-offset-4">{item.label}</a></li>
+      ))}
+      <li><a href="/sitemap.xml" class="hover:text-ink hover:underline underline-offset-4">Sitemap</a></li>
+    </ul>
+  </div>
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 pb-8 text-xs text-ink-3">
+    © {year} {siteConfig.name}. Analysis, not investment advice.
+  </div>
+</footer>

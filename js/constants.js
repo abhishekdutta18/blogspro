@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════
 
 // Import must be at the top of any ES module
-import { ENDPOINTS } from './endpoints.js';
+import { ENDPOINTS } from './endpoints.js?v=vps1';
 
 // ── Cloudinary ────────────────────────────────
 export const CLOUDINARY_CLOUD_NAME    = 'dldbsidve';

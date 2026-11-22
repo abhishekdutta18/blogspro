@@ -403,8 +403,7 @@ const server = http.createServer(async (req, res) => {
 
     // 6. Build the Cloudflare Worker env context
     const defaultEnv = {
-      FIREBASE_PROJECT_ID: 'blogspro-ai',
-      FIREBASE_STORAGE_BUCKET: 'blogspro-asset',
+      GOOGLE_CLOUD_PROJECT: 'blogspro-ai',
       SAMBANOVA_MODEL: 'Meta-Llama-4-70B-Instruct',
       CEREBRAS_MODEL: 'llama-4-70b',
       MISTRAL_MODEL: 'mistral-large-latest',
@@ -420,9 +419,6 @@ const server = http.createServer(async (req, res) => {
       // Normalize telegram bindings
       TELEGRAM_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
       TELEGRAM_TO: process.env.TELEGRAM_CHAT_ID,
-      // Normalize firebase project
-      FIREBASE_PROJECT: process.env.FIREBASE_PROJECT_ID || 'blogspro-ai',
-      FIREBASE_API_KEY: process.env.FIREBASE_WEB_API_KEY || process.env.GEMINI_API_KEY,
     };
 
     const ctx = {

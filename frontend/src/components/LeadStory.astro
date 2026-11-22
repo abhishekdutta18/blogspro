@@ -1,0 +1,41 @@
+---
+/**
+ * LeadStory — front-page lead: the featured piece at full weight,
+ * with a "Latest" rail of the most recent other pieces.
+ */
+import { getFeaturedArticle, getArticlesNewestFirst } from '../data/articles';
+
+const LATEST_COUNT = 5;
+const lead = getFeaturedArticle();
+const latest = getArticlesNewestFirst().filter(a => a.slug !== lead.slug).slice(0, LATEST_COUNT);
+---
+
+<section class="grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] py-10 border-b border-rule">
+  <article>
+    <div class="kicker">{lead.category}</div>
+    <h1 class="mt-3 font-serif text-[2.1rem] sm:text-5xl lg:text-[3.4rem] font-semibold leading-[1.06] tracking-tight text-balance">
+      <a href={`/p/${lead.slug}.html`} class="headline-link">{lead.title}</a>
+    </h1>
+    <p class="mt-5 font-serif text-xl sm:text-[1.4rem] leading-snug text-ink-2 max-w-[38ch] sm:max-w-none">
+      {lead.excerpt}
+    </p>
+    <p class="mt-5 text-sm text-ink-3">
+      {lead.author} · {lead.date} · {lead.readTime}
+    </p>
+  </article>
+
+  <aside aria-labelledby="latest-heading" class="lg:border-l lg:border-rule lg:pl-8">
+    <h2 id="latest-heading" class="text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">Latest</h2>
+    <ol class="mt-3 divide-y divide-rule">
+      {latest.map(article => (
+        <li class="py-4 first:pt-2">
+          <div class="kicker">{article.category}</div>
+          <h3 class="mt-1.5 font-serif text-lg font-semibold leading-snug">
+            <a href={`/p/${article.slug}.html`} class="headline-link">{article.title}</a>
+          </h3>
+          <p class="mt-1 text-xs text-ink-3">{article.date}</p>
+        </li>
+      ))}
+    </ol>
+  </aside>
+</section>

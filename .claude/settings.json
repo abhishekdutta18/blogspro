@@ -1,13 +1,5 @@
 {
   "mcpServers": {
-    "firebase": {
-      "command": "npx",
-      "args": ["-y", "firebase-mcp"],
-      "env": {
-        "SERVICE_ACCOUNT_KEY_PATH": "${FIREBASE_SERVICE_ACCOUNT_KEY_PATH}",
-        "FIREBASE_PROJECT_ID": "blogspro-ai"
-      }
-    },
     "github": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-github"],

@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 // terminal-dispatch.js — Swarm Orchestration (Proxy-based)
 // ═══════════════════════════════════════════════
-import { api } from './services/api.js';
+import { api } from './services/api.js?v=vps1';
 import { showToast, slugify } from './config.js'; // config.js is likely in public/js/ too
 
 let dispatchTimerInterval = null;

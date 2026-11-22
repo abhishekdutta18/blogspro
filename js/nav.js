@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════
 import { state }                   from './state.js';
 import { loadAll, renderPostsTable, loadIntelligence } from './posts.js';
-import { loadUsers }               from './users.js';
+import { loadUsers }               from './users.js?v=vps1';
 import { loadSubscribers }         from './subscribers.js';
 import { populateAnalyzeSelect }   from './seo-page.js';
 import { clearEditor }             from './editor.js';

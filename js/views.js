@@ -3,7 +3,7 @@
 // Increment: called from post.html on every load
 // Read: used in admin table + index.html cards
 // ═══════════════════════════════════════════════
-import { api } from './services/api.js';
+import { api } from './services/api.js?v=vps1';
 
 /**
  * Increment the view counter for a post.

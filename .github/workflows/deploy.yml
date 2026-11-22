@@ -1,46 +1,131 @@
+# BlogsPro CI — tests and builds the site that blogspro.in actually serves, then deploys it.
+#
+# The site is the Astro build in frontend/ plus the legacy admin/account pages, served by nginx
+# on the Oracle VPS. The old version of this workflow regenerated p/*.html and the sitemaps from
+# Firestore, committed them back to main and deployed to Firebase Hosting. That broke three ways:
+# Firestore is offline while billing is off (16 failed runs in a row), Firebase Hosting no longer
+# serves the site, and the commit-back rewrote the same files on every run, so every open PR hit
+# merge conflicts. This workflow never writes to the repository.
+#
+# Deploy runs only on pushes to main, and only once both repository secrets exist:
+#   VPS_SSH_KEY     private key for a deploy user that can write /var/www/blogspro
+#   VPS_KNOWN_HOSTS the server's host key line (ssh-keyscan -t ed25519 <host>), so the
+#                   connection is pinned instead of trusting whatever answers first
 name: BlogsPro CI
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
+
+concurrency:
+  group: blogspro-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VPS_HOST: 130.210.53.134
+  VPS_USER: ubuntu
+  WEB_ROOT: /var/www/blogspro
+  # Legacy pages still served beside the Astro build (admin, account, dashboard and their scripts).
+  LEGACY_PATHS: account.html admin.html dashboard.html endpoints.js js css
 
 jobs:
-  production-pipeline:
-    name: Build & Deploy
+  build:
+    name: Test & Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci --no-audit
-      - name: Build Static & Generate Sitemap
-        env:
-          FIREBASE_PROJECT_ID: "blogspro-ai"
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: |
-          node scripts/build-static.js
-          node scripts/generate-sitemap.js
-      - name: Commit & Push Updates
-        run: |
-          git config --global user.name "BlogsPro Bot"
-          git config --global user.email "bot@blogspro.in"
-          git add .
-          git commit -m "chore: autonomous production build [skip ci]" || echo "No changes"
-          git push || echo "Push skipped"
-      - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - uses: actions/setup-python@v5
         with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
-          projectId: blogspro-ai
-          channelId: live
+          python-version: '3.12'
+
+      - name: Install dependencies
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+        run: |
+          npm ci --no-audit --no-fund --ignore-scripts
+          npm ci --no-audit --no-fund --prefix frontend
+
+      - name: Pipeline and chart tests
+        run: node --test 'tests/*.test.mjs'
+
+      - name: API server tests
+        working-directory: server
+        run: npm test
+
+      - name: Article recovery tests
+        run: python3 -m unittest scripts/test_recover_articles.py
+
+      - name: Build site
+        run: npm run build --prefix frontend
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: frontend/dist
+          retention-days: 7
+
+  deploy:
+    name: Deploy to VPS
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HAS_DEPLOY_KEY: ${{ secrets.VPS_SSH_KEY != '' && secrets.VPS_KNOWN_HOSTS != '' }}
+    steps:
+      - name: Skip when deploy secrets are missing
+        if: env.HAS_DEPLOY_KEY != 'true'
+        run: echo "::notice::VPS_SSH_KEY / VPS_KNOWN_HOSTS not set; build passed, deploy skipped."
+
+      - uses: actions/checkout@v4
+        if: env.HAS_DEPLOY_KEY == 'true'
+
+      - uses: actions/download-artifact@v4
+        if: env.HAS_DEPLOY_KEY == 'true'
+        with:
+          name: site
+          path: frontend/dist
+
+      - name: Configure SSH
+        if: env.HAS_DEPLOY_KEY == 'true'
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts && chmod 644 ~/.ssh/known_hosts
+
+      - name: Sync site
+        if: env.HAS_DEPLOY_KEY == 'true'
+        run: |
+          SSH="ssh -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes"
+          # No --delete: the web root also holds briefings the VPS pulse writes every hour.
+          # sitemap.xml and robots.txt are owned by the server and never overwritten from here.
+          rsync -az --exclude sitemap.xml --exclude robots.txt -e "$SSH" frontend/dist/ "$VPS_USER@$VPS_HOST:$WEB_ROOT/"
+          rsync -azR -e "$SSH" $LEGACY_PATHS "$VPS_USER@$VPS_HOST:$WEB_ROOT/"
+
+      - name: Smoke check
+        if: env.HAS_DEPLOY_KEY == 'true'
+        run: |
+          for path in / /login.html /admin.html; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "https://blogspro.in$path")
+            echo "$path -> $code"
+            [ "$code" = 200 ] || { echo "::error::$path returned $code"; exit 1; }
+          done

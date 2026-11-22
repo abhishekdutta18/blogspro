@@ -1,0 +1,14 @@
+---
+/**
+ * About page — author and coverage, plus the newsletter signup.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import AboutSection from '../components/AboutSection.astro';
+import Newsletter from '../components/Newsletter.astro';
+import { siteConfig } from '../data/siteConfig';
+---
+
+<BaseLayout title={`About — ${siteConfig.name}`} description={siteConfig.description}>
+  <AboutSection />
+  <Newsletter />
+</BaseLayout>

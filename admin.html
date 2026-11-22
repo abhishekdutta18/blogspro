@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="css/admin.css" />
   <!-- Production Proxy Services -->
   <script type="module">
-    import { api } from './js/services/api.js';
+    import { api } from './js/services/api.js?v=vps1';
     // IMMEDIATE AUTH GUARD
     api.auth.me().then(res => {
       if (!res.authenticated || res.user.role !== 'admin') {
@@ -49,7 +49,7 @@ function toggleSidebar() {
 }
 function doLogout() {
   // Use unified api.js for logout
-  import('./js/services/api.js').then(({api}) => {
+  import('./js/services/api.js?v=vps1').then(({api}) => {
     api.auth.logout().then(() => window.location.href = 'login.html');
   });
 }
@@ -74,7 +74,7 @@ window.addEventListener('load', () => {
   const badge = document.getElementById('integrationBadgeAdmin');
   const text  = document.getElementById('integrationBadgeAdminText');
 
-  import('./js/services/api.js').then(({api}) => {
+  import('./js/services/api.js?v=vps1').then(({api}) => {
     api.auth.me().then(res => {
       if (res.authenticated) {
         badge.style.background = 'var(--emerald)';
@@ -1705,7 +1705,7 @@ window.addEventListener('load', () => {
   window.__POST_AUDIT_AUTO_SAVE__ = true;
   window.__POST_AUDIT_GITHUB_PUSH__ = false;
 </script>
-<script type="module" src="js/main.js"></script>
+<script type="module" src="js/main.js?v=vps1"></script>
   <!-- Floating scroll buttons -->
   <div id="scrollFloats" style="position:fixed;bottom:80px;right:18px;display:flex;flex-direction:column;gap:6px;z-index:400;opacity:0;transition:opacity 0.3s;pointer-events:none">
     <button onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Scroll to top"
