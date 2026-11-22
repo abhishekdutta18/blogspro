@@ -52,3 +52,17 @@ test('tolerates a missing or malformed index', () => {
 test('formats times in India Standard Time', () => {
   assert.equal(formatBriefingTime(Date.UTC(2026, 10, 20, 20, 0)), '21 Nov 2026, 01:30 IST');
 });
+
+test('labels market editions and shows their title and stance; older entries stay plain briefings', () => {
+  const [edition, legacy] = parseBriefingIndex([
+    entry({ timestamp: 2, fileName: 'swarm-hourly-2.html', edition: 'close', stance: 'cautious', title: 'Nifty slips as banks drag' }),
+    entry({ timestamp: 1, fileName: 'swarm-hourly-1.html' }),
+  ]);
+  assert.deepEqual([edition.label, edition.headline, edition.stance], ['Market close', 'Nifty slips as banks drag', 'cautious']);
+  assert.deepEqual([legacy.label, legacy.headline, legacy.stance], ['Briefing', '', null]);
+});
+
+test('ignores unknown editions and stances from the index', () => {
+  const [item] = parseBriefingIndex([entry({ edition: '__proto__', stance: '<b>moon</b>' })]);
+  assert.deepEqual([item.label, item.headline, item.stance], ['Briefing', '', null]);
+});

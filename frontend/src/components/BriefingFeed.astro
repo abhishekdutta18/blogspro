@@ -1,6 +1,6 @@
 ---
 /**
- * BriefingFeed — the latest hourly briefings, read in the browser from /briefings/hourly/index.json.
+ * BriefingFeed — the latest market briefings (three editions a day), read in the browser from /briefings/hourly/index.json.
  * The pipeline rewrites that index on every run, so new briefings appear without rebuilding the site.
  * Text from the index is model output: it is set with textContent only (see lib/briefings.js).
  */
@@ -43,13 +43,22 @@ const { id, heading, limit = 6, showAllLink = false } = Astro.props;
     const body = document.createElement('div');
     const kicker = document.createElement('div');
     kicker.className = 'kicker';
-    kicker.textContent = 'Hourly briefing';
+    kicker.textContent = item.stance ? `${item.label} · ${item.stance}` : item.label;
     const link = document.createElement('a');
-    // Excerpts are long and open the same way each hour, so they read as body text, not headlines.
-    link.className = 'headline-link mt-1.5 block max-w-measure text-[0.95rem] leading-relaxed text-ink line-clamp-3';
     link.href = item.href;
-    link.textContent = item.excerpt || 'Read the briefing';
-    body.append(kicker, link);
+    if (item.headline) {
+      link.className = 'headline-link mt-1.5 block max-w-measure font-serif text-lg leading-snug text-ink';
+      link.textContent = item.headline;
+      const summary = document.createElement('p');
+      summary.className = 'mt-1 max-w-measure text-[0.95rem] leading-relaxed text-ink-2 line-clamp-2';
+      summary.textContent = item.excerpt;
+      body.append(kicker, link, summary);
+    } else {
+      // Older hourly entries have no reader-facing title; their excerpt is the link.
+      link.className = 'headline-link mt-1.5 block max-w-measure text-[0.95rem] leading-relaxed text-ink line-clamp-3';
+      link.textContent = item.excerpt || 'Read the briefing';
+      body.append(kicker, link);
+    }
 
     li.append(time, body);
     return li;
