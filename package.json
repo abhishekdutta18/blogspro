@@ -9,6 +9,7 @@
     "generate": "node scripts/generate-article.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:ai-fleet": "node --test --test-force-exit tests/ai-service-fleet.test.mjs tests/ai-service-errors.test.mjs tests/ai-service-providers.test.mjs",
+    "test:market-edition": "node --test --test-force-exit tests/market-edition.test.mjs",
     "test:smoke": "playwright test",
     "ecc:quality-gate": "node .claude/hooks-antigravity/quality-gate.cjs",
     "ecc:secret-scan": "node .claude/hooks-antigravity/secret-scanner.cjs",

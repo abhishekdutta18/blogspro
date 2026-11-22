@@ -6,7 +6,7 @@ which hid generation failures and ran from a crontab with no overlap protection.
 
 | Timer | Schedule (UTC) | Tome type | Generation limit |
 |-------|----------------|-----------|------------------|
-| `blogspro-pulse@hourly.timer` | every hour at :00 | briefing | 45 min |
+| `blogspro-pulse@hourly.timer` | 08:00, 16:00, 22:00 IST | market edition | 45 min |
 | `blogspro-pulse@daily.timer` | 00:00 | article | 2 h |
 | `blogspro-pulse@weekly.timer` | Sunday 01:00 | tome | 5 h |
 
@@ -29,4 +29,23 @@ sudo systemctl enable --now blogspro-pulse@hourly.timer blogspro-pulse@daily.tim
 systemctl list-timers 'blogspro-*'
 sudo systemctl start blogspro-pulse@hourly        # run one now
 journalctl -u blogspro-pulse@hourly -n 50 --no-pager
+```
+
+## Market editions
+
+The `hourly` unit now publishes three market editions a day (`scripts/lib/market-edition/`):
+
+| IST | Edition | Focus |
+|-----|---------|-------|
+| 08:00 | Morning brief | Overnight US/Europe, Asia now, setup for the Indian open |
+| 16:00 | Market close | How Indian indices closed and why |
+| 22:00 | Evening wrap | Europe close, US session, setup for tomorrow |
+
+Prices come from Yahoo Finance and headlines from market RSS feeds; the model never supplies the figures.
+"Our view" comes from a three-persona analyst board (momentum, risk, macro) whose conviction-weighted stance
+the writer must keep. That is about 4 AI calls per edition. If the AI fleet is exhausted the edition still
+publishes prices and headlines, marked as missing commentary. Run a specific edition by hand with:
+
+```bash
+node scripts/generate-institutional-tome.js --freq=hourly --type=briefing --force --edition=morning
 ```

@@ -21,6 +21,7 @@ import { dispatchTelegramAlert } from './lib/social-utils.js';
 import { initNodeSentry, logSwarmBreadcrumb, captureSwarmError, flushSentry } from "./lib/sentry-bridge.js";
 import { NewsOrchestrator } from "./lib/news-orchestrator.js";
 import { askAI } from "./lib/ai-service.js";
+import { generateMarketEdition } from "./lib/market-edition/index.js";
 import { waitForPublicAvailability } from "./lib/utils.js";
 import { fetchPolicyPulse, fetchEconomicCalendar, fetchSentimentData } from "./lib/data-fetchers.js";
 
@@ -58,6 +59,11 @@ async function registerPostOnHomepage(fileName, result, frequency, env) {
         frequency,
         liveNews: result.liveNews || null 
     };
+    // Market editions (the 3-a-day briefings that replaced the hourly pulse) label their feed entries.
+    if (result.edition) {
+        record.edition = result.edition.id;
+        record.stance = result.stance || null;
+    }
     
     // Add to front, keep last 50 for hourly/daily, 20 for others
     const limit = (frequency === 'hourly' || frequency === 'daily') ? 50 : 20;
@@ -106,6 +112,7 @@ async function runInstitutionalSwarm() {
   const modelOverride = process.argv.find(a => a.startsWith('--model='))?.split('=')[1] || 'auto';
   const extended = process.argv.includes('--extended');
   const force = process.argv.includes('--force');
+  const editionId = process.argv.find(a => a.startsWith('--edition='))?.split('=')[1];
   const id = process.env.SWARM_JOB_ID || `swarm-${frequency}-${Date.now()}`;
 
   // 0. DETERMINISTIC PERIOD IDENTIFIER (V15.0 Idempotency)
@@ -277,9 +284,9 @@ async function runInstitutionalSwarm() {
         semanticDigest = snapshots[0];
     }
 
-    // [V17.0] Institutional News Priming (Mandatory for Hourly/Daily to eliminate fluff)
+    // [V17.0] Institutional News Priming for daily. Hourly market editions fetch their own headlines.
     let liveNews = { summary: "Pulse Baseline: Stable.", rbi: "Neutral.", sebi: "Neutral.", docs: [] };
-    if (frequency === 'hourly' || frequency === 'daily') {
+    if (frequency === 'daily') {
         try {
             console.log(`📡 [News-Priming] Activating NewsOrchestrator for ${frequency} cycle...`);
             const newsOrch = new NewsOrchestrator(env);
@@ -384,6 +391,9 @@ async function runInstitutionalSwarm() {
         
         // Final PDF generation & Sync
         await pushTelemetryLog("TOME_ASSEMBLY", { jobId: id, frequency, periodId, status: "complete", message: "Institutional Masterpiece Assembled." }, env);
+    } else if (frequency === 'hourly') {
+        // --- 🗞️ MARKET EDITION: 08:00 / 16:00 / 22:00 IST briefings (replaced the hourly swarm) ---
+        result = await generateMarketEdition({ askAI, env, editionId });
     } else {
         // --- 🧬 STANDARD/SERIAL MODE (Legacy) ---
         console.log(`🏃 [Standard-Mode] Running Sequential Institutional Swarm...`);
@@ -401,8 +411,9 @@ async function runInstitutionalSwarm() {
     }
 
     // 4. QUALITY ASSURANCE: Institutional Swarm Review
-    let auditStatus = "PENDING";
-    try {
+    // Market editions skip the swarm review: their view already comes from a persona board and their figures from live data.
+    let auditStatus = result.edition ? "EDITION_BOARD" : "PENDING";
+    if (!result.edition) try {
         console.log(`🕵️ [Swarm] Initiating MiroFish Consensus Review [Freq: ${frequency}]...`);
         await runSwarmAudit(result.final, frequency, { targetVertical: targetVerticalId });
         auditStatus = "AUDITED";
@@ -431,7 +442,10 @@ async function runInstitutionalSwarm() {
     const templateExcerpt = result.excerpt || "Strategic research synthesis for the current institutional cycle.";
     
     let finalHtml;
-    if (frequency === 'hourly') {
+    if (result.renderPage) {
+        const publicBase = process.env.ASSET_DOMAIN || "https://blogspro.in";
+        finalHtml = result.renderPage(`${publicBase}/${folder}/${frequency}/${fileName}`);
+    } else if (frequency === 'hourly') {
         finalHtml = getTerminalV2Template({
             title: templateTitle,
             excerpt: templateExcerpt,
