@@ -8,6 +8,6 @@ Type=oneshot
 User=ubuntu
 Group=ubuntu
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
-ExecStart=/opt/blogspro-pulse/run-markets.sh
+ExecStart=/opt/blogspro-pulse/run-data.sh markets
 TimeoutStartSec=2min
 Nice=10

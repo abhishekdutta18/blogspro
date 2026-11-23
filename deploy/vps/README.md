@@ -50,17 +50,24 @@ publishes prices and headlines, marked as missing commentary. Run a specific edi
 node scripts/generate-institutional-tome.js --freq=hourly --type=briefing --force --edition=morning
 ```
 
-## Homepage market figures
+## Homepage data files
 
-`blogspro-markets.timer` runs `run-markets.sh` every 10 minutes: it fetches the homepage instruments from
-Yahoo (`scripts/publish-home-markets.js`, no AI), writes `/var/www/blogspro/data/markets.json` and copies it
-to the web VPS. The homepage strip and Markets table load that file in the browser; if it is missing, they
-keep the snapshot built into the page, labelled with its date. A failed fetch keeps the last good file.
+Two timers publish JSON files the homepage loads in the browser. Neither uses AI. Both run
+`run-data.sh <name>`, which writes `/var/www/blogspro/data/<name>.json` atomically and copies it to the web VPS.
+
+| Timer | Every | File | Sources |
+|-------|-------|------|---------|
+| `blogspro-markets.timer` | 10 min | `data/markets.json` | Yahoo chart API (17 instruments) |
+| `blogspro-policy.timer` | 30 min | `data/policy.json` | rbi.org.in (policy rates, USD/INR, press-release RSS); Forex Factory weekly calendar feed |
+
+Each source keeps its last good data when it fails. Forex Factory answers HTTP 429 to frequent requests,
+so do not shorten the policy timer or run it by hand repeatedly. If the files are missing, the homepage
+keeps its built-in market snapshot (labelled with its date) and shows the policy section as unavailable.
 
 ```bash
-sudo install -o root -g root -m 0755 deploy/vps/run-markets.sh /opt/blogspro-pulse/run-markets.sh
-sudo install -m 0644 deploy/vps/blogspro-markets.service deploy/vps/blogspro-markets.timer /etc/systemd/system/
+sudo install -o root -g root -m 0755 deploy/vps/run-data.sh /opt/blogspro-pulse/run-data.sh
+sudo install -m 0644 deploy/vps/blogspro-markets.* deploy/vps/blogspro-policy.* /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now blogspro-markets.timer
-journalctl -u blogspro-markets -n 20 --no-pager
+sudo systemctl enable --now blogspro-markets.timer blogspro-policy.timer
+journalctl -u blogspro-policy -n 20 --no-pager
 ```

@@ -1,0 +1,13 @@
+[Unit]
+Description=BlogsPro homepage policy data (RBI rates and releases, Forex Factory calendar; copy to web VPS)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/blogspro-pulse/run-data.sh policy
+TimeoutStartSec=2min
+Nice=10
