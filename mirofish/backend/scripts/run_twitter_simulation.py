@@ -130,6 +130,10 @@ except ImportError as e:
     print("请先安装: pip install oasis-ai camel-ai")
     sys.exit(1)
 
+# Groq rejects camel's empty "required" on no-argument tools (e.g. do_nothing).
+from tool_schema_compat import install as _install_tool_schema_compat
+_install_tool_schema_compat()
+
 
 # IPC相关常量
 IPC_COMMANDS_DIR = "ipc_commands"
