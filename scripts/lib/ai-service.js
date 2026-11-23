@@ -412,7 +412,11 @@ export async function generateSarvamContent(prompt, model = DEFAULT_SARVAM_MODEL
         // Docs disagree on the auth header; both carry the same sk_ key.
         headers: { "Authorization": `Bearer ${key}`, "api-subscription-key": key, "Content-Type": "application/json" },
         // Reasoning is on by default for sarvam-105b and billed as output tokens; null turns it off.
-        body: JSON.stringify({ model, max_tokens: SARVAM_MAX_TOKENS, reasoning_effort: null, messages: [{ role: "user", content: promptStr }] })
+        body: JSON.stringify({
+            model, max_tokens: SARVAM_MAX_TOKENS, reasoning_effort: null, messages: [{ role: "user", content: promptStr }],
+            // Without JSON mode sarvam-105b sometimes closes arrays wrongly, and the whole reply fails to parse.
+            ...(context?.responseFormat === 'json' ? { response_format: { type: "json_object" } } : {}),
+        })
     });
     if (!res.ok) {
         const errText = await res.text().catch(() => "");
@@ -1097,7 +1101,9 @@ export async function askAI(prompt, options = {}) {
     const startTs = Date.now();
     try {
         console.log(`🌐 [AI-Provisioned] ${role.toUpperCase()} -> ${provider.name} (Requested: ${targetModel || 'auto'})`);
-        const response = await provider.fn(prompt, targetModel, env);
+        // responseFormat 'json' lets providers with a JSON mode (Sarvam) guarantee parseable output.
+        const providerEnv = options.responseFormat ? { ...env, responseFormat: options.responseFormat } : env;
+        const response = await provider.fn(prompt, targetModel, providerEnv);
         
         // [V15.8] Content Integrity Check
         if (!isValidIntelligence(response)) {

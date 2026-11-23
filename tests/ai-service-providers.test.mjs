@@ -133,3 +133,22 @@ test('a Sarvam key adds a Sarvam node to the pool', async () => {
     ResourceManager.pool = [];
   }
 });
+
+test('Sarvam asks for a JSON object only when the caller wants JSON', async () => {
+  stubFetch({ choices: [{ message: { content: '{"ok":true}' } }] });
+  await generateSarvamContent('Reply with JSON only.', undefined, { SARVAM_API_KEY: 'sk_test', responseFormat: 'json' });
+  assert.deepEqual(lastRequest.body.response_format, { type: 'json_object' });
+  await generateSarvamContent('hi', undefined, { SARVAM_API_KEY: 'sk_test' });
+  assert.equal(lastRequest.body.response_format, undefined);
+});
+
+test('askAI hands responseFormat to the provider without touching the caller env', async () => {
+  const seen = [];
+  const reply = 'Institutional synthesis: rates steady, liquidity tight, credit spreads widening.';
+  ResourceManager.pool = [{ name: 'Probe', tier: 1, roles: ['generate'], match: /probe/, fn: async (p, m, c) => { seen.push(c.responseFormat); return reply; } }];
+  const env = { SOME_KEY: 'x' };
+  await askAI('Reply with JSON only.', { role: 'generate', env, responseFormat: 'json' });
+  await askAI('Plain text.', { role: 'generate', env });
+  assert.deepEqual(seen, ['json', undefined]);
+  assert.equal(env.responseFormat, undefined);
+});
