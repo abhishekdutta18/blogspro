@@ -1,15 +1,15 @@
 [
   {
-    "title": "Global Sell-Off",
+    "title": "Morning brief: markets at 23 Nov 2026, 08:00 IST",
     "date": "2026-11-23",
-    "timestamp": 1795375869682,
-    "excerpt": "European markets closed lower, while US markets are trading sharply down, which may impact Indian markets tomorrow. The decline in global equities, along with rising volatility, suggests a cautious approach for Indian investors.",
-    "fileName": "swarm-hourly-1795375869679.html",
+    "timestamp": 1795401037463,
+    "excerpt": "Live prices and the latest market headlines for the morning brief.",
+    "fileName": "swarm-hourly-1795401037459.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": null,
-    "edition": "evening",
-    "stance": "cautious"
+    "edition": "morning",
+    "stance": "neutral"
   },
   {
     "title": "HOURLY   Nexus Institutional Terminal",
