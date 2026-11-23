@@ -5,7 +5,8 @@
  *     rbi:      { fetchedAt, source, rates: [{ key, label, value }], usdInr,
  *                 markets: { gsecs: [{ label, maturity, value }], tbills: [{ label, value }], asOn } | null,
  *                 releases: [{ title, href, time }] },
- *     macro:    { fetchedAt, source, indicators: [{ key, label, value, unit, period }] },
+ *     macro:    { fetchedAt, source, indicators: [{ key, label, value, unit, period }],
+ *                 history: [{ key, label, unit, frequency, points: [['YYYY-MM', value]] }] },
  *     calendar: { fetchedAt, source, events: [{ title, country, time, forecast, previous }] } }
  * Usage: node scripts/publish-home-policy.js [--out <path>]   (default: data/policy.json under the cwd)
  * Each section keeps its last good copy when its source fails, so a Forex Factory rate limit never blanks
@@ -17,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { parseRbiMarkets, parseRbiRates, parseRbiReleases } from './lib/home-policy/rbi.js';
 import { parseCalendar } from './lib/home-policy/calendar.js';
 import { fetchIndiaMacro } from './lib/home-policy/mospi.js';
+import { fetchMacroHistory } from './lib/home-policy/mospi-history.js';
 import { readJsonFile, writeJsonAtomically } from './lib/json-file.js';
 import { outPath } from './publish-home-markets.js';
 
@@ -98,14 +100,24 @@ function mospiGet(fetchImpl, { retryMs = MOSPI_RETRY_MS } = {}) {
   };
 }
 
-/** Fresh MoSPI indicators merged over the previous ones (a failed series keeps its last value), or null. */
+// Fresh entries first, then previous entries whose key did not come back this time.
+const mergeByKey = (fresh, previous = []) => [...fresh, ...previous.filter((p) => !fresh.some((f) => f.key === p.key))];
+
+/**
+ * Fresh MoSPI indicators and their history merged over the previous ones (a failed series keeps its last
+ * copy), or null when nothing came back.
+ */
 async function fetchMacro(fetchImpl, previous, now) {
   if (previous?.fetchedAt && now - previous.fetchedAt < MACRO_REFRESH_MS) return null;
-  const { indicators } = await fetchIndiaMacro(mospiGet(fetchImpl), now);
-  if (indicators.length === 0) return null;
-  const fresh = new Map(indicators.map((i) => [i.key, i]));
-  const kept = (previous?.indicators ?? []).filter((i) => !fresh.has(i.key));
-  return { fetchedAt: now, source: 'https://esankhyiki.mospi.gov.in/', indicators: [...indicators, ...kept] };
+  const get = mospiGet(fetchImpl);
+  const [{ indicators }, history] = await Promise.all([fetchIndiaMacro(get, now), fetchMacroHistory(get, now)]);
+  if (indicators.length === 0 && history.length === 0) return null;
+  return {
+    fetchedAt: now,
+    source: 'https://esankhyiki.mospi.gov.in/',
+    indicators: mergeByKey(indicators, previous?.indicators),
+    history: mergeByKey(history, previous?.history),
+  };
 }
 
 /** Fetches every source, merges with the previous file and writes it. Returns { written, fresh: [names], out }. */
