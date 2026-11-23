@@ -86,7 +86,8 @@ export async function generateMarketEdition({ askAI, env = process.env, now = ne
     wordCount,
     hasCommentary: Boolean(text),
     stance: board.consensus?.stance || null,
-    renderPage: (canonicalUrl) => renderEditionPage({ edition, title, summary, timeLabel, body, canonicalUrl }),
+    // `pdfHref`: link to the page's PDF copy, passed only once that PDF has been written.
+    renderPage: (canonicalUrl, { pdfHref } = {}) => renderEditionPage({ edition, title, summary, timeLabel, body, canonicalUrl, pdfHref }),
     // Everything the page was built from, for saveEditionSnapshot: kept off the web root, never published.
     snapshot: { edition: edition.id, timeLabel, text, board, markets, headlines, histories, replies: written.replies },
   };

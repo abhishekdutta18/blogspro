@@ -24,6 +24,7 @@ import { askAI } from "./lib/ai-service.js";
 import { generateMarketEdition } from "./lib/market-edition/index.js";
 import { saveEditionSnapshot } from "./lib/market-edition/snapshot.js";
 import { recentEditionsText } from "./lib/market-edition/week-digest.js";
+import { renderPdf } from "./lib/market-edition/edition-pdf.js";
 import { createBudgetedAskAI, ledgerFile, resolveCaps } from "./lib/token-budget.js";
 
 // Daily and weekly are built by the market-edition pipeline (~6 AI calls) instead of the 17-vertical swarm
@@ -468,9 +469,28 @@ async function runInstitutionalSwarm() {
     const templateExcerpt = result.excerpt || "Strategic research synthesis for the current institutional cycle.";
     
     let finalHtml;
+    let pdfName = null;
     if (result.renderPage) {
         const publicBase = process.env.ASSET_DOMAIN || "https://blogspro.in";
-        finalHtml = result.renderPage(`${publicBase}/${folder}/${frequency}/${fileName}`);
+        const pageUrl = `${publicBase}/${folder}/${frequency}/${fileName}`;
+        finalHtml = result.renderPage(pageUrl);
+        // PDF copy next to the page (EDITION_PDF=0 turns it off). The page links it only once the file exists.
+        if (process.env.EDITION_PDF !== '0') {
+            const candidate = fileName.replace(/\.html$/, '.pdf');
+            const pdf = await renderPdf({
+                html: finalHtml,
+                outPath: path.join(path.dirname(outPath), candidate),
+                label: `${result.edition.label} · ${templateTitle}`,
+                env: process.env,
+            });
+            if (pdf.ok) {
+                pdfName = candidate;
+                finalHtml = result.renderPage(pageUrl, { pdfHref: pdfName });
+                console.log(`📑 [PDF] Saved ${pdfName} (${Math.round(pdf.bytes / 1024)} KB)`);
+            } else {
+                console.warn(`⚠️ [PDF] Skipped: ${pdf.reason}`);
+            }
+        }
     } else if (frequency === 'hourly') {
         finalHtml = getTerminalV2Template({
             title: templateTitle,
@@ -522,7 +542,8 @@ async function runInstitutionalSwarm() {
         auditStatus,
         wordCount: result.wordCount,
         metadata: result.liveNews || {},
-        content: result.final
+        content: result.final,
+        ...(pdfName ? { pdf: pdfName } : {})
     };
     fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2));
     console.log(`💾 [Swarm] Archive Phase: Saved JSON manifest to ${jsonPath}`);

@@ -24,7 +24,8 @@
     "ecc:format": "node .claude/hooks-antigravity/format-typecheck.cjs",
     "ecc:full-audit": "npm run ecc:quality-gate && npm run ecc:secret-scan && npm run ecc:design-check",
     "test:reports": "node --test --test-force-exit tests/token-budget.test.mjs tests/research-reports.test.mjs",
-    "token-report": "node scripts/token-report.js"
+    "token-report": "node scripts/token-report.js",
+    "test:pdf": "node --test --test-force-exit tests/edition-pdf.test.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.62",
