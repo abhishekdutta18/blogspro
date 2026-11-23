@@ -35,6 +35,7 @@ const CLASSES: Array<{ id: 'all' | MarketAsset['category']; label: string }> = [
       <span class="font-mono num text-lg" data-detail-last>{DEFAULT_ASSET?.price}</span>
       <span class="font-mono num text-sm" data-detail-change>{DEFAULT_ASSET?.change}</span>
       <span class="text-xs text-ink-3">Today, 5-minute closes · times in IST · pick an instrument below</span>
+      <button type="button" class="lc-action ml-auto text-xs" data-svg-download="Intraday chart">Download SVG</button>
     </figcaption>
     <div class="relative mt-3" data-detail-plot>
       <svg class="mc-svg overflow-visible" tabindex="0" role="img" aria-label="Intraday chart" data-detail-svg hidden></svg>
@@ -107,10 +108,13 @@ const CLASSES: Array<{ id: 'all' | MarketAsset['category']; label: string }> = [
 <script>
   import { loadLiveMarkets, onMarkets } from '../lib/markets.js';
   import { createDetailChart, renderSparkline } from '../lib/marketChartView.js';
+  import { wireDownloads } from '../lib/svgExport.js';
 
   const root = document.getElementById('markets');
   if (root) {
     const chart = createDetailChart(root.querySelector('[data-market-detail]'));
+    const download = root.querySelector('[data-market-detail] [data-svg-download]');
+    wireDownloads(root);
     const picks = [...root.querySelectorAll('[data-pick]')];
     const field = (name) => root.querySelector(`[data-detail-${name}]`);
     let latest = null;
@@ -121,6 +125,7 @@ const CLASSES: Array<{ id: 'all' | MarketAsset['category']; label: string }> = [
       if (!selected) return;
       const item = latest?.items.get(selected.dataset.marketSymbol) ?? null;
       field('name').textContent = selected.dataset.marketName;
+      download.dataset.svgDownload = `${selected.dataset.marketName} intraday`;
       field('last').textContent = selected.querySelector('[data-field="price"]').textContent;
       const change = selected.querySelector('[data-field="change"]');
       field('change').textContent = change.textContent;
@@ -132,6 +137,8 @@ const CLASSES: Array<{ id: 'all' | MarketAsset['category']; label: string }> = [
       picks.forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
       selected = button.closest('tr');
       renderDetail();
+      // The forecast panel (MarketForecast.astro) follows the same pick.
+      document.dispatchEvent(new CustomEvent('market:pick', { detail: { symbol: selected.dataset.marketSymbol, name: selected.dataset.marketName } }));
     }));
 
     onMarkets((data) => {

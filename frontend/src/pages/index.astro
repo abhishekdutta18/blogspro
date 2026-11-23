@@ -9,6 +9,10 @@ import BriefingFeed from '../components/BriefingFeed.astro';
 import ResearchArchive from '../components/ResearchArchive.astro';
 import PolicyCalendar from '../components/PolicyCalendar.astro';
 import MarketsTable from '../components/MarketsTable.astro';
+import MarketForecast from '../components/MarketForecast.astro';
+import IndexMovers from '../components/IndexMovers.astro';
+import MacroCharts from '../components/MacroCharts.astro';
+import YieldCurve from '../components/YieldCurve.astro';
 import AboutSection from '../components/AboutSection.astro';
 import Newsletter from '../components/Newsletter.astro';
 ---
@@ -19,7 +23,11 @@ import Newsletter from '../components/Newsletter.astro';
   <BriefingFeed id="briefings" heading="Latest briefings" limit={6} showAllLink />
   <ResearchArchive />
   <PolicyCalendar />
+  <MacroCharts />
+  <YieldCurve />
   <MarketsTable />
+  <MarketForecast />
+  <IndexMovers />
   <AboutSection />
   <Newsletter />
 </BaseLayout>

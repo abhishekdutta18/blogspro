@@ -1,0 +1,73 @@
+---
+/**
+ * MarketForecast — the instrument picked in the Markets table (Nifty 50 first): its last 60 daily closes
+ * and Google TimesFM's forecast for the next five sessions with the 80% range. Data: /data/forecasts.json,
+ * refreshed daily on the server; server-rendered copies at /data/charts/forecast-<symbol>.svg.
+ */
+import ChartPlot from './ChartPlot.astro';
+const HEIGHT = 220;
+---
+
+<section id="forecast" class="pt-10 scroll-mt-6" aria-labelledby="forecast-heading">
+  <figure>
+    <figcaption class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <h3 id="forecast-heading" class="font-serif text-xl font-semibold"><span data-forecast-name>Nifty 50</span>: next 5 sessions</h3>
+      <span class="text-xs text-ink-3" data-forecast-note>Daily closes and a TimesFM forecast · model output, not advice</span>
+      <span class="ml-auto flex gap-4 text-xs">
+        <span class="lc-key text-ink-2"><i class="lc-swatch lc-accent"></i>Close</span>
+        <span class="lc-key text-ink-2"><i class="lc-swatch lc-accent lc-dash"></i>Forecast</span>
+        <span class="lc-key text-ink-2"><i class="lc-swatch-band"></i>80% range</span>
+        <button type="button" class="lc-action" data-svg-download="Nifty 50 forecast">Download SVG</button>
+      </span>
+    </figcaption>
+    <ChartPlot height={HEIGHT} label="Forecast chart" loading="Loading the forecast…" />
+  </figure>
+</section>
+
+<script>
+  import { loadForecasts } from '../lib/insights.js';
+  import { onMarkets } from '../lib/markets.js';
+  import { formatChartValue } from '../lib/marketChart.js';
+  import { createLineChart } from '../lib/lineChartView.js';
+  import { dailyForecastSpec } from '../lib/insightCharts.js';
+  import { wireDownloads } from '../lib/svgExport.js';
+
+  const HEIGHT = 220;
+  const root = document.getElementById('forecast');
+  if (root) {
+    wireDownloads(root);
+    const chart = createLineChart(root.querySelector('figure'), { height: HEIGHT });
+    const download = root.querySelector('[data-svg-download]');
+    const state = { symbol: 'NSE:NIFTY', name: 'Nifty 50', forecasts: undefined, formats: new Map() };
+
+    function render() {
+      root.querySelector('[data-forecast-name]').textContent = state.name;
+      download.dataset.svgDownload = `${state.name} forecast`;
+      if (state.forecasts === undefined) return;
+      const entry = state.forecasts?.daily.get(state.symbol);
+      if (!entry) {
+        chart.unavailable(state.forecasts ? `No forecast for ${state.name} yet.` : 'Forecasts are unavailable right now.');
+        return;
+      }
+      const fmt = state.formats.get(state.symbol);
+      chart.draw(dailyForecastSpec(state.name, entry, (v) => formatChartValue(v, fmt)));
+    }
+
+    document.addEventListener('market:pick', (event) => {
+      Object.assign(state, { symbol: event.detail.symbol, name: event.detail.name });
+      render();
+    });
+    onMarkets((data) => {
+      data.items.forEach((item, symbol) => state.formats.set(symbol, item.fmt));
+      render();
+    });
+    loadForecasts().then((forecasts) => {
+      state.forecasts = forecasts;
+      if (forecasts?.generatedAt) {
+        const day = new Date(forecasts.generatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' });
+        root.querySelector('[data-forecast-note]').textContent = `Daily closes and a TimesFM forecast made ${day} · model output, not advice`;
+      }
+      render();
+    });
+  }
+</script>

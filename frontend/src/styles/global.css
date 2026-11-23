@@ -181,3 +181,25 @@
   padding: 4px 8px;
   font-size: 12px;
 }
+
+/* Yield curve, macro and forecast charts (lib/lineChartView.js), same rules as the market charts above.
+ The series colour is the accent; the comparison line is ink-grey and thinner; forecasts are dashed with a
+ faint 80% band. Text and legends stay in ink tokens. */
+.lc-accent { --lc: var(--accent); }
+.lc-compare { --lc: var(--ink-3); }
+.lc-line { fill: none; stroke: var(--lc, var(--accent)); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.lc-line.lc-compare { stroke-width: 1.5; }
+.lc-line.lc-dash { stroke-dasharray: 5 4; }
+.lc-band { fill: var(--accent); fill-opacity: 0.12; stroke: none; }
+.lc-end { fill: var(--lc, var(--accent)); stroke: var(--paper); stroke-width: 2; }
+.lc-dot { fill: var(--ink); stroke: var(--paper); stroke-width: 2; }
+.lc-key:not([hidden]) { display: inline-flex; align-items: center; gap: 6px; }
+.lc-swatch { display: inline-block; width: 14px; height: 0; border-top: 2px solid var(--lc, var(--accent)); }
+.lc-swatch.lc-dash { border-top-style: dashed; }
+.lc-swatch-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ink); }
+.lc-swatch-band { display: inline-block; width: 14px; height: 8px; background: var(--accent); opacity: 0.18; }
+.lc-action { color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+.lc-action:hover { color: var(--ink); }
+.lc-tab { color: var(--ink-2); padding-bottom: 2px; border-bottom: 2px solid transparent; }
+.lc-tab:hover { color: var(--ink); }
+.lc-tab[aria-pressed='true'] { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }

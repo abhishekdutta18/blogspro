@@ -74,10 +74,27 @@ function toIndicator(raw) {
   return { key: raw.key, label, value, period };
 }
 
+const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
+const MAX_HISTORY = 60;
+
+/** A MoSPI series for the macro charts: [['YYYY-MM', value]] oldest first, or null. */
+function toHistory(raw) {
+  const label = text(raw?.label, 60);
+  if (!MACRO_ORDER.includes(raw?.key) || !label || !['monthly', 'quarterly'].includes(raw.frequency) || !Array.isArray(raw.points)) return null;
+  const points = raw.points
+    .filter((p) => Array.isArray(p) && PERIOD.test(p[0]) && Number.isFinite(p[1]) && Math.abs(p[1]) < 100)
+    .map(([period, value]) => [period, value])
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-MAX_HISTORY);
+  return points.length >= 2 ? { key: raw.key, label, frequency: raw.frequency, points } : null;
+}
+
 function parseMacro(raw) {
   if (!time(raw?.fetchedAt)) return null;
-  const indicators = list(raw.indicators, toIndicator).sort((a, b) => MACRO_ORDER.indexOf(a.key) - MACRO_ORDER.indexOf(b.key));
-  return indicators.length ? { fetchedAt: raw.fetchedAt, indicators } : null;
+  const byOrder = (a, b) => MACRO_ORDER.indexOf(a.key) - MACRO_ORDER.indexOf(b.key);
+  const indicators = list(raw.indicators, toIndicator).sort(byOrder);
+  const history = list(raw.history, toHistory).sort(byOrder);
+  return indicators.length || history.length ? { fetchedAt: raw.fetchedAt, indicators, history } : null;
 }
 
 /** The G-Sec closest to ten years from `now`'s year (the 10-year benchmark), or null. */

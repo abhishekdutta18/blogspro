@@ -1,0 +1,84 @@
+---
+/**
+ * MacroCharts — small multiples of India's MoSPI macro series (up to three years) with a three-period
+ * TimesFM forecast and its 80% band where one exists. Data: macro.history in /data/policy.json and
+ * macro.series in /data/forecasts.json. Server-rendered copies: /data/charts/macro-<key>.svg.
+ */
+import ChartPlot from './ChartPlot.astro';
+
+const HEIGHT = 170;
+const SERIES = [
+  { key: 'cpi', title: 'CPI inflation' },
+  { key: 'cpiFood', title: 'Food inflation' },
+  { key: 'wpi', title: 'WPI inflation' },
+  { key: 'iip', title: 'Industrial production growth' },
+  { key: 'gdp', title: 'GDP growth' },
+  { key: 'unemployment', title: 'Unemployment rate' },
+];
+---
+
+<section id="macro-charts" class="pt-16 scroll-mt-6" aria-labelledby="macro-charts-heading">
+  <div class="section-head">
+    <h2 id="macro-charts-heading" class="section-title">India macro trends</h2>
+    <span class="text-sm text-ink-3">MoSPI data · % · dashed: TimesFM forecast, shaded: 80% range</span>
+  </div>
+
+  <div class="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+    {SERIES.map(({ key, title }) => (
+      <figure data-macro-chart={key}>
+        <figcaption>
+          <div class="flex items-baseline justify-between gap-3">
+            <span class="font-semibold" data-macro-title>{title}</span>
+            <span class="font-mono num" data-macro-last></span>
+          </div>
+          <div class="mt-0.5 flex items-baseline justify-between gap-3 text-xs text-ink-3">
+            <span data-macro-period></span>
+            <button type="button" class="lc-action" data-svg-download={title}>Download SVG</button>
+          </div>
+        </figcaption>
+        <ChartPlot height={HEIGHT} label={title} loading="Loading…" />
+      </figure>
+    ))}
+  </div>
+  <p class="mt-6 text-xs text-ink-3" data-macro-note>
+    Forecasts come from Google's TimesFM time-series model (BigQuery AI.FORECAST). They are model output, not
+    advice, and ignore everything except each series' own history.
+  </p>
+</section>
+
+<script>
+  import { loadPolicy } from '../lib/policy.js';
+  import { loadForecasts } from '../lib/insights.js';
+  import { createLineChart } from '../lib/lineChartView.js';
+  import { macroSpec, monthName } from '../lib/insightCharts.js';
+  import { wireDownloads } from '../lib/svgExport.js';
+
+  const HEIGHT = 170;
+  const root = document.getElementById('macro-charts');
+  if (root) {
+    wireDownloads(root);
+    const figures = [...root.querySelectorAll('[data-macro-chart]')];
+    const charts = new Map(figures.map((f) => [f.dataset.macroChart, createLineChart(f, { height: HEIGHT })]));
+
+    Promise.all([loadPolicy(), loadForecasts()]).then(([policy, forecasts]) => {
+      const history = new Map((policy?.macro?.history ?? []).map((s) => [s.key, s]));
+      figures.forEach((figure) => {
+        const key = figure.dataset.macroChart;
+        const series = history.get(key);
+        if (!series) {
+          charts.get(key).unavailable('No data right now.');
+          return;
+        }
+        const forecast = forecasts?.macro.get(key) ?? [];
+        const [period, value] = series.points.at(-1);
+        figure.querySelector('[data-macro-title]').textContent = series.label;
+        figure.querySelector('[data-macro-last]').textContent = `${value.toFixed(2)}%`;
+        figure.querySelector('[data-macro-period]').textContent = forecast.length
+          ? `${monthName(period)} · forecast to ${monthName(forecast.at(-1).period)}`
+          : monthName(period);
+        figure.querySelector('[data-svg-download]').dataset.svgDownload = series.label;
+        charts.get(key).draw(macroSpec(series, forecast));
+      });
+    });
+  }
+</script>

@@ -79,11 +79,11 @@ function drawDetail(svg, item, width) {
   const y = scaleLinear(valueDomain(points, item.prevClose), [plot.bottom, plot.top]);
   const tone = toneClass(item);
   const [lastT, lastV] = points.at(-1);
-  const cross = svgEl('g', { class: 'mc-cross', visibility: 'hidden' });
+  const cross = svgEl('g', { class: 'mc-cross', visibility: 'hidden', 'data-export': 'skip' });
   const crossLine = svgEl('line', { class: 'mc-cross-line', y1: plot.top, y2: plot.bottom });
   const crossDot = svgEl('circle', { class: `mc-dot mc-ring ${tone}`, r: 4 });
   cross.append(crossLine, crossDot);
-  const hit = svgEl('rect', { class: 'mc-hit', x: plot.left, y: 0, width: plot.right - plot.left, height: DETAIL.height });
+  const hit = svgEl('rect', { class: 'mc-hit', x: plot.left, y: 0, width: plot.right - plot.left, height: DETAIL.height, 'data-export': 'skip' });
   svg.setAttribute('viewBox', `0 0 ${width} ${DETAIL.height}`);
   svg.setAttribute('width', width);
   svg.setAttribute('height', DETAIL.height);
