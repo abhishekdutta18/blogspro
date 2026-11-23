@@ -20,6 +20,20 @@ export const INSTRUMENT_GROUPS = Object.freeze([
     ],
   },
   {
+    id: 'sectors',
+    title: 'NSE sectors',
+    instruments: [
+      { symbol: '^CNXFIN', name: 'Financials' },
+      { symbol: '^CNXPSUBANK', name: 'PSU Bank' },
+      { symbol: '^CNXAUTO', name: 'Auto' },
+      { symbol: '^CNXPHARMA', name: 'Pharma' },
+      { symbol: '^CNXFMCG', name: 'FMCG' },
+      { symbol: '^CNXMETAL', name: 'Metal' },
+      { symbol: '^CNXENERGY', name: 'Energy' },
+      { symbol: '^CNXREALTY', name: 'Realty' },
+    ],
+  },
+  {
     id: 'global',
     title: 'Global equities',
     instruments: [
@@ -81,6 +95,37 @@ async function fetchQuote(instrument, fetchImpl) {
     console.warn(`⚠️ [Edition] Quote unavailable for ${instrument.symbol}: ${error.message}`);
     return { ...instrument, ok: false };
   }
+}
+
+// One-month daily closes drawn as line charts (one chart each: different scales never share an axis).
+export const HISTORY_INSTRUMENTS = Object.freeze([
+  { symbol: '^NSEI', name: 'Nifty 50' },
+  { symbol: '^GSPC', name: 'S&P 500' },
+]);
+
+/** Daily closes from a chart response as [{ t (ms), close }], skipping null bars. */
+export function parseHistory(json) {
+  const result = json?.chart?.result?.[0];
+  const stamps = Array.isArray(result?.timestamp) ? result.timestamp : [];
+  const closes = result?.indicators?.quote?.[0]?.close || [];
+  return stamps
+    .map((t, i) => ({ t: t * 1000, close: Number(closes[i]) }))
+    .filter((p) => Number.isFinite(p.t) && Number.isFinite(p.close) && p.close > 0);
+}
+
+/** One-month history per HISTORY_INSTRUMENTS entry; a failed fetch yields an empty series. */
+export async function fetchHistories({ fetchImpl = fetch } = {}) {
+  return Promise.all(HISTORY_INSTRUMENTS.map(async (instrument) => {
+    const url = `${CHART_URL}${encodeURIComponent(instrument.symbol)}?interval=1d&range=1mo`;
+    try {
+      const res = await fetchImpl(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return { ...instrument, points: parseHistory(await res.json()) };
+    } catch (error) {
+      console.warn(`⚠️ [Edition] History unavailable for ${instrument.symbol}: ${error.message}`);
+      return { ...instrument, points: [] };
+    }
+  }));
 }
 
 /** Every group with its quotes, fetched in parallel. Failed instruments carry ok:false. */

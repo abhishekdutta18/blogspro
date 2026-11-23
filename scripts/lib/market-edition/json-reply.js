@@ -1,8 +1,11 @@
 /**
  * Helpers for model replies that are asked to be JSON. Models often wrap JSON in prose or code fences,
  * so the first {...} block is extracted; every field is then coerced to a bounded plain string or list,
- * because these values end up in published pages.
+ * because these values end up in published pages. Length caps are safety limits, not editing: text over
+ * a cap is cut at its last full sentence, never mid-word.
  */
+
+const SENTENCE_END = /[.!?]["')\]]?$/;
 
 /** The first JSON object in a model reply, or null when none parses. */
 export function extractJson(reply) {
@@ -18,15 +21,29 @@ export function extractJson(reply) {
   }
 }
 
-/** A trimmed, whitespace-collapsed string of at most `max` characters ('' for non-strings). */
-export function cleanText(value, max = 600) {
+/**
+ * `text` limited to `max` characters: whole sentences when one ends in the back half of the limit,
+ * otherwise whole words followed by an ellipsis.
+ */
+export function truncateAtSentence(text, max) {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  if (SENTENCE_END.test(cut)) return cut;
+  const lastEnd = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '));
+  if (lastEnd >= max / 2) return cut.slice(0, lastEnd + 1);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${cut.slice(0, lastSpace > 0 ? lastSpace : max).replace(/[\s,;:–-]+$/, '')}…`;
+}
+
+/** A whitespace-collapsed, markdown-free string of at most `max` characters ('' for non-strings). */
+export function cleanText(value, max = 1500) {
   if (typeof value !== 'string') return '';
   const text = value.replace(/[*_`#>]+/g, '').replace(/\s+/g, ' ').trim();
-  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+  return truncateAtSentence(text, max);
 }
 
 /** Up to `limit` non-empty cleaned strings from an array. */
-export function cleanList(value, { limit = 5, max = 300 } = {}) {
+export function cleanList(value, { limit = 5, max = 1500 } = {}) {
   if (!Array.isArray(value)) return [];
   return value.map((v) => cleanText(v, max)).filter(Boolean).slice(0, limit);
 }

@@ -8,6 +8,7 @@ const REQUEST_TIMEOUT_MS = 8000;
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_ITEMS = 15;
 const MAX_TITLE = 220;
+const MAX_SUMMARY = 400;
 
 export const NEWS_FEEDS = Object.freeze([
   { source: 'Economic Times', url: 'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms' },
@@ -66,8 +67,11 @@ export function parseRss(xml, feedSource, { aggregated = false } = {}) {
         source = suffix[2];
       }
       const published = Date.parse(decode(tag(item, 'pubDate')));
+      // Feed summaries are writer input only (never published); Google News descriptions just repeat the title.
+      const description = aggregated ? '' : decode(tag(item, 'description'));
       return {
         title: title.slice(0, MAX_TITLE),
+        summary: description.startsWith(title) ? '' : description.slice(0, MAX_SUMMARY),
         link: safeLink(tag(item, 'link')),
         source,
         publishedAt: Number.isFinite(published) ? published : null,
