@@ -1,15 +1,27 @@
 [
   {
-    "title": "Global Sell-Off",
+    "title": "Pre-market setup for India on 23 Nov 2026",
     "date": "2026-11-23",
-    "timestamp": 1795375869682,
-    "excerpt": "European markets closed lower, while US markets are trading sharply down, which may impact Indian markets tomorrow. The decline in global equities, along with rising volatility, suggests a cautious approach for Indian investors.",
-    "fileName": "swarm-hourly-1795375869679.html",
+    "timestamp": 1795409417353,
+    "excerpt": "Global risk assets sold off sharply on Friday as the S&P 500 fell 3.70% and the Nasdaq dropped 5.28% in the closed, Fri 20 Nov session, while the Dow Jones declined 1.93%, dragging sentiment into the Asian session where the Hang Seng is currently live. For India, the Nifty 50 is trading at 25634.90 INR, down 0.64% versus the previous close, and the Sensex stands at 83410.21 INR, down 0.61%, indicating a cautious open after the weekend gap.",
+    "fileName": "swarm-hourly-1795409417349.html",
     "type": "briefing",
     "frequency": "hourly",
     "liveNews": null,
-    "edition": "evening",
+    "edition": "morning",
     "stance": "cautious"
+  },
+  {
+    "title": "Morning brief: markets at 23 Nov 2026, 08:00 IST",
+    "date": "2026-11-23",
+    "timestamp": 1795401037463,
+    "excerpt": "Live prices and the latest market headlines for the morning brief.",
+    "fileName": "swarm-hourly-1795401037459.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": null,
+    "edition": "morning",
+    "stance": "neutral"
   },
   {
     "title": "HOURLY   Nexus Institutional Terminal",
@@ -1350,34 +1362,6 @@
         {
           "title": "Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026",
           "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999"
-        }
-      ]
-    }
-  },
-  {
-    "title": "HOURLY   Nexus Institutional Terminal",
-    "date": "2026-11-19",
-    "timestamp": 1795086188756,
-    "excerpt": "Current structural liquidity in the OIS-SOFR corridor indicates a terminal decoupling of risk-free rates from systemic equity pricing, rendering the 2026 Q4 rally a purely derivative-driven artifact of mechanical rebalancing rather than fundamental g...",
-    "fileName": "swarm-hourly-1795086188750.html",
-    "type": "briefing",
-    "frequency": "hourly",
-    "liveNews": {
-      "summary": "RBI: Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000) | Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999) | Money Market Operations as on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63998) | SEBI:  | GLOBAL: BLOOMBERG | South Korean Watchdog Asks Financial Firms to Report AI Exposure - Bloomberg | BLOOMBERG | Saudi Public Investment Fund’s Riyadh Headquarters Damaged - Bloomberg | BLOOMBERG | MAS Warns AI Agents Could Move Money Faster, Raise Finance Risks - Bloomberg | REUTERS | UK finance sector cyber incidents hit second-highest level in five years - Reuters | REUTERS | Global securities watchdog urges immediate action on quantum risks to finance - Reuters | REUTERS | Fed policymakers concerned about financial system risks, minutes show - Reuters | CNBC | Takaichi gets chilly reception in China on first Japan leader visit since 2019 - CNBC | CNBC | Thursday's big stock stories: What’s likely to move the market in the next trading session - CNBC | CNBC | Inside India newsletter: Foreign flows helped the market recover. Now it faces the inflation test - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia",
-      "rbi": "Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000) | Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999) | Money Market Operations as on November 18, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63998)",
-      "sebi": "",
-      "docs": [
-        {
-          "title": "Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000"
-        },
-        {
-          "title": "Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999"
-        },
-        {
-          "title": "Money Market Operations as on November 18, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63998"
         }
       ]
     }
