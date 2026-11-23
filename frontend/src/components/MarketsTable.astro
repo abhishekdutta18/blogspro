@@ -1,11 +1,17 @@
 ---
 /**
- * MarketsTable — cross-asset snapshot with asset-class tabs.
- * Built from a dated snapshot; in the browser, /data/markets.json replaces the figures and the label
- * (see lib/markets.js). Without it the snapshot stays, labelled with its own date.
+ * MarketsTable — cross-asset snapshot with asset-class tabs, a sparkline of today's prices per row, and a
+ * larger chart of the instrument picked in the table (Nifty 50 first).
+ * Built from a dated snapshot; in the browser, /data/markets.json replaces the figures and the label and
+ * supplies the 5-minute chart points (see lib/markets.js, lib/marketChartView.js). The page re-checks the
+ * file every two minutes. Without it the snapshot stays, labelled with its own date, and the charts say so.
  */
 import { marketAssets, marketsAsOf, type MarketAsset } from '../data/marketData';
 import { formatIsoDate } from '../lib/format';
+
+// The chart opens on this instrument; readers pick another from the table.
+const DEFAULT_SYMBOL = 'NSE:NIFTY';
+const DEFAULT_ASSET = marketAssets.find((asset) => asset.symbol === DEFAULT_SYMBOL);
 
 const CLASSES: Array<{ id: 'all' | MarketAsset['category']; label: string }> = [
   { id: 'all', label: 'All' },
@@ -23,6 +29,23 @@ const CLASSES: Array<{ id: 'all' | MarketAsset['category']; label: string }> = [
     <span class="text-sm text-ink-3" data-markets-label>Close, {formatIsoDate(marketsAsOf)}</span>
   </div>
 
+  <figure class="mb-8" data-market-detail>
+    <figcaption class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <span class="font-serif text-xl font-semibold" data-detail-name>{DEFAULT_ASSET?.name}</span>
+      <span class="font-mono num text-lg" data-detail-last>{DEFAULT_ASSET?.price}</span>
+      <span class="font-mono num text-sm" data-detail-change>{DEFAULT_ASSET?.change}</span>
+      <span class="text-xs text-ink-3">Today, 5-minute closes · times in IST · pick an instrument below</span>
+    </figcaption>
+    <div class="relative mt-3" data-detail-plot>
+      <svg class="mc-svg overflow-visible" tabindex="0" role="img" aria-label="Intraday chart" data-detail-svg hidden></svg>
+      <div class="mc-tip" data-detail-tip hidden>
+        <strong class="block font-mono num text-ink" data-detail-tip-value></strong>
+        <span class="block text-ink-3 num" data-detail-tip-label></span>
+      </div>
+      <p class="mc-empty h-[220px] text-sm text-ink-3" data-detail-empty>Loading today's prices…</p>
+    </div>
+  </figure>
+
   <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm mb-4" role="group" aria-label="Filter by asset class">
     {CLASSES.map((assetClass, index) => (
       <button type="button" class="market-filter" data-class={assetClass.id} aria-pressed={String(index === 0)}>
@@ -38,19 +61,23 @@ const CLASSES: Array<{ id: 'all' | MarketAsset['category']; label: string }> = [
           <th scope="col" class="py-2 pr-4 font-medium">Instrument</th>
           <th scope="col" class="py-2 pr-4 font-medium text-right">Last</th>
           <th scope="col" class="py-2 pr-4 font-medium text-right">Change</th>
+          <th scope="col" class="py-2 pr-4 font-medium text-right">Today</th>
           <th scope="col" class="py-2 pr-4 font-medium text-right hidden sm:table-cell">Day range</th>
           <th scope="col" class="py-2 font-medium text-right hidden md:table-cell">Open</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-rule">
         {marketAssets.map(asset => (
-          <tr class="market-row" data-class={asset.category} data-market-symbol={asset.symbol}>
+          <tr class="market-row" data-class={asset.category} data-market-symbol={asset.symbol} data-market-name={asset.name}>
             <td class="py-2.5 pr-4">
-              <span class="font-medium">{asset.name}</span>
-              <span class="ml-2 font-mono text-xs text-ink-3">{asset.symbol}</span>
+              <button type="button" class="market-pick" data-pick aria-pressed={String(asset.symbol === DEFAULT_SYMBOL)} aria-label={`Chart ${asset.name}`}>
+                <span class="font-medium">{asset.name}</span>
+                <span class="ml-2 font-mono text-xs text-ink-3">{asset.symbol}</span>
+              </button>
             </td>
             <td class="py-2.5 pr-4 text-right font-mono num" data-field="price">{asset.price}</td>
             <td class={`py-2.5 pr-4 text-right font-mono num ${asset.isPositive ? 'text-up' : 'text-down'}`} data-field="change">{asset.change}</td>
+            <td class="py-1 pr-4 text-right"><svg class="ml-auto block h-6 w-20" aria-hidden="true" data-spark></svg></td>
             <td class="py-2.5 pr-4 text-right font-mono num text-ink-2 hidden sm:table-cell" data-field="range">{asset.low} – {asset.high}</td>
             <td class="py-2.5 text-right font-mono num text-ink-2 hidden md:table-cell" data-field="open">{asset.open}</td>
           </tr>
@@ -67,6 +94,9 @@ const CLASSES: Array<{ id: 'all' | MarketAsset['category']; label: string }> = [
     border-bottom: 2px solid transparent;
   }
   .market-filter:hover { color: var(--ink); }
+  .market-pick { text-align: left; }
+  .market-pick:hover .font-medium { text-decoration: underline; text-underline-offset: 3px; }
+  .market-pick[aria-pressed='true'] .font-medium { color: var(--accent); }
   .market-filter[aria-pressed='true'] {
     color: var(--ink);
     font-weight: 600;
@@ -75,8 +105,46 @@ const CLASSES: Array<{ id: 'all' | MarketAsset['category']; label: string }> = [
 </style>
 
 <script>
-  import { loadLiveMarkets } from '../lib/markets.js';
-  loadLiveMarkets();
+  import { loadLiveMarkets, onMarkets } from '../lib/markets.js';
+  import { createDetailChart, renderSparkline } from '../lib/marketChartView.js';
+
+  const root = document.getElementById('markets');
+  if (root) {
+    const chart = createDetailChart(root.querySelector('[data-market-detail]'));
+    const picks = [...root.querySelectorAll('[data-pick]')];
+    const field = (name) => root.querySelector(`[data-detail-${name}]`);
+    let latest = null;
+    let selected = picks.find((b) => b.getAttribute('aria-pressed') === 'true')?.closest('tr') ?? null;
+
+    // Heading figures come from the same row the table shows, so the two never disagree.
+    function renderDetail() {
+      if (!selected) return;
+      const item = latest?.items.get(selected.dataset.marketSymbol) ?? null;
+      field('name').textContent = selected.dataset.marketName;
+      field('last').textContent = selected.querySelector('[data-field="price"]').textContent;
+      const change = selected.querySelector('[data-field="change"]');
+      field('change').textContent = change.textContent;
+      field('change').className = `font-mono num text-sm ${change.classList.contains('text-down') ? 'text-down' : 'text-up'}`;
+      if (latest) chart.show(item, selected.dataset.marketName);
+    }
+
+    picks.forEach((button) => button.addEventListener('click', () => {
+      picks.forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+      selected = button.closest('tr');
+      renderDetail();
+    }));
+
+    onMarkets((data) => {
+      latest = data;
+      root.querySelectorAll('[data-market-symbol]').forEach((row) => {
+        renderSparkline(row.querySelector('[data-spark]'), data.items.get(row.dataset.marketSymbol) ?? null);
+      });
+      renderDetail();
+    });
+    loadLiveMarkets().then((data) => { if (!data) chart.unavailable(); });
+  } else {
+    loadLiveMarkets();
+  }
 </script>
 
 <script is:inline>

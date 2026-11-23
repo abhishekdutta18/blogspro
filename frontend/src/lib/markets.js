@@ -16,6 +16,31 @@ const IST_FORMAT = new Intl.DateTimeFormat('en-GB', {
 });
 
 const text = (value) => (typeof value === 'string' && value.length > 0 && value.length <= TEXT_MAX ? value : null);
+const finiteOrNull = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
+
+// Chart data: the styles the publisher emits, and a cap well above its 120 points per instrument.
+const CHART_LOCALES = new Set(['en-IN', 'en-US']);
+const CHART_AFFIXES = new Set(['', '$', '%']);
+const MAX_DIGITS = 6;
+const MAX_POINTS = 300;
+
+function toFormat(raw) {
+  if (!raw || !CHART_LOCALES.has(raw.locale)) return null;
+  if (!Number.isInteger(raw.digits) || raw.digits < 0 || raw.digits > MAX_DIGITS) return null;
+  const prefix = raw.prefix ?? '';
+  const suffix = raw.suffix ?? '';
+  if (!CHART_AFFIXES.has(prefix) || !CHART_AFFIXES.has(suffix)) return null;
+  return { locale: raw.locale, digits: raw.digits, prefix, suffix };
+}
+
+// [unixSeconds, value] pairs with strictly increasing times; anything else is dropped.
+function toPoints(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(-MAX_POINTS).reduce((kept, p) => {
+    const ok = Array.isArray(p) && finiteOrNull(p[0]) !== null && finiteOrNull(p[1]) !== null;
+    return ok && (kept.length === 0 || p[0] > kept.at(-1)[0]) ? [...kept, [p[0], p[1]]] : kept;
+  }, []);
+}
 
 function toItem(raw) {
   if (!raw || typeof raw !== 'object' || !SYMBOL_PATTERN.test(String(raw.symbol))) return null;
@@ -29,6 +54,10 @@ function toItem(raw) {
     range: text(raw.range),
     open: text(raw.open),
     live: raw.live === true,
+    last: finiteOrNull(raw.last),
+    prevClose: finiteOrNull(raw.prevClose),
+    fmt: toFormat(raw.fmt),
+    points: toPoints(raw.points),
   };
 }
 
@@ -71,19 +100,51 @@ export function applyMarkets(root, data, now = Date.now()) {
   root.querySelectorAll('[data-markets-label]').forEach((el) => { el.textContent = label; });
 }
 
+// The server republishes every 5 minutes; checking every 2 keeps the page at most ~7 minutes behind.
+const REFRESH_MS = 2 * 60 * 1000;
+const listeners = new Set();
 let pending = null;
+let latest = null;
 
-/** Fetches the file once per page (both components call this) and applies it; failures keep the snapshot. */
-export function loadLiveMarkets(root = document) {
-  pending ??= fetch(MARKETS_URL, { cache: 'no-cache' })
+function fetchMarkets() {
+  return fetch(MARKETS_URL, { cache: 'no-cache' })
     .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
     .then(parseMarkets)
     .catch((error) => {
-      console.warn('[markets] live figures unavailable, showing the built snapshot:', error);
+      console.warn('[markets] live figures unavailable, keeping what is on screen:', error);
       return null;
     });
-  return pending.then((data) => {
-    if (data) applyMarkets(root, data);
-    return data;
-  });
+}
+
+// Applies a newer file to the page and hands it to the charts; an unchanged or older file is ignored.
+function publish(root, data) {
+  if (!data || (latest && data.updatedAt <= latest.updatedAt)) return;
+  latest = data;
+  applyMarkets(root, data);
+  listeners.forEach((listener) => listener(data));
+}
+
+/** Calls `listener` with each new file, starting with the current one if it has loaded. Returns an unsubscribe. */
+export function onMarkets(listener) {
+  listeners.add(listener);
+  if (latest) listener(latest);
+  return () => listeners.delete(listener);
+}
+
+/**
+ * Loads the file once per page (both components call this), applies it, and re-checks every two minutes
+ * while the tab is visible. Resolves with the first load's data, or null when it failed (the built
+ * snapshot then stays on screen).
+ */
+export function loadLiveMarkets(root = document) {
+  if (!pending) {
+    pending = fetchMarkets().then((data) => {
+      publish(root, data);
+      return data;
+    });
+    setInterval(() => {
+      if (document.visibilityState === 'visible') fetchMarkets().then((data) => publish(root, data));
+    }, REFRESH_MS);
+  }
+  return pending;
 }

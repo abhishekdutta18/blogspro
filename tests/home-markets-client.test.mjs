@@ -56,3 +56,16 @@ test('applyMarkets fills matching rows, recolours the change, and leaves unknown
   assert.equal(gsec.cells.price.textContent, 'old');
   assert.equal(page.label.textContent, 'Updated 23 Nov, 13:05 IST');
 });
+
+test('parseMarkets keeps chart data that is well formed and drops the rest', () => {
+  const fmt = { locale: 'en-IN', digits: 2, prefix: '', suffix: '' };
+  const points = [[100, 25_700.1], [400, 25_634.9], [300, 1], ['x', 2], [700, null], [1000, 25_650]];
+  const item = parseMarkets({ generatedAt: NOW, items: [row({ last: 25_650, prevClose: 25_800, fmt, points })] }).items.get('NSE:NIFTY');
+  assert.deepEqual(item.points, [[100, 25_700.1], [400, 25_634.9], [1000, 25_650]], 'bad and out-of-order points are dropped');
+  assert.deepEqual([item.last, item.prevClose, item.fmt], [25_650, 25_800, fmt]);
+
+  const odd = parseMarkets({ generatedAt: NOW, items: [row({ last: 'x', fmt: { locale: 'xx', digits: 2 }, points: 'nope' })] }).items.get('NSE:NIFTY');
+  assert.deepEqual([odd.last, odd.prevClose, odd.fmt, odd.points], [null, null, null, []]);
+  const injected = parseMarkets({ generatedAt: NOW, items: [row({ fmt: { ...fmt, prefix: '<b>' } })] }).items.get('NSE:NIFTY');
+  assert.equal(injected.fmt, null, 'only known prefixes and suffixes are accepted');
+});
