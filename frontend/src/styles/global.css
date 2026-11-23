@@ -164,7 +164,8 @@
 .mc-ring { stroke: var(--paper); stroke-width: 2; }
 .mc-ref { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
 .mc-grid { stroke: var(--rule); stroke-width: 1; shape-rendering: crispEdges; }
-.mc-label { fill: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+/* A paper-coloured halo keeps labels legible where the line crosses them. */
+.mc-label { fill: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round; }
 .mc-cross-line { stroke: var(--ink-3); stroke-width: 1; }
 .mc-hit { fill: transparent; pointer-events: all; cursor: crosshair; }
 /* Display rules only when shown, so the hidden attribute is never overridden by a utility class. */
