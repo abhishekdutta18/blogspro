@@ -109,7 +109,7 @@ export const marketAssets: MarketAsset[] = [
   { symbol: 'BSE:SENSEX', name: 'SENSEX', price: '81,592.45', change: '+0.38%', isPositive: true, category: 'indices', high: '81,879.50', low: '81,288.75', open: '81,592.45' },
   { symbol: 'NSE:BANKNIFTY', name: 'BANK NIFTY', price: '61,034.10', change: '+0.65%', isPositive: true, category: 'indices', high: '61,300.55', low: '60,780.55', open: '61,300.55' },
   { symbol: 'SPX', name: 'S&P 500', price: '7,561.67', change: '-0.40%', isPositive: false, category: 'indices', high: '7,621.78', low: '7,499.40', open: '7,561.67' },
-  { symbol: 'IXIC', name: 'NASDAQ 100', price: '25,136.27', change: '-0.91%', isPositive: false, category: 'indices', high: '25,423.09', low: '24,872.41', open: '25,136.27' },
+  { symbol: 'IXIC', name: 'Nasdaq Composite', price: '25,136.27', change: '-0.91%', isPositive: false, category: 'indices', high: '25,423.09', low: '24,872.41', open: '25,136.27' },
   { symbol: 'NI225', name: 'Nikkei 225', price: '61,142.35', change: '+0.53%', isPositive: true, category: 'indices', high: '61,902.50', low: '61,082.23', open: '61,142.35' },
   
   // Forex
@@ -126,7 +126,6 @@ export const marketAssets: MarketAsset[] = [
   
   // Bonds / Yields
   { symbol: 'US10Y', name: 'US 10-Year Yield', price: '4.42%', change: '+0.03%', isPositive: true, category: 'bonds', high: '4.45%', low: '4.39%', open: '4.41%' },
-  { symbol: 'IN10Y', name: 'India 10-Year G-Sec', price: '6.78%', change: '-0.02%', isPositive: false, category: 'bonds', high: '6.80%', low: '6.77%', open: '6.79%' },
   
   // Crypto
   { symbol: 'BTCUSDT', name: 'Bitcoin (BTC)', price: '$65,220', change: '-4.90%', isPositive: false, category: 'crypto', high: '$68,540', low: '$64,800', open: '$68,426' },

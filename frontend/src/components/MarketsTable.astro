@@ -1,7 +1,8 @@
 ---
 /**
  * MarketsTable — cross-asset snapshot with asset-class tabs.
- * Figures are a dated snapshot, labelled as such; nothing here is streamed.
+ * Built from a dated snapshot; in the browser, /data/markets.json replaces the figures and the label
+ * (see lib/markets.js). Without it the snapshot stays, labelled with its own date.
  */
 import { marketAssets, marketsAsOf, type MarketAsset } from '../data/marketData';
 import { formatIsoDate } from '../lib/format';
@@ -19,7 +20,7 @@ const CLASSES: Array<{ id: 'all' | MarketAsset['category']; label: string }> = [
 <section id="markets" class="pt-16 scroll-mt-6" aria-labelledby="markets-heading">
   <div class="section-head">
     <h2 id="markets-heading" class="section-title">Markets</h2>
-    <span class="text-sm text-ink-3">Close, {formatIsoDate(marketsAsOf)} · not live</span>
+    <span class="text-sm text-ink-3" data-markets-label>Close, {formatIsoDate(marketsAsOf)}</span>
   </div>
 
   <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm mb-4" role="group" aria-label="Filter by asset class">
@@ -43,15 +44,15 @@ const CLASSES: Array<{ id: 'all' | MarketAsset['category']; label: string }> = [
       </thead>
       <tbody class="divide-y divide-rule">
         {marketAssets.map(asset => (
-          <tr class="market-row" data-class={asset.category}>
+          <tr class="market-row" data-class={asset.category} data-market-symbol={asset.symbol}>
             <td class="py-2.5 pr-4">
               <span class="font-medium">{asset.name}</span>
               <span class="ml-2 font-mono text-xs text-ink-3">{asset.symbol}</span>
             </td>
-            <td class="py-2.5 pr-4 text-right font-mono num">{asset.price}</td>
-            <td class={`py-2.5 pr-4 text-right font-mono num ${asset.isPositive ? 'text-up' : 'text-down'}`}>{asset.change}</td>
-            <td class="py-2.5 pr-4 text-right font-mono num text-ink-2 hidden sm:table-cell">{asset.low} – {asset.high}</td>
-            <td class="py-2.5 text-right font-mono num text-ink-2 hidden md:table-cell">{asset.open}</td>
+            <td class="py-2.5 pr-4 text-right font-mono num" data-field="price">{asset.price}</td>
+            <td class={`py-2.5 pr-4 text-right font-mono num ${asset.isPositive ? 'text-up' : 'text-down'}`} data-field="change">{asset.change}</td>
+            <td class="py-2.5 pr-4 text-right font-mono num text-ink-2 hidden sm:table-cell" data-field="range">{asset.low} – {asset.high}</td>
+            <td class="py-2.5 text-right font-mono num text-ink-2 hidden md:table-cell" data-field="open">{asset.open}</td>
           </tr>
         ))}
       </tbody>
@@ -72,6 +73,11 @@ const CLASSES: Array<{ id: 'all' | MarketAsset['category']; label: string }> = [
     border-bottom-color: var(--accent);
   }
 </style>
+
+<script>
+  import { loadLiveMarkets } from '../lib/markets.js';
+  loadLiveMarkets();
+</script>
 
 <script is:inline>
   (() => {
