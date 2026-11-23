@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh index best/worst performers every 15 minutes (the job idles while every market is shut)
+
+[Timer]
+OnCalendar=*:07/15
+RandomizedDelaySec=30
+AccuracySec=10s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -52,22 +52,30 @@ node scripts/generate-institutional-tome.js --freq=hourly --type=briefing --forc
 
 ## Homepage data files
 
-Two timers publish JSON files the homepage loads in the browser. Neither uses AI. Both run
-`run-data.sh <name>`, which writes `/var/www/blogspro/data/<name>.json` atomically and copies it to the web VPS.
+Six timers publish files the homepage loads in the browser. Each runs `run-data.sh <name>`, which writes under
+`/var/www/blogspro/data/` atomically and copies the result to the web VPS. Only the forecasts job uses a model
+(Google TimesFM through BigQuery `AI.FORECAST`, billed to project `blogspro-ai`); the rest only fetch data.
 
-| Timer | Every | File | Sources |
-|-------|-------|------|---------|
+| Timer | Every | Output | Sources |
+|-------|-------|--------|---------|
 | `blogspro-markets.timer` | 5 min | `data/markets.json` | Yahoo chart API (17 instruments, quote plus today's 5-minute bars) |
-| `blogspro-policy.timer` | 30 min | `data/policy.json` | rbi.org.in (policy rates, USD/INR, press-release RSS); Forex Factory weekly calendar feed |
+| `blogspro-policy.timer` | 30 min | `data/policy.json` | rbi.org.in; Forex Factory weekly calendar; MoSPI API (latest macro prints plus up to 36 periods of history) |
+| `blogspro-data@bonds.timer` | hourly | `data/bonds.json` | CCIL ZCYC parameters and tenor-wise indicative yields; keeps 400 days of 10-year history |
+| `blogspro-data@movers.timer` | 15 min | `data/movers.json` | niftyindices.com, Wikipedia and GitHub constituent lists (cached weekly in `/var/lib/blogspro-pulse/constituents.json`); Yahoo per stock for India and Japan; Nasdaq screener for the US |
+| `blogspro-data@forecasts.timer` | daily 01:30 UTC | `data/forecasts.json` | Yahoo daily closes, `bonds.json`, `policy.json` -> TimesFM 2.0, 80% interval |
+| `blogspro-data@charts.timer` | hourly | `data/charts/*.svg`, `data/charts/index.json` | `bonds.json`, `policy.json`, `forecasts.json` |
 
 Each source keeps its last good data when it fails. Forex Factory answers HTTP 429 to frequent requests,
-so do not shorten the policy timer or run it by hand repeatedly. If the files are missing, the homepage
-keeps its built-in market snapshot (labelled with its date) and shows the policy section as unavailable.
+so do not shorten the policy timer or run it by hand repeatedly. The movers job asks Yahoo for one quote per
+stock (about 250 for India and Japan), three at a time, and stops at the first HTTP 429 so the markets feed on
+the same endpoint is not rate-limited; it only refreshes a market while it trades. If a file is missing, the
+homepage keeps its built-in market snapshot and shows the other sections as unavailable.
 
 ```bash
 sudo install -o root -g root -m 0755 deploy/vps/run-data.sh /opt/blogspro-pulse/run-data.sh
-sudo install -m 0644 deploy/vps/blogspro-markets.* deploy/vps/blogspro-policy.* /etc/systemd/system/
+sudo install -m 0644 deploy/vps/blogspro-markets.* deploy/vps/blogspro-policy.* deploy/vps/blogspro-data@* /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now blogspro-markets.timer blogspro-policy.timer
-journalctl -u blogspro-policy -n 20 --no-pager
+sudo systemctl enable --now blogspro-markets.timer blogspro-policy.timer \
+  blogspro-data@bonds.timer blogspro-data@movers.timer blogspro-data@forecasts.timer blogspro-data@charts.timer
+journalctl -u blogspro-data@forecasts -n 20 --no-pager
 ```

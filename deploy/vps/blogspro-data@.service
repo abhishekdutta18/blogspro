@@ -1,0 +1,15 @@
+[Unit]
+Description=BlogsPro homepage data job %i (copy to web VPS)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+# Only the forecasts job uses it (BigQuery); a path, not a secret.
+Environment=GOOGLE_APPLICATION_CREDENTIALS=/var/www/blogspro/knowledge/firebase-service-account.json
+ExecStart=/opt/blogspro-pulse/run-data.sh %i
+TimeoutStartSec=8min
+Nice=10

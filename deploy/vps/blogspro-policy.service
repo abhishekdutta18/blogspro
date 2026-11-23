@@ -9,5 +9,5 @@ User=ubuntu
 Group=ubuntu
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
 ExecStart=/opt/blogspro-pulse/run-data.sh policy
-TimeoutStartSec=2min
+TimeoutStartSec=4min
 Nice=10
