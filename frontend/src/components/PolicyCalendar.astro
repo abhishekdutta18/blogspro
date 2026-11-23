@@ -1,79 +1,116 @@
 ---
 /**
- * PolicyCalendar — upcoming and recent macro releases as a plain table,
- * plus the desk's read on RBI policy.
- * "Actual" is only shown for releases dated on or before the snapshot date;
- * a future release cannot have an actual print.
+ * PolicyCalendar — RBI policy rates and recent RBI releases, beside this week's high-impact economic
+ * releases. Everything is loaded in the browser from /data/policy.json (see lib/policy.js), which the
+ * server refreshes every 30 minutes from rbi.org.in and the Forex Factory calendar feed. Nothing here is
+ * written by hand, so the section shows a loading state until the data arrives.
  */
-import { highImpactEvents, macroRadar, marketsAsOf } from '../data/marketData';
-import { dateValue, formatIsoDate, isAfter } from '../lib/format';
-
-const events = [...highImpactEvents].sort((a, b) => dateValue(a.date) - dateValue(b.date));
-const odds = macroRadar.rbiProbability;
 ---
 
 <section id="policy" class="pt-16 scroll-mt-6" aria-labelledby="policy-heading">
   <div class="section-head">
     <h2 id="policy-heading" class="section-title">Policy calendar</h2>
-    <span class="text-sm text-ink-3">As of {formatIsoDate(marketsAsOf)}</span>
   </div>
 
   <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
     <div>
-      <h3 class="font-serif text-xl font-semibold">RBI: {macroRadar.policyRegime}</h3>
-      <p class="mt-2 text-ink-2 leading-relaxed">{macroRadar.rbiStance}</p>
+      <h3 class="font-serif text-xl font-semibold">RBI policy rates</h3>
+      <p class="mt-1 text-xs text-ink-3" data-policy-rbi-label>Loading from rbi.org.in…</p>
+      <dl class="mt-4 divide-y divide-rule text-sm" data-policy-rates></dl>
 
-      <div class="mt-6">
-        <div class="text-xs uppercase tracking-[0.14em] text-ink-3">Desk view, next MPC</div>
-        <div class="mt-2 flex h-2 w-full overflow-hidden bg-sunk" role="img"
-          aria-label={`Hold ${odds.hold}%, cut ${odds.cut}%, hike ${odds.hike}%`}>
-          <div class="bg-ink" style={`width:${odds.hold}%`}></div>
-          <div class="bg-up" style={`width:${odds.cut}%`}></div>
-          <div class="bg-down" style={`width:${odds.hike}%`}></div>
-        </div>
-        <dl class="mt-2 flex gap-5 text-sm num">
-          <div><dt class="inline text-ink-3">Hold </dt><dd class="inline font-medium">{odds.hold}%</dd></div>
-          <div><dt class="inline text-ink-3">Cut </dt><dd class="inline font-medium text-up">{odds.cut}%</dd></div>
-          <div><dt class="inline text-ink-3">Hike </dt><dd class="inline font-medium text-down">{odds.hike}%</dd></div>
-        </dl>
-      </div>
-
-      <p class="mt-6 text-sm text-ink-2 leading-relaxed">
-        <span class="text-ink-3">INR:</span> {macroRadar.inrStress}
-      </p>
+      <h3 class="mt-8 text-xs uppercase tracking-[0.14em] text-ink-3">Latest from RBI</h3>
+      <ul class="mt-2 divide-y divide-rule text-sm" data-policy-releases></ul>
     </div>
 
     <div class="overflow-x-auto">
-      <table class="w-full text-sm">
+      <h3 class="font-serif text-xl font-semibold">High-impact releases this week</h3>
+      <p class="mt-1 text-xs text-ink-3" data-policy-calendar-label>Loading calendar…</p>
+      <table class="mt-4 w-full text-sm">
         <thead>
           <tr class="border-b border-rule-strong text-left text-xs uppercase tracking-wider text-ink-3">
-            <th scope="col" class="py-2 pr-4 font-medium">Date</th>
+            <th scope="col" class="py-2 pr-4 font-medium">Time (IST)</th>
             <th scope="col" class="py-2 pr-4 font-medium">Release</th>
-            <th scope="col" class="py-2 pr-4 font-medium text-right">Prior</th>
-            <th scope="col" class="py-2 pr-4 font-medium text-right">Consensus</th>
-            <th scope="col" class="py-2 font-medium text-right">Actual</th>
+            <th scope="col" class="py-2 pr-4 font-medium text-right">Forecast</th>
+            <th scope="col" class="py-2 font-medium text-right">Previous</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-rule">
-          {events.map(event => {
-            const upcoming = isAfter(event.date, marketsAsOf);
-            return (
-              <tr class="align-top">
-                <td class="py-3 pr-4 whitespace-nowrap text-ink-2 num">{event.date}</td>
-                <td class="py-3 pr-4">
-                  <span class="font-mono text-xs text-ink-3 mr-1.5">{event.country}</span>
-                  <span class="font-medium">{event.title}</span>
-                </td>
-                <td class="py-3 pr-4 text-right font-mono num">{event.previous}</td>
-                <td class="py-3 pr-4 text-right font-mono num">{event.forecast}</td>
-                <td class="py-3 text-right font-mono num">
-                  {upcoming ? <span class="text-ink-3" title="Not yet released">—</span> : event.actual}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
+        <tbody class="divide-y divide-rule" data-policy-events></tbody>
       </table>
     </div>
   </div>
+
+  <p class="mt-6 text-xs text-ink-3">
+    Sources: <a class="underline" href="https://www.rbi.org.in/" rel="noopener">Reserve Bank of India</a>;
+    calendar from <a class="underline" href="https://www.forexfactory.com/calendar" rel="noopener">Forex Factory</a>.
+    Released figures appear in our briefings.
+  </p>
+  <noscript><p class="mt-4 text-sm text-ink-2">Turn on JavaScript to see policy rates and the calendar.</p></noscript>
 </section>
+
+<script>
+  import { loadPolicy, formatIst, formatRate } from '../lib/policy.js';
+
+  const el = (tag, className, text) => {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+
+  function renderRbi(root, rbi) {
+    const rows = rbi.rates.map((rate) => {
+      const row = el('div', 'flex justify-between py-2');
+      row.append(el('dt', 'text-ink-2', rate.label), el('dd', 'font-mono num font-medium', formatRate(rate.value)));
+      return row;
+    });
+    if (rbi.usdInr) {
+      const row = el('div', 'flex justify-between py-2');
+      row.append(el('dt', 'text-ink-2', 'USD/INR (RBI)'), el('dd', 'font-mono num font-medium', rbi.usdInr.toFixed(4)));
+      rows.push(row);
+    }
+    root.querySelector('[data-policy-rates]').replaceChildren(...rows);
+    root.querySelector('[data-policy-rbi-label]').textContent = `Checked ${formatIst(rbi.fetchedAt)}`;
+
+    const releases = rbi.releases.map((release) => {
+      const li = el('li', 'py-2');
+      const link = el('a', 'headline-link text-ink', release.title);
+      link.href = release.href;
+      link.rel = 'noopener';
+      li.append(link, el('div', 'text-xs text-ink-3 num', formatIst(release.time)));
+      return li;
+    });
+    root.querySelector('[data-policy-releases]')
+      .replaceChildren(...(releases.length ? releases : [el('li', 'py-2 text-ink-3', 'No recent policy releases.')]));
+  }
+
+  function renderCalendar(root, calendar, now) {
+    const rows = calendar.events.map((event) => {
+      const tr = el('tr', event.time < now ? 'align-top text-ink-3' : 'align-top');
+      const release = el('td', 'py-3 pr-4');
+      release.append(el('span', 'font-mono text-xs text-ink-3 mr-1.5', event.country), el('span', 'font-medium', event.title));
+      tr.append(
+        el('td', 'py-3 pr-4 whitespace-nowrap num', formatIst(event.time).replace(' IST', '')),
+        release,
+        el('td', 'py-3 pr-4 text-right font-mono num', event.forecast),
+        el('td', 'py-3 text-right font-mono num', event.previous),
+      );
+      return tr;
+    });
+    const empty = el('tr');
+    empty.append(Object.assign(el('td', 'py-3 text-ink-3', 'No high-impact releases this week.'), { colSpan: 4 }));
+    root.querySelector('[data-policy-events]').replaceChildren(...(rows.length ? rows : [empty]));
+    root.querySelector('[data-policy-calendar-label]').textContent = `Checked ${formatIst(calendar.fetchedAt)} · past releases greyed`;
+  }
+
+  async function render() {
+    const root = document.getElementById('policy');
+    if (!root) return;
+    const data = await loadPolicy();
+    if (data?.rbi) renderRbi(root, data.rbi);
+    else root.querySelector('[data-policy-rbi-label]').textContent = 'RBI rates are unavailable right now.';
+    if (data?.calendar) renderCalendar(root, data.calendar, Date.now());
+    else root.querySelector('[data-policy-calendar-label]').textContent = 'The calendar is unavailable right now.';
+  }
+
+  render();
+</script>
