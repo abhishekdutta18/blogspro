@@ -105,6 +105,39 @@ test('publishHomePolicy writes RBI and calendar sections, then keeps each one wh
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test('MoSPI indicators are published, kept per series on failure, and re-fetched at most every six hours', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'home-policy-'));
+  const out = path.join(dir, 'policy.json');
+  const cpiRows = JSON.stringify({ msg: 'Data fetched successfully', data: [{ year: '2026', month: 'October', sector: 'Combined', division: 'CPI (General)', group: null, inflation: '6.09' }] });
+  const noData = JSON.stringify({ msg: 'No Data Found', data: [] });
+  const mospiCalls = [];
+  const fetchWith = (cpi) => async (url) => {
+    if (url.startsWith(SOURCES.mospi)) {
+      mospiCalls.push(url);
+      const body = url.includes('/api/cpi/') && url.includes('month_code=10') ? cpi : noData;
+      return { ok: true, status: 200, text: async () => body };
+    }
+    return stubFetch({ [SOURCES.rbiHome]: RBI_HOME, [SOURCES.rbiPress]: RBI_RSS, [SOURCES.calendar]: '[]' })(url);
+  };
+
+  const first = await publishHomePolicy({ out, fetchImpl: fetchWith(cpiRows), now: NOW });
+  assert.ok(first.fresh.includes('macro'));
+  const saved = JSON.parse(fs.readFileSync(out, 'utf8'));
+  assert.deepEqual(saved.macro.indicators.map((i) => [i.key, i.value, i.period]), [['cpi', 6.09, 'Oct 2026']]);
+  assert.equal(saved.macro.fetchedAt, NOW);
+
+  mospiCalls.length = 0;
+  const soon = await publishHomePolicy({ out, fetchImpl: fetchWith(noData), now: NOW + 3_600_000 });
+  assert.equal(mospiCalls.length, 0, 'within six hours MoSPI is not called');
+  assert.ok(!soon.fresh.includes('macro'));
+  assert.deepEqual(JSON.parse(fs.readFileSync(out, 'utf8')).macro, saved.macro);
+
+  await publishHomePolicy({ out, fetchImpl: fetchWith(noData), now: NOW + 7 * 3_600_000 });
+  assert.ok(mospiCalls.length > 0, 'after six hours it is called again');
+  assert.deepEqual(JSON.parse(fs.readFileSync(out, 'utf8')).macro, saved.macro, 'no data this time: the last values stay');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('a failed press-release feed keeps the previous releases while the rates refresh', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'home-policy-'));
   const out = path.join(dir, 'policy.json');

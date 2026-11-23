@@ -55,6 +55,38 @@ export function parseRbiRates(html) {
   return { rates, usdInr: Number.isFinite(usd) ? usd : null };
 }
 
+const GSEC = /(\d{1,2}\.\d{2})% GS (\d{4}) : (\d{1,2}\.\d{1,4}) ?%/g;
+const TBILL = /(91|182|364) day T-bills : (\d{1,2}\.\d{1,4}) ?%/g;
+const AS_ON = /as on ([A-Z][a-z]+) (\d{1,2}), (\d{4})/;
+const MONTH_NAMES = Object.freeze(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']);
+
+const plausible = (value) => (value > 0 && value <= MAX_RATE ? value : null);
+
+// The page has other "as on <date>" notes (money market operations); the quote date follows the T-bill lines.
+function asOnDate(text) {
+  const after = text.indexOf('T-bills');
+  const [, monthName, day, year] = (after < 0 ? '' : text.slice(after)).match(AS_ON) ?? [];
+  const month = MONTH_NAMES.indexOf(monthName);
+  return month < 0 ? null : Date.UTC(Number(year), month, Number(day));
+}
+
+/**
+ * Government securities market box on the RBI homepage:
+ * { gsecs: [{ label, maturity, value }], tbills: [{ label, value }], asOn (UTC ms of the quoted date) }, or null.
+ * Yields are as RBI quotes them (benchmark G-Secs, and T-bill cut-offs at the last auction).
+ */
+export function parseRbiMarkets(html) {
+  const text = htmlToText(html);
+  const gsecs = [...text.matchAll(GSEC)]
+    .map(([, coupon, year, value]) => ({ label: `${coupon}% GS ${year}`, maturity: Number(year), value: plausible(Number(value)) }))
+    .filter((g) => g.value !== null);
+  const tbills = [...text.matchAll(TBILL)]
+    .map(([, days, value]) => ({ label: `${days}-day T-bill`, value: plausible(Number(value)) }))
+    .filter((t) => t.value !== null);
+  if (gsecs.length === 0 && tbills.length === 0) return null;
+  return { gsecs, tbills, asOn: asOnDate(text) };
+}
+
 function tag(item, name) {
   const raw = item.match(new RegExp(`<${name}>([\\s\\S]*?)</${name}>`))?.[1] ?? '';
   return decodeEntities(raw.replace(/^\s*<!\[CDATA\[|\]\]>\s*$/g, '')).replace(/\s+/g, ' ').trim();
