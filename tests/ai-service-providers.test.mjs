@@ -77,3 +77,16 @@ test('Groq rate limits keep their status, so the node cools down instead of bein
   assert.equal(ResourceManager.failed.has('Groq'), false);
   assert.ok(ResourceManager.cooldowns.has('Groq'));
 });
+
+test('bridge pool keeps only routes to models the bridge serves', async () => {
+  const saved = { ...process.env };
+  for (const k of Object.keys(process.env)) if (/API_KEY|_KEY$|TOKEN|GH_PAT|CLOUDFLARE|SAMBANOVA|CEREBRAS|GROQ|GEMINI|VAULT|BRIDGE|OPENROUTER|HF_/.test(k)) delete process.env[k];
+  try {
+    ResourceManager.pool = [];
+    await ResourceManager.init({ SWARM_AI_BRIDGE: 'https://bridge.example' }, true);
+    assert.deepEqual(ResourceManager.pool.map((n) => n.name).sort(), ['Groq-Bridge-20B-Proxy', 'Groq-Bridge-Proxy']);
+  } finally {
+    process.env = saved;
+    ResourceManager.pool = [];
+  }
+});

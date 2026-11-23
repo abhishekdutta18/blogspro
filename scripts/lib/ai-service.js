@@ -785,20 +785,10 @@ export const ResourceManager = {
 
         // TIER 4: INSTITUTIONAL BRIDGE (Restores Groq/Llama via Cloudflare)
         if (isBridgeActive) {
-            this.pool.push({ 
-                name: 'Cloudflare-Gateway', 
-                fn: generateInstitutionalBridgeContent, 
-                tier: 2, 
-                roles: ['research', 'manager', 'audit', 'utility'], 
-                match: /bridge|gateway|institutional/i 
-            });
-
-            // [V12.0] VIRTUAL PROXY NODES (Unlocks Cloud models despite local placeholders)
-            // These act as direct mappings to the Edge Bridge to ensure high-parameter utilization.
+            // Only bridge routes that reach a model the bridge serves. Removed (Nov 2026), each failed every call:
+            // Cloudflare-Gateway and HuggingFace-Proxy forwarded the caller's model hint ("auto") as a model id,
+            // and DeepSeek-V3-1T asked for a model the bridge's SambaNova route does not serve.
             this.pool.push({ name: 'Groq-Bridge-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, DEFAULT_GROQ_MODEL, c), tier: 1, roles: ['research', 'edit'], match: /groq|node-research|node-draft|70b/i });
-            this.pool.push({ name: 'DeepSeek-V3-1T', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "DeepSeek-V3", c), tier: 1, roles: ['research', 'edit'], match: /deepseek|v3|1t|reasoning/i });
-            // [REMOVED] Gemini-Pro-Proxy
-            this.pool.push({ name: 'HuggingFace-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, m || "mistralai/Mistral-7B-Instruct-v0.3", c), tier: 2, roles: ['utility', 'audit'], match: /huggingface|hf|mistral/i });
             
             // [V12.0] Gemma-4 Shadow Audit (Cloud Proxy for GHA Continuity)
             this.pool.push({ name: 'Groq-Bridge-20B-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "openai/gpt-oss-20b", c), tier: 2, roles: ['audit', 'repair'], match: /llama|node-audit|node-repair/i });
