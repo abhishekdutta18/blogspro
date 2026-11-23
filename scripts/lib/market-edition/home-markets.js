@@ -2,7 +2,10 @@
  * Homepage market figures: the instruments the homepage strip and Markets table show, fetched from the same
  * Yahoo chart endpoint the editions use and formatted for display, so the browser only swaps text in.
  * Output (written to /data/markets.json by scripts/publish-home-markets.js):
- *   { generatedAt, fresh, items: [{ symbol, price, change, isPositive, range, open, asOf, live }] }
+ *   { generatedAt, fresh, items: [{ symbol, price, change, isPositive, range, open, asOf, live,
+ *                                   last, prevClose, fmt, points: [[unixSeconds, value], ...] }] }
+ * `points` are today's 5-minute closes (at most 120) for the homepage charts; `fmt` tells the browser how
+ * to format chart values in the same style as `price`.
  * `symbol` is the homepage's own label (e.g. 'NSE:NIFTY'). A quote that fails keeps its previous row, with
  * its own older `asOf`, so one bad fetch never blanks a figure or passes old data off as new.
  */
@@ -63,7 +66,30 @@ function formatChange(style, quote) {
   return signed(quote.changePct, `${Math.abs(quote.changePct).toFixed(2)}%`);
 }
 
-/** One display row for a fetched quote. */
+// How the browser formats chart axis and tooltip values for each style (it has no Intl presets of its own).
+const CHART_FORMATS = Object.freeze({
+  inr: { locale: 'en-IN', digits: 2, prefix: '', suffix: '' },
+  num: { locale: 'en-US', digits: 2, prefix: '', suffix: '' },
+  fx2: { locale: 'en-US', digits: 2, prefix: '', suffix: '' },
+  fx4: { locale: 'en-US', digits: 4, prefix: '', suffix: '' },
+  usd: { locale: 'en-US', digits: 2, prefix: '$', suffix: '' },
+  usd0: { locale: 'en-US', digits: 0, prefix: '$', suffix: '' },
+  yield: { locale: 'en-US', digits: 2, prefix: '', suffix: '%' },
+});
+const MAX_POINTS = 120;
+const SIGNIFICANT_DIGITS = 6;
+
+const round = (value) => Number(value.toPrecision(SIGNIFICANT_DIGITS));
+
+/** Chart points as [unix seconds, value], thinned evenly to MAX_POINTS while always keeping the latest. */
+export function chartPoints(points = []) {
+  const valid = points.filter((p) => Number.isFinite(p?.t) && Number.isFinite(p?.close));
+  const step = Math.ceil(valid.length / MAX_POINTS);
+  const kept = valid.filter((_, i) => (valid.length - 1 - i) % step === 0);
+  return kept.map((p) => [Math.floor(p.t / 1000), round(p.close)]);
+}
+
+/** One display row for a fetched quote, with the numbers and points its chart needs. */
 export function formatHomeItem(instrument, quote, now = Date.now()) {
   const { style } = instrument;
   const hasRange = Number.isFinite(quote.dayLow) && Number.isFinite(quote.dayHigh);
@@ -76,6 +102,10 @@ export function formatHomeItem(instrument, quote, now = Date.now()) {
     open: formatValue(style, quote.open),
     asOf: Number.isFinite(quote.asOf) ? quote.asOf : null,
     live: marketStatus(quote, now) === 'live',
+    last: quote.price,
+    prevClose: Number.isFinite(quote.prevClose) ? quote.prevClose : null,
+    fmt: CHART_FORMATS[style],
+    points: chartPoints(quote.points),
   };
 }
 

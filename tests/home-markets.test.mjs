@@ -31,11 +31,15 @@ test('every homepage instrument has a Yahoo symbol and a known display style', (
   assert.equal(new Set(HOME_INSTRUMENTS.map((i) => i.symbol)).size, HOME_INSTRUMENTS.length, 'symbols are unique');
 });
 
-test('formatHomeItem formats price, change, range and open by style', () => {
-  const nifty = formatHomeItem({ symbol: 'NSE:NIFTY', style: 'inr' }, quote(), NOW);
+test('formatHomeItem formats price, change, range and open by style, with chart data', () => {
+  const points = [{ t: NOW - 120_000, close: 25700.123456 }, { t: NOW - 60_000, close: 25634.9 }];
+  const nifty = formatHomeItem({ symbol: 'NSE:NIFTY', style: 'inr' }, quote({ points }), NOW);
   assert.deepEqual(nifty, {
     symbol: 'NSE:NIFTY', price: '25,634.90', change: '-0.64%', isPositive: false,
     range: '25,500.10 – 25,700.00', open: '25,780.00', asOf: NOW - 60_000, live: true,
+    last: 25634.9, prevClose: 25800,
+    fmt: { locale: 'en-IN', digits: 2, prefix: '', suffix: '' },
+    points: [[Math.floor((NOW - 120_000) / 1000), 25700.1], [Math.floor((NOW - 60_000) / 1000), 25634.9]],
   });
   const lakh = formatHomeItem({ symbol: 'BSE:SENSEX', style: 'inr' }, quote({ price: 183410.21, changePct: 0.61, change: 1 }), NOW);
   assert.equal(lakh.price, '1,83,410.21', 'Indian grouping for INR indices');
@@ -48,6 +52,17 @@ test('formatHomeItem formats price, change, range and open by style', () => {
   assert.equal(formatHomeItem({ symbol: 'BTCUSDT', style: 'usd0' }, quote({ price: 65220.4 }), NOW).price, '$65,220');
   assert.equal(formatHomeItem({ symbol: 'EURUSD', style: 'fx4' }, quote({ price: 1.09213 }), NOW).price, '1.0921');
   assert.equal(formatHomeItem({ symbol: 'X', style: 'num' }, quote({ changePct: null, change: null }), NOW).change, '—', 'no previous close: no change');
+});
+
+test('chart points are capped at 120, keep the latest point, and default to none', () => {
+  const many = Array.from({ length: 300 }, (_, i) => ({ t: NOW - (300 - i) * 60_000, close: 100 + i }));
+  const item = formatHomeItem({ symbol: 'BTCUSDT', style: 'usd0' }, quote({ points: many }), NOW);
+  assert.ok(item.points.length <= 120);
+  assert.deepEqual(item.points.at(-1), [Math.floor(many.at(-1).t / 1000), 399]);
+  assert.ok(item.points.every((p, i, all) => i === 0 || p[0] > all[i - 1][0]), 'times increase');
+  assert.deepEqual(item.fmt, { locale: 'en-US', digits: 0, prefix: '$', suffix: '' });
+  assert.deepEqual(formatHomeItem({ symbol: 'X', style: 'num' }, quote(), NOW).points, []);
+  assert.deepEqual(formatHomeItem({ symbol: 'US10Y', style: 'yield' }, quote(), NOW).fmt.suffix, '%');
 });
 
 test('buildHomeMarkets keeps the last good row for an instrument whose quote failed this time', () => {
@@ -67,11 +82,18 @@ test('buildHomeMarkets keeps the last good row for an instrument whose quote fai
 test('publishHomeMarkets writes atomically and never replaces good data with an all-failed fetch', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'home-markets-'));
   const out = path.join(dir, 'data', 'markets.json');
-  const okFetch = async () => ({ ok: true, json: async () => ({ chart: { result: [{ meta: { regularMarketPrice: 100, chartPreviousClose: 99, regularMarketTime: Math.floor(NOW / 1000) } }] } }) });
+  const urls = [];
+  const bar = Math.floor(NOW / 1000);
+  const okFetch = async (url) => {
+    urls.push(url);
+    return { ok: true, json: async () => ({ chart: { result: [{ meta: { regularMarketPrice: 100, chartPreviousClose: 99, regularMarketTime: bar }, timestamp: [bar - 300, bar], indicators: { quote: [{ open: [99.5, 99.8], close: [99.8, 100] }] } }] } }) };
+  };
   const first = await publishHomeMarkets({ out, fetchImpl: okFetch, now: NOW });
   assert.equal(first.written, true);
+  assert.ok(urls.every((u) => u.includes('interval=5m&range=1d')), 'one intraday request per instrument gives quote and chart');
   const saved = JSON.parse(fs.readFileSync(out, 'utf8'));
   assert.equal(saved.items.length, HOME_INSTRUMENTS.length);
+  assert.deepEqual(saved.items[0].points, [[bar - 300, 99.8], [bar, 100]]);
   assert.deepEqual(fs.readdirSync(path.dirname(out)), ['markets.json'], 'no temp file left behind');
 
   const failFetch = async () => ({ ok: false, status: 503 });

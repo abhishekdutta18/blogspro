@@ -57,7 +57,7 @@ Two timers publish JSON files the homepage loads in the browser. Neither uses AI
 
 | Timer | Every | File | Sources |
 |-------|-------|------|---------|
-| `blogspro-markets.timer` | 10 min | `data/markets.json` | Yahoo chart API (17 instruments) |
+| `blogspro-markets.timer` | 5 min | `data/markets.json` | Yahoo chart API (17 instruments, quote plus today's 5-minute bars) |
 | `blogspro-policy.timer` | 30 min | `data/policy.json` | rbi.org.in (policy rates, USD/INR, press-release RSS); Forex Factory weekly calendar feed |
 
 Each source keeps its last good data when it fails. Forex Factory answers HTTP 429 to frequent requests,

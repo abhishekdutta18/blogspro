@@ -91,17 +91,22 @@ export function parseChart(json) {
   };
 }
 
-async function fetchQuote(instrument, fetchImpl) {
-  const url = `${CHART_URL}${encodeURIComponent(instrument.symbol)}?interval=1d&range=1d`;
+const DAILY = 'interval=1d&range=1d';
+export const INTRADAY = 'interval=5m&range=1d'; // same quote fields as DAILY, plus today's 5-minute bars
+
+// `points` are the response's bars ([{ t, close }]): one for DAILY, the session so far for INTRADAY.
+async function fetchQuote(instrument, fetchImpl, query = DAILY) {
+  const url = `${CHART_URL}${encodeURIComponent(instrument.symbol)}?${query}`;
   try {
     const res = await fetchImpl(url, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const quote = parseChart(await res.json());
+    const json = await res.json();
+    const quote = parseChart(json);
     if (!quote) throw new Error('no price in response');
-    return { ...instrument, ...quote, ok: true };
+    return { ...instrument, ...quote, points: parseHistory(json), ok: true };
   } catch (error) {
     console.warn(`⚠️ [Edition] Quote unavailable for ${instrument.symbol}: ${error.message}`);
     return { ...instrument, ok: false };
@@ -109,8 +114,8 @@ async function fetchQuote(instrument, fetchImpl) {
 }
 
 /** Quotes for any instrument list ([{ symbol, ... }]), in order; failed ones carry ok:false. */
-export function fetchQuotes(instruments, { fetchImpl = fetch } = {}) {
-  return Promise.all(instruments.map((i) => fetchQuote(i, fetchImpl)));
+export function fetchQuotes(instruments, { fetchImpl = fetch, query = DAILY } = {}) {
+  return Promise.all(instruments.map((i) => fetchQuote(i, fetchImpl, query)));
 }
 
 // One-month daily closes drawn as line charts (one chart each: different scales never share an axis).

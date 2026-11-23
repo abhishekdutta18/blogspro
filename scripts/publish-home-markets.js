@@ -7,14 +7,14 @@
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fetchQuotes } from './lib/market-edition/market-data.js';
+import { fetchQuotes, INTRADAY } from './lib/market-edition/market-data.js';
 import { HOME_INSTRUMENTS, buildHomeMarkets } from './lib/market-edition/home-markets.js';
 import { readJsonFile, writeJsonAtomically } from './lib/json-file.js';
 
 /** Fetches, merges with the previous file and writes it. Returns { written, fresh, total, out }. */
 export async function publishHomeMarkets({ out, fetchImpl = fetch, now = Date.now() }) {
   const yahooInstruments = HOME_INSTRUMENTS.map((i) => ({ symbol: i.yahoo, name: i.symbol }));
-  const quotes = await fetchQuotes(yahooInstruments, { fetchImpl });
+  const quotes = await fetchQuotes(yahooInstruments, { fetchImpl, query: INTRADAY });
   const data = buildHomeMarkets(HOME_INSTRUMENTS, quotes, { previous: readJsonFile(out), now });
   if (data.fresh === 0) return { written: false, fresh: 0, total: data.items.length, out };
   writeJsonAtomically(out, data);
