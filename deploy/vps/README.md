@@ -71,8 +71,8 @@ prompt tokens (4 characters each) plus a 2,500-token reply reserve, and refuses 
 
 | Cap | Default | Override |
 |-----|---------|----------|
-| Per run, hourly / daily / weekly | 80k / 80k / 100k | `TOKEN_BUDGET_HOURLY_RUN`, `TOKEN_BUDGET_DAILY_RUN`, `TOKEN_BUDGET_WEEKLY_RUN` |
-| All runs in any rolling 24 hours | 400k | `TOKEN_BUDGET_DAY` |
+| Per run, hourly / daily / weekly | 40k / 40k / 50k | `TOKEN_BUDGET_HOURLY_RUN`, `TOKEN_BUDGET_DAILY_RUN`, `TOKEN_BUDGET_WEEKLY_RUN` |
+| All runs in any rolling 24 hours | 200k | `TOKEN_BUDGET_DAY` |
 
 A refused section is not retried; the piece publishes with what it has (prices, headlines, and any sections
 already written), marked as missing commentary if the overview was refused. The 24-hour window rolls, like Groq's limits, so the 00:00 UTC daily run still counts the previous evening's
@@ -81,8 +81,12 @@ editions; hourly editions go through the same wrapper and record their spend. Ea
 at the end of each run as `🪙 [Budget]`. The figures are estimates for pacing, not provider billing: tune the caps
 from the ledger after a few days of runs.
 
+An edition measures about 18k estimated tokens (about 12k in, 6k out over 6 calls); the run caps are about 2x
+that, room for one retry per section but not a retry storm. Each ledger entry records the call role and the
+in/out split, so the report shows where the spend goes:
+
 ```bash
-cat /var/lib/blogspro-pulse/token-ledger.json
+cd /var/www/blogspro && STATE_DIRECTORY=/var/lib/blogspro-pulse npm run -s token-report
 journalctl -u 'blogspro-pulse@*' --since today | grep Budget
 ```
 

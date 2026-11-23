@@ -19,10 +19,13 @@ const CHARS_PER_TOKEN = 4;
 const DEFAULT_REPLY_RESERVE = 2_500;
 const LEDGER_NAME = 'token-ledger.json';
 
-/** Estimated tokens per run when no env override is set. About 6 calls (~6.5k each) plus one round of retries. */
-export const DEFAULT_RUN_CAPS = Object.freeze({ hourly: 80_000, daily: 80_000, weekly: 100_000, monthly: 120_000 });
+/**
+ * Estimated tokens per run when no env override is set. An edition measures ~18k (12k in, 6k out over 6 calls);
+ * the cap is ~2x that, room for one retry per section but not a retry storm. Weekly prompts also carry the digest.
+ */
+export const DEFAULT_RUN_CAPS = Object.freeze({ hourly: 40_000, daily: 40_000, weekly: 50_000, monthly: 120_000 });
 /** Estimated tokens all runs together may spend in any 24 hours: three editions, one daily, Sunday's weekly, slack. */
-export const DEFAULT_DAY_CAP = 400_000;
+export const DEFAULT_DAY_CAP = 200_000;
 
 export class BudgetExceededError extends Error {
   constructor(message) {
@@ -56,6 +59,12 @@ const WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const validEntry = (e, since) =>
   e && Number.isFinite(e.t) && e.t > since && typeof e.freq === 'string' && Number.isFinite(e.tokens) && e.tokens >= 0;
+const count = (v) => (Number.isFinite(v) && v >= 0 ? v : 0);
+
+/** A ledger entry with every field present (entries written before roles were recorded get 'unknown' and 0/0). */
+const normalise = (e) => ({
+  t: e.t, freq: e.freq, role: typeof e.role === 'string' ? e.role : 'unknown', in: count(e.in), out: count(e.out), tokens: e.tokens,
+});
 
 /**
  * Spend in the 24 hours before `now` as `{ entries: [{ t (ms), freq, tokens }] }`; empty when the file is
@@ -68,7 +77,7 @@ export function readLedger(file, now = new Date()) {
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
     const entries = Array.isArray(parsed?.entries) ? parsed.entries : [];
-    return { entries: entries.filter((e) => validEntry(e, since)).map(({ t, freq, tokens }) => ({ t, freq, tokens })) };
+    return { entries: entries.filter((e) => validEntry(e, since)).map(normalise) };
   } catch {
     return { entries: [] };
   }
@@ -129,14 +138,17 @@ export function createBudgetedAskAI({ askAI, freq, file, runCap, dayCap, replyRe
     return sum(kept) > sum(fromFile) ? kept : fromFile;
   };
 
-  const charge = (tokens) => {
+  const charge = (role, inTokens, outTokens) => {
+    const tokens = inTokens + outTokens;
     run += tokens;
-    const next = { entries: [...load().entries, { t: now().getTime(), freq, tokens }] };
+    const entry = { t: now().getTime(), freq, role, in: inTokens, out: outTokens, tokens };
+    const next = { entries: [...load().entries, entry] };
     memory = writeLedger(file, next) ? null : next;
   };
 
   const budgetedAskAI = async (prompt, options = {}) => {
     const promptTokens = estimateTokens(prompt);
+    const role = typeof options?.role === 'string' ? options.role : 'unknown';
     const estimate = promptTokens + replyReserve;
     const day = sum(load());
     if (run + estimate > runCap) {
@@ -150,10 +162,10 @@ export function createBudgetedAskAI({ askAI, freq, file, runCap, dayCap, replyRe
     calls += 1;
     try {
       const reply = await askAI(prompt, options);
-      charge(promptTokens + estimateTokens(reply));
+      charge(role, promptTokens, estimateTokens(reply));
       return reply;
     } catch (error) {
-      charge(promptTokens);
+      charge(role, promptTokens, 0);
       throw error;
     }
   };
@@ -162,4 +174,21 @@ export function createBudgetedAskAI({ askAI, freq, file, runCap, dayCap, replyRe
     askAI: budgetedAskAI,
     usage: () => ({ run, day: sum(load()), calls, refused }),
   };
+}
+
+/**
+ * Spend grouped by frequency and call role, largest first, plus the overall total — for `npm run token-report`.
+ * @param {{ entries: Array<{ freq: string, role: string, in: number, out: number, tokens: number }> }} ledger
+ */
+export function summarizeLedger(ledger) {
+  const groups = new Map();
+  for (const e of ledger.entries) {
+    const key = `${e.freq}\u0000${e.role}`;
+    const g = groups.get(key) || { freq: e.freq, role: e.role, calls: 0, in: 0, out: 0, tokens: 0 };
+    groups.set(key, { ...g, calls: g.calls + 1, in: g.in + e.in, out: g.out + e.out, tokens: g.tokens + e.tokens });
+  }
+  const rows = [...groups.values()].sort((a, b) => b.tokens - a.tokens);
+  const total = rows.reduce((t, r) => ({ calls: t.calls + r.calls, in: t.in + r.in, out: t.out + r.out, tokens: t.tokens + r.tokens }),
+    { calls: 0, in: 0, out: 0, tokens: 0 });
+  return { total, rows };
 }

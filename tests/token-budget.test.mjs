@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
-  BudgetExceededError, createBudgetedAskAI, estimateTokens, ledgerFile, readLedger, resolveCaps,
+  BudgetExceededError, createBudgetedAskAI, estimateTokens, ledgerFile, readLedger, resolveCaps, summarizeLedger,
 } from '../scripts/lib/token-budget.js';
 
 const tmpFile = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'ledger-')), 'token-ledger.json');
@@ -35,7 +35,7 @@ test('readLedger keeps only the last 24 hours, and survives a missing, corrupt o
     { t: NOW.getTime() - 7 * hour, freq: 'hourly', tokens: 4000 },
     { t: NOW.getTime() - hour, freq: 'daily', tokens: 'bad' },
   ] }));
-  assert.deepEqual(readLedger(file, NOW), { entries: [{ t: NOW.getTime() - 7 * hour, freq: 'hourly', tokens: 4000 }] });
+  assert.deepEqual(readLedger(file, NOW), { entries: [{ t: NOW.getTime() - 7 * hour, freq: 'hourly', role: 'unknown', in: 0, out: 0, tokens: 4000 }] });
 });
 
 test('ledgerFile prefers TOKEN_LEDGER_FILE, then the systemd state directory', () => {
@@ -60,7 +60,7 @@ test('budgeted askAI records prompt and reply tokens per frequency in the day le
   const reply = await budget.askAI('p'.repeat(800), { role: 'generate' });
   assert.equal(reply.length, 400);
   assert.deepEqual(budget.usage(), { run: 300, day: 300, calls: 1, refused: 0 });
-  assert.deepEqual(readLedger(file, NOW), { entries: [{ t: NOW.getTime(), freq: 'daily', tokens: 300 }] });
+  assert.deepEqual(readLedger(file, NOW), { entries: [{ t: NOW.getTime(), freq: 'daily', role: 'generate', in: 200, out: 100, tokens: 300 }] });
 });
 
 test('budgeted askAI refuses a call that would pass the run cap, without calling the model', async () => {
@@ -96,4 +96,21 @@ test('an unwritable ledger does not stop the run; usage is still tracked in memo
   });
   await budget.askAI('hello');
   assert.equal(budget.usage().calls, 1);
+});
+
+test('summarizeLedger totals calls and in/out tokens by frequency and role, largest first', () => {
+  const entries = [
+    { t: 1, freq: 'hourly', role: 'research', in: 1400, out: 130, tokens: 1530 },
+    { t: 2, freq: 'hourly', role: 'research', in: 1400, out: 120, tokens: 1520 },
+    { t: 3, freq: 'hourly', role: 'generate', in: 3000, out: 1900, tokens: 4900 },
+    { t: 4, freq: 'daily', role: 'generate', in: 2900, out: 2000, tokens: 4900 },
+  ];
+  assert.deepEqual(summarizeLedger({ entries }), {
+    total: { calls: 4, in: 8700, out: 4150, tokens: 12850 },
+    rows: [
+      { freq: 'hourly', role: 'generate', calls: 1, in: 3000, out: 1900, tokens: 4900 },
+      { freq: 'daily', role: 'generate', calls: 1, in: 2900, out: 2000, tokens: 4900 },
+      { freq: 'hourly', role: 'research', calls: 2, in: 2800, out: 250, tokens: 3050 },
+    ],
+  });
 });
