@@ -1,7 +1,8 @@
 ---
 /**
- * PolicyCalendar — India macro and policy: headline MoSPI indicators and benchmark yields as tiles, RBI
- * policy rates, the G-Sec curve and recent RBI releases, beside this week's high-impact releases.
+ * PolicyCalendar — India macro and policy: headline MoSPI indicators as tiles, RBI policy rates and recent
+ * RBI releases, beside this week's high-impact releases. Bond yields live in YieldCurve.astro (CCIL only),
+ * so this section deliberately shows none.
  * Everything is loaded in the browser from /data/policy.json (see lib/policy.js), which the server builds
  * from rbi.org.in, MoSPI's API and the Forex Factory calendar feed. Nothing here is written by hand, so
  * the section shows a loading state until the data arrives.
@@ -22,9 +23,6 @@
       <h3 class="font-serif text-xl font-semibold">RBI policy rates</h3>
       <p class="mt-1 text-xs text-ink-3" data-policy-rbi-label>Loading from rbi.org.in…</p>
       <dl class="mt-4 divide-y divide-rule text-sm" data-policy-rates></dl>
-
-      <h3 class="mt-8 text-xs uppercase tracking-[0.14em] text-ink-3" data-policy-gsec-label hidden>Government securities</h3>
-      <dl class="mt-2 divide-y divide-rule text-sm" data-policy-gsecs></dl>
 
       <h3 class="mt-8 text-xs uppercase tracking-[0.14em] text-ink-3">Latest from RBI</h3>
       <ul class="mt-2 divide-y divide-rule text-sm" data-policy-releases></ul>
@@ -57,7 +55,7 @@
 </section>
 
 <script>
-  import { loadPolicy, formatIst, formatRate, formatDay, formatIndicator, benchmarkGsec } from '../lib/policy.js';
+  import { loadPolicy, formatIst, formatRate, formatIndicator } from '../lib/policy.js';
 
   const el = (tag, className, text) => {
     const node = document.createElement(tag);
@@ -75,33 +73,13 @@
     return box;
   }
 
-  function renderTiles(root, data, now) {
+  function renderTiles(root, data) {
     const tiles = (data?.macro?.indicators ?? []).map((i) => tile(i.label, formatIndicator(i.value, { signed: !LEVELS.has(i.key) }), i.period));
-    const markets = data?.rbi?.markets;
-    const asOn = markets?.asOn ? `as on ${formatDay(markets.asOn)}` : 'RBI';
-    const tenYear = markets && benchmarkGsec(markets.gsecs, now);
-    if (tenYear) tiles.push(tile('10-year G-Sec yield', formatRate(tenYear.value), asOn));
-    const tbill = markets?.tbills.find((t) => t.label.startsWith('91-day'));
-    if (tbill) tiles.push(tile('91-day T-bill', formatRate(tbill.value), 'last auction cut-off'));
     root.querySelector('[data-macro-tiles]')
       .replaceChildren(...(tiles.length ? tiles : [el('div', 'col-span-full text-sm text-ink-3', 'India macro data is unavailable right now.')]));
   }
 
-  function renderGsecs(root, markets) {
-    if (!markets?.gsecs.length) return;
-    const rows = [...markets.gsecs, ...markets.tbills].map((g) => {
-      const row = el('div', 'flex justify-between py-2');
-      row.append(el('dt', 'text-ink-2', g.label), el('dd', 'font-mono num font-medium', formatRate(g.value)));
-      return row;
-    });
-    root.querySelector('[data-policy-gsecs]').replaceChildren(...rows);
-    const label = root.querySelector('[data-policy-gsec-label]');
-    label.textContent = markets.asOn ? `Yields, as on ${formatDay(markets.asOn)}` : 'Yields';
-    label.hidden = false;
-  }
-
   function renderRbi(root, rbi) {
-    renderGsecs(root, rbi.markets);
     const rows = rbi.rates.map((rate) => {
       const row = el('div', 'flex justify-between py-2');
       row.append(el('dt', 'text-ink-2', rate.label), el('dd', 'font-mono num font-medium', formatRate(rate.value)));
@@ -150,7 +128,7 @@
     const root = document.getElementById('policy');
     if (!root) return;
     const data = await loadPolicy();
-    renderTiles(root, data, Date.now());
+    renderTiles(root, data);
     if (data?.rbi) renderRbi(root, data.rbi);
     else root.querySelector('[data-policy-rbi-label]').textContent = 'RBI rates are unavailable right now.';
     if (data?.calendar) renderCalendar(root, data.calendar, Date.now());
