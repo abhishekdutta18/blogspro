@@ -1,4 +1,5 @@
 import { parseMD } from './templates.js';
+import { SHARE_BUTTON } from './share-button.js';
 
 /**
  * [V16.0] Institutional Briefing Template
@@ -155,6 +156,7 @@ export function getBriefingTemplate({ title, excerpt, content, dateLabel, type, 
             </div>
             <h1>${title}</h1>
             <div class="abstract">${excerpt}</div>
+            ${SHARE_BUTTON}
         </header>
 
         <article>

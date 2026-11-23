@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh the homepage policy data every 30 minutes (Forex Factory rate-limits faster polling)
+
+[Timer]
+OnCalendar=*:05/30
+RandomizedDelaySec=60
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

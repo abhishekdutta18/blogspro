@@ -21,6 +21,8 @@ import { dispatchTelegramAlert } from './lib/social-utils.js';
 import { initNodeSentry, logSwarmBreadcrumb, captureSwarmError, flushSentry } from "./lib/sentry-bridge.js";
 import { NewsOrchestrator } from "./lib/news-orchestrator.js";
 import { askAI } from "./lib/ai-service.js";
+import { generateMarketEdition } from "./lib/market-edition/index.js";
+import { saveEditionSnapshot } from "./lib/market-edition/snapshot.js";
 import { waitForPublicAvailability } from "./lib/utils.js";
 import { fetchPolicyPulse, fetchEconomicCalendar, fetchSentimentData } from "./lib/data-fetchers.js";
 
@@ -58,6 +60,11 @@ async function registerPostOnHomepage(fileName, result, frequency, env) {
         frequency,
         liveNews: result.liveNews || null 
     };
+    // Market editions (the 3-a-day briefings that replaced the hourly pulse) label their feed entries.
+    if (result.edition) {
+        record.edition = result.edition.id;
+        record.stance = result.stance || null;
+    }
     
     // Add to front, keep last 50 for hourly/daily, 20 for others
     const limit = (frequency === 'hourly' || frequency === 'daily') ? 50 : 20;
@@ -106,6 +113,7 @@ async function runInstitutionalSwarm() {
   const modelOverride = process.argv.find(a => a.startsWith('--model='))?.split('=')[1] || 'auto';
   const extended = process.argv.includes('--extended');
   const force = process.argv.includes('--force');
+  const editionId = process.argv.find(a => a.startsWith('--edition='))?.split('=')[1];
   const id = process.env.SWARM_JOB_ID || `swarm-${frequency}-${Date.now()}`;
 
   // 0. DETERMINISTIC PERIOD IDENTIFIER (V15.0 Idempotency)
@@ -277,9 +285,9 @@ async function runInstitutionalSwarm() {
         semanticDigest = snapshots[0];
     }
 
-    // [V17.0] Institutional News Priming (Mandatory for Hourly/Daily to eliminate fluff)
+    // [V17.0] Institutional News Priming for daily. Hourly market editions fetch their own headlines.
     let liveNews = { summary: "Pulse Baseline: Stable.", rbi: "Neutral.", sebi: "Neutral.", docs: [] };
-    if (frequency === 'hourly' || frequency === 'daily') {
+    if (frequency === 'daily') {
         try {
             console.log(`📡 [News-Priming] Activating NewsOrchestrator for ${frequency} cycle...`);
             const newsOrch = new NewsOrchestrator(env);
@@ -384,6 +392,9 @@ async function runInstitutionalSwarm() {
         
         // Final PDF generation & Sync
         await pushTelemetryLog("TOME_ASSEMBLY", { jobId: id, frequency, periodId, status: "complete", message: "Institutional Masterpiece Assembled." }, env);
+    } else if (frequency === 'hourly') {
+        // --- 🗞️ MARKET EDITION: 08:00 / 16:00 / 22:00 IST briefings (replaced the hourly swarm) ---
+        result = await generateMarketEdition({ askAI, env, editionId });
     } else {
         // --- 🧬 STANDARD/SERIAL MODE (Legacy) ---
         console.log(`🏃 [Standard-Mode] Running Sequential Institutional Swarm...`);
@@ -401,8 +412,10 @@ async function runInstitutionalSwarm() {
     }
 
     // 4. QUALITY ASSURANCE: Institutional Swarm Review
-    let auditStatus = "PENDING";
-    try {
+    // Market editions skip the swarm review: their view already comes from a persona board and their figures from live data.
+    let auditStatus = result.edition ? "EDITION_BOARD" : "PENDING";
+    if (!result.edition) {
+      try {
         console.log(`🕵️ [Swarm] Initiating MiroFish Consensus Review [Freq: ${frequency}]...`);
         await runSwarmAudit(result.final, frequency, { targetVertical: targetVerticalId });
         auditStatus = "AUDITED";
@@ -417,6 +430,7 @@ async function runInstitutionalSwarm() {
             console.error(`🚨 [Cynical-Policy] Audit rejection detected for '${frequency}'. Aborting dispatch.`);
             throw new Error(`QA_REJECTION_FATAL: MiroFish board rejected the ${frequency} manuscript. Integrity score too low.`);
         }
+      }
     }
 
     // 5. ARCHIVAL PHASE
@@ -431,7 +445,10 @@ async function runInstitutionalSwarm() {
     const templateExcerpt = result.excerpt || "Strategic research synthesis for the current institutional cycle.";
     
     let finalHtml;
-    if (frequency === 'hourly') {
+    if (result.renderPage) {
+        const publicBase = process.env.ASSET_DOMAIN || "https://blogspro.in";
+        finalHtml = result.renderPage(`${publicBase}/${folder}/${frequency}/${fileName}`);
+    } else if (frequency === 'hourly') {
         finalHtml = getTerminalV2Template({
             title: templateTitle,
             excerpt: templateExcerpt,
@@ -486,6 +503,10 @@ async function runInstitutionalSwarm() {
     };
     fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2));
     console.log(`💾 [Swarm] Archive Phase: Saved JSON manifest to ${jsonPath}`);
+    if (result.snapshot) {
+        const snapshotFile = saveEditionSnapshot(result.snapshot, fileName.replace(/\.html$/, ''));
+        if (snapshotFile) console.log(`💾 [Edition] Snapshot (raw replies + data, not published) saved to ${snapshotFile}`);
+    }
 
     // --- 🌍 GITHUB PAGES SYNCHRONIZATION: Sovereign Origin Push ---
     const ghToken = process.env.GH_TOKEN || process.env.GH_PAT;
@@ -552,8 +573,11 @@ async function runInstitutionalSwarm() {
             url: publicUrl
         };
 
-        // [V17.5] Thinking Refiner: Polish the Telegram alert for institutional impact
-        try {
+        // [V17.5] Thinking Refiner: Polish the Telegram alert for institutional impact.
+        // Market editions skip it: their title and summary were already written for this edition, and the
+        // extra call only spent provider credit to rephrase them.
+        if (!result.edition) {
+          try {
             console.log("🧠 [Thinking] Refining Strategic Alert for institutional impact...");
             const refinerPrompt = `
 <thinking>
@@ -590,6 +614,7 @@ Provide the final refined output in JSON format:
         } catch (e) {
             console.warn("⚠️ [Thinking] Refinement failed, using original summary.", e.message);
         }
+        }
 
         // [V22.1] Non-blocking availability check — dispatch Telegram regardless of CDN propagation
         // The URL is always valid; GitHub Pages just needs time to propagate.
@@ -600,8 +625,14 @@ Provide the final refined output in JSON format:
         await dispatchTelegramAlert(telegramSummary, env);
         console.log(`💎 [Dispatch] Telegram Strategic Alert Sent.`);
 
-        // 2. Newsletter Dispatch (Consolidated Bridge)
-        await pushSovereignNewsletter(`BlogsPro Institutional: ${result.title}`, result.final, process.env);
+        // 2. Newsletter Dispatch (Consolidated Bridge).
+        // Market editions are not emailed: three a day would flood subscribers, and an edition body's charts
+        // depend on page CSS that an email does not carry, so its bar charts would arrive empty.
+        if (result.edition) {
+            console.log(`📭 [Newsletter] Skipped for market editions (web and Telegram only).`);
+        } else {
+            await pushSovereignNewsletter(`BlogsPro Institutional: ${result.title}`, result.final, process.env);
+        }
       } catch (dispatchErr) {
         console.warn(`⚠️ [Dispatch] Release Cascade Encountered Non-Fatal Error:`, dispatchErr.message);
         captureSwarmError(dispatchErr, { stage: 'dispatch_cascade', jobId: id });

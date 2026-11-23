@@ -1,8 +1,10 @@
 [Unit]
-Description=BlogsPro hourly briefing
+Description=BlogsPro market editions (08:00, 16:00, 22:00 IST)
 
+# The unit keeps its "hourly" name so /briefings/hourly/ URLs and run-pulse.sh stay unchanged;
+# it now fires three market editions a day instead of every hour.
 [Timer]
-OnCalendar=*-*-* *:00:00 UTC
+OnCalendar=*-*-* 08,16,22:00:00 Asia/Kolkata
 AccuracySec=1min
 
 [Install]

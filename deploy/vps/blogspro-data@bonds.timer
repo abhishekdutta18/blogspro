@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh the CCIL bond yield curve hourly (CCIL publishes once a day; hourly catches it soon after)
+
+[Timer]
+OnCalendar=*:20
+RandomizedDelaySec=60
+AccuracySec=10s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,11 @@
+[Unit]
+Description=Re-render the SVG charts hourly, after the bonds refresh
+
+[Timer]
+OnCalendar=*:25
+RandomizedDelaySec=60
+AccuracySec=10s
+Persistent=true
+
+[Install]
+WantedBy=timers.target
