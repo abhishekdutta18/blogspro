@@ -632,10 +632,22 @@ async function generateVertexModelGardenContent(prompt, model = "meta/llama3-405
     return data.choices?.[0]?.message?.content;
 }
 
-async function directDialAnchor(prompt, model, role, env) {
-    console.warn(`⚓ [AI-Balancer] Emergency Direct-Dial to Anchor engaged for ${role}.`);
-    if (model?.includes('gemini')) return generateGeminiContent(prompt, model, { env });
-    return generateCerebrasContent(prompt, DEFAULT_CEREBRAS_MODEL, { env });
+/** Last-resort engines, most dependable first: provisioned Vertex, paid Sarvam, then the free-tier anchors. */
+const ANCHOR_PREFERENCE = ['Vertex-Llama-405B', 'Sarvam', 'Gemini-3.1-Pro', 'Cerebras'];
+/** The model Vertex's 405B node is dialled with; other anchors use their node's default model. */
+const VERTEX_ANCHOR_MODEL = 'meta/llama3-405b-instruct-maas';
+
+/**
+ * The node askAI dials once every recovery cycle has failed, or null. It is taken from the live pool, so a
+ * provider removed by AI_DISABLED_PROVIDERS (or never configured) is never dialled, and nodes in `failed`
+ * (terminal errors this run: 402, revoked keys) are skipped.
+ */
+export function pickAnchorNode(pool, failed = new Set()) {
+    for (const name of ANCHOR_PREFERENCE) {
+        const node = pool.find((p) => p.name === name && !failed.has(p.name));
+        if (node) return node;
+    }
+    return null;
 }
 
 // --- Balancer and Dispatch Logic ---
@@ -1080,14 +1092,15 @@ export async function askAI(prompt, options = {}) {
         }
         
         console.error(`🚨 [AI-Balancer] Critical Fleet Depletion. Transitioning to Direct-Dial Anchor...`);
+        const anchor = pickAnchorNode(ResourceManager.pool, ResourceManager.failed);
+        if (!anchor) {
+            console.error(`💀 [AI-Balancer-Fatal] No anchor for ${role}: every anchor engine is disabled, unconfigured or failed.`);
+            throw new Error("FLEET_EXHAUSTION_PERMANENT");
+        }
         try {
-            // [V21.1] Prioritize Vertex Model Garden as the ultimate institutional anchor
-            const cloudSovereign = ResourceManager.pool.find(p => p.name === 'Vertex-Llama-405B');
-            if (cloudSovereign) {
-                console.log("⚓ [AI-Balancer] Using Vertex Model Garden Anchor.");
-                return await cloudSovereign.fn(prompt, "meta/llama3-405b-instruct-maas", env);
-            }
-            return await directDialAnchor(prompt, targetModel || 'llama-3.3-70b-versatile', role, env);
+            console.warn(`⚓ [AI-Balancer] Emergency Direct-Dial to ${anchor.name} for ${role}.`);
+            const model = anchor.name === 'Vertex-Llama-405B' ? VERTEX_ANCHOR_MODEL : undefined;
+            return await anchor.fn(prompt, model, env);
         } catch (e) {
             console.error(`💀 [AI-Balancer-Fatal] Anchor also failed: ${e.message}`, e);
             throw new Error("FLEET_EXHAUSTION_PERMANENT");

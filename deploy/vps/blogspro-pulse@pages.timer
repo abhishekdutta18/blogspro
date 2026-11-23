@@ -1,0 +1,10 @@
+[Unit]
+Description=BlogsPro catch-up page build (08:15 UTC / 13:45 IST, after Firestore's daily quota resets)
+
+[Timer]
+OnCalendar=*-*-* 08:15:00 UTC
+AccuracySec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
