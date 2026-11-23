@@ -58,12 +58,20 @@ export const INSTRUMENT_GROUPS = Object.freeze([
   },
 ]);
 
+/** A positive finite number, else null (Yahoo reports an unknown day high/low as 0). */
+const positiveOrNull = (value) => {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
 /**
  * Quote fields from one chart response, or null when it has no usable price.
  * With range=1d, chartPreviousClose is the previous session's close, so the change is the day's move.
+ * Day high, low and open are null when Yahoo does not report them.
  */
 export function parseChart(json) {
-  const meta = json?.chart?.result?.[0]?.meta;
+  const result = json?.chart?.result?.[0];
+  const meta = result?.meta;
   const price = Number(meta?.regularMarketPrice);
   const prevClose = Number(meta?.chartPreviousClose);
   if (!Number.isFinite(price) || price <= 0) return null;
@@ -77,6 +85,9 @@ export function parseChart(json) {
     currency: typeof meta.currency === 'string' ? meta.currency : '',
     asOf: Number.isFinite(meta.regularMarketTime) ? meta.regularMarketTime * 1000 : null,
     exchangeTz: typeof meta.exchangeTimezoneName === 'string' ? meta.exchangeTimezoneName : 'UTC',
+    dayHigh: positiveOrNull(meta.regularMarketDayHigh),
+    dayLow: positiveOrNull(meta.regularMarketDayLow),
+    open: positiveOrNull(result?.indicators?.quote?.[0]?.open?.[0]),
   };
 }
 
@@ -95,6 +106,11 @@ async function fetchQuote(instrument, fetchImpl) {
     console.warn(`⚠️ [Edition] Quote unavailable for ${instrument.symbol}: ${error.message}`);
     return { ...instrument, ok: false };
   }
+}
+
+/** Quotes for any instrument list ([{ symbol, ... }]), in order; failed ones carry ok:false. */
+export function fetchQuotes(instruments, { fetchImpl = fetch } = {}) {
+  return Promise.all(instruments.map((i) => fetchQuote(i, fetchImpl)));
 }
 
 // One-month daily closes drawn as line charts (one chart each: different scales never share an axis).

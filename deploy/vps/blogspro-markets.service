@@ -1,0 +1,13 @@
+[Unit]
+Description=BlogsPro homepage market figures (fetch quotes, copy to web VPS)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/blogspro-pulse/run-markets.sh
+TimeoutStartSec=2min
+Nice=10

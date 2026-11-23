@@ -49,3 +49,18 @@ publishes prices and headlines, marked as missing commentary. Run a specific edi
 ```bash
 node scripts/generate-institutional-tome.js --freq=hourly --type=briefing --force --edition=morning
 ```
+
+## Homepage market figures
+
+`blogspro-markets.timer` runs `run-markets.sh` every 10 minutes: it fetches the homepage instruments from
+Yahoo (`scripts/publish-home-markets.js`, no AI), writes `/var/www/blogspro/data/markets.json` and copies it
+to the web VPS. The homepage strip and Markets table load that file in the browser; if it is missing, they
+keep the snapshot built into the page, labelled with its date. A failed fetch keeps the last good file.
+
+```bash
+sudo install -o root -g root -m 0755 deploy/vps/run-markets.sh /opt/blogspro-pulse/run-markets.sh
+sudo install -m 0644 deploy/vps/blogspro-markets.service deploy/vps/blogspro-markets.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now blogspro-markets.timer
+journalctl -u blogspro-markets -n 20 --no-pager
+```

@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh the homepage market figures every 10 minutes
+
+[Timer]
+OnCalendar=*:0/10
+RandomizedDelaySec=30
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target
