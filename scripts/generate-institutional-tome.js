@@ -417,7 +417,7 @@ async function runInstitutionalSwarm() {
             extraContext: frequency === 'weekly' ? weeklyContext() : '',
         });
         const spent = budget.usage();
-        console.log(`🪙 [Budget] ${frequency}: ~${spent.run} tokens this run in ${spent.calls} calls (${spent.refused} refused); ~${spent.day} today across runs`);
+        console.log(`🪙 [Budget] ${frequency}: ~${spent.run} tokens this run in ${spent.calls} calls (${spent.refused} refused); ~${spent.day} in the last 24 h across runs`);
     } else {
         // --- 🧬 STANDARD/SERIAL MODE (Legacy) ---
         console.log(`🏃 [Standard-Mode] Running Sequential Institutional Swarm...`);

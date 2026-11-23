@@ -72,10 +72,11 @@ prompt tokens (4 characters each) plus a 2,500-token reply reserve, and refuses 
 | Cap | Default | Override |
 |-----|---------|----------|
 | Per run, hourly / daily / weekly | 80k / 80k / 100k | `TOKEN_BUDGET_HOURLY_RUN`, `TOKEN_BUDGET_DAILY_RUN`, `TOKEN_BUDGET_WEEKLY_RUN` |
-| All runs per UTC day | 400k | `TOKEN_BUDGET_DAY` |
+| All runs in any rolling 24 hours | 400k | `TOKEN_BUDGET_DAY` |
 
 A refused section is not retried; the piece publishes with what it has (prices, headlines, and any sections
-already written), marked as missing commentary if the overview was refused. Spend is recorded per frequency in
+already written), marked as missing commentary if the overview was refused. The 24-hour window rolls, like Groq's limits, so the 00:00 UTC daily run still counts the previous evening's
+editions; hourly editions go through the same wrapper and record their spend. Each call is recorded in
 `/var/lib/blogspro-pulse/token-ledger.json` (the unit's state directory; `TOKEN_LEDGER_FILE` overrides) and logged
 at the end of each run as `🪙 [Budget]`. The figures are estimates for pacing, not provider billing: tune the caps
 from the ledger after a few days of runs.

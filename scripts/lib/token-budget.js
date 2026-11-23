@@ -3,7 +3,9 @@
  * three pool nodes, Workers AI's daily allowance, Sarvam credit), so a run that makes too many calls leaves
  * nothing for the next one. This module wraps `askAI` with two caps:
  *   - a per-run cap, so one daily or weekly run cannot spend the day's quota on its own;
- *   - a per-UTC-day cap across every run, read from a small ledger file the runs share.
+ *   - a cap on all runs in the last 24 hours, read from a small ledger file the runs share. The window rolls
+ *     (like Groq's limits) rather than resetting at midnight, so the 00:00 UTC daily run still counts the
+ *     editions from the evening before.
  * A call is refused before it is sent when its estimate (prompt + a reply reserve) would pass either cap,
  * and the caller falls back to publishing without that section. Tokens are estimated at four characters
  * each because askAI returns text only; the estimate is for budgeting, not billing.
@@ -19,7 +21,7 @@ const LEDGER_NAME = 'token-ledger.json';
 
 /** Estimated tokens per run when no env override is set. About 6 calls (~6.5k each) plus one round of retries. */
 export const DEFAULT_RUN_CAPS = Object.freeze({ hourly: 80_000, daily: 80_000, weekly: 100_000, monthly: 120_000 });
-/** Estimated tokens all runs together may spend per UTC day: three editions, one daily, Sunday's weekly, slack. */
+/** Estimated tokens all runs together may spend in any 24 hours: three editions, one daily, Sunday's weekly, slack. */
 export const DEFAULT_DAY_CAP = 400_000;
 
 export class BudgetExceededError extends Error {
@@ -50,22 +52,25 @@ export function ledgerFile(env = process.env) {
   return path.join(os.homedir(), '.blogspro', LEDGER_NAME);
 }
 
-const utcDay = (date) => date.toISOString().slice(0, 10);
+const WINDOW_MS = 24 * 60 * 60 * 1000;
+
+const validEntry = (e, since) =>
+  e && Number.isFinite(e.t) && e.t > since && typeof e.freq === 'string' && Number.isFinite(e.tokens) && e.tokens >= 0;
 
 /**
- * Today's ledger `{ day, used: { [freq]: tokens } }`; a fresh one when the file is missing, unreadable or older.
+ * Spend in the 24 hours before `now` as `{ entries: [{ t (ms), freq, tokens }] }`; empty when the file is
+ * missing, unreadable or in an older format. Older entries are dropped, so the file stays small.
  * @param {string} file
  * @param {Date} now
  */
 export function readLedger(file, now = new Date()) {
-  const day = utcDay(now);
+  const since = now.getTime() - WINDOW_MS;
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
-    const used = parsed?.day === day && parsed.used && typeof parsed.used === 'object' ? parsed.used : {};
-    const clean = Object.fromEntries(Object.entries(used).filter(([, v]) => Number.isFinite(v) && v >= 0));
-    return { day, used: clean };
+    const entries = Array.isArray(parsed?.entries) ? parsed.entries : [];
+    return { entries: entries.filter((e) => validEntry(e, since)).map(({ t, freq, tokens }) => ({ t, freq, tokens })) };
   } catch {
-    return { day, used: {} };
+    return { entries: [] };
   }
 }
 
@@ -102,11 +107,11 @@ export function resolveCaps(freq, env = process.env) {
   };
 }
 
-const sum = (used) => Object.values(used).reduce((a, b) => a + b, 0);
+const sum = (ledger) => ledger.entries.reduce((total, e) => total + e.tokens, 0);
 
 /**
- * Wraps askAI with the run and day caps. Returns `{ askAI, usage }`; `usage()` reports this run's spend,
- * today's total across runs, calls made and calls refused.
+ * Wraps askAI with the run and 24-hour caps. Returns `{ askAI, usage }`; `usage()` reports this run's spend,
+ * the last 24 hours' total across runs, calls made and calls refused.
  * @param {{ askAI: (prompt: unknown, options?: object) => Promise<string>, freq: string, file: string,
  *   runCap: number, dayCap: number, replyReserve?: number, now?: () => Date }} options
  */
@@ -114,31 +119,33 @@ export function createBudgetedAskAI({ askAI, freq, file, runCap, dayCap, replyRe
   let run = 0;
   let calls = 0;
   let refused = 0;
-  let dayFallback = null; // in-memory ledger when the file cannot be written
+  let memory = null; // in-memory ledger when the file cannot be written
 
   const load = () => {
     const fromFile = readLedger(file, now());
-    return dayFallback && dayFallback.day === fromFile.day && sum(dayFallback.used) > sum(fromFile.used) ? dayFallback : fromFile;
+    if (!memory) return fromFile;
+    const since = now().getTime() - WINDOW_MS;
+    const kept = { entries: memory.entries.filter((e) => e.t > since) };
+    return sum(kept) > sum(fromFile) ? kept : fromFile;
   };
 
   const charge = (tokens) => {
     run += tokens;
-    const ledger = load();
-    const next = { day: ledger.day, used: { ...ledger.used, [freq]: (ledger.used[freq] || 0) + tokens } };
-    dayFallback = writeLedger(file, next) ? null : next;
+    const next = { entries: [...load().entries, { t: now().getTime(), freq, tokens }] };
+    memory = writeLedger(file, next) ? null : next;
   };
 
   const budgetedAskAI = async (prompt, options = {}) => {
     const promptTokens = estimateTokens(prompt);
     const estimate = promptTokens + replyReserve;
-    const day = sum(load().used);
+    const day = sum(load());
     if (run + estimate > runCap) {
       refused += 1;
       throw new BudgetExceededError(`${freq} run cap ${runCap} reached (spent ${run}, next call ~${estimate})`);
     }
     if (day + estimate > dayCap) {
       refused += 1;
-      throw new BudgetExceededError(`day cap ${dayCap} reached (spent today ${day}, next call ~${estimate})`);
+      throw new BudgetExceededError(`day cap ${dayCap} reached (spent in the last 24 h ${day}, next call ~${estimate})`);
     }
     calls += 1;
     try {
@@ -153,6 +160,6 @@ export function createBudgetedAskAI({ askAI, freq, file, runCap, dayCap, replyRe
 
   return {
     askAI: budgetedAskAI,
-    usage: () => ({ run, day: sum(load().used), calls, refused }),
+    usage: () => ({ run, day: sum(load()), calls, refused }),
   };
 }
