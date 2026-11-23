@@ -1,5 +1,17 @@
 [
   {
+    "title": "Europe rallies, US surges, Indian markets tumble ahead of AI hype",
+    "date": "2026-11-23",
+    "timestamp": 1795451476678,
+    "excerpt": "European equities closed higher while US indices surged live, driven by AI‑related optimism. Indian benchmarks slipped sharply on the back of a weaker rupee and rising volatility, setting the stage for a cautious open tomorrow.",
+    "fileName": "swarm-hourly-1795451475976.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": null,
+    "edition": "evening",
+    "stance": "cautious"
+  },
+  {
     "title": "Nifty slides 1.8% as financials tumble, IT defies the sell‑off",
     "date": "2026-11-23",
     "timestamp": 1795429835953,
@@ -1334,34 +1346,6 @@
         {
           "title": "Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026",
           "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000"
-        }
-      ]
-    }
-  },
-  {
-    "title": "HOURLY   Nexus Institutional Terminal",
-    "date": "2026-11-19",
-    "timestamp": 1795089756633,
-    "excerpt": "**OPERATIONAL MEMO: Q4-2026 LIQUIDITY TERMINATION & SYSTEMIC DECOUPLING** The current market architecture, characterized by a persistent erosion of depth-of-book, confirms our Q3 hypothesis regarding the inevitable collapse of retail-fueled gamma mom...",
-    "fileName": "swarm-hourly-1795089756626.html",
-    "type": "briefing",
-    "frequency": "hourly",
-    "liveNews": {
-      "summary": "RBI: Overseas Direct Investment for October 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64001) | Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000) | Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999) | SEBI:  | GLOBAL: BLOOMBERG | Bloomberg - Business News, Stock Markets, Finance, Breaking & World News - Bloomberg.com | BLOOMBERG | NBIM, GIC, BlackRock Said to Invest in Bajaj Finance Share Sale - Bloomberg.com | BLOOMBERG | Build career-ready skills with Bloomberg for Education - Bloomberg.com | FT | Energy markets can ‘manage without’ the Strait of Hormuz, says IEA - Financial Times | FT | Anthropic revenue target: $600bn, soonish - Financial Times | FT | Anthropic retail investors face squeeze in blockbuster IPO - Financial Times | REUTERS | Global securities watchdog urges immediate action on quantum risks to finance - Reuters | REUTERS | UK finance sector cyber incidents hit second-highest level in five years - Reuters | REUTERS | Fed policymakers concerned about financial system risks, minutes show - Reuters | CNBC | Takaichi gets chilly reception in China on first Japan leader visit since 2019 - CNBC | CNBC | Thursday's big stock stories: What’s likely to move the market in the next trading session - CNBC | CNBC | Inside India newsletter: Foreign flows helped the market recover. Now it faces the inflation test - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia",
-      "rbi": "Overseas Direct Investment for October 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64001) | Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000) | Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999)",
-      "sebi": "",
-      "docs": [
-        {
-          "title": "Overseas Direct Investment for October 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64001"
-        },
-        {
-          "title": "Result of the Overnight Variable Rate Reverse Repo (VRRR) auction held on November 19, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64000"
-        },
-        {
-          "title": "Underwriting Auction for sale of Government Securities for &#8377;33,000 crore on November 20, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63999"
         }
       ]
     }
