@@ -72,7 +72,7 @@ export async function runViewBoard({ askAI, edition, marketText, headlinesText, 
   const takes = [];
   for (const persona of PERSONAS) {
     try {
-      const reply = await askAI(personaPrompt(persona, { edition, marketText, headlinesText }), { role: 'research', env });
+      const reply = await askAI(personaPrompt(persona, { edition, marketText, headlinesText }), { role: 'research', env, responseFormat: 'json' });
       const take = parsePersonaReply(reply);
       if (!take) throw new Error('reply had no valid stance');
       takes.push({ persona: persona.name, ...take });

@@ -202,13 +202,16 @@ function fakeWriter(prompt) {
 
 test('generateMarketEdition builds a full edition: 3 board calls, then 3 writer sections', async () => {
   const calls = [];
-  const askAI = async (prompt, { role }) => {
+  const formats = new Set();
+  const askAI = async (prompt, { role, responseFormat }) => {
     calls.push(role);
+    formats.add(responseFormat);
     if (role === 'research') return '{"stance":"constructive","conviction":3,"points":["Nifty +1.00%"]}';
     return fakeWriter(prompt);
   };
   const result = await generateMarketEdition({ askAI, env: {}, now: ist(16, 1), fetchImpl: fakeFetch() });
   assert.deepEqual(calls, ['research', 'research', 'research', 'generate', 'generate', 'generate']);
+  assert.deepEqual([...formats], ['json'], 'every board and writer call asks for JSON');
   assert.equal(result.edition.id, 'close');
   assert.equal(result.stance, 'constructive');
   assert.ok(result.hasCommentary);

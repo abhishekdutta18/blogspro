@@ -133,7 +133,7 @@ export function parseView(reply, sectorNames) {
 async function callSection(name, { askAI, env }, text, parse) {
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     try {
-      const parsed = parse(await askAI(text, { role: 'generate', env }));
+      const parsed = parse(await askAI(text, { role: 'generate', env, responseFormat: 'json' }));
       if (parsed) return parsed;
       console.warn(`⚠️ [Edition] ${name} attempt ${attempt}: reply was not valid JSON for this section`);
     } catch (error) {
