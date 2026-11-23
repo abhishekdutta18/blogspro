@@ -132,6 +132,13 @@ test('MoSPI indicators are published, kept per series on failure, and re-fetched
   assert.ok(!soon.fresh.includes('macro'));
   assert.deepEqual(JSON.parse(fs.readFileSync(out, 'utf8')).macro, saved.macro);
 
+  const legacy = { ...saved, macro: { ...saved.macro, history: undefined } };
+  fs.writeFileSync(out, JSON.stringify(legacy));
+  await publishHomePolicy({ out, fetchImpl: fetchWith(noData), now: NOW + 3_600_000 });
+  assert.ok(mospiCalls.length > 0, 'a copy from before history was published is refreshed at once');
+  fs.writeFileSync(out, JSON.stringify(saved));
+
+  mospiCalls.length = 0;
   await publishHomePolicy({ out, fetchImpl: fetchWith(noData), now: NOW + 7 * 3_600_000 });
   assert.ok(mospiCalls.length > 0, 'after six hours it is called again');
   assert.deepEqual(JSON.parse(fs.readFileSync(out, 'utf8')).macro, saved.macro, 'no data this time: the last values stay');

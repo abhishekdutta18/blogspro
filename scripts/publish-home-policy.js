@@ -108,7 +108,10 @@ const mergeByKey = (fresh, previous = []) => [...fresh, ...previous.filter((p) =
  * copy), or null when nothing came back.
  */
 async function fetchMacro(fetchImpl, previous, now) {
-  if (previous?.fetchedAt && now - previous.fetchedAt < MACRO_REFRESH_MS) return null;
+  // A copy written before history was published has no history field at all; it is due straight away.
+  // (Every newer copy has the field, even when empty, so a MoSPI outage still waits the six hours.)
+  const isRecent = previous?.fetchedAt && now - previous.fetchedAt < MACRO_REFRESH_MS;
+  if (isRecent && Array.isArray(previous.history)) return null;
   const get = mospiGet(fetchImpl);
   const [{ indicators }, history] = await Promise.all([fetchIndiaMacro(get, now), fetchMacroHistory(get, now)]);
   if (indicators.length === 0 && history.length === 0) return null;
