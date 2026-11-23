@@ -108,6 +108,10 @@ function mapLegacyModel(model) {
 
 /** Groq retired its Llama 3.x ids for this account; free-tier chat models are gpt-oss and qwen. GROQ_MODEL overrides. */
 const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+/** A second free Groq model with its own daily token quota (the gpt-oss ones run out first). */
+const GROQ_QWEN_MODEL = process.env.GROQ_QWEN_MODEL || "qwen/qwen3.8-27b";
+/** Groq quotas are per organization and model; nodes that share one also share its daily limit. */
+const groqQuota = (model) => `groq:${model}`;
 
 export async function generateGroqContent(prompt, model = DEFAULT_GROQ_MODEL, context = {}) {
     const key = context?.GROQ_API_KEY || process.env.GROQ_API_KEY;
@@ -179,7 +183,10 @@ export async function generateGroqContent(prompt, model = DEFAULT_GROQ_MODEL, co
             data = await res.json();
         }
 
-        if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
+        if (data && data.choices && data.choices.length > 0) {
+            const content = data.choices[0].message.content;
+            return typeof content === 'string' ? content.replace(/<think>[\s\S]*?<\/think>/g, '').trim() : content;
+        }
         // Keep the status and code so markFailure can tell rate limits (cooldown) from dead keys (blacklist).
         throw new Error(`Groq API Error: ${res.status} ${data.error?.code || ''} - ${data.error?.message || "Unknown error"}`);
     } catch (err) {
@@ -665,6 +672,29 @@ const TERMINAL_ERROR_PATTERNS = [
 /** How long revaluateFleet keeps a terminally failed node out; longer than the longest daily run. */
 const TERMINAL_BLACKLIST_MS = 60 * 60 * 1000;
 
+/** Bounds for a rate-limit cooldown taken from the provider's own "try again in ..." hint. */
+const RATE_LIMIT_DEFAULT_COOLDOWN_MS = 60 * 1000;
+const RATE_LIMIT_MIN_COOLDOWN_MS = 5 * 1000;
+const RATE_LIMIT_MAX_COOLDOWN_MS = 60 * 60 * 1000;
+const RATE_LIMIT_MARGIN_MS = 1000;
+const RETRY_UNIT_MS = { h: 3600000, m: 60000, s: 1000, ms: 1 };
+
+/** Milliseconds in a provider hint such as "Please try again in 16m28.5s" (Groq), or null when there is none. */
+export function parseRetryAfterMs(message = '') {
+    const hint = String(message ?? '').match(/try again in ((?:\d+(?:\.\d+)?(?:ms|h|m|s))+)/i);
+    if (!hint) return null;
+    let ms = 0;
+    for (const [, amount, unit] of hint[1].matchAll(/(\d+(?:\.\d+)?)(ms|h|m|s)/g)) ms += Number(amount) * RETRY_UNIT_MS[unit];
+    return ms > 0 ? Math.round(ms) : null;
+}
+
+/** How long to bench a rate-limited node: the provider's hint plus a margin, within bounds; a minute without one. */
+export function rateLimitCooldownMs(message = '') {
+    const hinted = parseRetryAfterMs(message);
+    if (hinted === null) return RATE_LIMIT_DEFAULT_COOLDOWN_MS;
+    return Math.min(RATE_LIMIT_MAX_COOLDOWN_MS, Math.max(RATE_LIMIT_MIN_COOLDOWN_MS, hinted + RATE_LIMIT_MARGIN_MS));
+}
+
 /** True when a provider error means the node is dead for this run and must be blacklisted, not retried. */
 export function isTerminalProviderError(message = '') {
     return TERMINAL_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
@@ -675,7 +705,14 @@ export const ResourceManager = {
     failedAt: new Map(),
     pool: [],
     cooldowns: new Map(),
+    /** Rate limits that belong to a provider quota shared by several nodes (node.quota); kept across resets. */
+    quotaCooldowns: new Map(),
     failed: new Set(),
+
+    /** Epoch ms until which a node must not be called: its own cooldown or its quota's, whichever is later. */
+    cooldownUntil(node) {
+        return Math.max(this.cooldowns.get(node.name) || 0, (node.quota && this.quotaCooldowns.get(node.quota)) || 0);
+    },
     
     async init(env = {}, forceRefresh = false) {
         if (this.pool.length > 0 && !forceRefresh) return;
@@ -756,7 +793,8 @@ export const ResourceManager = {
             this.pool.push({ name: 'Cerebras', fn: (p, m, c) => generateCerebrasContent(p, DEFAULT_CEREBRAS_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /cerebras|glm|node-generate|node-draft/i });
         }
         if (activeKeys.Groq) {
-            this.pool.push({ name: 'Groq', fn: (p, m, c) => generateGroqContent(p, DEFAULT_GROQ_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'generate'], match: /groq|node-research|node-edit|node-draft|node-generate|llama/i });
+            this.pool.push({ name: 'Groq', quota: groqQuota(DEFAULT_GROQ_MODEL), fn: (p, m, c) => generateGroqContent(p, DEFAULT_GROQ_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'generate'], match: /groq|node-research|node-edit|node-draft|node-generate|llama/i });
+            this.pool.push({ name: 'Groq-Qwen', quota: groqQuota(GROQ_QWEN_MODEL), fn: (p, m, c) => generateGroqContent(p, GROQ_QWEN_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'repair', 'generate'], match: /qwen|groq|node-draft|node-audit/i });
             // this.pool.push({ name: 'Llama-4-Scout-17B', fn: (p, m, c) => generateGroqContent(p, "meta-llama/llama-4-scout-17b-16e-instruct", c), tier: 1, roles: ['research', 'edit', 'draft'], match: /scout|llama-4/i });
             // this.pool.push({ name: 'GPT-OSS-120B', fn: (p, m, c) => generateGroqContent(p, "openai/gpt-oss-120b", c), tier: 1, roles: ['research', 'edit', 'generate'], match: /gpt-oss-120b|oss/i });
             
@@ -847,10 +885,11 @@ export const ResourceManager = {
             // Only bridge routes that reach a model the bridge serves. Removed (Nov 2026), each failed every call:
             // Cloudflare-Gateway and HuggingFace-Proxy forwarded the caller's model hint ("auto") as a model id,
             // and DeepSeek-V3-1T asked for a model the bridge's SambaNova route does not serve.
-            this.pool.push({ name: 'Groq-Bridge-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, DEFAULT_GROQ_MODEL, c), tier: 1, roles: ['research', 'edit'], match: /groq|node-research|node-draft|70b/i });
+            // The bridge forwards to the same Groq organization, so it shares the direct node's quota.
+            this.pool.push({ name: 'Groq-Bridge-Proxy', quota: groqQuota(DEFAULT_GROQ_MODEL), fn: (p, m, c) => generateInstitutionalBridgeContent(p, DEFAULT_GROQ_MODEL, c), tier: 1, roles: ['research', 'edit'], match: /groq|node-research|node-draft|70b/i });
             
             // [V12.0] Gemma-4 Shadow Audit (Cloud Proxy for GHA Continuity)
-            this.pool.push({ name: 'Groq-Bridge-20B-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "openai/gpt-oss-20b", c), tier: 2, roles: ['audit', 'repair'], match: /llama|node-audit|node-repair/i });
+            this.pool.push({ name: 'Groq-Bridge-20B-Proxy', quota: groqQuota('openai/gpt-oss-20b'), fn: (p, m, c) => generateInstitutionalBridgeContent(p, "openai/gpt-oss-20b", c), tier: 2, roles: ['audit', 'repair'], match: /llama|node-audit|node-repair/i });
 
             console.log("🏙️ [AI-Balancer] Institutional Bridge & Proxy Nodes Active. (V15.5 Hardened)");
         }
@@ -890,7 +929,7 @@ export const ResourceManager = {
                 return false;
             }
 
-            const cooldown = this.cooldowns.get(p.name);
+            const cooldown = this.cooldownUntil(p);
             if (cooldown && now < cooldown) { 
                 console.log(`⏳ [AI-Balancer] Skipping node on cooldown (${Math.ceil((cooldown - now)/1000)}s): ${p.name}`);
                 return false;
@@ -940,8 +979,8 @@ export const ResourceManager = {
             if (infA !== infB) return infA - infB;
             
             // If still tied, prefer the one with NO cooldown
-            const coolA = this.cooldowns.get(a.name) || 0;
-            const coolB = this.cooldowns.get(b.name) || 0;
+            const coolA = this.cooldownUntil(a);
+            const coolB = this.cooldownUntil(b);
             return coolA - coolB;
         });
 
@@ -957,8 +996,11 @@ export const ResourceManager = {
         const isAuth = isTerminalProviderError(error);
 
         if (isRate) {
-            console.warn(`⏳ [AI-Balancer] ${name} rate limited. Activating 60000ms cooldown.`);
-            this.cooldowns.set(name, Date.now() + 60000);
+            const waitMs = rateLimitCooldownMs(error);
+            const quota = this.pool.find((p) => p.name === name)?.quota;
+            if (quota) this.quotaCooldowns.set(quota, Math.max(this.quotaCooldowns.get(quota) || 0, Date.now() + waitMs));
+            else this.cooldowns.set(name, Date.now() + waitMs);
+            console.warn(`⏳ [AI-Balancer] ${name} rate limited. Cooling ${quota || 'node'} for ${Math.round(waitMs / 1000)}s.`);
         } else if (isAuth) {
             console.error(`🚫 [AI-Balancer] Terminal error on ${name}: ${error}. Blacklisting node...`);
             this.failed.add(name);
@@ -986,6 +1028,7 @@ export const ResourceManager = {
     async emergencyReset(env = {}) {
         console.warn("🛡️ [AI-Balancer] Initiating Total Emergency Reset of AI Fleet (Institutional Override)...");
         this.failed.clear();
+        // Node cooldowns clear; quota cooldowns stay: a model out of daily tokens will not answer after a reset.
         this.cooldowns.clear();
         this.inflight.clear();
         await this.init(env, true); // Force a full vault re-sync and pool rebuild
