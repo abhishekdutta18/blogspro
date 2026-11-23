@@ -6,6 +6,7 @@
 
 import { formatLastTrade, latestQuoteTime } from './market-data.js';
 import { CHART_STYLES, divergingBarChart, lineChart } from './charts.js';
+import { SHARE_BUTTON } from '../share-button.js';
 
 const NUMBER = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -171,6 +172,7 @@ ${canonical}
 <p class="kicker">${escapeHtml(edition.label)} · ${escapeHtml(timeLabel)}</p>
 <h1>${escapeHtml(title)}</h1>
 ${summary ? `<p class="lede">${escapeHtml(summary)}</p>` : ''}
+${SHARE_BUTTON}
 <article>
 ${body}
 </article>

@@ -1,3 +1,5 @@
+import { SHARE_BUTTON } from './share-button.js';
+
 function parseMD(md) {
     if (!md) return "";
     
@@ -172,6 +174,7 @@ function getBaseTemplate({ title, excerpt, content, dateLabel, type, freq, fileN
             <div class="status-tag">${freq.toUpperCase()} STRATEGIC MANUSCRIPT • ${dateLabel}</div>
             <h1>${title}</h1>
             <div class="excerpt">${excerpt}</div>
+            ${SHARE_BUTTON}
             
             <div class="institutional-adsense">
                 <div class="ads-label">COMMERCIAL PROTOCOL</div>

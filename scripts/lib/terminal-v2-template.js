@@ -1,4 +1,5 @@
 import { parseMD } from './templates.js';
+import { SHARE_BUTTON } from './share-button.js';
 
 /**
  * [V17.0] Institutional Terminal V2.0 Template
@@ -239,6 +240,7 @@ export function getTerminalV2Template({ title, excerpt, content, dateLabel, type
             <div class="title-block">
                 <h1>${title}</h1>
                 <div class="abstract">${excerpt}</div>
+                ${SHARE_BUTTON}
             </div>
 
             <div class="data-grid">
