@@ -25,6 +25,7 @@ import { generateMarketEdition } from "./lib/market-edition/index.js";
 import { saveEditionSnapshot } from "./lib/market-edition/snapshot.js";
 import { recentEditionsText } from "./lib/market-edition/week-digest.js";
 import { createBudgetedAskAI, ledgerFile, resolveCaps } from "./lib/token-budget.js";
+import { createPacedAskAI, paceFromEnv } from "./lib/ai-pacer.js";
 
 // Daily and weekly are built by the market-edition pipeline (~6 AI calls) instead of the 17-vertical swarm
 // (~100-170 calls), which ran the shared free-tier quotas dry. REPORT_ENGINE=swarm restores the swarm.
@@ -129,8 +130,10 @@ async function runInstitutionalSwarm() {
   const editionId = process.argv.find(a => a.startsWith('--edition='))?.split('=')[1];
   const id = process.env.SWARM_JOB_ID || `swarm-${frequency}-${Date.now()}`;
   const useReportEngine = REPORT_FREQS.has(frequency) && process.env.REPORT_ENGINE !== 'swarm';
-  // Every edition-pipeline call goes through the token budget (run cap + shared per-day ledger).
-  const budget = createBudgetedAskAI({ askAI, freq: frequency, file: ledgerFile(process.env), ...resolveCaps(frequency, process.env) });
+  // Every edition-pipeline call goes through the token budget (run cap + rolling 24 h ledger), then the pacer, which
+  // keeps calls under Groq's tokens-per-minute limit so they are not pushed onto capped fallback providers.
+  const pacedAskAI = createPacedAskAI({ askAI, tokensPerMinute: paceFromEnv(process.env) });
+  const budget = createBudgetedAskAI({ askAI: pacedAskAI, freq: frequency, file: ledgerFile(process.env), ...resolveCaps(frequency, process.env) });
 
   // 0. DETERMINISTIC PERIOD IDENTIFIER (V15.0 Idempotency)
   const calculatePeriodId = (freq) => {

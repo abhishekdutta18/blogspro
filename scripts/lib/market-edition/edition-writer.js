@@ -131,9 +131,9 @@ function sectionList(sections, key) {
   return all.slice(0, limit);
 }
 
-/** Normalised overview, or null when unusable. */
-export function parseOverview(reply) {
-  const json = extractJson(reply);
+/** Normalised overview, or null when unusable. `lenient` repairs a cut-off reply (last attempt only). */
+export function parseOverview(reply, { lenient = false } = {}) {
+  const json = extractJson(reply, { repair: lenient });
   const { sections, moved } = regroupSections(json);
   const title = cleanText(json?.title, 120);
   if (moved > 0) console.warn(`⚠️ [Edition] Overview: moved ${moved} misfiled paragraph(s) back to their section`);
@@ -149,8 +149,8 @@ export function parseOverview(reply) {
 }
 
 /** Chosen stories mapped to real headlines (bad or duplicate ids dropped), or null when none survive. */
-export function parseNews(reply, headlines) {
-  const json = extractJson(reply);
+export function parseNews(reply, headlines, { lenient = false } = {}) {
+  const json = extractJson(reply, { repair: lenient });
   const seen = new Set();
   const stories = (Array.isArray(json?.stories) ? json.stories : [])
     .map((s) => ({ index: Number.parseInt(s?.id, 10) - 1, analysis: cleanText(s?.analysis, 1800) }))
@@ -161,8 +161,8 @@ export function parseNews(reply, headlines) {
 }
 
 /** Normalised view; sector calls limited to known sectors and calls. Null when there is no thesis. */
-export function parseView(reply, sectorNames) {
-  const json = extractJson(reply);
+export function parseView(reply, sectorNames, { lenient = false } = {}) {
+  const json = extractJson(reply, { repair: lenient });
   const thesis = cleanList(json?.thesis, { limit: 5 });
   if (thesis.length === 0) return null;
   const known = new Map(sectorNames.map((n) => [n.toLowerCase(), n]));
@@ -195,7 +195,8 @@ async function callSection(name, { askAI, env }, text, parse) {
     try {
       const reply = await askAI(text, { role: 'generate', env, responseFormat: 'json' });
       attempts.push({ section, attempt, reply: String(reply ?? '') });
-      const parsed = parse(reply);
+      // The last attempt also accepts a repaired (cut-off) reply rather than losing the section.
+      const parsed = parse(reply, { lenient: attempt === MAX_ATTEMPTS });
       if (parsed) return { parsed, attempts };
       console.warn(`⚠️ [Edition] ${name} attempt ${attempt}: reply was not valid JSON for this section`);
     } catch (error) {
@@ -220,8 +221,8 @@ export async function writeEdition({ askAI, env, sectorNames = [], ...context })
     console.warn('⚠️ [Edition] Overview section failed twice; publishing without commentary');
     return { text: null, replies: overview.attempts };
   }
-  const news = await callSection('News', io, newsPrompt(context), (r) => parseNews(r, context.headlines));
-  const view = await callSection('View', io, viewPrompt(context), (r) => parseView(r, sectorNames));
+  const news = await callSection('News', io, newsPrompt(context), (r, opts) => parseNews(r, context.headlines, opts));
+  const view = await callSection('View', io, viewPrompt(context), (r, opts) => parseView(r, sectorNames, opts));
   return {
     text: { ...overview.parsed, news: news.parsed, view: view.parsed },
     replies: [...overview.attempts, ...news.attempts, ...view.attempts],
