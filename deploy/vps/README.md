@@ -81,6 +81,11 @@ editions; hourly editions go through the same wrapper and record their spend. Ea
 at the end of each run as `🪙 [Budget]`. The figures are estimates for pacing, not provider billing: tune the caps
 from the ledger after a few days of runs.
 
+Calls are also paced to `AI_PACE_TPM` tokens per minute (default 8,000, Groq's free-tier limit; `0` turns it off).
+Back-to-back calls otherwise hit Groq's 429 and fall over to providers that cap or garble long JSON replies; a run
+now takes a few minutes longer (journal: `⏳ [Pace]`). A reply that is still cut off keeps its complete fields
+(`json-reply.js` repairs truncated JSON) instead of losing the whole section.
+
 An edition measures about 18k estimated tokens (about 12k in, 6k out over 6 calls); the run caps are about 2x
 that, room for one retry per section but not a retry storm. Each ledger entry records the call role and the
 in/out split, so the report shows where the spend goes:
