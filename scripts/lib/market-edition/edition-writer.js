@@ -81,18 +81,42 @@ export function viewPrompt(context) {
   });
 }
 
+const OVERVIEW_SECTIONS = Object.freeze(['india', 'global', 'macro']);
+// A section key the model wrote as a list item ("macro=[", "\"global\": [") instead of as a JSON key.
+const STRAY_KEY = /^\s*["']?(india|global|macro)["']?\s*[:=]\s*[[{(]?\s*$/i;
+
+/**
+ * The overview's section lists with misfiled paragraphs put back. An item that is only a section key
+ * ("macro=[") starts that section: the items after it move there, after that section's own paragraphs,
+ * and the marker itself is dropped so it can never be published.
+ */
+export function regroupSections(json) {
+  const own = Object.fromEntries(OVERVIEW_SECTIONS.map((k) => [k, []]));
+  const moved = Object.fromEntries(OVERVIEW_SECTIONS.map((k) => [k, []]));
+  for (const key of OVERVIEW_SECTIONS) {
+    let target = key;
+    for (const item of Array.isArray(json?.[key]) ? json[key] : []) {
+      const marker = typeof item === 'string' ? item.match(STRAY_KEY) : null;
+      if (marker) target = marker[1].toLowerCase();
+      else (target === key ? own : moved)[target].push(item);
+    }
+  }
+  return Object.fromEntries(OVERVIEW_SECTIONS.map((k) => [k, [...own[k], ...moved[k]]]));
+}
+
 /** Normalised overview, or null when unusable. */
 export function parseOverview(reply) {
   const json = extractJson(reply);
+  const sections = regroupSections(json);
   const title = cleanText(json?.title, 120);
-  const india = cleanList(json?.india, { limit: 5 });
+  const india = cleanList(sections.india, { limit: 5 });
   if (!title || india.length === 0) return null;
   return {
     title,
     summary: cleanText(json.summary, 600),
     india,
-    global: cleanList(json.global, { limit: 4 }),
-    macro: cleanList(json.macro, { limit: 4 }),
+    global: cleanList(sections.global, { limit: 4 }),
+    macro: cleanList(sections.macro, { limit: 4 }),
   };
 }
 

@@ -108,6 +108,23 @@ test('writer sections: overview needs a title and India text; news ids map to re
   assert.equal(parseNews('{"stories":[{"id":9,"analysis":"x"}]}', headlines), null);
 });
 
+test('parseOverview moves paragraphs filed behind a stray "macro=[" item back to their section', () => {
+  // Shape of the 23 Nov morning reply: the macro paragraphs sat inside "global" after a "macro=[" item.
+  const reply = JSON.stringify({ title: 'T', summary: 's', india: ['i1'], global: ['g1', 'g2', 'g3', 'macro=[', 'm1', 'm2', 'm3'] });
+  const overview = parseOverview(reply);
+  assert.deepEqual(overview.global, ['g1', 'g2', 'g3']);
+  assert.deepEqual(overview.macro, ['m1', 'm2', 'm3']);
+
+  const marked = parseOverview(JSON.stringify({ title: 'T', india: ['i1', '"global": [', 'g1'], macro: ['m1'] }));
+  assert.deepEqual(marked.india, ['i1']);
+  assert.deepEqual(marked.global, ['g1']);
+  assert.deepEqual(marked.macro, ['m1'], 'a real key keeps its own paragraphs first');
+
+  const bare = parseOverview(JSON.stringify({ title: 'T', india: ['i1'], global: ['g1', 'macro:'] }));
+  assert.deepEqual(bare.global, ['g1'], 'a marker with nothing after it is dropped, never published');
+  assert.deepEqual(bare.macro, []);
+});
+
 test('parseView keeps only known sectors and calls, and needs a thesis', () => {
   const reply = JSON.stringify({
     thesis: ['t1'],

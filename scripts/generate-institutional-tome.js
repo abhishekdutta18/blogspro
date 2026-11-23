@@ -566,8 +566,10 @@ async function runInstitutionalSwarm() {
             url: publicUrl
         };
 
-        // [V17.5] Thinking Refiner: Polish the Telegram alert for institutional impact
-        try {
+        // [V17.5] Thinking Refiner: Polish the Telegram alert for institutional impact.
+        // Market editions skip it: their title and summary were already written for this edition, and the
+        // extra call only spent provider credit to rephrase them.
+        if (!result.edition) try {
             console.log("🧠 [Thinking] Refining Strategic Alert for institutional impact...");
             const refinerPrompt = `
 <thinking>
