@@ -1,7 +1,7 @@
 import { executeMultiAgentSwarm } from "./lib/swarm-orchestrator.js";
 import { runSwarmAudit } from "./lib/mirofish-qa-service.js";
 import { ResourceManager } from "./lib/ai-service.js";
-import { pushTelemetryLog } from "./lib/firebase-service.js";
+import { pushTelemetryLog } from "./lib/storage-bridge.js";
 import { initNodeSentry, flushSentry } from "./lib/sentry-bridge.js";
 import dotenv from "dotenv";
 

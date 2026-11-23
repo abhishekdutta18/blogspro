@@ -2,7 +2,20 @@ import { initWorkerSentry, captureSwarmError, logSwarmBreadcrumb } from "./lib/s
 import { serve } from "inngest/cloudflare";
 import { inngest, getInngestClient } from "./lib/inngest-client.js";
 import { pulseSwarmWorkflow } from "./lib/inngest-functions.js";
-import { getGoogleAccessToken, pushTelemetryLog } from "./lib/storage-bridge-worker.js";
+import { pushTelemetryLog } from "./lib/storage-bridge.js";
+import { listDocuments } from "./lib/vps-store.js";
+
+/** Recent telemetry_logs entries, newest first, shaped for the dashboard. */
+async function recentTelemetry(env, limit, withDetails = false) {
+  const logs = await listDocuments("telemetry_logs", { orderBy: "timestamp desc", limit }, env);
+  return logs.map(log => ({
+    event: log.event,
+    status: log.status,
+    timestamp: log.timestamp,
+    message: log.message,
+    ...(withDetails ? { details: log.details ? JSON.stringify(log.details) : null } : {})
+  }));
+}
 import { XMLParser } from "fast-xml-parser";
 
 
@@ -78,21 +91,11 @@ export default {
             }
           }
 
-          // B. [V15.6] RESILIENT PROXY: Multi-Path Sovereign Bridge
-          const bucket = env.FIREBASE_STORAGE_BUCKET || "blogspro-asset";
-          
-          // Try 1: Hardened Path (/articles/...)
-          let storageUrl = `https://storage.googleapis.com/${bucket}/${kvPath}`;
-          logSwarmBreadcrumb(`Proxy Attempt (Hardened): ${storageUrl}`);
-          let storageRes = await fetch(storageUrl);
-          
-          // Try 2: Legacy Fallback (Strip 'articles/' or 'briefings/')
-          if (!storageRes.ok) {
-            const legacyPath = kvPath.replace(/^(articles\/|briefings\/)/, '');
-            storageUrl = `https://storage.googleapis.com/${bucket}/${legacyPath}`;
-            logSwarmBreadcrumb(`Proxy Attempt (Legacy Fallback): ${storageUrl}`);
-            storageRes = await fetch(storageUrl);
-          }
+          // B. Proxy to the site, where the pipeline publishes articles/ and briefings/
+          const assetOrigin = String(env.ASSET_DOMAIN || "https://blogspro.in").replace(/\/+$/, "");
+          const storageUrl = `${assetOrigin}/${kvPath}`;
+          logSwarmBreadcrumb(`Proxy Attempt: ${storageUrl}`);
+          const storageRes = await fetch(storageUrl);
           
           if (storageRes.ok) {
             const content = await storageRes.text();
@@ -102,7 +105,7 @@ export default {
             return new Response(content, {
               headers: { 
                 'Content-Type': contentType,
-                'X-Source': 'Firebase-Storage (PROXY-HIT)',
+                'X-Source': 'Origin (PROXY-HIT)',
                 'Access-Control-Allow-Origin': '*',
                 'Cache-Control': 'public, max-age=300'
               }
@@ -159,24 +162,7 @@ export default {
       if (pathname === '/status') {
         let telemetry = [];
         try {
-          // 4.1. Grab recent logs from the Hardened Firestore collection
-          const PROJECT_ID = env.FIREBASE_PROJECT_ID;
-          const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/telemetry_logs?pageSize=10&orderBy=timestamp desc`;
-          
-          const token = await getGoogleAccessToken(env);
-          const headers = { "Content-Type": "application/json" };
-          if (token) headers["Authorization"] = `Bearer ${token}`;
-
-          const logRes = await fetch(firestoreUrl, { headers });
-          if (logRes.ok) {
-            const data = await logRes.json();
-            telemetry = (data.documents || []).map(doc => ({
-              event: doc.fields?.event?.stringValue,
-              status: doc.fields?.status?.stringValue,
-              timestamp: doc.fields?.timestamp?.timestampValue,
-              message: doc.fields?.message?.stringValue
-            }));
-          }
+          telemetry = await recentTelemetry(env, 10);
         } catch (e) {
           console.warn("Institutional Telemetry Retrieval Failed:", e.message);
         }
@@ -215,30 +201,8 @@ export default {
         return wrapResponse({ success: true, jobId, message: "Durable Dispatch Initiated", type, frequency: freq });
       }
 
-      // 6. VAULT (Secret Propagation for Browser Rendering & GitHub Swarm)
-      if (pathname === "/vault" && request.method === "POST") {
-        const vaultAuth = request.headers.get("X-Vault-Auth") || "";
-        if (!vaultAuth || (vaultAuth !== env.VAULT_MASTER_KEY && vaultAuth !== "BPRO_GIGA_PULSE_2026_HARDENED")) {
-          logSwarmBreadcrumb("Unauthorized Vault Access Attempt", { auth: !!vaultAuth }, sentry);
-          return wrapResponse({ error: "Unauthorized Vault Access" }, 403);
-        }
-
-        // Institutional Payload: Return actual values managed via scripts/sync-secrets.mjs
-        return wrapResponse({ 
-          status: "authenticated", 
-          secrets: {
-            GH_PAT: env.GH_PAT || null,
-            GEMINI: env.GEMINI_API_KEY || null,
-            GROQ: env.GROQ_API_KEY || null,
-            MISTRAL: env.MISTRAL_API_KEY || null,
-            SAMBANOVA: env.SAMBANOVA_API_KEY || null,
-            HUGGINGFACE: env.HF_TOKEN || null,
-            OLLAMA_PROD: env.OLLAMA_PROD_URL || null,
-            INNGEST: env.INNGEST_SIGNING_KEY || null,
-            SENTRY: env.SENTRY_DSN || null
-          } 
-        });
-      }
+      // 6. VAULT — removed 2026-11-15. It returned every secret to any caller holding a
+      // password that was hardcoded in this public repo. Secrets must never leave the worker.
 
       // 6.5. AI GATEWAY (V7.2 - Institutional Key Restoration)
       if (pathname === "/ai-gateway" && request.method === "POST") {
@@ -460,23 +424,7 @@ export default {
 
       // 10. REAL-TIME TELEMETRY BRIDGE (Internal)
       if (pathname === "/api/swarm/telemetry") {
-        // Reuse logic from /status but with higher detail if needed
-        const PROJECT_ID = env.FIREBASE_PROJECT_ID;
-        const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/telemetry_logs?pageSize=50&orderBy=timestamp desc`;
-        
-        const token = await getGoogleAccessToken(env);
-        const headers = { "Content-Type": "application/json" };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
-
-        const logRes = await fetch(firestoreUrl, { headers });
-        const data = await logRes.json();
-        const logs = (data.documents || []).map(doc => ({
-          event: doc.fields?.event?.stringValue,
-          status: doc.fields?.status?.stringValue,
-          timestamp: doc.fields?.timestamp?.timestampValue,
-          message: doc.fields?.message?.stringValue,
-          details: doc.fields?.details?.mapValue?.fields ? JSON.stringify(doc.fields.details.mapValue.fields) : null
-        }));
+        const logs = await recentTelemetry(env, 50, true);
 
         return wrapResponse({ status: "OK", logs });
       }

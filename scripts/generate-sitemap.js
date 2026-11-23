@@ -1,44 +1,20 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { listPublicDocuments } from './lib/vps-store.js';
 
 // ESM path resolution
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PROJECT_ID = 'blogspro-ai';
-const API_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
 const DOMAIN = 'https://blogspro.in';
 
 async function generateSitemap() {
   try {
-    let data = [];
-    try {
-      console.log("Fetching posts for Sitemap...");
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          structuredQuery: {
-            from: [{ collectionId: "posts" }],
-            where: {
-              fieldFilter: {
-                field: { fieldPath: "published" },
-                op: "EQUAL",
-                value: { booleanValue: true }
-              }
-            }
-          }
-        })
-      });
-      if (res.ok) {
-        data = await res.json();
-      } else {
-        console.warn("Firestore fetch warning (falling back to static scan):", await res.text());
-      }
-    } catch (e) {
-      console.warn("Firestore fetch error (falling back to static scan):", e.message);
-    }
+    console.log("Fetching posts for Sitemap...");
+    // null when the API is unreachable: the static scan below still lists every page on disk.
+    const posts = await listPublicDocuments('posts');
+    if (posts === null) console.warn("BlogsPro API unavailable; sitemap built from the static scan only.");
     let urls = '';
 
     // Fixed Pages
@@ -52,18 +28,13 @@ async function generateSitemap() {
   </url>`;
     });
 
-    // Dynamic Pages (SSG slugs from Firestore)
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (!item.document) continue;
-        const doc = item.document;
-        const fields = doc.fields;
-        if (!fields || !fields.published || !fields.published.booleanValue) continue;
-
-        const title = fields.title?.stringValue || 'Untitled';
-        const docId = doc.name.split('/').pop();
-        const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || docId;
-        const lastMod = fields.updatedAt?.timestampValue || fields.createdAt?.timestampValue || new Date().toISOString();
+    // Dynamic Pages (SSG slugs, as build-static.js writes them)
+    if (Array.isArray(posts)) {
+      for (const post of posts) {
+        if (post.published !== true) continue;
+        const title = post.title || 'Untitled';
+        const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || String(post.id);
+        const lastMod = post.updatedAt || post.createdAt || new Date().toISOString();
 
         const dateObj = new Date(lastMod);
         const isRecent = (new Date() - dateObj) < (24 * 60 * 60 * 1000);

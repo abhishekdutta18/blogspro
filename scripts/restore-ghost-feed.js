@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
-import { syncToFirestore } from "./lib/storage-bridge.js";
+import { saveRecord } from "./lib/storage-bridge.js";
 
 /**
  * 👻 [V16.6] Ghost Feed Restoration Utility
@@ -16,7 +16,7 @@ async function registerPost(fileName, frequency, env) {
     const content = fs.readFileSync(filePath, 'utf-8');
     const today = new Date().toISOString().split('T')[0];
     const category = 'Strategic Research';
-    const publicUrl = `https://storage.googleapis.com/${env.FIREBASE_STORAGE_BUCKET}/${frequency}/${fileName}`;
+    const publicUrl = `${env.BASE_URL || 'https://blogspro.in'}/briefings/${frequency}/${fileName}`;
 
     // 1. Metadata Extraction
     let title = `${frequency.toUpperCase()} Strategic Manuscript`;
@@ -43,7 +43,7 @@ async function registerPost(fileName, frequency, env) {
 
     // 3. Sync to Firestore
     const docId = `swarm-${frequency}-${Date.now()}`;
-    await syncToFirestore('posts', {
+    await saveRecord('posts', {
         id: docId,
         title,
         excerpt,

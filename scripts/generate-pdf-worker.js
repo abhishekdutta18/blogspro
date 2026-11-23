@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
-import { initFirebase, uploadToStorage, downloadFromStorage } from './lib/firebase-service.js';
+import { readText } from './lib/media-store.js';
 
 async function run() {
     const {
@@ -15,23 +15,19 @@ async function run() {
     }
 
     const freq = (FREQUENCY || 'weekly').toLowerCase();
-    const inputKey = `${freq}/${FILE_NAME}`; 
+    const inputKey = `manuscripts/${FILE_NAME}`;
     const localDistPath = path.join(process.cwd(), 'dist', FILE_NAME);
 
     let html = "";
 
-    // 🏎️ LOCAL-FIRST FALLBACK: Check if file exists in dist/ before fetching from Firebase
+    // Local checkout first (dist/), then the media store on the VPS.
     if (fs.existsSync(localDistPath)) {
         console.log(`🏎️ [PDF Worker] Found local manuscript: ${localDistPath}`);
         html = fs.readFileSync(localDistPath, 'utf8');
     } else {
-        console.log(`🌐 [PDF Worker] Fetching HTML from Firebase Storage: ${inputKey}`);
-        try {
-            html = await downloadFromStorage(inputKey);
-        } catch (e) {
-            console.error(`❌ [PDF Worker] Failed to fetch HTML from Firebase: ${e.message}`);
-            throw e;
-        }
+        console.log(`📂 [PDF Worker] Reading HTML from the media store: ${inputKey}`);
+        html = await readText(inputKey);
+        if (html === null) throw new Error(`Manuscript not found in dist/ or the media store: ${inputKey}`);
     }
 
     console.log('Launching Puppeteer...');
@@ -91,15 +87,7 @@ async function run() {
         margin: { top: '30px', bottom: '30px', left: '30px', right: '30px' }
     });
 
-    console.log('Uploading PDF to Firebase Storage:', pdfName);
-    const outputKey = `${freq}/${pdfName}`;
-    
-    try {
-        await uploadToStorage(localPath, outputKey, 'application/pdf');
-        console.log(`🌐 [Worker] PDF Uploaded to Firebase Storage: ${outputKey}`);
-    } catch (e) {
-        console.warn(`⚠️ [Worker] Firebase Upload skipped or failed: ${e.message}`);
-    }
+    console.log(`📄 [Worker] PDF written to ${localPath} (${freq})`);
 
     await browser.close();
     console.log('✅ PDF Generation Complete for:', pdfName);

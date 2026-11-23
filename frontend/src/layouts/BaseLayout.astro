@@ -25,7 +25,10 @@ const {
   canonicalUrl
 } = Astro.props;
 
-const canonicalURL = canonicalUrl ?? new URL(Astro.url.pathname, Astro.site || 'https://blogspro.in').href;
+// With build.format 'file', Astro 7 reports the home page as /index.html; the canonical
+// stays the directory URL (https://blogspro.in/) so search engines keep one address for it.
+const canonicalPath = Astro.url.pathname.replace(/(^|\/)index\.html$/, '$1');
+const canonicalURL = canonicalUrl ?? new URL(canonicalPath, Astro.site || 'https://blogspro.in').href;
 ---
 
 <!DOCTYPE html>

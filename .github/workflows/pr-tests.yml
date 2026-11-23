@@ -1,0 +1,45 @@
+# Runs the repo's offline test suites on every pull request. Before this, nothing in CI ran
+# them: chart engine, VPS API server (auth, permissions, CSRF) and article content tests.
+# Pull requests only — main receives several bot commits an hour (hourly archives) that
+# change no code these tests cover.
+name: PR tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # No npm dependencies (node:sqlite, node:test only).
+      - name: Server API tests
+        working-directory: server
+        run: npm test
+
+      # Imports frontend TypeScript directly; Node 24 strips types natively.
+      - name: Article content tests
+        run: node --test tests/articleContent.test.mjs
+
+      # The chart pipeline tests import pipeline code that needs root packages.
+      # --ignore-scripts: no install-time code runs (package.json has no install hooks).
+      - name: Install root packages
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Chart engine and pipeline tests
+        run: npm run test:charts

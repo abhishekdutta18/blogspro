@@ -124,15 +124,20 @@ jobs:
           SENTRY_DSN: "${{ secrets.SENTRY_DSN }}"
           TELEGRAM_BOT_TOKEN: "${{ secrets.TELEGRAM_BOT_TOKEN }}"
           TELEGRAM_CHAT_ID: "${{ secrets.TELEGRAM_CHAT_ID }}"
+          INNGEST_EVENT_KEY: "${{ secrets.INNGEST_EVENT_KEY }}"
+          INNGEST_SIGNING_KEY: "${{ secrets.INNGEST_SIGNING_KEY }}"
           VAULT_MASTER_KEY: "${{ secrets.VAULT_MASTER_KEY }}"
-          FIREBASE_SERVICE_ACCOUNT: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
-          FIREBASE_WEB_API_KEY: "${{ secrets.FIREBASE_WEB_API_KEY }}"
           SESSION_SECRET: "${{ secrets.SESSION_SECRET }}"
           GOOGLE_CLIENT_ID: "${{ secrets.GOOGLE_CLIENT_ID }}"
           GOOGLE_CLIENT_SECRET: "${{ secrets.GOOGLE_CLIENT_SECRET }}"
           GITHUB_CLIENT_ID: "${{ secrets.GH_CLIENT_ID }}"
           GITHUB_CLIENT_SECRET: "${{ secrets.GH_CLIENT_SECRET }}"
         run: |
+          echo "🔐 Pushing HIL station secrets..."
+          echo "$SWARM_INTERNAL_TOKEN" | npx wrangler secret put SWARM_INTERNAL_TOKEN --env hil-station --config wrangler.toml
+          [ -z "$TELEGRAM_BOT_TOKEN" ] || echo "$TELEGRAM_BOT_TOKEN" | npx wrangler secret put TELEGRAM_BOT_TOKEN --env hil-station --config wrangler.toml
+          [ -z "$TELEGRAM_CHAT_ID" ] || echo "$TELEGRAM_CHAT_ID" | npx wrangler secret put TELEGRAM_ADMIN_CHAT_ID --env hil-station --config wrangler.toml
+
           for env in data-hub relevance auditor seo upstox pulse miro-sync mirofish newsletter templates auth; do
             echo "🔐 Pushing secrets to $env..."
 
@@ -160,11 +165,15 @@ jobs:
             [ -z "$TELEGRAM_BOT_TOKEN" ] || echo "$TELEGRAM_BOT_TOKEN" | npx wrangler secret put TELEGRAM_BOT_TOKEN $OPTS --config $CONF
             [ -z "$TELEGRAM_CHAT_ID" ] || echo "$TELEGRAM_CHAT_ID" | npx wrangler secret put TELEGRAM_CHAT_ID $OPTS --config $CONF
 
+            # Inngest keys are Wrangler secrets, never wrangler.toml vars (public repo).
+            if [ "$env" = "pulse" ]; then
+              [ -z "$INNGEST_EVENT_KEY" ] || echo "$INNGEST_EVENT_KEY" | npx wrangler secret put INNGEST_EVENT_KEY $OPTS --config $CONF
+              [ -z "$INNGEST_SIGNING_KEY" ] || echo "$INNGEST_SIGNING_KEY" | npx wrangler secret put INNGEST_SIGNING_KEY $OPTS --config $CONF
+            fi
+
             # [V12.0] Auth-specific Secret Propagation
             if [ "$env" = "auth" ]; then
-              echo "🔐 Pushing specific Auth Proxy secrets..."
-              echo "$FIREBASE_SERVICE_ACCOUNT" | npx wrangler secret put FIREBASE_SERVICE_ACCOUNT $OPTS --config $CONF
-              echo "$FIREBASE_WEB_API_KEY" | npx wrangler secret put FIREBASE_WEB_API_KEY $OPTS --config $CONF
+              echo "🔐 Pushing OAuth relay secrets..."
               echo "$SESSION_SECRET" | npx wrangler secret put SESSION_SECRET $OPTS --config $CONF
               echo "$GOOGLE_CLIENT_ID" | npx wrangler secret put GOOGLE_CLIENT_ID $OPTS --config $CONF
               echo "$GOOGLE_CLIENT_SECRET" | npx wrangler secret put GOOGLE_CLIENT_SECRET $OPTS --config $CONF

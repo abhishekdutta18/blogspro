@@ -1,5 +1,4 @@
 import { defineConfig } from 'astro/config';
-import tailwind from '@astrojs/tailwind';
 
 // https://astro.build/config
 export default defineConfig({
@@ -8,9 +7,8 @@ export default defineConfig({
   build: {
     format: 'file'
   },
-  integrations: [
-    tailwind({
-      applyBaseStyles: false
-    })
-  ]
+  // Astro 7 defaults to 'jsx', which drops whitespace between inline elements
+  // ("Markets <span>…</span>" would render run together). Keep the v5 behaviour.
+  compressHTML: true
+  // Tailwind runs through postcss.config.mjs (the @astrojs/tailwind integration stops at Astro 5).
 });

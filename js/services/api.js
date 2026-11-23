@@ -8,22 +8,9 @@ const API_BASE = ENDPOINTS.auth;
 // Sessions moved to an HttpOnly cookie; forget tokens issued by the old auth worker.
 try { localStorage.removeItem("fb_token"); } catch (_) {}
 const NEWSLETTER_BASE = ENDPOINTS.newsletter;
-const FIREBASE_API_KEY = "AIzaSyDEUQApHIitL89yXcFq6vEY8yDKZBQYWBY";
-
-const FIREBASE_ERROR_MESSAGES = {
-  "EMAIL_NOT_FOUND": "No account found with this email address.",
-  "INVALID_PASSWORD": "Incorrect password.",
-  "INVALID_LOGIN_CREDENTIALS": "Incorrect email or password.",
-  "USER_DISABLED": "This account has been disabled. Contact support.",
-  "TOO_MANY_ATTEMPTS_TRY_LATER": "Too many failed attempts. Please wait and try again.",
-  "EMAIL_EXISTS": "An account with this email already exists.",
-  "WEAK_PASSWORD": "Password is too weak. Use at least 8 characters.",
-  "INVALID_EMAIL": "Please enter a valid email address.",
-};
-
-function mapFirebaseError(raw) {
-  const code = raw?.error?.errors?.[0]?.message || raw?.error?.message || raw?.error || "";
-  return FIREBASE_ERROR_MESSAGES[code] || code || "Request failed";
+/** The API answers errors as { error: "readable message" }. */
+function apiErrorMessage(raw) {
+  return raw?.error?.message || raw?.error || "Request failed";
 }
 
 async function fetchWithRetry(url, options = {}, retries = 3, backoff = 1000) {
@@ -80,7 +67,7 @@ async function fetchJson(url, options = {}, timeoutMs = 15000) {
     
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(mapFirebaseError(err));
+      throw new Error(apiErrorMessage(err));
     }
     
     return res.json();

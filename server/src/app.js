@@ -9,6 +9,7 @@ import { createDocumentRepository } from './documents.js';
 import { HttpError, sendJson, isTrustedOrigin, createRateLimiter, log } from './http.js';
 import { handleAuth } from './routes/auth.js';
 import { handleData } from './routes/data.js';
+import { handleService } from './routes/service.js';
 
 const MINUTE = 60_000;
 
@@ -24,13 +25,17 @@ export function createApp(config, { fetchImpl = (...args) => fetch(...args) } = 
   const limits = {
     login: createRateLimiter({ max: 10, windowMs: 15 * MINUTE }),
     register: createRateLimiter({ max: 10, windowMs: 60 * MINUTE }),
-    subscribe: createRateLimiter({ max: 20, windowMs: 60 * MINUTE })
+    subscribe: createRateLimiter({ max: 20, windowMs: 60 * MINUTE }),
+    // Counts only failed service-token attempts.
+    service: createRateLimiter({ max: 20, windowMs: 15 * MINUTE })
   };
 
   async function handle(req, res) {
     const url = new URL(req.url, config.siteOrigin);
     try {
       if (url.pathname === '/api/health') return sendJson(res, 200, { ok: true });
+      // Bearer-token routes for the pipeline and workers: no cookies, so no CSRF origin check.
+      if (await handleService({ req, res, url, config, documents, limits })) return;
       if (!isTrustedOrigin(req, config.allowedOrigins)) throw new HttpError(403, 'Cross-site request refused.');
 
       const userId = sessions.userIdFor(readCookie(req.headers.cookie, SESSION_COOKIE));

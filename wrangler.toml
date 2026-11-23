@@ -17,7 +17,7 @@ binding = "CACHE_KV"
 id = "9caa7afdf7e94adb99cecf221275d63d"
 
 [vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
+GOOGLE_CLOUD_PROJECT = "blogspro-ai"
 
 # --- PULSE ORCHESTRATOR ---
 [env.pulse]
@@ -38,15 +38,14 @@ kv_namespaces = [
 # ]
 
 [env.pulse.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-asset"
+GOOGLE_CLOUD_PROJECT = "blogspro-ai"
 BASE_URL = "https://blogspro.in"
 PROJECT_DOMAIN = "blogspro.in"
 SAMBANOVA_MODEL = "Meta-Llama-4-70B-Instruct"
 CEREBRAS_MODEL = "llama-4-70b"
 MISTRAL_MODEL = "mistral-large-latest"
-INNGEST_EVENT_KEY = "iyn6A_cYtMybjJhGswI7zr_CX6HkT3R_bCqepOty9yufd_ax_OfkE9RDsQ_8tyMvM6TvWoJDvLm6IREcyjoMTg"
-INNGEST_SIGNING_KEY = "signkey-prod-da8bf4172979eda4d892588ea271764fc3989d474a260eddbbd846b5aab8406a"
+# Secrets (never commit values; set with `npx wrangler secret put <NAME> --env pulse`):
+#   INNGEST_EVENT_KEY, INNGEST_SIGNING_KEY
 SENTRY_DSN = "https://c75786fd93da9331cedca5e3ec8bd9cd@o4511069230530560.ingest.de.sentry.io/4511069332832336"
 
 [[env.pulse.services]]
@@ -117,8 +116,7 @@ compatibility_flags = [ "nodejs_compat" ]
 minify = true
 
 [env.mirofish.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-asset"
+GOOGLE_CLOUD_PROJECT = "blogspro-ai"
 
 [[env.mirofish.durable_objects.bindings]]
 name = "MIRO_SYNC_DO"
@@ -134,8 +132,7 @@ compatibility_flags = [ "nodejs_compat" ]
 minify = true
 
 [env.data-hub.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-asset"
+GOOGLE_CLOUD_PROJECT = "blogspro-ai"
 
 # --- RELEVANCE WORKER ---
 [env.relevance]
@@ -146,8 +143,7 @@ compatibility_flags = [ "nodejs_compat" ]
 minify = true
 
 [env.relevance.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-asset"
+GOOGLE_CLOUD_PROJECT = "blogspro-ai"
 
 # --- AUDITOR WORKER ---
 [env.auditor]
@@ -158,8 +154,7 @@ compatibility_flags = [ "nodejs_compat" ]
 minify = true
 
 [env.auditor.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-asset"
+GOOGLE_CLOUD_PROJECT = "blogspro-ai"
 
 # --- SEO MANAGER WORKER ---
 [env.seo]
@@ -170,8 +165,7 @@ compatibility_flags = [ "nodejs_compat" ]
 minify = true
 
 [env.seo.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-asset"
+GOOGLE_CLOUD_PROJECT = "blogspro-ai"
 
 # --- TEMPLATE ENGINE ---
 [env.templates]
@@ -182,8 +176,7 @@ compatibility_flags = [ "nodejs_compat" ]
 minify = true
 
 [env.templates.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-asset"
+GOOGLE_CLOUD_PROJECT = "blogspro-ai"
 
 # --- HIL AUDIT STATION ---
 [env.hil-station]
@@ -194,12 +187,10 @@ compatibility_flags = [ "nodejs_compat" ]
 
 [env.hil-station.vars]
 ENVIRONMENT = "hil-station"
-FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-asset"
-TELEGRAM_BOT_TOKEN = "PASTE_TOKEN_HERE"
-TELEGRAM_ADMIN_CHAT_ID = "PASTE_CHAT_ID_HERE"
+GOOGLE_CLOUD_PROJECT = "blogspro-ai"
 HIL_STATION_URL = "https://hil.blogspro.in"
-SWARM_INTERNAL_TOKEN = "PASTE_INTERNAL_TOKEN_HERE"
+# Secrets (set with `npx wrangler secret put <NAME> --env hil-station`):
+#   TELEGRAM_BOT_TOKEN, TELEGRAM_ADMIN_CHAT_ID, SWARM_INTERNAL_TOKEN
 
 # --- MIRO SYNC WORKER (Durable Object Provider) ---
 [env.miro-sync]
@@ -209,8 +200,7 @@ compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
 
 [env.miro-sync.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
-FIREBASE_STORAGE_BUCKET = "blogspro-asset"
+GOOGLE_CLOUD_PROJECT = "blogspro-ai"
 
 [env.miro-sync.durable_objects]
 bindings = [
@@ -231,7 +221,7 @@ compatibility_date = "2026-04-01"
 
 [env.upstox.vars]
 # Environment-specific variables
-FIREBASE_PROJECT_ID = "blogspro-ai"
+GOOGLE_CLOUD_PROJECT = "blogspro-ai"
 
 # --- AUTH PROXY (server-side Firebase) ---
 [env.auth]
@@ -240,7 +230,7 @@ main = "scripts/auth-proxy-worker.js"
 compatibility_date = "2026-04-01"
 
 [env.auth.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
+GOOGLE_CLOUD_PROJECT = "blogspro-ai"
 
 # --- TRIALS WORKER ---
 [env.trials]
@@ -250,6 +240,6 @@ compatibility_date = "2024-12-30"
 compatibility_flags = [ "nodejs_compat" ]
 
 [env.trials.vars]
-FIREBASE_PROJECT_ID = "blogspro-ai"
+GOOGLE_CLOUD_PROJECT = "blogspro-ai"
 TRIALS_MODE = "true"
 

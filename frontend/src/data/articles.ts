@@ -2,8 +2,8 @@
 // Generated with complete, static-first integrity
 
 import { withFullText, type PostSnapshot } from '../lib/articleContent';
-import firestorePosts from './firestore-posts.json';
-// Full text rebuilt from git history by scripts/recover_articles.py while Firestore is unreachable.
+import snapshotPosts from './posts-snapshot.json';
+// Full text rebuilt from git history by scripts/recover_articles.py when the API snapshot lacks them.
 import recoveredPosts from './recovered-posts.json';
 
 export interface Article {
@@ -19,7 +19,7 @@ export interface Article {
   content: string;
 }
 
-/** Curated archive entries. Full text comes from the Firestore snapshot when present. */
+/** Curated archive entries. Full text comes from the posts snapshot when present. */
 const curatedArticles: Article[] = [
   {
     "slug": "upi-vs-cards-which-wins-in-india-s-fintech-race",
@@ -396,8 +396,8 @@ const curatedArticles: Article[] = [
   }
 ];
 
-// A live Firestore snapshot comes first, so a real sync wins over the recovered copy.
-const fullTextSources: PostSnapshot[] = [...(firestorePosts as PostSnapshot[]), ...(recoveredPosts as PostSnapshot[])];
+// The API snapshot comes first, so a real sync wins over the recovered copy.
+const fullTextSources: PostSnapshot[] = [...(snapshotPosts as PostSnapshot[]), ...(recoveredPosts as PostSnapshot[])];
 
 /** Archive with full text merged in and read times computed from the text. */
 export const articles: Article[] = curatedArticles.map(article => withFullText(article, fullTextSources));

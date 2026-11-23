@@ -7,7 +7,7 @@ import { getBriefingTemplate } from "./lib/briefing-template.js";
 import { getTerminalV2Template } from "./lib/terminal-v2-template.js";
 import { getRecentSnapshots, 
   getHistoricalData, 
-  syncToFirestore,
+  saveRecord,
   pushTelemetryLog,
   saveToCloudBucket,
   checkPeriodStatus,
@@ -15,7 +15,6 @@ import { getRecentSnapshots,
   getInstitutionalSettings,
   pushMultipleToGitHub
 } from "./lib/storage-bridge.js";
-import { uploadToStorage } from './lib/firebase-service.js';
 import { runSwarmAudit } from './lib/mirofish-qa-service.js';
 import { dispatchTelegramAlert } from './lib/social-utils.js';
 import { initNodeSentry, logSwarmBreadcrumb, captureSwarmError, flushSentry } from "./lib/sentry-bridge.js";
@@ -71,9 +70,9 @@ async function registerPostOnHomepage(fileName, result, frequency, env) {
     fs.writeFileSync(indexPath, JSON.stringify(index, null, 2));
     console.log(`✅ [Dashboard] Static Index Updated: ${indexPath}`);
 
-    // 2. Sync to Firestore 'posts' (For main homepage grid & admin dashboard)
+    // 2. Record in 'posts' (homepage grid and admin dashboard)
     const docId = `swarm-${frequency}-${Date.now()}`;
-    await syncToFirestore('posts', {
+    await saveRecord('posts', {
       id: docId,
       title,
       excerpt,
@@ -341,7 +340,7 @@ async function runInstitutionalSwarm() {
                 timestamp: Date.now()
             }, env);
 
-            await syncToFirestore("swarm_fragments", { 
+            await saveRecord("swarm_fragments", { 
                 jobId: id, 
                 verticalId: targetVerticalId, 
                 path: cloudPath,

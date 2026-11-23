@@ -1,10 +1,10 @@
 /**
- * articleContent — merges full article text exported from Firestore
- * (src/data/firestore-posts.json, written by scripts/sync-articles-from-firestore.mjs)
+ * articleContent — merges full article text exported from the BlogsPro API
+ * (src/data/posts-snapshot.json, written by scripts/sync-articles.mjs)
  * into the curated archive, and derives honest read times from the real text.
  */
 
-/** One published Firestore post, as saved by the sync script. */
+/** One published post, as saved by the sync script. */
 export interface PostSnapshot {
   docId: string;
   slug: string;
