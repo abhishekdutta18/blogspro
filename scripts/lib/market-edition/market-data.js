@@ -92,6 +92,16 @@ export function parseChart(json) {
 }
 
 const DAILY = 'interval=1d&range=1d';
+
+/**
+ * The span a quote's change covers. Editions compare with the previous close; the weekly report asks Yahoo for
+ * five daily bars, whose chartPreviousClose is the close before the first bar, so the change is week over week.
+ * `text` is the prompt wording, `column` the table header, `caption` the bar-chart caption.
+ */
+export const PERIODS = Object.freeze({
+  session: Object.freeze({ id: 'session', query: DAILY, text: 'vs previous close', column: 'Day', caption: 'last session vs previous close' }),
+  week: Object.freeze({ id: 'week', query: 'interval=1d&range=5d', text: 'over the last 5 sessions', column: 'Week', caption: 'last 5 sessions' }),
+});
 export const INTRADAY = 'interval=5m&range=1d'; // same quote fields as DAILY, plus today's 5-minute bars
 
 // `points` are the response's bars ([{ t, close }]): one for DAILY, the session so far for INTRADAY.
@@ -150,12 +160,12 @@ export async function fetchHistories({ fetchImpl = fetch } = {}) {
 }
 
 /** Every group with its quotes, fetched in parallel. Failed instruments carry ok:false. */
-export async function fetchMarketSnapshot({ fetchImpl = fetch } = {}) {
+export async function fetchMarketSnapshot({ fetchImpl = fetch, period = PERIODS.session } = {}) {
   return Promise.all(
     INSTRUMENT_GROUPS.map(async (group) => ({
       id: group.id,
       title: group.title,
-      quotes: await Promise.all(group.instruments.map((i) => fetchQuote(i, fetchImpl))),
+      quotes: await Promise.all(group.instruments.map((i) => fetchQuote(i, fetchImpl, period.query))),
     })),
   );
 }
@@ -195,12 +205,12 @@ export function latestQuoteTime(group) {
 }
 
 /** Plain-text table of the snapshot for the writer prompt, with each market's live/closed status. */
-export function snapshotToText(groups, now = Date.now()) {
+export function snapshotToText(groups, now = Date.now(), period = PERIODS.session) {
   return groups
     .map((group) => {
       const lines = group.quotes.map((q) => {
         if (!q.ok) return `- ${q.name}: unavailable`;
-        const move = q.changePct === null ? 'change n/a' : `${q.changePct >= 0 ? '+' : ''}${q.changePct.toFixed(2)}% vs previous close`;
+        const move = q.changePct === null ? 'change n/a' : `${q.changePct >= 0 ? '+' : ''}${q.changePct.toFixed(2)}% ${period.text}`;
         return `- ${q.name}: ${q.price.toFixed(2)} ${q.currency} (${move}; ${marketStatus(q, now)})`;
       });
       return `${group.title}:\n${lines.join('\n')}`;

@@ -4,7 +4,7 @@
  * snapshot, not from the model, so the table is right even when the commentary is missing.
  */
 
-import { formatLastTrade, latestQuoteTime } from './market-data.js';
+import { PERIODS, formatLastTrade, latestQuoteTime } from './market-data.js';
 import { CHART_STYLES, divergingBarChart, lineChart } from './charts.js';
 import { SHARE_BUTTON } from '../share-button.js';
 
@@ -36,11 +36,11 @@ function quoteRow(q) {
     `<td class="${dir}">${signed(q.change)}</td><td class="${dir}">${signed(q.changePct, '%')}</td></tr>`;
 }
 
-function marketTables(groups) {
+function marketTables(groups, period) {
   return groups.map((g) => `
     <table class="quotes">
       <caption>${escapeHtml(g.title)}${latestQuoteTime(g) ? ` <span class="asof">as of ${escapeHtml(formatLastTrade(latestQuoteTime(g)))}</span>` : ''}</caption>
-      <thead><tr><th scope="col">Instrument</th><th scope="col">Last</th><th scope="col">Change</th><th scope="col">Day</th></tr></thead>
+      <thead><tr><th scope="col">Instrument</th><th scope="col">Last</th><th scope="col">Change</th><th scope="col">${escapeHtml(period.column)}</th></tr></thead>
       <tbody>${g.quotes.map(quoteRow).join('')}</tbody>
     </table>`).join('');
 }
@@ -65,9 +65,9 @@ function dayMoves(markets, ids) {
 }
 
 /** Charts above the tables. Currencies, yields and commodities stay table-only: "up" means different things there. */
-function marketCharts(markets, histories = []) {
-  const indices = divergingBarChart({ title: 'Equity indices', caption: 'last session vs previous close', items: dayMoves(markets, ['india', 'global']) });
-  const sectors = divergingBarChart({ title: 'NSE sectors', caption: 'last session vs previous close', items: dayMoves(markets, ['sectors']) });
+function marketCharts(markets, histories, period) {
+  const indices = divergingBarChart({ title: 'Equity indices', caption: period.caption, items: dayMoves(markets, ['india', 'global']) });
+  const sectors = divergingBarChart({ title: 'NSE sectors', caption: period.caption, items: dayMoves(markets, ['sectors']) });
   const lines = histories.map((h) => lineChart({ title: h.name, points: h.points })).filter(Boolean).join('');
   const bars = [indices, sectors].filter(Boolean).join('');
   return [bars && `<div class="charts">${bars}</div>`, lines && `<div class="charts two">${lines}</div>`].filter(Boolean).join('');
@@ -114,12 +114,12 @@ function viewSection(view, board) {
 }
 
 /** The article body (everything below the header); also stored as the edition's content. */
-export function renderEditionBody({ markets, headlines, text, board, histories = [] }) {
+export function renderEditionBody({ markets, headlines, text, board, histories = [], period = PERIODS.session }) {
   const stories = text?.news?.length ? text.news : headlines.slice(0, 8);
   const missing = text ? '' : '<p class="note">Commentary is unavailable for this edition; prices and headlines are live.</p>';
   return [
     missing,
-    section('Markets', `${marketCharts(markets, histories)}${marketTables(markets)}`),
+    section('Markets', `${marketCharts(markets, histories, period)}${marketTables(markets, period)}`),
     section('What happened', whatHappened(text)),
     section('News that matters', stories.length ? `<ol class="stories">${stories.map(storyItem).join('')}</ol>` : ''),
     viewSection(text?.view || null, board),

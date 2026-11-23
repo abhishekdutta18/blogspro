@@ -45,19 +45,20 @@ const sectorNamesFrom = (markets) => markets.find((g) => g.id === 'sectors')?.qu
  * Builds one edition. `askAI` and `fetchImpl` are injectable for tests.
  * Returns the fields the tome generator publishes, plus `renderPage(canonicalUrl)` for the final HTML.
  */
-export async function generateMarketEdition({ askAI, env = process.env, now = new Date(), editionId, fetchImpl = fetch }) {
+export async function generateMarketEdition({ askAI, env = process.env, now = new Date(), editionId, fetchImpl = fetch, extraContext = '' }) {
   const edition = (editionId && getEdition(editionId)) || resolveEdition(now);
   const timeLabel = formatIst(now);
   console.log(`🗞️ [Edition] Building ${edition.label} for ${timeLabel}`);
 
   const [markets, histories, headlines] = await Promise.all([
-    fetchMarketSnapshot({ fetchImpl }), fetchHistories({ fetchImpl }), fetchHeadlines({ fetchImpl }),
+    fetchMarketSnapshot({ fetchImpl, period: edition.period }), fetchHistories({ fetchImpl }), fetchHeadlines({ fetchImpl }),
   ]);
   const quotesOk = markets.reduce((n, g) => n + g.quotes.filter((q) => q.ok).length, 0);
   console.log(`📈 [Edition] ${quotesOk} quotes, ${headlines.length} headlines`);
   if (quotesOk === 0 && headlines.length === 0) throw new Error('EDITION_NO_DATA: every quote and news feed failed');
 
-  const marketText = snapshotToText(markets, now.getTime());
+  // extraContext (the weekly review's digest of the week's editions) rides with the data every prompt sees.
+  const marketText = [snapshotToText(markets, now.getTime(), edition.period), extraContext].filter(Boolean).join('\n\n');
   const board = await runViewBoard({ askAI, env, edition, marketText, headlinesText: headlinesToText(headlines) });
   // writeEdition reports section failures in its result; this catch is for anything unexpected (a prompt bug).
   let written = { text: null, replies: [] };
@@ -72,7 +73,7 @@ export async function generateMarketEdition({ askAI, env = process.env, now = ne
 
   const title = text?.title || `${edition.label}: markets at ${timeLabel}`;
   const summary = text?.summary || `Live prices and the latest market headlines for the ${edition.label.toLowerCase()}.`;
-  const body = renderEditionBody({ markets, headlines, text, board, histories });
+  const body = renderEditionBody({ markets, headlines, text, board, histories, period: edition.period });
   const wordCount = countWords(editionText(text));
   if (text && wordCount < MIN_EXPECTED_WORDS) {
     console.warn(`⚠️ [Edition] Only ${wordCount} words (expected ~3,500): news ${text.news ? 'ok' : 'missing'}, view ${text.view ? 'ok' : 'missing'}`);

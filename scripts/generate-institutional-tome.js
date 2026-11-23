@@ -23,6 +23,20 @@ import { NewsOrchestrator } from "./lib/news-orchestrator.js";
 import { askAI } from "./lib/ai-service.js";
 import { generateMarketEdition } from "./lib/market-edition/index.js";
 import { saveEditionSnapshot } from "./lib/market-edition/snapshot.js";
+import { recentEditionsText } from "./lib/market-edition/week-digest.js";
+import { createBudgetedAskAI, ledgerFile, resolveCaps } from "./lib/token-budget.js";
+import { createPacedAskAI, paceFromEnv } from "./lib/ai-pacer.js";
+
+// Daily and weekly are built by the market-edition pipeline (~6 AI calls) instead of the 17-vertical swarm
+// (~100-170 calls), which ran the shared free-tier quotas dry. REPORT_ENGINE=swarm restores the swarm.
+const REPORT_FREQS = new Set(['daily', 'weekly']);
+const WEEK_DIGEST_HEADER = "THIS WEEK'S EDITIONS (already published; use them for themes and narrative, take figures only from the data above):";
+
+/** The weekly review's extra prompt context: the week's edition titles and summaries, or '' when none. */
+function weeklyContext() {
+  const digest = recentEditionsText();
+  return digest ? `${WEEK_DIGEST_HEADER}\n${digest}` : '';
+}
 import { waitForPublicAvailability } from "./lib/utils.js";
 import { fetchPolicyPulse, fetchEconomicCalendar, fetchSentimentData } from "./lib/data-fetchers.js";
 
@@ -115,6 +129,11 @@ async function runInstitutionalSwarm() {
   const force = process.argv.includes('--force');
   const editionId = process.argv.find(a => a.startsWith('--edition='))?.split('=')[1];
   const id = process.env.SWARM_JOB_ID || `swarm-${frequency}-${Date.now()}`;
+  const useReportEngine = REPORT_FREQS.has(frequency) && process.env.REPORT_ENGINE !== 'swarm';
+  // Every edition-pipeline call goes through the token budget (run cap + rolling 24 h ledger), then the pacer, which
+  // keeps calls under Groq's tokens-per-minute limit so they are not pushed onto capped fallback providers.
+  const pacedAskAI = createPacedAskAI({ askAI, tokensPerMinute: paceFromEnv(process.env) });
+  const budget = createBudgetedAskAI({ askAI: pacedAskAI, freq: frequency, file: ledgerFile(process.env), ...resolveCaps(frequency, process.env) });
 
   // 0. DETERMINISTIC PERIOD IDENTIFIER (V15.0 Idempotency)
   const calculatePeriodId = (freq) => {
@@ -287,7 +306,7 @@ async function runInstitutionalSwarm() {
 
     // [V17.0] Institutional News Priming for daily. Hourly market editions fetch their own headlines.
     let liveNews = { summary: "Pulse Baseline: Stable.", rbi: "Neutral.", sebi: "Neutral.", docs: [] };
-    if (frequency === 'daily') {
+    if (frequency === 'daily' && !useReportEngine) {
         try {
             console.log(`📡 [News-Priming] Activating NewsOrchestrator for ${frequency} cycle...`);
             const newsOrch = new NewsOrchestrator(env);
@@ -392,9 +411,16 @@ async function runInstitutionalSwarm() {
         
         // Final PDF generation & Sync
         await pushTelemetryLog("TOME_ASSEMBLY", { jobId: id, frequency, periodId, status: "complete", message: "Institutional Masterpiece Assembled." }, env);
-    } else if (frequency === 'hourly') {
-        // --- 🗞️ MARKET EDITION: 08:00 / 16:00 / 22:00 IST briefings (replaced the hourly swarm) ---
-        result = await generateMarketEdition({ askAI, env, editionId });
+    } else if (frequency === 'hourly' || useReportEngine) {
+        // --- 🗞️ MARKET EDITION: 08:00 / 16:00 / 22:00 IST briefings, plus the daily strategy and weekly review ---
+        result = await generateMarketEdition({
+            askAI: budget.askAI,
+            env,
+            editionId: frequency === 'hourly' ? editionId : frequency,
+            extraContext: frequency === 'weekly' ? weeklyContext() : '',
+        });
+        const spent = budget.usage();
+        console.log(`🪙 [Budget] ${frequency}: ~${spent.run} tokens this run in ${spent.calls} calls (${spent.refused} refused); ~${spent.day} in the last 24 h across runs`);
     } else {
         // --- 🧬 STANDARD/SERIAL MODE (Legacy) ---
         console.log(`🏃 [Standard-Mode] Running Sequential Institutional Swarm...`);
@@ -629,7 +655,8 @@ Provide the final refined output in JSON format:
         // Market editions are not emailed: three a day would flood subscribers, and an edition body's charts
         // depend on page CSS that an email does not carry, so its bar charts would arrive empty.
         if (result.edition) {
-            console.log(`📭 [Newsletter] Skipped for market editions (web and Telegram only).`);
+            // Also skipped for the daily strategy and weekly review, which use the same chart markup.
+            console.log(`📭 [Newsletter] Skipped for edition-pipeline pieces (${result.edition.id}): web and Telegram only.`);
         } else {
             await pushSovereignNewsletter(`BlogsPro Institutional: ${result.title}`, result.final, process.env);
         }
