@@ -42,8 +42,11 @@ export function cleanText(value, max = 1500) {
   return truncateAtSentence(text, max);
 }
 
-/** Up to `limit` non-empty cleaned strings from an array. */
+// A list item needs at least one letter or digit; "]", "],", '"}' and the like are JSON debris, not text.
+const HAS_WORD = /[\p{L}\p{N}]/u;
+
+/** Up to `limit` cleaned strings from an array, skipping empty items and punctuation-only debris. */
 export function cleanList(value, { limit = 5, max = 1500 } = {}) {
   if (!Array.isArray(value)) return [];
-  return value.map((v) => cleanText(v, max)).filter(Boolean).slice(0, limit);
+  return value.map((v) => cleanText(v, max)).filter((t) => HAS_WORD.test(t)).slice(0, limit);
 }

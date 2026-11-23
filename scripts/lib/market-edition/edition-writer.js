@@ -82,41 +82,69 @@ export function viewPrompt(context) {
 }
 
 const OVERVIEW_SECTIONS = Object.freeze(['india', 'global', 'macro']);
-// A section key the model wrote as a list item ("macro=[", "\"global\": [") instead of as a JSON key.
-const STRAY_KEY = /^\s*["']?(india|global|macro)["']?\s*[:=]\s*[[{(]?\s*$/i;
+const SECTION_LIMITS = Object.freeze({ india: 5, global: 4, macro: 4 });
+// A section key the model wrote as a list item instead of as a JSON key. Bare: 'macro=[' or '"global": ['.
+// With text: 'macro: ["The rupee firmed…' (the key must be followed by a bracket or quote, so a sentence
+// such as "Global: US stocks fell" is left alone as prose).
+const BARE_KEY = /^\s*["']?(india|global|macro)["']?\s*[:=]\s*[[{(]?\s*$/i;
+const KEY_WITH_TEXT = /^\s*["']?(india|global|macro)["']?\s*[:=]\s*(?:[[{(]\s*["']?|["'])(.+)$/i;
+const TRAILING_JSON = /["'\]})\s,]+$/;
+
+/** The section an item names and any text that came with it, or null for an ordinary paragraph. */
+function readMarker(item) {
+  if (typeof item !== 'string') return null;
+  const bare = item.match(BARE_KEY);
+  if (bare) return { section: bare[1].toLowerCase(), text: '' };
+  const joined = item.match(KEY_WITH_TEXT);
+  return joined ? { section: joined[1].toLowerCase(), text: joined[2].replace(TRAILING_JSON, '') } : null;
+}
 
 /**
- * The overview's section lists with misfiled paragraphs put back. An item that is only a section key
- * ("macro=[") starts that section: the items after it move there, after that section's own paragraphs,
- * and the marker itself is dropped so it can never be published.
+ * The overview's section lists with misfiled paragraphs put back. An item that names a section ("macro=[")
+ * starts that section: it and the items after it move there, after that section's own paragraphs. The key
+ * itself is dropped so it can never be published. `moved` counts the paragraphs that changed section.
  */
 export function regroupSections(json) {
   const own = Object.fromEntries(OVERVIEW_SECTIONS.map((k) => [k, []]));
-  const moved = Object.fromEntries(OVERVIEW_SECTIONS.map((k) => [k, []]));
+  const shifted = Object.fromEntries(OVERVIEW_SECTIONS.map((k) => [k, []]));
+  let moved = 0;
   for (const key of OVERVIEW_SECTIONS) {
     let target = key;
     for (const item of Array.isArray(json?.[key]) ? json[key] : []) {
-      const marker = typeof item === 'string' ? item.match(STRAY_KEY) : null;
-      if (marker) target = marker[1].toLowerCase();
-      else (target === key ? own : moved)[target].push(item);
+      const marker = readMarker(item);
+      if (marker) target = marker.section;
+      const text = marker ? marker.text : item;
+      if (marker && !text) continue;
+      if (target === key) own[key].push(text);
+      else { shifted[target].push(text); moved += 1; }
     }
   }
-  return Object.fromEntries(OVERVIEW_SECTIONS.map((k) => [k, [...own[k], ...moved[k]]]));
+  const sections = Object.fromEntries(OVERVIEW_SECTIONS.map((k) => [k, [...own[k], ...shifted[k]]]));
+  return { sections, moved };
+}
+
+/** A section's cleaned paragraphs, logging any cut by its cap so a long or misfiled reply is visible. */
+function sectionList(sections, key) {
+  const limit = SECTION_LIMITS[key];
+  const all = cleanList(sections[key], { limit: Number.MAX_SAFE_INTEGER });
+  if (all.length > limit) console.warn(`⚠️ [Edition] Overview ${key}: dropped ${all.length - limit} paragraph(s) over the cap of ${limit}`);
+  return all.slice(0, limit);
 }
 
 /** Normalised overview, or null when unusable. */
 export function parseOverview(reply) {
   const json = extractJson(reply);
-  const sections = regroupSections(json);
+  const { sections, moved } = regroupSections(json);
   const title = cleanText(json?.title, 120);
-  const india = cleanList(sections.india, { limit: 5 });
+  if (moved > 0) console.warn(`⚠️ [Edition] Overview: moved ${moved} misfiled paragraph(s) back to their section`);
+  const india = sectionList(sections, 'india');
   if (!title || india.length === 0) return null;
   return {
     title,
     summary: cleanText(json.summary, 600),
     india,
-    global: cleanList(sections.global, { limit: 4 }),
-    macro: cleanList(sections.macro, { limit: 4 }),
+    global: sectionList(sections, 'global'),
+    macro: sectionList(sections, 'macro'),
   };
 }
 
@@ -154,28 +182,46 @@ export function parseView(reply, sectorNames) {
   };
 }
 
+const MAX_ATTEMPTS = 2;
+
+/**
+ * One section, retried once. Returns the parsed section (or null) and every attempt's raw reply or error,
+ * so a bad render can be diagnosed — or rebuilt — without paying for the calls again.
+ */
 async function callSection(name, { askAI, env }, text, parse) {
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
+  const attempts = [];
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    const section = name.toLowerCase();
     try {
-      const parsed = parse(await askAI(text, { role: 'generate', env, responseFormat: 'json' }));
-      if (parsed) return parsed;
+      const reply = await askAI(text, { role: 'generate', env, responseFormat: 'json' });
+      attempts.push({ section, attempt, reply: String(reply ?? '') });
+      const parsed = parse(reply);
+      if (parsed) return { parsed, attempts };
       console.warn(`⚠️ [Edition] ${name} attempt ${attempt}: reply was not valid JSON for this section`);
     } catch (error) {
+      attempts.push({ section, attempt, error: error.message });
       console.warn(`⚠️ [Edition] ${name} attempt ${attempt} failed: ${error.message}`);
     }
   }
-  return null;
+  return { parsed: null, attempts };
 }
 
 /**
- * Writes the edition text in three calls, one at a time. Throws when the overview fails (no commentary);
- * missing news or view sections come back as null for the template's fallbacks.
+ * Writes the edition text in three calls, one at a time. Returns `{ text, replies }`: `text` is null when the
+ * overview fails (no commentary); missing news or view sections are null for the template's fallbacks.
+ * `replies` lists every raw reply or error in call order.
  */
 export async function writeEdition({ askAI, env, sectorNames = [], ...context }) {
   const io = { askAI, env };
   const overview = await callSection('Overview', io, overviewPrompt(context), parseOverview);
-  if (!overview) throw new Error('overview section failed twice');
+  if (!overview.parsed) {
+    console.warn('⚠️ [Edition] Overview section failed twice; publishing without commentary');
+    return { text: null, replies: overview.attempts };
+  }
   const news = await callSection('News', io, newsPrompt(context), (r) => parseNews(r, context.headlines));
   const view = await callSection('View', io, viewPrompt(context), (r) => parseView(r, sectorNames));
-  return { ...overview, news, view };
+  return {
+    text: { ...overview.parsed, news: news.parsed, view: view.parsed },
+    replies: [...overview.attempts, ...news.attempts, ...view.attempts],
+  };
 }

@@ -22,6 +22,7 @@ import { initNodeSentry, logSwarmBreadcrumb, captureSwarmError, flushSentry } fr
 import { NewsOrchestrator } from "./lib/news-orchestrator.js";
 import { askAI } from "./lib/ai-service.js";
 import { generateMarketEdition } from "./lib/market-edition/index.js";
+import { saveEditionSnapshot } from "./lib/market-edition/snapshot.js";
 import { waitForPublicAvailability } from "./lib/utils.js";
 import { fetchPolicyPulse, fetchEconomicCalendar, fetchSentimentData } from "./lib/data-fetchers.js";
 
@@ -413,7 +414,8 @@ async function runInstitutionalSwarm() {
     // 4. QUALITY ASSURANCE: Institutional Swarm Review
     // Market editions skip the swarm review: their view already comes from a persona board and their figures from live data.
     let auditStatus = result.edition ? "EDITION_BOARD" : "PENDING";
-    if (!result.edition) try {
+    if (!result.edition) {
+      try {
         console.log(`🕵️ [Swarm] Initiating MiroFish Consensus Review [Freq: ${frequency}]...`);
         await runSwarmAudit(result.final, frequency, { targetVertical: targetVerticalId });
         auditStatus = "AUDITED";
@@ -428,6 +430,7 @@ async function runInstitutionalSwarm() {
             console.error(`🚨 [Cynical-Policy] Audit rejection detected for '${frequency}'. Aborting dispatch.`);
             throw new Error(`QA_REJECTION_FATAL: MiroFish board rejected the ${frequency} manuscript. Integrity score too low.`);
         }
+      }
     }
 
     // 5. ARCHIVAL PHASE
@@ -500,6 +503,10 @@ async function runInstitutionalSwarm() {
     };
     fs.writeFileSync(jsonPath, JSON.stringify(manifest, null, 2));
     console.log(`💾 [Swarm] Archive Phase: Saved JSON manifest to ${jsonPath}`);
+    if (result.snapshot) {
+        const snapshotFile = saveEditionSnapshot(result.snapshot, fileName.replace(/\.html$/, ''));
+        if (snapshotFile) console.log(`💾 [Edition] Snapshot (raw replies + data, not published) saved to ${snapshotFile}`);
+    }
 
     // --- 🌍 GITHUB PAGES SYNCHRONIZATION: Sovereign Origin Push ---
     const ghToken = process.env.GH_TOKEN || process.env.GH_PAT;
@@ -569,7 +576,8 @@ async function runInstitutionalSwarm() {
         // [V17.5] Thinking Refiner: Polish the Telegram alert for institutional impact.
         // Market editions skip it: their title and summary were already written for this edition, and the
         // extra call only spent provider credit to rephrase them.
-        if (!result.edition) try {
+        if (!result.edition) {
+          try {
             console.log("🧠 [Thinking] Refining Strategic Alert for institutional impact...");
             const refinerPrompt = `
 <thinking>
@@ -606,6 +614,7 @@ Provide the final refined output in JSON format:
         } catch (e) {
             console.warn("⚠️ [Thinking] Refinement failed, using original summary.", e.message);
         }
+        }
 
         // [V22.1] Non-blocking availability check — dispatch Telegram regardless of CDN propagation
         // The URL is always valid; GitHub Pages just needs time to propagate.
@@ -616,8 +625,14 @@ Provide the final refined output in JSON format:
         await dispatchTelegramAlert(telegramSummary, env);
         console.log(`💎 [Dispatch] Telegram Strategic Alert Sent.`);
 
-        // 2. Newsletter Dispatch (Consolidated Bridge)
-        await pushSovereignNewsletter(`BlogsPro Institutional: ${result.title}`, result.final, process.env);
+        // 2. Newsletter Dispatch (Consolidated Bridge).
+        // Market editions are not emailed: three a day would flood subscribers, and an edition body's charts
+        // depend on page CSS that an email does not carry, so its bar charts would arrive empty.
+        if (result.edition) {
+            console.log(`📭 [Newsletter] Skipped for market editions (web and Telegram only).`);
+        } else {
+            await pushSovereignNewsletter(`BlogsPro Institutional: ${result.title}`, result.final, process.env);
+        }
       } catch (dispatchErr) {
         console.warn(`⚠️ [Dispatch] Release Cascade Encountered Non-Fatal Error:`, dispatchErr.message);
         captureSwarmError(dispatchErr, { stage: 'dispatch_cascade', jobId: id });

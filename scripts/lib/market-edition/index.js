@@ -59,14 +59,16 @@ export async function generateMarketEdition({ askAI, env = process.env, now = ne
 
   const marketText = snapshotToText(markets, now.getTime());
   const board = await runViewBoard({ askAI, env, edition, marketText, headlinesText: headlinesToText(headlines) });
-  let text = null;
+  // writeEdition reports section failures in its result; this catch is for anything unexpected (a prompt bug).
+  let written = { text: null, replies: [] };
   try {
-    text = await writeEdition({
+    written = await writeEdition({
       askAI, env, edition, dateLabel: timeLabel, marketText, headlines, board, sectorNames: sectorNamesFrom(markets),
     });
   } catch (error) {
     console.warn(`⚠️ [Edition] Publishing without commentary: ${error.message}`);
   }
+  const { text } = written;
 
   const title = text?.title || `${edition.label}: markets at ${timeLabel}`;
   const summary = text?.summary || `Live prices and the latest market headlines for the ${edition.label.toLowerCase()}.`;
@@ -84,5 +86,7 @@ export async function generateMarketEdition({ askAI, env = process.env, now = ne
     hasCommentary: Boolean(text),
     stance: board.consensus?.stance || null,
     renderPage: (canonicalUrl) => renderEditionPage({ edition, title, summary, timeLabel, body, canonicalUrl }),
+    // Everything the page was built from, for saveEditionSnapshot: kept off the web root, never published.
+    snapshot: { edition: edition.id, timeLabel, text, board, markets, headlines, histories, replies: written.replies },
   };
 }

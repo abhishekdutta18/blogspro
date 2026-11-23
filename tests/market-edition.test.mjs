@@ -125,6 +125,31 @@ test('parseOverview moves paragraphs filed behind a stray "macro=[" item back to
   assert.deepEqual(bare.macro, []);
 });
 
+test('parseOverview drops JSON debris and keeps text that shares a line with a section key', () => {
+  const debris = parseOverview(JSON.stringify({ title: 'T', india: ['i1'], global: ['g1', '],', 'macro=[', 'm1', ']', '"}'] }));
+  assert.deepEqual(debris.global, ['g1']);
+  assert.deepEqual(debris.macro, ['m1']);
+
+  const joined = parseOverview(JSON.stringify({ title: 'T', india: ['i1'], global: ['g1', 'macro: ["The rupee firmed to 84.10."]'] }));
+  assert.deepEqual(joined.global, ['g1']);
+  assert.deepEqual(joined.macro, ['The rupee firmed to 84.10.']);
+
+  const prose = parseOverview(JSON.stringify({ title: 'T', india: ['i1'], global: ['Global: US stocks fell 1.2% on Friday.'] }));
+  assert.deepEqual(prose.global, ['Global: US stocks fell 1.2% on Friday.'], 'a sentence that starts with a key stays where it is');
+});
+
+test('parseOverview logs when it repairs sections or drops paragraphs over a cap', (t) => {
+  const warn = t.mock.method(console, 'warn', () => {});
+  parseOverview(JSON.stringify({ title: 'T', india: ['i1'], global: ['g1', 'g2', 'g3', 'g4', 'g5', 'macro=[', 'm1'] }));
+  const messages = warn.mock.calls.map((c) => String(c.arguments[0]));
+  assert.ok(messages.some((m) => /moved 1 misfiled paragraph/.test(m)), messages.join(' | '));
+  assert.ok(messages.some((m) => /global: dropped 1 paragraph\(s\) over the cap of 4/.test(m)), messages.join(' | '));
+
+  warn.mock.resetCalls();
+  parseOverview(JSON.stringify({ title: 'T', india: ['i1'], global: ['g1'], macro: ['m1'] }));
+  assert.equal(warn.mock.callCount(), 0, 'a clean reply logs nothing');
+});
+
 test('parseView keeps only known sectors and calls, and needs a thesis', () => {
   const reply = JSON.stringify({
     thesis: ['t1'],
@@ -266,4 +291,45 @@ test('generateMarketEdition publishes data without commentary when AI fails, and
     generateMarketEdition({ askAI, env: {}, now: ist(8), fetchImpl: fakeFetch({ failAll: true }) }),
     /EDITION_NO_DATA/,
   );
+});
+
+test('the edition snapshot keeps every raw writer reply, failed attempts included, and the data behind the page', async () => {
+  let overviewCalls = 0;
+  const askAI = async (prompt, { role }) => {
+    if (role === 'research') return '{"stance":"neutral","conviction":2,"points":["flat"]}';
+    if (prompt.includes('Write the market description') && (overviewCalls += 1) === 1) return 'macro=[ not json';
+    return fakeWriter(prompt);
+  };
+  const result = await generateMarketEdition({ askAI, env: {}, now: ist(8), fetchImpl: fakeFetch() });
+  const { snapshot } = result;
+  assert.equal(snapshot.edition, 'morning');
+  assert.deepEqual(snapshot.replies.map((r) => [r.section, r.attempt]), [['overview', 1], ['overview', 2], ['news', 1], ['view', 1]]);
+  assert.equal(snapshot.replies[0].reply, 'macro=[ not json');
+  assert.equal(snapshot.text.title, 'Nifty edges up');
+  assert.ok(snapshot.markets.length > 0 && snapshot.headlines.length > 0 && Array.isArray(snapshot.histories));
+  assert.equal(snapshot.board.consensus.stance, 'neutral');
+});
+
+test('the snapshot of a failed writer still records the errors', async () => {
+  const askAI = async () => { throw new Error('FLEET_EXHAUSTION_PERMANENT'); };
+  const { snapshot } = await generateMarketEdition({ askAI, env: {}, now: ist(8), fetchImpl: fakeFetch() });
+  assert.equal(snapshot.text, null);
+  assert.deepEqual(snapshot.replies.map((r) => [r.section, r.attempt, r.error]), [
+    ['overview', 1, 'FLEET_EXHAUSTION_PERMANENT'], ['overview', 2, 'FLEET_EXHAUSTION_PERMANENT'],
+  ]);
+});
+
+test('saveEditionSnapshot writes <id>.json under the snapshot directory, never the web root', async () => {
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const { saveEditionSnapshot, snapshotDir } = await import('../scripts/lib/market-edition/snapshot.js');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'edition-snap-'));
+  const file = saveEditionSnapshot({ edition: 'morning', text: null }, 'swarm-hourly-1', { dir });
+  assert.equal(file, path.join(dir, 'swarm-hourly-1.json'));
+  assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')), { edition: 'morning', text: null });
+  assert.equal(saveEditionSnapshot({}, '../escape', { dir }), null, 'an id with a path separator is refused');
+  assert.equal(snapshotDir({ EDITION_SNAPSHOT_DIR: '/x/y' }), '/x/y');
+  assert.ok(snapshotDir({}).startsWith(os.homedir()), 'defaults to the home directory, outside /var/www');
+  fs.rmSync(dir, { recursive: true, force: true });
 });
