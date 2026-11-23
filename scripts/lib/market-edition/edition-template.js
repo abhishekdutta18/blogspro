@@ -148,10 +148,17 @@ h3.sub{font-size:1.1rem;margin:1.75rem 0 .5rem}
 .calls{width:100%;border-collapse:collapse;font-size:.92rem;margin:.5rem 0 1rem}.calls th,.calls td{padding:.5rem;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
 .calls thead th{font-size:.75rem;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}.call{font-weight:700;text-transform:capitalize;white-space:nowrap}
 footer{margin-top:3rem;padding-top:1rem;border-top:1px solid var(--rule);font-size:.8rem;color:var(--ink-3)}
-@media (max-width:30rem){h1{font-size:1.6rem}.quotes{font-size:.85rem}.quotes th,.quotes td{padding:.35rem .3rem}}`;
+@media (max-width:30rem){h1{font-size:1.6rem}.quotes{font-size:.85rem}.quotes th,.quotes td{padding:.35rem .3rem}}
+.pdf-link{font-size:.9rem;margin:.5rem 0 0}
+@page{size:A4;margin:16mm 14mm 18mm}
+@media print{:root{--bg:#fff;--ink:#111;--ink-2:#333;--ink-3:#666;--rule:#ccc;--accent:#9a2a1f;--pos:#1f5fae;--neg:#b23a22;--axis:#666;--grid:#ddd;color-scheme:light}
+body{font-size:10.5pt;line-height:1.5}main{max-width:none;padding:0}.home,.bp-share,.pdf-link{display:none!important}
+h1{font-size:20pt}h2{font-size:14pt;break-after:avoid}h3{break-after:avoid}
+.quotes,.calls,.charts svg,figure,.stories li,.board li{break-inside:avoid}p{orphans:3;widows:3}
+a{color:inherit;text-decoration:none}footer{break-inside:avoid}}`;
 
 /** Full HTML page for an edition. */
-export function renderEditionPage({ edition, title, summary, timeLabel, body, canonicalUrl }) {
+export function renderEditionPage({ edition, title, summary, timeLabel, body, canonicalUrl, pdfHref }) {
   const pageTitle = `${title} — ${edition.label}`;
   const canonical = canonicalUrl ? `<link rel="canonical" href="${escapeHtml(canonicalUrl)}">` : '';
   return `<!DOCTYPE html>
@@ -173,6 +180,7 @@ ${canonical}
 <h1>${escapeHtml(title)}</h1>
 ${summary ? `<p class="lede">${escapeHtml(summary)}</p>` : ''}
 ${SHARE_BUTTON}
+${pdfHref ? `<p class="pdf-link"><a href="${escapeHtml(pdfHref)}" download>Download PDF</a></p>` : ''}
 <article>
 ${body}
 </article>

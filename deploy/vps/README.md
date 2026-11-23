@@ -95,6 +95,23 @@ cd /var/www/blogspro && STATE_DIRECTORY=/var/lib/blogspro-pulse npm run -s token
 journalctl -u 'blogspro-pulse@*' --since today | grep Budget
 ```
 
+## PDF copies
+
+Every edition, daily strategy and weekly review also gets a PDF next to its page (same name, `.pdf`). The page then
+shows a "Download PDF" link, and the JSON manifest gets a `pdf` field. `scripts/lib/market-edition/edition-pdf.js`
+renders the page's own print layout in headless Chrome with JavaScript off and all network requests blocked; it
+takes about 15 s and the file is about 0.5 MB. If no browser is found or the render fails, the page publishes
+without a PDF and the journal shows `⚠️ [PDF] Skipped`. `EDITION_PDF=0` turns PDFs off.
+
+The VPS installs node modules with `PUPPETEER_SKIP_DOWNLOAD=true`, and puppeteer has no linux-arm64 Chrome for the
+A1 anyway. Ubuntu's `chromium-browser` is a snap, whose private `/tmp` breaks puppeteer. Use Playwright's arm64
+Chromium (found automatically in `~/.cache/ms-playwright`), or point `PDF_CHROME_PATH` at another browser:
+
+```bash
+cd /var/www/blogspro && npx playwright install chromium     # as ubuntu: ~/.cache/ms-playwright/chromium-*
+sudo npx playwright install-deps chromium                     # system libraries via apt (one time)
+```
+
 ## Homepage data files
 
 Six timers publish files the homepage loads in the browser. Each runs `run-data.sh <name>`, which writes under
