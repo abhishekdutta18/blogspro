@@ -1,11 +1,11 @@
 /**
- * Free-tier providers that replace Gemini (Cloudflare Workers AI; GitHub Models was retired in Jul 2026) and the
+ * Free-tier providers that replace Gemini (Cloudflare Workers AI, Mistral; GitHub Models was retired in Jul 2026) and the
  * AI_DISABLED_PROVIDERS switch that takes a provider family out of the fleet.
  */
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  askAI, ResourceManager, filterDisabledProviders, generateCloudflareContent, generateGroqContent,
+  askAI, ResourceManager, filterDisabledProviders, generateCloudflareContent, generateGroqContent, generateMistralContent,
 } from '../scripts/lib/ai-service.js';
 
 const realFetch = globalThis.fetch;
@@ -85,6 +85,37 @@ test('bridge pool keeps only routes to models the bridge serves', async () => {
     ResourceManager.pool = [];
     await ResourceManager.init({ SWARM_AI_BRIDGE: 'https://bridge.example' }, true);
     assert.deepEqual(ResourceManager.pool.map((n) => n.name).sort(), ['Groq-Bridge-20B-Proxy', 'Groq-Bridge-Proxy']);
+  } finally {
+    process.env = saved;
+    ResourceManager.pool = [];
+  }
+});
+
+test('Mistral calls the chat endpoint with the key, a long-enough reply budget and the default model', async () => {
+  stubFetch(OPENAI_SHAPE);
+  assert.equal(await generateMistralContent('hi', undefined, { MISTRAL_API_KEY: 'mk_test' }), 'Rates steady.');
+  assert.equal(lastRequest.url, 'https://api.mistral.ai/v1/chat/completions');
+  assert.equal(lastRequest.init.headers.Authorization, 'Bearer mk_test');
+  assert.equal(lastRequest.body.model, 'mistral-large-latest');
+  assert.ok(lastRequest.body.max_tokens >= 4096, 'edition sections run to ~1,300 words');
+  assert.deepEqual(lastRequest.body.messages, [{ role: 'user', content: 'hi' }]);
+});
+
+test('Mistral errors keep the HTTP status so 429s cool down instead of blacklisting', async () => {
+  stubFetch({ message: 'Requests rate limit exceeded' }, 429);
+  await assert.rejects(generateMistralContent('hi', undefined, { MISTRAL_API_KEY: 'mk_test' }), /Mistral API Error: 429/);
+  await assert.rejects(generateMistralContent('hi', undefined, {}), /MISTRAL_API_KEY missing/);
+});
+
+test('a Mistral key adds a Mistral node to the pool', async () => {
+  const saved = { ...process.env };
+  for (const k of Object.keys(process.env)) if (/API_KEY|_KEY$|TOKEN|GH_PAT|CLOUDFLARE|SAMBANOVA|CEREBRAS|GROQ|GEMINI|VAULT|BRIDGE|OPENROUTER|HF_|MISTRAL/.test(k)) delete process.env[k];
+  try {
+    ResourceManager.pool = [];
+    await ResourceManager.init({ MISTRAL_API_KEY: 'mk_test' }, true);
+    const node = ResourceManager.pool.find((n) => n.name === 'Mistral');
+    assert.ok(node, 'Mistral node registered');
+    assert.ok(['research', 'generate', 'edit'].every((r) => node.roles.includes(r)));
   } finally {
     process.env = saved;
     ResourceManager.pool = [];

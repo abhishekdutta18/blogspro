@@ -390,6 +390,39 @@ export async function generateCloudflareContent(prompt, model = DEFAULT_CLOUDFLA
 // GitHub Models was retired on 30 Jul 2026: models.github.ai now answers every request with a plain "OK",
 // so the node was removed. The successor (Microsoft Foundry) needs an Azure account.
 
+const MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions";
+/** Free "Experiment" plan: about 1 request/second per model, large monthly token allowance. MISTRAL_MODEL overrides. */
+const DEFAULT_MISTRAL_MODEL = process.env.MISTRAL_MODEL || "mistral-large-latest";
+// Edition sections run to ~1,300 words (~2,000 tokens); leave headroom for JSON and longer manuscripts.
+const MISTRAL_MAX_TOKENS = 8192;
+const MISTRAL_TIMEOUT_MS = 120000;
+
+function mistralKey(context = {}) {
+    return context?.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY || null;
+}
+
+export async function generateMistralContent(prompt, model = DEFAULT_MISTRAL_MODEL, context = {}) {
+    const key = mistralKey(context);
+    if (!key) throw new Error("MISTRAL_API_KEY missing.");
+
+    const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
+    const res = await fetch(MISTRAL_URL, {
+        method: "POST",
+        signal: AbortSignal.timeout(MISTRAL_TIMEOUT_MS),
+        headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model, max_tokens: MISTRAL_MAX_TOKENS, messages: [{ role: "user", content: promptStr }] })
+    });
+    if (!res.ok) {
+        // Status stays in the message: the balancer cools a node down on "429" and blacklists on auth errors.
+        const errText = await res.text().catch(() => "");
+        throw new Error(`Mistral API Error: ${res.status} - ${errText.slice(0, 300)}`);
+    }
+    const data = await res.json();
+    const result = data.choices?.[0]?.message?.content;
+    if (!result) throw new Error(`Mistral returned empty result: ${JSON.stringify(data).slice(0, 300)}`);
+    return result;
+}
+
 /** Drops nodes whose name contains any family in a comma list (AI_DISABLED_PROVIDERS), e.g. "gemini". */
 export function filterDisabledProviders(pool, disabledList = '') {
     const families = String(disabledList).split(',').map((f) => f.trim().toLowerCase()).filter(Boolean);
@@ -764,7 +797,10 @@ export const ResourceManager = {
 
 
         // TIER 3: RESILIENCE FALLBACKS
-        // Free tier that needs no billing: Cloudflare Workers AI (10k neurons/day).
+        // Free tiers that need no billing: Cloudflare Workers AI (10k neurons/day) and Mistral's Experiment plan.
+        if (mistralKey(env)) {
+             this.pool.push({ name: 'Mistral', fn: (p, m, c) => generateMistralContent(p, DEFAULT_MISTRAL_MODEL, { ...env, ...c }), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate', 'manager', 'consolidate', 'utility'], match: /mistral|node-research|node-edit|node-draft|node-generate/i });
+        }
         if (cloudflareAuth(env)) {
              this.pool.push({ name: 'Cloudflare-Workers-AI', fn: (p, m, c) => generateCloudflareContent(p, DEFAULT_CLOUDFLARE_MODEL, { ...env, ...c }), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate', 'utility', 'manager', 'consolidate'], match: /cloudflare|workers-ai|llama|node-utility|node-editor|node-research|node-draft|node-generate/i });
         }
