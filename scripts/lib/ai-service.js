@@ -387,33 +387,8 @@ export async function generateCloudflareContent(prompt, model = DEFAULT_CLOUDFLA
     return result;
 }
 
-const GITHUB_MODELS_URL = "https://models.github.ai/inference/chat/completions";
-/** Low-tier GitHub Models allow ~150 requests/day and 8k input tokens per request on the free plan. */
-const DEFAULT_GITHUB_MODEL = process.env.GITHUB_MODELS_MODEL || "openai/gpt-4.1-mini";
-
-function githubModelsToken(context = {}) {
-    return context?.GITHUB_MODELS_TOKEN || process.env.GITHUB_MODELS_TOKEN || context?.GH_PAT || process.env.GH_PAT || null;
-}
-
-export async function generateGitHubModelsContent(prompt, model = DEFAULT_GITHUB_MODEL, context = {}) {
-    const token = githubModelsToken(context);
-    if (!token) throw new Error("GitHub Models token missing (GITHUB_MODELS_TOKEN or GH_PAT).");
-
-    const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
-    const res = await fetch(GITHUB_MODELS_URL, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model, messages: [{ role: "user", content: promptStr }] })
-    });
-    if (!res.ok) {
-        const errText = await res.text().catch(() => "");
-        throw new Error(`GitHub Models Error: ${res.status} - ${errText.slice(0, 300)}`);
-    }
-    const data = await res.json();
-    const result = data.choices?.[0]?.message?.content;
-    if (!result) throw new Error(`GitHub Models returned empty result: ${JSON.stringify(data).slice(0, 300)}`);
-    return result;
-}
+// GitHub Models was retired on 30 Jul 2026: models.github.ai now answers every request with a plain "OK",
+// so the node was removed. The successor (Microsoft Foundry) needs an Azure account.
 
 /** Drops nodes whose name contains any family in a comma list (AI_DISABLED_PROVIDERS), e.g. "gemini". */
 export function filterDisabledProviders(pool, disabledList = '') {
@@ -789,12 +764,9 @@ export const ResourceManager = {
 
 
         // TIER 3: RESILIENCE FALLBACKS
-        // Free tiers that need no billing: Cloudflare Workers AI (10k neurons/day) and GitHub Models.
+        // Free tier that needs no billing: Cloudflare Workers AI (10k neurons/day).
         if (cloudflareAuth(env)) {
              this.pool.push({ name: 'Cloudflare-Workers-AI', fn: (p, m, c) => generateCloudflareContent(p, DEFAULT_CLOUDFLARE_MODEL, { ...env, ...c }), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate', 'utility', 'manager', 'consolidate'], match: /cloudflare|workers-ai|llama|node-utility|node-editor|node-research|node-draft|node-generate/i });
-        }
-        if (githubModelsToken(env)) {
-             this.pool.push({ name: 'GitHub-Models', fn: (p, m, c) => generateGitHubModelsContent(p, DEFAULT_GITHUB_MODEL, { ...env, ...c }), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate', 'manager', 'consolidate'], match: /github|gpt|openai|node-editor|node-research|node-draft|node-generate/i });
         }
         if (activeKeys.HuggingFace) {
              this.pool.push({ name: 'HuggingFace', fn: generateHuggingFaceContent, tier: 3, roles: ['utility'], match: /huggingface|hf|node-utility/i });
