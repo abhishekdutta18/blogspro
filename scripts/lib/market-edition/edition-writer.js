@@ -201,6 +201,8 @@ async function callSection(name, { askAI, env }, text, parse) {
     } catch (error) {
       attempts.push({ section, attempt, error: error.message });
       console.warn(`⚠️ [Edition] ${name} attempt ${attempt} failed: ${error.message}`);
+      // A budget refusal will refuse again; retrying only adds log noise.
+      if (error?.name === 'BudgetExceededError') break;
     }
   }
   return { parsed: null, attempts };

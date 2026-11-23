@@ -7,8 +7,8 @@ which hid generation failures and ran from a crontab with no overlap protection.
 | Timer | Schedule (UTC) | Tome type | Generation limit |
 |-------|----------------|-----------|------------------|
 | `blogspro-pulse@hourly.timer` | 08:00, 16:00, 22:00 IST | market edition | 45 min |
-| `blogspro-pulse@daily.timer` | 00:00 | article | 2 h |
-| `blogspro-pulse@weekly.timer` | Sunday 01:00 | tome | 5 h |
+| `blogspro-pulse@daily.timer` | 00:00 | daily strategy (edition pipeline) | 2 h |
+| `blogspro-pulse@weekly.timer` | Sunday 01:00 | weekly review (edition pipeline) | 5 h |
 
 Runs share `/var/www/blogspro` and take a lock on it, so they never overlap. Secrets stay in
 `/var/www/blogspro/.env`; the rsync to the web VPS excludes it and other key files.
@@ -48,6 +48,41 @@ publishes prices and headlines, marked as missing commentary. Run a specific edi
 
 ```bash
 node scripts/generate-institutional-tome.js --freq=hourly --type=briefing --force --edition=morning
+```
+
+## Daily strategy and weekly review
+
+`daily` and `weekly` run the same pipeline as the editions (`REPORTS` in `scripts/lib/market-edition/editions.js`):
+3 analyst-board calls plus overview, news and view, about 6 AI calls per run. They used to run the 17-vertical
+swarm, roughly 100-170 large calls per run, which ran the shared free-tier quotas dry (one Groq org behind three
+pool nodes, the Workers AI daily allowance). The weekly review quotes every move over the last 5 sessions and
+gets a digest of the week's edition titles and summaries from the edition snapshots, so it needs no extra research
+calls. `REPORT_ENGINE=swarm` in the environment brings back the old swarm for a run; monthly still uses it.
+
+```bash
+node scripts/generate-institutional-tome.js --freq=daily --type=article --force
+node scripts/generate-institutional-tome.js --freq=weekly --type=tome --force
+```
+
+### Token budget
+
+Every edition-pipeline call goes through `scripts/lib/token-budget.js`. Before sending a call it estimates
+prompt tokens (4 characters each) plus a 2,500-token reply reserve, and refuses the call when that would pass:
+
+| Cap | Default | Override |
+|-----|---------|----------|
+| Per run, hourly / daily / weekly | 80k / 80k / 100k | `TOKEN_BUDGET_HOURLY_RUN`, `TOKEN_BUDGET_DAILY_RUN`, `TOKEN_BUDGET_WEEKLY_RUN` |
+| All runs per UTC day | 400k | `TOKEN_BUDGET_DAY` |
+
+A refused section is not retried; the piece publishes with what it has (prices, headlines, and any sections
+already written), marked as missing commentary if the overview was refused. Spend is recorded per frequency in
+`/var/lib/blogspro-pulse/token-ledger.json` (the unit's state directory; `TOKEN_LEDGER_FILE` overrides) and logged
+at the end of each run as `🪙 [Budget]`. The figures are estimates for pacing, not provider billing: tune the caps
+from the ledger after a few days of runs.
+
+```bash
+cat /var/lib/blogspro-pulse/token-ledger.json
+journalctl -u 'blogspro-pulse@*' --since today | grep Budget
 ```
 
 ## Homepage data files
