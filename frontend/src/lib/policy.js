@@ -36,16 +36,54 @@ function toEvent(raw) {
   return { title, country, time: raw.time, forecast: text(raw.forecast, VALUE_MAX) || '—', previous: text(raw.previous, VALUE_MAX) || '—' };
 }
 
+const list = (value, toItem) => (Array.isArray(value) ? value.map(toItem).filter(Boolean) : []);
+
+function toGsec(raw) {
+  const rate = toRate(raw);
+  const maturity = Number(raw?.maturity);
+  return rate && Number.isInteger(maturity) && maturity > 2000 && maturity < 2100 ? { ...rate, maturity } : null;
+}
+
+function parseMarkets(raw) {
+  const gsecs = list(raw?.gsecs, toGsec);
+  const tbills = list(raw?.tbills, toRate);
+  return gsecs.length || tbills.length ? { gsecs, tbills, asOn: time(raw.asOn) } : null;
+}
+
 function parseRbi(raw) {
-  const rates = Array.isArray(raw?.rates) ? raw.rates.map(toRate).filter(Boolean) : [];
+  const rates = list(raw?.rates, toRate);
   if (rates.length === 0 || !time(raw.fetchedAt)) return null;
   const usdInr = Number(raw.usdInr);
   return {
     fetchedAt: raw.fetchedAt,
     rates,
     usdInr: usdInr > 0 ? usdInr : null,
-    releases: Array.isArray(raw.releases) ? raw.releases.map(toRelease).filter(Boolean) : [],
+    markets: parseMarkets(raw.markets),
+    releases: list(raw.releases, toRelease),
   };
+}
+
+// Display order of the MoSPI indicators; unknown keys are ignored.
+const MACRO_ORDER = Object.freeze(['cpi', 'cpiFood', 'wpi', 'iip', 'gdp', 'unemployment']);
+
+function toIndicator(raw) {
+  const label = text(raw?.label, 60);
+  const period = text(raw?.period, 20);
+  const value = Number(raw?.value);
+  if (!MACRO_ORDER.includes(raw?.key) || !label || !period || raw.unit !== '%' || !Number.isFinite(value) || Math.abs(value) >= 100) return null;
+  return { key: raw.key, label, value, period };
+}
+
+function parseMacro(raw) {
+  if (!time(raw?.fetchedAt)) return null;
+  const indicators = list(raw.indicators, toIndicator).sort((a, b) => MACRO_ORDER.indexOf(a.key) - MACRO_ORDER.indexOf(b.key));
+  return indicators.length ? { fetchedAt: raw.fetchedAt, indicators } : null;
+}
+
+/** The G-Sec closest to ten years from `now`'s year (the 10-year benchmark), or null. */
+export function benchmarkGsec(gsecs, now = Date.now()) {
+  const target = new Date(now).getUTCFullYear() + 10;
+  return [...gsecs].sort((a, b) => Math.abs(a.maturity - target) - Math.abs(b.maturity - target))[0] ?? null;
 }
 
 function parseCalendar(raw) {
@@ -53,11 +91,23 @@ function parseCalendar(raw) {
   return { fetchedAt: raw.fetchedAt, events: raw.events.map(toEvent).filter(Boolean).sort((a, b) => a.time - b.time) };
 }
 
-/** { rbi, calendar } from the published file (either may be null), or null when neither is usable. */
+/** { rbi, macro, calendar } from the published file (any may be null), or null when none is usable. */
 export function parsePolicy(json) {
   const rbi = parseRbi(json?.rbi);
+  const macro = parseMacro(json?.macro);
   const calendar = parseCalendar(json?.calendar);
-  return rbi || calendar ? { rbi, calendar } : null;
+  return rbi || macro || calendar ? { rbi, macro, calendar } : null;
+}
+
+/** "19 Nov 2026" for a UTC calendar date in ms. */
+export function formatDay(ms) {
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(ms));
+}
+
+/** "+6.09%" style for growth and inflation figures (sign shown), "4.90%" for levels. */
+export function formatIndicator(value, { signed = true } = {}) {
+  const sign = signed && value > 0 ? '+' : '';
+  return `${sign}${value.toFixed(2)}%`;
 }
 
 /** "Wed 25 Nov, 19:00 IST" for an epoch-millisecond time. */

@@ -34,7 +34,7 @@ export const siteConfig: SiteConfig = {
   nav: [
     { label: 'Briefings', href: '/briefings.html' },
     { label: 'Research', href: '/#research' },
-    { label: 'Policy calendar', href: '/#policy' },
+    { label: 'India macro', href: '/#policy' },
     { label: 'Markets', href: '/#markets' },
     { label: 'About', href: '/about.html' }
   ]
