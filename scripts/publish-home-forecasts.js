@@ -9,9 +9,12 @@
  * ('IN10Y', from data/bonds.json once it has enough days); forecasts are the next trading sessions.
  * Macro series come from data/policy.json (MoSPI history); forecasts are the next periods.
  * The lower/upper bounds are TimesFM's 80% prediction interval. Model output, not advice.
+ * Engines: BigQuery AI.FORECAST (TimesFM 2.0) first; when it fails for a section (sign-in, quota, query
+ * error) the same series go to TimesFM running locally on this server (lib/home-forecasts/local.js). Each
+ * section records { engine, model } so the page can say which one answered.
  * Usage: node scripts/publish-home-forecasts.js [--out <path>]  (reads data/bonds.json and data/policy.json
- * next to the output). Runs once a day. A failed query keeps the previous section. Exits 1 when nothing
- * was forecast.
+ * next to the output). Runs once a day. A section both engines failed keeps its previous copy. Exits 1
+ * when nothing was forecast.
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,6 +22,7 @@ import { GoogleAuth } from 'google-auth-library';
 import { parseHistory } from './lib/market-edition/market-data.js';
 import { HOME_INSTRUMENTS } from './lib/market-edition/home-markets.js';
 import { buildForecastRequest, parseForecastResponse, runQuery, sessionPoints, monthStart, addMonths, MODEL, CONFIDENCE } from './lib/home-forecasts/timesfm.js';
+import { localForecaster } from './lib/home-forecasts/local.js';
 import { readJsonFile, writeJsonAtomically } from './lib/json-file.js';
 import { outPath } from './publish-home-markets.js';
 
@@ -80,32 +84,64 @@ export function macroInputs(history = []) {
     .filter((s) => s.points.length >= MIN_MACRO_POINTS);
 }
 
-async function forecastDaily(fetchImpl, bonds, query, now) {
+/**
+ * A forecaster takes [{ id, points: [[ISO time, value]] }] and a horizon and returns { model, forecasts: Map }.
+ * The BigQuery one signs in on first use, so a sign-in failure is just another failure the fallback handles.
+ */
+export function bigQueryForecaster(query) {
+  let runner = query ? Promise.resolve(query) : null;
+  return async (series, horizon) => {
+    runner ??= bigQueryRunner();
+    const run = await runner.catch((error) => { runner = null; throw new Error(`BigQuery sign-in failed: ${error.message}`); });
+    const forecasts = parseForecastResponse(await run(buildForecastRequest(series, { horizon })));
+    if (forecasts.size === 0) throw new Error('BigQuery returned no forecasts');
+    return { model: `${MODEL} (Google, via BigQuery AI.FORECAST)`, forecasts };
+  };
+}
+
+/** Adapts the local forecaster (values only, no timestamps) to the same input shape. */
+const localFromPoints = (local) => (series, horizon) => local(series.map(({ id, points }) => ({ id, values: points.map((p) => p[1]) })), horizon);
+
+/** Tries each engine in turn; returns { engine, model, forecasts } from the first that answers. */
+export async function forecastWith(engines, name, series, horizon) {
+  const errors = [];
+  for (const [engine, forecast] of engines) {
+    try {
+      return { engine, ...(await forecast(series, horizon)) };
+    } catch (error) {
+      errors.push(`${engine}: ${error.message}`);
+      console.warn(`⚠️ [Forecasts] ${name} via ${engine} failed: ${error.message}`);
+    }
+  }
+  throw new Error(errors.join('; '));
+}
+
+async function forecastDaily(fetchImpl, bonds, engines, now) {
   const inputs = dailyInputs(await fetchDailyCloses(fetchImpl), bonds?.history);
   if (inputs.length === 0) return null;
-  const request = buildForecastRequest(inputs.map((s) => ({ id: s.id, points: sessionPoints(s.values, now) })), { horizon: DAILY_HORIZON });
-  const forecasts = parseForecastResponse(await query(request));
-  const series = inputs.filter((s) => forecasts.has(s.id)).map((s) => ({
+  const series = inputs.map((s) => ({ id: s.id, points: sessionPoints(s.values, now) }));
+  const { engine, model, forecasts } = await forecastWith(engines, 'daily', series, DAILY_HORIZON);
+  const shaped = inputs.filter((s) => forecasts.has(s.id)).map((s) => ({
     id: s.id,
     history: s.dates.map((d, i) => [d, s.values[i]]).slice(-SHOWN_SESSIONS),
     forecast: forecasts.get(s.id),
   }));
-  return series.length ? { horizon: DAILY_HORIZON, series } : null;
+  return shaped.length ? { horizon: DAILY_HORIZON, engine, model, series: shaped } : null;
 }
 
-async function forecastMacro(policy, query) {
+async function forecastMacro(policy, engines) {
   const inputs = macroInputs(policy?.macro?.history);
   if (inputs.length === 0) return null;
-  const request = buildForecastRequest(inputs.map((s) => ({ id: s.key, points: s.points.map(([k, v]) => [monthStart(k), v]) })), { horizon: MACRO_HORIZON });
-  const forecasts = parseForecastResponse(await query(request));
-  const series = inputs.filter((s) => forecasts.has(s.key)).map((s) => ({
+  const series = inputs.map((s) => ({ id: s.key, points: s.points.map(([k, v]) => [monthStart(k), v]) }));
+  const { engine, model, forecasts } = await forecastWith(engines, 'macro', series, MACRO_HORIZON);
+  const shaped = inputs.filter((s) => forecasts.has(s.key)).map((s) => ({
     key: s.key,
     label: s.label,
     frequency: s.frequency,
     history: s.points,
     forecast: forecasts.get(s.key).map(({ step, ...f }) => ({ period: addMonths(s.points.at(-1)[0], step * MONTHS_PER_STEP[s.frequency]), ...f })),
   }));
-  return series.length ? { horizon: MACRO_HORIZON, series } : null;
+  return shaped.length ? { horizon: MACRO_HORIZON, engine, model, series: shaped } : null;
 }
 
 /** A BigQuery runner using the service account in GOOGLE_APPLICATION_CREDENTIALS. */
@@ -124,25 +160,25 @@ async function attempt(name, task) {
   }
 }
 
-/** Forecasts both sections and writes the file; a failed section keeps its previous copy. */
-export async function publishHomeForecasts({ out, fetchImpl = fetch, query, now = Date.now() }) {
+/** The model line for the file: each distinct model that answered. */
+const modelsUsed = (...sections) => [...new Set(sections.filter(Boolean).map((s) => s.model))].join('; ') || `${MODEL} (Google)`;
+
+/**
+ * Forecasts both sections and writes the file; a section every engine failed keeps its previous copy.
+ * `query` stubs BigQuery and `local` stubs the local model in tests.
+ */
+export async function publishHomeForecasts({ out, fetchImpl = fetch, query, local = localForecaster(), now = Date.now() }) {
   const dir = path.dirname(out);
   const previous = readJsonFile(out);
-  const run = query ?? (await attempt('BigQuery sign-in', bigQueryRunner));
-  if (!run) return { written: false, fresh: [], out };
+  const engines = [['bigquery', bigQueryForecaster(query)], ['local', localFromPoints(local)]];
   const [daily, macro] = await Promise.all([
-    attempt('daily forecast', () => forecastDaily(fetchImpl, readJsonFile(path.join(dir, 'bonds.json')), run, now)),
-    attempt('macro forecast', () => forecastMacro(readJsonFile(path.join(dir, 'policy.json')), run)),
+    attempt('daily forecast', () => forecastDaily(fetchImpl, readJsonFile(path.join(dir, 'bonds.json')), engines, now)),
+    attempt('macro forecast', () => forecastMacro(readJsonFile(path.join(dir, 'policy.json')), engines)),
   ]);
-  const fresh = [daily && 'daily', macro && 'macro'].filter(Boolean);
+  const fresh = [daily && `daily (${daily.engine})`, macro && `macro (${macro.engine})`].filter(Boolean);
   if (fresh.length === 0) return { written: false, fresh, out };
-  writeJsonAtomically(out, {
-    generatedAt: now,
-    model: `${MODEL} (Google, via BigQuery AI.FORECAST)`,
-    confidence: CONFIDENCE,
-    daily: daily ?? previous?.daily ?? null,
-    macro: macro ?? previous?.macro ?? null,
-  });
+  const kept = { daily: daily ?? previous?.daily ?? null, macro: macro ?? previous?.macro ?? null };
+  writeJsonAtomically(out, { generatedAt: now, model: modelsUsed(kept.daily, kept.macro), confidence: CONFIDENCE, ...kept });
   return { written: true, fresh, out };
 }
 

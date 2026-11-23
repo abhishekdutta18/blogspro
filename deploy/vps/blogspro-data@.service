@@ -10,6 +10,10 @@ Group=ubuntu
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
 # Only the forecasts job uses it (BigQuery); a path, not a secret.
 Environment=GOOGLE_APPLICATION_CREDENTIALS=/var/www/blogspro/knowledge/firebase-service-account.json
+# Local TimesFM fallback (forecasts only): the checkpoint is downloaded once at install, then read offline.
+Environment=HF_HOME=/opt/blogspro-timesfm/hf
+Environment=HF_HUB_OFFLINE=1
 ExecStart=/opt/blogspro-pulse/run-data.sh %i
-TimeoutStartSec=8min
+# Worst case for forecasts: a slow BigQuery attempt, then the local model.
+TimeoutStartSec=15min
 Nice=10

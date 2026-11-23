@@ -8,7 +8,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { buildForecastRequest, parseForecastResponse, sessionPoints, addMonths } from '../scripts/lib/home-forecasts/timesfm.js';
-import { regularTail, macroInputs, publishHomeForecasts, DAILY_HORIZON, MACRO_HORIZON } from '../scripts/publish-home-forecasts.js';
+import { regularTail, macroInputs, publishHomeForecasts, forecastWith, DAILY_HORIZON, MACRO_HORIZON } from '../scripts/publish-home-forecasts.js';
+import { localForecaster, parseLocalReply } from '../scripts/lib/home-forecasts/local.js';
 
 test('buildForecastRequest writes validated literals and passes data only as @rows', () => {
   const body = buildForecastRequest([{ id: "x'; DROP", points: [['2026-01-01T00:00:00.000Z', 1]] }], { horizon: 5 });
@@ -63,23 +64,60 @@ test('publishHomeForecasts forecasts both sections and keeps the previous one on
     return { schema: { fields }, rows: ids.flatMap((id) => Array.from({ length: horizon }, (_, i) => ({ f: [id, 10 + i, 9, 11].map((v) => ({ v: String(v) })) }))) };
   };
 
-  const first = await publishHomeForecasts({ out, fetchImpl, query: async (body) => answer(body), now });
-  assert.deepEqual(first.fresh, ['daily', 'macro']);
+  const localCalls = [];
+  const local = async (series, horizon) => {
+    localCalls.push({ ids: series.map((x) => x.id), horizon, lengths: series.map((x) => x.values.length) });
+    return { model: 'TimesFM 3.0 (local)', forecasts: new Map(series.map((x) => [x.id, Array.from({ length: horizon }, (_, i) => ({ step: i + 1, value: 1, lower: 0, upper: 2 }))])) };
+  };
+  const broken = async () => { throw new Error('python missing'); };
+
+  const first = await publishHomeForecasts({ out, fetchImpl, query: async (body) => answer(body), local, now });
+  assert.deepEqual(first.fresh, ['daily (bigquery)', 'macro (bigquery)']);
+  assert.equal(localCalls.length, 0, 'the local model is only a fallback');
   const saved = JSON.parse(fs.readFileSync(out, 'utf8'));
   assert.equal(saved.daily.horizon, DAILY_HORIZON);
-  assert.ok(saved.daily.series.length > 0 && saved.daily.series.every((s) => s.forecast.length === DAILY_HORIZON));
+  assert.equal(saved.daily.engine, 'bigquery');
+  assert.ok(saved.daily.series.length > 0 && saved.daily.series.every((x) => x.forecast.length === DAILY_HORIZON));
   assert.equal(saved.macro.horizon, MACRO_HORIZON);
   assert.deepEqual(saved.macro.series[0].forecast.map((f) => f.period), ['2026-11', '2026-12', '2027-01']);
 
-  const macroOnlyFails = async (body) => {
+  const macroQueryFails = async (body) => {
     if (body.query.includes(`horizon => ${MACRO_HORIZON},`)) throw new Error('quota');
     return answer(body);
   };
-  const second = await publishHomeForecasts({ out, fetchImpl, query: macroOnlyFails, now: now + day });
-  assert.deepEqual(second.fresh, ['daily']);
-  assert.deepEqual(JSON.parse(fs.readFileSync(out, 'utf8')).macro, saved.macro, 'failed section keeps its previous copy');
+  const second = await publishHomeForecasts({ out, fetchImpl, query: macroQueryFails, local, now: now + day });
+  assert.deepEqual(second.fresh, ['daily (bigquery)', 'macro (local)'], 'BigQuery failure falls back to the local model');
+  assert.deepEqual(localCalls[0], { ids: ['cpi'], horizon: MACRO_HORIZON, lengths: [8] });
+  const afterFallback = JSON.parse(fs.readFileSync(out, 'utf8'));
+  assert.equal(afterFallback.macro.engine, 'local');
+  assert.deepEqual(afterFallback.macro.series[0].forecast.map((f) => f.period), ['2026-11', '2026-12', '2027-01']);
+  assert.match(afterFallback.model, /BigQuery.*; TimesFM 3\.0 \(local\)/);
 
-  const nothing = await publishHomeForecasts({ out, fetchImpl, query: async () => { throw new Error('down'); }, now });
+  const third = await publishHomeForecasts({ out, fetchImpl, query: macroQueryFails, local: broken, now: now + 2 * day });
+  assert.deepEqual(third.fresh, ['daily (bigquery)']);
+  assert.deepEqual(JSON.parse(fs.readFileSync(out, 'utf8')).macro, afterFallback.macro, 'both engines failed: previous copy kept');
+
+  const nothing = await publishHomeForecasts({ out, fetchImpl, query: async () => { throw new Error('down'); }, local: broken, now });
   assert.equal(nothing.written, false);
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('forecastWith stops at the first engine that answers and reports every failure', async () => {
+  const ok = async () => ({ model: 'm', forecasts: new Map([['a', []]]) });
+  const fail = (msg) => async () => { throw new Error(msg); };
+  assert.equal((await forecastWith([['bigquery', fail('x')], ['local', ok]], 't', [], 1)).engine, 'local');
+  await assert.rejects(forecastWith([['bigquery', fail('quota')], ['local', fail('no python')]], 't', [], 1), /bigquery: quota; local: no python/);
+});
+
+test('localForecaster sends values on stdin and cleans the reply', async () => {
+  let sent;
+  const run = async (python, script, input) => {
+    sent = { python, input: JSON.parse(input) };
+    return JSON.stringify({ model: 'TimesFM 3.0 (local)', forecasts: { A: [{ value: 5, lower: 6, upper: 7 }, { value: 'x', lower: 1, upper: 2 }], B: [] } });
+  };
+  const reply = await localForecaster({ python: '/py', run })([{ id: 'A', values: [1, 2], extra: true }], 2);
+  assert.deepEqual(sent, { python: '/py', input: { horizon: 2, series: [{ id: 'A', values: [1, 2] }] } });
+  assert.deepEqual([...reply.forecasts], [['A', [{ step: 1, value: 5, lower: 5, upper: 7 }]]], 'bounds always contain the value');
+  await assert.rejects(localForecaster({ run: async () => '{"forecasts":{}}' })([{ id: 'A', values: [1] }], 1), /no forecasts/);
+  assert.equal(parseLocalReply('{"forecasts":{}}').model, 'TimesFM (local)');
 });

@@ -79,3 +79,32 @@ sudo systemctl enable --now blogspro-markets.timer blogspro-policy.timer \
   blogspro-data@bonds.timer blogspro-data@movers.timer blogspro-data@forecasts.timer blogspro-data@charts.timer
 journalctl -u blogspro-data@forecasts -n 20 --no-pager
 ```
+
+### Local TimesFM (forecast fallback)
+
+When BigQuery `AI.FORECAST` fails for a section (sign-in, quota, query error), the forecasts job sends the same
+series to TimesFM running on this server: `scripts/lib/home-forecasts/timesfm_local.py` in its own virtualenv,
+CPU only. The file records `engine: "bigquery" | "local"` and the model per section. The checkpoint is fetched
+once at install and read offline afterwards (`HF_HUB_OFFLINE=1` in the unit).
+
+```bash
+sudo mkdir -p /opt/blogspro-timesfm && sudo chown ubuntu:ubuntu /opt/blogspro-timesfm
+python3 -m venv /opt/blogspro-timesfm/venv
+# CPU-only torch first, so timesfm does not pull the CUDA build (3.3 GB of nvidia libraries this box cannot use):
+/opt/blogspro-timesfm/venv/bin/pip install --index-url https://download.pytorch.org/whl/cpu torch
+/opt/blogspro-timesfm/venv/bin/pip install "timesfm[torch]==3.0.2"
+# Download the checkpoint (1.3 GB, online this once) and check the script end to end (prints JSON forecasts):
+echo '{"horizon":3,"series":[{"id":"t","values":[1,2,3,4,5,6,7,8,9,10]}]}' \
+  | HF_HOME=/opt/blogspro-timesfm/hf /opt/blogspro-timesfm/venv/bin/python /var/www/blogspro/scripts/lib/home-forecasts/timesfm_local.py
+```
+
+Tuning for this server (4-core aarch64, 23 GB; measured 2026-11-23 on the live series):
+
+- **Footprint:** venv 948 MB, checkpoint 1.3 GB, 2.9 GB peak RSS per run. Load is 2.5 s from page cache,
+  about 30 s cold; predicting all 17 daily series takes about 1 s. A full fallback run (both sections) took 10.5 s.
+- **One run at a time:** the script holds an `flock` on `/opt/blogspro-timesfm/run.lock` (`TIMESFM_LOCK`), so
+  the daily and macro sections never load the checkpoint side by side.
+- **Threads:** `TIMESFM_THREADS` (default: cores, at most 4), one inter-op thread, `inference_mode`.
+- **Context:** the whole history is sent (`TIMESFM_MAX_CONTEXT`, default 512, never binds at 120 sessions).
+  A 170-window rolling backtest gave error relative to "no change" of 1.06 with full history vs 1.07-1.08 at
+  32-64 points, and 80% bands covering 74% vs 67-70%; symmetric averaging made no difference.
