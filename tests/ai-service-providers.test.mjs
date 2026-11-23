@@ -1,11 +1,12 @@
 /**
- * Free-tier providers that replace Gemini (Cloudflare Workers AI; GitHub Models was retired in Jul 2026) and the
+ * Low-cost providers that replace Gemini (Cloudflare Workers AI, Sarvam; GitHub Models was retired in Jul 2026) and the
  * AI_DISABLED_PROVIDERS switch that takes a provider family out of the fleet.
  */
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  askAI, ResourceManager, filterDisabledProviders, generateCloudflareContent, generateGroqContent,
+  askAI, ResourceManager, filterDisabledProviders, generateCloudflareContent, generateGroqContent, generateSarvamContent,
+  isTerminalProviderError,
 } from '../scripts/lib/ai-service.js';
 
 const realFetch = globalThis.fetch;
@@ -85,6 +86,48 @@ test('bridge pool keeps only routes to models the bridge serves', async () => {
     ResourceManager.pool = [];
     await ResourceManager.init({ SWARM_AI_BRIDGE: 'https://bridge.example' }, true);
     assert.deepEqual(ResourceManager.pool.map((n) => n.name).sort(), ['Groq-Bridge-20B-Proxy', 'Groq-Bridge-Proxy']);
+  } finally {
+    process.env = saved;
+    ResourceManager.pool = [];
+  }
+});
+
+test('Sarvam calls chat completions with the key, sarvam-105b, reasoning off and a long reply budget', async () => {
+  stubFetch(OPENAI_SHAPE);
+  assert.equal(await generateSarvamContent('hi', undefined, { SARVAM_API_KEY: 'sk_test' }), 'Rates steady.');
+  assert.equal(lastRequest.url, 'https://api.sarvam.ai/v1/chat/completions');
+  assert.equal(lastRequest.init.headers.Authorization, 'Bearer sk_test');
+  assert.equal(lastRequest.init.headers['api-subscription-key'], 'sk_test');
+  assert.equal(lastRequest.body.model, 'sarvam-105b');
+  assert.equal(lastRequest.body.reasoning_effort, null, 'reasoning tokens are billed as output');
+  assert.ok(lastRequest.body.max_tokens >= 4096, 'the API default of 2048 truncates edition sections');
+});
+
+test('Sarvam drops any think block from the reply', async () => {
+  stubFetch({ choices: [{ message: { content: '<think>plan</think>\n{"ok":true}' } }] });
+  assert.equal(await generateSarvamContent('hi', undefined, { SARVAM_API_KEY: 'sk_test' }), '{"ok":true}');
+});
+
+test('Sarvam: used-up credits are terminal even when sent as 429; real rate limits stay 429', async () => {
+  stubFetch({ error: { message: 'Quota Exceeded', code: 'insufficient_quota_error' } }, 429);
+  const quota = await generateSarvamContent('hi', undefined, { SARVAM_API_KEY: 'sk_test' }).catch((e) => e.message);
+  assert.doesNotMatch(quota, /429/);
+  assert.ok(isTerminalProviderError(quota), quota);
+
+  stubFetch({ error: { message: 'Rate limit exceeded', code: 'rate_limit_exceeded_error' } }, 429);
+  await assert.rejects(generateSarvamContent('hi', undefined, { SARVAM_API_KEY: 'sk_test' }), /Sarvam API Error: 429/);
+  await assert.rejects(generateSarvamContent('hi', undefined, {}), /SARVAM_API_KEY missing/);
+});
+
+test('a Sarvam key adds a Sarvam node to the pool', async () => {
+  const saved = { ...process.env };
+  for (const k of Object.keys(process.env)) if (/API_KEY|_KEY$|TOKEN|GH_PAT|CLOUDFLARE|SAMBANOVA|CEREBRAS|GROQ|GEMINI|VAULT|BRIDGE|OPENROUTER|HF_|SARVAM/.test(k)) delete process.env[k];
+  try {
+    ResourceManager.pool = [];
+    await ResourceManager.init({ SARVAM_API_KEY: 'sk_test' }, true);
+    const node = ResourceManager.pool.find((n) => n.name === 'Sarvam');
+    assert.ok(node, 'Sarvam node registered');
+    assert.ok(['research', 'generate', 'edit'].every((r) => node.roles.includes(r)));
   } finally {
     process.env = saved;
     ResourceManager.pool = [];

@@ -390,6 +390,46 @@ export async function generateCloudflareContent(prompt, model = DEFAULT_CLOUDFLA
 // GitHub Models was retired on 30 Jul 2026: models.github.ai now answers every request with a plain "OK",
 // so the node was removed. The successor (Microsoft Foundry) needs an Azure account.
 
+const SARVAM_URL = "https://api.sarvam.ai/v1/chat/completions";
+/** Sarvam bills per token (Rs 10/1M in, Rs 25/1M out, intro pricing to end-2026) against Rs 100 signup credit. SARVAM_MODEL overrides. */
+const DEFAULT_SARVAM_MODEL = process.env.SARVAM_MODEL || "sarvam-105b";
+// The API default (2048) truncates edition sections of ~1,300 words; leave headroom for JSON.
+const SARVAM_MAX_TOKENS = 8192;
+const SARVAM_TIMEOUT_MS = 120000;
+
+function sarvamKey(context = {}) {
+    return context?.SARVAM_API_KEY || process.env.SARVAM_API_KEY || null;
+}
+
+export async function generateSarvamContent(prompt, model = DEFAULT_SARVAM_MODEL, context = {}) {
+    const key = sarvamKey(context);
+    if (!key) throw new Error("SARVAM_API_KEY missing.");
+
+    const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
+    const res = await fetch(SARVAM_URL, {
+        method: "POST",
+        signal: AbortSignal.timeout(SARVAM_TIMEOUT_MS),
+        // Docs disagree on the auth header; both carry the same sk_ key.
+        headers: { "Authorization": `Bearer ${key}`, "api-subscription-key": key, "Content-Type": "application/json" },
+        // Reasoning is on by default for sarvam-105b and billed as output tokens; null turns it off.
+        body: JSON.stringify({ model, max_tokens: SARVAM_MAX_TOKENS, reasoning_effort: null, messages: [{ role: "user", content: promptStr }] })
+    });
+    if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        // Used-up credit may arrive as 402 or as 429 "Quota Exceeded": report it without "429" so the balancer
+        // blacklists the node instead of retrying it every minute.
+        if (res.status === 402 || errText.includes('insufficient_quota')) {
+            throw new Error("Sarvam credits exhausted: payment_required (insufficient_quota_error)");
+        }
+        throw new Error(`Sarvam API Error: ${res.status} - ${errText.slice(0, 300)}`);
+    }
+    const data = await res.json();
+    const raw = data.choices?.[0]?.message?.content;
+    const result = typeof raw === 'string' ? raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim() : '';
+    if (!result) throw new Error(`Sarvam returned empty result: ${JSON.stringify(data).slice(0, 300)}`);
+    return result;
+}
+
 /** Drops nodes whose name contains any family in a comma list (AI_DISABLED_PROVIDERS), e.g. "gemini". */
 export function filterDisabledProviders(pool, disabledList = '') {
     const families = String(disabledList).split(',').map((f) => f.trim().toLowerCase()).filter(Boolean);
@@ -764,7 +804,10 @@ export const ResourceManager = {
 
 
         // TIER 3: RESILIENCE FALLBACKS
-        // Free tier that needs no billing: Cloudflare Workers AI (10k neurons/day).
+        // Free tier that needs no billing: Cloudflare Workers AI (10k neurons/day). Sarvam runs on prepaid credit.
+        if (sarvamKey(env)) {
+             this.pool.push({ name: 'Sarvam', fn: (p, m, c) => generateSarvamContent(p, DEFAULT_SARVAM_MODEL, { ...env, ...c }), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate', 'manager', 'consolidate', 'utility'], match: /sarvam|node-research|node-edit|node-draft|node-generate/i });
+        }
         if (cloudflareAuth(env)) {
              this.pool.push({ name: 'Cloudflare-Workers-AI', fn: (p, m, c) => generateCloudflareContent(p, DEFAULT_CLOUDFLARE_MODEL, { ...env, ...c }), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate', 'utility', 'manager', 'consolidate'], match: /cloudflare|workers-ai|llama|node-utility|node-editor|node-research|node-draft|node-generate/i });
         }
