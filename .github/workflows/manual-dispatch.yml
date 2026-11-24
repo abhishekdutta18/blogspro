@@ -101,6 +101,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GOOGLE_CLOUD_PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
+          MIRO_SYNC_URL: ${{ vars.MIRO_SYNC_URL }}
+          MIRO_SYNC_TOKEN: ${{ secrets.MIRO_SYNC_TOKEN }}
           # [V12.3] Hybrid "Best of Both Worlds" Tunnel
           OLLAMA_PROD_URL: ${{ secrets.NGROK_REMOTE_URL }}
           OLLAMA_PROD_KEY: ${{ secrets.OLLAMA_PROD_KEY }}
@@ -174,6 +176,8 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           GOOGLE_CLOUD_PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
+          MIRO_SYNC_URL: ${{ vars.MIRO_SYNC_URL }}
+          MIRO_SYNC_TOKEN: ${{ secrets.MIRO_SYNC_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}

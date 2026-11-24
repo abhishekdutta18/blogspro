@@ -44,6 +44,7 @@ import { getNextSwarmState, routeToBestModel } from './intelligence-engine.js';
 import { calculateReward } from './rl-metrics.js';
 import { generatePDF } from './pdf-service.js';
 import { dispatchTelegramAlert } from './social-utils.js';
+import { hasMiroSync, miroSyncFetch } from './miro-sync-client.js';
 
 
 /**
@@ -270,7 +271,7 @@ export async function runGhostSim(frequency, semanticDigest, env, jobId, modelOv
 }
 
 export async function notifyProgress(env, jobId, data) {
-  if (!env.MIRO_SYNC_DO && !env.AUTH_PROXY_URL && !isStoreConfigured(env)) return;
+  if (!hasMiroSync(env) && !env.AUTH_PROXY_URL && !isStoreConfigured(env)) return;
   
   // [V7.0] UI-Independent High-Fidelity Progress Visualization (ANSI CLI)
   if (data.progress !== undefined) {
@@ -299,7 +300,7 @@ export async function notifyProgress(env, jobId, data) {
     console.warn("⚠️ [Sentry-Telemetry] Failed:", e.message);
   }
 
-  if (env && (env.MIRO_SYNC_DO || env.AUTH_PROXY_URL || isStoreConfigured(env))) {
+  if (env && (hasMiroSync(env) || env.AUTH_PROXY_URL || isStoreConfigured(env))) {
     try {
       const payload = { 
         source: data.source || "SWARM_PROGRESS", 
@@ -313,22 +314,20 @@ export async function notifyProgress(env, jobId, data) {
       if (isHourly && isStoreConfigured(env)) {
         // Hourly runs report to live_telemetry on the BlogsPro API
         await saveRecord('live_telemetry', { id: jobId, ...payload }, env);
-      } else if (!isHourly && env.MIRO_SYNC_DO && typeof env.MIRO_SYNC_DO.idFromName === 'function') {
-        // Cloudflare Durable Objects Bridge (Daily/Monthly)
+      } else if (!isHourly && hasMiroSync(env)) {
+        // MiroSync Bridge (Daily/Monthly): VPS service when MIRO_SYNC_URL is set, else the legacy Durable Object
         try {
-          const id = env.MIRO_SYNC_DO.idFromName('global-swarm-bridge');
-          const stub = env.MIRO_SYNC_DO.get(id);
-          const res = await stub.fetch("https://sync/push", {
+          const res = await miroSyncFetch(env, "/push", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
           });
           
           if (!res.ok) {
-            throw new Error(`Cloudflare DO returned status: ${res.status}`);
+            throw new Error(`MiroSync returned status: ${res.status}`);
           }
         } catch (cfError) {
-          console.warn(`⚠️ [Cloudflare Fallback] DO Sync Failed (${cfError.message}). Falling back to the BlogsPro API...`);
+          console.warn(`⚠️ [MiroSync Fallback] Sync Failed (${cfError.message}). Falling back to the BlogsPro API...`);
           if (isStoreConfigured(env)) {
             await saveRecord('live_telemetry', { id: jobId, ...payload }, env);
           }
@@ -846,11 +845,10 @@ async function _executeSwarmInternal(frequency, semanticDigest, historicalData, 
       
       const sectorTasks = sectorVerticals.map((v, i) => limit(async () => {
           // [V6.0] State-Aware Resilience
-          if (env.MIRO_SYNC_DO) {
+          if (hasMiroSync(env)) {
               try {
-                  const idObj = env.MIRO_SYNC_DO.idFromName('global-swarm-bridge');
-                  const stub = env.MIRO_SYNC_DO.get(idObj);
-                  const checkRes = await stub.fetch(`https://sync/check-step?jobId=${id}&stepId=sector_${v.id}`);
+                  const query = new URLSearchParams({ jobId: id, stepId: `sector_${v.id}` });
+                  const checkRes = await miroSyncFetch(env, `/check-step?${query}`);
                   if (checkRes.ok) {
                       const { status } = await checkRes.json();
                       if (status === "COMPLETED") {

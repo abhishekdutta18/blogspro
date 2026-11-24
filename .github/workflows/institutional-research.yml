@@ -74,6 +74,8 @@ jobs:
           SAMBANOVA_API_KEY: ${{ secrets.SAMBANOVA_API_KEY }}
           CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
           GOOGLE_CLOUD_PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
+          MIRO_SYNC_URL: ${{ vars.MIRO_SYNC_URL }}
+          MIRO_SYNC_TOKEN: ${{ secrets.MIRO_SYNC_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           ASSET_DOMAIN: "https://blogspro.in"
@@ -116,6 +118,8 @@ jobs:
           TYPE: ${{ needs.research.outputs.tome_type }}
           FREQUENCY: ${{ github.event.inputs.freq }}
           GOOGLE_CLOUD_PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
+          MIRO_SYNC_URL: ${{ vars.MIRO_SYNC_URL }}
+          MIRO_SYNC_TOKEN: ${{ secrets.MIRO_SYNC_TOKEN }}
           OUTPUT_DIR: "./artifacts"
         run: |
           mkdir -p ./artifacts

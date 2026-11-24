@@ -1,4 +1,5 @@
 import { generateMiroForecast } from "./lib/mirofish-persona.js";
+import { hasMiroSync, miroSyncFetch } from "./lib/miro-sync-client.js";
 
 /**
  * BlogsPro MiroFish 4.0 Consensus Worker
@@ -28,11 +29,9 @@ export default {
 
       // Institutional Intelligence Bridge to Affine
       let syncStatus = "skipped";
-      if (env.MIRO_SYNC_DO) {
+      if (hasMiroSync(env)) {
         try {
-          const id = env.MIRO_SYNC_DO.idFromName('global-swarm-bridge');
-          const obj = env.MIRO_SYNC_DO.get(id);
-          const pushReq = new Request("https://sync/push", {
+          const syncRes = await miroSyncFetch(env, "/push", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
@@ -40,7 +39,6 @@ export default {
               source: `MiroFish Swarm | Task: ${task || 'Pulse Foresight'}` 
             })
           });
-          const syncRes = await obj.fetch(pushReq);
           if (syncRes.ok) syncStatus = "synchronized";
           console.log(`📡 [MiroFish] Sync Status: ${syncStatus}`);
         } catch (syncErr) {
