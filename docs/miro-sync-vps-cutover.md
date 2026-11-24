@@ -76,6 +76,13 @@ sudo systemctl restart blogspro-miro-sync && curl -fsS https://sync.blogspro.in/
 
 Open `https://sync.blogspro.in/terminal` in a browser and confirm it shows `cutover-check`.
 
+**Status (2026-11-24):** phase 1 done. `sync` A → `130.210.53.134` (proxied), Let's Encrypt cert via
+`certbot --nginx` (renews automatically), and every check above passed through Cloudflare.
+
+Note: `blogspro.in` itself (`@`) points at a different host, `blogspro-web-vps` (`140.245.1.238`, 1 GB RAM),
+while `deploy.yml` deploys the site to `blogspro-ai-vps` (`130.210.53.134`). MiroSync lives on the AI VPS
+next to `mirofish`; the apex/deploy-target mismatch is outside this change.
+
 ## Phase 2: switch the clients
 
 1. **Workers** (`pulse`, `mirofish`):
