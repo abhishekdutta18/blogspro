@@ -94,7 +94,9 @@ test('a weekly report uses week-over-week quotes, the week digest, and the weekl
   assert.ok(prompts.every((p) => p.includes('THIS WEEK\'S EDITIONS')));
   assert.match(prompts[3], /Weekly review/);
   const page = result.renderPage('https://blogspro.in/articles/weekly/x.html');
-  assert.match(page, /Weekly review · /);
+  // The weekly review renders in the site design: label as the kicker, date in the byline.
+  assert.match(page, /<a class="kicker" href="\/#research">Weekly review<\/a>/);
+  assert.match(page, /<article class="prose-article">/);
   assert.match(page, /<th scope="col">Week<\/th>/);
   assert.match(page, /last 5 sessions/);
 });

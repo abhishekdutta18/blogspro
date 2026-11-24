@@ -94,7 +94,7 @@ async function registerPostOnHomepage(fileName, result, frequency, env) {
 
     // 2. Sync to Firestore 'posts' (For main homepage grid & admin dashboard)
     const docId = `swarm-${frequency}-${Date.now()}`;
-    await syncToFirestore('posts', {
+    const registered = await syncToFirestore('posts', {
       id: docId,
       title,
       excerpt,
@@ -110,7 +110,9 @@ async function registerPostOnHomepage(fileName, result, frequency, env) {
       isAI: true,
       views: 0
     }, env);
-    console.log(`📡 [Dashboard] Post Registered in Firestore: posts/${docId}`);
+    // syncToFirestore returns false when it skipped (no project) or the write failed.
+    if (registered) console.log(`📡 [Dashboard] Post Registered in Firestore: posts/${docId}`);
+    else console.warn(`⚠️ [Dashboard] Post NOT registered in the feed (posts/${docId}); see the sync warning above.`);
 
   } catch (err) {
     console.warn(`⚠️ [Dashboard] Homepage registration failed:`, err.message);
@@ -648,8 +650,10 @@ Provide the final refined output in JSON format:
         if (!isLive) {
           console.warn(`⚠️ [Dispatch] URL not yet live after timeout, dispatching Telegram anyway: ${telegramSummary.url}`);
         }
-        await dispatchTelegramAlert(telegramSummary, env);
-        console.log(`💎 [Dispatch] Telegram Strategic Alert Sent.`);
+        // dispatchTelegramAlert reports failure (missing credentials, API error) by returning false, not throwing.
+        const telegramSent = await dispatchTelegramAlert(telegramSummary, env);
+        if (telegramSent) console.log(`💎 [Dispatch] Telegram Strategic Alert Sent.`);
+        else console.warn(`⚠️ [Dispatch] Telegram alert NOT sent (missing credentials or API error; see above).`);
 
         // 2. Newsletter Dispatch (Consolidated Bridge).
         // Market editions are not emailed: three a day would flood subscribers, and an edition body's charts

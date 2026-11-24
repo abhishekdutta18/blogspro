@@ -12,6 +12,10 @@ import { fetchHeadlines } from './news-feed.js';
 import { runViewBoard } from './view-board.js';
 import { headlinesToText, writeEdition } from './edition-writer.js';
 import { renderEditionBody, renderEditionPage } from './edition-template.js';
+import { renderSitePage } from './site-page.js';
+
+/** The page renderer for a piece: the site design when its definition asks for it, else the briefing page. */
+const pageRenderer = (edition) => (edition.layout === 'site' ? renderSitePage : renderEditionPage);
 
 const TIME_LABEL = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
@@ -86,7 +90,7 @@ export async function generateMarketEdition({ askAI, env = process.env, now = ne
     wordCount,
     hasCommentary: Boolean(text),
     stance: board.consensus?.stance || null,
-    renderPage: (canonicalUrl) => renderEditionPage({ edition, title, summary, timeLabel, body, canonicalUrl }),
+    renderPage: (canonicalUrl) => pageRenderer(edition)({ edition, title, summary, timeLabel, body, canonicalUrl, now }),
     // Everything the page was built from, for saveEditionSnapshot: kept off the web root, never published.
     snapshot: { edition: edition.id, timeLabel, text, board, markets, headlines, histories, replies: written.replies },
   };
