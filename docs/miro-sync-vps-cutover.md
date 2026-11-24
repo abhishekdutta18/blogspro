@@ -97,6 +97,19 @@ next to `mirofish`; the apex/deploy-target mismatch is outside this change.
 4. **Confirm:** trigger a daily run (`manual-dispatch.yml`) and watch its job appear in `/telemetry`
    and on `/terminal`. Then let it run unattended for at least a week.
 
+**Status (2026-11-24):** config is in place, but nothing switches until the code ships.
+- `MIRO_SYNC_TOKEN` secret uploaded to `blogspro-pulse` and `blogspro-mirofish`; `MIRO_SYNC_URL` is in
+  both `[env.*.vars]` in `wrangler.toml` (this PR).
+- GitHub repo variable `MIRO_SYNC_URL` and secret `MIRO_SYNC_TOKEN` set.
+- The pipeline timers on `blogspro-ai-vps` (`blogspro-pulse@*.service`) load `/etc/blogspro-pulse.env`, not
+  `oracle-cron-runner.sh`; both keys were appended there (backup `/etc/blogspro-pulse.env.bak-*`).
+
+The flip happens when this code reaches each runtime. Nothing on `main` reads `MIRO_SYNC_URL` yet:
+- Workers: no workflow deploys `pulse`/`mirofish`, so after merge run
+  `npx wrangler deploy --env=pulse` and `npx wrangler deploy --env=mirofish` from `main`.
+- Pipeline timers: redeploy `/opt/blogspro-pulse` from `main` (it has no `miro-sync-client.js` today).
+- GitHub Actions: picks it up on the first run after merge.
+
 ## Rollback (any time during phases 1–2)
 
 1. Remove `MIRO_SYNC_URL` from `[env.pulse.vars]` / `[env.mirofish.vars]` and redeploy both workers.

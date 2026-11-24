@@ -39,6 +39,7 @@ kv_namespaces = [
 
 [env.pulse.vars]
 GOOGLE_CLOUD_PROJECT = "blogspro-ai"
+MIRO_SYNC_URL = "https://sync.blogspro.in"
 BASE_URL = "https://blogspro.in"
 PROJECT_DOMAIN = "blogspro.in"
 SAMBANOVA_MODEL = "Meta-Llama-4-70B-Instruct"
@@ -117,6 +118,7 @@ minify = true
 
 [env.mirofish.vars]
 GOOGLE_CLOUD_PROJECT = "blogspro-ai"
+MIRO_SYNC_URL = "https://sync.blogspro.in"
 
 [[env.mirofish.durable_objects.bindings]]
 name = "MIRO_SYNC_DO"
