@@ -1,0 +1,75 @@
+---
+/**
+ * WeeklyReview — the latest weekly market reviews, read in the browser from /articles/weekly/index.json.
+ * The pipeline rewrites that index on each weekly run, so a new review appears without rebuilding the site.
+ * Index text is model output: lib/weeklyReviews.js validates it and it is set with textContent only.
+ * The section stays hidden until at least one valid review loads, so a missing index shows nothing broken.
+ */
+interface Props {
+  limit?: number;
+}
+
+const { limit = 3 } = Astro.props;
+---
+
+<section id="weekly" class="pt-12 scroll-mt-6" aria-labelledby="weekly-heading" data-weekly-section hidden>
+  <div class="section-head">
+    <h2 id="weekly-heading" class="section-title">Weekly review</h2>
+    <span class="hidden sm:inline text-sm text-ink-3">Markets over the last five sessions</span>
+  </div>
+  <ol class="divide-y divide-rule border-y border-rule" data-weekly-list data-limit={limit}></ol>
+</section>
+
+<script>
+  import { parseWeeklyIndex } from '../lib/weeklyReviews.js';
+
+  const INDEX_URL = '/articles/weekly/index.json';
+
+  function renderItem(item) {
+    const li = document.createElement('li');
+    li.className = 'grid gap-x-8 gap-y-1 py-5 sm:grid-cols-[7.5rem_minmax(0,1fr)]';
+
+    const time = document.createElement('time');
+    time.className = 'text-xs text-ink-3 sm:pt-1.5 num';
+    time.dateTime = new Date(item.timestamp).toISOString();
+    time.textContent = item.date;
+
+    const body = document.createElement('div');
+    const kicker = document.createElement('div');
+    kicker.className = 'kicker';
+    kicker.textContent = item.stance ? `Weekly review · ${item.stance}` : 'Weekly review';
+    const link = document.createElement('a');
+    link.href = item.href;
+    link.className = 'headline-link mt-1.5 block max-w-measure font-serif text-xl font-semibold leading-snug text-ink';
+    link.textContent = item.title;
+    body.append(kicker, link);
+    if (item.excerpt) {
+      const summary = document.createElement('p');
+      summary.className = 'mt-1.5 max-w-measure text-[0.95rem] leading-relaxed text-ink-2';
+      summary.textContent = item.excerpt;
+      body.append(summary);
+    }
+
+    li.append(time, body);
+    return li;
+  }
+
+  async function loadWeekly() {
+    const section = document.querySelector('[data-weekly-section]');
+    const list = section?.querySelector('[data-weekly-list]');
+    if (!section || !list) return;
+    try {
+      const res = await fetch(INDEX_URL, { cache: 'no-cache' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const items = parseWeeklyIndex(await res.json(), { limit: Number(list.dataset.limit) || 3 });
+      if (items.length === 0) return;
+      list.replaceChildren(...items.map(renderItem));
+      section.hidden = false;
+    } catch (error) {
+      // The section simply stays hidden; the rest of the homepage is unaffected.
+      console.warn('[weekly] could not load the weekly review index:', error);
+    }
+  }
+
+  loadWeekly();
+</script>
