@@ -15,7 +15,7 @@ const asObject = (value) => (value && typeof value === 'object' && !Array.isArra
  * repairTruncatedJson. Callers use repair only on their last attempt, so a broken reply still earns a retry.
  */
 export function extractJson(reply, { repair = false } = {}) {
-  const text = String(reply || '').replace(/```(?:json)?/gi, '');
+  const text = stripTrailingCommas(String(reply || '').replace(/```(?:json)?/gi, ''));
   const start = text.indexOf('{');
   const end = text.lastIndexOf('}');
   if (start === -1) return null;
@@ -31,6 +31,31 @@ export function extractJson(reply, { repair = false } = {}) {
   const repaired = repairTruncatedJson(text.slice(start));
   if (repaired) console.warn('⚠️ [Edition] Reply JSON was cut off or malformed; kept its complete fields');
   return repaired;
+}
+
+/**
+ * `text` without trailing commas (a comma followed only by whitespace and then `]` or `}`). Models often write
+ * them; JSON.parse rejects the whole otherwise-complete reply. Commas inside strings are left alone.
+ */
+export function stripTrailingCommas(text) {
+  let out = '';
+  let inString = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (inString) {
+      out += ch;
+      if (ch === '\\' && i + 1 < text.length) { out += text[i + 1]; i += 1; } else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    if (ch === ',') {
+      let j = i + 1;
+      while (j < text.length && /\s/.test(text[j])) j += 1;
+      if (text[j] === ']' || text[j] === '}') continue;
+    }
+    out += ch;
+  }
+  return out;
 }
 
 const MAX_REPAIR_TRIES = 40;

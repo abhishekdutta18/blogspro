@@ -35,6 +35,24 @@ test('extractJson repairs only when asked, so a first broken reply still earns a
   assert.deepEqual(extractJson('Here you go: {"a":[1,2],"b":"cut', { repair: true }), { a: [1, 2] });
 });
 
+test('extractJson accepts trailing commas on the first attempt, without touching commas inside strings', () => {
+  assert.deepEqual(extractJson('{"a":[1,2,],"b":{"c":1,},}'), { a: [1, 2], b: { c: 1 } });
+  assert.deepEqual(extractJson('{"a":"x, ]","b":"y,}" ,}'), { a: 'x, ]', b: 'y,}' });
+  assert.deepEqual(extractJson('{"a":"quote \\", ]",\n  }'), { a: 'quote ", ]' });
+  assert.equal(extractJson('{"a":[1,,2]}'), null, 'a doubled comma is still malformed');
+});
+
+test('parseView keeps the weekly run\'s complete view reply that had trailing commas', () => {
+  // Shape of the 24 Nov weekly failure: every list ended in `",\n  ]`, so both attempts were thrown away.
+  const reply = '{\n  "thesis": [\n    "Volatility rose while the Nifty barely moved.",\n  ],\n' +
+    '  "sectors": [\n    {"name": "Nifty Metal", "call": "underweight", "reason": "Fell 5% on the week.",},\n  ],\n' +
+    '  "risks": ["A rate cut would change the view.",],\n  "watch": ["USD/INR near 92.90.",\n  ]\n}';
+  const view = parseView(reply, ['Nifty Metal']);
+  assert.deepEqual(view.thesis, ['Volatility rose while the Nifty barely moved.']);
+  assert.deepEqual(view.sectors, [{ name: 'Nifty Metal', call: 'underweight', reason: 'Fell 5% on the week.' }]);
+  assert.deepEqual(view.watch, ['USD/INR near 92.90.']);
+});
+
 test('parseView recovers the thesis from the live daily run\'s truncated view reply', () => {
   const reply = '{"thesis":["The house stance is cautious and the board is aligned behind that posture.","Bank Nifty fell 3.17%."],"The model began a key it never finished';
   assert.equal(parseView(reply, ['Financials']), null, 'strict on early attempts');

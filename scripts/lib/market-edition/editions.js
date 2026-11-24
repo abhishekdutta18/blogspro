@@ -50,6 +50,8 @@ export const REPORTS = Object.freeze([
     id: 'weekly',
     label: 'Weekly review',
     period: PERIODS.week,
+    // Rendered in the site's own design (site-page.js); pieces without a layout keep the briefing page.
+    layout: 'site',
     focus:
       'Weekly review for Indian investors. Every move in MARKET DATA is over the last 5 sessions, not one day. ' +
       'Explain the week: which Indian sectors led and lagged, how global markets, the rupee, yields and commodities moved, ' +
