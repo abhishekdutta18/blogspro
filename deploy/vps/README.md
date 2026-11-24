@@ -125,11 +125,18 @@ agent action = one chat completion** (a tool call), plus SDK retries on errors.
   1.5 at peak and 0.3 off-peak. That averages about 0.1N–0.3N.
 - Interviews (`/api/simulation/interview*`) add 1 call per agent asked.
 - Each agent call sends its profile, the action tool schemas and its feed:
-  about 2–3k input tokens and 100–200 output tokens.
+  about 2–3k input tokens and 100–200 output tokens, **plus reasoning tokens**
+  with a reasoning model such as `gpt-oss-120b`. Those count against the same
+  limits, and MiroFish does not lower `reasoning_effort`, so treat the token
+  column below as a floor.
+- Simulated time starts at 00:00 and the generated config makes the small
+  hours nearly inactive (multiplier 0.05). With defaults, **rounds 1–9 act
+  almost nobody**, so a run shorter than about 12 rounds produces no agent
+  actions at all.
 
 | Run | N | P | R | Calls (total) | Tokens (approx.) |
 |-----|---|---|---|---------------|------------------|
-| Small, capped: `platform=twitter`, `max_rounds=12` | 15 | 1 | 12 | about 50–110 | about 0.2M |
+| Small, capped: `platform=twitter`, `max_rounds=14` | 15 | 1 | 14 | about 50–110 | about 0.2M |
 | Default settings | 30 | 2 | 72 | about 480–1,400 | about 1.2–3.5M |
 | Large | 60 | 2 | 168 | about 2,100–6,150 | about 5–15M |
 
@@ -150,7 +157,30 @@ first:
   run uses roughly a full day.
 
 So on a free key, use **at most one small, capped run per day** (`platform:
-"twitter"`, `max_rounds` 10–12, about 15 agents) on a key **not** shared with
-the briefing pipeline. A default-sized run needs a paid key or a provider with
+"twitter"`, `max_rounds` 14 or more, about 15 agents) on a key **not** shared
+with the briefing pipeline. A default-sized run needs a paid key or a provider with
 a much larger daily token allowance. The three daily editions should keep
 using the JS persona board (a handful of calls), not this service.
+
+### Measured test run (2026-11-24, Groq `gpt-oss-120b`)
+
+One tiny end-to-end run on the VPS: a 5-sentence market note, Twitter only,
+6 agents, `max_rounds=14`, no report.
+
+| Stage | Result |
+|-------|--------|
+| Ontology | 10 entity types, 7 edge types, 1 call |
+| Zep graph build | 20 s, 1 chunk, 6 edges |
+| Personas and config | 6 personas, 2.5 min, two HTTP 429s from Groq |
+| Simulation | 54 s; agents active only from simulated 09:00; 6 agent turns, giving 1 `create_post` and 5 `quote_post`; 0 errors |
+
+## Known issues
+
+| Issue | Status |
+|-------|--------|
+| Groq rejects camel's schema for no-argument OASIS tools (`do_nothing`: "'required' present but 'properties' is missing"), so **every agent action failed** | Fixed: `scripts/tool_schema_compat.py`, installed in the three simulation runners |
+| Rounds 1–9 are nearly idle because simulated time starts at 00:00 | Open: use `max_rounds` ≥ 14, or change the start hour |
+| `/api/simulation/stop` leaves the simulation `paused`, which `/start` won't accept, so a stopped run can't be restarted through the API | Open |
+| `/start` requires `reddit_profiles.json` even for Twitter-only simulations once the state is no longer `ready` | Open |
+| `run-status` stays `running` at round 0 when rounds produce no actions, and never reports completion | Open: watch `simulation.log` for the loop-complete line instead |
+| Reasoning tokens from `gpt-oss-120b` add to every call; `reasoning_effort="low"` cut a test tool call to 155 tokens | Open: not passed by MiroFish today |
