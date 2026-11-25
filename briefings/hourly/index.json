@@ -1,5 +1,17 @@
 [
   {
+    "title": "Nifty 50 tests 25,000 support as US CPI looms and AI trade wobbles",
+    "date": "2026-11-25",
+    "timestamp": 1795573933407,
+    "excerpt": "Indian equities face a critical test at the 25,000 level after the Sensex and Nifty posted their steepest declines in months. The rupee holds steady at 92.90, but US inflation data due today could trigger further volatility in global risk assets.",
+    "fileName": "swarm-hourly-1795573932680.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": null,
+    "edition": "morning",
+    "stance": "cautious"
+  },
+  {
     "title": "AI Valuation Reset: Nasdaq Slides, India Opens Under Pressure",
     "date": "2026-11-24",
     "timestamp": 1795537889669,
@@ -1270,34 +1282,6 @@
         {
           "title": "Result of the 3-day Variable Rate Repo (VRR) auction held on November 20, 2026",
           "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64007"
-        }
-      ]
-    }
-  },
-  {
-    "title": "HOURLY   Nexus Institutional Terminal",
-    "date": "2026-11-20",
-    "timestamp": 1795114188695,
-    "excerpt": "**OPERATIONAL MEMO: Q4-2026 LIQUIDITY TERMINATION THESIS** Current market microstructure exhibits severe structural degradation, with the S&P 500 GEX profile showing a localized flip into negative territory near the 5,950 strike. The transition from ...",
-    "fileName": "swarm-hourly-1795114188688.html",
-    "type": "briefing",
-    "frequency": "hourly",
-    "liveNews": {
-      "summary": "RBI: Auction of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64004) | RBI to conduct 3-day Variable Rate Repo (VRR) auction under LAF on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64003) | Finances of Panchayati Raj Institutions (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64002) | SEBI:  | GLOBAL: BLOOMBERG | South Korean Watchdog Asks Financial Firms to Report AI Exposure - Bloomberg.com | BLOOMBERG | Saudi Public Investment Fund’s Riyadh Headquarters Damaged - Bloomberg.com | BLOOMBERG | Goldman and Morgan Stanley Have Gotten Too High On AI - Bloomberg.com | FT | Energy markets can ‘manage without’ the Strait of Hormuz, says IEA - Financial Times | FT | Anthropic is a ‘must own’ - Financial Times | FT | Anthropic revenue target: $600bn, soonish - Financial Times | REUTERS | Apollo scraps $2 billion loan to Manchester City owner, FT says - Reuters | REUTERS | Global securities watchdog urges immediate action on quantum risks to finance - Reuters | REUTERS | Hackers access financial data of retired NYC government workers, Politico reports - Reuters | CNBC | Jim Cramer's top 10 things to watch in the stock market Thursday - CNBC | CNBC | Traders in new market bet on big IPO pop for Anthropic - CNBC | CNBC | Outlook 2027: CLSA sees correction coming, but says bull market remains intact - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia",
-      "rbi": "Auction of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64004) | RBI to conduct 3-day Variable Rate Repo (VRR) auction under LAF on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64003) | Finances of Panchayati Raj Institutions (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64002)",
-      "sebi": "",
-      "docs": [
-        {
-          "title": "Auction of State Government Securities",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64004"
-        },
-        {
-          "title": "RBI to conduct 3-day Variable Rate Repo (VRR) auction under LAF on November 20, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64003"
-        },
-        {
-          "title": "Finances of Panchayati Raj Institutions",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64002"
         }
       ]
     }
