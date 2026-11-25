@@ -1,5 +1,17 @@
 [
   {
+    "title": "Nifty surges 1.85% as financials lead; rupee hits 8‑month high",
+    "date": "2026-11-25",
+    "timestamp": 1795602773526,
+    "excerpt": "Indian equities rallied sharply on Thursday, with the Nifty 50 up 1.85% and the Sensex gaining 1.82% on strong financial and consumer‑goods buying. A firmer rupee and softer commodity prices helped underpin the move, while volatility held steady.",
+    "fileName": "swarm-hourly-1795602772754.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": null,
+    "edition": "close",
+    "stance": "constructive"
+  },
+  {
     "title": "Nifty 50 tests 25,000 support as US CPI looms and AI trade wobbles",
     "date": "2026-11-25",
     "timestamp": 1795573933407,
@@ -1254,34 +1266,6 @@
         {
           "title": "Reserve Bank issues Foreign Exchange Management (Export and Import of Goods and Services) (Second Amendment) Regulations, 2026",
           "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64009"
-        }
-      ]
-    }
-  },
-  {
-    "title": "HOURLY   Nexus Institutional Terminal",
-    "date": "2026-11-20",
-    "timestamp": 1795162819582,
-    "excerpt": "The assertion of zero strategic drift across the hourly pulse is a dangerous misinterpretation of artificial VIX compression induced by persistent short-volatility overlay strategies. As of November 20, 2026, underlying microstructural liquidity exhi...",
-    "fileName": "swarm-hourly-1795162819574.html",
-    "type": "briefing",
-    "frequency": "hourly",
-    "liveNews": {
-      "summary": "RBI: Reserve Bank issues Foreign Exchange Management (Export and Import of Goods and Services) (Second Amendment) Regulations, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64009) | RBI to conduct Second 3-day Variable Rate Repo (VRR) auction under LAF on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64008) | Result of the 3-day Variable Rate Repo (VRR) auction held on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64007) | SEBI:  | GLOBAL: BLOOMBERG | UBS Plans to Shift Hundreds of Roles to India in Offshoring Push - Bloomberg.com | BLOOMBERG | Canada Bank Regulator Eases Rules for Smaller Lenders to Boost Competition - Bloomberg.com | BLOOMBERG | South Korean Watchdog Asks Financial Firms to Report AI Exposure - Bloomberg.com | FT | Anthropic is a ‘must own’ - Financial Times | FT | Anthropic revenue target: $600bn, soonish - Financial Times | FT | Energy markets can ‘manage without’ the Strait of Hormuz, says IEA - Financial Times | REUTERS | EXCLUSIVE: Citi underestimated risky assets by $35 billion after incorrectly recording trades, sources say - Reuters | REUTERS | Anthropic's blockbuster debut tests Wall Street's faith in AI boom - Reuters | REUTERS | Fed's Barr worried regulatory changes may increase financial sector risks - Reuters | CNBC | Anthropic IPO 'exactly what the markets need,' but analysts warn of volatility - CNBC | CNBC | Senate passes BAAJA permitting reform bill backed by AI, energy sectors - CNBC | CNBC | Friday's big stock stories: What’s likely to move the market in the next trading session - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia",
-      "rbi": "Reserve Bank issues Foreign Exchange Management (Export and Import of Goods and Services) (Second Amendment) Regulations, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64009) | RBI to conduct Second 3-day Variable Rate Repo (VRR) auction under LAF on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64008) | Result of the 3-day Variable Rate Repo (VRR) auction held on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64007)",
-      "sebi": "",
-      "docs": [
-        {
-          "title": "Reserve Bank issues Foreign Exchange Management (Export and Import of Goods and Services) (Second Amendment) Regulations, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64009"
-        },
-        {
-          "title": "RBI to conduct Second 3-day Variable Rate Repo (VRR) auction under LAF on November 20, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64008"
-        },
-        {
-          "title": "Result of the 3-day Variable Rate Repo (VRR) auction held on November 20, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64007"
         }
       ]
     }
