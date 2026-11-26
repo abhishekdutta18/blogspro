@@ -62,9 +62,16 @@ function cutPoints(text) {
       stack.push({ type: ch === '{' ? 'obj' : 'arr', expectKey: ch === '{' });
       i += 1;
     } else if (ch === '}' || ch === ']') {
+      // A closer for the wrong container (`"}]` where `"]}` was meant) ends the usable text; the cut points
+      // already found close it correctly.
+      if (!top || top.type !== (ch === '}' ? 'obj' : 'arr')) break;
       stack.pop();
       i += 1;
-      if (!stack.length) return [{ pos: i, close: '' }];
+      if (!stack.length) {
+        // Balanced, yet the caller is here because it did not parse: keep the earlier cuts as fallbacks.
+        points.push({ pos: i, close: '' });
+        return points;
+      }
       valueDone(i);
     } else if (ch === ',') {
       if (top?.type === 'obj') top.expectKey = true;

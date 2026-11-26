@@ -29,6 +29,28 @@ test('repairTruncatedJson returns null when nothing complete survives', () => {
   assert.equal(repairTruncatedJson('no json here'), null);
 });
 
+// Regression: the 25 Nov 2026 22:00 IST overview (swarm-hourly-1795624279623, attempt 2) was complete but ended
+// `…sectors."}]` — the object closed before its last array. The repair saw the whole text as "closed" and threw
+// away every earlier cut point, so the edition published with no commentary.
+test('repairTruncatedJson keeps a reply whose closing brackets are in the wrong order', () => {
+  const para = (n) => `Paragraph ${n} on the session, with figures like 25,819.25 (+1.85%).`;
+  const reply = `{"title":"Nifty Hits Record High as Global AI Selloff Deepens","summary":"Divergence.","india":["${para(1)}","${para(2)}"],"global":["${para(3)}"],"macro":["${para(4)}","${para(5)}"}]`;
+  assert.throws(() => JSON.parse(reply));
+  assert.deepEqual(repairTruncatedJson(reply), {
+    title: 'Nifty Hits Record High as Global AI Selloff Deepens',
+    summary: 'Divergence.',
+    india: [para(1), para(2)],
+    global: [para(3)],
+    macro: [para(4), para(5)],
+  });
+  assert.equal(extractJson(reply, { repair: true }).macro.length, 2);
+});
+
+test('repairTruncatedJson still tries earlier cuts when a document closes but does not parse', () => {
+  // Balanced brackets, but an invalid escape inside the last string: the whole text cannot parse.
+  assert.deepEqual(repairTruncatedJson('{"a":["ok"],"b":"bad \\x escape"}'), { a: ['ok'] });
+});
+
 test('extractJson repairs only when asked, so a first broken reply still earns a retry', () => {
   assert.deepEqual(extractJson('```json\n{"a":[1,2]}\n```'), { a: [1, 2] });
   assert.equal(extractJson('Here you go: {"a":[1,2],"b":"cut'), null);
