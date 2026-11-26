@@ -9,6 +9,7 @@ import { CHART_STYLES, divergingBarChart, lineChart } from './charts.js';
 import { SHARE_BUTTON } from '../share-button.js';
 
 const NUMBER = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const BASIS_POINTS = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 export function escapeHtml(value) {
   return String(value ?? '')
@@ -36,13 +37,31 @@ function quoteRow(q) {
     `<td class="${dir}">${signed(q.change)}</td><td class="${dir}">${signed(q.changePct, '%')}</td></tr>`;
 }
 
+function yieldRow(q) {
+  if (!q.ok) return `<tr><th scope="row">${escapeHtml(q.name)}</th><td colspan="2" class="na">Unavailable</td></tr>`;
+  const bp = Number.isFinite(q.changeBp) ? q.changeBp : null;
+  return `<tr><th scope="row">${escapeHtml(q.name)}</th><td>${NUMBER.format(q.price)}%</td>` +
+    `<td class="${direction(bp)}">${bp === null ? '—' : `${bp > 0 ? '+' : bp < 0 ? '−' : ''}${BASIS_POINTS.format(Math.abs(bp))} bp`}</td></tr>`;
+}
+
+/** Bond yields: percent and basis points, then the spreads. */
+function yieldTable(g) {
+  const notes = (g.notes || []).length ? `<ul class="bond-notes">${g.notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>` : '';
+  return `
+    <table class="quotes">
+      <caption>${escapeHtml(g.title)}</caption>
+      <thead><tr><th scope="col">Bond</th><th scope="col">Yield</th><th scope="col">Change</th></tr></thead>
+      <tbody>${g.quotes.map(yieldRow).join('')}</tbody>
+    </table>${notes}`;
+}
+
 function marketTables(groups, period) {
-  return groups.map((g) => `
+  return groups.map((g) => (g.kind === 'yield' ? yieldTable(g) : `
     <table class="quotes">
       <caption>${escapeHtml(g.title)}${latestQuoteTime(g) ? ` <span class="asof">as of ${escapeHtml(formatLastTrade(latestQuoteTime(g)))}</span>` : ''}</caption>
       <thead><tr><th scope="col">Instrument</th><th scope="col">Last</th><th scope="col">Change</th><th scope="col">${escapeHtml(period.column)}</th></tr></thead>
       <tbody>${g.quotes.map(quoteRow).join('')}</tbody>
-    </table>`).join('');
+    </table>`)).join('');
 }
 
 function section(title, inner) {
@@ -138,6 +157,7 @@ h2{font-size:1.35rem;margin:2.5rem 0 1rem;padding-top:1rem;border-top:2px solid 
 .lede{font-size:1.15rem;color:var(--ink-2)}.note{padding:.75rem 1rem;border-left:3px solid var(--accent);color:var(--ink-2)}
 .quotes{width:100%;border-collapse:collapse;margin:0 0 1.5rem;font-variant-numeric:tabular-nums;font-size:.95rem}
 .quotes caption{text-align:left;font-weight:700;padding:.25rem 0;color:var(--ink-2)}
+.bond-notes{margin:.25rem 0 1.5rem;padding-left:1.2rem;color:var(--ink-2);font-size:.9rem}
 .quotes th,.quotes td{padding:.4rem .5rem;border-bottom:1px solid var(--rule);text-align:right}.quotes th[scope=row],.quotes thead th:first-child{text-align:left;font-weight:500}
 .quotes thead th{font-size:.75rem;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
 .asof{font-weight:400;font-size:.8rem;color:var(--ink-3)}.up{color:var(--pos)}.down{color:var(--neg)}.na{color:var(--ink-3)}

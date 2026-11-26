@@ -24,15 +24,15 @@ export const EDITIONS = Object.freeze([
     label: 'Market close',
     focus:
       'Indian market close. Lead with how Nifty 50, Sensex, Bank Nifty and Nifty IT finished and why, using the day\'s news. ' +
-      'Cover volatility (India VIX), the rupee and commodities, then what it sets up for tomorrow.',
+      'Cover volatility (India VIX), the rupee, G-Sec yields and commodities, then what it sets up for the next session.',
   }),
   session({
     id: 'evening',
     hourIst: 22,
     label: 'Evening wrap',
     focus:
-      'Global evening wrap. Lead with how Europe closed and the US session (live if its quotes are live, otherwise its last close), plus bonds, the dollar, oil, gold ' +
-      'and crypto. Connect it back to how Indian markets are likely to open tomorrow.',
+      'Global evening wrap. Lead with how Europe closed and the US session (live if its quotes are live, otherwise its last close), plus Treasury and G-Sec yields, the dollar, oil, gold ' +
+      'and crypto. Connect it back to how Indian markets are likely to open in their next session.',
   }),
 ]);
 

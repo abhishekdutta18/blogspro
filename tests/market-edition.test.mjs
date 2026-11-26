@@ -2,7 +2,7 @@
  * Market edition tests — edition timing, quote, history and RSS parsing, the view-board consensus, the three
  * writer sections, sentence-safe truncation, charts, HTML escaping, and full edition runs with fake fetch and AI.
  */
-import test from 'node:test';
+import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { resolveEdition } from '../scripts/lib/market-edition/editions.js';
 import { marketStatus, parseChart, parseHistory, snapshotToText } from '../scripts/lib/market-edition/market-data.js';
@@ -13,6 +13,10 @@ import { cleanText, truncateAtSentence } from '../scripts/lib/market-edition/jso
 import { divergingBarChart, lineChart, niceTicks } from '../scripts/lib/market-edition/charts.js';
 import { renderEditionBody } from '../scripts/lib/market-edition/edition-template.js';
 import { generateMarketEdition } from '../scripts/lib/market-edition/index.js';
+
+// The pipeline logs progress to stdout, which the test runner also uses for its own event stream; with the
+// bond fetch in every edition those lines landed mid-frame ("Unable to deserialize cloned data"). Keep stdout clean.
+mock.method(console, 'log', () => {});
 
 const ist = (hh, mm = 0) => new Date(Date.UTC(2026, 10, 23, hh, mm) - 330 * 60 * 1000);
 

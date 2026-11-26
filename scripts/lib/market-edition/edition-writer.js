@@ -54,7 +54,7 @@ export function overviewPrompt(context) {
     summary: '2-3 sentences: the most important takeaway',
     india: ['4 paragraphs: Indian indices, breadth across the NSE sectors, volatility, what drove the move'],
     global: ['3 paragraphs: US, Europe and Asia, and what they mean for India'],
-    macro: ['3 paragraphs: rupee, US yields, oil, gold and crypto, and their transmission to Indian assets'],
+    macro: ['3 paragraphs: rupee, Indian G-Sec and US Treasury yields (moves in bp, the India-US spread and curve slopes), oil, gold and crypto, and their transmission to Indian assets'],
   });
 }
 
