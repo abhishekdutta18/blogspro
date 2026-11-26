@@ -5,10 +5,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolveEdition } from '../scripts/lib/market-edition/editions.js';
-import { marketStatus, parseChart, parseHistory, snapshotToText } from '../scripts/lib/market-edition/market-data.js';
+import { INSTRUMENT_GROUPS, marketStatus, parseChart, parseHistory, quoteUnit, snapshotToText } from '../scripts/lib/market-edition/market-data.js';
 import { parseRss, selectHeadlines } from '../scripts/lib/market-edition/news-feed.js';
 import { buildConsensus, parsePersonaReply } from '../scripts/lib/market-edition/view-board.js';
-import { parseNews, parseOverview, parseView } from '../scripts/lib/market-edition/edition-writer.js';
+import { newsPrompt, overviewPrompt, parseNews, parseOverview, parseView, viewPrompt } from '../scripts/lib/market-edition/edition-writer.js';
 import { cleanText, truncateAtSentence } from '../scripts/lib/market-edition/json-reply.js';
 import { divergingBarChart, lineChart, niceTicks } from '../scripts/lib/market-edition/charts.js';
 import { renderEditionBody } from '../scripts/lib/market-edition/edition-template.js';
@@ -38,11 +38,33 @@ test('parseChart computes the day move from the previous close and rejects missi
 test('snapshotToText marks unavailable instruments instead of guessing', () => {
   const now = Date.UTC(2026, 10, 22, 19, 30);
   const text = snapshotToText([{ title: 'India', quotes: [
-    { name: 'Nifty 50', ok: true, price: 25800.6, currency: 'INR', changePct: 2.0145, asOf: Date.UTC(2026, 10, 20, 10, 0), exchangeTz: 'Asia/Kolkata' },
+    { symbol: '^NSEI', name: 'Nifty 50', ok: true, price: 25800.6, currency: 'INR', changePct: 2.0145, asOf: Date.UTC(2026, 10, 20, 10, 0), exchangeTz: 'Asia/Kolkata' },
     { name: 'Sensex', ok: false },
   ] }], now);
-  assert.match(text, /Nifty 50: 25800\.60 INR \(\+2\.01% vs previous close; closed, Fri 20 Nov session\)/);
+  assert.match(text, /Nifty 50: 25800\.60 points \(\+2\.01% vs previous close; closed, Fri 20 Nov session\)/);
   assert.match(text, /Sensex: unavailable/);
+});
+
+// Regression: Yahoo reports currency "INR" for ^NSEI, so the prompt said "Nifty 50: 25819.25 INR" and editions
+// wrote index levels in rupees. Index levels are points; the other instruments carry their real unit.
+test('snapshotToText gives each instrument its real unit, never a currency on an index level', () => {
+  const live = { ok: true, changePct: 0.5, asOf: Date.UTC(2026, 10, 26, 10, 0), exchangeTz: 'Asia/Kolkata' };
+  const groups = INSTRUMENT_GROUPS.map((g) => ({
+    title: g.title,
+    quotes: g.instruments.map((i) => ({ ...i, ...live, price: 100, currency: i.symbol.startsWith('^') ? 'INR' : 'USD' })),
+  }));
+  const text = snapshotToText(groups, Date.UTC(2026, 10, 26, 10, 30));
+  assert.match(text, /Nifty 50: 100\.00 points/);
+  assert.match(text, /Sensex: 100\.00 points/);
+  assert.match(text, /S&P 500: 100\.00 points/);
+  assert.match(text, /India VIX: 100\.00 points/);
+  assert.match(text, /US 10Y yield: 100\.00 % yield/);
+  assert.match(text, /USD\/INR: 100\.00 INR per USD/);
+  assert.match(text, /Brent crude: 100\.00 USD per barrel/);
+  assert.match(text, /Gold: 100\.00 USD per troy ounce/);
+  assert.match(text, /Bitcoin: 100\.00 USD/);
+  assert.doesNotMatch(text, /\d INR \(/, 'no quote is labelled with a bare INR currency');
+  assert.equal(quoteUnit({ name: 'old snapshot quote', currency: 'USD' }), 'USD', 'quotes without a symbol keep their currency');
 });
 
 test('marketStatus uses the exchange day for closed sessions and "live" for fresh quotes', () => {
@@ -366,4 +388,11 @@ test('saveEditionSnapshot writes <id>.json under the snapshot directory, never t
   assert.equal(saveFailedEditionSnapshot(new Error('no snapshot'), 'hourly', { dir }), null, 'errors without a snapshot are ignored');
   assert.ok(snapshotDir({}).startsWith(os.homedir()), 'defaults to the home directory, outside /var/www');
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('every writer prompt tells the model index levels are points, not a currency', () => {
+  const context = { edition: { label: 'Close', focus: 'f' }, dateLabel: 'd', marketText: 'm', headlines: [], board: null };
+  for (const prompt of [overviewPrompt(context), newsPrompt(context), viewPrompt({ ...context, sectorNames: ['Auto'] })]) {
+    assert.match(prompt, /Index levels are points/);
+  }
 });
