@@ -1,5 +1,17 @@
 [
   {
+    "title": "Nifty 50 Reclaims 25,884 as IT Stocks Lead Broad-Based Rally",
+    "date": "2026-11-26",
+    "timestamp": 1795689083740,
+    "excerpt": "Indian equities staged a sharp recovery, with the Nifty 50 up 2.11% and Nifty IT surging 4.82% on easing global tariff fears. The rally was supported by a 4.89% drop in India VIX and a modest rupee weakness, while global cues remained mixed with US markets closed for the holiday.",
+    "fileName": "swarm-hourly-1795689083025.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": null,
+    "edition": "close",
+    "stance": "constructive"
+  },
+  {
     "title": "Nifty eyes 26,000 as Asian strength offsets US tariff noise",
     "date": "2026-11-26",
     "timestamp": 1795660344033,
@@ -1194,38 +1206,6 @@
         {
           "title": "Government Stock - Full Auction Results",
           "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64012"
-        },
-        {
-          "title": "Adjudication Order in the matter of Intelligent Money Managers Private Limited",
-          "link": "https://www.sebi.gov.in/enforcement/orders/nov-2026/adjudication-order-in-the-matter-of-intelligent-money-managers-private-limited_105852.html"
-        }
-      ]
-    }
-  },
-  {
-    "title": "HOURLY   Nexus Institutional Terminal",
-    "date": "2026-11-20",
-    "timestamp": 1795172520726,
-    "excerpt": "Current market topology reflects a terminal breakdown in liquidity depth, characterized by a persistent widening of the SOFR-OIS spread as of November 20, 2026. The 2025 LFY baseline reveals a critical \"liquidity trap\" phenomenon, wherein the compres...",
-    "fileName": "swarm-hourly-1795172520719.html",
-    "type": "briefing",
-    "frequency": "hourly",
-    "liveNews": {
-      "summary": "RBI: Government Stock - Full Auction Results (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64012) | Government Stock - Auction Results: Cut-off (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64011) | Result of the Second 3-day Variable Rate Repo (VRR) auction held on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64010) | SEBI: Adjudication Order in the matter of Intelligent Money Managers Private Limited (URL: https://www.sebi.gov.in/enforcement/orders/nov-2026/adjudication-order-in-the-matter-of-intelligent-money-managers-private-limited_105852.html) | SEBI hosts IOSCO’s Asia-Pacific Regional Committee Regulatory Roundtable on Market Infrastructure Institutions (URL: https://www.sebi.gov.in/media-and-notifications/press-releases/nov-2026/sebi-hosts-iosco-s-asia-pacific-regional-committee-regulatory-roundtable-on-market-infrastructure-institutions_105848.html) | Appeal No. 7166 of 2026 filed by Arjun singh (URL: https://www.sebi.gov.in/enforcement/orders/nov-2026/appeal-no-7166-of-2026-filed-by-arjun-singh_105825.html) | GLOBAL: BLOOMBERG | Saudi Public Investment Fund’s Riyadh Headquarters Damaged - Bloomberg.com | BLOOMBERG | UBS Plans to Shift Hundreds of Roles to India in Offshoring Push - Bloomberg.com | BLOOMBERG | Canada Bank Regulator Eases Rules for Smaller Lenders to Boost Competition - Bloomberg.com | REUTERS | ECB to make euro swaps more accessible in global push, Lagarde says - Reuters | REUTERS | Fed's Barr worried regulatory changes may increase financial sector risks - Reuters | REUTERS | Pentagon fails ninth straight audit despite progress in organizing finances - Reuters | CNBC | Anthropic shares fall nearly 6% in premarket amid AI selloff as Nvidia, AMD shares drop - CNBC | CNBC | Anthropic IPO 'exactly what the markets need,' but analysts warn of volatility - CNBC | CNBC | Senate passes BAAJA permitting reform bill backed by AI, energy sectors - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia | NIKKEI | A fragile AI boom raises the stakes for APEC - Nikkei Asia",
-      "rbi": "Government Stock - Full Auction Results (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64012) | Government Stock - Auction Results: Cut-off (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64011) | Result of the Second 3-day Variable Rate Repo (VRR) auction held on November 20, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64010)",
-      "sebi": "Adjudication Order in the matter of Intelligent Money Managers Private Limited (URL: https://www.sebi.gov.in/enforcement/orders/nov-2026/adjudication-order-in-the-matter-of-intelligent-money-managers-private-limited_105852.html) | SEBI hosts IOSCO’s Asia-Pacific Regional Committee Regulatory Roundtable on Market Infrastructure Institutions (URL: https://www.sebi.gov.in/media-and-notifications/press-releases/nov-2026/sebi-hosts-iosco-s-asia-pacific-regional-committee-regulatory-roundtable-on-market-infrastructure-institutions_105848.html) | Appeal No. 7166 of 2026 filed by Arjun singh (URL: https://www.sebi.gov.in/enforcement/orders/nov-2026/appeal-no-7166-of-2026-filed-by-arjun-singh_105825.html)",
-      "docs": [
-        {
-          "title": "Government Stock - Full Auction Results",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64012"
-        },
-        {
-          "title": "Government Stock - Auction Results: Cut-off",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64011"
-        },
-        {
-          "title": "Result of the Second 3-day Variable Rate Repo (VRR) auction held on November 20, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64010"
         },
         {
           "title": "Adjudication Order in the matter of Intelligent Money Managers Private Limited",
