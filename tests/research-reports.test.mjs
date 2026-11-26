@@ -2,7 +2,7 @@
  * Daily and weekly report tests: the report definitions, week-over-week quotes, the week's edition digest
  * read from snapshots, full report runs with fake fetch and AI, and the token-budget fallback.
  */
-import test from 'node:test';
+import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -12,6 +12,10 @@ import { PERIODS, fetchMarketSnapshot, snapshotToText } from '../scripts/lib/mar
 import { recentEditionsText } from '../scripts/lib/market-edition/week-digest.js';
 import { generateMarketEdition } from '../scripts/lib/market-edition/index.js';
 import { BudgetExceededError } from '../scripts/lib/token-budget.js';
+
+// The pipeline logs progress to stdout, which the test runner also uses for its own event stream; with the
+// bond fetch in every edition those lines landed mid-frame ("Unable to deserialize cloned data"). Keep stdout clean.
+mock.method(console, 'log', () => {});
 
 const NOW = new Date('2026-11-22T01:00:00Z'); // Sunday 06:30 IST, the weekly slot
 

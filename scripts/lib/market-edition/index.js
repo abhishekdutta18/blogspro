@@ -12,6 +12,7 @@ import { fetchHeadlines } from './news-feed.js';
 import { runViewBoard } from './view-board.js';
 import { headlinesToText, writeEdition } from './edition-writer.js';
 import { renderEditionBody, renderEditionPage } from './edition-template.js';
+import { fetchBondMarket } from './bond-market.js';
 
 const TIME_LABEL = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
@@ -43,16 +44,22 @@ const sectorNamesFrom = (markets) => markets.find((g) => g.id === 'sectors')?.qu
 
 /**
  * Builds one edition. `askAI` and `fetchImpl` are injectable for tests.
+ * `readBondsFile` overrides how data/bonds.json is read (tests).
  * Returns the fields the tome generator publishes, plus `renderPage(canonicalUrl)` for the final HTML.
  */
-export async function generateMarketEdition({ askAI, env = process.env, now = new Date(), editionId, fetchImpl = fetch, extraContext = '' }) {
+export async function generateMarketEdition({
+  askAI, env = process.env, now = new Date(), editionId, fetchImpl = fetch, extraContext = '', readBondsFile,
+}) {
   const edition = (editionId && getEdition(editionId)) || resolveEdition(now);
   const timeLabel = formatIst(now);
   console.log(`🗞️ [Edition] Building ${edition.label} for ${timeLabel}`);
 
-  const [markets, histories, headlines] = await Promise.all([
-    fetchMarketSnapshot({ fetchImpl, period: edition.period }), fetchHistories({ fetchImpl }), fetchHeadlines({ fetchImpl }),
+  const [equities, bondGroup, histories, headlines] = await Promise.all([
+    fetchMarketSnapshot({ fetchImpl, period: edition.period }),
+    fetchBondMarket({ fetchImpl, env, now: now.getTime(), query: edition.period.query, readFile: readBondsFile }),
+    fetchHistories({ fetchImpl }), fetchHeadlines({ fetchImpl }),
   ]);
+  const markets = [...equities, bondGroup];
   const quotesOk = markets.reduce((n, g) => n + g.quotes.filter((q) => q.ok).length, 0);
   console.log(`📈 [Edition] ${quotesOk} quotes, ${headlines.length} headlines`);
   if (quotesOk === 0 && headlines.length === 0) throw new Error('EDITION_NO_DATA: every quote and news feed failed');

@@ -4,6 +4,8 @@
  * to invent others. An instrument that fails to load is reported as unavailable, never guessed.
  */
 
+import { EXCHANGES, dayLabel, exchangeStatus, tradingCalendarText } from './exchange-calendar.js';
+
 const CHART_URL = 'https://query2.finance.yahoo.com/v8/finance/chart/';
 const REQUEST_TIMEOUT_MS = 8000;
 
@@ -12,45 +14,44 @@ export const INSTRUMENT_GROUPS = Object.freeze([
     id: 'india',
     title: 'India',
     instruments: [
-      { symbol: '^NSEI', name: 'Nifty 50' },
-      { symbol: '^BSESN', name: 'Sensex' },
-      { symbol: '^NSEBANK', name: 'Nifty Bank' },
-      { symbol: '^CNXIT', name: 'Nifty IT' },
-      { symbol: '^INDIAVIX', name: 'India VIX' },
+      { symbol: '^NSEI', name: 'Nifty 50', exchange: 'NSE' },
+      { symbol: '^BSESN', name: 'Sensex', exchange: 'NSE' },
+      { symbol: '^NSEBANK', name: 'Nifty Bank', exchange: 'NSE' },
+      { symbol: '^CNXIT', name: 'Nifty IT', exchange: 'NSE' },
+      { symbol: '^INDIAVIX', name: 'India VIX', exchange: 'NSE' },
     ],
   },
   {
     id: 'sectors',
     title: 'NSE sectors',
     instruments: [
-      { symbol: '^CNXFIN', name: 'Financials' },
-      { symbol: '^CNXPSUBANK', name: 'PSU Bank' },
-      { symbol: '^CNXAUTO', name: 'Auto' },
-      { symbol: '^CNXPHARMA', name: 'Pharma' },
-      { symbol: '^CNXFMCG', name: 'FMCG' },
-      { symbol: '^CNXMETAL', name: 'Metal' },
-      { symbol: '^CNXENERGY', name: 'Energy' },
-      { symbol: '^CNXREALTY', name: 'Realty' },
+      { symbol: '^CNXFIN', name: 'Financials', exchange: 'NSE' },
+      { symbol: '^CNXPSUBANK', name: 'PSU Bank', exchange: 'NSE' },
+      { symbol: '^CNXAUTO', name: 'Auto', exchange: 'NSE' },
+      { symbol: '^CNXPHARMA', name: 'Pharma', exchange: 'NSE' },
+      { symbol: '^CNXFMCG', name: 'FMCG', exchange: 'NSE' },
+      { symbol: '^CNXMETAL', name: 'Metal', exchange: 'NSE' },
+      { symbol: '^CNXENERGY', name: 'Energy', exchange: 'NSE' },
+      { symbol: '^CNXREALTY', name: 'Realty', exchange: 'NSE' },
     ],
   },
   {
     id: 'global',
     title: 'Global equities',
     instruments: [
-      { symbol: '^GSPC', name: 'S&P 500' },
-      { symbol: '^IXIC', name: 'Nasdaq' },
-      { symbol: '^DJI', name: 'Dow Jones' },
-      { symbol: '^FTSE', name: 'FTSE 100' },
-      { symbol: '^N225', name: 'Nikkei 225' },
-      { symbol: '^HSI', name: 'Hang Seng' },
+      { symbol: '^GSPC', name: 'S&P 500', exchange: 'NYSE' },
+      { symbol: '^IXIC', name: 'Nasdaq', exchange: 'NYSE' },
+      { symbol: '^DJI', name: 'Dow Jones', exchange: 'NYSE' },
+      { symbol: '^FTSE', name: 'FTSE 100', exchange: 'LSE' },
+      { symbol: '^N225', name: 'Nikkei 225', exchange: 'JPX' },
+      { symbol: '^HSI', name: 'Hang Seng', exchange: 'HKEX' },
     ],
   },
   {
     id: 'macro',
-    title: 'Currencies, rates and commodities',
+    title: 'Currencies and commodities',
     instruments: [
       { symbol: 'USDINR=X', name: 'USD/INR' },
-      { symbol: '^TNX', name: 'US 10Y yield' },
       { symbol: 'BZ=F', name: 'Brent crude' },
       { symbol: 'GC=F', name: 'Gold' },
       { symbol: 'BTC-USD', name: 'Bitcoin' },
@@ -130,8 +131,8 @@ export function fetchQuotes(instruments, { fetchImpl = fetch, query = DAILY } = 
 
 // One-month daily closes drawn as line charts (one chart each: different scales never share an axis).
 export const HISTORY_INSTRUMENTS = Object.freeze([
-  { symbol: '^NSEI', name: 'Nifty 50' },
-  { symbol: '^GSPC', name: 'S&P 500' },
+  { symbol: '^NSEI', name: 'Nifty 50', exchange: 'NSE' },
+  { symbol: '^GSPC', name: 'S&P 500', exchange: 'NYSE' },
 ]);
 
 /** Daily closes from a chart response as [{ t (ms), close }], skipping null bars. */
@@ -192,10 +193,26 @@ function sessionDay(ms, timeZone) {
   }
 }
 
-/** "live" while a quote is fresh, otherwise "closed, Fri 20 Nov session" in the exchange's local day. */
+const CLOSED_REASON = Object.freeze({
+  'after-close': () => 'closed for the day',
+  'pre-open': () => 'not open yet today',
+  lunch: () => 'lunch break',
+  weekend: () => 'closed for the weekend',
+  holiday: (s) => `closed today for ${s.holiday}`,
+});
+
+/**
+ * Status of a quote for the prompt and the homepage. With an exchange (see exchange-calendar.js) the calendar
+ * decides: "live" only while the exchange is in session and the quote is fresh, otherwise why it is closed and its
+ * last completed session. Without one (FX, crypto, futures trade round the clock) freshness decides, as before.
+ */
 export function marketStatus(quote, now = Date.now()) {
   if (!Number.isFinite(quote.asOf)) return 'status unknown';
-  return now - quote.asOf <= LIVE_WINDOW_MS ? 'live' : `closed, ${sessionDay(quote.asOf, quote.exchangeTz)} session`;
+  const fresh = now - quote.asOf <= LIVE_WINDOW_MS;
+  if (!EXCHANGES[quote.exchange]) return fresh ? 'live' : `closed, ${sessionDay(quote.asOf, quote.exchangeTz)} session`;
+  const status = exchangeStatus(quote.exchange, now);
+  if (status.state === 'open') return fresh ? 'live' : 'in session, quote delayed';
+  return `${CLOSED_REASON[status.state](status)}, last session ${dayLabel(status.lastSession)}`;
 }
 
 /** Latest quote time in a group (ms), or null. */
@@ -204,16 +221,26 @@ export function latestQuoteTime(group) {
   return times.length ? Math.max(...times) : null;
 }
 
-/** Plain-text table of the snapshot for the writer prompt, with each market's live/closed status. */
+/** "- US 10Y: 4.21% (+3.0 bp vs previous close; live)": yields in percent, changes in basis points. */
+function yieldLine(q, now, period) {
+  const change = q.changeBp === null || q.changeBp === undefined
+    ? 'change n/a'
+    : `${q.changeBp >= 0 ? '+' : ''}${q.changeBp.toFixed(1)} bp ${q.changeBasis || period.text}`;
+  return `- ${q.name}: ${q.price.toFixed(2)}% (${change}; ${q.status || marketStatus(q, now)})`;
+}
+
+/** Prompt data: the trading calendar, then each group's quotes with their live/closed status. */
 export function snapshotToText(groups, now = Date.now(), period = PERIODS.session) {
-  return groups
+  const quotes = groups
     .map((group) => {
       const lines = group.quotes.map((q) => {
         if (!q.ok) return `- ${q.name}: unavailable`;
+        if (q.kind === 'yield') return yieldLine(q, now, period);
         const move = q.changePct === null ? 'change n/a' : `${q.changePct >= 0 ? '+' : ''}${q.changePct.toFixed(2)}% ${period.text}`;
         return `- ${q.name}: ${q.price.toFixed(2)} ${q.currency} (${move}; ${marketStatus(q, now)})`;
       });
-      return `${group.title}:\n${lines.join('\n')}`;
+      return [`${group.title}:`, ...lines, ...(group.notes || []).map((n) => `- ${n}`)].join('\n');
     })
     .join('\n\n');
+  return [tradingCalendarText(now), quotes].filter(Boolean).join('\n\n');
 }

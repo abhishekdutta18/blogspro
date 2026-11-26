@@ -12,13 +12,14 @@
 import { marketStatus } from './market-data.js';
 
 // The India 10-year G-Sec is left out on purpose: there is no reliable free quote for it.
+// `exchange` (exchange-calendar.js) keeps an index off "live" on its holidays; 24-hour markets have none.
 export const HOME_INSTRUMENTS = Object.freeze([
-  { symbol: 'NSE:NIFTY', yahoo: '^NSEI', style: 'inr' },
-  { symbol: 'BSE:SENSEX', yahoo: '^BSESN', style: 'inr' },
-  { symbol: 'NSE:BANKNIFTY', yahoo: '^NSEBANK', style: 'inr' },
-  { symbol: 'SPX', yahoo: '^GSPC', style: 'num' },
-  { symbol: 'IXIC', yahoo: '^IXIC', style: 'num' },
-  { symbol: 'NI225', yahoo: '^N225', style: 'num' },
+  { symbol: 'NSE:NIFTY', yahoo: '^NSEI', style: 'inr', exchange: 'NSE' },
+  { symbol: 'BSE:SENSEX', yahoo: '^BSESN', style: 'inr', exchange: 'NSE' },
+  { symbol: 'NSE:BANKNIFTY', yahoo: '^NSEBANK', style: 'inr', exchange: 'NSE' },
+  { symbol: 'SPX', yahoo: '^GSPC', style: 'num', exchange: 'NYSE' },
+  { symbol: 'IXIC', yahoo: '^IXIC', style: 'num', exchange: 'NYSE' },
+  { symbol: 'NI225', yahoo: '^N225', style: 'num', exchange: 'JPX' },
   { symbol: 'USDINR', yahoo: 'USDINR=X', style: 'fx2' },
   { symbol: 'EURINR', yahoo: 'EURINR=X', style: 'fx2' },
   { symbol: 'GBPINR', yahoo: 'GBPINR=X', style: 'fx2' },
@@ -27,7 +28,7 @@ export const HOME_INSTRUMENTS = Object.freeze([
   { symbol: 'GOLD', yahoo: 'GC=F', style: 'usd' },
   { symbol: 'USOIL', yahoo: 'CL=F', style: 'usd' },
   { symbol: 'COPPER', yahoo: 'HG=F', style: 'usd' },
-  { symbol: 'US10Y', yahoo: '^TNX', style: 'yield' },
+  { symbol: 'US10Y', yahoo: '^TNX', style: 'yield', exchange: 'CBOE_RATES' },
   { symbol: 'BTCUSDT', yahoo: 'BTC-USD', style: 'usd0' },
   { symbol: 'ETHUSDT', yahoo: 'ETH-USD', style: 'usd' },
 ]);
@@ -101,7 +102,7 @@ export function formatHomeItem(instrument, quote, now = Date.now()) {
     range: hasRange ? `${formatValue(style, quote.dayLow)} – ${formatValue(style, quote.dayHigh)}` : null,
     open: formatValue(style, quote.open),
     asOf: Number.isFinite(quote.asOf) ? quote.asOf : null,
-    live: marketStatus(quote, now) === 'live',
+    live: marketStatus({ ...quote, exchange: instrument.exchange }, now) === 'live',
     last: quote.price,
     prevClose: Number.isFinite(quote.prevClose) ? quote.prevClose : null,
     fmt: CHART_FORMATS[style],
@@ -121,7 +122,7 @@ export function buildHomeMarkets(instruments, quotes, { previous = null, now = D
     if (quote?.ok) return { item: formatHomeItem(instrument, quote, now), fresh: true };
     const old = kept.get(instrument.symbol);
     if (!old) return null;
-    return { item: { ...old, live: marketStatus({ asOf: old.asOf }, now) === 'live' }, fresh: false };
+    return { item: { ...old, live: marketStatus({ asOf: old.asOf, exchange: instrument.exchange }, now) === 'live' }, fresh: false };
   }).filter(Boolean);
   return {
     generatedAt: now,
