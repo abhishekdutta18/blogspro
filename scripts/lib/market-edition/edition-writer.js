@@ -18,6 +18,8 @@ const SHARED_RULES = [
   'Each quote is marked "live" or "closed, <day> session". Describe closed markets in the past tense for that ' +
     'session ("the S&P 500 fell 3.70% on Friday"); only "live" markets may be described as trading now.',
   'USD/INR falling means the rupee strengthened against the dollar; rising means it weakened.',
+  'Index levels are points ("the Nifty 50 closed at 25,819.25"), never rupees, dollars or any currency. Use the ' +
+    'unit MARKET DATA gives for every other instrument.',
   'Write complete paragraphs of plain text. No markdown, no bullet characters, no headings inside strings.',
 ];
 

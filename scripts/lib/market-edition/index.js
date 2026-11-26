@@ -2,8 +2,9 @@
  * Market edition pipeline — replaces the hourly swarm with three daily editions (08:00, 16:00, 22:00 IST).
  * Order: live quotes, one-month histories and headlines (no AI), the view board (3 persona calls), then three
  * writer section calls (overview, news, view) for a ~3,500-word edition. About 6 AI calls per edition.
- * If the AI calls fail the edition still publishes prices and headlines, marked as missing commentary;
- * if the data fetches fail too there is nothing true to publish, so it throws.
+ * The overview is required: without it the run throws EditionIncompleteError (with the snapshot attached) rather
+ * than publish a data-only page, as the 25 Nov 2026 22:00 IST edition did. If the data fetches fail it throws too.
+ * Missing news or view sections still publish, with headlines standing in.
  */
 
 import { getEdition, resolveEdition } from './editions.js';
@@ -39,6 +40,27 @@ function editionText(text) {
   ];
 }
 
+/** An edition that must not be published; `snapshot` holds the raw replies and data for diagnosis. */
+export class EditionIncompleteError extends Error {
+  constructor(message, snapshot) {
+    super(message);
+    this.name = 'EditionIncompleteError';
+    this.snapshot = snapshot;
+  }
+}
+
+const REPLY_PREVIEW_CHARS = 120;
+
+/** One line per failed attempt: its error, or the start of a reply that would not parse. */
+export function describeAttempts(attempts) {
+  return attempts.map((a) => {
+    if (a.error) return `attempt ${a.attempt}: ${a.error}`;
+    const reply = String(a.reply ?? '');
+    const preview = reply.length > REPLY_PREVIEW_CHARS ? `${reply.slice(0, REPLY_PREVIEW_CHARS)}…` : reply;
+    return `attempt ${a.attempt}: unparseable reply (${reply.length} chars): ${preview}`;
+  }).join('; ');
+}
+
 const sectorNamesFrom = (markets) => markets.find((g) => g.id === 'sectors')?.quotes.filter((q) => q.ok).map((q) => q.name) || [];
 
 /**
@@ -67,9 +89,16 @@ export async function generateMarketEdition({ askAI, env = process.env, now = ne
       askAI, env, edition, dateLabel: timeLabel, marketText, headlines, board, sectorNames: sectorNamesFrom(markets),
     });
   } catch (error) {
-    console.warn(`⚠️ [Edition] Publishing without commentary: ${error.message}`);
+    written = { text: null, replies: [{ section: 'overview', attempt: 0, error: `writer crashed: ${error.message}` }] };
   }
   const { text } = written;
+  const snapshot = { edition: edition.id, timeLabel, text, board, markets, headlines, histories, replies: written.replies };
+  if (!text) {
+    throw new EditionIncompleteError(
+      `EDITION_NO_COMMENTARY: ${edition.label} overview failed, not publishing a data-only page (${describeAttempts(written.replies)})`,
+      snapshot,
+    );
+  }
 
   const title = text?.title || `${edition.label}: markets at ${timeLabel}`;
   const summary = text?.summary || `Live prices and the latest market headlines for the ${edition.label.toLowerCase()}.`;
@@ -89,6 +118,6 @@ export async function generateMarketEdition({ askAI, env = process.env, now = ne
     // `pdfHref`: link to the page's PDF copy, passed only once that PDF has been written.
     renderPage: (canonicalUrl, { pdfHref } = {}) => renderEditionPage({ edition, title, summary, timeLabel, body, canonicalUrl, pdfHref }),
     // Everything the page was built from, for saveEditionSnapshot: kept off the web root, never published.
-    snapshot: { edition: edition.id, timeLabel, text, board, markets, headlines, histories, replies: written.replies },
+    snapshot,
   };
 }

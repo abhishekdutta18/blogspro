@@ -49,14 +49,33 @@ export const INSTRUMENT_GROUPS = Object.freeze([
     id: 'macro',
     title: 'Currencies, rates and commodities',
     instruments: [
-      { symbol: 'USDINR=X', name: 'USD/INR' },
-      { symbol: '^TNX', name: 'US 10Y yield' },
-      { symbol: 'BZ=F', name: 'Brent crude' },
-      { symbol: 'GC=F', name: 'Gold' },
-      { symbol: 'BTC-USD', name: 'Bitcoin' },
+      { symbol: 'USDINR=X', name: 'USD/INR', unit: 'INR per USD' },
+      { symbol: '^TNX', name: 'US 10Y yield', unit: '% yield' },
+      { symbol: 'BZ=F', name: 'Brent crude', unit: 'USD per barrel' },
+      { symbol: 'GC=F', name: 'Gold', unit: 'USD per troy ounce' },
+      { symbol: 'BTC-USD', name: 'Bitcoin', unit: 'USD' },
     ],
   },
 ]);
+
+// Index levels are points; Yahoo still reports the listing currency for them (INR for ^NSEI), which led editions to
+// write "Nifty at 25,819 rupees". Instruments that are not indices carry their own `unit` above.
+const UNIT_BY_SYMBOL = Object.freeze(
+  Object.fromEntries(INSTRUMENT_GROUPS.flatMap((g) => g.instruments).filter((i) => i.unit).map((i) => [i.symbol, i.unit])),
+);
+
+/**
+ * The unit a quote's price is in: the instrument's declared unit, "points" for an index, else its currency.
+ * Looked up by symbol so snapshots saved before units existed still read correctly.
+ * @param {{ symbol?: string, currency?: string }} quote
+ * @returns {string}
+ */
+export function quoteUnit(quote) {
+  const symbol = String(quote.symbol || '');
+  if (UNIT_BY_SYMBOL[symbol]) return UNIT_BY_SYMBOL[symbol];
+  if (symbol.startsWith('^')) return 'points';
+  return quote.currency || '';
+}
 
 /** A positive finite number, else null (Yahoo reports an unknown day high/low as 0). */
 const positiveOrNull = (value) => {
@@ -211,7 +230,7 @@ export function snapshotToText(groups, now = Date.now(), period = PERIODS.sessio
       const lines = group.quotes.map((q) => {
         if (!q.ok) return `- ${q.name}: unavailable`;
         const move = q.changePct === null ? 'change n/a' : `${q.changePct >= 0 ? '+' : ''}${q.changePct.toFixed(2)}% ${period.text}`;
-        return `- ${q.name}: ${q.price.toFixed(2)} ${q.currency} (${move}; ${marketStatus(q, now)})`;
+        return `- ${q.name}: ${q.price.toFixed(2)} ${quoteUnit(q)} (${move}; ${marketStatus(q, now)})`;
       });
       return `${group.title}:\n${lines.join('\n')}`;
     })

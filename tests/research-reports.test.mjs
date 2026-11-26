@@ -99,12 +99,14 @@ test('a weekly report uses week-over-week quotes, the week digest, and the weekl
   assert.match(page, /last 5 sessions/);
 });
 
-test('a refused budget publishes the report without commentary instead of failing', async () => {
+// A data-only page is no longer published (25 Nov 2026 22:00 IST edition): a refused budget fails the run loudly.
+test('a refused budget fails the report with EDITION_NO_COMMENTARY instead of publishing data only', async () => {
   let calls = 0;
   const askAI = async () => { calls += 1; throw new BudgetExceededError('day cap reached'); };
-  const result = await generateMarketEdition({ askAI, env: {}, now: NOW, editionId: 'daily', fetchImpl: fakeFetch() });
-  assert.equal(result.edition.id, 'daily');
-  assert.equal(result.hasCommentary, false);
-  assert.match(result.final, /Commentary is unavailable/);
+  const error = await generateMarketEdition({ askAI, env: {}, now: NOW, editionId: 'daily', fetchImpl: fakeFetch() }).catch((e) => e);
+  assert.equal(error.name, 'EditionIncompleteError');
+  assert.match(error.message, /^EDITION_NO_COMMENTARY: Daily strategy overview failed/);
+  assert.match(error.message, /TOKEN_BUDGET_EXCEEDED: day cap reached/);
+  assert.equal(error.snapshot.edition, 'daily');
   assert.ok(calls <= 5, 'board calls plus one overview attempt; refusals do not retry');
 });

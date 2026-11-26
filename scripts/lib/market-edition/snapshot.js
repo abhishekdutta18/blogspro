@@ -34,3 +34,18 @@ export function saveEditionSnapshot(snapshot, id, { dir = snapshotDir() } = {}) 
     return null;
   }
 }
+
+/**
+ * Saves the snapshot attached to a failed edition (EditionIncompleteError.snapshot) as
+ * `failed-swarm-<freq>-<now>.json`, so the raw replies behind an unpublished edition can be read.
+ * Returns the path, or null when the error carries no snapshot or the write fails. Never throws.
+ * @param {unknown} error
+ * @param {string} freq
+ * @param {{ dir?: string, now?: number }} [options]
+ * @returns {string | null}
+ */
+export function saveFailedEditionSnapshot(error, freq, { dir = snapshotDir(), now = Date.now() } = {}) {
+  const snapshot = error && typeof error === 'object' ? error.snapshot : null;
+  if (!snapshot) return null;
+  return saveEditionSnapshot(snapshot, `failed-swarm-${freq}-${now}`, { dir });
+}
