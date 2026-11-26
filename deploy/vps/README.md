@@ -9,6 +9,10 @@ which hid generation failures and ran from a crontab with no overlap protection.
 | `blogspro-pulse@hourly.timer` | 08:00, 16:00, 22:00 IST | market edition | 45 min |
 | `blogspro-pulse@daily.timer` | 00:00 | daily strategy (edition pipeline) | 2 h |
 | `blogspro-pulse@weekly.timer` | Sunday 01:00 | weekly review (edition pipeline) | 5 h |
+| `blogspro-pulse@pages.timer` | 08:15 | none (page build + sync only) | n/a |
+
+Page builds read Firestore, whose free quota resets at midnight Pacific (07:00/08:00 UTC); every build
+between 00Z and 07Z fails, so `pages` rebuilds the night's pages once the quota is back.
 
 Runs share `/var/www/blogspro` and take a lock on it, so they never overlap. Secrets stay in
 `/var/www/blogspro/.env`; the rsync to the web VPS excludes it and other key files.
@@ -20,7 +24,7 @@ sudo install -d -m 0755 /opt/blogspro-pulse
 sudo install -o root -g root -m 0755 deploy/vps/run-pulse.sh /opt/blogspro-pulse/run-pulse.sh
 sudo install -m 0644 deploy/vps/blogspro-pulse@.service deploy/vps/blogspro-pulse@*.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now blogspro-pulse@hourly.timer blogspro-pulse@daily.timer blogspro-pulse@weekly.timer
+sudo systemctl enable --now blogspro-pulse@hourly.timer blogspro-pulse@daily.timer blogspro-pulse@weekly.timer blogspro-pulse@pages.timer
 ```
 
 ## Operate

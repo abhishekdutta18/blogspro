@@ -108,6 +108,10 @@ function mapLegacyModel(model) {
 
 /** Groq retired its Llama 3.x ids for this account; free-tier chat models are gpt-oss and qwen. GROQ_MODEL overrides. */
 const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+/** A second free Groq model with its own daily token quota (the gpt-oss ones run out first). */
+const GROQ_QWEN_MODEL = process.env.GROQ_QWEN_MODEL || "qwen/qwen3.8-27b";
+/** Groq quotas are per organization and model; nodes that share one also share its daily limit. */
+const groqQuota = (model) => `groq:${model}`;
 
 export async function generateGroqContent(prompt, model = DEFAULT_GROQ_MODEL, context = {}) {
     const key = context?.GROQ_API_KEY || process.env.GROQ_API_KEY;
@@ -179,7 +183,10 @@ export async function generateGroqContent(prompt, model = DEFAULT_GROQ_MODEL, co
             data = await res.json();
         }
 
-        if (data && data.choices && data.choices.length > 0) return data.choices[0].message.content;
+        if (data && data.choices && data.choices.length > 0) {
+            const content = data.choices[0].message.content;
+            return typeof content === 'string' ? content.replace(/<think>[\s\S]*?<\/think>/g, '').trim() : content;
+        }
         // Keep the status and code so markFailure can tell rate limits (cooldown) from dead keys (blacklist).
         throw new Error(`Groq API Error: ${res.status} ${data.error?.code || ''} - ${data.error?.message || "Unknown error"}`);
     } catch (err) {
@@ -387,31 +394,50 @@ export async function generateCloudflareContent(prompt, model = DEFAULT_CLOUDFLA
     return result;
 }
 
-const GITHUB_MODELS_URL = "https://models.github.ai/inference/chat/completions";
-/** Low-tier GitHub Models allow ~150 requests/day and 8k input tokens per request on the free plan. */
-const DEFAULT_GITHUB_MODEL = process.env.GITHUB_MODELS_MODEL || "openai/gpt-4.1-mini";
+// GitHub Models was retired on 30 Jul 2026: models.github.ai now answers every request with a plain "OK",
+// so the node was removed. The successor (Microsoft Foundry) needs an Azure account.
 
-function githubModelsToken(context = {}) {
-    return context?.GITHUB_MODELS_TOKEN || process.env.GITHUB_MODELS_TOKEN || context?.GH_PAT || process.env.GH_PAT || null;
+const SARVAM_URL = "https://api.sarvam.ai/v1/chat/completions";
+/** Sarvam bills per token (Rs 10/1M in, Rs 25/1M out, intro pricing to end-2026) against Rs 100 signup credit. SARVAM_MODEL overrides. */
+const DEFAULT_SARVAM_MODEL = process.env.SARVAM_MODEL || "sarvam-105b";
+// The API default (2048) truncates edition sections of ~1,300 words; leave headroom for JSON.
+const SARVAM_MAX_TOKENS = 8192;
+const SARVAM_TIMEOUT_MS = 120000;
+
+function sarvamKey(context = {}) {
+    return context?.SARVAM_API_KEY || process.env.SARVAM_API_KEY || null;
 }
 
-export async function generateGitHubModelsContent(prompt, model = DEFAULT_GITHUB_MODEL, context = {}) {
-    const token = githubModelsToken(context);
-    if (!token) throw new Error("GitHub Models token missing (GITHUB_MODELS_TOKEN or GH_PAT).");
+export async function generateSarvamContent(prompt, model = DEFAULT_SARVAM_MODEL, context = {}) {
+    const key = sarvamKey(context);
+    if (!key) throw new Error("SARVAM_API_KEY missing.");
 
     const promptStr = (typeof prompt === 'string') ? prompt : JSON.stringify(prompt);
-    const res = await fetch(GITHUB_MODELS_URL, {
+    const res = await fetch(SARVAM_URL, {
         method: "POST",
-        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model, messages: [{ role: "user", content: promptStr }] })
+        signal: AbortSignal.timeout(SARVAM_TIMEOUT_MS),
+        // Docs disagree on the auth header; both carry the same sk_ key.
+        headers: { "Authorization": `Bearer ${key}`, "api-subscription-key": key, "Content-Type": "application/json" },
+        // Reasoning is on by default for sarvam-105b and billed as output tokens; null turns it off.
+        body: JSON.stringify({
+            model, max_tokens: SARVAM_MAX_TOKENS, reasoning_effort: null, messages: [{ role: "user", content: promptStr }],
+            // Without JSON mode sarvam-105b sometimes closes arrays wrongly, and the whole reply fails to parse.
+            ...(context?.responseFormat === 'json' ? { response_format: { type: "json_object" } } : {}),
+        })
     });
     if (!res.ok) {
         const errText = await res.text().catch(() => "");
-        throw new Error(`GitHub Models Error: ${res.status} - ${errText.slice(0, 300)}`);
+        // Used-up credit may arrive as 402 or as 429 "Quota Exceeded": report it without "429" so the balancer
+        // blacklists the node instead of retrying it every minute.
+        if (res.status === 402 || errText.includes('insufficient_quota')) {
+            throw new Error("Sarvam credits exhausted: payment_required (insufficient_quota_error)");
+        }
+        throw new Error(`Sarvam API Error: ${res.status} - ${errText.slice(0, 300)}`);
     }
     const data = await res.json();
-    const result = data.choices?.[0]?.message?.content;
-    if (!result) throw new Error(`GitHub Models returned empty result: ${JSON.stringify(data).slice(0, 300)}`);
+    const raw = data.choices?.[0]?.message?.content;
+    const result = typeof raw === 'string' ? raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim() : '';
+    if (!result) throw new Error(`Sarvam returned empty result: ${JSON.stringify(data).slice(0, 300)}`);
     return result;
 }
 
@@ -613,10 +639,22 @@ async function generateVertexModelGardenContent(prompt, model = "meta/llama3-405
     return data.choices?.[0]?.message?.content;
 }
 
-async function directDialAnchor(prompt, model, role, env) {
-    console.warn(`⚓ [AI-Balancer] Emergency Direct-Dial to Anchor engaged for ${role}.`);
-    if (model?.includes('gemini')) return generateGeminiContent(prompt, model, { env });
-    return generateCerebrasContent(prompt, DEFAULT_CEREBRAS_MODEL, { env });
+/** Last-resort engines, most dependable first: provisioned Vertex, paid Sarvam, then the free-tier anchors. */
+const ANCHOR_PREFERENCE = ['Vertex-Llama-405B', 'Sarvam', 'Gemini-3.1-Pro', 'Cerebras'];
+/** The model Vertex's 405B node is dialled with; other anchors use their node's default model. */
+const VERTEX_ANCHOR_MODEL = 'meta/llama3-405b-instruct-maas';
+
+/**
+ * The node askAI dials once every recovery cycle has failed, or null. It is taken from the live pool, so a
+ * provider removed by AI_DISABLED_PROVIDERS (or never configured) is never dialled, and nodes in `failed`
+ * (terminal errors this run: 402, revoked keys) are skipped.
+ */
+export function pickAnchorNode(pool, failed = new Set()) {
+    for (const name of ANCHOR_PREFERENCE) {
+        const node = pool.find((p) => p.name === name && !failed.has(p.name));
+        if (node) return node;
+    }
+    return null;
 }
 
 // --- Balancer and Dispatch Logic ---
@@ -634,6 +672,29 @@ const TERMINAL_ERROR_PATTERNS = [
 /** How long revaluateFleet keeps a terminally failed node out; longer than the longest daily run. */
 const TERMINAL_BLACKLIST_MS = 60 * 60 * 1000;
 
+/** Bounds for a rate-limit cooldown taken from the provider's own "try again in ..." hint. */
+const RATE_LIMIT_DEFAULT_COOLDOWN_MS = 60 * 1000;
+const RATE_LIMIT_MIN_COOLDOWN_MS = 5 * 1000;
+const RATE_LIMIT_MAX_COOLDOWN_MS = 60 * 60 * 1000;
+const RATE_LIMIT_MARGIN_MS = 1000;
+const RETRY_UNIT_MS = { h: 3600000, m: 60000, s: 1000, ms: 1 };
+
+/** Milliseconds in a provider hint such as "Please try again in 16m28.5s" (Groq), or null when there is none. */
+export function parseRetryAfterMs(message = '') {
+    const hint = String(message ?? '').match(/try again in ((?:\d+(?:\.\d+)?(?:ms|h|m|s))+)/i);
+    if (!hint) return null;
+    let ms = 0;
+    for (const [, amount, unit] of hint[1].matchAll(/(\d+(?:\.\d+)?)(ms|h|m|s)/g)) ms += Number(amount) * RETRY_UNIT_MS[unit];
+    return ms > 0 ? Math.round(ms) : null;
+}
+
+/** How long to bench a rate-limited node: the provider's hint plus a margin, within bounds; a minute without one. */
+export function rateLimitCooldownMs(message = '') {
+    const hinted = parseRetryAfterMs(message);
+    if (hinted === null) return RATE_LIMIT_DEFAULT_COOLDOWN_MS;
+    return Math.min(RATE_LIMIT_MAX_COOLDOWN_MS, Math.max(RATE_LIMIT_MIN_COOLDOWN_MS, hinted + RATE_LIMIT_MARGIN_MS));
+}
+
 /** True when a provider error means the node is dead for this run and must be blacklisted, not retried. */
 export function isTerminalProviderError(message = '') {
     return TERMINAL_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
@@ -644,7 +705,14 @@ export const ResourceManager = {
     failedAt: new Map(),
     pool: [],
     cooldowns: new Map(),
+    /** Rate limits that belong to a provider quota shared by several nodes (node.quota); kept across resets. */
+    quotaCooldowns: new Map(),
     failed: new Set(),
+
+    /** Epoch ms until which a node must not be called: its own cooldown or its quota's, whichever is later. */
+    cooldownUntil(node) {
+        return Math.max(this.cooldowns.get(node.name) || 0, (node.quota && this.quotaCooldowns.get(node.quota)) || 0);
+    },
     
     async init(env = {}, forceRefresh = false) {
         if (this.pool.length > 0 && !forceRefresh) return;
@@ -725,7 +793,8 @@ export const ResourceManager = {
             this.pool.push({ name: 'Cerebras', fn: (p, m, c) => generateCerebrasContent(p, DEFAULT_CEREBRAS_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate'], match: /cerebras|glm|node-generate|node-draft/i });
         }
         if (activeKeys.Groq) {
-            this.pool.push({ name: 'Groq', fn: (p, m, c) => generateGroqContent(p, DEFAULT_GROQ_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'generate'], match: /groq|node-research|node-edit|node-draft|node-generate|llama/i });
+            this.pool.push({ name: 'Groq', quota: groqQuota(DEFAULT_GROQ_MODEL), fn: (p, m, c) => generateGroqContent(p, DEFAULT_GROQ_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'generate'], match: /groq|node-research|node-edit|node-draft|node-generate|llama/i });
+            this.pool.push({ name: 'Groq-Qwen', quota: groqQuota(GROQ_QWEN_MODEL), fn: (p, m, c) => generateGroqContent(p, GROQ_QWEN_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'repair', 'generate'], match: /qwen|groq|node-draft|node-audit/i });
             // this.pool.push({ name: 'Llama-4-Scout-17B', fn: (p, m, c) => generateGroqContent(p, "meta-llama/llama-4-scout-17b-16e-instruct", c), tier: 1, roles: ['research', 'edit', 'draft'], match: /scout|llama-4/i });
             // this.pool.push({ name: 'GPT-OSS-120B', fn: (p, m, c) => generateGroqContent(p, "openai/gpt-oss-120b", c), tier: 1, roles: ['research', 'edit', 'generate'], match: /gpt-oss-120b|oss/i });
             
@@ -789,12 +858,12 @@ export const ResourceManager = {
 
 
         // TIER 3: RESILIENCE FALLBACKS
-        // Free tiers that need no billing: Cloudflare Workers AI (10k neurons/day) and GitHub Models.
+        // Free tier that needs no billing: Cloudflare Workers AI (10k neurons/day). Sarvam runs on prepaid credit.
+        if (sarvamKey(env)) {
+             this.pool.push({ name: 'Sarvam', fn: (p, m, c) => generateSarvamContent(p, DEFAULT_SARVAM_MODEL, { ...env, ...c }), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate', 'manager', 'consolidate', 'utility'], match: /sarvam|node-research|node-edit|node-draft|node-generate/i });
+        }
         if (cloudflareAuth(env)) {
              this.pool.push({ name: 'Cloudflare-Workers-AI', fn: (p, m, c) => generateCloudflareContent(p, DEFAULT_CLOUDFLARE_MODEL, { ...env, ...c }), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate', 'utility', 'manager', 'consolidate'], match: /cloudflare|workers-ai|llama|node-utility|node-editor|node-research|node-draft|node-generate/i });
-        }
-        if (githubModelsToken(env)) {
-             this.pool.push({ name: 'GitHub-Models', fn: (p, m, c) => generateGitHubModelsContent(p, DEFAULT_GITHUB_MODEL, { ...env, ...c }), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'generate', 'manager', 'consolidate'], match: /github|gpt|openai|node-editor|node-research|node-draft|node-generate/i });
         }
         if (activeKeys.HuggingFace) {
              this.pool.push({ name: 'HuggingFace', fn: generateHuggingFaceContent, tier: 3, roles: ['utility'], match: /huggingface|hf|node-utility/i });
@@ -813,23 +882,14 @@ export const ResourceManager = {
 
         // TIER 4: INSTITUTIONAL BRIDGE (Restores Groq/Llama via Cloudflare)
         if (isBridgeActive) {
-            this.pool.push({ 
-                name: 'Cloudflare-Gateway', 
-                fn: generateInstitutionalBridgeContent, 
-                tier: 2, 
-                roles: ['research', 'manager', 'audit', 'utility'], 
-                match: /bridge|gateway|institutional/i 
-            });
-
-            // [V12.0] VIRTUAL PROXY NODES (Unlocks Cloud models despite local placeholders)
-            // These act as direct mappings to the Edge Bridge to ensure high-parameter utilization.
-            this.pool.push({ name: 'Groq-Bridge-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, DEFAULT_GROQ_MODEL, c), tier: 1, roles: ['research', 'edit'], match: /groq|node-research|node-draft|70b/i });
-            this.pool.push({ name: 'DeepSeek-V3-1T', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "DeepSeek-V3", c), tier: 1, roles: ['research', 'edit'], match: /deepseek|v3|1t|reasoning/i });
-            // [REMOVED] Gemini-Pro-Proxy
-            this.pool.push({ name: 'HuggingFace-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, m || "mistralai/Mistral-7B-Instruct-v0.3", c), tier: 2, roles: ['utility', 'audit'], match: /huggingface|hf|mistral/i });
+            // Only bridge routes that reach a model the bridge serves. Removed (Nov 2026), each failed every call:
+            // Cloudflare-Gateway and HuggingFace-Proxy forwarded the caller's model hint ("auto") as a model id,
+            // and DeepSeek-V3-1T asked for a model the bridge's SambaNova route does not serve.
+            // The bridge forwards to the same Groq organization, so it shares the direct node's quota.
+            this.pool.push({ name: 'Groq-Bridge-Proxy', quota: groqQuota(DEFAULT_GROQ_MODEL), fn: (p, m, c) => generateInstitutionalBridgeContent(p, DEFAULT_GROQ_MODEL, c), tier: 1, roles: ['research', 'edit'], match: /groq|node-research|node-draft|70b/i });
             
             // [V12.0] Gemma-4 Shadow Audit (Cloud Proxy for GHA Continuity)
-            this.pool.push({ name: 'Groq-Bridge-20B-Proxy', fn: (p, m, c) => generateInstitutionalBridgeContent(p, "openai/gpt-oss-20b", c), tier: 2, roles: ['audit', 'repair'], match: /llama|node-audit|node-repair/i });
+            this.pool.push({ name: 'Groq-Bridge-20B-Proxy', quota: groqQuota('openai/gpt-oss-20b'), fn: (p, m, c) => generateInstitutionalBridgeContent(p, "openai/gpt-oss-20b", c), tier: 2, roles: ['audit', 'repair'], match: /llama|node-audit|node-repair/i });
 
             console.log("🏙️ [AI-Balancer] Institutional Bridge & Proxy Nodes Active. (V15.5 Hardened)");
         }
@@ -869,7 +929,7 @@ export const ResourceManager = {
                 return false;
             }
 
-            const cooldown = this.cooldowns.get(p.name);
+            const cooldown = this.cooldownUntil(p);
             if (cooldown && now < cooldown) { 
                 console.log(`⏳ [AI-Balancer] Skipping node on cooldown (${Math.ceil((cooldown - now)/1000)}s): ${p.name}`);
                 return false;
@@ -919,8 +979,8 @@ export const ResourceManager = {
             if (infA !== infB) return infA - infB;
             
             // If still tied, prefer the one with NO cooldown
-            const coolA = this.cooldowns.get(a.name) || 0;
-            const coolB = this.cooldowns.get(b.name) || 0;
+            const coolA = this.cooldownUntil(a);
+            const coolB = this.cooldownUntil(b);
             return coolA - coolB;
         });
 
@@ -936,8 +996,11 @@ export const ResourceManager = {
         const isAuth = isTerminalProviderError(error);
 
         if (isRate) {
-            console.warn(`⏳ [AI-Balancer] ${name} rate limited. Activating 60000ms cooldown.`);
-            this.cooldowns.set(name, Date.now() + 60000);
+            const waitMs = rateLimitCooldownMs(error);
+            const quota = this.pool.find((p) => p.name === name)?.quota;
+            if (quota) this.quotaCooldowns.set(quota, Math.max(this.quotaCooldowns.get(quota) || 0, Date.now() + waitMs));
+            else this.cooldowns.set(name, Date.now() + waitMs);
+            console.warn(`⏳ [AI-Balancer] ${name} rate limited. Cooling ${quota || 'node'} for ${Math.round(waitMs / 1000)}s.`);
         } else if (isAuth) {
             console.error(`🚫 [AI-Balancer] Terminal error on ${name}: ${error}. Blacklisting node...`);
             this.failed.add(name);
@@ -965,6 +1028,7 @@ export const ResourceManager = {
     async emergencyReset(env = {}) {
         console.warn("🛡️ [AI-Balancer] Initiating Total Emergency Reset of AI Fleet (Institutional Override)...");
         this.failed.clear();
+        // Node cooldowns clear; quota cooldowns stay: a model out of daily tokens will not answer after a reset.
         this.cooldowns.clear();
         this.inflight.clear();
         await this.init(env, true); // Force a full vault re-sync and pool rebuild
@@ -1071,14 +1135,15 @@ export async function askAI(prompt, options = {}) {
         }
         
         console.error(`🚨 [AI-Balancer] Critical Fleet Depletion. Transitioning to Direct-Dial Anchor...`);
+        const anchor = pickAnchorNode(ResourceManager.pool, ResourceManager.failed);
+        if (!anchor) {
+            console.error(`💀 [AI-Balancer-Fatal] No anchor for ${role}: every anchor engine is disabled, unconfigured or failed.`);
+            throw new Error("FLEET_EXHAUSTION_PERMANENT");
+        }
         try {
-            // [V21.1] Prioritize Vertex Model Garden as the ultimate institutional anchor
-            const cloudSovereign = ResourceManager.pool.find(p => p.name === 'Vertex-Llama-405B');
-            if (cloudSovereign) {
-                console.log("⚓ [AI-Balancer] Using Vertex Model Garden Anchor.");
-                return await cloudSovereign.fn(prompt, "meta/llama3-405b-instruct-maas", env);
-            }
-            return await directDialAnchor(prompt, targetModel || 'llama-3.3-70b-versatile', role, env);
+            console.warn(`⚓ [AI-Balancer] Emergency Direct-Dial to ${anchor.name} for ${role}.`);
+            const model = anchor.name === 'Vertex-Llama-405B' ? VERTEX_ANCHOR_MODEL : undefined;
+            return await anchor.fn(prompt, model, env);
         } catch (e) {
             console.error(`💀 [AI-Balancer-Fatal] Anchor also failed: ${e.message}`, e);
             throw new Error("FLEET_EXHAUSTION_PERMANENT");
@@ -1092,7 +1157,9 @@ export async function askAI(prompt, options = {}) {
     const startTs = Date.now();
     try {
         console.log(`🌐 [AI-Provisioned] ${role.toUpperCase()} -> ${provider.name} (Requested: ${targetModel || 'auto'})`);
-        const response = await provider.fn(prompt, targetModel, env);
+        // responseFormat 'json' lets providers with a JSON mode (Sarvam) guarantee parseable output.
+        const providerEnv = options.responseFormat ? { ...env, responseFormat: options.responseFormat } : env;
+        const response = await provider.fn(prompt, targetModel, providerEnv);
         
         // [V15.8] Content Integrity Check
         if (!isValidIntelligence(response)) {
