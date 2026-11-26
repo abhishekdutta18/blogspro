@@ -22,7 +22,7 @@ import { initNodeSentry, logSwarmBreadcrumb, captureSwarmError, flushSentry } fr
 import { NewsOrchestrator } from "./lib/news-orchestrator.js";
 import { askAI } from "./lib/ai-service.js";
 import { generateMarketEdition } from "./lib/market-edition/index.js";
-import { saveEditionSnapshot } from "./lib/market-edition/snapshot.js";
+import { saveEditionSnapshot, saveFailedEditionSnapshot } from "./lib/market-edition/snapshot.js";
 import { recentEditionsText } from "./lib/market-edition/week-digest.js";
 import { renderPdf } from "./lib/market-edition/edition-pdf.js";
 import { createBudgetedAskAI, ledgerFile, resolveCaps } from "./lib/token-budget.js";
@@ -414,14 +414,25 @@ async function runInstitutionalSwarm() {
         await pushTelemetryLog("TOME_ASSEMBLY", { jobId: id, frequency, periodId, status: "complete", message: "Institutional Masterpiece Assembled." }, env);
     } else if (frequency === 'hourly' || useReportEngine) {
         // --- 🗞️ MARKET EDITION: 08:00 / 16:00 / 22:00 IST briefings, plus the daily strategy and weekly review ---
-        result = await generateMarketEdition({
-            askAI: budget.askAI,
-            env,
-            editionId: frequency === 'hourly' ? editionId : frequency,
-            extraContext: frequency === 'weekly' ? weeklyContext() : '',
-        });
-        const spent = budget.usage();
-        console.log(`🪙 [Budget] ${frequency}: ~${spent.run} tokens this run in ${spent.calls} calls (${spent.refused} refused); ~${spent.day} in the last 24 h across runs`);
+        const logSpend = () => {
+            const spent = budget.usage();
+            console.log(`🪙 [Budget] ${frequency}: ~${spent.run} tokens this run in ${spent.calls} calls (${spent.refused} refused); ~${spent.day} in the last 24 h across runs`);
+        };
+        try {
+            result = await generateMarketEdition({
+                askAI: budget.askAI,
+                env,
+                editionId: frequency === 'hourly' ? editionId : frequency,
+                extraContext: frequency === 'weekly' ? weeklyContext() : '',
+            });
+        } catch (editionError) {
+            // No data-only pages: keep the raw replies for diagnosis, then fail the run (Sentry + exit 1 below).
+            logSpend();
+            const failedSnapshot = saveFailedEditionSnapshot(editionError, frequency);
+            if (failedSnapshot) console.error(`🗂️ [Edition] Not published; snapshot of the failed run: ${failedSnapshot}`);
+            throw editionError;
+        }
+        logSpend();
     } else {
         // --- 🧬 STANDARD/SERIAL MODE (Legacy) ---
         console.log(`🏃 [Standard-Mode] Running Sequential Institutional Swarm...`);
