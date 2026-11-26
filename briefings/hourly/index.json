@@ -1,5 +1,17 @@
 [
   {
+    "title": "Europe rallies, US mixed, Indian markets set for strong open",
+    "date": "2026-11-26",
+    "timestamp": 1795709241528,
+    "excerpt": "European equities surged while US indices closed mixed, and the rupee slipped modestly. Global cues point to a bullish start for Indian markets tomorrow despite a softer currency.",
+    "fileName": "swarm-hourly-1795709240868.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": null,
+    "edition": "evening",
+    "stance": "constructive"
+  },
+  {
     "title": "Nifty 50 Reclaims 25,884 as IT Stocks Lead Broad-Based Rally",
     "date": "2026-11-26",
     "timestamp": 1795689083740,
@@ -1180,38 +1192,6 @@
       "rbi": "",
       "sebi": "",
       "docs": []
-    }
-  },
-  {
-    "title": "HOURLY   Nexus Institutional Terminal",
-    "date": "2026-11-20",
-    "timestamp": 1795176131262,
-    "excerpt": "**OPERATIONAL MEMORANDUM: LIQUIDITY DRAIN AND VOLATILITY SURFACE DECAY (Q4 2026)** Current market topography reveals a terminal state of liquidity exhaustion. With the SOFR-OIS spread hovering at 14 basis points—a stark departure from the compressed ...",
-    "fileName": "swarm-hourly-1795176131255.html",
-    "type": "briefing",
-    "frequency": "hourly",
-    "liveNews": {
-      "summary": "RBI: Auction of 91-Day, 182-Day and 364-Day Treasury Bills (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64014) | Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64013) | Government Stock - Full Auction Results (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64012) | SEBI: Adjudication Order in the matter of Intelligent Money Managers Private Limited (URL: https://www.sebi.gov.in/enforcement/orders/nov-2026/adjudication-order-in-the-matter-of-intelligent-money-managers-private-limited_105852.html) | SEBI hosts IOSCO’s Asia-Pacific Regional Committee Regulatory Roundtable on Market Infrastructure Institutions (URL: https://www.sebi.gov.in/media-and-notifications/press-releases/nov-2026/sebi-hosts-iosco-s-asia-pacific-regional-committee-regulatory-roundtable-on-market-infrastructure-institutions_105848.html) | Appeal No. 7166 of 2026 filed by Arjun singh (URL: https://www.sebi.gov.in/enforcement/orders/nov-2026/appeal-no-7166-of-2026-filed-by-arjun-singh_105825.html) | GLOBAL: BLOOMBERG | SpaceX Sells $32 Billion of AI Chip Debt at Yields Topping 8% - Bloomberg.com | BLOOMBERG | Saudi Public Investment Fund’s Riyadh Headquarters Damaged - Bloomberg.com | BLOOMBERG | UBS Plans to Shift Hundreds of Roles to India in Offshoring Push - Bloomberg.com | FT | Oil loses grip on bond markets as inflation ‘virus’ spreads - Financial Times | FT | Anthropic shares slide as fears over AI boom dominate - Financial Times | FT | Lenders aim to bar SpaceX from launching $40bn of chips into orbit - Financial Times | REUTERS | ECB to make euro swaps more accessible in global push, Lagarde says - Reuters | REUTERS | Anthropic's blockbuster debut tests Wall Street's faith in AI boom - Reuters | REUTERS | EU countries, lawmakers strike deal to revamp sustainable finance rules - Reuters | CNBC | Anthropic defies the odds, holding record IPO despite ‘massively disruptive’ market - CNBC | CNBC | Anthropic shares fall nearly 6% in premarket amid AI selloff as Nvidia, AMD shares drop - CNBC | CNBC | Anthropic IPO 'exactly what the markets need,' but analysts warn of volatility - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia",
-      "rbi": "Auction of 91-Day, 182-Day and 364-Day Treasury Bills (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64014) | Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64013) | Government Stock - Full Auction Results (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64012)",
-      "sebi": "Adjudication Order in the matter of Intelligent Money Managers Private Limited (URL: https://www.sebi.gov.in/enforcement/orders/nov-2026/adjudication-order-in-the-matter-of-intelligent-money-managers-private-limited_105852.html) | SEBI hosts IOSCO’s Asia-Pacific Regional Committee Regulatory Roundtable on Market Infrastructure Institutions (URL: https://www.sebi.gov.in/media-and-notifications/press-releases/nov-2026/sebi-hosts-iosco-s-asia-pacific-regional-committee-regulatory-roundtable-on-market-infrastructure-institutions_105848.html) | Appeal No. 7166 of 2026 filed by Arjun singh (URL: https://www.sebi.gov.in/enforcement/orders/nov-2026/appeal-no-7166-of-2026-filed-by-arjun-singh_105825.html)",
-      "docs": [
-        {
-          "title": "Auction of 91-Day, 182-Day and 364-Day Treasury Bills",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64014"
-        },
-        {
-          "title": "Reserve Bank of India – Bulletin Weekly Statistical Supplement – Extract",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64013"
-        },
-        {
-          "title": "Government Stock - Full Auction Results",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64012"
-        },
-        {
-          "title": "Adjudication Order in the matter of Intelligent Money Managers Private Limited",
-          "link": "https://www.sebi.gov.in/enforcement/orders/nov-2026/adjudication-order-in-the-matter-of-intelligent-money-managers-private-limited_105852.html"
-        }
-      ]
     }
   }
 ]
