@@ -1,5 +1,17 @@
 [
   {
+    "title": "Nifty slides as banks tumble, IT rallies; volatility eases",
+    "date": "2026-11-27",
+    "timestamp": 1795775499597,
+    "excerpt": "The Nifty 50 slipped 0.82% to 25,607.20 points while the IT index surged 1.71%. Broad weakness in financials and autos was offset by metal, energy and IT, and the India VIX fell 6.37% to 16.55, signalling reduced market jitter. Global cues from mixed US closes and stronger Asian equities set the tone for tomorrow.",
+    "fileName": "swarm-hourly-1795775498899.html",
+    "type": "briefing",
+    "frequency": "hourly",
+    "liveNews": null,
+    "edition": "close",
+    "stance": "cautious"
+  },
+  {
     "title": "India opens higher on IT surge, mixed global cues",
     "date": "2026-11-27",
     "timestamp": 1795746742629,
@@ -1129,34 +1141,6 @@
     "frequency": "hourly",
     "liveNews": {
       "summary": "RBI: Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015) | SEBI:  | GLOBAL: BLOOMBERG | SpaceX Sells $32 Billion of AI Chip Debt at Yields Topping 8% - Bloomberg.com | BLOOMBERG | Indian Billionaire Raises $720 Million Private Credit for Megha Buyout - Bloomberg.com | BLOOMBERG | Ex-Junior Bankers’ AI Startup Leaps to $3.75 Billion Valuation - Bloomberg.com | FT | Oil loses grip on bond markets as inflation ‘virus’ spreads - Financial Times | FT | So, Anthropic is finally a public company. What now? - Financial Times | FT | Anthropic market cap in line with Alphaville’s guess - Financial Times | REUTERS | ECB to make euro swaps more accessible in global push, Lagarde says - Reuters | REUTERS | EXCLUSIVE: Citi underestimated risky assets by $35 billion after incorrectly recording trades, sources say - Reuters | REUTERS | Anthropic's blockbuster debut tests Wall Street's faith in AI boom - Reuters | CNBC | The bull market has a new problem. The 'smart money' is selling - CNBC | CNBC | Our top 10 things to watch in the stock market Friday - CNBC | CNBC | Anthropic defies the odds, holding record IPO despite ‘massively disruptive’ market - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia",
-      "rbi": "Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015)",
-      "sebi": "",
-      "docs": [
-        {
-          "title": "Conversion/Switch of State Government Securities",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017"
-        },
-        {
-          "title": "RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016"
-        },
-        {
-          "title": "RBI imposes monetary penalty on Fusion Finance Limited",
-          "link": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015"
-        }
-      ]
-    }
-  },
-  {
-    "title": "HOURLY   Nexus Institutional Terminal",
-    "date": "2026-11-20",
-    "timestamp": 1795187875259,
-    "excerpt": "**OPERATIONAL MEMO: Q4-2026 LIQUIDITY DEPLETION & SYSTEMIC FRAGILITY** **DATE:** NOVEMBER 20, 2026 **SUBJECT:** STRUCTURAL ALPHA EXHAUSTION AND COLLATERAL EROSION Current liquidity conditions reflect a terminal decoupling from the 2025 LFY mean-rever...",
-    "fileName": "swarm-hourly-1795187875252.html",
-    "type": "briefing",
-    "frequency": "hourly",
-    "liveNews": {
-      "summary": "RBI: Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015) | SEBI:  | GLOBAL: BLOOMBERG | SpaceX Sells $32 Billion of AI Chip Debt at Yields Topping 8% - Bloomberg.com | BLOOMBERG | Saudi Public Investment Fund’s Riyadh Headquarters Damaged - Bloomberg.com | BLOOMBERG | UBS Plans to Shift Hundreds of Roles to India in Offshoring Push - Bloomberg.com | FT | Oil loses grip on bond markets as inflation ‘virus’ spreads - Financial Times | FT | So, Anthropic is finally a public company. What now? - Financial Times | FT | Anthropic shares slide 13% as fears over AI boom dominate - Financial Times | REUTERS | ECB to make euro swaps more accessible in global push, Lagarde says - Reuters | REUTERS | EXCLUSIVE: Citi underestimated risky assets by $35 billion after incorrectly recording trades, sources say - Reuters | REUTERS | Anthropic's blockbuster debut tests Wall Street's faith in AI boom - Reuters | CNBC | The bull market has a new problem. The 'smart money' is selling - CNBC | CNBC | Our top 10 things to watch in the stock market Friday - CNBC | CNBC | Anthropic defies the odds, holding record IPO despite ‘massively disruptive’ market - CNBC | NIKKEI | South Korea rides AI boom to new height as exports hit $1 trillion - Nikkei Asia | NIKKEI | Nikkei Asia - Business, Politics, Economy and Tech News & Analysis - Nikkei Asia | NIKKEI | Japan's Q3 GDP drops an annualized 0.1%, below market expectations - Nikkei Asia",
       "rbi": "Conversion/Switch of State Government Securities (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64017) | RBI to conduct 4-day Variable Rate Repo (VRR) auction under LAF on November 23, 2026 (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64016) | RBI imposes monetary penalty on Fusion Finance Limited (URL: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=64015)",
       "sebi": "",
       "docs": [
