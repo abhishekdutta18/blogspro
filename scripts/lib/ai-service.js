@@ -74,6 +74,21 @@ function isValidIntelligence(response) {
     return !refusals.some(r => lower.includes(r));
 }
 
+// Tool calls a model wrote into its reply as text: <tool_call>…</tool_call> blocks and bare <function=…>…</function>.
+const TOOL_CALL_BLOCK = /<tool_call>[\s\S]*?(?:<\/tool_call>|$)/gi;
+const FUNCTION_BLOCK = /<function=[^>]*>[\s\S]*?(?:<\/function>|$)/gi;
+
+/**
+ * The reply with any tool-call markup removed. Empty when the reply was nothing but tool calls (askAI then
+ * fails that node and tries another provider).
+ * @param {string} response
+ * @returns {string}
+ */
+export function stripToolCallMarkup(response) {
+    if (typeof response !== 'string' || !/<tool_call>|<function=/i.test(response)) return response;
+    return response.replace(TOOL_CALL_BLOCK, '').replace(FUNCTION_BLOCK, '').trim();
+}
+
 function isEcho(response) {
     if (!response || typeof response !== 'string') return false;
     const lower = response.toLowerCase();
@@ -110,6 +125,12 @@ function mapLegacyModel(model) {
 const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 /** A second free Groq model with its own daily token quota (the gpt-oss ones run out first). */
 const GROQ_QWEN_MODEL = process.env.GROQ_QWEN_MODEL || "qwen/qwen3.8-27b";
+/**
+ * Groq's free tier gives the Qwen model 1,000 output tokens per minute and rejects any request expected to need
+ * more ("Request too large ... OTPM: Limit 1000, Requested 1470"). Capping max_tokens would only cut a section off
+ * mid-JSON, so the balancer skips this node for calls that expect a longer reply.
+ */
+export const GROQ_QWEN_MAX_OUTPUT_TOKENS = 1000;
 /** Groq quotas are per organization and model; nodes that share one also share its daily limit. */
 const groqQuota = (model) => `groq:${model}`;
 
@@ -142,7 +163,12 @@ export async function generateGroqContent(prompt, model = DEFAULT_GROQ_MODEL, co
             method: "POST",
             signal: controller.signal,
             headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ model, messages: [{ role: "user", content: promptStr }], tools, tool_choice: "auto", temperature: 0.2 })
+            // A JSON reply must come from the prompt alone: offered web search, gpt-oss looped on tool calls until it
+            // returned no content and Qwen wrote the tool calls out as text, so edition sections were lost.
+            body: JSON.stringify({
+                model, messages: [{ role: "user", content: promptStr }], temperature: 0.2,
+                ...(context?.responseFormat === 'json' ? {} : { tools, tool_choice: "auto" }),
+            })
         });
         let data = await res.json();
         
@@ -794,7 +820,7 @@ export const ResourceManager = {
         }
         if (activeKeys.Groq) {
             this.pool.push({ name: 'Groq', quota: groqQuota(DEFAULT_GROQ_MODEL), fn: (p, m, c) => generateGroqContent(p, DEFAULT_GROQ_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'generate'], match: /groq|node-research|node-edit|node-draft|node-generate|llama/i });
-            this.pool.push({ name: 'Groq-Qwen', quota: groqQuota(GROQ_QWEN_MODEL), fn: (p, m, c) => generateGroqContent(p, GROQ_QWEN_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'repair', 'generate'], match: /qwen|groq|node-draft|node-audit/i });
+            this.pool.push({ name: 'Groq-Qwen', quota: groqQuota(GROQ_QWEN_MODEL), maxOutputTokens: GROQ_QWEN_MAX_OUTPUT_TOKENS, fn: (p, m, c) => generateGroqContent(p, GROQ_QWEN_MODEL, c), tier: 1, roles: ['research', 'edit', 'draft', 'audit', 'repair', 'generate'], match: /qwen|groq|node-draft|node-audit/i });
             // this.pool.push({ name: 'Llama-4-Scout-17B', fn: (p, m, c) => generateGroqContent(p, "meta-llama/llama-4-scout-17b-16e-instruct", c), tier: 1, roles: ['research', 'edit', 'draft'], match: /scout|llama-4/i });
             // this.pool.push({ name: 'GPT-OSS-120B', fn: (p, m, c) => generateGroqContent(p, "openai/gpt-oss-120b", c), tier: 1, roles: ['research', 'edit', 'generate'], match: /gpt-oss-120b|oss/i });
             
@@ -928,6 +954,9 @@ export const ResourceManager = {
             if (this.failed.has(p.name)) {
                 return false;
             }
+
+            // A node that cannot return the expected reply (output cap per minute) would reject the call outright.
+            if (p.maxOutputTokens && context?.outputTokens > p.maxOutputTokens) return false;
 
             const cooldown = this.cooldownUntil(p);
             if (cooldown && now < cooldown) { 
@@ -1108,13 +1137,13 @@ export async function askAI(prompt, options = {}) {
 
     // [V5.4.1] Role-Aware Dispatch with Request-Local Exclusion
     const triedNodes = options.triedNodes || new Set();
-    let provider = ResourceManager.getAvailable(seed, targetModel, { role: role }, triedNodes);
+    let provider = ResourceManager.getAvailable(seed, targetModel, { role, outputTokens: options.outputTokens }, triedNodes);
     
     // [V12.5] Speculative Yield: If override is busy but task is speculative, fallback to auto
     if (!provider && targetModel && targetModel !== 'auto' && options.isSpeculative) {
         console.warn(`⏳ [AI-Yield] Speculative task (${role}) yielding override '${targetModel}' due to congestion. Falling back to auto-balancer.`);
         targetModel = 'auto'; 
-        provider = ResourceManager.getAvailable(seed, targetModel, { role: role }, triedNodes);
+        provider = ResourceManager.getAvailable(seed, targetModel, { role, outputTokens: options.outputTokens }, triedNodes);
     }
     
     if (!provider) {
@@ -1159,8 +1188,11 @@ export async function askAI(prompt, options = {}) {
         console.log(`🌐 [AI-Provisioned] ${role.toUpperCase()} -> ${provider.name} (Requested: ${targetModel || 'auto'})`);
         // responseFormat 'json' lets providers with a JSON mode (Sarvam) guarantee parseable output.
         const providerEnv = options.responseFormat ? { ...env, responseFormat: options.responseFormat } : env;
-        const response = await provider.fn(prompt, targetModel, providerEnv);
-        
+        const raw = await provider.fn(prompt, targetModel, providerEnv);
+        // A reply of tool calls written as text has no answer in it: fail the node so the next try uses another one.
+        const response = stripToolCallMarkup(raw);
+        if (raw && !response) throw new Error(`TOOL_CALL_ONLY: ${provider.name} replied with tool-call markup and no answer.`);
+
         // [V15.8] Content Integrity Check
         if (!isValidIntelligence(response)) {
             throw new Error(`INTELLIGENCE_CORRUPTED: ${provider.name} returned invalid/HTML content.`);
