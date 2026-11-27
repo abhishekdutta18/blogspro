@@ -172,6 +172,62 @@ test('parseOverview logs when it repairs sections or drops paragraphs over a cap
   assert.equal(warn.mock.callCount(), 0, 'a clean reply logs nothing');
 });
 
+test('parseOverview keeps paragraphs the model filed under numbered keys such as "india_2"', () => {
+  // Shape of the regenerated 26 Nov evening overview: one paragraph per key, spread over numbered keys.
+  // Reading only india/global/macro published one paragraph each and dropped ~900 words.
+  const reply = JSON.stringify({
+    title: 'T', summary: 's', india: ['i1'], global: ['g1'], macro: ['m1'], global_2: ['g2'], macro_2: ['m2'],
+    india_2: ['i2', 'i3'], global_3: ['g3'], macro_3: ['m3'], india_4: ['i4'],
+  });
+  const overview = parseOverview(reply);
+  assert.deepEqual(overview.india, ['i1', 'i2', 'i3', 'i4']);
+  assert.deepEqual(overview.global, ['g1', 'g2', 'g3']);
+  assert.deepEqual(overview.macro, ['m1', 'm2', 'm3']);
+
+  const spelled = parseOverview(JSON.stringify({ title: 'T', 'india 2': 'second', india: ['first'], India3: ['third'] }));
+  assert.deepEqual(spelled.india, ['first', 'second', 'third'], 'spaced, joined and string-valued keys, in number order');
+
+  // The same reply also wrote a key as a list item ("india_3" inside india_2): never publish it as a paragraph.
+  const stray = parseOverview(JSON.stringify({ title: 'T', india: ['i1'], india_2: ['i2', 'india_3', 'i3'], global: ['g1', 'macro_2: ["m2"]'] }));
+  assert.deepEqual(stray.india, ['i1', 'i2', 'i3']);
+  assert.deepEqual(stray.global, ['g1']);
+  assert.deepEqual(stray.macro, ['m2']);
+
+  const onlyNumbered = parseOverview(JSON.stringify({ title: 'T', india_1: ['i1'], india_2: ['i2'] }));
+  assert.deepEqual(onlyNumbered.india, ['i1', 'i2'], 'a reply with no plain "india" key still has an India section');
+});
+
+test('writer prompts show several paragraph slots per list, so models do not copy a one-item array', () => {
+  const context = {
+    edition: { label: 'Close', focus: 'f' }, dateLabel: 'd', marketText: 'm', headlines: [], board: null,
+  };
+  const shape = (text) => JSON.parse(text.slice(text.lastIndexOf('\n{') + 1));
+  const overview = shape(overviewPrompt(context));
+  assert.equal(overview.india.length, 4);
+  assert.equal(overview.global.length, 3);
+  assert.equal(overview.macro.length, 3);
+  const view = shape(viewPrompt(context));
+  assert.equal(view.thesis.length, 4);
+  assert.equal(view.risks.length, 3);
+  assert.equal(view.watch.length, 5);
+  assert.match(overviewPrompt(context), /one paragraph per string/i);
+});
+
+test('the writer tells the router how long each section reply will be', async () => {
+  const { writeEdition } = await import('../scripts/lib/market-edition/edition-writer.js');
+  const seen = [];
+  const askAI = async (prompt, options) => {
+    seen.push(options.outputTokens);
+    if (prompt.includes('market description')) return JSON.stringify({ title: 'T', summary: 's', india: ['i'], global: [], macro: [] });
+    if (prompt.includes('market-relevant')) return JSON.stringify({ stories: [{ id: 1, analysis: 'a' }] });
+    return JSON.stringify({ thesis: ['t'] });
+  };
+  const context = { edition: { label: 'Close', focus: 'f' }, dateLabel: 'd', marketText: 'm', headlines: [{ title: 'H', source: 'S' }], board: null };
+  await writeEdition({ askAI, env: {}, ...context });
+  assert.equal(seen.length, 3);
+  for (const tokens of seen) assert.ok(tokens >= 1800, `a ~1,100-1,300 word section needs room for its reply, got ${tokens}`);
+});
+
 test('parseView keeps only known sectors and calls, and needs a thesis', () => {
   const reply = JSON.stringify({
     thesis: ['t1'],
