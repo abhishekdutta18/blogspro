@@ -21,7 +21,14 @@ const SHARED_RULES = [
   'Index levels are points ("the Nifty 50 closed at 25,819.25"), never rupees, dollars or any currency. Use the ' +
     'unit MARKET DATA gives for every other instrument.',
   'Write complete paragraphs of plain text. No markdown, no bullet characters, no headings inside strings.',
+  'Every list holds one paragraph per string: fill each slot the shape shows, and keep each key exactly as shown.',
 ];
+
+/**
+ * A JSON-shape list with one slot per expected paragraph. Models copy the shape literally: a one-item example
+ * (["4 paragraphs: ..."]) came back as one paragraph, or as one paragraph under each of india, india_2, ...
+ */
+const slots = (count, what) => Array.from({ length: count }, (_, i) => `paragraph ${i + 1} of ${count}: ${what}`);
 
 /** Numbered headline list for prompts, with the feed summary when there is one. */
 export function headlinesToText(headlines, { withSummary = false } = {}) {
@@ -54,9 +61,9 @@ export function overviewPrompt(context) {
   ], {
     title: 'specific headline for this edition, under 90 characters',
     summary: '2-3 sentences: the most important takeaway',
-    india: ['4 paragraphs: Indian indices, breadth across the NSE sectors, volatility, what drove the move'],
-    global: ['3 paragraphs: US, Europe and Asia, and what they mean for India'],
-    macro: ['3 paragraphs: rupee, US yields, oil, gold and crypto, and their transmission to Indian assets'],
+    india: slots(4, 'Indian indices, breadth across the NSE sectors, volatility, what drove the move; 100-140 words'),
+    global: slots(3, 'US, Europe and Asia, and what they mean for India; 100-140 words'),
+    macro: slots(3, 'rupee, US yields, oil, gold and crypto, and their transmission to Indian assets; 100-140 words'),
   });
 }
 
@@ -76,10 +83,10 @@ export function viewPrompt(context) {
     'Write the house view, about 1,100 words in total. Keep the house stance given by the board.',
     `Sector calls must use sector names from the "NSE sectors" data and one of ${JSON.stringify(SECTOR_CALLS)}.`,
   ], {
-    thesis: ['4 paragraphs of 110-140 words explaining the house stance and the evidence for it'],
+    thesis: slots(4, 'the house stance and the evidence for it; 110-140 words'),
     sectors: [{ name: 'NSE sector name', call: 'overweight | neutral | underweight', reason: '40-60 words' }],
-    risks: ['3 paragraphs of 70-90 words: what would prove the view wrong'],
-    watch: ['5 specific things to watch next, one sentence each'],
+    risks: slots(3, 'what would prove the view wrong; 70-90 words'),
+    watch: Array.from({ length: 5 }, (_, i) => `thing to watch ${i + 1} of 5: one specific sentence`),
   });
 }
 
@@ -88,8 +95,9 @@ const SECTION_LIMITS = Object.freeze({ india: 5, global: 4, macro: 4 });
 // A section key the model wrote as a list item instead of as a JSON key. Bare: 'macro=[' or '"global": ['.
 // With text: 'macro: ["The rupee firmed…' (the key must be followed by a bracket or quote, so a sentence
 // such as "Global: US stocks fell" is left alone as prose).
-const BARE_KEY = /^\s*["']?(india|global|macro)["']?\s*[:=]\s*[[{(]?\s*$/i;
-const KEY_WITH_TEXT = /^\s*["']?(india|global|macro)["']?\s*[:=]\s*(?:[[{(]\s*["']?|["'])(.+)$/i;
+// Numbered keys count too: 'india_3' alone (no colon needed), or 'macro_2: ["The rupee…'.
+const BARE_KEY = /^\s*["']?(india|global|macro)(?:[\s_-]*\d+)?["']?\s*(?:[:=]\s*[[{(]?\s*)?$/i;
+const KEY_WITH_TEXT = /^\s*["']?(india|global|macro)(?:[\s_-]*\d+)?["']?\s*[:=]\s*(?:[[{(]\s*["']?|["'])(.+)$/i;
 const TRAILING_JSON = /["'\]})\s,]+$/;
 
 /** The section an item names and any text that came with it, or null for an ordinary paragraph. */
@@ -101,6 +109,30 @@ function readMarker(item) {
   return joined ? { section: joined[1].toLowerCase(), text: joined[2].replace(TRAILING_JSON, '') } : null;
 }
 
+// A section key, plain or numbered: "india", "india_2", "global 3", "Macro3". A plain key counts as number 1.
+const SECTION_KEY = /^(india|global|macro)(?:[\s_-]*(\d+))?$/i;
+
+/**
+ * Each section's items in the reply, read from its plain key and any numbered keys ("india_2") in number order.
+ * A string value counts as a one-item list.
+ * @param {unknown} json
+ * @returns {Record<string, unknown[]>}
+ */
+function sectionItems(json) {
+  const found = Object.fromEntries(OVERVIEW_SECTIONS.map((k) => [k, []]));
+  if (!json || typeof json !== 'object') return found;
+  for (const [rawKey, value] of Object.entries(json)) {
+    const match = rawKey.trim().match(SECTION_KEY);
+    if (!match) continue;
+    const items = Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
+    found[match[1].toLowerCase()].push({ order: match[2] ? Number(match[2]) : 1, items });
+  }
+  // Array sort is stable, so keys with the same number keep their order in the reply.
+  return Object.fromEntries(OVERVIEW_SECTIONS.map((k) => [
+    k, [...found[k]].sort((a, b) => a.order - b.order).flatMap((entry) => entry.items),
+  ]));
+}
+
 /**
  * The overview's section lists with misfiled paragraphs put back. An item that names a section ("macro=[")
  * starts that section: it and the items after it move there, after that section's own paragraphs. The key
@@ -109,10 +141,11 @@ function readMarker(item) {
 export function regroupSections(json) {
   const own = Object.fromEntries(OVERVIEW_SECTIONS.map((k) => [k, []]));
   const shifted = Object.fromEntries(OVERVIEW_SECTIONS.map((k) => [k, []]));
+  const items = sectionItems(json);
   let moved = 0;
   for (const key of OVERVIEW_SECTIONS) {
     let target = key;
-    for (const item of Array.isArray(json?.[key]) ? json[key] : []) {
+    for (const item of items[key]) {
       const marker = readMarker(item);
       if (marker) target = marker.section;
       const text = marker ? marker.text : item;
@@ -185,6 +218,12 @@ export function parseView(reply, sectorNames, { lenient = false } = {}) {
 }
 
 const MAX_ATTEMPTS = 2;
+/**
+ * Expected reply size per section, in tokens (about 1.5 per word of prose plus JSON keys and quotes). The router
+ * skips nodes that cannot return this much (Groq's free Qwen: 1,000 output tokens a minute) and the pacer
+ * reserves it, so a long reply is not mistaken for a short one.
+ */
+export const SECTION_OUTPUT_TOKENS = Object.freeze({ overview: 2200, news: 2400, view: 2000 });
 
 /**
  * One section, retried once. Returns the parsed section (or null) and every attempt's raw reply or error,
@@ -192,10 +231,11 @@ const MAX_ATTEMPTS = 2;
  */
 async function callSection(name, { askAI, env }, text, parse) {
   const attempts = [];
+  const section = name.toLowerCase();
+  const outputTokens = SECTION_OUTPUT_TOKENS[section];
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
-    const section = name.toLowerCase();
     try {
-      const reply = await askAI(text, { role: 'generate', env, responseFormat: 'json' });
+      const reply = await askAI(text, { role: 'generate', env, responseFormat: 'json', outputTokens });
       attempts.push({ section, attempt, reply: String(reply ?? '') });
       // The last attempt also accepts a repaired (cut-off) reply rather than losing the section.
       const parsed = parse(reply, { lenient: attempt === MAX_ATTEMPTS });

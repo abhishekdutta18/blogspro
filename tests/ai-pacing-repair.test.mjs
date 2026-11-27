@@ -130,3 +130,16 @@ test('the writer retries a cut-off section and repairs only the last attempt', a
   assert.equal(text.news[0].analysis, 'Kept.');
   assert.deepEqual(text.view.thesis, ['T1.', 'T2.']);
 });
+
+test('paced askAI reserves the caller\'s expected reply size instead of the default', async () => {
+  // Edition sections reply with ~2,000 tokens; a 1,500 reserve let a second call through into Groq's 429.
+  const c = clock();
+  const paced = createPacedAskAI({ askAI: async () => 'r'.repeat(16000), tokensPerMinute: 8000, replyReserve: 1500, now: c.now, sleep: c.sleep });
+  await paced('p'.repeat(4000)); // 1,000 prompt + 4,000 reply = 5,000 in the window
+  await paced('p'.repeat(1600)); // 400 + 1,500 default reserve = 6,900: fits
+  assert.deepEqual(c.sleeps, []);
+  c.advance(61_000);
+  await paced('p'.repeat(4000));
+  await paced('p'.repeat(1600), { outputTokens: 3000 }); // 5,000 + 400 + 3,000 > 8,000: wait
+  assert.equal(c.sleeps.length, 1);
+});

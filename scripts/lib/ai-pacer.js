@@ -26,9 +26,10 @@ export function paceFromEnv(env = process.env) {
  * Wraps askAI so calls stay under `tokensPerMinute`. A call larger than the whole limit waits for an empty window.
  * Each call is charged at its start time (when the provider counts it): prompt plus reply, or the prompt alone
  * if the call fails.
+ * The reply is estimated at `options.outputTokens` when the caller passes it, else at `replyReserve`.
  * @param {{ askAI: Function, tokensPerMinute: number, replyReserve?: number, now?: () => number,
  *   sleep?: (ms: number) => Promise<void> }} options
- * @returns {(prompt: unknown, options?: object) => Promise<string>}
+ * @returns {(prompt: unknown, options?: { outputTokens?: number }) => Promise<string>}
  */
 export function createPacedAskAI({
   askAI, tokensPerMinute, replyReserve = DEFAULT_REPLY_RESERVE, now = Date.now,
@@ -45,7 +46,9 @@ export function createPacedAskAI({
 
   return async (prompt, options) => {
     const promptTokens = estimateTokens(prompt);
-    const estimate = promptTokens + replyReserve;
+    // A caller that knows its reply is long (edition sections: ~2,000 tokens) says so in outputTokens.
+    const expected = Number.isFinite(options?.outputTokens) && options.outputTokens > 0 ? options.outputTokens : replyReserve;
+    const estimate = promptTokens + expected;
     prune();
     while (window.length && used() + estimate > tokensPerMinute) {
       const waitMs = window[0].t + WINDOW_MS - now() + SAFETY_MS;
