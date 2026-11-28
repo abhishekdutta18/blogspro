@@ -151,3 +151,55 @@
 .prose-article caption { caption-side: top; text-align: left; font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; font-size: 0.9rem; padding-bottom: 0.5em; }
 .prose-article table { width: 100%; border-collapse: collapse; font-family: 'IBM Plex Sans', sans-serif; font-size: 0.9rem; }
 .prose-article th, .prose-article td { border-bottom: 1px solid var(--rule); padding: 0.5em 0.6em; text-align: left; }
+
+/* Market charts (lib/marketChartView.js). The line takes the day's direction; text stays in ink tokens.
+ Outside @layer on purpose: the tone classes are built in JS, so Tailwind would purge them from a layer. */
+.mc-up { --mc-color: var(--up); }
+.mc-down { --mc-color: var(--down); }
+.mc-flat { --mc-color: var(--ink-2); }
+.mc-line { fill: none; stroke: var(--mc-color); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.mc-thin { stroke-width: 1.5; }
+.mc-area { fill: var(--mc-color); fill-opacity: 0.1; stroke: none; }
+.mc-dot { fill: var(--mc-color); }
+.mc-ring { stroke: var(--paper); stroke-width: 2; }
+.mc-ref { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.mc-grid { stroke: var(--rule); stroke-width: 1; shape-rendering: crispEdges; }
+/* A paper-coloured halo keeps labels legible where the line crosses them. */
+.mc-label { fill: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round; }
+.mc-cross-line { stroke: var(--ink-3); stroke-width: 1; }
+.mc-hit { fill: transparent; pointer-events: all; cursor: crosshair; }
+/* Display rules only when shown, so the hidden attribute is never overridden by a utility class. */
+.mc-svg:not([hidden]) { display: block; }
+.mc-empty:not([hidden]) { display: flex; align-items: center; justify-content: center; }
+.mc-tip {
+  position: absolute;
+  top: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* Yield curve, macro and forecast charts (lib/lineChartView.js), same rules as the market charts above.
+ The series colour is the accent; the comparison line is ink-grey and thinner; forecasts are dashed with a
+ faint 80% band. Text and legends stay in ink tokens. */
+.lc-accent { --lc: var(--accent); }
+.lc-compare { --lc: var(--ink-3); }
+.lc-line { fill: none; stroke: var(--lc, var(--accent)); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.lc-line.lc-compare { stroke-width: 1.5; }
+.lc-line.lc-dash { stroke-dasharray: 5 4; }
+.lc-band { fill: var(--accent); fill-opacity: 0.12; stroke: none; }
+.lc-end { fill: var(--lc, var(--accent)); stroke: var(--paper); stroke-width: 2; }
+.lc-dot { fill: var(--ink); stroke: var(--paper); stroke-width: 2; }
+.lc-key:not([hidden]) { display: inline-flex; align-items: center; gap: 6px; }
+.lc-swatch { display: inline-block; width: 14px; height: 0; border-top: 2px solid var(--lc, var(--accent)); }
+.lc-swatch.lc-dash { border-top-style: dashed; }
+.lc-swatch-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ink); }
+.lc-swatch-band { display: inline-block; width: 14px; height: 8px; background: var(--accent); opacity: 0.18; }
+.lc-action { color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+.lc-action:hover { color: var(--ink); }
+.lc-tab { color: var(--ink-2); padding-bottom: 2px; border-bottom: 2px solid transparent; }
+.lc-tab:hover { color: var(--ink); }
+.lc-tab[aria-pressed='true'] { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }

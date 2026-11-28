@@ -1,7 +1,8 @@
 ---
 /**
- * ResearchArchive — the full index of pieces as a dated list,
- * with client-side keyword search and category filter (no network calls).
+ * ResearchArchive — the full index of pieces as a dated list, with client-side keyword search, category
+ * filter and pagination of PAGE_SIZE pieces per page (no network calls). Every piece stays in the HTML, so
+ * search engines and readers without JavaScript still get the whole list; the pager only hides the rest.
  */
 import { getArticlesNewestFirst, getCategories } from '../data/articles';
 
@@ -54,6 +55,12 @@ const categories = getCategories();
     ))}
   </ol>
 
+  <nav class="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="Research pages" id="archivePager" hidden>
+    <button type="button" class="archive-page" data-page-step="-1">← Newer</button>
+    <ol class="flex flex-wrap items-center gap-1" id="archivePages"></ol>
+    <button type="button" class="archive-page" data-page-step="1">Older →</button>
+  </nav>
+
   <div id="archiveEmpty" class="hidden py-10 text-ink-2" role="status">
     Nothing matches that search.
     <button type="button" id="archiveReset" class="ml-1 text-accent underline underline-offset-4">Clear filters</button>
@@ -69,6 +76,12 @@ const categories = getCategories();
     border-bottom: 2px solid transparent;
   }
   .archive-filter:hover { color: var(--ink); }
+  #archivePager:not([hidden]) { display: flex; }
+  /* :global because the numbered buttons are created in the script, outside Astro's style scoping. */
+  :global(.archive-page) { min-width: 2.25rem; padding: 0.35rem 0.6rem; color: var(--ink-2); border: 1px solid transparent; }
+  :global(.archive-page:hover:not(:disabled)) { color: var(--ink); border-color: var(--rule); }
+  :global(.archive-page:disabled) { opacity: 0.4; cursor: default; }
+  :global(.archive-page[aria-current='page']) { color: var(--ink); font-weight: 600; border-color: var(--accent); }
   .archive-filter[aria-pressed='true'] {
     color: var(--ink);
     font-weight: 600;
@@ -76,45 +89,82 @@ const categories = getCategories();
   }
 </style>
 
-<script is:inline>
-  (() => {
-    const input = document.getElementById('archiveSearch');
-    const filters = document.querySelectorAll('.archive-filter');
-    const items = document.querySelectorAll('.archive-item');
-    const empty = document.getElementById('archiveEmpty');
-    const count = document.getElementById('archiveCount');
-    const reset = document.getElementById('archiveReset');
-    if (!input || !empty || !count) return;
+<script>
+  import { clampPage, pageCount, pageList, pageRange } from '../lib/paginate.js';
 
-    let category = 'all';
+  const PAGE_SIZE = 5;
+  const section = document.getElementById('research');
+  const input = document.getElementById('archiveSearch');
+  const filters = [...document.querySelectorAll('.archive-filter')];
+  const items = [...document.querySelectorAll('.archive-item')];
+  const empty = document.getElementById('archiveEmpty');
+  const count = document.getElementById('archiveCount');
+  const pager = document.getElementById('archivePager');
+  const pageButtons = document.getElementById('archivePages');
+  const [newer, older] = pager ? [...pager.querySelectorAll('[data-page-step]')] : [];
 
-    const apply = () => {
+  if (section && input && empty && count && pager && pageButtons) {
+    const state = { category: 'all', page: 1 };
+
+    const matching = () => {
       const query = input.value.trim().toLowerCase();
-      let visible = 0;
-      items.forEach(item => {
-        const matchesCategory = category === 'all' || item.dataset.category === category;
-        const matchesQuery = !query || (item.dataset.search || '').includes(query);
-        const show = matchesCategory && matchesQuery;
-        item.hidden = !show;
-        if (show) visible += 1;
-      });
-      count.textContent = `${visible} ${visible === 1 ? 'piece' : 'pieces'}`;
-      empty.classList.toggle('hidden', visible > 0);
+      return items.filter((item) => (state.category === 'all' || item.dataset.category === state.category)
+        && (!query || (item.dataset.search || '').includes(query)));
     };
 
-    const setCategory = next => {
-      category = next;
-      filters.forEach(button => {
-        button.setAttribute('aria-pressed', String(button.dataset.category === next));
-      });
-      apply();
+    function pageButton(page) {
+      const li = document.createElement('li');
+      if (page === 'gap') {
+        li.className = 'px-1 text-ink-3';
+        li.textContent = '…';
+        return li;
+      }
+      const button = Object.assign(document.createElement('button'), { type: 'button', className: 'archive-page num', textContent: String(page) });
+      button.setAttribute('aria-label', `Page ${page}`);
+      if (page === state.page) button.setAttribute('aria-current', 'page');
+      button.addEventListener('click', () => go(page));
+      li.append(button);
+      return li;
+    }
+
+    function render() {
+      const shown = matching();
+      const pages = pageCount(shown.length, PAGE_SIZE);
+      state.page = clampPage(state.page, shown.length, PAGE_SIZE);
+      const [start, end] = pageRange(state.page, shown.length, PAGE_SIZE);
+      const onPage = new Set(shown.slice(start, end));
+      items.forEach((item) => { item.hidden = !onPage.has(item); });
+      count.textContent = `${shown.length} ${shown.length === 1 ? 'piece' : 'pieces'}`
+        + (pages > 1 ? ` · page ${state.page} of ${pages}` : '');
+      empty.classList.toggle('hidden', shown.length > 0);
+      pager.hidden = pages < 2;
+      newer.disabled = state.page === 1;
+      older.disabled = state.page === pages;
+      pageButtons.replaceChildren(...pageList(state.page, pages).map(pageButton));
+    }
+
+    // A page change keeps the reader at the top of the list rather than wherever the pager was.
+    function go(page) {
+      state.page = page;
+      render();
+      if (section.getBoundingClientRect().top < 0) section.scrollIntoView({ block: 'start' });
+    }
+
+    const restart = () => { state.page = 1; render(); };
+    const setCategory = (next) => {
+      state.category = next;
+      filters.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.category === next)));
+      restart();
     };
 
-    input.addEventListener('input', apply);
-    filters.forEach(button => button.addEventListener('click', () => setCategory(button.dataset.category || 'all')));
-    reset?.addEventListener('click', () => {
+    input.addEventListener('input', restart);
+    filters.forEach((button) => button.addEventListener('click', () => setCategory(button.dataset.category || 'all')));
+    newer.addEventListener('click', () => go(state.page - 1));
+    older.addEventListener('click', () => go(state.page + 1));
+    document.getElementById('archiveReset')?.addEventListener('click', () => {
       input.value = '';
       setCategory('all');
     });
-  })();
+    render();
+  }
 </script>

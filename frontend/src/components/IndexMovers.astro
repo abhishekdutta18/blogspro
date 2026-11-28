@@ -1,0 +1,79 @@
+---
+/**
+ * IndexMovers — today's five best and five worst members of each index (Nifty 50, Sensex, Nifty Bank,
+ * S&P 500, Nasdaq-100, Nikkei 225), with how many rose and fell. Data: /data/movers.json, refreshed every
+ * 15 minutes while each market trades (scripts/publish-home-movers.js). Changes carry their sign, so the
+ * colour is never the only cue.
+ */
+const TABS = [
+  { id: 'nifty50', label: 'Nifty 50' },
+  { id: 'sensex', label: 'Sensex' },
+  { id: 'niftyBank', label: 'Nifty Bank' },
+  { id: 'sp500', label: 'S&P 500' },
+  { id: 'nasdaq100', label: 'Nasdaq-100' },
+  { id: 'nikkei225', label: 'Nikkei 225' },
+];
+---
+
+<section id="movers" class="pt-16 scroll-mt-6" aria-labelledby="movers-heading">
+  <div class="section-head">
+    <h2 id="movers-heading" class="section-title">Top and bottom performers</h2>
+    <span class="text-sm text-ink-3" data-movers-label>Loading…</span>
+  </div>
+
+  <div class="mb-4 flex flex-wrap gap-x-5 gap-y-2 text-sm" role="group" aria-label="Choose an index">
+    {TABS.map((tab, index) => (
+      <button type="button" class="lc-tab" data-movers-tab={tab.id} aria-pressed={String(index === 0)}>{tab.label}</button>
+    ))}
+  </div>
+
+  <p class="mb-4 text-xs text-ink-3" data-movers-breadth></p>
+  <div class="grid gap-x-10 gap-y-6 md:grid-cols-2">
+    <div class="min-w-0">
+      <h3 class="text-xs uppercase tracking-[0.14em] text-ink-3">Best 5 today</h3>
+      <ol class="mt-2 divide-y divide-rule text-sm" data-movers-list="gainers"></ol>
+    </div>
+    <div class="min-w-0">
+      <h3 class="text-xs uppercase tracking-[0.14em] text-ink-3">Worst 5 today</h3>
+      <ol class="mt-2 divide-y divide-rule text-sm" data-movers-list="losers"></ol>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { loadMovers } from '../lib/insights.js';
+  import { moverRow, breadthText, moversLabel } from '../lib/movers.js';
+
+  const root = document.getElementById('movers');
+  if (root) {
+    const tabs = [...root.querySelectorAll('[data-movers-tab]')];
+    const lists = Object.fromEntries([...root.querySelectorAll('[data-movers-list]')].map((el) => [el.dataset.moversList, el]));
+    const breadth = root.querySelector('[data-movers-breadth]');
+    let data = null;
+
+    function empty(text) {
+      return Object.assign(document.createElement('li'), { className: 'py-2 text-ink-3', textContent: text });
+    }
+
+    function render(id) {
+      tabs.forEach((t) => t.setAttribute('aria-pressed', String(t.dataset.moversTab === id)));
+      const index = data?.indices.find((i) => i.id === id);
+      if (!index) {
+        breadth.textContent = '';
+        lists.gainers.replaceChildren(empty('No data for this index yet.'));
+        lists.losers.replaceChildren();
+        return;
+      }
+      breadth.textContent = breadthText(index);
+      lists.gainers.replaceChildren(...(index.gainers.length ? index.gainers.map((m) => moverRow(m, index.currency)) : [empty('No member is up today.')]));
+      lists.losers.replaceChildren(...(index.losers.length ? index.losers.map((m) => moverRow(m, index.currency)) : [empty('No member is down today.')]));
+    }
+
+    tabs.forEach((tab) => tab.addEventListener('click', () => render(tab.dataset.moversTab)));
+    loadMovers().then((movers) => {
+      data = movers;
+      root.querySelector('[data-movers-label]').textContent = movers ? moversLabel(movers.generatedAt) : 'Performer data is unavailable right now.';
+      render(tabs.find((t) => t.getAttribute('aria-pressed') === 'true')?.dataset.moversTab ?? 'nifty50');
+    });
+  }
+</script>

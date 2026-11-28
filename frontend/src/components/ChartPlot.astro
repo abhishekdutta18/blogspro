@@ -1,0 +1,16 @@
+---
+/**
+ * ChartPlot — the plot area lib/lineChartView.js draws into: the SVG, the hover tooltip and the message
+ * shown until (or instead of) the chart. Height in px must match the height passed to createLineChart.
+ */
+interface Props { height: number; label: string; loading?: string }
+const { height, label, loading = 'Loading…' } = Astro.props;
+---
+<div class="relative mt-3" data-lc-plot>
+  <svg class="mc-svg overflow-visible" tabindex="0" role="img" aria-label={label} data-lc-svg hidden></svg>
+  <div class="mc-tip" data-lc-tip hidden>
+    <strong class="block font-mono num text-ink" data-lc-tip-title></strong>
+    <span class="block text-ink-3 num" data-lc-tip-detail></span>
+  </div>
+  <p class="mc-empty text-sm text-ink-3" style={`height:${height}px`} data-lc-empty>{loading}</p>
+</div>

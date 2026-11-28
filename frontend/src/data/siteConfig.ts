@@ -32,8 +32,9 @@ export const siteConfig: SiteConfig = {
     { id: 'banking', name: 'Banking Technology', description: 'ISO 20022/8583, RTGS, settlement architectures' }
   ],
   nav: [
+    { label: 'Briefings', href: '/briefings.html' },
     { label: 'Research', href: '/#research' },
-    { label: 'Policy calendar', href: '/#policy' },
+    { label: 'India macro', href: '/#policy' },
     { label: 'Markets', href: '/#markets' },
     { label: 'About', href: '/about.html' }
   ]

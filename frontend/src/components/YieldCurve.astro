@@ -1,0 +1,87 @@
+---
+/**
+ * YieldCurve — India's government bond yield curve from CCIL: the fitted zero-coupon curve for the latest
+ * day against the day before, the benchmark tenor yields as dots, and the same yields as a table.
+ * Data: /data/bonds.json (scripts/publish-home-bonds.js, hourly). The server also renders the chart to
+ * /data/charts/yield-curve.svg.
+ */
+import ChartPlot from './ChartPlot.astro';
+const HEIGHT = 260;
+---
+
+<section id="bonds" class="pt-16 scroll-mt-6" aria-labelledby="bonds-heading">
+  <div class="section-head">
+    <h2 id="bonds-heading" class="section-title">Indian bond yield curve</h2>
+    <span class="text-sm text-ink-3" data-bonds-label>Loading CCIL data…</span>
+  </div>
+
+  <figure>
+    <figcaption class="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-ink-2">
+      <span class="lc-key"><i class="lc-swatch lc-accent"></i><span data-key-latest>Latest</span></span>
+      <span class="lc-key" data-key-previous hidden><i class="lc-swatch lc-compare"></i><span></span></span>
+      <span class="lc-key"><i class="lc-swatch-dot"></i>Benchmark G-Sec yields</span>
+      <span class="ml-auto flex gap-4">
+        <button type="button" class="lc-action" data-svg-download="India government bond yield curve">Download SVG</button>
+        <a class="lc-action" href="/data/charts/yield-curve.svg" target="_blank" rel="noopener">Server SVG</a>
+      </span>
+    </figcaption>
+    <ChartPlot height={HEIGHT} label="India government bond yield curve" loading="Loading the yield curve…" />
+    <p class="mt-2 text-xs text-ink-3">
+      Zero-coupon curve fitted by CCIL (Nelson–Siegel–Svensson parameters); dots are CCIL's tenor-wise
+      indicative yields. Source: Clearing Corporation of India.
+    </p>
+  </figure>
+
+  <div class="mt-6 overflow-x-auto" data-bonds-table-wrap hidden>
+    <table class="w-full text-sm">
+      <caption class="pb-2 text-left text-xs uppercase tracking-[0.14em] text-ink-3">Benchmark G-Sec yields</caption>
+      <thead>
+        <tr class="border-b border-rule-strong text-left text-xs uppercase tracking-wider text-ink-3">
+          <th scope="col" class="py-2 pr-4 font-medium">Tenor</th>
+          <th scope="col" class="py-2 pr-4 font-medium">Security</th>
+          <th scope="col" class="py-2 font-medium text-right">Yield</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-rule" data-bonds-table></tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  import { loadBonds } from '../lib/insights.js';
+  import { createLineChart } from '../lib/lineChartView.js';
+  import { yieldCurveSpec, pct } from '../lib/insightCharts.js';
+  import { wireDownloads } from '../lib/svgExport.js';
+
+  const HEIGHT = 260;
+  const root = document.getElementById('bonds');
+  if (root) {
+    const chart = createLineChart(root.querySelector('figure'), { height: HEIGHT });
+    wireDownloads(root);
+    const cell = (text, cls) => Object.assign(document.createElement('td'), { className: cls, textContent: text });
+
+    loadBonds().then((bonds) => {
+      if (!bonds) {
+        root.querySelector('[data-bonds-label]').textContent = 'CCIL data is unavailable right now.';
+        chart.unavailable('The yield curve is unavailable right now.');
+        return;
+      }
+      const { latest, previous } = bonds;
+      root.querySelector('[data-bonds-label]').textContent = `CCIL, ${latest.date}`;
+      root.querySelector('[data-key-latest]').textContent = latest.date;
+      const prevKey = root.querySelector('[data-key-previous]');
+      if (previous) {
+        prevKey.querySelector('span').textContent = previous.date;
+        prevKey.hidden = false;
+      }
+      chart.draw(yieldCurveSpec(bonds));
+      const rows = bonds.benchmarks.map((b) => {
+        const row = document.createElement('tr');
+        row.append(cell(b.bucket, 'py-2 pr-4'), cell(b.security ?? '—', 'py-2 pr-4 text-ink-2'), cell(pct(b.yield), 'py-2 text-right font-mono num'));
+        return row;
+      });
+      root.querySelector('[data-bonds-table]').replaceChildren(...rows);
+      root.querySelector('[data-bonds-table-wrap]').hidden = rows.length === 0;
+    });
+  }
+</script>

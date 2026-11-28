@@ -1,0 +1,12 @@
+---
+/**
+ * Briefings page — every market briefing the pipeline has published, newest first.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import BriefingFeed from '../components/BriefingFeed.astro';
+import { siteConfig } from '../data/siteConfig';
+---
+
+<BaseLayout title={`Market briefings — ${siteConfig.name}`} description="Market briefings three times a day at 8 AM, 4 PM and 10 PM IST: Indian and global markets, the news that matters and our view.">
+  <BriefingFeed id="briefings" heading="Market briefings" limit={200} />
+</BaseLayout>
