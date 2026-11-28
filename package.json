@@ -9,7 +9,7 @@
     "generate": "node scripts/generate-article.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:smoke": "playwright test",
-    "test:charts": "node --test tests/chart-engine.test.mjs tests/chart-engine-features.test.mjs tests/chart-pipeline.test.mjs tests/chart-engine-finance.test.mjs tests/chart-engine-mobile.test.mjs tests/chart-engine-forms.test.mjs tests/chart-engine-resilience.test.mjs",
+    "test:charts": "node --test tests/chart-engine.test.mjs tests/chart-engine-features.test.mjs tests/chart-pipeline.test.mjs tests/chart-engine-finance.test.mjs tests/chart-engine-mobile.test.mjs tests/chart-engine-forms.test.mjs tests/chart-engine-resilience.test.mjs tests/dashboard-charts.test.mjs tests/miro-terminal-charts.test.mjs",
     "ecc:quality-gate": "node .claude/hooks-antigravity/quality-gate.cjs",
     "ecc:secret-scan": "node .claude/hooks-antigravity/secret-scanner.cjs",
     "ecc:install-hooks": "cp .claude/hooks-antigravity/pre-commit .git/hooks/pre-commit && cp .claude/hooks-antigravity/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-commit .git/hooks/pre-push && echo '✅ Git hooks installed'",

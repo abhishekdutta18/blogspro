@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BlogsPro | terminal-RL-pulse</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --nexus-bg: #050505;
@@ -267,11 +266,11 @@
             <div class="visuals">
                 <div class="chart-container">
                     <div class="stat-label" style="margin-bottom: 1.5rem">Vertical Performance Matrix</div>
-                    <canvas id="verticalChart" height="250"></canvas>
+                    <div id="verticalChart"></div>
                 </div>
                 <div class="chart-container">
                     <div class="stat-label" style="margin-bottom: 1.5rem">Failure Weight Analysis</div>
-                    <canvas id="failureChart" height="200"></canvas>
+                    <div id="failureChart"></div>
                 </div>
             </div>
 
@@ -288,14 +287,15 @@
     </div>
 
     <script>
-        let vChart, fChart;
+        // Classic script (inline onclick calls updateDashboard), so the engine helper is loaded once via import().
+        const chartsReady = import('./js/dashboard-charts.js');
 
         async function updateDashboard() {
             try {
                 const response = await fetch('knowledge/ai-feedback.json');
                 const data = await response.json();
                 renderStats(data);
-                renderCharts(data);
+                await renderCharts(data);
                 renderLogs(data);
             } catch (e) {
                 console.error("Ledger Sync Failure:", e);
@@ -314,7 +314,9 @@
             document.getElementById('val-rate').innerText = rate + '%';
         }
 
-        function renderCharts(data) {
+        async function renderCharts(data) {
+            const { mountDashboardChart } = await chartsReady;
+
             // Processing Vertical Data
             const verticals = {};
             data.forEach(d => {
@@ -327,25 +329,18 @@
             const successData = labels.map(l => verticals[l].success);
             const failData = labels.map(l => verticals[l].fail);
 
-            if (vChart) vChart.destroy();
-            vChart = new Chart(document.getElementById('verticalChart'), {
-                type: 'bar',
+            // Legend stays on: the engine palette is categorical, so color alone no longer says success vs failure.
+            mountDashboardChart(document.getElementById('verticalChart'), {
+                type: 'column',
                 data: {
                     labels,
                     datasets: [
-                        { label: 'Success', data: successData, backgroundColor: '#00FF9D', borderRadius: 4 },
-                        { label: 'Failure', data: failData, backgroundColor: '#FF4D4D', borderRadius: 4 }
+                        { label: 'Success', data: successData },
+                        { label: 'Failure', data: failData }
                     ]
                 },
-                options: {
-                    responsive: true,
-                    scales: {
-                        x: { stacked: true, grid: { display: false }, ticks: { color: '#888', font: { family: 'Outfit', size: 10 } } },
-                        y: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
-            });
+                options: { scales: { x: { stacked: true }, y: { stacked: true } } }
+            }, { empty: 'No ledger entries yet' });
 
             // Processing Failure Types
             const failures = {};
@@ -360,23 +355,11 @@
             const fLabels = Object.keys(failures).sort((a,b) => failures[b] - failures[a]).slice(0, 5);
             const fData = fLabels.map(l => failures[l]);
 
-            if (fChart) fChart.destroy();
-            fChart = new Chart(document.getElementById('failureChart'), {
+            mountDashboardChart(document.getElementById('failureChart'), {
                 type: 'pie',
-                data: {
-                    labels: fLabels,
-                    datasets: [{
-                        data: fData,
-                        backgroundColor: ['#EBC934', '#EB9334', '#EB5B34', '#EB3434', '#EB34C3'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    plugins: { 
-                        legend: { position: 'right', labels: { color: '#888', font: { family: 'Outfit', size: 11 } } } 
-                    }
-                }
-            });
+                data: { labels: fLabels, datasets: [{ label: 'Failures', data: fData }] },
+                options: { cutout: 0 } // Chart.js 'pie' is solid; the engine otherwise defaults to a donut
+            }, { empty: 'No failures recorded' });
         }
 
         function renderLogs(data) {

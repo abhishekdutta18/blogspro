@@ -10,14 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=DM+Sans:wght@300;400;500;600&family=Noto+Sans:wght@400;500&display=swap" rel="stylesheet" />
   <!-- DOMPurify — XSS protection for all AI-generated HTML -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
-  <!-- Chart.js for analytics -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-  <!-- Google Charts — used by chart-builder.js for interactive article charts -->
-  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-  <script type="text/javascript">
-    window.bpChartsReady = google.charts.load('current', { packages: ['corechart'] });
-  </script>
   <!-- Sentry Error Tracking -->
   <!-- Consolidated Sentry Configuration -->
   <script src="js/sentry-init-v2.js"></script>
@@ -472,17 +464,13 @@ window.addEventListener('load', () => {
             <div class="inst-pane-header">
               <div class="inst-pane-title">Reliability Matrix</div>
             </div>
-            <div style="height:200px">
-                <canvas id="swarmSuccessChart"></canvas>
-            </div>
+            <div id="swarmSuccessChart"></div>
         </div>
         <div class="inst-pane" style="margin-bottom:0">
             <div class="inst-pane-header">
               <div class="inst-pane-title">Agent Latency</div>
             </div>
-            <div style="height:200px">
-                <canvas id="swarmLatencyChart"></canvas>
-            </div>
+            <div id="swarmLatencyChart"></div>
         </div>
     </div>
     
