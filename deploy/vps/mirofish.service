@@ -1,0 +1,35 @@
+# MiroFish backend (Flask + camel-oasis) on the BlogsPro pipeline VPS.
+# Installed to /etc/systemd/system/mirofish.service by deploy/vps/deploy-mirofish.sh.
+# Reachable only at http://127.0.0.1:5001 (health: /health). No public port.
+[Unit]
+Description=MiroFish backend (OASIS simulation API, localhost only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mirofish
+Group=mirofish
+WorkingDirectory=/opt/mirofish/app
+# Secrets (LLM_API_KEY, LLM_BASE_URL, LLM_MODEL_NAME, ZEP_API_KEY) stay in the
+# shared env file; systemd reads it as root, so the mirofish user never can.
+EnvironmentFile=-/var/www/blogspro/.env
+# run.py reads FLASK_HOST/PORT/FLASK_DEBUG. EnvironmentFile= overrides
+# Environment=, so `env` sets them last: a PORT or FLASK_HOST in .env cannot
+# move the bind off loopback or re-enable the Werkzeug debugger.
+ExecStart=/usr/bin/env FLASK_HOST=127.0.0.1 PORT=5001 FLASK_DEBUG=false PYTHONUNBUFFERED=1 HOME=/opt/mirofish /opt/mirofish/venv/bin/python run.py
+Restart=on-failure
+RestartSec=5
+# SIGTERM to the app first: its handler stops running simulation subprocesses.
+KillMode=mixed
+TimeoutStopSec=30
+MemoryMax=8G
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/mirofish
+
+[Install]
+WantedBy=multi-user.target
