@@ -1,187 +1,173 @@
-# BlogsPro Institutional Intelligence Pipeline
+# BlogsPro
 
-BlogsPro is an autonomous, sovereign-grade institutional intelligence pipeline. It leverages a hierarchical multi-agent swarm, Vertex AI Model Garden, and Continuous Learning to synthesize, audit, and distribute high-density strategic research across four frequencies (Hourly, Daily, Weekly, Monthly).
+Market research for Indian and global markets, written by an LLM pipeline and published at
+**[blogspro.in](https://blogspro.in)**. The site carries three market editions a day, daily and weekly research
+pieces, and a homepage of live market data: index quotes with intraday charts, top and bottom movers,
+the CCIL government bond yield curve, India macro series, and TimesFM forecasts.
 
-**Live site:** <https://blogspro.in>
-
----
-
-## Architecture & Infrastructure
-
-| Layer | Technology |
-| --- | --- |
-| **Hosting** | GitHub Pages (Static generated) |
-| **Container Orchestration** | Google Kubernetes Engine (GKE) |
-| **Database & Persistence** | Firebase Firestore |
-| **Authentication** | Firebase Auth |
-| **Edge Compute** | Cloudflare Workers & KV Cache |
-| **Email Distribution** | Resend API (`newsletter@mail.blogspro.in`) |
-| **Error Monitoring** | Sentry (Webhook to Telegram & GitHub) |
-| **AI Orchestration Backbone** | Vertex AI & Google AI Studio (Native `@google/genai` integration) |
-| **Sovereign AI Fleet** | LLaMA 405B, Gemini 1.5 Pro/Flash, Claude 3.5 Sonnet, DeepSeek V3, Cerebras, Groq |
-| **Governance & Security** | Everything Claude Code (ECC) Antigravity Hooks |
-| **CI/CD** | GitHub Actions |
+> **Repository status.** Production is ahead of `main`. The VPS scheduling, market editions and homepage
+> data jobs are deployed from open pull requests (see [Work in open pull requests](#work-in-open-pull-requests)).
+> This README describes the system as it runs today and marks what is not merged yet.
 
 ---
 
-## Institutional Persona & Mandate
-
-The pipeline is strictly governed by the following core principles (defined in `SOUL.md`):
-
-1. **Truth-First**: All content must be cynical, data-driven, and devoid of promotional language. No bullish fluff. No brand mentions.
-2. **Sovereign AI**: The pipeline operates exclusively through cloud-native providers (Vertex AI / Model Garden). No local desktop fallbacks.
-3. **Set and Forget**: Fully autonomous operations. Failures self-heal via an advanced `AI-Balancer` using fleet rotation, node blacklisting, and a mandatory 65-second exponential backoff recovery.
-4. **Institutional Density**: Every generated word must carry analytical weight. No filler, no hedging.
-
----
-
-## AI Pipeline — Swarm Architecture
-
-The pipeline synthesizes research through a multi-tier agent structure governed by the `ResourceManager` and `AI-Balancer`.
+## How it works
 
 ```mermaid
-graph TD
-    Trigger[GitHub Action / Pulse Dispatch] --> Orchestrator[Swarm Orchestrator]
-    Orchestrator --> Researcher[Researcher Agent]
-    subgraph Research_Intelligence
-        Researcher --> Search[Gemini Fleet Search]
-        Researcher --> Wire[News Wire Generator]
+graph LR
+    subgraph AI_VPS["Pipeline VPS (systemd timers)"]
+        T1[Editions 08/16/22 IST] --> Gen[generate-institutional-tome.js]
+        T2[Daily / weekly research] --> Gen
+        Gen --> Fleet[LLM fleet]
+        T3[Market data jobs] --> Data["data/*.json + SVG charts"]
     end
-    Researcher --> Brief[Research Brief]
-    Brief --> Swarm[16-Vertical Swarm]
-    subgraph Swarm_Verticals
-        Swarm --> Drafter[Drafter Agent]
-        Swarm --> Critic[Fidelity Critic]
-    end
-    Swarm_Verticals --> MiroFish[MiroFish Consensus QA]
-    MiroFish --> Editor[Truth-First Editor]
-    Editor --> Governor[Fidelity Governor]
-    Governor --> Export[HTML / PDF Archive]
-    Export --> Firebase[Firebase & Static Push]
+    Gen --> Out[briefings/ · articles/ · p/]
+    Out --> Web
+    Data --> Web[Web VPS · nginx]
+    Web --> CF[Cloudflare] --> Readers
+    Gen --> Alerts[Telegram alerts · Resend newsletter]
 ```
 
-**AI Tiers (Node Pool):**
+1. **Generation.** systemd timers on the pipeline VPS run `scripts/generate-institutional-tome.js`, which
+   gathers live news and market data, sends it through the LLM fleet, and renders static HTML.
+2. **Publishing.** Output is written under `/var/www/blogspro` and rsynced to the web VPS. nginx serves it
+   behind Cloudflare. Secrets and key files are excluded from every sync.
+3. **Homepage data.** Separate jobs refresh `data/*.json` on their own schedules. The Astro homepage in
+   `frontend/` fetches those files in the browser, so market data updates without rebuilding the site.
+4. **Distribution.** Editions trigger a Telegram alert. Newsletters go out through Resend from a Cloudflare
+   Worker.
 
-| Tier | Role | Primary Nodes |
+### Schedules (pipeline VPS)
+
+| Job | When | Output |
 | --- | --- | --- |
-| **Tier 1 (Anchor)** | Core synthesis, Management | LLaMA 405B (Vertex), SambaNova 405B, Claude 3.5 Sonnet |
-| **Tier 2 (Audit)** | Verification, Repair | Cerebras (Llama 8B), Groq 70B, Gemma 2 9B |
-| **Tier 3 (Generate)** | Raw drafting, Search | Gemini 1.5 Pro, Gemini 1.5 Flash (Native) |
-| **Tier 4 (Utility)** | Proxies, Bridges | Cloudflare AI, HuggingFace, DeepSeek V3 |
+| Market editions | 08:00, 16:00, 22:00 IST | Morning brief, India close, US open (`briefings/`) |
+| Daily research | 00:00 UTC | `articles/` |
+| Weekly research | Sunday 01:00 UTC | `articles/` |
+| Markets | every 5 min | `data/markets.json`: quotes plus 5-minute intraday points |
+| Movers | every 15 min | `data/movers.json`: best/worst 5 per index (Nifty 50, Sensex, Nifty Bank, S&P 500, Nasdaq-100, Nikkei 225) |
+| Policy and macro | twice an hour (macro at most every 6 h) | `data/policy.json`: event calendar, MoSPI CPI/WPI/IIP/GDP/unemployment |
+| Bonds | hourly | `data/bonds.json`: CCIL G-Sec yield curve |
+| Charts | hourly | `data/charts/*.svg`: yield curve, macro and forecast charts |
+| Forecasts | 01:30 UTC daily | `data/forecasts.json`: 5-session index and 3-period macro forecasts |
 
-**Core Pipeline Scripts:**
-- `scripts/generate-institutional-tome.js` — The master generation cascade (handles `--freq=hourly|daily|weekly|monthly`).
-- `scripts/lib/ai-service.js` — Autonomous node pool rotation, error blacklisting, and `@google/genai` dispatch.
-- `scripts/lib/swarm-orchestrator.js` — Multi-agent orchestration and context consolidation.
-- `scripts/lib/storage-bridge.js` — GKE Workload Identity REST wrapper for Firebase/Firestore persistence.
+Runs take a shared lock, so generation and data jobs never write at the same time.
+
+### LLM fleet
+
+`scripts/lib/ai-service.js` rotates requests across providers, blacklists failing nodes, and pauses 65 s
+when the whole fleet is exhausted. In production the fleet is Groq, Sarvam, Cloudflare Workers AI, and
+two Groq bridges. Gemini and Cerebras are switched off in the production configuration. The code still
+supports SambaNova, Hugging Face, Mistral and DeepSeek.
+
+Generated copy follows the house style in `SOUL.md`: data first, no promotional language, and **never the
+name "BlogsPro" in the body of generated content**.
+
+Model output is rendered by `scripts/lib/templates.js`. PR #537 makes the templates treat it as untrusted:
+they escape and sanitize it before rendering HTML.
+
+### Forecasts
+
+Forecasts use Google's **TimesFM** time-series model:
+
+- **Primary:** BigQuery `AI.FORECAST` (TimesFM 2.0). Series are passed only as a query parameter.
+- **Fallback:** if BigQuery fails, the same series go to TimesFM 3.0 running on the VPS CPU
+  (`scripts/lib/home-forecasts/timesfm_local.py`).
+
+Every section records which engine produced it, and if both engines fail the previous file is kept. In a
+170-window backtest on the site's own index series, TimesFM was about 6% less accurate than a
+"no change" forecast, and its 80% bands covered 74% of outcomes. Read the forecasts as ranges, not
+signals.
 
 ---
 
-## Key Directories
+## Repository layout
 
 ```text
-k8s/              Google Kubernetes Engine (GKE) deployment manifests
-scripts/lib/      AI pipeline core (ai-service.js, swarm-orchestrator.js)
-scripts/          Pipeline scripts and utilities
-api/              Cloudflare Worker source files
-js/               Frontend JavaScript modules
-mirofish/         Python backend (FastAPI)
-briefings/        Generated hourly/daily briefings
-articles/         Generated weekly/monthly manuscripts
-p/                Generated static SEO pages
-workers/sentry/   Sentry webhook worker
-.github/workflows GitHub Actions CI/CD pipelines
+scripts/                    pipeline entry points and one-off utilities
+scripts/lib/                pipeline core: ai-service, swarm-orchestrator, templates, storage-bridge, news
+frontend/                   Astro + Tailwind site (homepage, about, auth pages, post template)
+api/                        Cloudflare Worker sources (newsletter, SEO, Sentry webhook, Upstox, Telegram)
+workers/                    more Workers (KV cache, Sentry webhook config)
+mirofish/                   Python (FastAPI) multi-agent simulation backend
+briefings/  articles/  p/   generated content and static post pages
+k8s/                        GKE manifests from the earlier deployment (not used in production now)
+tests/                      node:test unit tests and Playwright specs
+.github/workflows/          CI, Worker deploys, Sentry triage, scheduled syncs
 ```
+
+Key pipeline files:
+
+| File | Role |
+| --- | --- |
+| `scripts/generate-institutional-tome.js` | Entry point for every frequency (`--freq=hourly\|daily\|weekly\|monthly`) |
+| `scripts/lib/ai-service.js` | Provider rotation, retries, fleet-exhaustion pause |
+| `scripts/lib/swarm-orchestrator.js` | Multi-agent drafting and review |
+| `scripts/lib/news-orchestrator.js` | Live news gathered before each run |
+| `scripts/lib/templates.js`, `briefing-template.js` | HTML rendering |
+| `scripts/lib/storage-bridge.js` | Persistence (Firestore, GitHub, local disk) |
 
 ---
 
-## Everything Claude Code (ECC) Integration
+## Cloudflare Workers
 
-BlogsPro utilizes a custom, native implementation of **ECC (Everything Claude Code)**. Unlike standard setups, our governance logic is fully **Antigravity-native** and decoupled from the Claude Code CLI.
-
-All hooks reside in `.claude/hooks-antigravity/` and are enforced via `pre-commit` and `pre-push`:
-- `governance-gate.cjs` — Enforces secrets scanning (14 patterns) and architectural policy (blocks `localhost` in prod).
-- `design-quality-check.cjs` — Ensures HTML/CSS does not drift into generic templates (blocks raw Bootstrap, Lorem Ipsum).
-- `cost-tracker.cjs` — Proxies token usage by logging file frequencies and line counts.
-- `continuous-learning.cjs` — Extracts patterns from AI tool usage to refine future swarm orchestration.
-- `format-typecheck.cjs` — Batch formatting and type-checking barrier.
-
-Run the full audit manually:
-```bash
-npm run ecc:full-audit
-```
-
----
-
-## Cloudflare Edge Workers
-
-| Worker | Config | Purpose |
+| Worker | Source / config | Purpose |
 | --- | --- | --- |
-| `blogspro-newsletter` | `wrangler.toml` | Dispatches briefs via Resend Batch API |
-| `blogspro-seo-worker` | `wrangler-seo.toml` | Dynamic SEO injection for OpenGraph and Twitter cards |
-| `blogspro-sentry-webhook` | `workers/sentry/wrangler.toml` | Catches Sentry events, triggers Telegram alerts, creates GitHub issues |
-| `blogspro-upstox` | `api/upstox-worker.js` | Secure market data proxy |
+| `blogspro-newsletter` | `api/newsletter-worker.js`, `wrangler.toml` | Newsletter sending through the Resend batch API |
+| `blogspro-seo-worker` | `api/seo-worker.js`, `wrangler-seo.toml` | Open Graph and Twitter meta tags for post pages |
+| `blogspro-sentry-webhook` | `workers/sentry/wrangler.toml` | Sentry events → Telegram alerts and GitHub issues |
+| `blogspro-upstox` | `api/upstox-worker.js` | Read-only market data proxy |
+
+Each Worker deploys from its own GitHub Actions workflow when its source changes.
 
 ---
 
-## Local Setup & Development
+## Development
 
-### Prerequisites
-- Node.js 18+
-- Wrangler CLI (`npm i -g wrangler`)
-
-### Installation
+Requirements: Node.js 20+, npm. Wrangler is only needed to deploy Workers.
 
 ```bash
 npm install
-npm run ecc:install-hooks  # Installs the Antigravity Git hooks
-```
+npm run ecc:install-hooks          # pre-commit / pre-push checks (secret scan, quality gate)
 
-### Environment Configuration
+# Site
+cd frontend && npm install && npm run dev
 
-The pipeline utilizes `.env` in local development but relies on GitHub Secrets and GKE Workload Identity in production. Required variables:
-```env
-# AI APIs
-GEMINI_API_KEY=
-GROQ_API_KEY=
-CEREBRAS_API_KEY=
-SAMBANOVA_API_KEY=
-CLOUDFLARE_API_TOKEN=
-CF_ACCOUNT_ID=
-
-# GCP & Firebase
-GOOGLE_CLOUD_PROJECT=
-FIREBASE_PROJECT_ID=
-FIREBASE_SERVICE_ACCOUNT_KEY_PATH=/path/to/sa.json
-
-# Utility
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_CHAT_ID=
-```
-
-### Running the Swarm Locally
-
-```bash
-# Force an hourly brief generation (dry runs if API keys are missing)
+# One pipeline run (needs provider keys in .env)
 node scripts/generate-institutional-tome.js --freq=hourly --force
+
+# Tests
+node --test tests/*.test.mjs
+npm run test:smoke                 # Playwright
 ```
 
-## Fixed Bugs & Resolution History
+Configuration comes from a `.env` file in the project root and is never committed. A local run needs at
+least one LLM provider key (for example `GROQ_API_KEY`). Optional integrations use their own variables:
+Telegram (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`), Firebase (`FIREBASE_SERVICE_ACCOUNT_KEY_PATH`),
+Sentry, and Resend. Workers read their secrets from Cloudflare, not from `.env`.
 
-To prevent regressions and track maintenance efforts, all fixed bugs are logged here:
+### Contributing
 
-### Infrastructure & Security
-- **Mirofish API Path Traversal Bounds**: Enforced strict directory constraints across `kv.py`, `simulation.py`, and `simulation_manager.py` preventing relative pathway escapes.
-- **Duplicate Operational Clones**: Cleared redundant backup variants (`__init__ 3.py`, `config 3.py`, etc.) from staging.
+- Branch from `main` (`claude/topic-name` for agent work) and open a pull request. Don't push to `main`.
+- Commit messages use conventional types (`feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`).
+- Never commit secrets. The hooks scan for them, and `SECURITY.md` covers reporting.
 
-### Operations & Pipelines
-- **Hourly Pulse 404 Accessibility**: Resolved routing generation mismatch discrepancies.
-- **Swarm ReferenceError Suppression**: Patched `ReferenceError` instances for `sectorResults` and `telemetry` in `swarm-orchestrator.js` by enforcing rigorous variable initialization and null-safety.
-- **Sentry Alert Noise Abatement**: De-escalated redundant "Blackboard" memos from high-priority Sentry alerts to low-overhead breadcrumbs.
-- **AI Gateway Resilience**: Hardened Cloudflare AI Gateway handlers with exponential backoff retries to absorb transient model rate limits (HTTP 429).
-- **CI/CD Smoke Test Failures**: Resolved persistent failures by hardening module loading tests (using `domcontentloaded` and polling instead of static timeouts) and eliminating residual Git conflict markers in `init.js` that caused fatal syntax errors in production deployments.
-- **Graph Generation Stability**: Resolved a `ReferenceError` during AI GraphRAG extraction by importing `getSemanticGatingPrompt` properly in `knowledge-graph.js`.
-- **Frontend State Initialization**: Fixed race condition in `post.html` where rendering initiated before fetching Site Settings, resolving transient display bugs.
+---
+
+## Work in open pull requests
+
+These are deployed in production but not merged into `main` yet:
+
+| PR | What it adds |
+| --- | --- |
+| #542 | systemd pulse on the pipeline VPS (replaces `scripts/oracle-cron-runner.sh`), fleet retry fix |
+| #553 | three daily market editions, homepage data jobs (`deploy/vps/`), TimesFM forecasts with local fallback |
+| #550 | homepage sections for briefings, markets, yield curve, macro charts, forecasts, movers; research pagination |
+| #537 | HTML/script-injection hardening of article templates |
+| #543, #544 | moving storage from Firestore to Postgres (in progress) |
+
+The `deploy/vps/README.md` added by those branches is the runbook for the VPS services.
+
 ---
 
 ## License
