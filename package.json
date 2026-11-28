@@ -7,7 +7,7 @@
   "scripts": {
     "serve:api": "node scripts/local-api-server.js",
     "generate": "node scripts/generate-article.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test \"scripts/lib/__tests__/*.test.js\"",
     "test:smoke": "playwright test",
     "test:charts": "node --test tests/chart-engine.test.mjs tests/chart-engine-features.test.mjs tests/chart-pipeline.test.mjs tests/chart-engine-finance.test.mjs tests/chart-engine-mobile.test.mjs tests/chart-engine-forms.test.mjs tests/chart-engine-resilience.test.mjs",
     "ecc:quality-gate": "node .claude/hooks-antigravity/quality-gate.cjs",
